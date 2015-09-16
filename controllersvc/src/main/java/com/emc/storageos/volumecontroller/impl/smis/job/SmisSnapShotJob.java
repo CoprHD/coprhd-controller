@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
@@ -34,8 +24,8 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 public class SmisSnapShotJob extends SmisJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisSnapShotJob.class);
 
-    public SmisSnapShotJob ( CIMObjectPath cimJob, URI storageSystem,
-            TaskCompleter taskCompleter, String jobName ) {
+    public SmisSnapShotJob(CIMObjectPath cimJob, URI storageSystem,
+            TaskCompleter taskCompleter, String jobName) {
         super(cimJob, storageSystem, taskCompleter, jobName);
     }
 
@@ -61,8 +51,8 @@ public class SmisSnapShotJob extends SmisJob {
             Long provisionedCapacity = Long.valueOf(consumableBlocks.getValue()
                     .toString()) * Long.valueOf(blockSize.getValue().toString());
             snapShot.setProvisionedCapacity(provisionedCapacity);
-            
-            //set Allocated Capacity
+
+            // set Allocated Capacity
             CloseableIterator<CIMInstance> iterator = null;
             iterator = client.referenceInstances(syncVolume.getObjectPath(),
                     SmisConstants.CIM_ALLOCATED_FROM_STORAGEPOOL, null, false,
@@ -90,14 +80,19 @@ public class SmisSnapShotJob extends SmisJob {
 
     /*
      * Set settings instance for VMAX V3 only
+     * 
      * @param StorageSytem storage
+     * 
      * @param snapshot BlockSnapshot to be updated
+     * 
      * @param sourceElementId String of source volume (or source group) ID
+     * 
      * @elementName String used as ElementName when creating ReplicationSettingData during single snapshot creation,
-     *      or RelationshipName used in CreateGroupReplica for group snapshot
-     *
+     * or RelationshipName used in CreateGroupReplica for group snapshot
+     * 
      * Note elementName should be target device's DeviceID or target group ID
-     * @see com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxSnapshotOperations#getReplicationSettingData   
+     * 
+     * @see com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxSnapshotOperations#getReplicationSettingData
      */
     private void setSettingsInstance(StorageSystem storage,
             BlockSnapshot snapshot, String sourceElementId, String elementName) {

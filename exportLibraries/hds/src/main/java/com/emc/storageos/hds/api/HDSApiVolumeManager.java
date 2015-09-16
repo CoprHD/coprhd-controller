@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.hds.api;
 
@@ -50,7 +40,7 @@ import com.sun.jersey.api.client.ClientResponse;
 
 /**
  * This volume manager is responsible creating volumes/delete volumes.
- *
+ * 
  */
 public class HDSApiVolumeManager {
 
@@ -58,15 +48,16 @@ public class HDSApiVolumeManager {
      * Logger instance to log messages.
      */
     private static final Logger log = LoggerFactory.getLogger(HDSApiVolumeManager.class);
-    
+
     private HDSApiClient hdsApiClient;
-    
+
     public HDSApiVolumeManager(HDSApiClient hdsApiClient) {
         this.hdsApiClient = hdsApiClient;
     }
 
     /**
      * Creates the Thick volume with the passed information.
+     * 
      * @TODO we should add support for multi volume creation by constructing the xml with new attributes. rest will work fine.
      * @param systemId : represents SystemObjectID.
      * @param arrayGroupId : represents StoragePoolObjectID.
@@ -136,7 +127,7 @@ public class HDSApiVolumeManager {
         }
         return asyncTaskMessageId;
     }
-    
+
     /**
      * Creates the Thin volume with the passed information.
      * 
@@ -172,8 +163,7 @@ public class HDSApiVolumeManager {
                     HDSConstants.CREATE_THIN_VOLUMES_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                     HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-            
-            
+
             log.info("Query to create thin Volume: {}", createVolumeInputXML);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI, createVolumeInputXML);
@@ -210,8 +200,7 @@ public class HDSApiVolumeManager {
         }
         return asyncTaskMessageId;
     }
-    
-    
+
     /**
      * Modify the Virtual Volumes with the passed information.
      * 
@@ -231,14 +220,14 @@ public class HDSApiVolumeManager {
             Modify modifyOp = new Modify(HDSConstants.VIRTUALVOLUME, false);
             LogicalUnit logicalUnit = new LogicalUnit(luObjectId, String.valueOf(luCapacityInKB));
             attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
-            
+
             attributeMap.put(HDSConstants.MODIFY, modifyOp);
             attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnit);
             String modifyVolumeInputXML = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.MODIFY_THIN_VOLUME_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                     HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-            
+
             log.info("Query to modify Thin Volume: {}", modifyVolumeInputXML);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI, modifyVolumeInputXML);
@@ -251,7 +240,8 @@ public class HDSApiVolumeManager {
                 } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                     Error error = result.getBean(Error.class);
                     log.error("Thin Volume modification failed status messageID: {}", command.getMessageID());
-                    log.error("Thin Volume modification failed with error code: {} with message: {}", error.getCode(), error.getDescription());
+                    log.error("Thin Volume modification failed with error code: {} with message: {}", error.getCode(),
+                            error.getDescription());
                     throw HDSException.exceptions.notAbleToCreateVolume(
                             error.getCode(), error.getDescription());
 
@@ -275,10 +265,10 @@ public class HDSApiVolumeManager {
         }
         return asyncTaskMessageId;
     }
-    
 
     /**
      * Formats the LogicalUnit.
+     * 
      * @param systemObjectId
      * @param luObjectId
      * @return
@@ -289,16 +279,16 @@ public class HDSApiVolumeManager {
         Object params[] = null;
         String asyncTaskMessageId = null;
         try {
-            
+
             Map<String, Object> attributeMap = new HashMap<String, Object>();
             StorageArray storageArray = new StorageArray(systemObjectId);
             Modify modifyOp = new Modify(HDSConstants.LU_FORMAT_TARGET, true);
             LogicalUnit logicalUnit = new LogicalUnit(luObjectId, null);
             attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
-            
+
             attributeMap.put(HDSConstants.MODIFY, modifyOp);
             attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnit);
-            
+
             String fromatVolumeInputXML = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.FORMAT_VOLUME_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
@@ -338,13 +328,12 @@ public class HDSApiVolumeManager {
         }
         return asyncTaskMessageId;
     }
-    
-    
+
     public String deleteThickLogicalUnits(String systemObjectID, Set<String> logicalUnitIdList)
             throws Exception {
         InputStream responseStream = null;
         String asyncTaskMessageId = null;
-        
+
         try {
             // If the LogicalUnits are LUSE, we should release them.
             releaseLUSEVolumesIfPresent(systemObjectID, logicalUnitIdList);
@@ -363,7 +352,7 @@ public class HDSApiVolumeManager {
                     HDSConstants.DELETE_VOLUMES_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                     HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-            
+
             log.debug("volume delete payload :{}", deleteVolumesInputXML);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI,
@@ -402,12 +391,12 @@ public class HDSApiVolumeManager {
         }
         return asyncTaskMessageId;
     }
-    
+
     public String deleteThinLogicalUnits(String systemObjectID, Set<String> logicalUnitIdList)
             throws Exception {
         InputStream responseStream = null;
         String asyncTaskMessageId = null;
-        
+
         try {
             Map<String, Object> attributeMap = new HashMap<String, Object>();
             StorageArray storageArray = new StorageArray(systemObjectID);
@@ -424,7 +413,7 @@ public class HDSApiVolumeManager {
                     HDSConstants.DELETE_VOLUMES_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                     HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-            
+
             log.info("volume delete payload :{}", deleteVolumesInputXML);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI,
@@ -463,10 +452,11 @@ public class HDSApiVolumeManager {
         }
         return asyncTaskMessageId;
     }
-    
+
     /**
      * When we delete a logicalunit we should first check whether it is LUSE volume or not.
      * If it is LUSE volume, then we should release LUSE and delete all volumes.
+     * 
      * @param systemObjectID
      * @param logicalUnitIdList
      */
@@ -481,24 +471,25 @@ public class HDSApiVolumeManager {
                         continue;
                     }
                     if (logicalUnit.getComposite() == 1) {
-                        // Releasing LUSE don't delete underlying LDEV. 
+                        // Releasing LUSE don't delete underlying LDEV.
                         // Should we delete them?
                         releaseLUSE(systemObjectID, logicalUnitObjectId);
                     }
                 } catch (Exception e) {
-                	log.error(e.getMessage(),e);
+                    log.error(e.getMessage(), e);
                 }
-                
+
             }
         }
     }
 
     /**
      * Return the storagepool information.
+     * 
      * @param systemObjectId
      * @param poolObjectId
      * @return
-     * @throws Exception 
+     * @throws Exception
      */
     public Pool getStoragePoolInfo(String systemObjectId, String poolObjectId) throws Exception {
         String poolQueryWithParams = null;
@@ -511,11 +502,11 @@ public class HDSApiVolumeManager {
         Get getOp = new Get(HDSConstants.STORAGEARRAY);
         attributeMap.put(HDSConstants.GET, getOp);
         Pool pool = new Pool(poolObjectId);
-        
+
         if (poolObjectId.contains(HDSConstants.ARRAYGROUP)) {
             attributeMap.put(HDSConstants.ARRAY_GROUP, pool);
             poolMethodType = HDSConstants.GET_ARRAYGROUP_INFO_OP;
-        } else if (poolObjectId.contains(HDSConstants.JOURNALPOOL)){
+        } else if (poolObjectId.contains(HDSConstants.JOURNALPOOL)) {
             attributeMap.put(HDSConstants.JOURNAL_POOL, pool);
             poolMethodType = HDSConstants.GET_JOURNAL_POOL_INFO_OP;
         }
@@ -523,7 +514,7 @@ public class HDSApiVolumeManager {
                 poolMethodType, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-       
+
         URI endpointURI = hdsApiClient.getBaseURI();
         log.info("Storagepool info query payload :{}", getStoragePoolInputXML);
         ClientResponse response = hdsApiClient.post(endpointURI, getStoragePoolInputXML);
@@ -532,21 +523,21 @@ public class HDSApiVolumeManager {
             JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
             verifyErrorPayload(result);
             storagePool = result.getBean(Pool.class);
-            
+
         } else {
             log.error("Get StoragePool info failed with invalid response code {}",
                     response.getStatus());
             throw HDSException.exceptions
-            .invalidResponseFromHDS(String
-                    .format("Not able to query StoragePool info due to invalid response %1$s from server for system %2$s",
-                            response.getStatus(), systemObjectId));
+                    .invalidResponseFromHDS(String
+                            .format("Not able to query StoragePool info due to invalid response %1$s from server for system %2$s",
+                                    response.getStatus(), systemObjectId));
         }
         return storagePool;
     }
-    
-    
+
     /**
      * Utility method to check if there are any errors or not.
+     * 
      * @param javaResult
      * @throws Exception
      */
@@ -555,8 +546,8 @@ public class HDSApiVolumeManager {
         if (null == command || null == command.getStatus()
                 || HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
             Error error = javaResult.getBean(Error.class);
-            if(command !=null){
-            	log.info("Error response received for messageID", command.getMessageID());
+            if (command != null) {
+                log.info("Error response received for messageID", command.getMessageID());
             }
             log.info("command failed with error code: {} with message {}",
                     error.getCode(), error.getDescription());
@@ -567,6 +558,7 @@ public class HDSApiVolumeManager {
 
     /**
      * Return the LogicalUnit info for the given logicalUnitObjectId.
+     * 
      * @param systemObjectId
      * @param logicalUnitObjectId
      * @return
@@ -576,7 +568,7 @@ public class HDSApiVolumeManager {
         StringBuilder logicalUnitXMLPart = new StringBuilder();
         InputStream responseStream = null;
         LogicalUnit logicalUnit = null;
-        
+
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         StorageArray storageArray = new StorageArray(systemObjectId);
         Get getOp = new Get(HDSConstants.STORAGEARRAY);
@@ -584,12 +576,12 @@ public class HDSApiVolumeManager {
         attributeMap.put(HDSConstants.GET, getOp);
         LogicalUnit lu = new LogicalUnit(logicalUnitObjectId, null);
         attributeMap.put(HDSConstants.LOGICALUNIT, lu);
-        
+
         String getLogicalUnitsInputXML = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.GET_LOGICALUNITS_OP, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-        
+
         URI endpointURI = hdsApiClient.getBaseURI();
         log.info("Volume info query payload :{}", getLogicalUnitsInputXML);
         ClientResponse response = hdsApiClient.post(endpointURI, getLogicalUnitsInputXML);
@@ -602,15 +594,16 @@ public class HDSApiVolumeManager {
             log.error("Get LogicalUnit info failed with invalid response code {}",
                     response.getStatus());
             throw HDSException.exceptions
-            .invalidResponseFromHDS(String
-                    .format("Not able to query LogicalUnit info due to invalid response %1$s from server for system %2$s",
-                            response.getStatus(), systemObjectId));
+                    .invalidResponseFromHDS(String
+                            .format("Not able to query LogicalUnit info due to invalid response %1$s from server for system %2$s",
+                                    response.getStatus(), systemObjectId));
         }
         return logicalUnit;
     }
-    
+
     /**
      * Form a single meta volume by concatenating multiple volumes.
+     * 
      * @param systemObjectId
      * @param ldevIds
      * @return
@@ -633,9 +626,9 @@ public class HDSApiVolumeManager {
                 log.error("AddLUSE failed with invalid response code {}",
                         response.getStatus());
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Not able to Add LUSE due to invalid response %1$s from server for system %2$s",
-                                response.getStatus(), systemObjectId));
+                        .invalidResponseFromHDS(String
+                                .format("Not able to Add LUSE due to invalid response %1$s from server for system %2$s",
+                                        response.getStatus(), systemObjectId));
             }
         } finally {
             if (null != responseStream) {
@@ -648,8 +641,7 @@ public class HDSApiVolumeManager {
         }
         return logicalUnit;
     }
-    
-    
+
     /**
      * This client method is responsible to release all the volumes in LUSE volume.
      * 
@@ -659,7 +651,7 @@ public class HDSApiVolumeManager {
      * @throws Exception
      */
     public LogicalUnit releaseLUSE(String systemObjectId, String logicalUnitId) throws Exception {
-        
+
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         List<LDEV> ldevsList = new LinkedList<LDEV>();
         StorageArray storageArray = new StorageArray(systemObjectId);
@@ -672,7 +664,7 @@ public class HDSApiVolumeManager {
                 HDSConstants.RELEASE_LUSE_VOLUME_OP, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-        
+
         URI endpointURI = hdsApiClient.getBaseURI();
         InputStream responseStream = null;
         LogicalUnit logicalUnit = null;
@@ -688,9 +680,9 @@ public class HDSApiVolumeManager {
                 log.error("deleteLUSE failed with invalid response code {}",
                         response.getStatus());
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Not able to delete LUSE due to invalid response %1$s from server for system %2$s",
-                                response.getStatus(), systemObjectId));
+                        .invalidResponseFromHDS(String
+                                .format("Not able to delete LUSE due to invalid response %1$s from server for system %2$s",
+                                        response.getStatus(), systemObjectId));
             }
         } finally {
             if (null != responseStream) {
@@ -703,8 +695,7 @@ public class HDSApiVolumeManager {
         }
         return logicalUnit;
     }
-    
-    
+
     private String constructAddLUSEQuery(String systemId, String metaHead, List<String> ldevIds) {
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         List<LDEV> ldevsList = new LinkedList<LDEV>();
@@ -727,10 +718,10 @@ public class HDSApiVolumeManager {
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
         return addLUSEVolumeInputXML;
     }
-    
-    
+
     /**
      * Returns all LogicalUnits of a given system.
+     * 
      * @param systemObjectId
      * @return
      */
@@ -744,12 +735,12 @@ public class HDSApiVolumeManager {
         attributeMap.put(HDSConstants.GET, getOp);
         LogicalUnit lu = new LogicalUnit();
         attributeMap.put(HDSConstants.LOGICALUNIT, lu);
-        
+
         String getLogicalUnitsInputXML = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.GET_LOGICALUNITS_OP, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-        
+
         URI endpointURI = hdsApiClient.getBaseURI();
         log.info("Get all LogicalUnits query payload :{}", getLogicalUnitsInputXML);
         ClientResponse response = hdsApiClient.post(endpointURI, getLogicalUnitsInputXML);
@@ -762,9 +753,9 @@ public class HDSApiVolumeManager {
             log.error("Get all LogicalUnits failed with invalid response code {}",
                     response.getStatus());
             throw HDSException.exceptions
-            .invalidResponseFromHDS(String
-                    .format("Not able to query all LogicalUnits due to invalid response %1$s from server for system %2$s",
-                            response.getStatus(), systemObjectId));
+                    .invalidResponseFromHDS(String
+                            .format("Not able to query all LogicalUnits due to invalid response %1$s from server for system %2$s",
+                                    response.getStatus(), systemObjectId));
         }
         return luList;
     }
@@ -773,6 +764,7 @@ public class HDSApiVolumeManager {
      * Adds the label to an Object in DeviceManager.
      * Currently this is supported for labeling LDEV.
      * So, targetID must be a LDEV ID of a LU.
+     * 
      * @param targetID
      * @param label
      * @return
@@ -787,12 +779,12 @@ public class HDSApiVolumeManager {
         attributeMap.put(HDSConstants.ADD, addOp);
         ObjectLabel objectLabelReq = new ObjectLabel(targetID, label);
         attributeMap.put(HDSConstants.OBJECTLABEL, objectLabelReq);
-        
+
         String addLabelToObject = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.ADD_LABEL_TO_OBJECT_OP, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-        
+
         URI endpointURI = hdsApiClient.getBaseURI();
         log.info("Add Label to Object payload :{}", addLabelToObject);
         ClientResponse response = hdsApiClient.post(endpointURI, addLabelToObject);
@@ -805,9 +797,9 @@ public class HDSApiVolumeManager {
             log.error("Add label to Object failed with invalid response code {}",
                     response.getStatus());
             throw HDSException.exceptions
-            .invalidResponseFromHDS(String
-                    .format("Not able to Add Label to object due to invalid response %1$s from server",
-                            response.getStatus()));
+                    .invalidResponseFromHDS(String
+                            .format("Not able to Add Label to object due to invalid response %1$s from server",
+                                    response.getStatus()));
         }
         return objectLabel;
     }
@@ -827,12 +819,12 @@ public class HDSApiVolumeManager {
         attributeMap.put(HDSConstants.MODIFY, modifyOp);
         attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnit);
         attributeMap.put(HDSConstants.LDEV, ldev);
-        
+
         String modifyThinVolumeTieringPolicyPayload = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.MODIFY_THIN_VOLUME_OP, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-        
+
         URI endpointURI = hdsApiClient.getBaseURI();
         log.info("Modify Volume TieringPolicy payload:{}", modifyThinVolumeTieringPolicyPayload);
         ClientResponse response = hdsApiClient.post(endpointURI, modifyThinVolumeTieringPolicyPayload);
@@ -845,7 +837,8 @@ public class HDSApiVolumeManager {
             } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                 Error error = result.getBean(Error.class);
                 log.error("Modify Volume TieringPolicy failed status messageID: {}", command.getMessageID());
-                log.error("Modify Volume TieringPolicy failed with error code: {} with message: {}", error.getCode(), error.getDescription());
+                log.error("Modify Volume TieringPolicy failed with error code: {} with message: {}", error.getCode(),
+                        error.getDescription());
                 throw HDSException.exceptions.notAbleToCreateVolume(
                         error.getCode(), error.getDescription());
 
@@ -861,37 +854,35 @@ public class HDSApiVolumeManager {
         return asyncTaskMessageId;
     }
 
-	public String createSnapshotVolume(String systemObjectId, Long luCapacityInBytes) throws Exception{
+    public String createSnapshotVolume(String systemObjectId, Long luCapacityInBytes) throws Exception {
 
         Long luCapacityInKB = luCapacityInBytes / 1024;
         InputStream responseStream = null;
         String asyncTaskMessageId = null;
         Object params[] = null;
-        
+
         try {
-        	log.info("Creating snapshot with {}KB size on Storage System {}",luCapacityInKB,systemObjectId);
+            log.info("Creating snapshot with {}KB size on Storage System {}", luCapacityInKB, systemObjectId);
             Map<String, Object> attributeMap = new HashMap<String, Object>();
-            
-            
+
             Add addOp = new Add(HDSConstants.VIRTUALVOLUME);
             StorageArray storageArray = new StorageArray(systemObjectId);
             ArrayGroup arrayGroup = new ArrayGroup();
             arrayGroup.setType("2");
             LogicalUnit logicalUnit = new LogicalUnit();
             logicalUnit.setCapacityInKB(String.valueOf(luCapacityInKB));
-            logicalUnit.setEmulation( HDSConstants.EMULATION_OPENV);
-            
+            logicalUnit.setEmulation(HDSConstants.EMULATION_OPENV);
+
             attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
             attributeMap.put(HDSConstants.ARRAY_GROUP, arrayGroup);
             attributeMap.put(HDSConstants.ADD, addOp);
             attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnit);
-            
+
             String createSnapshotInputXML = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.CREATE_SNAPSHOT_VOLUME_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                     HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-            
-            
+
             log.info("Query to create snapshot Volume: {}", createSnapshotInputXML);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI, createSnapshotInputXML);
@@ -927,60 +918,60 @@ public class HDSApiVolumeManager {
             }
         }
         return asyncTaskMessageId;
-    
-	}
 
-	public String deleteSnapshotVolume(String storageSystemObjId, String logicalUnitObjId) 
-			throws Exception {
-		
-		String asyncTaskMessageId = null;
-		InputStream responseStream = null;
-		try {
-			if (null != storageSystemObjId && null != logicalUnitObjId) {
-				log.info("Deleting snapshot with id {} from Storage System {}", logicalUnitObjId, storageSystemObjId);
-	            Map<String, Object> attributeMap = new HashMap<String, Object>();
-	            
-				Delete deleteOp = new Delete(HDSConstants.VIRTUALVOLUME);
-				StorageArray storageArray = new StorageArray(storageSystemObjId);
-				LogicalUnit logicalUnit = new LogicalUnit();
-				logicalUnit.setObjectID(logicalUnitObjId);
-				
-				attributeMap.put(HDSConstants.DELETE, deleteOp);
-				attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
-	            attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnit);
-				
-	            String createSnapshotInputXML = InputXMLGenerationClient.getInputXMLString(
-	                    HDSConstants.DELETE_SNAPSHOT_VOLUME_OP, attributeMap,
-	                    HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
-	                    HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-	            
-	            log.info("Query to delete snapshot Volume: {}", createSnapshotInputXML);
-	            URI endpointURI = hdsApiClient.getBaseURI();
-	            ClientResponse response = hdsApiClient.post(endpointURI, createSnapshotInputXML);
-	            if (HttpStatus.SC_OK == response.getStatus()) {
-	            	responseStream = response.getEntityInputStream();
-	                JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
-	                EchoCommand command = result.getBean(EchoCommand.class);
-	                if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
-	                    asyncTaskMessageId = command.getMessageID();
-	                } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
-	                	Error error = result.getBean(Error.class);
-	                    log.error("Snapshot volume deletion failed status messageID: {}", command.getMessageID());
-	                    log.error("Snapshot volume failed with error code: {} with message: {}", error.getCode(), error.getDescription());
-	                    throw HDSException.exceptions.notAbleToDeleteSnapshot(
-	                            error.getCode(), error.getDescription());
-	                }
-	            } else {
-	                log.error("Snapshot deletion failed with invalid response code {}",
-	                        response.getStatus());
-	                throw HDSException.exceptions
-	                        .invalidResponseFromHDS(String
-	                                .format("Snapshot deletion failed due to invalid response %1$s from server for system %2$s",
-	                                        response.getStatus(), storageSystemObjId));
-	            }
-	            log.info("Snapshot with id {} deleted from Storage System {}", logicalUnitObjId, storageSystemObjId);
-			}
-		} finally {
+    }
+
+    public String deleteSnapshotVolume(String storageSystemObjId, String logicalUnitObjId)
+            throws Exception {
+
+        String asyncTaskMessageId = null;
+        InputStream responseStream = null;
+        try {
+            if (null != storageSystemObjId && null != logicalUnitObjId) {
+                log.info("Deleting snapshot with id {} from Storage System {}", logicalUnitObjId, storageSystemObjId);
+                Map<String, Object> attributeMap = new HashMap<String, Object>();
+
+                Delete deleteOp = new Delete(HDSConstants.VIRTUALVOLUME);
+                StorageArray storageArray = new StorageArray(storageSystemObjId);
+                LogicalUnit logicalUnit = new LogicalUnit();
+                logicalUnit.setObjectID(logicalUnitObjId);
+
+                attributeMap.put(HDSConstants.DELETE, deleteOp);
+                attributeMap.put(HDSConstants.STORAGEARRAY, storageArray);
+                attributeMap.put(HDSConstants.LOGICALUNIT, logicalUnit);
+
+                String createSnapshotInputXML = InputXMLGenerationClient.getInputXMLString(
+                        HDSConstants.DELETE_SNAPSHOT_VOLUME_OP, attributeMap,
+                        HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
+                        HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
+
+                log.info("Query to delete snapshot Volume: {}", createSnapshotInputXML);
+                URI endpointURI = hdsApiClient.getBaseURI();
+                ClientResponse response = hdsApiClient.post(endpointURI, createSnapshotInputXML);
+                if (HttpStatus.SC_OK == response.getStatus()) {
+                    responseStream = response.getEntityInputStream();
+                    JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
+                    EchoCommand command = result.getBean(EchoCommand.class);
+                    if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
+                        asyncTaskMessageId = command.getMessageID();
+                    } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
+                        Error error = result.getBean(Error.class);
+                        log.error("Snapshot volume deletion failed status messageID: {}", command.getMessageID());
+                        log.error("Snapshot volume failed with error code: {} with message: {}", error.getCode(), error.getDescription());
+                        throw HDSException.exceptions.notAbleToDeleteSnapshot(
+                                error.getCode(), error.getDescription());
+                    }
+                } else {
+                    log.error("Snapshot deletion failed with invalid response code {}",
+                            response.getStatus());
+                    throw HDSException.exceptions
+                            .invalidResponseFromHDS(String
+                                    .format("Snapshot deletion failed due to invalid response %1$s from server for system %2$s",
+                                            response.getStatus(), storageSystemObjId));
+                }
+                log.info("Snapshot with id {} deleted from Storage System {}", logicalUnitObjId, storageSystemObjId);
+            }
+        } finally {
             if (null != responseStream) {
                 try {
                     responseStream.close();
@@ -988,8 +979,8 @@ public class HDSApiVolumeManager {
                     log.warn("Exception occurred while closing snapshot deletion response stream");
                 }
             }
-		}
-		return asyncTaskMessageId;
-	}
-	
+        }
+        return asyncTaskMessageId;
+    }
+
 }

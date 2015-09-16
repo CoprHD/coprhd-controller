@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper.functions;
@@ -27,16 +27,17 @@ import com.emc.storageos.model.varray.NetworkRestRep;
 import com.emc.storageos.util.NetworkUtil;
 import com.google.common.base.Function;
 
-public class MapNetwork implements Function<Network,NetworkRestRep> {
+public class MapNetwork implements Function<Network, NetworkRestRep> {
     private static final Logger logger = LoggerFactory.getLogger(MapNetwork.class);
     private static final MapNetwork INSTANCE = new MapNetwork();
 
     private static final String REMOTE_PORT_NAME = "remotePortName";
     private static final String REMOTE_PORT_ALIAS = "remotePortAlias";
+
     public static MapNetwork getInstance() {
         return INSTANCE;
     }
-    
+
     private MapNetwork() {
     }
 
@@ -44,10 +45,11 @@ public class MapNetwork implements Function<Network,NetworkRestRep> {
     public NetworkRestRep apply(Network resource) {
         return VirtualArrayMapper.map(resource);
     }
-    
+
     /**
-     * Map <code>Network</code> to <code>NetworkRestRep</code> object.  Since <code>remote_port_alias</code>
-     * is not readily available, it must be read from corresponded <code>FCEndpoint</code>.
+     * Map <code>Network</code> to <code>NetworkRestRep</code> object. Since <code>remote_port_alias</code> is not readily available, it
+     * must be read from corresponded <code>FCEndpoint</code>.
+     * 
      * @param network
      * @param dbClient
      * @return
@@ -68,19 +70,19 @@ public class MapNetwork implements Function<Network,NetworkRestRep> {
                 }
                 URIQueryResultList uriList = new URIQueryResultList();
                 dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                        getFCEndpointByFabricWwnConstraint(NetworkUtil.getNetworkWwn(network)), uriList);            
+                        getFCEndpointByFabricWwnConstraint(NetworkUtil.getNetworkWwn(network)), uriList);
                 Set<String> fields = new HashSet<String>();
                 fields.add(REMOTE_PORT_NAME);
                 fields.add(REMOTE_PORT_ALIAS);
                 Iterator<FCEndpoint> iterator = dbClient.queryIterativeObjectFields(FCEndpoint.class,
                         fields, uriList);
                 while (iterator.hasNext()) {
-                    FCEndpoint fc = iterator.next(); 
+                    FCEndpoint fc = iterator.next();
                     if (fc != null && !StringUtils.isEmpty(fc.getRemotePortAlias())) {
                         String portWWN = fc.getRemotePortName();
                         EndpointAliasRestRep restRep = aliasMap.get(portWWN);
                         if (restRep != null) {
-                            logger.debug("Found alias {} for WWN {} in network {}" ,  new Object[] {
+                            logger.debug("Found alias {} for WWN {} in network {}", new Object[] {
                                     fc.getRemotePortAlias(), portWWN, networkRestRep.getId() });
                             restRep.setAlias(fc.getRemotePortAlias());
                         }
@@ -89,9 +91,9 @@ public class MapNetwork implements Function<Network,NetworkRestRep> {
             }
         } catch (Exception ex) {
             logger.error("Unable to display alias information because an error encountered while getting" +
-            		" alias information for network " + networkRestRep.getId() , ex);
-        } 
-      
-        return networkRestRep;        
-    }    
+                    " alias information for network " + networkRestRep.getId(), ex);
+        }
+
+        return networkRestRep;
+    }
 }

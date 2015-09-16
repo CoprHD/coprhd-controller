@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.systems;
@@ -12,11 +12,12 @@ import java.util.List;
 
 @XmlRootElement(name = "storage_connectivity_list")
 public class StorageSystemConnectivityList {
-    
+
     private List<StorageSystemConnectivityRestRep> connections;
 
-    public StorageSystemConnectivityList() {}
-    
+    public StorageSystemConnectivityList() {
+    }
+
     public StorageSystemConnectivityList(
             List<StorageSystemConnectivityRestRep> connections) {
         this.connections = connections;
@@ -29,7 +30,7 @@ public class StorageSystemConnectivityList {
      */
     @XmlElement(name = "storage_connectivity")
     public List<StorageSystemConnectivityRestRep> getConnections() {
-        if (connections ==  null) {
+        if (connections == null) {
             connections = new ArrayList<StorageSystemConnectivityRestRep>();
         }
         return connections;

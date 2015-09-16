@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl;
@@ -45,7 +35,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.MonitorTas
 
 /**
  * South bound API implementation - a singleton instance
- * of this class services all provisioning calls.  Provisioning
+ * of this class services all provisioning calls. Provisioning
  * calls are matched against device specific controller implementations
  * and forwarded from this implementation
  */
@@ -54,8 +44,8 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
 
     // device specific FileController implementations
     private Set<FileController> _deviceImpl;
-    private Dispatcher          _dispatcher;
-    private DbClient            _dbClient;
+    private Dispatcher _dispatcher;
+    private DbClient _dbClient;
 
     public void setDeviceImpl(Set<FileController> deviceImpl) {
         _deviceImpl = deviceImpl;
@@ -85,9 +75,9 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String opId)
+    public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId)
             throws InternalException {
-        execFS("delete", storage, pool, uri, forceDelete, opId);
+        execFS("delete", storage, pool, uri, forceDelete, deleteType, opId);
     }
 
     @Override
@@ -111,7 +101,6 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     public void deleteShare(URI storage, URI uri, FileSMBShare smbShare, String opId) throws InternalException {
         execFS("deleteShare", storage, uri, smbShare, opId);
     }
-
 
     @Override
     public void modifyFS(URI storage, URI pool, URI fs, String opId)
@@ -177,46 +166,46 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
         }
     }
 
-	@Override
-	public void createQuotaDirectory(URI storage, FileShareQuotaDirectory quotaDir, URI fs, String opId)
-			throws InternalException {
-		execFS("createQuotaDirectory", storage, quotaDir, fs, opId);		
-	}
-	
-	@Override
-	public void updateQuotaDirectory(URI storage, FileShareQuotaDirectory quotaDir, URI fs, String opId)
-			throws InternalException {
-		execFS("updateQuotaDirectory", storage, quotaDir, fs, opId);		
-	}
-	
-	@Override
-	public void deleteQuotaDirectory(URI storage, URI quotaDir, URI fs, String opId) throws InternalException {
-		execFS("deleteQuotaDirectory", storage, quotaDir, fs, opId);
-	}
-		
     @Override
-    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param,
-			String opId) throws ControllerException {
-    	execFS("updateExportRules", storage, fsURI, param, opId);
-	}
-
-    public void deleteExportRules(URI storage, URI fileUri, boolean allDirs, String subDir, String opId) throws ControllerException {
-    	execFS("deleteExportRules", storage, fileUri, allDirs, subDir, opId);
-	}
-    
-    @Override
-    public void updateShareACLs(URI storageURI, URI fsURI, String shareName,
-    		CifsShareACLUpdateParams param, String opId)
-    		throws ControllerException {
-    	execFS("updateShareACLs", storageURI, fsURI, shareName, param, opId);
-    	
+    public void createQuotaDirectory(URI storage, FileShareQuotaDirectory quotaDir, URI fs, String opId)
+            throws InternalException {
+        execFS("createQuotaDirectory", storage, quotaDir, fs, opId);
     }
 
-	@Override
-	public void deleteShareACLs(URI storageURI, URI fsURI, String shareName,
-			String opId) throws InternalException {
-		
-		execFS("deleteShareACLs", storageURI, fsURI, shareName, opId);
-		
-	}
+    @Override
+    public void updateQuotaDirectory(URI storage, FileShareQuotaDirectory quotaDir, URI fs, String opId)
+            throws InternalException {
+        execFS("updateQuotaDirectory", storage, quotaDir, fs, opId);
+    }
+
+    @Override
+    public void deleteQuotaDirectory(URI storage, URI quotaDir, URI fs, String opId) throws InternalException {
+        execFS("deleteQuotaDirectory", storage, quotaDir, fs, opId);
+    }
+
+    @Override
+    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param,
+            String opId) throws ControllerException {
+        execFS("updateExportRules", storage, fsURI, param, opId);
+    }
+
+    public void deleteExportRules(URI storage, URI fileUri, boolean allDirs, String subDir, String opId) throws ControllerException {
+        execFS("deleteExportRules", storage, fileUri, allDirs, subDir, opId);
+    }
+
+    @Override
+    public void updateShareACLs(URI storageURI, URI fsURI, String shareName,
+            CifsShareACLUpdateParams param, String opId)
+            throws ControllerException {
+        execFS("updateShareACLs", storageURI, fsURI, shareName, param, opId);
+
+    }
+
+    @Override
+    public void deleteShareACLs(URI storageURI, URI fsURI, String shareName,
+            String opId) throws InternalException {
+
+        execFS("deleteShareACLs", storageURI, fsURI, shareName, opId);
+
+    }
 }

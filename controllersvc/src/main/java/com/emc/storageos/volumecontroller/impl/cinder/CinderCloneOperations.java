@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.cinder;
 
@@ -45,87 +35,89 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.cinder.job.CinderSingleVolumeCreateJob;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 
+public class CinderCloneOperations implements CloneOperations
+{
+    private static final Logger log = LoggerFactory.getLogger(CinderCloneOperations.class);
+    private DbClient dbClient;
+    private CinderApiFactory cinderApiFactory;
 
-public class CinderCloneOperations implements CloneOperations 
-{	
-	private static final Logger log = LoggerFactory.getLogger(CinderCloneOperations.class);
-	private DbClient dbClient;
-	private CinderApiFactory cinderApiFactory;
+    public CinderCloneOperations()
+    {
 
-	public CinderCloneOperations() 
-	{
-		
-	}
-	
-	public void setDbClient(DbClient dbClient) 
-	{
+    }
+
+    public void setDbClient(DbClient dbClient)
+    {
         this.dbClient = dbClient;
     }
-    
+
     /**
      * @param CinderApiFactory the CinderApiFactory to set
      */
-    public void setCinderApiFactory(CinderApiFactory cinderApiFactory) 
+    public void setCinderApiFactory(CinderApiFactory cinderApiFactory)
     {
         this.cinderApiFactory = cinderApiFactory;
     }
 
-	/* (non-Javadoc)
-	 * @see com.emc.storageos.volumecontroller.CloneOperations#createSingleClone(
-	 * com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.net.URI,
-	 * java.lang.Boolean,
-	 * com.emc.storageos.volumecontroller.TaskCompleter)
-	 */
-	@Override
-	public void createSingleClone(StorageSystem storageSystem,
-											   URI sourceObject, 
-											   URI cloneVolume, 
-											   Boolean createInactive,
-											   TaskCompleter taskCompleter) 
-	{
-		log.info("START createSingleClone operation");
-		boolean isVolumeClone = true;
-        try 
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.CloneOperations#createSingleClone(
+     * com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.net.URI,
+     * java.lang.Boolean,
+     * com.emc.storageos.volumecontroller.TaskCompleter)
+     */
+    @Override
+    public void createSingleClone(StorageSystem storageSystem,
+            URI sourceObject,
+            URI cloneVolume,
+            Boolean createInactive,
+            TaskCompleter taskCompleter)
+    {
+        log.info("START createSingleClone operation");
+        boolean isVolumeClone = true;
+        try
         {
             BlockObject sourceObj = BlockObject.fetch(dbClient, sourceObject);
             URI tenantUri = null;
-            if(sourceObj instanceof BlockSnapshot)
-            { //In case of snapshot, get the tenant from its parent volume
-            	NamedURI parentVolUri = ((BlockSnapshot)sourceObj).getParent();
+            if (sourceObj instanceof BlockSnapshot)
+            { // In case of snapshot, get the tenant from its parent volume
+                NamedURI parentVolUri = ((BlockSnapshot) sourceObj).getParent();
                 Volume parentVolume = dbClient.queryObject(Volume.class, parentVolUri);
-                tenantUri = parentVolume.getTenant().getURI();            	
+                tenantUri = parentVolume.getTenant().getURI();
                 isVolumeClone = false;
             }
             else
-            {//This is a default flow
-            	tenantUri = ((Volume)sourceObj).getTenant().getURI();
-            	isVolumeClone = true;
+            {// This is a default flow
+                tenantUri = ((Volume) sourceObj).getTenant().getURI();
+                isVolumeClone = true;
             }
-            
+
             Volume cloneObj = dbClient.queryObject(Volume.class, cloneVolume);
             StoragePool targetPool = dbClient.queryObject(StoragePool.class, cloneObj.getPool());
             TenantOrg tenantOrg = dbClient.queryObject(TenantOrg.class, tenantUri);
-            //String cloneLabel = generateLabel(tenantOrg, cloneObj);
-            
-            CinderEndPointInfo ep = CinderUtils.getCinderEndPoint(storageSystem.getActiveProviderURI(), dbClient);    		
-    		log.info("Getting the cinder APi for the provider with id "+storageSystem.getActiveProviderURI());
-        	CinderApi cinderApi = cinderApiFactory.getApi(storageSystem.getActiveProviderURI(), ep);
-        	
-        	String volumeId = "";
-        	if(isVolumeClone)
-        	{
-        		volumeId = cinderApi.cloneVolume(cloneObj.getLabel(), (cloneObj.getCapacity()/(1024*1024*1024)),
-						  										 targetPool.getNativeId(), sourceObj.getNativeId());
-        	}
-        	else
-        	{
-        		volumeId = cinderApi.createVolumeFromSnapshot(cloneObj.getLabel(), (cloneObj.getCapacity()/(1024*1024*1024)),
-						  										 					  targetPool.getNativeId(), sourceObj.getNativeId());
-        	}
-        	
-        	log.debug("Creating volume with the id "+volumeId+" on Openstack cinder node");           
-            if (volumeId != null) 
+            // String cloneLabel = generateLabel(tenantOrg, cloneObj);
+
+            CinderEndPointInfo ep = CinderUtils.getCinderEndPoint(storageSystem.getActiveProviderURI(), dbClient);
+            log.info("Getting the cinder APi for the provider with id " + storageSystem.getActiveProviderURI());
+            CinderApi cinderApi = cinderApiFactory.getApi(storageSystem.getActiveProviderURI(), ep);
+
+            String volumeId = "";
+            if (isVolumeClone)
+            {
+                volumeId = cinderApi.cloneVolume(cloneObj.getLabel(), (cloneObj.getCapacity() / (1024 * 1024 * 1024)),
+                        targetPool.getNativeId(), sourceObj.getNativeId());
+            }
+            else
+            {
+                volumeId = cinderApi.createVolumeFromSnapshot(cloneObj.getLabel(), (cloneObj.getCapacity() / (1024 * 1024 * 1024)),
+                        targetPool.getNativeId(), sourceObj.getNativeId());
+            }
+
+            log.debug("Creating volume with the id " + volumeId + " on Openstack cinder node");
+            if (volumeId != null)
             {
                 Map<String, URI> volumeIds = new HashMap<String, URI>();
                 volumeIds.put(volumeId, cloneObj.getId());
@@ -133,16 +125,14 @@ public class CinderCloneOperations implements CloneOperations
                         new CinderSingleVolumeCreateJob(volumeId, cloneObj
                                 .getLabel(), storageSystem.getId(),
                                 CinderConstants.ComponentType.volume.name(),
-                                ep, taskCompleter, targetPool.getId(),volumeIds)));
+                                ep, taskCompleter, targetPool.getId(), volumeIds)));
             }
-        } 
-        catch (InternalException e) 
+        } catch (InternalException e)
         {
             String errorMsg = String.format(CREATE_ERROR_MSG_FORMAT, sourceObject, cloneVolume);
             log.error(errorMsg, e);
             taskCompleter.error(dbClient, e);
-        } 
-        catch (Exception e) 
+        } catch (Exception e)
         {
             String errorMsg = String.format(CREATE_ERROR_MSG_FORMAT, sourceObject, cloneVolume);
             log.error(errorMsg, e);
@@ -151,95 +141,106 @@ public class CinderCloneOperations implements CloneOperations
             taskCompleter.error(dbClient, serviceError);
         }
 
-	}
+    }
 
-	/* (non-Javadoc)
-	 * @see com.emc.storageos.volumecontroller.CloneOperations#detachSingleClone(
-	 * com.emc.storageos.db.client.model.StorageSystem,
-	 * java.net.URI,
-	 * com.emc.storageos.volumecontroller.TaskCompleter)
-	 */
-	@Override
-	public void detachSingleClone(StorageSystem storageSystem,
-												URI cloneVolume,
-												TaskCompleter taskCompleter) 
-	{
-		//Not Supported
-	    Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
-	    clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.CloneOperations#detachSingleClone(
+     * com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI,
+     * com.emc.storageos.volumecontroller.TaskCompleter)
+     */
+    @Override
+    public void detachSingleClone(StorageSystem storageSystem,
+            URI cloneVolume,
+            TaskCompleter taskCompleter)
+    {
+        // Not Supported
+        Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
+        ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
+        clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         clone.setReplicaState(ReplicationState.DETACHED.name());
         dbClient.persistObject(clone);
         taskCompleter.ready(dbClient);
-	}
-
-	/* (non-Javadoc)
-	 * @see com.emc.storageos.volumecontroller.CloneOperations#activateSingleClone(
-	 * com.emc.storageos.db.client.model.StorageSystem,
-	 * java.net.URI,
-	 * com.emc.storageos.volumecontroller.TaskCompleter)
-	 */
-	@Override
-	public void activateSingleClone(StorageSystem storageSystem,
-												  URI fullCopy,
-												  TaskCompleter completer) 
-	{
-		//Not supported
-		throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-	}
-
-	@Override
-	public void restoreFromSingleClone(StorageSystem storageSystem, 
-            URI clone, TaskCompleter completer) {
-        //no support
-	    throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
-	@Override
-    public void fractureSingleClone(StorageSystem storageSystem, URI sourceVolume, 
-            URI clone, TaskCompleter completer) {
-        //no support
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.CloneOperations#activateSingleClone(
+     * com.emc.storageos.db.client.model.StorageSystem,
+     * java.net.URI,
+     * com.emc.storageos.volumecontroller.TaskCompleter)
+     */
+    @Override
+    public void activateSingleClone(StorageSystem storageSystem,
+            URI fullCopy,
+            TaskCompleter completer)
+    {
+        // Not supported
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
-	@Override
+
+    @Override
+    public void restoreFromSingleClone(StorageSystem storageSystem,
+            URI clone, TaskCompleter completer) {
+        // no support
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void fractureSingleClone(StorageSystem storageSystem, URI sourceVolume,
+            URI clone, TaskCompleter completer) {
+        // no support
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public void resyncSingleClone(StorageSystem storageSystem, URI clone, TaskCompleter completer) {
-        //no support
+        // no support
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
+
     @Override
     public void createGroupClone(StorageSystem storage, List<URI> cloneList,
-                                  Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public void activateGroupClones(StorageSystem storage, List<URI> clone, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
     public void restoreGroupClones(StorageSystem storageSystem, List<URI> clone, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
     public void fractureGroupClones(StorageSystem storageSystem, List<URI> clone, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
     public void resyncGroupClones(StorageSystem storageSystem, List<URI> clone, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
-    public void detachGroupClones(StorageSystem storageSystem, List<URI> clone,TaskCompleter completer) {
+    public void detachGroupClones(StorageSystem storageSystem, List<URI> clone, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
+
+    @Override
+    public void establishVolumeCloneGroupRelation(StorageSystem storage, URI sourceVolume, URI clone, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
 }

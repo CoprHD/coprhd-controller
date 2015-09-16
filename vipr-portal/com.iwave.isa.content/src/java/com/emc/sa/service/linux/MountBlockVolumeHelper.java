@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.linux;
@@ -23,28 +23,28 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.linux.LinuxSystemCLI;
 
 public class MountBlockVolumeHelper {
-    
+
     private static final String DEFAULT_BLOCK_SIZE = "DEFAULT";
-    
+
     private final LinuxSupport linuxSupport;
     private final String hostname;
 
     @Param(value = BASE_NAME, required = false)
     protected String baseName;
-    
+
     @Param(MOUNT_POINT)
     protected String mountPoint;
-    
+
     @Param(FILE_SYSTEM_TYPE)
     protected String fsType;
 
-    @Param(value=BLOCK_SIZE, required = false)
+    @Param(value = BLOCK_SIZE, required = false)
     protected String blockSize;
-    
-    @Param(value=DO_FORMAT, required=false) 
+
+    @Param(value = DO_FORMAT, required = false)
     protected boolean doFormat = true;
-    
-    /** The flag which indicates whether we're using EMC PowerPath for multipathing or not.*/
+
+    /** The flag which indicates whether we're using EMC PowerPath for multipathing or not. */
     protected boolean usePowerPath;
 
     public static MountBlockVolumeHelper createHelper(LinuxSystemCLI linuxSystem, List<Initiator> hostPorts) {
@@ -76,7 +76,7 @@ public class MountBlockVolumeHelper {
         linuxSupport.resizePartition(device);
         String partitionDevice = linuxSupport.getPrimaryPartitionDevice(volume, mountPoint, device, usePowerPath);
         logInfo("linux.mount.block.volume.partition.name", partitionDevice);
-        
+
         if (doFormat) {
             logInfo("linux.mount.block.volume.format", hostname, partitionDevice, fsType);
             linuxSupport.formatVolume(partitionDevice, fsType, getBlockSize());

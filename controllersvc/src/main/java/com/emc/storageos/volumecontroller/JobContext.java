@@ -1,9 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller;
-
 
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.db.client.DbClient;
@@ -55,9 +54,9 @@ public class JobContext
     }
 
     public SmisCommandHelper getSmisCommandHelper() {
-    	return _helper;
+        return _helper;
     }
-    
+
     public XIVSmisCommandHelper getXIVSmisCommandHelper() {
         return _xivHelper;
     }
@@ -65,19 +64,19 @@ public class JobContext
     public CIMConnectionFactory getCimConnectionFactory() {
         return _cimConnectionFactory;
     }
-    
+
     public VPlexApiFactory getVPlexApiFactory() {
         return _vplexApiFactory;
     }
-    
+
     public HDSApiFactory getHdsApiFactory() {
         return hdsApiFactory;
     }
-    
+
     public CinderApiFactory getCinderApiFactory() {
-    	return cinderApiFactory;
+        return cinderApiFactory;
     }
-    
+
     public VNXeApiClientFactory getVNXeApiClientFactory() {
         return _vnxeApiClientFactory;
     }

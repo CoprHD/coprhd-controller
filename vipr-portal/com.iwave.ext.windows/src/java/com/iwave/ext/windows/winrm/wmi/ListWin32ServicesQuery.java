@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm.wmi;
@@ -17,7 +17,7 @@ import java.util.List;
 
 /**
  */
-public class ListWin32ServicesQuery  extends WinRMEnumerateOperation<Win32Service> {
+public class ListWin32ServicesQuery extends WinRMEnumerateOperation<Win32Service> {
     public static final String WIN32_SERVICES_URI = WinRMConstants.WMI_BASE_URI + "root/cimv2/Win32_Service";
 
     private static final XPath XPATH = XmlUtils.createXPath("ns=" + WIN32_SERVICES_URI);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.sample;
@@ -47,13 +47,13 @@ public class SampleService extends ViPRService {
 
         String lower = ExecutionUtils.execute(new ToLowerCase(text));
         ExecutionUtils.addRollback(new ToUpperCase(lower));
-        
+
         int repeats = repeat != null && repeat ? 1 : 0;
         while (repeats >= 0) {
             ExecutionUtils.execute(new Multiply(number, 42));
             repeats--;
         }
-        
+
         String upper = ExecutionUtils.execute(new ToUpperCase(choice));
         ExecutionUtils.addRollback(new ToLowerCase(upper));
 
@@ -74,23 +74,23 @@ public class SampleService extends ViPRService {
         ExecutionUtils.currentContext().logInfo("sampleService.pausing", pause);
         Thread.sleep(pause);
     }
-    
+
     private class ProcessPassword extends ViPRExecutionTask<Void> {
         private String encryptedPassword;
-        
+
         public ProcessPassword(String encryptedPassword) {
             this.encryptedPassword = encryptedPassword;
             provideDetailArgs(encryptedPassword);
         }
-        
+
         @Override
         public Void executeTask() throws Exception {
             pause();
             logInfo("sampleService.encrypted", encryptedPassword);
-            
+
             String decryptedPassword = decrypt(encryptedPassword);
             logInfo("sampleService.decrypted", decryptedPassword);
-            
+
             return null;
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -16,15 +16,17 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 public class CatalogCategoryList {
 
     private List<NamedRelatedResourceRep> categories;
-    
-    public CatalogCategoryList() {}
-    
+
+    public CatalogCategoryList() {
+    }
+
     public CatalogCategoryList(List<NamedRelatedResourceRep> categories) {
         this.categories = categories;
     }
 
     /**
      * List of catalog categories
+     * 
      * @valid none
      */
     @XmlElement(name = "catalog_category")
@@ -37,6 +39,6 @@ public class CatalogCategoryList {
 
     public void setCatalogCategories(List<NamedRelatedResourceRep> categories) {
         this.categories = categories;
-    }    
-    
+    }
+
 }

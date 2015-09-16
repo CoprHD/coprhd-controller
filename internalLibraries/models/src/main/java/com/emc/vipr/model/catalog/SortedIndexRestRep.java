@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -16,7 +16,7 @@ import com.emc.storageos.model.RestLinkRep;
 public class SortedIndexRestRep extends DataObjectRestRep {
 
     private Integer sortedIndex;
-    
+
     public SortedIndexRestRep() {
     }
 
@@ -26,10 +26,10 @@ public class SortedIndexRestRep extends DataObjectRestRep {
     }
 
     /**
-     * Sorted index.  Used to determine the display order 
-     *
+     * Sorted index. Used to determine the display order
+     * 
      * @valid none
-     */    
+     */
     @XmlElement(name = "sorted_index")
     public Integer getSortedIndex() {
         return sortedIndex;

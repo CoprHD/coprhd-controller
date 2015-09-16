@@ -1,8 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
+
+import java.net.URI;
 
 @Cf("ComputeSystem")
 public class ComputeSystem extends DiscoveredSystemObject {
@@ -13,9 +15,21 @@ public class ComputeSystem extends DiscoveredSystemObject {
     private String _password;
     private String _version;
     private String _osInstallNetwork;
+    private URI _computeImageServer;
     private StringSet vlans;
 
     private Boolean _secure = false;
+
+    @RelationIndex(cf = "ComputeRelationIndex", type = ComputeImageServer.class)
+    @Name("computeImageServer")
+    public URI getComputeImageServer() {
+        return _computeImageServer;
+    }
+
+    public void setComputeImageServer(URI computeImageServer) {
+        this._computeImageServer = computeImageServer;
+        setChanged("computeImageServer");
+    }
 
     @Name("secure")
     public Boolean getSecure() {

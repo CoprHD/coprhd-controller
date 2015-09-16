@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.compute.tasks;
@@ -36,9 +36,9 @@ public class CreateHosts extends WaitForTasks<HostRestRep> {
         create.setTenant(getOrderTenant());
         create.setVarray(varray);
         for (String hostName : hostNames) {
-        	if (hostName != null) {
-        		create.getHostNames().add(hostName);
-        	}
+            if (hostName != null) {
+                create.getHostNames().add(hostName);
+            }
         }
         return getClient().hosts().provisionBareMetalHosts(create);
     }

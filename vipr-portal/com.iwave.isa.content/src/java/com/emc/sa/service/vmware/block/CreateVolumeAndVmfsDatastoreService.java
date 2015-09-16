@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.block;
@@ -15,8 +15,8 @@ import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
-import com.emc.sa.service.vmware.VMwareUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
+import com.emc.sa.service.vmware.VMwareUtils;
 import com.emc.sa.service.vmware.VMwareUtils.DatastoreToVolumeParams;
 import com.emc.sa.service.vmware.VMwareUtils.DatastoreToVolumeTable;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -26,31 +26,34 @@ import com.vmware.vim25.mo.Datastore;
 @Service("VMware-CreateVolumeAndVmfsDatastore")
 public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
 
-    @Param(value=MULTIPATH_POLICY, required=false)
+    @Param(value = MULTIPATH_POLICY, required = false)
     protected String multipathPolicy;
-    @Param(value=STORAGE_IO_CONTROL, required=false)
+    @Param(value = STORAGE_IO_CONTROL, required = false)
     protected Boolean storageIOControl;
-    
+
     @Bindable(itemType = DatastoreToVolumeTable.class)
     protected DatastoreToVolumeTable[] datastoreToVolume;
-    
+
     @Bindable
     protected DatastoreToVolumeParams datastoreToVolumeParams = new DatastoreToVolumeParams();
-    
+
     List<String> datastoreNames = null;
     List<String> volumeNames = null;
-    
+
     protected List<CreateBlockVolumeHelper> createBlockVolumeHelpers = Lists.newArrayList();
-    
+
     @Override
     public void init() throws Exception {
         super.init();
-        
+
+        int hluIncrement = 0;
         // for each pair of datastore / volume, bind params to createBlockVolumeHelper
         for (DatastoreToVolumeTable dsToVol : datastoreToVolume) {
             CreateBlockVolumeHelper createBlockVolumeHelper = new CreateBlockVolumeHelper();
-            BindingUtils.bind(createBlockVolumeHelper, VMwareUtils.createDatastoreVolumeParam(dsToVol, datastoreToVolumeParams));
+            BindingUtils.bind(createBlockVolumeHelper,
+                    VMwareUtils.createDatastoreVolumeParam(dsToVol, datastoreToVolumeParams, hluIncrement));
             createBlockVolumeHelpers.add(createBlockVolumeHelper);
+            hluIncrement++;
         }
     }
 
@@ -58,22 +61,22 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
     public void precheck() throws Exception {
         datastoreNames = VMwareUtils.getDatastoreNamesFromDatastoreToVolume(datastoreToVolume);
         volumeNames = VMwareUtils.getVolumeNamesFromDatastoreToVolume(datastoreToVolume);
-        
+
         if (datastoreNames.isEmpty()) {
             throw new IllegalStateException(
                     ExecutionUtils.getMessage("CreateVolumeAndVmfsDatastoreService.datastore.empty"));
         }
-        
+
         if (!VMwareUtils.isUniqueNames(datastoreNames)) {
             throw new IllegalStateException(
                     ExecutionUtils.getMessage("CreateVolumeAndVmfsDatastoreService.datastore.datastore.notunique"));
         }
-        
+
         if (!VMwareUtils.isUniqueNames(volumeNames)) {
             throw new IllegalStateException(
                     ExecutionUtils.getMessage("CreateVolumeAndVmfsDatastoreService.datastore.volume.notunique"));
         }
-        
+
         super.precheck();
         for (CreateBlockVolumeHelper helper : createBlockVolumeHelpers) {
             helper.precheck();
@@ -92,25 +95,25 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
             throw new IllegalStateException(
                     ExecutionUtils.getMessage("CreateVolumeAndVmfsDatastoreService.datastore.volume.mismatch"));
         }
-        
+
         int index = 0;
         for (String datastoreName : datastoreNames) {
-        	List<BlockObjectRestRep> volumes = createBlockVolumeHelpers.get(index).createAndExportVolumes();
+            List<BlockObjectRestRep> volumes = createBlockVolumeHelpers.get(index).createAndExportVolumes();
             if (volumes.isEmpty()) {
                 ExecutionUtils.fail("CreateVolumeAndVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
             }
             BlockObjectRestRep volume = volumes.get(0);
-            
+
             connectAndInitializeHost();
             Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, volume, datastoreName);
             vmware.setMultipathPolicy(host, cluster, multipathPolicy, volume);
             vmware.setStorageIOControl(datastore, storageIOControl);
-            
+
             vmware.disconnect();
-            
+
             index++;
         }
-        
+
         // Refresh the storage on all hosts in the cluster after creating the datastores
         connectAndInitializeHost();
         vmware.refreshStorage(host, cluster);

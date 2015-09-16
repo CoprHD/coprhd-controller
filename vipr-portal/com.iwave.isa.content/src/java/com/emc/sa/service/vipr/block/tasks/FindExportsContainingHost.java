@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -20,7 +20,7 @@ public class FindExportsContainingHost extends ViPRExecutionTask<List<ExportGrou
     }
 
     public FindExportsContainingHost(URI host, URI project, URI varrayId) {
-        this.host =  host;
+        this.host = host;
         this.project = project;
         this.varray = varrayId;
         provideDetailArgs(host, project, varrayId);

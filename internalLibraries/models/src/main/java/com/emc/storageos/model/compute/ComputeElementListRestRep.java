@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.compute;
@@ -13,14 +13,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "compute_elements")
 public class ComputeElementListRestRep {
 
-	private List<ComputeElementRestRep> list;
+    private List<ComputeElementRestRep> list;
 
-	public ComputeElementListRestRep() {
-	}
+    public ComputeElementListRestRep() {
+    }
 
-	public ComputeElementListRestRep(List<ComputeElementRestRep> list) {
-		this.list = list;
-	}
+    public ComputeElementListRestRep(List<ComputeElementRestRep> list) {
+        this.list = list;
+    }
 
     @XmlElement(name = "compute_element")
     public List<ComputeElementRestRep> getList() {

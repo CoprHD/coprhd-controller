@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -27,7 +27,7 @@ public class Audit {
      * <tt>getLogsForHourAsStream(date, null)</tt>.
      * 
      * @param date
-     *        the date, which will be formatted as an hour time bucket.
+     *            the date, which will be formatted as an hour time bucket.
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
      * 
@@ -43,7 +43,7 @@ public class Audit {
      * UTC time and supplies that as the time bucket for {@link #getLogsForTimeBucketAsStream(String)}.
      * 
      * @param date
-     *        the date, which will be formatted as an hour time bucket.
+     *            the date, which will be formatted as an hour time bucket.
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
      * 
@@ -60,7 +60,7 @@ public class Audit {
      * <tt>getLogsForMinuteAsStream(date, null)</tt>.
      * 
      * @param date
-     *        the date, which will be formatted as a minute time bucket.
+     *            the date, which will be formatted as a minute time bucket.
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
      * 
@@ -72,11 +72,11 @@ public class Audit {
     }
 
     /**
-     * Gets the logs for the minute of the given date, as a stream. This formats the date as <tt>yyyy-MM-dd'T'HH:mm</tt>
-     * in UTC time and supplies that as the time bucket for {@link #getLogsForTimeBucketAsStream(String)}.
+     * Gets the logs for the minute of the given date, as a stream. This formats the date as <tt>yyyy-MM-dd'T'HH:mm</tt> in UTC time and
+     * supplies that as the time bucket for {@link #getLogsForTimeBucketAsStream(String)}.
      * 
      * @param date
-     *        the date, which will be formatted as a minute time bucket.
+     *            the date, which will be formatted as a minute time bucket.
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
      * 
@@ -95,7 +95,7 @@ public class Audit {
      * API Call: <tt>GET /audit/logs?time_bucket={timeBucket}</tt>
      * 
      * @param timeBucket
-     *        the time bucket for which to retrieve the logs.
+     *            the time bucket for which to retrieve the logs.
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
      */
@@ -110,9 +110,9 @@ public class Audit {
      * API Call: <tt>GET /audit/logs?time_bucket={timeBucket}&language={language}</tt>
      * 
      * @param timeBucket
-     *        the time bucket for which to retrieve the logs.
+     *            the time bucket for which to retrieve the logs.
      * @param language
-     *        the language for the logs (optional).
+     *            the language for the logs (optional).
      * @return the stream containing the logs as XML. This must be closed by the client in order to release the
      *         connection.
      */

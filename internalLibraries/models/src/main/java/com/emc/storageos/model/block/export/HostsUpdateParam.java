@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.export;
@@ -16,8 +16,9 @@ import javax.xml.bind.annotation.XmlElementWrapper;
  */
 public class HostsUpdateParam extends UpdateParam {
 
-    public HostsUpdateParam() {}
-    
+    public HostsUpdateParam() {
+    }
+
     public HostsUpdateParam(Set<URI> add, Set<URI> remove) {
         this.add = add;
         this.remove = remove;

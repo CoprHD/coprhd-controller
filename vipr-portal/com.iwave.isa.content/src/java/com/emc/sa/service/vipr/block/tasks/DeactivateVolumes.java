@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -16,7 +16,7 @@ public class DeactivateVolumes extends WaitForTasks<VolumeRestRep> {
 
     private List<URI> volumeIds;
     private VolumeDeleteTypeEnum type;
-    
+
     public DeactivateVolumes(List<URI> volumeIds, VolumeDeleteTypeEnum type) {
         super();
         this.volumeIds = volumeIds;
@@ -26,6 +26,6 @@ public class DeactivateVolumes extends WaitForTasks<VolumeRestRep> {
 
     @Override
     protected Tasks<VolumeRestRep> doExecute() throws Exception {
-      return getClient().blockVolumes().deactivate(volumeIds, type);
+        return getClient().blockVolumes().deactivate(volumeIds, type);
     }
 }

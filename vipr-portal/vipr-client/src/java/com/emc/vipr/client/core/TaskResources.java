@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -14,7 +14,7 @@ import com.emc.vipr.client.Task;
  * Interface for resources that support tasks. The type of task/tasks returned are typed to the resource.
  * 
  * @param <T>
- *        the resource type.
+ *            the resource type.
  */
 public interface TaskResources<T extends DataObjectRestRep> {
     /**
@@ -23,7 +23,7 @@ public interface TaskResources<T extends DataObjectRestRep> {
      * API Call: GET <tt><i>baseUrl</i>/{id}/tasks</tt>
      * 
      * @param id
-     *        the resource ID.
+     *            the resource ID.
      * @return the tasks for the resource.
      */
     public Tasks<T> getTasks(URI id);
@@ -34,9 +34,9 @@ public interface TaskResources<T extends DataObjectRestRep> {
      * API Call: GET <tt><i>baseUrl</i>/{id}/tasks/{taskId}</tt>
      * 
      * @param id
-     *        the resource ID.
+     *            the resource ID.
      * @param taskId
-     *        the task ID.
+     *            the task ID.
      * @return the task.
      */
     public Task<T> getTask(URI id, URI taskId);

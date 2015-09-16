@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.modelclient.model;
@@ -25,14 +15,14 @@ import com.emc.storageos.db.client.model.RelationIndex;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("StoragePool")
 public class StoragePool extends DataObject {
-    
+
     private URI _storageDevice;
     private StorageSystem _storageDeviceObj;
-    
+
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
@@ -47,7 +37,7 @@ public class StoragePool extends DataObject {
     /**
      * @return the storageDeviceObj
      */
-    @Relation(mappedBy="storageDevice")
+    @Relation(mappedBy = "storageDevice")
     @Name("storageDeviceObj")
     public StorageSystem getStorageDeviceObj() {
         return _storageDeviceObj;

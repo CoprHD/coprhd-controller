@@ -392,6 +392,31 @@ angular.module("portalApp").controller({
     	    $scope.$apply();
        }
     },
+    AssociateProjectCtrl: function($scope, $http, $window, translate) {
+    	$scope.populateModal = function(ids) {
+    		$scope.nasIds = ids;
+    		$scope.projectOptions = [];
+            $http.get(routes.StorageSystems_getProjectsForNas()).success(function(data) {
+            	$scope.projectTenantOptions = data;
+            });
+            $scope.getProjects = function(value){
+            	
+            	if (value) {
+            		value = value.substring(1);
+            		value = value.substring(0,value.length-1);
+            	}
+            	 var projects = value.split(",");
+            	 var myNewOptions = [];
+            	 for (var j = 0; j < projects.length; j++) {
+                     var project = projects[j].split("~~~");
+                    myNewOptions.push({ id: project[0], name: project[1] });
+                 }
+            	 $scope.projectOptions = myNewOptions;
+            };
+            
+    	    $scope.$apply();
+       }
+    },
     FileQuotaCtrl: function($scope, $http, $filter, translate) {
         $scope.securityOptions = [{id:"unix", name:translate('resources.filesystem.quota.security.unix')}, 
                                   {id:"ntfs", name:translate('resources.filesystem.quota.security.ntfs')},
@@ -647,6 +672,9 @@ angular.module("portalApp").controller('taskDetailsCtrl', function($scope, $time
     $scope.viewOrder = function() {
         window.location = routes.Orders_receipt({'orderId':$scope.task.orderId});
     }
+    $scope.getLocalDateTime = function(o,datestring){
+    	return render.localDate(o,datestring);
+    }
 });
 angular.module("portalApp").controller("summaryCountCtrl", function($scope, $http, $timeout, $window) {
     $scope.pending = 0;
@@ -780,6 +808,10 @@ angular.module("portalApp").controller("storageProviderCtrl", function($scope) {
     $scope.isMDMDefaultType = function() {
         return containsOption($scope.smisProvider.interfaceType, $scope.mdmDefaultStorageProviderList);
     }
+    
+    $scope.isMDMOnlyType = function() {
+    	return containsOption($scope.smisProvider.interfaceType, $scope.mdmonlyProviderList);
+    }
 
     $scope.isElementManagerType = function() {
         return containsOption($scope.smisProvider.interfaceType, $scope.elementManagerStorageProviderList);
@@ -804,7 +836,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     
     $scope.nodeIdOptions = [{id:'', name:translate('system.logs.allnodes')}];
     angular.forEach($scope.controlNodes, function(value) {
-        this.push({id:value.nodeId, name:value.nodeId});
+        this.push({id:value.nodeId, name:value.nodeName + " (" + value.nodeId + ")"});
     }, $scope.nodeIdOptions);
     
     $scope.serviceOptions = [];
@@ -899,6 +931,10 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         var url = DOWNLOAD_LOGS + "?" + encodeArgs(args);
         window.open(url, "_blank");
     };
+    
+    $scope.getLocalDateTime = function(o,datestring){
+    	return render.localDate(o,datestring);
+    }
     
     // Fill the table with data
     fetchLogs(getFetchArgs());

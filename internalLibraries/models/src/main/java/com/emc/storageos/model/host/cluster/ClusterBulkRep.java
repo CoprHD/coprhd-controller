@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host.cluster;
@@ -15,9 +15,10 @@ import com.emc.storageos.model.BulkRestRep;
 @XmlRootElement(name = "bulk_clusters")
 public class ClusterBulkRep extends BulkRestRep {
     private List<ClusterRestRep> clusters;
-    
+
     /**
      * Represents a host cluster within ViPR
+     * 
      * @valid none
      */
     @XmlElement(name = "cluster")

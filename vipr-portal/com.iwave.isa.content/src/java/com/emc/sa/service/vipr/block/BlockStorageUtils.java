@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -24,6 +24,8 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
+import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
+import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolumeByName;
@@ -48,6 +50,7 @@ import com.emc.sa.service.vipr.block.tasks.FindVirtualArrayInitiators;
 import com.emc.sa.service.vipr.block.tasks.GetActiveContinuousCopiesForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveFullCopiesForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotsForVolume;
+import com.emc.sa.service.vipr.block.tasks.GetBlockConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
@@ -58,18 +61,23 @@ import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
 import com.emc.sa.service.vipr.block.tasks.RestoreFromFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ResynchronizeFullCopy;
+import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
-import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
@@ -79,8 +87,8 @@ import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
-import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.filters.ExportClusterFilter;
 import com.emc.vipr.client.core.filters.ExportHostFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -95,7 +103,7 @@ public class BlockStorageUtils {
     public static final String COPY_NATIVE = "native";
     public static final String COPY_RP = "rp";
     public static final String COPY_SRDF = "srdf";
-    
+
     public static boolean isHost(URI id) {
         return StringUtils.startsWith(id.toString(), "urn:storageos:Host");
     }
@@ -117,12 +125,12 @@ public class BlockStorageUtils {
         }
         return execute(new GetCluster(clusterId));
     }
-    
+
     public static String getHostOrClusterId(URI hostOrClusterId) {
         String id = null;
         if (hostOrClusterId != null) {
             id = hostOrClusterId.toString();
-            if (BlockStorageUtils.isHost(hostOrClusterId)) {   
+            if (BlockStorageUtils.isHost(hostOrClusterId)) {
                 Host host = BlockStorageUtils.getHost(hostOrClusterId);
                 if (host.getCluster() != null) {
                     Cluster cluster = BlockStorageUtils.getCluster(host.getCluster());
@@ -138,7 +146,7 @@ public class BlockStorageUtils {
     public static BlockObjectRestRep getVolume(URI volumeId) {
         return getBlockResource(volumeId);
     }
-    
+
     public static List<BlockObjectRestRep> getVolumes(List<URI> volumeIds) {
         List<BlockObjectRestRep> volumes = Lists.newArrayList();
         for (URI volumeId : volumeIds) {
@@ -154,7 +162,11 @@ public class BlockStorageUtils {
     public static BlockObjectRestRep getBlockResource(URI resourceId) {
         return execute(new GetBlockResource(resourceId));
     }
-    
+
+    public static BlockConsistencyGroupRestRep getBlockConsistencyGroup(URI resourceId) {
+        return execute(new GetBlockConsistencyGroup(resourceId));
+    }
+
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();
         for (URI resourceId : resourceIds) {
@@ -170,7 +182,7 @@ public class BlockStorageUtils {
     public static List<VolumeRestRep> getVolumeByName(String name) {
         return execute(new GetVolumeByName(name));
     }
-    
+
     public static ExportGroupRestRep getExport(URI exportId) {
         return execute(new GetBlockExport(exportId));
     }
@@ -190,9 +202,23 @@ public class BlockStorageUtils {
     public static List<ExportGroupRestRep> findExportsContainingCluster(URI cluster, URI projectId, URI varrayId) {
         return execute(new FindExportsContainingCluster(cluster, projectId, varrayId));
     }
-    
+
     public static List<ExportGroupRestRep> findExportsContainingHost(URI host, URI projectId, URI varrayId) {
         return execute(new FindExportsContainingHost(host, projectId, varrayId));
+    }
+
+    public static List<URI> addJournalCapacity(URI projectId, URI virtualArrayId, URI virtualPoolId, double sizeInGb, Integer count,
+            URI consistencyGroupId, String copyName) {
+        String volumeSize = gbToVolumeSize(sizeInGb);
+        Tasks<VolumeRestRep> tasks = execute(new AddJournalCapacity(virtualPoolId, virtualArrayId, projectId, volumeSize,
+                count, consistencyGroupId, copyName));
+        List<URI> volumeIds = Lists.newArrayList();
+        for (Task<VolumeRestRep> task : tasks.getTasks()) {
+            URI volumeId = task.getResourceId();
+            addAffectedResource(volumeId);
+            volumeIds.add(volumeId);
+        }
+        return volumeIds;
     }
 
     public static List<URI> createVolumes(URI projectId, URI virtualArrayId, URI virtualPoolId,
@@ -207,16 +233,94 @@ public class BlockStorageUtils {
             addAffectedResource(volumeId);
             volumeIds.add(volumeId);
         }
+        checkSrdfCG(consistencyGroupId, volumeIds);
         return volumeIds;
     }
 
-    public static Task<VolumeRestRep> createVolumesByName(URI projectId, URI virtualArrayId, URI virtualPoolId, 
-            double sizeInGb , URI consistencyGroupId, String volumeName) {
+    public static Task<VolumeRestRep> createVolumesByName(URI projectId, URI virtualArrayId, URI virtualPoolId,
+            double sizeInGb, URI consistencyGroupId, String volumeName) {
         String volumeSize = gbToVolumeSize(sizeInGb);
-        return execute(new CreateBlockVolumeByName(projectId, virtualArrayId, 
-        		virtualPoolId, volumeSize, consistencyGroupId, volumeName));
-
+        return execute(new CreateBlockVolumeByName(projectId, virtualArrayId,
+                virtualPoolId, volumeSize, consistencyGroupId, volumeName));
     }
+
+    public static void checkSrdfCG(URI consistencyGroupId, List<URI> volumeIds) {
+        if (!NullColumnValueGetter.isNullURI(consistencyGroupId)) {
+            BlockConsistencyGroupRestRep cg = getBlockConsistencyGroup(consistencyGroupId);
+
+            if (cg != null && cg.getTypes() != null && cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.toString())) {
+                BlockObjectRestRep newSourceVolumeRep = null, newTargetVolumeRep = null;
+
+                if (volumeIds.iterator().hasNext()) {
+                    newSourceVolumeRep = getVolume(volumeIds.iterator().next());
+                    List<URI> targets = getSrdfTargetVolumes(newSourceVolumeRep);
+                    if (targets.iterator().hasNext()) {
+                        newTargetVolumeRep = getVolume(targets.iterator().next());
+                    }
+                }
+                List<RelatedResourceRep> volumes = cg.getVolumes();
+                /**
+                 * Check if one of the existing SRDF source volume has mirror,
+                 * Create mirrors for newly created source volumes.
+                 */
+                if (newSourceVolumeRep != null) {
+                    createMirrorForSourceVolume(volumeIds, newSourceVolumeRep, volumes);
+                }
+                /**
+                 * Check if one of the existing SRDF target volume has mirror,
+                 * Create mirrors for newly created target volumes.
+                 */
+                if (newTargetVolumeRep != null) {
+                    createMirrorForTargetVolume(volumeIds, newTargetVolumeRep, volumes);
+                }
+            }
+        }
+    }
+
+    public static void createMirrorForTargetVolume(List<URI> newVolumeIds, BlockObjectRestRep newTargetVolumeRep,
+            List<RelatedResourceRep> volumes) {
+        for (RelatedResourceRep volume : volumes) {
+            if (!newVolumeIds.contains(volume.getId())) {
+                BlockObjectRestRep volRep = getVolume(volume.getId());
+                List<URI> targets = getSrdfTargetVolumes(volRep);
+                /**
+                 * Check target vol has mirrors
+                 */
+                if (volumeHasMirror(targets)) {
+                    BlockStorageUtils.createContinuousCopy(newTargetVolumeRep.getId(), "mirror", 1);
+                }
+                break;
+            }
+        }
+    }
+
+    public static void createMirrorForSourceVolume(List<URI> newVolumeIds, BlockObjectRestRep newSourceVolumeRep,
+            List<RelatedResourceRep> volumes) {
+        for (RelatedResourceRep volume : volumes) {
+            if (!newVolumeIds.contains(volume.getId())) {
+                BlockObjectRestRep volRep = getVolume(volume.getId());
+                /**
+                 * Check source vol has mirrors
+                 */
+                if (volumeHasMirror(Arrays.asList(volRep.getId()))) {
+                    BlockStorageUtils.createContinuousCopy(newSourceVolumeRep.getId(), "mirror", 1);
+                }
+                break;
+            }
+        }
+    }
+
+    public static boolean volumeHasMirror(List<URI> volumes) {
+        for (URI volume : volumes) {
+            BlockObjectRestRep volumeRep = getVolume(volume);
+            List<URI> mirrors = getActiveContinuousCopies(volumeRep.getId());
+            if (!mirrors.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static void expandVolumes(Collection<URI> volumeIds, double newSizeInGB) {
         for (URI volumeId : volumeIds) {
             expandVolume(volumeId, newSizeInGB);
@@ -229,24 +333,26 @@ public class BlockStorageUtils {
         addAffectedResource(task);
     }
 
-    public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host, Map<URI, Integer> volumeHlus) {
+    public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host,
+            Map<URI, Integer> volumeHlus) {
         String exportName = host.getHostName();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
-            host.getHostName(), host.getId(), null, volumeHlus));
+                host.getHostName(), host.getId(), null, volumeHlus));
         URI exportId = task.getResourceId();
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(exportId);
         return exportId;
     }
 
-    public static Task<ExportGroupRestRep> createHostExportNoWait(URI projectId, URI virtualArrayId, 
+    public static Task<ExportGroupRestRep> createHostExportNoWait(URI projectId, URI virtualArrayId,
             List<URI> volumeIds, Integer hlu, Host host) {
         String exportName = host.getHostName();
-        return execute(new CreateExportNoWait(exportName, virtualArrayId, projectId, 
+        return execute(new CreateExportNoWait(exportName, virtualArrayId, projectId,
                 volumeIds, hlu, host.getHostName(), host.getId(), null));
     }
 
-    public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster, Map<URI, Integer> volumeHlus) {
+    public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster,
+            Map<URI, Integer> volumeHlus) {
         String exportName = cluster.getLabel();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
                 cluster.getLabel(), null, cluster.getId(), volumeHlus));
@@ -274,7 +380,7 @@ public class BlockStorageUtils {
                 Set<URI> volumesInExport = exportToVolumesMap.get(export.getExport().getId());
                 if (volumesInExport == null) {
                     volumesInExport = Sets.newHashSet(volumeId);
-                } 
+                }
                 else {
                     volumesInExport.add(volumeId);
                 }
@@ -283,7 +389,7 @@ public class BlockStorageUtils {
         }
         return exportToVolumesMap;
     }
-    
+
     public static void removeBlockResourcesFromExports(Map<URI, Set<URI>> exportToVolumesMap) {
         for (Map.Entry<URI, Set<URI>> entry : exportToVolumesMap.entrySet()) {
             // Check to see if the export returned is an internal export; one used by internal orchestrations only.
@@ -293,7 +399,7 @@ public class BlockStorageUtils {
             }
         }
     }
-    
+
     public static void removeBlockResourcesFromExports(Collection<URI> blockResourceIds) {
         Map<URI, Set<URI>> resourcesInExport = Maps.newHashMap();
         for (URI blockResourceId : blockResourceIds) {
@@ -304,18 +410,18 @@ public class BlockStorageUtils {
                     resourcesInExport.get(exportId).add(blockResourceId);
                 }
                 else {
-                    resourcesInExport.put(exportId,Sets.newHashSet(blockResourceId));
+                    resourcesInExport.put(exportId, Sets.newHashSet(blockResourceId));
                 }
             }
         }
-        
+
         removeBlockResourcesFromExports(resourcesInExport);
     }
-    
+
     public static void removeBlockResourceFromExport(URI resourceId, URI exportId) {
         removeBlockResourcesFromExport(Collections.singletonList(resourceId), exportId);
     }
-    
+
     public static void removeBlockResourcesFromExport(Collection<URI> resourceId, URI exportId) {
         Task<ExportGroupRestRep> task = execute(new RemoveBlockResourcesFromExport(exportId, resourceId));
         addAffectedResource(task);
@@ -326,7 +432,7 @@ public class BlockStorageUtils {
     public static void removeExportIfEmpty(URI exportId) {
         ExportGroupRestRep export = getExport(exportId);
         if (ResourceUtils.isActive(export) && export.getVolumes().isEmpty()) {
-            removeExport(export.getId() );
+            removeExport(export.getId());
         }
     }
 
@@ -381,7 +487,7 @@ public class BlockStorageUtils {
         Tasks<VolumeRestRep> tasks = execute(new DeactivateContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
         addAffectedResources(tasks);
     }
-    
+
     public static List<URI> getActiveFullCopies(URI volumeId) {
         return ResourceUtils.ids(execute(new GetActiveFullCopiesForVolume(volumeId)));
     }
@@ -391,7 +497,7 @@ public class BlockStorageUtils {
         vols.removeAll(fullCopiesIds);
         removeFullCopies(fullCopiesIds);
     }
-    
+
     public static void removeFullCopies(Collection<URI> fullCopyIds) {
         for (URI fullCopyId : fullCopyIds) {
             removeFullCopy(fullCopyId);
@@ -408,15 +514,15 @@ public class BlockStorageUtils {
             detachFullCopy(fullCopyId);
         }
     }
-    
+
     public static void detachFullCopy(URI fullCopyId) {
         execute(new DetachFullCopy(fullCopyId));
     }
-    
+
     public static void restoreFromFullCopy(URI fullCopyId) {
         execute(new RestoreFromFullCopy(fullCopyId));
-    }    
-    
+    }
+
     public static Map<URI, Integer> findBlockVolumeHLUs(Collection<URI> volumeIds) {
         List<ITLRestRep> bulkResponse = execute(new FindBlockVolumeHlus(volumeIds));
         Map<URI, Integer> volumeHLUs = Maps.newHashMap();
@@ -431,7 +537,7 @@ public class BlockStorageUtils {
             resynchronizeFullCopy(fullCopyId);
         }
     }
-    
+
     public static void resynchronizeFullCopy(URI fullCopyId) {
         execute(new ResynchronizeFullCopy(fullCopyId));
     }
@@ -452,13 +558,12 @@ public class BlockStorageUtils {
         }
         deactivateBlockResources(blockResourceIds, type);
     }
-    
 
     private static void deactivateBlockResources(Collection<URI> blockResourceIds, VolumeDeleteTypeEnum type) {
         List<URI> volumes = Lists.newArrayList();
         List<URI> fullCopies = Lists.newArrayList();
         for (URI blockResourceId : blockResourceIds) {
-            if (ResourceType.isType(VOLUME,  blockResourceId)) {
+            if (ResourceType.isType(VOLUME, blockResourceId)) {
                 if (isFullCopyAttached(blockResourceId)) {
                     fullCopies.add(blockResourceId);
                 }
@@ -471,14 +576,14 @@ public class BlockStorageUtils {
         detachFullCopies(fullCopies);
         deactivateVolumes(volumes, type);
     }
-    
+
     public static boolean isFullCopyAttached(URI id) {
         BlockObjectRestRep obj = getVolume(id);
         if (obj instanceof VolumeRestRep) {
-            VolumeRestRep volume = (VolumeRestRep)obj;
+            VolumeRestRep volume = (VolumeRestRep) obj;
             if (volume.getProtection() != null) {
                 FullCopyRestRep fullCopy = volume.getProtection().getFullCopyRep();
-                if (fullCopy != null && 
+                if (fullCopy != null &&
                         fullCopy.getAssociatedSourceVolume() != null &&
                         fullCopy.getReplicaState() != null &&
                         !fullCopy.getReplicaState().equals(ReplicationState.DETACHED.name())) {
@@ -488,7 +593,7 @@ public class BlockStorageUtils {
         }
         return false;
     }
-    
+
     public static void deactivateVolumes(List<URI> volumeIds, VolumeDeleteTypeEnum type) {
         if (CollectionUtils.isNotEmpty(volumeIds)) {
             Tasks<VolumeRestRep> tasks = execute(new DeactivateVolumes(volumeIds, type));
@@ -503,8 +608,8 @@ public class BlockStorageUtils {
 
     public static List<URI> getSrdfTargetVolumes(BlockObjectRestRep blockObject) {
         List<URI> targetVolumes = Lists.newArrayList();
-        if (blockObject instanceof VolumeRestRep) {            
-            VolumeRestRep volume = (VolumeRestRep)blockObject;
+        if (blockObject instanceof VolumeRestRep) {
+            VolumeRestRep volume = (VolumeRestRep) blockObject;
             if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null) {
                 for (VirtualArrayRelatedResourceRep targetVolume : volume.getProtection().getSrdfRep().getSRDFTargetVolumes()) {
                     targetVolumes.add(targetVolume.getId());
@@ -522,7 +627,7 @@ public class BlockStorageUtils {
     public static void unexportVolumes(List<URI> volumeIds) {
         removeBlockResourcesFromExports(volumeIds);
     }
-    
+
     public static Set<Initiator> findInitiatorsInVirtualArray(URI virtualArray, Collection<Initiator> initiators,
             Protocol protocol) {
         return findInitiatorsInVirtualArrays(Arrays.asList(virtualArray), initiators, protocol);
@@ -564,7 +669,7 @@ public class BlockStorageUtils {
             }
         });
     }
-    
+
     public static Collection<Initiator> filterInitiatorsByType(Collection<Initiator> initiators, final Protocol protocol) {
         return Collections2.filter(initiators, new Predicate<Initiator>() {
             @Override
@@ -594,19 +699,36 @@ public class BlockStorageUtils {
         addAffectedResources(copies);
         return copies;
     }
-    
+
     public static Tasks<BlockSnapshotRestRep> createSnapshotFullCopy(URI snapshotId, String name, Integer count) {
         int countValue = (count != null) ? count : 1;
         Tasks<BlockSnapshotRestRep> copyTasks = ViPRExecutionUtils.execute(new CreateSnapshotFullCopy(snapshotId, name, countValue));
         addAffectedResources(copyTasks);
         return copyTasks;
     }
-    
+
     public static Tasks<VolumeRestRep> createContinuousCopy(URI volumeId, String name, Integer count) {
         int countValue = (count != null) ? count : 1;
         Tasks<VolumeRestRep> copies = execute(new CreateContinuousCopy(volumeId, name, countValue, COPY_NATIVE));
         addAffectedResources(copies);
         return copies;
+    }
+
+    public static Tasks<VolumeRestRep> createContinuousCopy(URI volumeId, String name, Integer count, String type, URI copyId) {
+        int countValue = (count != null) ? count : 1;
+        Tasks<VolumeRestRep> copies = execute(new CreateContinuousCopy(volumeId, name, countValue, type, copyId));
+        addAffectedResources(copies);
+        return copies;
+    }
+
+    public static void startSnapshot(URI snapshotId) {
+        Task<BlockSnapshotRestRep> task = execute(new StartBlockSnapshot(snapshotId));
+        addAffectedResource(task);
+    }
+
+    public static void startFullCopy(URI fullCopyId) {
+        Tasks<VolumeRestRep> task = execute(new StartFullCopy(fullCopyId));
+        addAffectedResources(task);
     }
 
     public static Tasks<VolumeRestRep> swapContinuousCopy(URI targetVolumeId, String type) {
@@ -615,13 +737,19 @@ public class BlockStorageUtils {
         return copies;
     }
 
+    public static Task<BlockConsistencyGroupRestRep> addVolumesToConsistencyGroup(URI consistencyGroupId, List<URI> volumeIds) {
+        Task<BlockConsistencyGroupRestRep> task = execute(new AddVolumesToConsistencyGroup(consistencyGroupId, volumeIds));
+        addAffectedResource(task);
+        return task;
+    }
+
     /**
      * Finds the exports (itl) for the given initiators.
      * 
      * @param exports
-     *        the list of all exports (itl)
+     *            the list of all exports (itl)
      * @param initiators
-     *        the initiators.
+     *            the initiators.
      * @return the exports for the initiators.
      */
     public static List<ITLRestRep> getExportsForInitiators(Collection<ITLRestRep> exports,
@@ -659,19 +787,19 @@ public class BlockStorageUtils {
 
         return false;
     }
-    
+
     /**
      * Get the project id off a {@link BlockObjectRestRep}
      */
     public static <T extends BlockObjectRestRep> URI getProjectId(T resource) {
         if (resource instanceof BlockSnapshotRestRep) {
-            return ((BlockSnapshotRestRep)resource).getProject().getId();
+            return ((BlockSnapshotRestRep) resource).getProject().getId();
         }
         else if (resource instanceof VolumeRestRep) {
-            return ((VolumeRestRep)resource).getProject().getId();
+            return ((VolumeRestRep) resource).getProject().getId();
         }
         else if (resource instanceof BlockMirrorRestRep) {
-            return ((BlockMirrorRestRep)resource).getProject().getId();
+            return ((BlockMirrorRestRep) resource).getProject().getId();
         }
         throw new IllegalStateException(ExecutionUtils.getMessage("illegalState.projectNotFound", resource.getId()));
     }
@@ -681,20 +809,20 @@ public class BlockStorageUtils {
      */
     public static URI getVirtualArrayId(BlockObjectRestRep resource) {
         if (resource instanceof VolumeRestRep) {
-            return ((VolumeRestRep)resource).getVirtualArray().getId();
+            return ((VolumeRestRep) resource).getVirtualArray().getId();
         }
         else if (resource instanceof BlockSnapshotRestRep) {
-            return ((BlockSnapshotRestRep)resource).getVirtualArray().getId();
+            return ((BlockSnapshotRestRep) resource).getVirtualArray().getId();
         }
         else if (resource instanceof BlockMirrorRestRep) {
-            return ((BlockMirrorRestRep)resource).getVirtualArray().getId();
+            return ((BlockMirrorRestRep) resource).getVirtualArray().getId();
         }
         throw new IllegalStateException(ExecutionUtils.getMessage("illegalState.varrayNotFound", resource.getId()));
     }
 
     public static String getFailoverType(BlockObjectRestRep blockObject) {
         if (blockObject instanceof VolumeRestRep) {
-            VolumeRestRep volume = (VolumeRestRep)blockObject;
+            VolumeRestRep volume = (VolumeRestRep) blockObject;
             if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
                 VolumeRestRep.RecoverPointRestRep rp = volume.getProtection().getRpRep();
                 if (StringUtils.equals("TARGET", rp.getPersonality())) {

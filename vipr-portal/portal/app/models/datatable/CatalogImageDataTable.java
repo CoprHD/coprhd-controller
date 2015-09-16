@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -28,7 +28,7 @@ public class CatalogImageDataTable extends DataTable {
         public long size;
         public String preview;
         public String rowLink;
-        
+
         public ImageInfo(CatalogImageRestRep image) {
             id = image.getId().toString();
             name = image.getName();

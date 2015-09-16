@@ -1,22 +1,17 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.property;
 
 import static com.emc.storageos.model.property.PropertyConstants.*;
+
+import java.util.Arrays;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 @XmlRootElement
@@ -32,14 +27,15 @@ public class PropertyMetadata {
     private Boolean userConfigurable = false;   // This applies to OVF only
     private Boolean userMutable = false;        // This applies to wizard and syssvc API
     private Boolean advanced = false;           // Advanced wizard only
-    private Boolean hidden = false;             // Do not show in  wizard and syssvc API without force
+    private Boolean hidden = false;             // Do not show in wizard and syssvc API without force
     private Boolean reconfigRequired = false;
     private Boolean rebootRequired = false;
     private String[] notifiers = new String[0];
     private String value;
     private Boolean controlNodeOnly = false;    // Control node only property flag
 
-    public PropertyMetadata() {}
+    public PropertyMetadata() {
+    }
 
     public void setLabel(String label) {
         this.label = label;
@@ -87,7 +83,7 @@ public class PropertyMetadata {
 
     @XmlElement(name = "minLen")
     @JsonProperty("minLen")
-    public Integer getMinLen()  {
+    public Integer getMinLen() {
         return minLen;
     }
 
@@ -102,13 +98,18 @@ public class PropertyMetadata {
     }
 
     public void setAllowedValues(String[] allowedValues) {
-        this.allowedValues = allowedValues;
+    	if(allowedValues != null){
+    		this.allowedValues =  Arrays.copyOf(allowedValues, allowedValues.length);
+    	} else{
+    		this.allowedValues = new String[0];
+    	}
+        
     }
 
     @XmlElement(name = "allowedValues")
     @JsonProperty("allowedValues")
     public String[] getAllowedValues() {
-        return allowedValues;
+        return allowedValues.clone();
     }
 
     public void setUserConfigurable(Boolean userConfigurable) {
@@ -128,7 +129,7 @@ public class PropertyMetadata {
     @XmlElement(name = "userMutable")
     @JsonProperty("userMutable")
     public Boolean getUserMutable() {
-        return userMutable == null? false : userMutable;
+        return userMutable == null ? false : userMutable;
     }
 
     public void setAdvanced(Boolean advanced) {
@@ -172,13 +173,18 @@ public class PropertyMetadata {
     }
 
     public void setNotifiers(String[] notifiers) {
-        this.notifiers = notifiers;
+    	if(notifiers == null){
+    		this.notifiers = new String[0];
+    	}else{
+    		this.notifiers = Arrays.copyOf(notifiers, notifiers.length);
+    	}
+        
     }
 
     @XmlElement(name = "notifiers")
     @JsonProperty("notifiers")
     public String[] getNotifiers() {
-        return notifiers;
+        return notifiers.clone();
     }
 
     public void setValue(String value) {
@@ -203,33 +209,35 @@ public class PropertyMetadata {
 
     /**
      * Get default value
-     *
-     *
+     * 
+     * 
      * @return default value from metadata. Null when property is non-usermutable.
      */
+    @JsonIgnore
     public String getDefaultValue() {
         if (userMutable == null || userMutable == false) {
             return null;
         }
         return getDefaultValueMetaData();
     }
-    
+
     /**
      * Get default value meta data
-     *
+     * 
      * For all types : if _value not null, return it.
-     *
+     * 
      * For Ip Address : ip address can only be set during deployment. It can from user input or default value.
-     *                    if it has default value, then return it. Otherwise, it must be set by user.
-     *
+     * if it has default value, then return it. Otherwise, it must be set by user.
+     * 
      * For String : if no default value defined in metadata
-     *                  case 1: minLen is null or 0, return ""
-     *                  case 2: minLen > 0, its value should have been set during deployment
-     * For URL & Email & License & Hostname & Iplist  : same as String
+     * case 1: minLen is null or 0, return ""
+     * case 2: minLen > 0, its value should have been set during deployment
+     * For URL & Email & License & Hostname & Iplist : same as String
      * For UNIT64 & UINT32 & PERCENT : if no default, set to 0
-     *
-     * @return      default value string. Null when no default values needed.
+     * 
+     * @return default value string. Null when no default values needed.
      */
+    @JsonIgnore
     public String getDefaultValueMetaData() {
         // return default value if exist
         if (value != null) {
@@ -242,12 +250,12 @@ public class PropertyMetadata {
         }
 
         if (STRING.equals(type) || URL.equals(type) || EMAIL.equals(type) || LICENSE.equals(type)
-                || HOSTNAME.equals(type)|| IPLIST.equals(type)) {
+                || HOSTNAME.equals(type) || IPLIST.equals(type)) {
             // if minLen is not set or 0. Default value is empty string
             // if minLen is set.
-            //   It must have been configured during deployment.
-            //   no default value needed
-            return (minLen == null || minLen == 0)? "" : null;
+            // It must have been configured during deployment.
+            // no default value needed
+            return (minLen == null || minLen == 0) ? "" : null;
         }
 
         if (UINT64.equals(type) || UINT32.equals(type) || PERCENT.equals(type)) {
@@ -258,4 +266,3 @@ public class PropertyMetadata {
         return null;
     }
 }
-

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.impl.jersey;
@@ -32,8 +32,7 @@ public class ExceptionOnErrorFilter extends ClientFilter {
                 ServiceErrorRestRep serviceError;
                 try {
                     serviceError = response.getEntity(ServiceErrorRestRep.class);
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     // Cause to fall-through to default exception
                     log.error("Error parsing error message", e);
                     serviceError = null;
@@ -57,7 +56,7 @@ public class ExceptionOnErrorFilter extends ClientFilter {
 
     private boolean isSupportedType(MediaType type) {
         return type.isCompatible(MediaType.APPLICATION_JSON_TYPE) ||
-               type.isCompatible(MediaType.APPLICATION_XML_TYPE) ||
-               type.isCompatible(MediaType.TEXT_XML_TYPE);
+                type.isCompatible(MediaType.APPLICATION_XML_TYPE) ||
+                type.isCompatible(MediaType.TEXT_XML_TYPE);
     }
 }

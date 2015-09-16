@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014-2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014-2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
@@ -28,7 +18,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
@@ -62,8 +51,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                     // check if unmanaged volume is created
                     UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(srcNativeGuid, dbClient);
                     if (unManagedVolume != null) {
-                        vPools = unManagedVolume.getVolumeInformation().get(
-                                SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.name());
+                        vPools = unManagedVolume.getSupportedVpoolUris();
                     } else {
                         // check if it has already been ingested
                         String volumeNativeGuid = srcNativeGuid.replace(NativeGUIDGenerator.UN_MANAGED_VOLUME, NativeGUIDGenerator.VOLUME);
@@ -90,13 +78,13 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
 
             // if modifiedUnManagedVolumes size reaches BATCH_SIZE, persist to db
             if (modifiedUnManagedVolumes.size() >= BATCH_SIZE) {
-                _partitionManager.updateInBatches(modifiedUnManagedVolumes, BATCH_SIZE, dbClient, "UnManagedVolumes");
+                _partitionManager.updateAndReIndexInBatches(modifiedUnManagedVolumes, BATCH_SIZE, dbClient, "UnManagedVolumes");
                 modifiedUnManagedVolumes.clear();
             }
         }
 
         if (!modifiedUnManagedVolumes.isEmpty()) {
-            _partitionManager.updateInBatches(modifiedUnManagedVolumes, BATCH_SIZE, dbClient, "UnManagedVolumes");
+            _partitionManager.updateAndReIndexInBatches(modifiedUnManagedVolumes, BATCH_SIZE, dbClient, "UnManagedVolumes");
         }
     }
 
@@ -114,12 +102,10 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                     // get UnManagedVolume of replica and set SUPPORTED_VPOOL_LIST
                     UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(replica, dbClient);
                     if (unManagedVolume != null) {
-                        unManagedVolume
-                                .getVolumeInformation()
-                                .put(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST
-                                        .name(), vPools);
+                        _logger.debug("{} matched vpools: {}", unManagedVolume.getNativeGuid(), vPools);
+                        unManagedVolume.getSupportedVpoolUris().replace(vPools);
                         unMangedVolumesUpdate.add(unManagedVolume);
-                        _logger.debug("Set VPools for {} to {}", replica, Joiner.on("\t").join(vPools));
+                        _logger.debug("Set VPools for {} to {}", replica, Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
                         LocalReplicaObject replicaObj = volumeToReplicaMap.get(replica);
                         if (replicaObj.hasReplica()) {
                             // process dependents

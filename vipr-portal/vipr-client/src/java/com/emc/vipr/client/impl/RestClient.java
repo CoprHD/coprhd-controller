@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.impl;
@@ -15,10 +15,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.ws.rs.core.UriBuilder;
 
 import java.net.URI;
-import java.util.Iterator;
-import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
 
 public class RestClient {
     private ClientConfig config;
@@ -29,13 +26,13 @@ public class RestClient {
 
     // Proxy token for proxy authentication
     private String proxyToken;
-    
+
     private String username;
-    
+
     private String password;
 
     private Client client;
-    
+
     private long loginTime;
 
     public RestClient(URI baseUri, ClientConfig config) {
@@ -82,6 +79,7 @@ public class RestClient {
                 public void setToken(String token) {
                     // Not required
                 }
+
                 public String getToken() {
                     return proxyToken;
                 }
@@ -91,6 +89,7 @@ public class RestClient {
                 public void setToken(String token) {
                     authToken = token;
                 }
+
                 public String getToken() {
                     return authToken;
                 }
@@ -132,7 +131,7 @@ public class RestClient {
     public void setPassword(String password) {
         this.password = password;
     }
-    
+
     public long getLoginTime() {
         return loginTime;
     }
@@ -165,7 +164,7 @@ public class RestClient {
 
     public WebResource.Builder resource(URI uri) {
         return getClient().resource(uri).accept(config.getMediaType())
-            .type(config.getMediaType());
+                .type(config.getMediaType());
     }
 
     // Method takes path + args for replacement
@@ -185,10 +184,10 @@ public class RestClient {
     public <T> T post(Class<T> responseType, Object request, String path, Object... args) {
         return resource(path, args).post(responseType, request);
     }
-    
+
     public void post(Object request, String path, Object... args) {
         resource(path, args).post(request);
-    }    
+    }
 
     public <T> T postURI(Class<T> responseType, Object request, URI uri) {
         return resource(uri).post(responseType, request);

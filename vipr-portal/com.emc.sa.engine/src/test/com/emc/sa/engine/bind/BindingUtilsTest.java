@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.engine.bind;
@@ -99,8 +99,7 @@ public class BindingUtilsTest {
         try {
             BindingUtils.bind(data, params);
             Assert.fail("Binding succeeded for missing required parameter");
-        }
-        catch (BindingException e) {
+        } catch (BindingException e) {
             // Expected
         }
     }

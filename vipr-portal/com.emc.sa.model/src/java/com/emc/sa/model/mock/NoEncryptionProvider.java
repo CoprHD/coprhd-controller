@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.mock;
@@ -14,8 +14,7 @@ public class NoEncryptionProvider implements EncryptionProvider {
     public String decrypt(byte[] value) {
         try {
             return new String(value, "UTF-8");
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             throw new Error(e);
         }
     }
@@ -24,8 +23,7 @@ public class NoEncryptionProvider implements EncryptionProvider {
     public byte[] encrypt(String value) {
         try {
             return value.getBytes("UTF-8");
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             throw new Error(e);
         }
     }

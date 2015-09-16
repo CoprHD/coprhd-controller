@@ -4,21 +4,20 @@
  */
 package com.emc.storageos.db.client.model;
 
-import java.net.URI;
-
 /**
  * A server that runs a vcenter instance that manages ESX clusters and hosts. 
  * @author elalih
  *
  */
 @Cf("Vcenter")
-public class Vcenter extends AbstractComputeSystem {
+public class Vcenter extends DiscoveredComputeSystemWithAcls {
     private String _userName;
     private String _password;
     private String _ipAddress;
     private Integer _portNumber;
     private String _osVersion;
     private Boolean _useSsl;
+    private Boolean _cascadeTenancy;
 
     /**
      * Gets the login account name
@@ -141,11 +140,33 @@ public class Vcenter extends AbstractComputeSystem {
         setChanged("useSSL");
     }
 
+    /**
+     * Get whether the vCenter's tenancy to be cascaded to its datacenters
+     * and hosts and clusters or not.
+     *
+     * @return whether the vCenter's tenancy to be cascaded to its datacenters
+     * and hosts and clusters or not.
+     */
+    @Name("cascadeTenancy")
+    public Boolean getCascadeTenancy() {
+        return _cascadeTenancy;
+    }
+
+    /**
+     * Sets the flag that indicates if vCenter's tenancy to be cascaded to its datacenters
+     * and hosts and clusters or not.
+     *
+     * @param cascadeTenancy true or false to indicate if vCenter's tenancy to be
+     *                       cascaded to its datacenters and hosts and clusters or not.
+     */
+    public void setCascadeTenancy(Boolean cascadeTenancy) {
+        this._cascadeTenancy = cascadeTenancy;
+        setChanged("cascadeTenancy");
+    }
+
     @Override
     public Object[] auditParameters() {
         return new Object[] {getLabel(), getIpAddress(),
                 getPortNumber(), getOsVersion(), getTenant(), getId()};
     }
-    
-    
 }

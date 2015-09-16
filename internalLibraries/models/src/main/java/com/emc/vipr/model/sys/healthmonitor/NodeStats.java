@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.vipr.model.sys.healthmonitor;
 
@@ -31,6 +21,7 @@ import java.util.List;
 public class NodeStats {
 
     private String nodeId;
+    private String nodeName;
     private String ip;
     // proc/loadavg
     private LoadAvgStats loadAvgStats;
@@ -40,17 +31,19 @@ public class NodeStats {
     private DataDiskStats dataDiskStats;
     private List<ServiceStats> serviceStatsList;
     private List<DiskStats> diskStatsList;
-    
+
     // Default constructor for JAXB
     public NodeStats() {
         this.nodeId = HealthMonitorConstants.UNKNOWN;
+        this.nodeName = HealthMonitorConstants.UNKNOWN;
     }
 
-    public NodeStats(String nodeId, String ip, LoadAvgStats loadAvgStats,
+    public NodeStats(String nodeId,String nodeName, String ip, LoadAvgStats loadAvgStats,
                      MemoryStats memoryStats, DataDiskStats dataDiskStats,
                      List<ServiceStats> serviceStatsList,
                      List<DiskStats> diskStatsList) {
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.ip = ip;
         this.loadAvgStats = loadAvgStats;
         this.memoryStats = memoryStats;
@@ -59,10 +52,14 @@ public class NodeStats {
         this.diskStatsList = diskStatsList;
     }
 
-
     @XmlElement(name = "node_id")
     public String getNodeId() {
         return nodeId;
+    }
+
+    @XmlElement(name = "node_name")
+    public String getNodeName() {
+        return nodeName;
     }
 
     @XmlElement(name = "load_avg")
@@ -109,6 +106,10 @@ public class NodeStats {
 
     public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
+    }
+
+    public void setNodeName(String nodeName) {
+        this.nodeName = nodeName;
     }
 
     public void setIp(String ip) {

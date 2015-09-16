@@ -1,12 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2008-2014 EMC Corporation All Rights Reserved This software contains the
- * intellectual property of EMC Corporation or is licensed to EMC Corporation from third parties.
- * Use of this software and the intellectual property contained therein is expressly limited to the
- * terms and conditions of the License Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -40,13 +34,13 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 
 @Path("/vdc/unmanaged/export-masks")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class UnManagedExportMaskService extends TaggedResource {
 
     private static final Logger _logger = LoggerFactory
             .getLogger(UnManagedExportMaskService.class);
-    
+
     @Override
     protected DataObject queryResource(URI id) {
         ArgValidator.checkUri(id);
@@ -64,18 +58,18 @@ public class UnManagedExportMaskService extends TaggedResource {
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.UNMANAGED_EXPORT_MASKS;
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public Class<UnManagedExportMask> getResourceClass() {
         return UnManagedExportMask.class;
     }
-    
-    /**   
+
+    /**
      * Show the details of an UnManagedExportMask.
      * 
      * @param id the URN of a ViPR UnManagedExportMask
-     * @return UnManagedExportMaskRestRep 
+     * @return UnManagedExportMaskRestRep
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -95,15 +89,14 @@ public class UnManagedExportMaskService extends TaggedResource {
     public UnManagedExportMaskBulkRep getBulkResources(BulkIdParam param) {
         return (UnManagedExportMaskBulkRep) super.getBulkResources(param);
     }
-    
-    
+
     @Override
     public UnManagedExportMaskBulkRep queryBulkResourceReps(List<URI> ids) {
         Iterator<UnManagedExportMask> _dbIterator = _dbClient.queryIterativeObjects(
                 UnManagedExportMask.class, ids);
         return new UnManagedExportMaskBulkRep(BulkList.wrapping(_dbIterator, MapUnmanagedExportMask.getInstance()));
     }
-    
+
     @Override
     public UnManagedExportMaskBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         verifySystemAdmin();

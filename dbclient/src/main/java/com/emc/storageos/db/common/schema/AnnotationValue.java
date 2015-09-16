@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common.schema;
@@ -25,7 +15,6 @@ import com.google.common.base.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.upgrade.MigrationCallback;
 import com.emc.storageos.db.exceptions.DatabaseException;
 
@@ -40,29 +29,29 @@ public class AnnotationValue implements SchemaObject {
     // the following fields are used to distinguish instances
     private String name;
     private String value;
-    
+
     private SchemaObject parent;
-    
+
     public AnnotationValue() {
     }
 
     public AnnotationValue(RuntimeType runtimeType, Method method, SchemaObject parent) {
         this.runtimeType = new RuntimeType(runtimeType);
-        
+
         this.parent = parent;
 
         this.name = method.getName();
         try {
             Object val = method.invoke(runtimeType.getAnnotation());
             if (val instanceof Class) {
-                this.value = ((Class)val).getSimpleName();
-                this.runtimeType.setMigrationCallback((Class<? extends MigrationCallback>)val);
-            } else if (val instanceof Enum[]){
-            	Enum[] vals = (Enum[]) val;
-            	for(int i = 0; i < vals.length; i ++) {
-            		this.value = vals[i].name();
-            	}
-            	this.runtimeType.setMigrationCallback(null);
+                this.value = ((Class) val).getSimpleName();
+                this.runtimeType.setMigrationCallback((Class<? extends MigrationCallback>) val);
+            } else if (val instanceof Enum[]) {
+                Enum[] vals = (Enum[]) val;
+                for (int i = 0; i < vals.length; i++) {
+                    this.value = vals[i].name();
+                }
+                this.runtimeType.setMigrationCallback(null);
             } else {
                 this.value = val.toString();
                 this.runtimeType.setMigrationCallback(null);
@@ -95,11 +84,13 @@ public class AnnotationValue implements SchemaObject {
 
     @XmlAttribute
     public String getType() {
-        if (runtimeType == null)
+        if (runtimeType == null) {
             return type;
+        }
 
-        if (runtimeType.getMigrationCallback() == null)
+        if (runtimeType.getMigrationCallback() == null) {
             return null;
+        }
 
         return runtimeType.getMigrationCallback().getCanonicalName();
     }
@@ -110,16 +101,19 @@ public class AnnotationValue implements SchemaObject {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof AnnotationValue))
+        if (!(o instanceof AnnotationValue)) {
             return false;
+        }
 
-        AnnotationValue annotationValue = (AnnotationValue)o;
+        AnnotationValue annotationValue = (AnnotationValue) o;
 
-        if (!annotationValue.getName().equals(getName()))
+        if (!annotationValue.getName().equals(getName())) {
             return false;
+        }
 
-        if (!annotationValue.getValue().equals(getValue()))
+        if (!annotationValue.getValue().equals(getValue())) {
             return false;
+        }
 
         return true;
     }
@@ -153,4 +147,3 @@ public class AnnotationValue implements SchemaObject {
         this.parent = parent;
     }
 }
-

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.monitoring.cim.indicationProcessor.processor.volumeView;
@@ -45,11 +45,12 @@ public class VolumeViewEventProcessor extends BaseProcessor {
 
         if (className != null) {
             BaseProcessor processor = _volumeViewProcessors.get(className);
-            if (processor != null)
+            if (processor != null) {
                 processor.processIndication(notification);
-            else
+            } else {
                 logMessage("No processor found to process this indication",
                         new Object[] {});
+            }
         } else {
             logMessage("No need to process this indication", new Object[] {});
         }

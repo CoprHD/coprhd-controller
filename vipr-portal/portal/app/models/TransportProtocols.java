@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models;
@@ -8,7 +8,6 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import util.MessagesUtils;
 import util.StringOption;
 
 public class TransportProtocols {

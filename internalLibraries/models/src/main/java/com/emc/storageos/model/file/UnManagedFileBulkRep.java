@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -11,7 +11,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * Response to a bulk query for the list of unmanaged file systems.
  * 
@@ -20,11 +19,12 @@ import java.util.List;
 public class UnManagedFileBulkRep extends BulkRestRep {
     private List<UnManagedFileSystemRestRep> unManagedFileSystems;
 
-    /** 
-     * List of unmanaged file systems.  UnManaged FileSystems are FileSystems that 
-     * are present within ViPR, but are not under ViPR management.  ViPR 
+    /**
+     * List of unmanaged file systems. UnManaged FileSystems are FileSystems that
+     * are present within ViPR, but are not under ViPR management. ViPR
      * provides an ingest capability that enables users to bring the unmanaged
      * file systems under ViPR management.
+     * 
      * @valid none
      */
     @XmlElement(name = "unmanaged-filesystems")
@@ -39,8 +39,8 @@ public class UnManagedFileBulkRep extends BulkRestRep {
         this.unManagedFileSystems = unManagedFileSystems;
     }
 
-    public UnManagedFileBulkRep() {}
-
+    public UnManagedFileBulkRep() {
+    }
 
     public UnManagedFileBulkRep(List<UnManagedFileSystemRestRep> unManagedFileSystems) {
         this.unManagedFileSystems = unManagedFileSystems;

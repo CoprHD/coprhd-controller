@@ -1,22 +1,14 @@
 /*
- * Copyright 2015 EMC Corporation
+
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.*;
@@ -25,17 +17,15 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.coordinator.client.service.*;
+import com.emc.storageos.locking.LockRetryException;
 import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.zookeeper.KeeperException;
 import com.emc.storageos.Controller;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
-import com.emc.storageos.coordinator.client.service.DistributedQueueItemProcessedCallback;
-import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -55,13 +45,17 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
     private static final int DEFAULT_METHOD_EXECUTOR_POOL_SIZE = 100;
     private static final int ACQUIRE_LEASE_WAIT_TIME_SECONDS = 10;
     private static final int ACQUIRE_LEASE_RETRY_WAIT_TIME__SECONDS = 10;
+    private static final int LOCK_RETRY_WAIT_TIME_SECONDS = 60;
     private static final int DEFAULT_CONTROLLER_MAX_ITEM = 1000;
     private static final int MAX_WORKFLOW_STEPS = 10000;
 
     // Define the Queues used by the Dispatcher.
     // To add a new Queue, add it's name to the QueueName enum, and then add a constructor
     // in the DispatcherQueue[] _queues below.
-    public static enum QueueName { controller, workflow_outer, workflow_inner; };
+    public static enum QueueName {
+        controller, workflow_outer, workflow_inner;
+    };
+
     private class DispatcherQueue {
         final QueueName _queue_name;
         final Integer _method_executor_pool_size;
@@ -84,57 +78,78 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
         public DistributedQueue<ControlRequest> getQueue() {
             return _queue;
         }
+
         public void setQueue(DistributedQueue<ControlRequest> _queue) {
             this._queue = _queue;
         }
+
         public QueueName getQueueName() {
             return _queue_name;
         }
+
         public Integer getMethodExecutorPoolSize() {
             return _method_executor_pool_size;
         }
+
         public Integer getQueueMaxItem() {
             return _queue_max_item;
         }
+
         public ScheduledThreadPoolExecutor getMethodPoolExecutor() {
             return _methodPoolExecutor;
         }
+
         public void setMethodPoolExecutor(ScheduledThreadPoolExecutor executor) {
             _methodPoolExecutor = executor;
         }
     }
+
     DispatcherQueue[] _queues = {
-      new DispatcherQueue(QueueName.controller, DEFAULT_METHOD_EXECUTOR_POOL_SIZE, DEFAULT_CONTROLLER_MAX_ITEM),
-      new DispatcherQueue(QueueName.workflow_outer, DEFAULT_METHOD_EXECUTOR_POOL_SIZE/5),
-      new DispatcherQueue(QueueName.workflow_inner, DEFAULT_METHOD_EXECUTOR_POOL_SIZE)
+            new DispatcherQueue(QueueName.controller, DEFAULT_METHOD_EXECUTOR_POOL_SIZE, DEFAULT_CONTROLLER_MAX_ITEM),
+            new DispatcherQueue(QueueName.workflow_outer, DEFAULT_METHOD_EXECUTOR_POOL_SIZE / 5),
+            new DispatcherQueue(QueueName.workflow_inner, DEFAULT_METHOD_EXECUTOR_POOL_SIZE)
     };
+
     // Methods to return the queues or a specific queue
-    private DispatcherQueue[] getQueues() { return _queues; }
-    private DispatcherQueue getDefaultQueue() { return _queues[0]; }
+    private DispatcherQueue[] getQueues() {
+        return _queues;
+    }
+
+    private DispatcherQueue getDefaultQueue() {
+        return _queues[0];
+    }
+
     private DispatcherQueue getQueue(QueueName name) {
         for (DispatcherQueue q : getQueues()) {
-            if (q.getQueueName() == name) return q;
+            if (q.getQueueName() == name) {
+                return q;
+            }
         }
         return getDefaultQueue();
     }
+
     private DispatcherQueue getQueue(String queueName) {
-        if (queueName == null) return getDefaultQueue();
+        if (queueName == null) {
+            return getDefaultQueue();
+        }
         return getQueue(QueueName.valueOf(queueName));
     }
 
     private CoordinatorClient _coordinator;
     private Map<String, Controller> _controller;
     private Map<Controller, Map<String, Method>> _methodMap;
-    private Map<String,Integer> _deviceMaxConnectionMap;
+    private Map<String, Integer> _deviceMaxConnectionMap;
     private final ConcurrentMap<URI, DistributedSemaphore> _deviceSemaphoreMap = new ConcurrentHashMap<URI, DistributedSemaphore>();
     private int _acquireLeaseWaitTimeSeconds = ACQUIRE_LEASE_WAIT_TIME_SECONDS;
     private int _acquireLeaseRetryWaitTimeSeconds = ACQUIRE_LEASE_RETRY_WAIT_TIME__SECONDS;
+
+    private DistributedLockQueueManager<ControlRequest> _lockQueueManager;
 
     /**
      * This method implements the logic for acquiring a device-specific semaphore.
      * To get a semaphore, the device-specific configuration must include setting up maxConnections
      * in _deviceMaxConnectionMap.
-     *
+     * 
      * @param info Light wrapper of needed device properties (e.g., URI, DeviceType)
      * @return DistributedSemaphore instance, if maxConnections exists.
      *         null, otherwise.
@@ -146,7 +161,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
         DistributedSemaphore deviceSemaphore = _deviceSemaphoreMap.get(info.getURI());
         if (deviceSemaphore == null && _deviceMaxConnectionMap != null) {
             Integer maxConnections = _deviceMaxConnectionMap.get(info.getType());
-            if(maxConnections != null) {
+            if (maxConnections != null) {
                 synchronized (this) {
                     try {
                         deviceSemaphore = _deviceSemaphoreMap.get(info.getURI());
@@ -154,7 +169,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
                             deviceSemaphore = _coordinator.getSemaphore(info.getURI().toString(), maxConnections.intValue());
                         }
                         _deviceSemaphoreMap.put(info.getURI(), deviceSemaphore);
-                    } catch(Exception e) {
+                    } catch (Exception e) {
                         _log.error("Error getting deviceSemaphore for device: {}", info.getURI().toString(), e);
                     }
                 }
@@ -170,6 +185,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
      * b) A semaphore is acquired, and a lease is acquired
      */
     private class DeviceMethodInvoker implements Runnable {
+        private final ControlRequest _item;
         private final DispatcherQueue _queue;
         private final Controller _innerController;
         private final Method _method;
@@ -178,7 +194,8 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
         private final Object[] _args;
 
         public DeviceMethodInvoker(ControlRequest item,
-                                   DistributedQueueItemProcessedCallback callback) throws DeviceControllerException {
+                DistributedQueueItemProcessedCallback callback) throws DeviceControllerException {
+            _item = item;
             _queue = getQueue(item.getQueueName());
             final String targetClassName = item.getTargetClassName();
             _innerController = _controller.get(targetClassName);
@@ -197,21 +214,23 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
             Lease lease = null;
             boolean bRetryLease = false;
             boolean bInvocationProblem = false;
+            boolean bRetryLock = false;
             try {
                 // Reset the thread name temporarily so that the log lines don't
                 // reference a thread name that may have already completed its work.
                 // Any log lines above this line will have a thread name that may
                 // reference work that may have already been completed.
-                String defaultName = String.format("%s-thread-%d", Thread.currentThread().getThreadGroup().getName(), Thread.currentThread().getId());
+                String defaultName = String.format("%s-thread-%d", Thread.currentThread().getThreadGroup().getName(), Thread
+                        .currentThread().getId());
                 Thread.currentThread().setName(defaultName);
                 _log.info("Invoking {}: {}", _method.getName(), _args);
                 String opId = "";
                 URI resourceId = new URI("");
                 if (_args.length > 1) {
-                    if(_args.length > 2
+                    if (_args.length > 2
                             && _args[_args.length - 2] != null
-                            && _args[_args.length - 2].getClass().equals(URI.class)){
-                        resourceId = (URI)_args[_args.length - 2];
+                            && _args[_args.length - 2].getClass().equals(URI.class)) {
+                        resourceId = (URI) _args[_args.length - 2];
                     }
                     opId = (String) _args[_args.length - 1];
                     List<String> stringArgs = new ArrayList<String>();
@@ -220,43 +239,57 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
                             append(_method.getName()).append('|');
                     for (Object arg : _args) {
                         if (arg instanceof String) {
-                            stringArgs.add((String)arg);
+                            stringArgs.add((String) arg);
                         }
                     }
                     threadNameBuilder.append(Joiner.on('|').join(stringArgs));
                     Thread.currentThread().setName(threadNameBuilder.toString());
                 }
                 ControllerUtils.setThreadLocalLogData(resourceId, opId);
-                if(_deviceSemaphore == null) {
-                    //this device did not specify maxConnections.
+                if (_deviceSemaphore == null) {
+                    // this device did not specify maxConnections.
                     _log.info("Dispatching task {}: {}", _method.getName(), _args);
                     _method.invoke(_innerController, _args);
                 } else {
                     lease = _deviceSemaphore.acquireLease(_acquireLeaseWaitTimeSeconds, TimeUnit.SECONDS);
-                    if(lease != null) {
+                    if (lease != null) {
                         _log.info("Dispatching task {}: {}", _method.getName(), _args);
                         _method.invoke(_innerController, _args);
                     } else {
-                        //Could not get a lease. Retry.
+                        // Could not get a lease. Retry.
                         _log.info("Rescheduling task {}: {}", _method.getName(), _args);
                         _queue.getMethodPoolExecutor().schedule(this, _acquireLeaseRetryWaitTimeSeconds, TimeUnit.SECONDS);
                         bRetryLease = true;
                     }
                 }
-            } catch(Exception e) {
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof LockRetryException) {
+                    LockRetryException lockEx = (LockRetryException) cause;
+                    _item.setLockGroup(lockEx.getLockIdentifier());
+                    if (!addRequestToLockQueue(lockEx, _item)) {
+                        _log.warn("Rescheduling task {}: {}", _method.getName(), _args);
+                        _queue.getMethodPoolExecutor().schedule(this, LOCK_RETRY_WAIT_TIME_SECONDS, TimeUnit.SECONDS);
+                        bRetryLock = true;
+                    }
+                } else {
+                    _log.warn("Problem executing task: " + _method.getName() + "; {}", _args, e);
+                    bInvocationProblem = true;
+                }
+            } catch (Exception e) {
                 _log.warn("Problem executing task: " + _method.getName() + "; {}", _args, e);
                 bInvocationProblem = true;
             } finally {
                 try {
-                    if(_deviceSemaphore != null && lease != null) {
+                    if (_deviceSemaphore != null && lease != null) {
                         _deviceSemaphore.returnLease(lease);
                     }
-                    if(!bRetryLease && !bInvocationProblem) {
-                        //The method was invoked. Cleanup.
+                    if (!bRetryLease && !bInvocationProblem && !bRetryLock) {
+                        // The method was invoked. Cleanup.
                         _callback.itemProcessed();
                         _log.info("Done with task {}: {}", _method.getName(), _args);
                     }
-                } catch(Exception e) {
+                } catch (Exception e) {
                     _log.warn("Problem removing task from queue: " + _method.getName() + ", {}", _args, e);
                 }
             }
@@ -264,8 +297,42 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
     }
 
     /**
-     * Sets coordinator
+     * Attempt to push an item onto the lock queue.
      *
+     * @param lockEx LockRetryException instance
+     * @param item Item to queue
+     * @return true if the lock is not available and queueing was successful
+     */
+    private boolean addRequestToLockQueue(final LockRetryException lockEx, final ControlRequest item) {
+        try {
+            _log.info(String.format("Dispatcher processing LockRetryException key %s remaining time %s",
+                    lockEx.getLockPath(), lockEx.getRemainingWaitTimeSeconds()));
+
+            DistributedAroundHook<Boolean> aroundHook = _coordinator.getDistributedOwnerLockAroundHook();
+            Boolean result = aroundHook.run(new DistributedAroundHook.Action<Boolean>() {
+
+                @Override
+                public Boolean run() {
+                    // Before this method runs, the globalLock will be acquired
+                    try {
+                        return !_coordinator.isDistributedOwnerLockAvailable(lockEx.getLockPath()) &&
+                                _lockQueueManager.queue(lockEx.getLockIdentifier(), item);
+                    } catch (Exception e) {
+                        return false;
+                    }
+                    // After this method runs, the globalLock will be released
+                }
+            });
+
+            return result.booleanValue();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Sets coordinator
+     * 
      * @param coordinator
      */
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -274,7 +341,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
 
     /**
      * Sets device specific controller implementations
-     *
+     * 
      * @param controller
      */
     public void setController(Set<Controller> controller) {
@@ -295,7 +362,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
 
     /**
      * Sets _deviceMaxConnectionMap <DeviceType, MaxConnections>
-     *
+     * 
      * @param deviceMaxConnectionMap
      */
     public void setDeviceMaxConnectionMap(Map<String, Integer> deviceMaxConnectionMap) {
@@ -304,7 +371,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
 
     /**
      * Sets _methodExecutorPoolSize, if configured.
-     *
+     * 
      * @param corePoolSize Specified size of the _methodExecutorPool
      */
     public void setMethodExecutorPoolSize(int corePoolSize) {
@@ -313,7 +380,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
 
     /**
      * Sets _acquireLeaseWaitTimeSeconds if configured.
-     *
+     * 
      * @param waitTime Specified blocking wait time on acquireLease requests
      */
     public void setAcquireLeaseWaitTimeSeconds(int waitTime) {
@@ -322,7 +389,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
 
     /**
      * Sets _acquireLeaseRetryWaitTimeSeconds if configured.
-     *
+     * 
      * @param retryWaitTime Specified retry wait time after limited-blocking acquireLease call returns no lease.
      */
     public void setAcquireLeaseRetryWaitTimeSeconds(int retryWaitTime) {
@@ -343,12 +410,13 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
                             ControllerUtils.clearThreadLocalLogData();
                         }
                     }
-            );
+                    );
         }
     }
 
     /**
      * Queues a task to the default "controller" queue. This is the original behavior.
+     * 
      * @param deviceURI
      * @param deviceType
      * @param target
@@ -363,7 +431,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
 
     /**
      * Queues a method call against device specific controller
-     *
+     * 
      * @param queueName of enum QueueName identifies the Dispatcher queue to be
      *            used
      * @param deviceURI
@@ -371,7 +439,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
      * @param target
      * @param method
      * @param args
-     *
+     * 
      * @throws ControllerException
      */
     public void queue(final QueueName queueName, final URI deviceURI, final String deviceType,
@@ -381,7 +449,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
 
     /**
      * Queues a method call against device specific controller
-     *
+     * 
      * @param queueName of enum QueueName identifies the Dispatcher queue to be
      *            used
      * @param deviceURI
@@ -390,7 +458,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
      * @param target
      * @param method
      * @param args
-     *
+     * 
      * @throws ControllerException
      */
     public void queue(final QueueName queueName, final URI deviceURI, final String deviceType, boolean lockDevice,
@@ -414,7 +482,34 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
         }
         _log.info("Queued task {}: {} ", method, args);
     }
-    
+
+    /**
+     * Place back onto the Dispatcher an existing ControlRequest instance that would
+     * have been held in a lock queue.
+     *
+     * @See {@link DistributedLockQueueManager}
+     *
+     * @param item          An existing ControlRequest.
+     * @throws Exception
+     */
+    public void queue(ControlRequest item) throws Exception {
+        try {
+            if (QueueName.controller.toString().equalsIgnoreCase(item.getQueueName())) {
+                checkZkStepToWorkflowSize();
+            }
+            getQueue(item.getQueueName()).getQueue().put(item);
+        } catch (final CoordinatorException e) {
+            throw ClientControllerException.retryables.queueToBusy();
+        } catch (final ClientControllerException e) {
+            throw ClientControllerException.retryables.queueToBusy();
+        } catch (final KeeperException e) {
+            throw ClientControllerException.fatals.unableToQueueJob(item.getDeviceInfo().getURI());
+        } catch (final Exception e) {
+            throw ClientControllerException.fatals.unableToQueueJob(item.getDeviceInfo().getURI(), e);
+        }
+        _log.info("Queued existing task {}: {} ", item.getMethodName(), item.getArg());
+    }
+
     /**
      * This method checks the size of the total number of steps across all the running
      * workflows in zoo keeper if it reaches the default limit then it throws
@@ -422,17 +517,17 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
      * 
      * @throws Exception
      */
-    private void checkZkStepToWorkflowSize() throws Exception{
+    private void checkZkStepToWorkflowSize() throws Exception {
         int zkStep2WorkflowSize = WorkflowService.getZkStep2WorkflowSize();
-        if(zkStep2WorkflowSize > MAX_WORKFLOW_STEPS){
+        if (zkStep2WorkflowSize > MAX_WORKFLOW_STEPS) {
             _log.error("Queue is too busy. More than " + MAX_WORKFLOW_STEPS + " zookeeper step2workflow found.");
             throw ClientControllerException.retryables.queueToBusy();
         }
     }
-    
+
     /**
      * Starts dispatcher
-     *
+     * 
      * @throws Exception
      */
     public void start() throws Exception {
@@ -453,7 +548,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
 
     /**
      * Stops dispatcher
-     *
+     * 
      * @throws IOException
      */
     public void stop() throws IOException {
@@ -465,12 +560,12 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
 
     @Override
     public void consumeItem(ControlRequest item, DistributedQueueItemProcessedCallback callback) throws Exception {
-        DispatcherQueue  queue =  getQueue(item.getQueueName());
+        DispatcherQueue queue = getQueue(item.getQueueName());
         queue.getMethodPoolExecutor().execute(new DeviceMethodInvoker(item, callback));
     }
 
     /**
-     *  Container class from device properties that we like to give to ControlRequest
+     * Container class from device properties that we like to give to ControlRequest
      */
     public static class DeviceInfo implements Serializable {
 
@@ -518,15 +613,19 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
         }
     }
 
-	public Map<String, Controller> getControllerMap() {
-		return _controller;
-	}
+    public Map<String, Controller> getControllerMap() {
+        return _controller;
+    }
 
     @Override
     public boolean isBusy(String queue) {
         // For the provioning operations, basically all the nodes (with large thread pool)
-        // would get similar load naturally.  More nodes and longer running, more evenly.
+        // would get similar load naturally. More nodes and longer running, more evenly.
         // If Dispatcher needs better load balance, it could enhance it from here.
         return false;
+    }
+
+    public void setLockQueueManager(DistributedLockQueueManager lockQueueManager) {
+        _lockQueueManager = lockQueueManager;
     }
 }

@@ -1,10 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -21,67 +20,67 @@ import com.emc.storageos.model.RelatedResourceRep;
 @XmlRootElement(name = "order")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class OrderRestRep extends DataObjectRestRep {
-    
+
     public static final String PENDING = "PENDING";
-    public static final String EXECUTING = "EXECUTING"; 
-    public static final String SUCCESS = "SUCCESS"; 
+    public static final String EXECUTING = "EXECUTING";
+    public static final String SUCCESS = "SUCCESS";
     public static final String PARTIAL_SUCCESS = "PARTIAL_SUCCESS";
-    public static final String ERROR = "ERROR"; 
-    public static final String SCHEDULED = "SCHEDULED"; 
-    public static final String CANCELLED = "CANCELLED"; 
-    public static final String APPROVAL = "APPROVAL"; 
-    public static final String APPROVED = "APPROVED"; 
-    public static final String REJECTED = "REJECTED"; 
-    
+    public static final String ERROR = "ERROR";
+    public static final String SCHEDULED = "SCHEDULED";
+    public static final String CANCELLED = "CANCELLED";
+    public static final String APPROVAL = "APPROVAL";
+    public static final String APPROVED = "APPROVED";
+    public static final String REJECTED = "REJECTED";
+
     /**
      * Number of this order
      */
-    private String orderNumber;                 
-    
+    private String orderNumber;
+
     /**
      * User who submitted this order
      */
-    private String submittedBy;                 
-    
+    private String submittedBy;
+
     /**
      * Summary for this order
      */
-    private String summary;                     
-    
+    private String summary;
+
     /**
      * System generated message relating to this order
      */
-    private String message;                     
-    
+    private String message;
+
     /**
      * Date the order completed
      */
-    private Date dateCompleted;                 
-    
+    private Date dateCompleted;
+
     /**
      * Order Status. One of: PENDING, EXECUTING, SUCCESS, ERROR, SCHEDULED, CANCELLED, APPROVAL, APPROVED, REJECTED
      */
-    private String orderStatus;                    
-    
+    private String orderStatus;
+
     /**
      * Parameters to an order
      */
-    private List<Parameter> parameters;         
-    
+    private List<Parameter> parameters;
+
     /**
      * Service that this order will execute
      */
-    private RelatedResourceRep catalogService;             
-    
+    private RelatedResourceRep catalogService;
+
     /**
      * Execution window to run this order in
      */
     private RelatedResourceRep executionWindow;
-    
+
     private RelatedResourceRep tenant;
-    
+
     private Date lastUpdated;
-    
+
     @XmlElement(name = "order_number")
     public String getOrderNumber() {
         return orderNumber;
@@ -153,7 +152,7 @@ public class OrderRestRep extends DataObjectRestRep {
     public void setSummary(String summary) {
         this.summary = summary;
     }
-    
+
     @XmlElement(name = "tenant")
     public RelatedResourceRep getTenant() {
         return tenant;

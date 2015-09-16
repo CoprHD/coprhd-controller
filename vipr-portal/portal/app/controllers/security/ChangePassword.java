@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package controllers.security;
@@ -21,7 +11,6 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.security.password.Constants;
 
-import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Controller;
@@ -48,24 +37,24 @@ public class ChangePassword extends Controller {
     }
 
     public static void validatePasswords(String oldPassword, String password, String fieldName) {
-    	String validation = PasswordUtil.validatePasswordforUpdate(oldPassword, password);
+        String validation = PasswordUtil.validatePasswordforUpdate(oldPassword, password);
         if (StringUtils.isNotBlank(validation)) {
-            Validation.addError(fieldName , validation);
-        } 
+            Validation.addError(fieldName, validation);
+        }
         if (Validation.hasErrors()) {
             renderJSON(ValidationResponse.collectErrors());
-        }    
+        }
         else {
             renderJSON(ValidationResponse.valid());
         }
-        
+
     }
-    
+
     public static String getPasswordValidPromptRule() {
-    	String promptString = PasswordUtil.getPasswordValidPromptRules(Constants.PASSWORD_UPDATE_PROMPT);
+        String promptString = PasswordUtil.getPasswordValidPromptRules(Constants.PASSWORD_UPDATE_PROMPT);
         return promptString;
     }
-    
+
     public static class PasswordForm {
         public String oldPassword;
         public String newPassword;
@@ -85,7 +74,7 @@ public class ChangePassword extends Controller {
 
             try {
                 BourneUtil.getSysClient().password().update(oldPassword, newPassword, false);
-                flash.success(Messages.get("passwordForm.success"));
+                Security.clearAuthToken();
             } catch (Exception e) {
                 Common.flashException(e);
             }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
@@ -42,7 +32,7 @@ public class SmisBlockCreateMirrorJob extends SmisBlockMirrorJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisBlockCreateMirrorJob.class);
 
     public SmisBlockCreateMirrorJob(CIMObjectPath cimJob, URI storageSystem, Boolean wantSyncActive,
-                                    TaskCompleter taskCompleter) {
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "CreateBlockMirror");
     }
 
@@ -64,7 +54,7 @@ public class SmisBlockCreateMirrorJob extends SmisBlockMirrorJob {
             CIMConnectionFactory cimConnectionFactory;
             WBEMClient client = null;
 
-            // If terminal state update storage pool capacity and remove reservation for  mirror capacity
+            // If terminal state update storage pool capacity and remove reservation for mirror capacity
             // from pool's reserved capacity map.
             if (jobStatus == JobStatus.SUCCESS || jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 cimConnectionFactory = jobContext.getCimConnectionFactory();
@@ -88,7 +78,7 @@ public class SmisBlockCreateMirrorJob extends SmisBlockMirrorJob {
                     // Get the target mirror volume native device id
                     CIMObjectPath targetVolumePath = syncVolumeIter.next();
                     CIMInstance syncVolume = client.getInstance(targetVolumePath, false, false, null);
-                    
+
                     String syncDeviceID = targetVolumePath.getKey(SmisConstants.CP_DEVICE_ID).getValue().toString();
                     String elementName = CIMPropertyFactory.getPropertyValue(syncVolume, SmisConstants.CP_ELEMENT_NAME);
                     String wwn = CIMPropertyFactory.getPropertyValue(syncVolume, SmisConstants.CP_WWN_NAME);
@@ -105,17 +95,19 @@ public class SmisBlockCreateMirrorJob extends SmisBlockMirrorJob {
                     mirror.setInactive(false);
                     mirror.setSynchronizedInstance(syncInstance.getObjectPath().toString());
                     updateSynchronizationAspects(client, mirror);
-                    //mirror.setIsSyncActive(_wantSyncActive);
+                    // mirror.setIsSyncActive(_wantSyncActive);
 
                     Volume volume = dbClient.queryObject(Volume.class, mirror.getSource().getURI());
-                    _log.info(String.format("For target mirror volume %1$s, going to set BlockMirror %2$s nativeId to %3$s (%4$s). Associated volume is %5$s (%6$s)",
-                            targetVolumePath.toString(), mirror.getId().toString(),
-                            syncDeviceID, elementName, volume.getNativeId(), volume.getDeviceLabel()));
+                    _log.info(String
+                            .format("For target mirror volume %1$s, going to set BlockMirror %2$s nativeId to %3$s (%4$s). Associated volume is %5$s (%6$s)",
+                                    targetVolumePath.toString(), mirror.getId().toString(),
+                                    syncDeviceID, elementName, volume.getNativeId(), volume.getDeviceLabel()));
                     dbClient.persistObject(mirror);
                 }
             } else if (isJobInTerminalFailedState()) {
                 _log.info("Failed to create mirror");
                 completer.error(dbClient, DeviceControllerException.exceptions.attachVolumeMirrorFailed(getMessage()));
+                mirror.setInactive(true);
                 dbClient.persistObject(mirror);
             }
         } catch (Exception e) {
@@ -126,7 +118,7 @@ public class SmisBlockCreateMirrorJob extends SmisBlockMirrorJob {
                 completer.error(dbClient, DeviceControllerException.errors.jobFailed(e));
             }
         } finally {
-            if(syncVolumeIter != null) {
+            if (syncVolumeIter != null) {
                 syncVolumeIter.close();
             }
             super.updateStatus(jobContext);

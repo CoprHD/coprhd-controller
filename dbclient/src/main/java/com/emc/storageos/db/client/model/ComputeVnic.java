@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -11,7 +11,7 @@ public class ComputeVnic extends DataObject {
 
     private URI _computeElement;
     private URI _serviceProfileTemplate;
-	private String dn;
+    private String dn;
     private String name;
     private String mtu;
     private String order;
@@ -22,9 +22,8 @@ public class ComputeVnic extends DataObject {
     private StringSet vlans;
     private String nativeVlan;
 
-
-	@RelationIndex(cf = "ComputeRelationIndex", type = ComputeElement.class)
-	@Name("computeElement")
+    @RelationIndex(cf = "ComputeRelationIndex", type = ComputeElement.class)
+    @Name("computeElement")
     public URI getComputeElement() {
         return _computeElement;
     }
@@ -46,14 +45,14 @@ public class ComputeVnic extends DataObject {
     }
 
     @Name("dn")
-	public String getDn() {
-		return dn;
-	}
+    public String getDn() {
+        return dn;
+    }
 
-	public void setDn(String dn) {
-		this.dn = dn;
-		setChanged("dn");
-	}
+    public void setDn(String dn) {
+        this.dn = dn;
+        setChanged("dn");
+    }
 
     @Name("name")
     public String getName() {
@@ -124,14 +123,14 @@ public class ComputeVnic extends DataObject {
         this.nativeVlan = nativeVlan;
         setChanged("nativeVlan");
     }
-    
+
     @Name("templateName")
     public String getTemplateName() {
-		return templateName;
-	}
+        return templateName;
+    }
 
-	public void setTemplateName(String templateName) {
-		this.templateName = templateName;
-		setChanged("templateName");
-	}
+    public void setTemplateName(String templateName) {
+        this.templateName = templateName;
+        setChanged("templateName");
+    }
 }

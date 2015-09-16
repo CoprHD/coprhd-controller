@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.varray;
 
@@ -21,9 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Parameter used to update the endpoints of a network. 
+ * Parameter used to update the endpoints of a network.
+ * 
  * @deprecated use the general API for network update
- *
+ * 
  */
 @XmlRootElement(name = "network_endpoints")
 @Deprecated
@@ -31,20 +22,21 @@ public class NetworkEndpointParam {
     private List<String> endpoints;
     private String op;
 
-    public NetworkEndpointParam() {}
-    
+    public NetworkEndpointParam() {
+    }
+
     public NetworkEndpointParam(List<String> endpoints, String op) {
         this.endpoints = endpoints;
         this.op = op;
     }
-    
+
     /**
-     * List of endpoints (WWN, iqn, IP address of port and host interfaces) 
+     * List of endpoints (WWN, iqn, IP address of port and host interfaces)
      * to be added to the network or removed from it.
      * 
      * @valid none
      */
-    @XmlElementWrapper(required = true,name = "endpoints")
+    @XmlElementWrapper(required = true, name = "endpoints")
     @XmlElement(name = "endpoint")
     public List<String> getEndpoints() {
         if (endpoints == null) {
@@ -52,7 +44,7 @@ public class NetworkEndpointParam {
         }
         return endpoints;
     }
-    
+
     public void setEndpoints(List<String> endpoints) {
         this.endpoints = endpoints;
     }

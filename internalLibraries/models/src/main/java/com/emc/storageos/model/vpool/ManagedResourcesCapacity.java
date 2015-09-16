@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.vpool;
 
@@ -26,7 +16,7 @@ import java.util.List;
 public class ManagedResourcesCapacity {
 
     private List<ManagedResourceCapacity> resourceCapacityList = new ArrayList<ManagedResourceCapacity>();
-    
+
     /**
      * A list of managed resource capacity response instances.
      * 
@@ -47,7 +37,7 @@ public class ManagedResourcesCapacity {
 
     @XmlRootElement
     public static class ManagedResourceCapacity {
-        
+
         private CapacityResourceType type;
         private long numResources;
         private double resourceCapacity;
@@ -96,7 +86,7 @@ public class ManagedResourcesCapacity {
         public void setResourceCapacity(double resourceCapacity) {
             this.resourceCapacity = resourceCapacity;
         }
-        
+
     }
 
     public enum CapacityResourceType {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.auth;
@@ -16,16 +16,18 @@ public class AuthnProviderList {
 
     /**
      * List of the authentication providers in the system
+     * 
      * @valid none
      */
     private List<NamedRelatedResourceRep> providers;
 
-    public AuthnProviderList() {}
-    
+    public AuthnProviderList() {
+    }
+
     public AuthnProviderList(List<NamedRelatedResourceRep> providers) {
         this.providers = providers;
     }
-    
+
     @XmlElement(name = "authnprovider")
     public List<NamedRelatedResourceRep> getProviders() {
         if (providers == null) {
@@ -37,5 +39,5 @@ public class AuthnProviderList {
     public void setProviders(List<NamedRelatedResourceRep> providers) {
         this.providers = providers;
     }
-    
+
 }

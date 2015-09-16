@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -23,11 +23,11 @@ public class CertificateDataTable extends DataTable {
         addColumn("commonName");
         addColumn("organization");
         addColumn("issuedBy");
-        addColumn("notBefore");
-        addColumn("notAfter");
+        addColumn("notBefore").setRenderFunction("render.localDate");
+        addColumn("notAfter").setRenderFunction("render.localDate");
         addColumn("userSupplied").setRenderFunction("render.boolean");
         addColumn("certificateValid").setRenderFunction("render.operationalStatus");
-		sortAll();
+        sortAll();
         setDefaultSortField("commonName");
     }
 
@@ -41,7 +41,6 @@ public class CertificateDataTable extends DataTable {
         public String issuedBy;
         public String certificateInfo;
         public boolean userSupplied;
-
 
         public CertificateInfo(TrustedCertificate certInfo) throws CertificateException {
             String pem = certInfo.getCertString();
@@ -71,7 +70,7 @@ public class CertificateDataTable extends DataTable {
         private Map<String, String> parseDN(String dn) {
             HashMap<String, String> parsed = new HashMap<String, String>();
             try {
-                for(Rdn rdn : new LdapName(dn).getRdns()) {
+                for (Rdn rdn : new LdapName(dn).getRdns()) {
                     parsed.put(rdn.getType(), rdn.getValue().toString());
                 }
             } catch (InvalidNameException e) {

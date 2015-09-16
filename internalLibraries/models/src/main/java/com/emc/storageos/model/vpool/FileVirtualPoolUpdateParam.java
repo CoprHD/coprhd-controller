@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
@@ -12,12 +12,13 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "file_vpool_update")
 public class FileVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
-    
+
     private FileVirtualPoolProtectionParam protection;
     private Boolean retention;
 
-    public FileVirtualPoolUpdateParam() {}
-    
+    public FileVirtualPoolUpdateParam() {
+    }
+
     public FileVirtualPoolUpdateParam(FileVirtualPoolProtectionParam protection) {
         super();
         this.protection = protection;
@@ -36,7 +37,6 @@ public class FileVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     public void setProtection(FileVirtualPoolProtectionParam protection) {
         this.protection = protection;
     }
-
 
     @XmlElement(name = "long_term_retention")
     public Boolean getLongTermRetention() {

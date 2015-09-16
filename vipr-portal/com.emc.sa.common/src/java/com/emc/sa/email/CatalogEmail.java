@@ -1,9 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.email;
-
 
 public abstract class CatalogEmail extends TemplateBase {
 
@@ -17,8 +16,8 @@ public abstract class CatalogEmail extends TemplateBase {
 
     public void setTitle(String title) {
         setParameter(TITLE, title);
-    }    
-    
+    }
+
     public String getTitle() {
         return getParameter(TITLE);
     }
@@ -26,12 +25,12 @@ public abstract class CatalogEmail extends TemplateBase {
     public String getEmailContent() {
         setParameter(BODY, getBodyContent());
         return evaluate(EMAIL_LAYOUT_TEMPLATE);
-    }        
-    
+    }
+
     private static String readEmailLayoutTemplate() {
         return readTemplate("EmailLayout.html");
     }
-    
+
     public abstract String getBodyContent();
-    
+
 }

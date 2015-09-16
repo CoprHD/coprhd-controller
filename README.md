@@ -1,18 +1,17 @@
 # coprhd-controller
-(read-only mirror)
 
 CoprHD
 =====
 CoprHD is an open software defined storage controller platform based on EMC's ViPR Controller. It enables management and automation of storage resources for block and file storage platforms.
 
-CoprHD is out in "preview mode" right now for anyone to download and play with. Stay tuned for the announcement on when we are ready to start accepting code contributions.
-
 
 Contributions
 --------------
-We are not currently accepting pull requests into the project.  Within the next several months we expect to accept contributions into the project.  This is a new venture for us here at EMC and represents our first instance of open sourcing a commercial product.  
+This github repository is being provided as a mirror of the Stash server. If you just want to download the code to build it and use it you can go ahead and do it from github. However, if you wish to contribute back to the project, you really want to follow the following.
 
-We are still working out some details and plan on having our engineers utilize this branch as the main development branch.  In order to not have multiple masters out there we will standardize CoprHD on the next release of ViPR Controller which will be within the next few months.  Once this release goes out the CoprHD branch will become the main development branch for both CoprHD and ViPR Controller. 
+All contributions should be worked on in the [Stash server.] (https://review.coprhd.org)
+
+You can learn more about the contribution process [here.] (https://coprhd.atlassian.net/wiki/display/COP/High+level+overview+of+the+contribution+process)
 
 
 

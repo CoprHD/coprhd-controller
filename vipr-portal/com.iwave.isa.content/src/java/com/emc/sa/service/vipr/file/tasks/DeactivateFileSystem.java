@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file.tasks;
@@ -9,18 +9,22 @@ import java.net.URI;
 import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemDeleteParam;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.vipr.client.Task;
 
 public class DeactivateFileSystem extends WaitForTask<FileShareRestRep> {
     private final URI fileSystemId;
+    
+    private FileControllerConstants.DeleteTypeEnum fileDeletionType;
 
-    public DeactivateFileSystem(String fileSystemId) {
-        this(uri(fileSystemId));
+    public DeactivateFileSystem(String fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
+        this(uri(fileSystemId), fileDeletionType);
     }
 
-    public DeactivateFileSystem(URI fileSystemId) {
+    public DeactivateFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
         this.fileSystemId = fileSystemId;
-        provideDetailArgs(fileSystemId);
+        this.fileDeletionType = fileDeletionType;
+        provideDetailArgs(fileSystemId, fileDeletionType.toString());
     }
 
     public URI getFileSystemId() {
@@ -31,6 +35,7 @@ public class DeactivateFileSystem extends WaitForTask<FileShareRestRep> {
     protected Task<FileShareRestRep> doExecute() throws Exception {
         FileSystemDeleteParam param = new FileSystemDeleteParam();
         param.setForceDelete(true);
+        param.setDeleteType(fileDeletionType.toString());
         return getClient().fileSystems().deactivate(fileSystemId, param);
     }
 }

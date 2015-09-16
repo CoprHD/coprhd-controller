@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.linux;
@@ -18,10 +18,10 @@ import com.google.common.collect.Lists;
 
 @Service("Linux-MountBlockVolume")
 public class MountBlockVolumeService extends LinuxService {
-    
+
     @Param(VOLUME)
     protected URI volumeId;
-    
+
     private BlockObjectRestRep volume;
 
     @Bindable

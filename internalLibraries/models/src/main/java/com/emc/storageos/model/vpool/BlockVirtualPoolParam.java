@@ -1,8 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
+
 import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -22,7 +23,7 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     private Integer minPaths;
     private Integer pathsPerInitiator;
     private Set<String> raidLevels;
-    // For example, if auto_tiering_policy_name is specified ,then on vnx, ranking 
+    // For example, if auto_tiering_policy_name is specified ,then on vnx, ranking
     // algorithm is applied to get matching pools.
     // On vmax, only pools associated with vmax Auto Tier Policies are matched
     private String autoTieringPolicyName;
@@ -34,33 +35,31 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     private BlockVirtualPoolProtectionParam protection;
     private VirtualPoolHighAvailabilityParam highAvailability;
     private Boolean uniquePolicyNames;
-    
+
     // VMAX Host IO Limits attributes
-    private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth.  If not specified or 0, indicated unlimited
-    private Integer hostIOLimitIOPs; // Host Front End limit I/O.  If not specified or 0, indicated unlimited
-    
-    public BlockVirtualPoolParam() {}
-    
+    private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
+    private Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
+
+    public BlockVirtualPoolParam() {
+    }
+
     /**
      * The maximum number of paths to a given StorageArray from a host.
      * Depending on paths_per_initiator, one or more ports may be assigned to
      * an initiator if max_paths is sufficiently high for the number of initiators.
      * <p>
-     * The number of paths is balanced across multiple networks (as determined from
-     * the initiators) if possible. 
+     * The number of paths is balanced across multiple networks (as determined from the initiators) if possible.
      * <p>
-     * This variable repalces num_paths (which is deprecated) but essentially did the same thing.
-     * The new name emphasizes that this is the maximum number of paths that will be provisioned.
-     * Port usage will not be more than the lessor of number of initiators * paths_per_initiator
-     * or max_paths, whichever is smaller. 
+     * This variable repalces num_paths (which is deprecated) but essentially did the same thing. The new name emphasizes that this is the
+     * maximum number of paths that will be provisioned. Port usage will not be more than the lessor of number of initiators *
+     * paths_per_initiator or max_paths, whichever is smaller.
      * <p>
-     * The Storage Pool matcher will not match pools where the array containing
-     * the pool has less usable ports than max_paths.
+     * The Storage Pool matcher will not match pools where the array containing the pool has less usable ports than max_paths.
      * 
      * @valid 1-65535
      */
     @XmlElement(name = "max_paths")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     public Integer getMaxPaths() {
         return maxPaths;
     }
@@ -68,30 +67,31 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     public void setMaxPaths(Integer maxPaths) {
         this.maxPaths = maxPaths;
     }
-    
+
     /**
      * The minimum number of paths that can be used between a host and a storage volume.
      * If this many paths cannot be configured, Export requests will fail.
+     * 
      * @valid 1-65535
      */
     @XmlElement(name = "min_paths")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     public Integer getMinPaths() {
         return minPaths;
     }
-    
+
     public void setMinPaths(Integer minPaths) {
         this.minPaths = minPaths;
     }
-    
+
     /**
      * @deprecated use getMaxPaths instead of getNumPaths
      * @See getMaxPaths()
-     * TODO: Remove deprecated API calls in next major release
+     *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
     @XmlElement(name = "num_paths")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     public Integer getNumPaths() {
         return maxPaths;
     }
@@ -99,7 +99,7 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     /**
      * @deprecated use setMaxPaths instead of setNumPaths
      * @See setMaxPaths()
-     * TODO: Remove deprecated API calls in next major release
+     *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
     public void setNumPaths(Integer numPaths) {
@@ -112,10 +112,11 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      * If there are excess initiators that cannot be paired with paths_per_initiator
      * number of ports because max_paths is too low,
      * the excess initiators are not provisioned.
+     * 
      * @valid 1-65535
      */
     @XmlElement(name = "paths_per_initiator")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     public Integer getPathsPerInitiator() {
         return pathsPerInitiator;
     }
@@ -156,22 +157,23 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     @XmlElement(name = "raid_level")
     public Set<String> getRaidLevels() {
         // TODO: empty collection workaround
-//        if (raidLevels == null) {
-//            raidLevels = new LinkedHashSet<String>();
-//        }
+        // if (raidLevels == null) {
+        // raidLevels = new LinkedHashSet<String>();
+        // }
         return raidLevels;
     }
 
     public void setRaidLevels(Set<String> raidLevels) {
         this.raidLevels = raidLevels;
     }
-    
+
     /**
      * AutoTiering Policy Name can be specified, only if System Type is specified.
      * AutoTiering Policy Name is supported only for System Types: vmax, vnxblock
+     * 
      * @valid none
      */
-    @XmlElement(name="auto_tiering_policy_name")
+    @XmlElement(name = "auto_tiering_policy_name")
     public String getAutoTieringPolicyName() {
         return autoTieringPolicyName;
     }
@@ -181,15 +183,15 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     }
 
     /**
-     *  Supported Drive Type.
-     *  
+     * Supported Drive Type.
+     * 
      * @valid NONE = No specific drive type
      * @valid SSD = Solid State Drive
      * @valid FC = Fibre Channel
      * @valid SAS = Serial Attached SCSI
-     * @valid SATA = Serial Advanced Technology Attachment 
+     * @valid SATA = Serial Advanced Technology Attachment
      */
-    @XmlElement(name="drive_type")
+    @XmlElement(name = "drive_type")
     public String getDriveType() {
         return driveType;
     }
@@ -200,9 +202,10 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
 
     /**
      * PreAllocation size for VMAX Thin volumes.
+     * 
      * @valid none
      */
-    @XmlElement(name="thin_volume_preallocation_percentage")
+    @XmlElement(name = "thin_volume_preallocation_percentage")
     public Integer getThinVolumePreAllocationPercentage() {
         return thinVolumePreAllocationPercentage;
     }
@@ -213,8 +216,9 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     }
 
     /**
-     * Flag to specify whether a volume created in this pool could 
+     * Flag to specify whether a volume created in this pool could
      * be added to a Consistency Group.
+     * 
      * @valid true
      * @valid false
      */
@@ -226,10 +230,11 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     public void setMultiVolumeConsistency(Boolean multiVolumeConsistency) {
         this.multiVolumeConsistency = multiVolumeConsistency;
     }
-    
+
     /**
      * Indicates that virtual pool volumes should use concatenated meta volumes,
      * not striped.
+     * 
      * @valid true
      * @valid false
      */
@@ -244,6 +249,7 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
 
     /**
      * Indicates if volume expansion is supported.
+     * 
      * @valid true
      * @valid false
      */
@@ -257,8 +263,9 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     }
 
     /**
-     * Virtual Pool (Mirror or RecoverPoint) protection 
+     * Virtual Pool (Mirror or RecoverPoint) protection
      * parameters.
+     * 
      * @valid none
      */
     @XmlElement(name = "protection")
@@ -276,16 +283,17 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      * @return true if protection exists
      */
     public boolean hasRemoteCopyProtection() {
-    	if ((getProtection() != null) && 
-    			(getProtection().getRemoteCopies() != null) &&
-    			(getProtection().getRemoteCopies().getRemoteCopySettings() != null)) {
-    		return true;
-    	}
-    	return false;
+        if ((getProtection() != null) &&
+                (getProtection().getRemoteCopies() != null) &&
+                (getProtection().getRemoteCopies().getRemoteCopySettings() != null)) {
+            return true;
+        }
+        return false;
     }
 
     /**
-     * High availability type for the Virtual Pool. 
+     * High availability type for the Virtual Pool.
+     * 
      * @valid none
      */
     @XmlElement(name = "high_availability")
@@ -299,8 +307,9 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     }
 
     /**
-     * If set to true, then only unique Auto Tiering Policy Names 
-     * will be returned else all policies will be returned.  
+     * If set to true, then only unique Auto Tiering Policy Names
+     * will be returned else all policies will be returned.
+     * 
      * @valid true
      * @valid false
      */
@@ -321,8 +330,8 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      */
     public boolean specifiesHighAvailability() {
         return (highAvailability != null && ((HighAvailabilityType.vplex_local
-            .name().equals(highAvailability.getType())) || (HighAvailabilityType.vplex_distributed
-            .name().equals(highAvailability.getType()))));
+                .name().equals(highAvailability.getType())) || (HighAvailabilityType.vplex_distributed
+                .name().equals(highAvailability.getType()))));
     }
 
     @XmlElement(name = "host_io_limit_bandwidth", required = false)
@@ -333,7 +342,7 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     public void setHostIOLimitBandwidth(Integer hostIOLimitBandwidth) {
         this.hostIOLimitBandwidth = hostIOLimitBandwidth;
     }
-    
+
     @XmlElement(name = "host_io_limit_iops", required = false)
     public Integer getHostIOLimitIOPs() {
         return hostIOLimitIOPs;

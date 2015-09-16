@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.exceptions;
@@ -37,14 +27,15 @@ public class NotFoundExceptionTest extends BaseServiceCodeExceptionTest {
     public void idNotFoundInURL() {
         final URI id = knownId;
         final NotFoundException exception = APIException.notFound.unableToFindEntityInURL(id);
-		assertException(MESSAGE_NOT_FOUND_IN_URL + id, API_URL_ENTITY_NOT_FOUND.getCode(),
-				"Unable to find entity in request URL", NOT_FOUND.getStatusCode(), exception);
+        assertException(MESSAGE_NOT_FOUND_IN_URL + id, API_URL_ENTITY_NOT_FOUND.getCode(),
+                "Unable to find entity in request URL", NOT_FOUND.getStatusCode(), exception);
     }
 
     @Test
     public void idNotFoundInParam() {
         final URI id = knownId;
         final APIException exception = APIException.badRequests.unableToFindEntity(id);
-        assertException(MESSAGE_NOT_FOUND_IN_REQUEST + id, API_PARAMETER_NOT_FOUND.getCode(), "Request parameter cannot be found", BAD_REQUEST.getStatusCode(), exception);
+        assertException(MESSAGE_NOT_FOUND_IN_REQUEST + id, API_PARAMETER_NOT_FOUND.getCode(), "Request parameter cannot be found",
+                BAD_REQUEST.getStatusCode(), exception);
     }
 }

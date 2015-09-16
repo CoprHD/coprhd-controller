@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.block;
 
@@ -40,70 +30,69 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 
-
 /**
- * XtremIO Masking Orchestrator 
+ * XtremIO Masking Orchestrator
  * 
  * Steps Export Group Create :
  * **************************
  * There is no equivalent entity in XtremIO Array which can contribute to an export mask in Array.
  * As Group of LunMaps contribute to a Export Mask, there is really no need to determine create
  * mask steps based on existing Masking information on Array.Always create an export mask irrespective of what's
- * available on Array. 
+ * available on Array.
  * 
  * Export Group Add Volume
  * ************************
  * 
- * If there are no export masks within export Group , then generateExportGroupCreateWorkFlow 
+ * If there are no export masks within export Group , then generateExportGroupCreateWorkFlow
  * else for each export Masks in export Group
- *  if exportMask belongs to the same Storage Array
- *      GenerateAddVolumeWorkflow 
- *      GenerateZoneAdd 
- *  if initiators are missing in export mask, then
- *      addInitiatorWorkFlow else 
- * Else if there are no export masks belonging to the Storage System 
- *      Group Initiators by compute resource 
- *      For each compute resource 
- *         GenerateExportMaskWorkFlow
- *         GenerateZoneNew
+ * if exportMask belongs to the same Storage Array
+ * GenerateAddVolumeWorkflow
+ * GenerateZoneAdd
+ * if initiators are missing in export mask, then
+ * addInitiatorWorkFlow else
+ * Else if there are no export masks belonging to the Storage System
+ * Group Initiators by compute resource
+ * For each compute resource
+ * GenerateExportMaskWorkFlow
+ * GenerateZoneNew
  * 
  * Add Volume to Host 1 alone in existing cluster support [Exclusive]
  * *****************************************************************
  * 
- * Find the Export Mask corresponds to the list of given Hosts's initiator 
+ * Find the Export Mask corresponds to the list of given Hosts's initiator
  * If all initiators found
- *     GenerateAddVolumeWorkFlow
- * Else if only a partial set  of initiators found
- *     GenerateAddInitiatorWorkFlow
+ * GenerateAddVolumeWorkFlow
+ * Else if only a partial set of initiators found
+ * GenerateAddInitiatorWorkFlow
  * 
- * Export Group Add Initiators 
+ * Export Group Add Initiators
  * ***************************
  * 
- * If there are no export masks , then generateExportGrouPCreateWorkFlow 
- * else For each export Masks in export Group 
- *      if exportMask belongs to the same Storage Array 
- *          if initiators are present 
- *               addVolumesWorkFlow 
- * if volumes needs to be added AddZoningWokflow 
- * else 
- * Group ExportMasks by Host, if initiator's Host is found 
- * then AddInitiatorToExportMask 
- *      AddZoningInitiatorWorkFlow 
- *      AddVolumesWorkFlow
+ * If there are no export masks , then generateExportGrouPCreateWorkFlow
+ * else For each export Masks in export Group
+ * if exportMask belongs to the same Storage Array
+ * if initiators are present
+ * addVolumesWorkFlow
+ * if volumes needs to be added AddZoningWokflow
+ * else
+ * Group ExportMasks by Host, if initiator's Host is found
+ * then AddInitiatorToExportMask
+ * AddZoningInitiatorWorkFlow
+ * AddVolumesWorkFlow
  * 
- * For the remaining list of initiators Host is not part of any e.masks 
- * Group Initiators by Compute 
+ * For the remaining list of initiators Host is not part of any e.masks
+ * Group Initiators by Compute
  * For each Compute resource
- *    GenerateExportMaskWorkFlow GenerateZoneNew
+ * GenerateExportMaskWorkFlow GenerateZoneNew
  * 
  * Export Group remove Initiators
  * *******************************
  * 
  * Find the right Export Mask,
- * If the # initiators in Export Mask is 0 after removing, 
- *  then deleteExportMask
+ * If the # initiators in Export Mask is 0 after removing,
+ * then deleteExportMask
  * Else
- *  RemoveInitiatorsfromExportmask 
+ * RemoveInitiatorsfromExportmask
  * 
  * 
  */
@@ -130,9 +119,9 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     @Override
     public boolean determineExportGroupCreateSteps(Workflow workflow, String zoningStep,
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
-            List<URI> initiatorURIs, Map<URI, Integer> volumeMap,boolean zoningStepNeeded, String token)
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token)
             throws Exception {
-        
+
         /**
          * TODO
          * Right now, we decided not to share export masks across Export Groups.
@@ -150,6 +139,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI, initiatorURIs,
                 hostURIs);
 
+        // CTRL-13080 fix
+        refreshExportMask(storage, device, null);
         // Export Mask cannot be grouped to an individual construct in XtremIO.
         // Group of LunMaps contribute to a Export Mask, hence there is really no need to determine
         // create mask steps based on existing Masking information on Array.
@@ -179,6 +170,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
+            // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
+            refreshExportMask(storage, getDevice(), null);
             if (exportMasks != null) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
@@ -220,7 +213,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         initiatorURIs.add(initiator.getId());
                     }
 
-                    //Group Initiators by compute and invoke create Mask
+                    // Group Initiators by compute and invoke create Mask
                     Workflow workflow = _workflowService.getNewWorkflow(
                             MaskingWorkflowEntryPoints.getInstance(),
                             "exportGroupAddVolumes - Create a new mask", true, token);
@@ -268,8 +261,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             }
         }
     }
-    
-    
+
     @Override
     public void exportGroupRemoveVolumes(URI storageURI, URI exportGroupURI, List<URI> volumes,
             String token) throws Exception {
@@ -285,6 +277,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup,
                     storageURI);
+            // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
+            refreshExportMask(storage, getDevice(), null);
             if (exportMasks != null) {
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveVolumes", true,
@@ -293,7 +287,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 List<ExportMask> exportMaskstoRemoveVolume = new ArrayList<ExportMask>();
                 String previousStep = null;
                 for (ExportMask exportMask : exportMasks) {
-                    if (exportMask.getVolumes()!= null && exportMask.getVolumes().size() != volumes.size()) {
+                    if (exportMask.getVolumes() != null && exportMask.getVolumes().size() != volumes.size()) {
                         exportMaskstoRemoveVolume.add(exportMask);
                     } else {
                         exportMaskstoDelete.add(exportMask);
@@ -358,15 +352,17 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
+
             Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
                     exportGroup, initiatorURIs);
-            
-            _log.info("initiators  : {}",Joiner.on(",").join(computeResourceToInitiators.entrySet()));
+            // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
+            refreshExportMask(storage, getDevice(), null);
+            _log.info("initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
-            _log.info("Volumes  : {}",Joiner.on(",").join(volumes.keySet()));
+            _log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));
             if (exportMasks != null && !exportMasks.isEmpty()) {
                 // find the export mask which has the same Host name as the initiator
                 // Add the initiator to that export mask
@@ -375,27 +371,27 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
                         "exportGroupAddInitiators", true, token);
-                
+
                 // irrespective of cluster name, host will be always present
                 Map<String, URI> hostToEMaskGroup = ExportMaskUtils
                         .mapHostToExportMask(_dbClient, exportGroup,
                                 storage.getId());
-                _log.info("InitiatorsToHost  : {}",Joiner.on(",").join(hostToEMaskGroup.entrySet()));
+                _log.info("InitiatorsToHost  : {}", Joiner.on(",").join(hostToEMaskGroup.entrySet()));
                 // if export masks are found for the Host, then add initiators to the export mask
                 Map<URI, List<URI>> masksToInitiators = new HashMap<URI, List<URI>>();
                 String addIniStep = null;
                 for (String computeKey : computeResourceToInitiators.keySet()) {
                     URI exportMaskUri = hostToEMaskGroup.get(computeKey);
                     if (null != exportMaskUri) {
-                        _log.info("Processing export mask {}",exportMaskUri);
+                        _log.info("Processing export mask {}", exportMaskUri);
                         ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
                                 exportMaskUri);
                         if (exportMask.getStorageDevice().equals(storageURI)) {
-                            _log.info("Processing export mask  {} with expected storage {}",storageURI,exportMaskUri);
+                            _log.info("Processing export mask  {} with expected storage {}", storageURI, exportMaskUri);
                             // AddInitiatorWorkFlow
                             masksToInitiators.put(exportMaskUri,
                                     computeResourceToInitiators.get(computeKey));
-                            //all masks will be always created by system = true, hence port allocation will happen
+                            // all masks will be always created by system = true, hence port allocation will happen
                             addIniStep = generateExportMaskAddInitiatorsWorkflow(workflow, null,
                                     storage, exportGroup, exportMask, initiatorURIs, null,
                                     token);
@@ -407,8 +403,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         }
                     }
                 }
-                
-                _log.info("Left out initiators  : {}",Joiner.on(",").join(computeResourceToInitiators.entrySet()));
+
+                _log.info("Left out initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
                 // left out initiator's Host which doesn't have any export mask.
                 Map<URI, Map<URI, Integer>> zoneNewMasksToVolumeMap = new HashMap<URI, Map<URI, Integer>>();
                 if (!computeResourceToInitiators.isEmpty()) {
@@ -479,7 +475,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     + "Initiator: %s", storageURI.toString(), exportGroupURI.toString(),
                     Joiner.on(',').join(initiatorURIs)));
         } catch (Exception e) {
-            _log.info("Error",e);
+            _log.info("Error", e);
             if (taskCompleter != null) {
                 ServiceError serviceError = DeviceControllerException.errors
                         .jobFailedMsg(e.getMessage(), e);
@@ -490,15 +486,15 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             }
         }
     }
-    
+
     @Override
     public void exportGroupRemoveInitiators(URI storageURI,
-                                            URI exportGroupURI,
-                                            List<URI> initiatorURIs,
-                                            String token) throws Exception {
+            URI exportGroupURI,
+            List<URI> initiatorURIs,
+            String token) throws Exception {
         ExportTaskCompleter taskCompleter = null;
         try {
-           
+
             _log.info(String.format("exportRemoveInitiator start - Array: %s " +
                     "ExportMask: %s Initiator: %s",
                     storageURI.toString(), exportGroupURI.toString(),
@@ -513,9 +509,12 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     exportGroup, storageURI);
             Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
                     exportGroup, initiatorURIs);
-            
-            _log.info("Host to initiators  : {}",Joiner.on(",").join(computeResourceToInitiators.entrySet()));
-            
+
+            // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
+            refreshExportMask(storage, getDevice(), null);
+
+            _log.info("Host to initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
+
             if (exportMasks != null && !exportMasks.isEmpty()) {
                 // find the export mask which has the same Host name as the initiator
                 // Add the initiator to that export mask
@@ -523,23 +522,23 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
                         "exportGroupAddInitiators", true, token);
-                
+
                 // irrespective of cluster name, host will be always present
                 Map<String, URI> hostToEMaskGroup = ExportMaskUtils
                         .mapHostToExportMask(_dbClient, exportGroup,
                                 storage.getId());
-                _log.info("Host to ExportMask  : {}",Joiner.on(",").join(hostToEMaskGroup.entrySet()));
+                _log.info("Host to ExportMask  : {}", Joiner.on(",").join(hostToEMaskGroup.entrySet()));
                 // if export masks are found for the Host, then remove initiators from the export mask
                 // Export Masks are not shared between export Groups
-                
+
                 // list of export masks from which initiators need to be removed
                 List<ExportMask> exportMaskRemoveInitiator = new ArrayList<ExportMask>();
-                
+
                 // list of export masks to delete as all initiators are removed
                 List<ExportMask> exportMaskDelete = new ArrayList<ExportMask>();
-                
+
                 // map of masks to initiators being removed needed to remove zones
-                Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();   
+                Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
                 String zoningStep = null;
 
                 for (String computeKey : computeResourceToInitiators.keySet()) {
@@ -550,7 +549,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         if (exportMask.getStorageDevice().equals(storageURI)) {
                             List<Initiator> initiators = _dbClient.queryObject(Initiator.class,
                                     computeResourceToInitiators.get(computeKey));
-                            _log.info("Processing export mask  {} with initiators {}",storageURI,Joiner.on(",").join(initiators));
+                            _log.info("Processing export mask  {} with initiators {}", storageURI, Joiner.on(",").join(initiators));
                             maskToInitiatorsMap.put(exportMask.getId(), computeResourceToInitiators.get(computeKey));
                             if (exportMask.getInitiators() != null && exportMask.getInitiators().size() != initiators.size()) {
                                 exportMaskRemoveInitiator.add(exportMask);
@@ -588,7 +587,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             } else {
                 taskCompleter.ready(_dbClient);
             }
-           
+
         } catch (Exception e) {
             if (taskCompleter != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(e.getMessage(), e);
@@ -598,7 +597,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             }
         }
     }
-    
+
     @Override
     public void exportGroupDelete(URI storageURI, URI exportGroupURI, String token)
             throws Exception {
@@ -612,7 +611,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     .queryObject(StorageSystem.class, storageURI);
             TaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI,
                     token);
-
+            // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
+            refreshExportMask(storage, getDevice(), null);
             if (exportGroup == null || exportGroup.getInactive()) {
                 exportGroup.getVolumes().clear();
                 taskCompleter.ready(_dbClient);
@@ -621,21 +621,20 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
-            
-           
+
             // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(), "exportGroupDelete", true,
                     token);
 
             String zoningStep = generateZoningDeleteWorkflow(workflow, null, exportGroup, exportMasks);
-            
+
             if (null == exportMasks || exportMasks.isEmpty()) {
                 exportGroup.getVolumes().clear();
                 taskCompleter.ready(_dbClient);
                 return;
             }
-            
+
             /**
              * TODO
              * Right now,to make orchestration simple , we decided not to share export masks across Export Groups.
@@ -669,9 +668,5 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 "Coding error. This code path is not supported for XtremIO.");
 
     }
-
-   
-
-    
 
 }

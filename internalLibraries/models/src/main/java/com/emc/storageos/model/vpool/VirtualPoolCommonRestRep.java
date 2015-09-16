@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
@@ -16,7 +16,7 @@ import java.util.Set;
 
 @XmlRootElement(name = "vpool")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
+public class VirtualPoolCommonRestRep extends DataObjectRestRep {
     private String type;
     private String description;
     private Set<String> protocols;
@@ -31,10 +31,10 @@ public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
     private List<RelatedResourceRep> invalidMatchedStoragePools;
 
     /**
-     * Virtual pool storage resource type 
+     * Virtual pool storage resource type
      * 
-     * @valid block  = Volume
-     * @valid file   = File System
+     * @valid block = Volume
+     * @valid file = File System
      * @valid object = Object Store
      */
     @XmlElement
@@ -68,7 +68,7 @@ public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
      * @valid Thick
      * @valid Thin
      */
-    @XmlElement(name= "provisioning_type")
+    @XmlElement(name = "provisioning_type")
     public String getProvisioningType() {
         return provisioningType;
     }
@@ -77,7 +77,6 @@ public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
         this.provisioningType = provisioningType;
     }
 
-  
     @XmlElementWrapper(name = "protocols")
     /**
      * The set of supported protocols for the virtual pool.
@@ -106,10 +105,10 @@ public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
      * 
      * @valid NONE
      * @valid vnxblock (Block)
-     * @valid vmax     (Block)
-     * @valid vnxfile  (File)
-     * @valid isilon   (File)
-     * @valid netapp   (File)
+     * @valid vmax (Block)
+     * @valid vnxfile (File)
+     * @valid isilon (File)
+     * @valid netapp (File)
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {
@@ -123,7 +122,7 @@ public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
     /**
      * @deprecated use getMaxPaths from BlockVirtualPoolRestRep instead of getNumPaths
      * @See BlockVirtualPoolRestRep.getMaxPaths()
-     * TODO: Remove deprecated API calls in next major release
+     *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
     @XmlElement(name = "num_paths")
@@ -134,7 +133,7 @@ public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
     /**
      * @deprecated use setMaxPaths from BlockVirtualPoolRestRep instead of setNumPaths
      * @See BlockVirtualPoolRestRep.setMaxPaths()
-     * TODO: Remove deprecated API calls in next major release
+     *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
     public void setNumPaths(Integer numPaths) {
@@ -157,7 +156,6 @@ public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
     }
 
     @XmlElementWrapper(name = "varrays")
-    
     /**
      * The virtual arrays assigned to this virtual pool.
      * 
@@ -177,7 +175,7 @@ public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
     }
 
     /**
-     * Determines if matched or valid assigned pools are returned from 
+     * Determines if matched or valid assigned pools are returned from
      * command to retrieve the list of storage pools.
      * 
      * @valid false
@@ -191,7 +189,7 @@ public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
     public void setUseMatchedPools(Boolean useMatchedPools) {
         this.useMatchedPools = useMatchedPools;
     }
-   
+
     @XmlElementWrapper(name = "assigned_storage_pools")
     /**
      * 
@@ -214,7 +212,6 @@ public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
         this.assignedStoragePools = assignedStoragePools;
     }
 
-    
     @XmlElementWrapper(name = "invalid_matched_pools")
     /**
      * List of storage pools that once were part of the matched pool but 
@@ -234,7 +231,6 @@ public class VirtualPoolCommonRestRep  extends DataObjectRestRep {
         this.invalidMatchedStoragePools = invalidMatchedStoragePools;
     }
 
-    
     @XmlElementWrapper(name = "matched_storage_pools")
     /**
      * Set of storage pools which has attributes that match the criteria for 

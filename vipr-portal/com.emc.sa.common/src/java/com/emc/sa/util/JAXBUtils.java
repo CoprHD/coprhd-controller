@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -29,7 +29,7 @@ public class JAXBUtils {
 
     private static final Logger LOG = Logger.getLogger(JAXBUtils.class);
 
-    private static JAXBContext CONTEXT;
+    private static volatile JAXBContext CONTEXT;
 
     /** Serialize the given object to XML */
     public static String marshal(Object obj) throws JAXBException {
@@ -69,8 +69,7 @@ public class JAXBUtils {
                 LOG.debug("Found jaxb-index: " + url);
                 readPackages(url, packageNames);
             }
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             LOG.info("Failed to load META-INF/jaxb-index files", e);
             throw new JAXBException(e);
         }
@@ -87,8 +86,7 @@ public class JAXBUtils {
                     packageNames.add(s);
                 }
             }
-        }
-        finally {
+        } finally {
             r.close();
         }
     }

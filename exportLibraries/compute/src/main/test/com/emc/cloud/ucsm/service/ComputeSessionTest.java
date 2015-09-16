@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.cloud.ucsm.service;
@@ -17,8 +17,7 @@ import com.emc.cloud.platform.ucs.out.model.ComputeBlade;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.services.util.EnvConfig;
 
-
-@ContextConfiguration(locations={"classpath:applicationContext.xml"})
+@ContextConfiguration(locations = { "classpath:applicationContext.xml" })
 public class ComputeSessionTest extends AbstractTestNGSpringContextTests {
     @Autowired
     UCSMService ucsmService;
@@ -29,7 +28,7 @@ public class ComputeSessionTest extends AbstractTestNGSpringContextTests {
     @Autowired
     EncryptionProvider encryptionProvider;
 
-    @Test(groups="runByDefault", threadPoolSize= 100, invocationCount = 20)
+    @Test(groups = "runByDefault", threadPoolSize = 100, invocationCount = 20)
     public void threadedTestGetBlades() throws ClientGeneralException,
             IllegalAccessException, InvocationTargetException,
             NoSuchMethodException {
@@ -46,8 +45,7 @@ public class ComputeSessionTest extends AbstractTestNGSpringContextTests {
         System.out.println("ThreadId:" + id + " getBlades Passed");
     }
 
-
-    @Test(groups="runByDefault", dependsOnMethods = "threadedTestGetBlades")
+    @Test(groups = "runByDefault", dependsOnMethods = "threadedTestGetBlades")
     public void testClearSession() throws ClientGeneralException,
             IllegalAccessException, InvocationTargetException,
             NoSuchMethodException {
@@ -57,7 +55,7 @@ public class ComputeSessionTest extends AbstractTestNGSpringContextTests {
                 EnvConfig.get("sanity", "uscmServiceURL"), username, password);
     }
 
-    @Test(groups="runByDefault")
+    @Test(groups = "runByDefault")
     public void testClearSessionOfUnknownDevice()
             throws ClientGeneralException, IllegalAccessException,
             InvocationTargetException, NoSuchMethodException {

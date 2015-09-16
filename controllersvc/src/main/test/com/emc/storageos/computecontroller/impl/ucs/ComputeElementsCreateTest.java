@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.computecontroller.impl.ucs;
@@ -35,64 +25,64 @@ import com.emc.storageos.db.client.model.ComputeSystem;
  * It uses configuration files from dbclient, dbutils and coordinatorsvc
  */
 public class ComputeElementsCreateTest {
-	private DbClient _dbClient = null;
-	
-	private static final int computeElementCount = 5;
+    private DbClient _dbClient = null;
 
-	// Storage System URI used to create RefreshRequiredUpdateFunction instance
-	private URI computeSystemURI = null;
-	
-	private List<ComputeElement> computeElementsObjects = new ArrayList<ComputeElement>();
+    private static final int computeElementCount = 5;
 
-	@Before
-	public void setup() {
-		// get DB client
-		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("dbclient-conf.xml");
-		_dbClient = (DbClient) ctx.getBean("dbclient");
-		_dbClient.start();
-	}
+    // Storage System URI used to create RefreshRequiredUpdateFunction instance
+    private URI computeSystemURI = null;
 
-	@After
-	public void cleanup() {
-		if (_dbClient != null) {
-			_dbClient.stop();
-		}
-	}
+    private List<ComputeElement> computeElementsObjects = new ArrayList<ComputeElement>();
 
-	/*
-	 * Create Volume/BlockSnapshot for all Storage Systems
-	 */
-	@Test
-	public void createComputeElements() {
-		
-		List<URI> computeSystems = _dbClient.queryByType(ComputeSystem.class, true);
-		
-		while(computeSystems.iterator().hasNext()){
-			computeSystemURI = computeSystems.iterator().next();
-		}
-		
-		for (int i = 0; i < computeElementCount; i++) {
-			URI computeElementURI = URIUtil.createId(ComputeElement.class);
-			
-			ComputeElement computeElement = new ComputeElement();
-			computeElement.setComputeSystem(computeSystemURI);
-			computeElement.setId(computeElementURI);
-			computeElement.setCreationTime(Calendar.getInstance());
-			computeElement.setInactive(false);
-			computeElement.setRam(67108864L);
-			computeElement.setNativeGuid(computeSystemURI.toASCIIString());
-			computeElementsObjects.add(computeElement);
-		
-		}
-		_dbClient.createObject(computeElementsObjects);
-	}
+    @Before
+    public void setup() {
+        // get DB client
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("dbclient-conf.xml");
+        _dbClient = (DbClient) ctx.getBean("dbclient");
+        _dbClient.start();
+    }
 
-	/*
-	 * Verify a list of block objects of given type
-	 */
-	@Test
-	public void deleteComputeElementObjects(){
-		// delete all objects in the list
-		_dbClient.removeObject(computeElementsObjects.toArray(new ComputeElement[computeElementsObjects.size()]));
-	}
+    @After
+    public void cleanup() {
+        if (_dbClient != null) {
+            _dbClient.stop();
+        }
+    }
+
+    /*
+     * Create Volume/BlockSnapshot for all Storage Systems
+     */
+    @Test
+    public void createComputeElements() {
+
+        List<URI> computeSystems = _dbClient.queryByType(ComputeSystem.class, true);
+
+        while (computeSystems.iterator().hasNext()) {
+            computeSystemURI = computeSystems.iterator().next();
+        }
+
+        for (int i = 0; i < computeElementCount; i++) {
+            URI computeElementURI = URIUtil.createId(ComputeElement.class);
+
+            ComputeElement computeElement = new ComputeElement();
+            computeElement.setComputeSystem(computeSystemURI);
+            computeElement.setId(computeElementURI);
+            computeElement.setCreationTime(Calendar.getInstance());
+            computeElement.setInactive(false);
+            computeElement.setRam(67108864L);
+            computeElement.setNativeGuid(computeSystemURI.toASCIIString());
+            computeElementsObjects.add(computeElement);
+
+        }
+        _dbClient.createObject(computeElementsObjects);
+    }
+
+    /*
+     * Verify a list of block objects of given type
+     */
+    @Test
+    public void deleteComputeElementObjects() {
+        // delete all objects in the list
+        _dbClient.removeObject(computeElementsObjects.toArray(new ComputeElement[computeElementsObjects.size()]));
+    }
 }

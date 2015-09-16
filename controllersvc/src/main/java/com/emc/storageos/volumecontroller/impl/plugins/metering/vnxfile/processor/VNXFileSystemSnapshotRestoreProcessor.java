@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
@@ -35,7 +25,7 @@ import com.emc.nas.vnxfile.xmlapi.Status;
 import com.emc.nas.vnxfile.xmlapi.TaskResponse;
 
 /**
- * VNXFileSystemSnapshotRestoreProcessor is responsible for snapshot restore 
+ * VNXFileSystemSnapshotRestoreProcessor is responsible for snapshot restore
  * on the VNX.
  */
 public class VNXFileSystemSnapshotRestoreProcessor extends VNXFileProcessor {
@@ -66,7 +56,7 @@ public class VNXFileSystemSnapshotRestoreProcessor extends VNXFileProcessor {
                         TaskResponse taskResp = (TaskResponse) responseObj;
                         status = taskResp.getStatus();
                         _logger.info("FileSystem Snapshot restore task status: {}", status.getMaxSeverity().name());
-                        
+
                         if (status.getMaxSeverity() == Severity.OK) {
                             keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
 
@@ -93,7 +83,7 @@ public class VNXFileSystemSnapshotRestoreProcessor extends VNXFileProcessor {
                     _logger.info("Received celerra session information from the Server.");
                 }
             }
-        }catch (final Exception ex) {
+        } catch (final Exception ex) {
             _logger.error(
                     "Exception occurred while processing the vnx create file sys response due to ",
                     ex);
@@ -106,6 +96,6 @@ public class VNXFileSystemSnapshotRestoreProcessor extends VNXFileProcessor {
 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs) throws BaseCollectionException {
-        // TODO  Is this method needed?  Not used in other processors.
+        // TODO Is this method needed? Not used in other processors.
     }
 }

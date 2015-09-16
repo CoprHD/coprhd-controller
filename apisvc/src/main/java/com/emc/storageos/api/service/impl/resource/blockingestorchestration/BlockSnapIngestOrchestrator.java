@@ -1,15 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
- */
- /**  Copyright (c) 2008-2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
@@ -42,22 +33,25 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
     private static final Logger _logger = LoggerFactory.getLogger(BlockSnapIngestOrchestrator.class);
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache,StorageSystem system, UnManagedVolume unManagedVolume,
-            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant, List<UnManagedVolume> unManagedVolumesToBeDeleted, 
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, Class<T> clazz, 
-            Map<String, StringBuffer> taskStatusMap) throws IngestionException {
-       
+    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
+            UnManagedVolume unManagedVolume,
+            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
+            List<UnManagedVolume> unManagedVolumesToBeDeleted,
+            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
+            Class<T> clazz,
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
+
         BlockSnapshot snapShot = null;
-       
+
         String snapNativeGuid = unManagedVolume.getNativeGuid().replace(NativeGUIDGenerator.UN_MANAGED_VOLUME,
-                  NativeGUIDGenerator.VOLUME);
-         
-         snapShot = VolumeIngestionUtil.checkSnapShotExistsInDB(snapNativeGuid, _dbClient);
-         // Check if ingested volume has exportmasks pending for ingestion.
-         if (isExportIngestionPending(snapShot, unManagedVolume.getId(), unManagedVolumeExported)) {
-             return clazz.cast(snapShot);
-         }
-         if (null == snapShot) {
+                NativeGUIDGenerator.VOLUME);
+
+        snapShot = VolumeIngestionUtil.checkSnapShotExistsInDB(snapNativeGuid, _dbClient);
+        // Check if ingested volume has exportmasks pending for ingestion.
+        if (isExportIngestionPending(snapShot, unManagedVolume.getId(), unManagedVolumeExported)) {
+            return clazz.cast(snapShot);
+        }
+        if (null == snapShot) {
             // @TODO Need to revisit this. In 8.x provider, Replication Group is
             // automatically created when a volume is associated to a
             // StorageGroup.
@@ -68,22 +62,23 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
 
             snapShot = createSnapshot(system, snapNativeGuid, virtualArray, vPool, unManagedVolume, project);
-         }
-         
-         // Run this logic always when Volume is NO_PUBLIC_ACCESS
-         if (markUnManagedVolumeInactive(unManagedVolume, snapShot, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, taskStatusMap)) {
-             _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ", unManagedVolume.getNativeGuid());
-             //mark inactive if this is not to be exported. Else, mark as inactive after successful export
-             if(!unManagedVolumeExported){
-                 unManagedVolume.setInactive(true);
-                 unManagedVolumesToBeDeleted.add(unManagedVolume);
-             }
-         } else {
-             _logger.info("Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
-                     unManagedVolume.getNativeGuid());
-             snapShot.addInternalFlags(INTERNAL_VOLUME_FLAGS);
-         }
-        
+        }
+
+        // Run this logic always when Volume is NO_PUBLIC_ACCESS
+        if (markUnManagedVolumeInactive(unManagedVolume, snapShot, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap,
+                taskStatusMap)) {
+            _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ", unManagedVolume.getNativeGuid());
+            // mark inactive if this is not to be exported. Else, mark as inactive after successful export
+            if (!unManagedVolumeExported) {
+                unManagedVolume.setInactive(true);
+                unManagedVolumesToBeDeleted.add(unManagedVolume);
+            }
+        } else {
+            _logger.info("Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
+                    unManagedVolume.getNativeGuid());
+            snapShot.addInternalFlags(INTERNAL_VOLUME_FLAGS);
+        }
+
         return clazz.cast(snapShot);
     }
 
@@ -92,31 +87,29 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
      */
     @Override
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
-       return;
+        return;
     }
-    
+
     private BlockSnapshot createSnapshot(StorageSystem system, String nativeGuid, VirtualArray virtualArray,
             VirtualPool vPool, UnManagedVolume unManagedVolume, Project project) throws IngestionException {
-        
+
         BlockSnapshot snapShot = new BlockSnapshot();
         snapShot.setId(URIUtil.createId(BlockSnapshot.class));
         snapShot.setNativeGuid(nativeGuid);
         updateBlockObjectNativeIds(snapShot, unManagedVolume);
-         
+
         StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
         String deviceLabel = PropertySetterUtil.extractValueFromStringSet(
-                 SupportedVolumeInformation.DEVICE_LABEL.toString(), unManagedVolumeInformation);
+                SupportedVolumeInformation.DEVICE_LABEL.toString(), unManagedVolumeInformation);
         if (null == deviceLabel || deviceLabel.trim().isEmpty()) {
             deviceLabel = nativeGuid;
         }
-        snapShot.setSnapsetLabel(deviceLabel);//TODO: shld revisit this 
+        snapShot.setSnapsetLabel(deviceLabel);// TODO: shld revisit this
         snapShot.setStorageController(system.getId());
         snapShot.setVirtualArray(virtualArray.getId());
         snapShot.setProject(new NamedURI(project.getId(), snapShot.getLabel()));
+        snapShot.setWWN(unManagedVolume.getWwn());
 
-        String wwn = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.WWN.toString(), unManagedVolumeInformation);
-        snapShot.setWWN(wwn);
-        
         String allocatedCapacity = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(), unManagedVolume.getVolumeInformation());
         String provisionedCapacity = PropertySetterUtil.extractValueFromStringSet(
@@ -124,26 +117,32 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
 
         snapShot.setAllocatedCapacity(Long.parseLong(allocatedCapacity));
         snapShot.setProvisionedCapacity(Long.parseLong(provisionedCapacity));
-        
+
         String syncActive = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), unManagedVolume.getVolumeInformation());
         Boolean isSyncActive = (null != syncActive) ? Boolean.parseBoolean(syncActive) : false;
         snapShot.setIsSyncActive(isSyncActive);
-        
+
+        String readOnly = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.IS_READ_ONLY.toString(), unManagedVolume.getVolumeInformation());
+        Boolean isReadOnly = (null != readOnly) ? Boolean.parseBoolean(readOnly) : false;
+        snapShot.setIsReadOnly(isReadOnly);
+
         String settingsInstance = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.SETTINGS_INSTANCE.toString(), unManagedVolume.getVolumeInformation());
         snapShot.setSettingsInstance(settingsInstance);
-        
+
         String needsCopyToTarget = PropertySetterUtil.extractValueFromStringSet(
-                                   SupportedVolumeInformation.NEEDS_COPY_TO_TARGET.toString(), unManagedVolumeInformation);
+                SupportedVolumeInformation.NEEDS_COPY_TO_TARGET.toString(), unManagedVolumeInformation);
         Boolean isNeedsCopyToTarget = (null != needsCopyToTarget) ? Boolean.parseBoolean(needsCopyToTarget) : false;
         snapShot.setNeedsCopyToTarget(isNeedsCopyToTarget);
-        
-        String techType = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(), unManagedVolumeInformation);
+
+        String techType = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(),
+                unManagedVolumeInformation);
         snapShot.setTechnologyType(techType);
-        
+
         return snapShot;
-        
+
     }
 
 }

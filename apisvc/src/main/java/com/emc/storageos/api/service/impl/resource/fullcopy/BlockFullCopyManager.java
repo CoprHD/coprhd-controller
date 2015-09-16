@@ -1,19 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
-
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -34,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.BlockMapper;
 import com.emc.storageos.api.mapper.DbObjectMapper;
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
 import com.emc.storageos.api.service.impl.placement.PlacementManager.SchedulerType;
@@ -52,6 +42,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -59,10 +50,12 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -78,18 +71,18 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
  * block volumes.
  */
 public class BlockFullCopyManager {
-    
-    // Enumeration specifying the valid keys for the full copy implementations map. 
+
+    // Enumeration specifying the valid keys for the full copy implementations map.
     private enum FullCopyImpl {
         dflt, vmax, vmax3, vnx, vnxe, hds, openstack, scaleio, xtremio, xiv, rp, vplex
     }
-    
+
     private static final int VMAX_MAX_FULLCOPY_COUNT = 8; // Applies for VMAX3 also
     private static final int VNX_MAX_FULLCOPY_COUNT = 8;
     private static final int SCALEIO_MAX_FULLCOPY_COUNT = 31;
     private static final int XIV_MAX_FULLCOPY_COUNT = Integer.MAX_VALUE; // No known limit
     private static final int OPENSTACK_MAX_FULLCOPY_COUNT = Integer.MAX_VALUE; // No known limit
-    
+
     // Map of the values for maximum active full copy sessions for each block storage platform.
     public static Map<String, Integer> s_maxFullCopyMap = new HashMap<String, Integer>();
     static {
@@ -102,19 +95,19 @@ public class BlockFullCopyManager {
         s_maxFullCopyMap.put(DiscoveredDataObject.Type.xtremio.name(), 0); // not supported
         s_maxFullCopyMap.put(DiscoveredDataObject.Type.ibmxiv.name(), XIV_MAX_FULLCOPY_COUNT);
     }
-    
+
     // A reference to a database client.
     private DbClient _dbClient;
-    
+
     // A reference to a permissions helper.
     private PermissionsHelper _permissionsHelper = null;
-    
+
     // A reference to the audit log manager.
     private AuditLogManager _auditLogManager = null;
-    
+
     // A reference to the placement manager
     private PlacementManager _placementManager = null;
-    
+
     // A reference to the full copy request.
     protected HttpServletRequest _request;
 
@@ -123,13 +116,13 @@ public class BlockFullCopyManager {
 
     // A reference to the URI information.
     private UriInfo _uriInfo;
-    
+
     // The supported block full copy API implementations
     private Map<String, BlockFullCopyApi> _fullCopyImpls = new HashMap<String, BlockFullCopyApi>();
-    
+
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockFullCopyManager.class);
-    
+
     /**
      * Constructor
      * 
@@ -144,9 +137,9 @@ public class BlockFullCopyManager {
      * @param tenantsService A reference to the tenants service or null.
      */
     public BlockFullCopyManager(DbClient dbClient, PermissionsHelper permissionsHelper,
-        AuditLogManager auditLogManager, CoordinatorClient coordinator,
-        PlacementManager placementManager, SecurityContext securityContext,
-        UriInfo uriInfo, HttpServletRequest request, TenantsService tenantsService) {
+            AuditLogManager auditLogManager, CoordinatorClient coordinator,
+            PlacementManager placementManager, SecurityContext securityContext,
+            UriInfo uriInfo, HttpServletRequest request, TenantsService tenantsService) {
         _dbClient = dbClient;
         _permissionsHelper = permissionsHelper;
         _auditLogManager = auditLogManager;
@@ -154,11 +147,11 @@ public class BlockFullCopyManager {
         _securityContext = securityContext;
         _uriInfo = uriInfo;
         _request = request;
-        
+
         // Create full copy implementations.
         createPlatformSpecificFullCopyImpls(coordinator, tenantsService);
     }
-    
+
     /**
      * Create all platform specific full copy implementations.
      * 
@@ -166,26 +159,41 @@ public class BlockFullCopyManager {
      * @param tenantsService A reference to the tenants service or null.
      */
     private void createPlatformSpecificFullCopyImpls(CoordinatorClient coordinator,
-        TenantsService tenantsService) {
-        _fullCopyImpls.put(FullCopyImpl.dflt.name(), new DefaultBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
-        _fullCopyImpls.put(FullCopyImpl.vmax.name(), new VMAXBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
-        _fullCopyImpls.put(FullCopyImpl.vmax3.name(), new VMAX3BlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
-        _fullCopyImpls.put(FullCopyImpl.vnx.name(), new VNXBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
-        _fullCopyImpls.put(FullCopyImpl.vnxe.name(), new VNXEBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
-        _fullCopyImpls.put(FullCopyImpl.hds.name(), new HDSBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
-        _fullCopyImpls.put(FullCopyImpl.openstack.name(), new OpenstackBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
-        _fullCopyImpls.put(FullCopyImpl.scaleio.name(), new ScaleIOBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
-        _fullCopyImpls.put(FullCopyImpl.xtremio.name(), new XtremIOBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
-        _fullCopyImpls.put(FullCopyImpl.xiv.name(), new XIVBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
-        _fullCopyImpls.put(FullCopyImpl.vplex.name(), new VPlexBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.vplex.name()), tenantsService));
-        _fullCopyImpls.put(FullCopyImpl.rp.name(), new RPBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.rp.name())));
+            TenantsService tenantsService) {
+        _fullCopyImpls.put(FullCopyImpl.dflt.name(),
+                new DefaultBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
+        _fullCopyImpls.put(FullCopyImpl.vmax.name(),
+                new VMAXBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
+        _fullCopyImpls.put(FullCopyImpl.vmax3.name(),
+                new VMAX3BlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
+        _fullCopyImpls.put(FullCopyImpl.vnx.name(),
+                new VNXBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
+        _fullCopyImpls.put(FullCopyImpl.vnxe.name(),
+                new VNXEBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
+        _fullCopyImpls.put(FullCopyImpl.hds.name(),
+                new HDSBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
+        _fullCopyImpls
+                .put(FullCopyImpl.openstack.name(),
+                        new OpenstackBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block
+                                .name())));
+        _fullCopyImpls.put(FullCopyImpl.scaleio.name(),
+                new ScaleIOBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
+        _fullCopyImpls.put(FullCopyImpl.xtremio.name(),
+                new XtremIOBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
+        _fullCopyImpls.put(FullCopyImpl.xiv.name(),
+                new XIVBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.block.name())));
+        _fullCopyImpls.put(FullCopyImpl.vplex.name(),
+                new VPlexBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.vplex.name()),
+                        tenantsService));
+        _fullCopyImpls.put(FullCopyImpl.rp.name(),
+                new RPBlockFullCopyApiImpl(_dbClient, coordinator, _placementManager.getStorageScheduler(SchedulerType.rp.name())));
     }
 
     /**
      * Manages a request to create a full copy from the block object with the
      * passed URI. The URI must reference a volume or snapshot. For supported
-     * platforms, if the source is a volume and it is in a consistency group, 
-     * full copies will be created for all volumes in the consistency group. 
+     * platforms, if the source is a volume and it is in a consistency group,
+     * full copies will be created for all volumes in the consistency group.
      * 
      * @param sourceURI The URI of the source volume or snapshot.
      * @param param The request data specifying the parameters for the request.
@@ -195,53 +203,53 @@ public class BlockFullCopyManager {
      * @throws InternalException
      */
     public TaskList createFullCopy(URI sourceURI, VolumeFullCopyCreateParam param)
-        throws InternalException {
+            throws InternalException {
         s_logger.info("START create full copy for source {}", sourceURI);
 
         // Get the volume/snapshot.
         BlockObject fcSourceObj = BlockFullCopyUtils.queryFullCopyResource(sourceURI,
-            _uriInfo, true, _dbClient);
-        
+                _uriInfo, true, _dbClient);
+
         // Get the requested full copy count.
         int count = param.getCount() == null ? 1 : param.getCount();
-        
+
         // Get the full copy name.
         String name = param.getName();
-        
+
         // Get whether or not the full copy should be created inactive.
         // Check if the request calls for activation of the full copy
         boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE : param.getCreateInactive();
-        
+
         // Get the project for the full copy source object.
         Project project = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
-        
+
         // Get and verify the virtual array.
         VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
-            fcSourceObj.getVirtualArray(), _uriInfo, _permissionsHelper, _dbClient);        
-        
+                fcSourceObj.getVirtualArray(), _uriInfo, _permissionsHelper, _dbClient);
+
         // Get the platform specific block full copy implementation.
         BlockFullCopyApi fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fcSourceObj);
-        
+
         // Get the list of all block objects for which we need to
         // create full copies. For example, when creating a full copy
         // for a volume in a consistency group, we may create full
         // copies for all volumes in the consistency group.
         List<BlockObject> fcSourceObjList = fullCopyApiImpl.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
-        
+
         // Validate the full copy request.
         validateFullCopyCreateRequest(fcSourceObjList, project, name, count, createInactive,
-            fullCopyApiImpl);
+                fullCopyApiImpl);
 
-        // Create a unique task identifier. 
+        // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
-        
+
         // Create the full copies
         TaskList taskList = fullCopyApiImpl.create(fcSourceObjList, varray, name,
-            createInactive, count, taskId);
+                createInactive, count, taskId);
         s_logger.info("FINISH create full copy for source {}", sourceURI);
         return taskList;
     }
-    
+
     /**
      * Validates the full copy creation request.
      * 
@@ -250,17 +258,18 @@ public class BlockFullCopyManager {
      * @param name The desired name for the full copy volume.
      * @param count The number of full copies requested.
      * @param createInactive true if the full copy is to activated when created,
-     *        false otherwise.
+     *            false otherwise.
      * @param fullCopyApiImpl A reference to the platform specific full copy
-     *        implementation.
+     *            implementation.
      */
     private void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList,
-        Project project, String name, int count, boolean createInactive,
-        BlockFullCopyApi fullCopyApiImpl) {
-        
+            Project project, String name, int count, boolean createInactive,
+            BlockFullCopyApi fullCopyApiImpl) {
+
         // Verify the requested full copy count.
-        if (count <= 0)
+        if (count <= 0) {
             throw APIException.badRequests.parameterMustBeGreaterThan("count", 0);
+        }
 
         // Verify the requested name.
         ArgValidator.checkFieldNotEmpty(name, "name");
@@ -268,11 +277,11 @@ public class BlockFullCopyManager {
         // Validate the project tenant.
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
         ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
-        
+
         // Verify the user is authorized.
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project,
-            BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
-        
+                BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
+
         // Verify the source objects.
         Map<URI, VirtualPool> vpoolMap = new HashMap<URI, VirtualPool>();
         Map<URI, List<BlockObject>> vpoolSourceObjMap = new HashMap<URI, List<BlockObject>>();
@@ -282,19 +291,19 @@ public class BlockFullCopyManager {
             if (URIUtil.isType(fcSourceURI, Volume.class)) {
                 // Verify the operation is supported for ingested volumes.
                 VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume((Volume) fcSourceObj,
-                    ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY, _dbClient);
+                        ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY, _dbClient);
             }
-            
+
             // Verify the source is not an internal object.
             BlockServiceUtils.validateNotAnInternalBlockObject(fcSourceObj, false);
-            
+
             // Update virtual pool map.
             VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
             URI vpoolURI = vpool.getId();
             if (!vpoolMap.containsKey(vpoolURI)) {
-                vpoolMap.put(vpoolURI,  vpool);
+                vpoolMap.put(vpoolURI, vpool);
             }
-            
+
             // Update the full copy source objects for this vpool.
             if (!vpoolSourceObjMap.containsKey(vpoolURI)) {
                 List<BlockObject> vpoolSourceObjs = new ArrayList<BlockObject>();
@@ -305,23 +314,23 @@ public class BlockFullCopyManager {
                 vpoolSourceObjs.add(fcSourceObj);
             }
         }
-        
+
         // Verify capacity quotas.
         for (URI vpoolURI : vpoolSourceObjMap.keySet()) {
             long totalRequiredSize = 0;
             List<BlockObject> vpoolSourceObjs = vpoolSourceObjMap.get(vpoolURI);
             for (BlockObject vpoolSourcObj : vpoolSourceObjs) {
                 totalRequiredSize += count
-                    * BlockFullCopyUtils.getCapacityForFullCopySource(vpoolSourcObj, _dbClient);
+                        * BlockFullCopyUtils.getCapacityForFullCopySource(vpoolSourcObj, _dbClient);
             }
             CapacityUtils.validateQuotasForProvisioning(_dbClient,
-                vpoolMap.get(vpoolURI), project, tenant, totalRequiredSize, "volume");
+                    vpoolMap.get(vpoolURI), project, tenant, totalRequiredSize, "volume");
         }
-        
+
         // Platform specific checks
         fullCopyApiImpl.validateFullCopyCreateRequest(fcSourceObjList, count);
     }
-    
+
     /**
      * Manages the activation of the full copy with the passed URI for the
      * source with the passed URI. For supported platforms, if the source is a
@@ -337,42 +346,42 @@ public class BlockFullCopyManager {
      * @throws InternalException
      */
     public TaskList activateFullCopy(URI sourceURI, URI fullCopyURI)
-        throws InternalException {
+            throws InternalException {
         s_logger.info("START activate full copy {}", fullCopyURI);
 
         // Verify passed URIs for the full copy request.
         Map<URI, BlockObject> resourceMap = BlockFullCopyUtils.verifySourceAndFullCopy(
-            sourceURI, fullCopyURI, _uriInfo, _dbClient);
-        
+                sourceURI, fullCopyURI, _uriInfo, _dbClient);
+
         // Get the source and full copy volume.
         BlockObject fcSourceObj = resourceMap.get(sourceURI);
         Volume fullCopyVolume = (Volume) resourceMap.get(fullCopyURI);
-        
+
         // If the full copy is detached, it cannot be activated.
         if (BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) {
             throw APIException.badRequests.detachedFullCopyCannotBeActivated(fullCopyURI
-                .toString());
+                    .toString());
         }
-        
+
         // Otherwise, check if the full copy is in the inactive state.
         // If it is in any other state, it was already activated.
         // In this case, the code simply returns a successful task.
         boolean alreadyActive = !BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient);
-        
+
         // Now activate.
         BlockFullCopyApi fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fullCopyVolume);
         TaskList taskList = fullCopyApiImpl.activate(fcSourceObj, fullCopyVolume);
-        
+
         // Log an audit message if we actually need to active the full copy.
         if (!alreadyActive) {
             auditOp(OperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY, true,
-                AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
+                    AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
         }
-        
+
         s_logger.info("FINISH activate full copy {}", fullCopyURI);
         return taskList;
     }
-    
+
     /**
      * Detaches the full copy with the passed URI from the source with the
      * passed URI. For supported platforms, if the source is a volume and the
@@ -387,38 +396,54 @@ public class BlockFullCopyManager {
      * @throws InternalException
      */
     public TaskList detachFullCopy(URI sourceURI, URI fullCopyURI)
-        throws InternalException {
+            throws InternalException {
         s_logger.info("START detach full copy {}", fullCopyURI);
 
+        // Check if full copy has been detached. 
+        // It will return success if it has been detached
+        Volume fullCopy = (Volume) BlockFullCopyUtils.queryFullCopyResource(fullCopyURI, _uriInfo, false, _dbClient);
+        if (BlockFullCopyUtils.isFullCopyDetached(fullCopy, _dbClient)) {
+            s_logger.info("The full copy {} has been detached", fullCopyURI);
+            TaskList taskList = new TaskList();
+            String taskId = UUID.randomUUID().toString();
+            Operation op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
+            op.ready("Full copy is already detached");
+            _dbClient.createTaskOpStatus(Volume.class, fullCopyURI, taskId, op);
+                    
+            TaskResourceRep task = TaskMapper.toTask(fullCopy, taskId, op);
+            taskList.addTask(task);
+            return taskList;
+        }
         // Verify passed URIs for the full copy request.
         Map<URI, BlockObject> resourceMap = BlockFullCopyUtils.verifySourceAndFullCopy(
-            sourceURI, fullCopyURI, _uriInfo, _dbClient);
-        
+                sourceURI, fullCopyURI, _uriInfo, _dbClient);
+
         // Get the source and full copy volume.
         BlockObject fcSourceObj = resourceMap.get(sourceURI);
         Volume fullCopyVolume = (Volume) resourceMap.get(fullCopyURI);
-        
-        // Determine if the copy is activated. It is activated if it is 
+
+        // Determine if the copy is activated. It is activated if it is
         // not detached and not in the inactive state.
         boolean wasActive = (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume,
-            _dbClient) && !BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient));
-        
+                _dbClient) && !BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient));
+
         // Get the platform specific full copy implementation.
         BlockFullCopyApi fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fullCopyVolume);
 
         // Now detach.
         TaskList taskList = fullCopyApiImpl.detach(fcSourceObj, fullCopyVolume);
-        
+
         // Log an audit message if we actually need to active the full copy.
         if (wasActive) {
             auditOp(OperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY, true,
-                AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
+                    AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
         }
 
         s_logger.info("FINISH detach full copy {}", fullCopyURI);
         return taskList;
     }
-    
+
     /**
      * Restores the source with the passed URI from the full copy with the
      * passed URI. For supported platforms, if the source is a volume and the
@@ -434,40 +459,40 @@ public class BlockFullCopyManager {
      * @throws InternalException
      */
     public TaskList restoreFullCopy(URI sourceURI, URI fullCopyURI)
-        throws InternalException {
+            throws InternalException {
         s_logger.info("START restore source {} from full copy {}",
-            sourceURI, fullCopyURI);
+                sourceURI, fullCopyURI);
 
         // Verify passed URIs for the full copy request.
         Map<URI, BlockObject> resourceMap = BlockFullCopyUtils.verifySourceAndFullCopy(
-            sourceURI, fullCopyURI, _uriInfo, _dbClient);
-        
+                sourceURI, fullCopyURI, _uriInfo, _dbClient);
+
         // We don't currently support restore when the source
         // is a snapshot.
         if (URIUtil.isType(sourceURI, BlockSnapshot.class)) {
             throw APIException.badRequests.fullCopyRestoreNotSupportedForSnapshot();
         }
-        
+
         // Get the source object and full copy volume
         Volume sourceVolume = (Volume) resourceMap.get(sourceURI);
         Volume fullCopyVolume = (Volume) resourceMap.get(fullCopyURI);
-        
+
         // Check if the full copy is detached.
         if (BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) {
             throw APIException.badRequests
-                .detachedFullCopyCannotBeRestored(fullCopyURI.toString());
+                    .detachedFullCopyCannotBeRestored(fullCopyURI.toString());
         }
 
         // Check if the full copy was not activated.
         if (BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient)) {
             throw APIException.badRequests
-                .inactiveFullCopyCannotBeRestored(fullCopyURI.toString());
+                    .inactiveFullCopyCannotBeRestored(fullCopyURI.toString());
         }
 
         // Verify that the full copy is restorable otherwise.
         if (!BlockFullCopyUtils.isFullCopyRestorable(fullCopyVolume, _dbClient)) {
             throw APIException.badRequests.fullCopyCannotBeRestored(fullCopyURI
-                .toString(), fullCopyVolume.getReplicaState());
+                    .toString(), fullCopyVolume.getReplicaState());
         }
 
         // Get the platform specific full copy implementation.
@@ -475,13 +500,13 @@ public class BlockFullCopyManager {
 
         // Now restore the source.
         TaskList taskList = fullCopyApiImpl.restoreSource(sourceVolume, fullCopyVolume);
-        
+
         // Log an audit message
         auditOp(OperationTypeEnum.RESTORE_VOLUME_FULL_COPY, true,
-            AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
+                AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
 
         s_logger.info("FINISH restore source {} from full copy {}",
-            sourceURI, fullCopyURI);
+                sourceURI, fullCopyURI);
         return taskList;
     }
 
@@ -500,14 +525,14 @@ public class BlockFullCopyManager {
      * @throws InternalException
      */
     public TaskList resynchronizeFullCopy(URI sourceURI, URI fullCopyURI)
-        throws InternalException {
+            throws InternalException {
         s_logger.info("START resynchronize full copy {} from source {}",
-            fullCopyURI, sourceURI);
+                fullCopyURI, sourceURI);
 
         // Verify passed URIs for the full copy request.
         Map<URI, BlockObject> resourceMap = BlockFullCopyUtils.verifySourceAndFullCopy(
-            sourceURI, fullCopyURI, _uriInfo, _dbClient);
-        
+                sourceURI, fullCopyURI, _uriInfo, _dbClient);
+
         // We don't currently support resynchronize4 when the source
         // is a snapshot.
         if (URIUtil.isType(sourceURI, BlockSnapshot.class)) {
@@ -521,19 +546,19 @@ public class BlockFullCopyManager {
         // Check if the full copy is detached.
         if (BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) {
             throw APIException.badRequests
-                .detachedFullCopyCannotBeResynchronized(fullCopyURI.toString());
+                    .detachedFullCopyCannotBeResynchronized(fullCopyURI.toString());
         }
 
         // Check if the full copy was not activated.
         if (BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient)) {
             throw APIException.badRequests
-                .inactiveFullCopyCannotBeResynchronized(fullCopyURI.toString());
+                    .inactiveFullCopyCannotBeResynchronized(fullCopyURI.toString());
         }
 
         // Verify that the full copy is resynchronizable otherwise.
         if (!BlockFullCopyUtils.isFullCopyResynchronizable(fullCopyVolume, _dbClient)) {
             throw APIException.badRequests.fullCopyCannotBeResynchronized(fullCopyURI
-                .toString(), fullCopyVolume.getReplicaState());
+                    .toString(), fullCopyVolume.getReplicaState());
         }
 
         // Get the platform specific full copy implementation.
@@ -541,13 +566,69 @@ public class BlockFullCopyManager {
 
         // Now restore the source volume.
         TaskList taskList = fullCopyApiImpl.resynchronizeCopy(sourceVolume, fullCopyVolume);
-        
+
         // Log an audit message
         auditOp(OperationTypeEnum.RESYNCHRONIZE_VOLUME_FULL_COPY, true,
-            AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
+                AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
 
         s_logger.info("FINISH resynchronize full copy {} from source {}",
-            fullCopyURI, sourceURI);
+                fullCopyURI, sourceURI);
+        return taskList;
+    }
+
+    /**
+     * Generates a group synchronized between volume Replication group
+     * and clone Replication group.
+     * 
+     * @param sourceURI The URI of the source.
+     * @param fullCopyURI The URI of the full copy volume.
+     * 
+     * @return TaskList
+     * 
+     * @throws InternalException
+     */
+    public TaskList startFullCopy(URI sourceURI, URI fullCopyURI)
+        throws InternalException {
+        s_logger.info(
+                "START establish group relation between Volume group and Full copy group."
+                        + " Source: {}, Full copy: {}", sourceURI, fullCopyURI);
+
+        // Verify passed URIs for the full copy request.
+        Map<URI, BlockObject> resourceMap = BlockFullCopyUtils.verifySourceAndFullCopy(
+            sourceURI, fullCopyURI, _uriInfo, _dbClient);
+
+        // Get the source and full copy volumes
+        Volume sourceVolume = (Volume) resourceMap.get(sourceURI);
+        Volume fullCopyVolume = (Volume) resourceMap.get(fullCopyURI);
+
+        if (!sourceVolume.hasConsistencyGroup() ||
+                fullCopyVolume.getReplicationGroupInstance() == null) {
+            throw APIException.badRequests.blockObjectHasNoConsistencyGroup();
+        }
+
+        // Check if the full copy is detached.
+        if (BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) {
+            throw APIException.badRequests
+                .cannotEstablishGroupRelationForDetachedFullCopy(fullCopyURI.toString());
+        }
+
+        // Check if the full copy was not activated.
+        if (BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient)) {
+            throw APIException.badRequests
+                .cannotEstablishGroupRelationForInactiveFullCopy(fullCopyURI.toString());
+        }
+
+        // Get the platform specific full copy implementation.
+        BlockFullCopyApi fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fullCopyVolume);
+
+        // Now restore the source volume.
+        TaskList taskList = fullCopyApiImpl.establishVolumeAndFullCopyGroupRelation(sourceVolume, fullCopyVolume);
+
+        // Log an audit message
+        auditOp(OperationTypeEnum.ESTABLISH_VOLUME_FULL_COPY, true,
+            AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
+
+        s_logger.info("FINISH establish group relation between Volume group and FullCopy group");
         return taskList;
     }
 
@@ -565,31 +646,31 @@ public class BlockFullCopyManager {
      * @throws InternalException
      */
     public VolumeRestRep checkFullCopyProgress(URI sourceURI, URI fullCopyURI)
-        throws InternalException {
+            throws InternalException {
         s_logger.info("START full copy progress check for {}", fullCopyURI);
 
         // Verify passed URIs for the full copy request.
         Map<URI, BlockObject> resourceMap = BlockFullCopyUtils.verifySourceAndFullCopy(
-            sourceURI, fullCopyURI, _uriInfo, _dbClient);
+                sourceURI, fullCopyURI, _uriInfo, _dbClient);
 
         // Get the full copy volume.
         Volume fullCopyVolume = (Volume) resourceMap.get(fullCopyURI);
-        
+
         // Check if the full copy is detached.
         if (BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) {
             throw APIException.badRequests.cannotCheckProgressFullCopyDetached(fullCopyURI
-                .toString());
+                    .toString());
         }
-        
+
         // Get the platform specific full copy implementation.
         BlockFullCopyApi fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fullCopyVolume);
-        
+
         // Now check the progress.
         s_logger.info("FINISH full copy progress check for {}", fullCopyURI);
         VolumeRestRep volumeRestRep = fullCopyApiImpl.checkProgress(sourceURI, fullCopyVolume);
         return volumeRestRep;
     }
-    
+
     /**
      * Returns the full copies for the source volume with the passed URI.
      * 
@@ -607,17 +688,17 @@ public class BlockFullCopyManager {
         }
         for (String fullCopyId : fullCopyIds) {
             Volume fullCopyVolume = _dbClient.queryObject(Volume.class,
-                URI.create(fullCopyId));
+                    URI.create(fullCopyId));
             if (fullCopyVolume == null || fullCopyVolume.getInactive()) {
                 s_logger.warn("Stale full copy {} found for volume {}", fullCopyId,
-                    sourceVolumeURI);
+                        sourceVolumeURI);
                 continue;
             }
             fullCopyList.getVolumes().add(DbObjectMapper.toNamedRelatedResource(fullCopyVolume));
         }
         return fullCopyList;
     }
-    
+
     /**
      * Returns the full copy with the passed URI.
      * 
@@ -627,20 +708,20 @@ public class BlockFullCopyManager {
      */
     public VolumeRestRep getFullCopy(URI fullCopyURI) {
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
-            fullCopyURI, _uriInfo, false, _dbClient);
+                fullCopyURI, _uriInfo, false, _dbClient);
         return BlockMapper.map(fullCopyVolume);
     }
-    
+
     /**
-     * For ViPR-Only delete, cleans up the full copy associations between 
+     * For ViPR-Only delete, cleans up the full copy associations between
      * source and full copy volumes.
      * 
      * @param volumeDescriptors The descriptors for volumes being
-     *        deleted from ViPR.
+     *            deleted from ViPR.
      * @param dbClient A reference to a database client.
      */
     public static void cleanUpFullCopyAssociations(
-        List<VolumeDescriptor> volumeDescriptors, DbClient dbClient) {
+            List<VolumeDescriptor> volumeDescriptors, DbClient dbClient) {
         List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
         for (URI volumeURI : volumeURIs) {
             Volume volume = dbClient.queryObject(Volume.class, volumeURI);
@@ -649,11 +730,11 @@ public class BlockFullCopyManager {
                 // The volume being removed is a full copy. Make sure the copies
                 // list of the source no longer references this volume. Note
                 // that it is possible that the source was already deleted but
-                // we left the source URI set in the copy, so one could always 
+                // we left the source URI set in the copy, so one could always
                 // know the source of the copy. So, check for a null source
                 // volume.
                 Volume sourceVolume = dbClient.queryObject(Volume.class,
-                    sourceVolumeURI);
+                        sourceVolumeURI);
                 if (sourceVolume != null) {
                     StringSet fullCopyIds = sourceVolume.getFullCopies();
                     if (fullCopyIds.contains(volumeURI.toString())) {
@@ -664,7 +745,7 @@ public class BlockFullCopyManager {
             }
         }
     }
-    
+
     /**
      * Verify that the passed volume can be deleted.
      * 
@@ -673,24 +754,24 @@ public class BlockFullCopyManager {
      * @return true if the volume can be deleted, false otherwise.
      */
     public boolean volumeCanBeDeleted(Volume volume) {
-        
+
         boolean volumeCanBeDeleted = true;
-        
+
         // Verify that a volume that is a full copy is detached.
-        if ((BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) && 
-            (!BlockFullCopyUtils.isFullCopyDetached(volume, _dbClient))) {
+        if ((BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) &&
+                (!BlockFullCopyUtils.isFullCopyDetached(volume, _dbClient))) {
             volumeCanBeDeleted = false;
         }
-        
+
         // Verify that a volume that is a full copy source is detached
         // from those full copies.
         if ((volumeCanBeDeleted) && (BlockFullCopyUtils.isVolumeFullCopySource(volume, _dbClient))) {
             volumeCanBeDeleted = BlockFullCopyUtils.volumeDetachedFromFullCopies(volume, _dbClient);
         }
-        
+
         return volumeCanBeDeleted;
     }
-    
+
     /**
      * Verify that the passed volume can be expanded.
      * 
@@ -700,7 +781,7 @@ public class BlockFullCopyManager {
      */
     public boolean volumeCanBeExpanded(Volume volume) {
         if ((BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) ||
-            (BlockFullCopyUtils.isVolumeFullCopySource(volume, _dbClient))) {
+                (BlockFullCopyUtils.isVolumeFullCopySource(volume, _dbClient))) {
             // Delegate to the platform specific full copy implementation
             // for the passed volume.
             BlockFullCopyApi fullCopyApiImpl = getPlatformSpecificFullCopyImpl(volume);
@@ -717,13 +798,13 @@ public class BlockFullCopyManager {
      * @param cgVolumes The volumes in the consistency group.
      */
     public void verifyNewVolumesCanBeCreatedInConsistencyGroup(
-        BlockConsistencyGroup consistencyGroup, List<Volume> cgVolumes) {
+            BlockConsistencyGroup consistencyGroup, List<Volume> cgVolumes) {
         if (!canConsistencyGroupBeModified(consistencyGroup, cgVolumes)) {
             throw APIException.badRequests.cantCreateNewVolumesInCGActiveFullCopies(
-                consistencyGroup.getLabel());
+                    consistencyGroup.getLabel());
         }
     }
-    
+
     /**
      * Verify the passed consistency group can be updated.
      * 
@@ -731,13 +812,13 @@ public class BlockFullCopyManager {
      * @param cgVolumes The volumes in the consistency group.
      */
     public void verifyConsistencyGroupCanBeUpdated(
-        BlockConsistencyGroup consistencyGroup, List<Volume> cgVolumes) {
+            BlockConsistencyGroup consistencyGroup, List<Volume> cgVolumes) {
         if (!canConsistencyGroupBeModified(consistencyGroup, cgVolumes)) {
             throw APIException.badRequests.cantUpdateCGActiveFullCopies(
-                consistencyGroup.getLabel());
+                    consistencyGroup.getLabel());
         }
     }
-    
+
     /**
      * Determines if the passed consistency group can have new volumes added or
      * existing volumes removed.
@@ -748,28 +829,28 @@ public class BlockFullCopyManager {
      * @return true if the group an be modified, false otherwise.
      */
     private boolean canConsistencyGroupBeModified(BlockConsistencyGroup consistencyGroup,
-        List<Volume> cgVolumes) {
+            List<Volume> cgVolumes) {
         Iterator<Volume> cgVolumesIter = cgVolumes.iterator();
         while (cgVolumesIter.hasNext()) {
             Volume cgVolume = cgVolumesIter.next();
 
             // Volumes that are full copies must be detached.
-            if ((BlockFullCopyUtils.isVolumeFullCopy(cgVolume, _dbClient)) && 
-                (!BlockFullCopyUtils.isFullCopyDetached(cgVolume, _dbClient))) {
+            if ((BlockFullCopyUtils.isVolumeFullCopy(cgVolume, _dbClient)) &&
+                    (!BlockFullCopyUtils.isFullCopyDetached(cgVolume, _dbClient))) {
                 return false;
             }
 
-            // Volumes with full copies must be detached from 
+            // Volumes with full copies must be detached from
             // those copies.
-            if ((BlockFullCopyUtils.isVolumeFullCopySource(cgVolume, _dbClient)) && 
-                (!BlockFullCopyUtils.volumeDetachedFromFullCopies(cgVolume, _dbClient))) {
+            if ((BlockFullCopyUtils.isVolumeFullCopySource(cgVolume, _dbClient)) &&
+                    (!BlockFullCopyUtils.volumeDetachedFromFullCopies(cgVolume, _dbClient))) {
                 return false;
             }
         }
-        
+
         return true;
     }
-    
+
     /**
      * Given the passed full copy volume, return all volumes in the full copy
      * set.
@@ -784,13 +865,13 @@ public class BlockFullCopyManager {
         }
 
         BlockObject fcSourceObj = BlockObject.fetch(_dbClient,
-            fullCopyVolume.getAssociatedSourceVolume());
+                fullCopyVolume.getAssociatedSourceVolume());
         BlockFullCopyApi fullCopyApi = getPlatformSpecificFullCopyImpl(fullCopyVolume);
         return fullCopyApi.getFullCopySetMap(fcSourceObj, fullCopyVolume).values();
     }
-    
+
     /**
-     * Verifies that the volume's status with respect to full copies allows 
+     * Verifies that the volume's status with respect to full copies allows
      * snapshots to be created.
      * 
      * @param requestedVolume A reference to the volume for which a snapshot was requested.
@@ -809,14 +890,14 @@ public class BlockFullCopyManager {
      * @return The platform specific full copy implementation
      */
     private BlockFullCopyApi getPlatformSpecificFullCopyImpl(BlockObject fcSourceObj) {
-        
+
         BlockFullCopyApi fullCopyApi = null;
         if (BlockObject.checkForRP(_dbClient, fcSourceObj.getId())) {
             fullCopyApi = _fullCopyImpls.get(FullCopyImpl.rp.name());
-        } else  {
+        } else {
             VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
             if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-                fullCopyApi = _fullCopyImpls.get(FullCopyImpl.vplex.name());            
+                fullCopyApi = _fullCopyImpls.get(FullCopyImpl.vplex.name());
             } else {
                 URI systemURI = fcSourceObj.getStorageController();
                 StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
@@ -845,26 +926,26 @@ public class BlockFullCopyManager {
                 }
             }
         }
-        
+
         return fullCopyApi;
     }
-    
+
     /**
      * Record audit log for services.
      * 
      * @param opType audit event type (e.g. CREATE_VPOOL|TENANT etc.)
      * @param operationalStatus Status of operation (true|false)
      * @param operationStage Stage of operation. For sync operation, it should
-     *        be null; For async operation, it should be "BEGIN" or "END";
+     *            be null; For async operation, it should be "BEGIN" or "END";
      * @param descparams Description parameters
      */
     private void auditOp(OperationTypeEnum opType, boolean operationalStatus,
-        String operationStage, Object... descparams) {
+            String operationStage, Object... descparams) {
 
-        URI tenantId;        
+        URI tenantId;
         URI username;
         if (!BlockServiceUtils.hasValidUserInContext(_securityContext)
-            && InterNodeHMACAuthFilter.isInternalRequest(_request)) {
+                && InterNodeHMACAuthFilter.isInternalRequest(_request)) {
             // Use default values for internal datasvc requests that lack a user
             // context
             tenantId = _permissionsHelper.getRootTenant().getId();
@@ -875,11 +956,11 @@ public class BlockFullCopyManager {
             username = URI.create(user.getName());
         }
         _auditLogManager.recordAuditLog(tenantId, username,
-            BlockService.EVENT_SERVICE_TYPE, opType, System.currentTimeMillis(),
-            operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS
-                : AuditLogManager.AUDITLOG_FAILURE, operationStage, descparams);
+                BlockService.EVENT_SERVICE_TYPE, opType, System.currentTimeMillis(),
+                operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS
+                        : AuditLogManager.AUDITLOG_FAILURE, operationStage, descparams);
     }
-    
+
     /**
      * Return the maximum number of active full copies for storage
      * systems of the passed type.
@@ -892,7 +973,7 @@ public class BlockFullCopyManager {
         if (s_maxFullCopyMap.containsKey(systemType)) {
             return s_maxFullCopyMap.get(systemType);
         }
-         
+
         return Integer.MAX_VALUE;
     }
 }

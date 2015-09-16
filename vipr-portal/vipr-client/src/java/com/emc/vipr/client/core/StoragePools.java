@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -82,7 +82,7 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
      * Gets all storage pools. This is a convenience method for: <tt>getByRefs(list(), filter)</tt>
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of all storage pools.
      */
     @Override
@@ -97,9 +97,9 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
      * API Call: <tt>POST /vdc/storage-systems/{storageSystemId}/storage-pools/{poolId}/register</tt>
      * 
      * @param poolId
-     *        the ID of the storage pool.
+     *            the ID of the storage pool.
      * @param storageSystemId
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the storage pool.
      */
     public StoragePoolRestRep register(URI poolId, URI storageSystemId) {
@@ -113,7 +113,7 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
      * API Call: <tt>POST /vdc/storage-pools/{id}/deregister</tt>
      * 
      * @param id
-     *        the ID of the storage pool.
+     *            the ID of the storage pool.
      */
     public StoragePoolRestRep deregister(URI id) {
         return client.post(StoragePoolRestRep.class, getIdUrl() + "/deregister", id);
@@ -125,9 +125,9 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
      * API Call: <tt>PUT /vdc/storage-pools/{id}</tt>
      * 
      * @param id
-     *        the ID of the storage pool.
+     *            the ID of the storage pool.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated storage pool.
      */
     public StoragePoolRestRep update(URI id, StoragePoolUpdate input) {
@@ -140,7 +140,7 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
      * API Call: <tt>GET /vdc/storage-systems/{storageSystemId}/storage-pools</tt>
      * 
      * @param storageSystemId
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the list of storage pool references.
      */
     public List<NamedRelatedResourceRep> listByStorageSystem(URI storageSystemId) {
@@ -153,7 +153,7 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
      * Gets the list of storage pools for the given storage system by ID.
      * 
      * @param storageSystemId
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the list of storage pools for the storage system.
      */
     public List<StoragePoolRestRep> getByStorageSystem(URI storageSystemId) {
@@ -164,9 +164,9 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
      * Gets the list of storage pools for the given storage system by ID, optionally filtering the results.
      * 
      * @param storageSystemId
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of storage pools for the storage system.
      */
     public List<StoragePoolRestRep> getByStorageSystem(URI storageSystemId, ResourceFilter<StoragePoolRestRep> filter) {
@@ -178,9 +178,9 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
      * Lists the storage pools that are associated with the given virtual array.
      * <p>
      * API Call: <tt>GET /vdc/varrays/{id}/storage-pools</tt>
-     *
+     * 
      * @param varrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of storage pool references.
      */
     public List<NamedRelatedResourceRep> listByVirtualArray(URI varrayId) {
@@ -190,11 +190,11 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
 
     /**
      * Gets the storage pools that are associated with the given virtual array
-     *
+     * 
      * @param varrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of storage pools.
-     *
+     * 
      * @see #listByVirtualArray(URI)
      * @see StoragePools#getByRefs(java.util.Collection)
      */
@@ -209,7 +209,7 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
      * API Call: <tt>GET /vdc/storage-pools/{id}/resources</tt>
      * 
      * @param id
-     *        the ID of the storage pool.
+     *            the ID of the storage pool.
      * @return the list of resource references.
      */
     public List<TypedRelatedResourceRep> listResources(URI id) {
@@ -223,7 +223,7 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
      * API Call: <tt>GET /block/volumes/{volumeId}/storage-pool</tt>
      * 
      * @param volumeId
-     *        the ID of the volume.
+     *            the ID of the volume.
      * @return the storage pool for the volume.
      */
     public StoragePoolRestRep getByVolume(URI volumeId) {
@@ -243,7 +243,7 @@ public class StoragePools extends AbstractCoreBulkResources<StoragePoolRestRep> 
      * API Call: <tt>GET /vdc/storage-pools/{id}/matched-vpools</tt>
      * 
      * @param id
-     *        the ID of the storage pool.
+     *            the ID of the storage pool.
      * @return the list of virtual pool references.
      */
     public List<NamedRelatedVirtualPoolRep> listMatchedVirtualPools(URI id) {

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.vipr.model.sys.recovery;
@@ -30,7 +20,7 @@ public class DbRepairStatus implements Serializable {
     /**
      * The status of db repair
      */
-	@XmlType(name="dbRepairStatus_Status")
+    @XmlType(name = "dbRepairStatus_Status")
     public enum Status {
         NOT_STARTED,
         IN_PROGRESS,
@@ -38,11 +28,18 @@ public class DbRepairStatus implements Serializable {
         FAILED,
     }
 
+    private Status status;
+    private Date lastCompletionTime;
+    private Date startTime;
+    private int progress;
+
     public DbRepairStatus() {
     }
-    
-    public DbRepairStatus(Status status) {
-    	this.status = status;
+
+    public DbRepairStatus(Status status, Date startTime, int progress) {
+        this.status = status;
+        this.startTime = startTime;
+        this.progress = progress;
     }
 
     public DbRepairStatus(Status status, Date startTime, Date endTime, int progress) {
@@ -52,11 +49,13 @@ public class DbRepairStatus implements Serializable {
         this.progress = progress;
     }
 
-    private Status status;
-    private Date lastCompletionTime;
-    private Date startTime;
-    private int progress;
-
+    /**
+     * The status of db repair
+     * @valid NOT_STARTED = db repair has not started yet
+     * @valid IN_PROGRESS = db repair is in progress
+     * @valid SUCCESS = db repair succeed
+     * @valid FAILED = db repair failed
+     */
     @XmlElement(name = "status")
     public Status getStatus() {
         return this.status;
@@ -66,6 +65,10 @@ public class DbRepairStatus implements Serializable {
         this.status = status;
     }
 
+    /**
+     * The completion time of lastest successful db repair
+     * @valid none
+     */
     @XmlElement(name = "last_completion_time")
     public Date getLastCompletionTime() {
         return this.lastCompletionTime;
@@ -75,6 +78,10 @@ public class DbRepairStatus implements Serializable {
         this.lastCompletionTime = endTime;
     }
 
+    /**
+     * The start time of current db repair
+     * @valid none
+     */
     @XmlElement(name = "start_time")
     public Date getStartTime() {
         return this.startTime;
@@ -84,6 +91,10 @@ public class DbRepairStatus implements Serializable {
         this.startTime = startTime;
     }
 
+    /**
+     * The progress of current db repair
+     * @valid 0-100, this value just for reference
+     */
     @XmlElement(name = "progress")
     public int getProgress() {
         return this.progress;

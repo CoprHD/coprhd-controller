@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.management.backup;
 
@@ -58,7 +48,7 @@ public class BackupFile implements Comparable<BackupFile> {
     @Override
     public boolean equals(Object obj) {
         return obj instanceof BackupFile &&
-                ((BackupFile)obj).info.getName().equals(this.info.getName());
+                ((BackupFile) obj).info.getName().equals(this.info.getName());
     }
 
     public boolean matches(String tag, BackupType type, String node) {

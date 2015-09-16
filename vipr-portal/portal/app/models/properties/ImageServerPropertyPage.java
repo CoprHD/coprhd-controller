@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.properties;
@@ -35,11 +35,11 @@ public class ImageServerPropertyPage extends CustomPropertyPage {
     public Property getUsername() {
         return username;
     }
-    
+
     public Property getPassword() {
         return password;
     }
-    
+
     public Property getTftpbootDirectory() {
         return tftpbootDirectory;
     }

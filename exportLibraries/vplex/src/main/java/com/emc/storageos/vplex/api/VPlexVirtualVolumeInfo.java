@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -23,7 +13,7 @@ import java.util.regex.Pattern;
  * Info for a VPlex virtual volume.
  */
 public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
-    
+
     // Values for rebuild completion status
     public enum WaitOnRebuildResult {
         SUCCESS,
@@ -31,14 +21,14 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         TIMED_OUT,
         INVALID_REQUEST
     }
-    
+
     // Values for expansion status
     public enum ExpansionStatus {
         INPROGRESS("in-progress");
-        
+
         // The VPlex expansion status value.
         private String _status;
-        
+
         /**
          * Constructor.
          * 
@@ -47,28 +37,28 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         ExpansionStatus(String status) {
             _status = status;
         }
-        
+
         /**
          * Getter for the VPlex expansion status value.
          * 
          * @return The VPlex expansion status value.
          */
         public String getStatus() {
-             return _status;
+            return _status;
         }
     }
-    
+
     // Values for service status
     public enum ServiceStatus {
         unexported;
     }
-    
+
     // Values for service status
     public enum Locality {
         local,
         distributed;
     }
-    
+
     // Enumerates the virtual volume attributes we are interested in and
     // parse from the VPlex virtual volume response. There must be a setter
     // method for each attribute specified. The format of the setter
@@ -80,11 +70,12 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         EXPANSION_STATUS("expansion-status"),
         SUPPORTING_DEVICE("supporting-device"),
         SERVICE_STATUS("service-status"),
-        LOCALITY("locality");        
-        
+        LOCALITY("locality"),
+        VPD_ID("vpd-id");
+
         // The VPlex name for the attribute.
         private String _name;
-        
+
         /**
          * Constructor.
          * 
@@ -93,16 +84,16 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         VirtualVolumeAttribute(String name) {
             _name = name;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getAttributeName() {
-             return _name;
+            return _name;
         }
-               
+
         /**
          * Returns the enum whose name matches the passed name, else null when
          * not found.
@@ -122,21 +113,21 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // The block count.
     private String blockCount;
-    
+
     // The block size in Bytes.
     private String blockSize;
-    
+
     // The expansion status
     private String expansionStatus;
-    
+
     // The name of the local or distributed device supporting
     // this virtual volume.
     private String supportingDevice;
-    
-    // A reference to the supporting device info, which could be 
+
+    // A reference to the supporting device info, which could be
     // a VPlexDeviceInfo or VPlexDistributedDeviceInfo depending
     // upon the locality of the volume.
     private VPlexResourceInfo supportingDeviceInfo;
@@ -146,10 +137,13 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
 
     // The locality of the virtual volume.
     private String locality;
-    
+
     // The clusters for the virtual volume.
     private List<String> clusters = new ArrayList<String>();
-    
+
+    // The volume id containing the wwn
+    private String vpdId;
+
     /**
      * Getter for the volume block count.
      * 
@@ -158,7 +152,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public String getBlockCount() {
         return blockCount;
     }
-    
+
     /**
      * Setter for the volume block count.
      * 
@@ -176,7 +170,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public String getBlockSize() {
         return blockSize;
     }
-    
+
     /**
      * Setter for the volume block size.
      * 
@@ -203,7 +197,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public void setExpansionStatus(String strVal) {
         expansionStatus = strVal;
     }
-    
+
     /**
      * Getter for the supporting device name.
      * 
@@ -212,7 +206,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public String getSupportingDevice() {
         return supportingDevice;
     }
-    
+
     /**
      * Setter for the supporting device name.
      * 
@@ -221,7 +215,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public void setSupportingDevice(String strVal) {
         supportingDevice = strVal;
     }
-    
+
     /**
      * Getter for the supporting device information.
      * 
@@ -230,7 +224,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public VPlexResourceInfo getSupportingDeviceInfo() {
         return supportingDeviceInfo;
     }
-    
+
     /**
      * Setter for the supporting device information.
      * 
@@ -248,7 +242,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public String getServiceStatus() {
         return serviceStatus;
     }
-    
+
     /**
      * Setter for the volume service status.
      * 
@@ -257,7 +251,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public void setServiceStatus(String strVal) {
         serviceStatus = strVal;
     }
-    
+
     /**
      * Getter for the volume locality.
      * 
@@ -266,7 +260,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public String getLocality() {
         return locality;
     }
-    
+
     /**
      * Setter for the volume locality.
      * 
@@ -275,8 +269,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public void setLocality(String strVal) {
         locality = strVal;
     }
-    
-    
+
     /**
      * Getter for the volume clusters.
      * 
@@ -285,7 +278,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public List<String> getClusters() {
         return clusters;
     }
-    
+
     /**
      * Adds the passed cluster to the list of clusters for the volume.
      * 
@@ -296,9 +289,43 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
             clusters.add(clusterId);
         }
     }
-
+    
     /**
-     * Return the virtual volume capacity in bytes. 
+     * Getter for the volume vpd-id.
+     * 
+     * @return The volume vpd-id.
+     */
+    public String getVpdId() {
+        return vpdId;
+    }
+    
+    /**
+     * Setter for the volume vpd-id.
+     * 
+     * @param strVal The volume vpd-id.
+     */
+    public void setVpdId(String strVal) {
+        locality = strVal;
+    }
+    
+    /**
+     * Getter for the volume WWN, parsed
+     * from the vpd-id value.
+     * 
+     * @return the volume's WWN or null if none
+     */
+    public String getWwn() {
+        if (null != vpdId) {
+            if (vpdId.startsWith(VPlexApiConstants.VOLUME_WWN_PREFIX)) {
+                return vpdId.substring(VPlexApiConstants.VOLUME_WWN_PREFIX.length());
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Return the virtual volume capacity in bytes.
      * 
      * @return The virtual volume capacity in bytes.
      * 
@@ -306,10 +333,10 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
      */
     public Long getCapacityBytes() throws VPlexApiException {
         if ((blockCount == null) || (VPlexApiConstants.NULL_ATT_VAL.equals(blockCount)) ||
-            (blockSize == null) || (VPlexApiConstants.NULL_ATT_VAL.equals(blockSize))) {
+                (blockSize == null) || (VPlexApiConstants.NULL_ATT_VAL.equals(blockSize))) {
             return null;
         }
-        
+
         // Note block size is assumed to be in Bytes, which is what the
         // VPlex returns.
         Pattern p = Pattern.compile("(\\d+)");
@@ -326,7 +353,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
             throw VPlexApiException.exceptions.unexpectedBlockSizeFormat(blockSize);
         }
     }
-    
+
     /**
      * Update the virtual volume name after path of the virtual volume
      * when a migration associated with the virtual volume is committed.
@@ -334,14 +361,14 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
      * @param updatedName The new name.
      */
     public void updateNameOnMigrationCommit(String updatedName) {
-        // When a migration for the virtual volume is committed, we 
-        // update the name and path to reflect the new underlying 
+        // When a migration for the virtual volume is committed, we
+        // update the name and path to reflect the new underlying
         // volume, which is the migration target.
         String currentPath = getPath();
         setPath(currentPath.replace(getName(), updatedName));
         setName(updatedName);
     }
-    
+
     /*
      * Returns whether or not the volume is exported.
      * 
@@ -350,7 +377,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
     public boolean isExported() {
         return (!ServiceStatus.unexported.name().equals(serviceStatus));
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -371,13 +398,17 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("VirtualVolumeInfo ( ");
         str.append(super.toString());
-        str.append(", blockCount: " + blockCount);
-        str.append(", blockSize: " + blockSize);
-        str.append(", expansionStatus: " + expansionStatus);
-        str.append(", supportingDevice: " + supportingDevice);
-        str.append(", serviceStatus: " + serviceStatus);
-        str.append(", locality: " + locality);
-        str.append(", clusters: " + clusters);
+        str.append(", blockCount: ").append(blockCount);
+        str.append(", blockSize: ").append(blockSize);
+        str.append(", expansionStatus: ").append(expansionStatus);
+        str.append(", supportingDevice: ").append(supportingDevice);
+        if (supportingDeviceInfo != null) {
+            str.append(", supportingDeviceInfo: ").append(supportingDeviceInfo.toString());
+        }
+        str.append(", serviceStatus: ").append(serviceStatus);
+        str.append(", locality: ").append(locality);
+        str.append(", clusters: ").append(clusters);
+        str.append(", vpdId: ").append(vpdId);
         str.append(" )");
         return str.toString();
     }

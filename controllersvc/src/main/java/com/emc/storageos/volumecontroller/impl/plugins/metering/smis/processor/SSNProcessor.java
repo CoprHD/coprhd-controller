@@ -1,27 +1,15 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
-import javax.cim.UnsignedInteger32;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.EnumerateResponse;
@@ -36,15 +24,6 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.cim.CIMProperty;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Processor used to calculate the capacity of Snapshots for a Volume, and the
@@ -53,7 +32,7 @@ import java.util.Map;
  */
 public class SSNProcessor extends Processor {
     private Logger _logger = LoggerFactory.getLogger(SSNProcessor.class);
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -61,11 +40,11 @@ public class SSNProcessor extends Processor {
         CloseableIterator<CIMInstance> synchronizedInstances = null;
         EnumerateResponse<CIMInstance> synchronizedInstanceChunks = null;
         WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
-        
+
         try {
             synchronizedInstanceChunks = (EnumerateResponse<CIMInstance>) resultObj;
             synchronizedInstances = synchronizedInstanceChunks.getResponses();
-            
+
             processSynchronizedInstance(synchronizedInstances, keyMap);
 
             while (!synchronizedInstanceChunks.isEnd()) {
@@ -75,8 +54,9 @@ public class SSNProcessor extends Processor {
             }
         } //
         catch (Exception e) {
-            if (!(e instanceof BaseCollectionException))
+            if (!(e instanceof BaseCollectionException)) {
                 _logger.error("Processing Snapshots failed : ", e);
+            }
         } finally {
             if (null != synchronizedInstances) {
                 synchronizedInstances.close();
@@ -92,53 +72,57 @@ public class SSNProcessor extends Processor {
 
         resultObj = null;
     }
-    
-    private void processSynchronizedInstance( CloseableIterator<CIMInstance> synchronizedInstances, Map<String, Object> keyMap) throws Exception {
-        while(synchronizedInstances.hasNext()) {
-       
-        CIMInstance instance = synchronizedInstances.next();
-        CIMObjectPath volumePath = instance.getObjectPath();
-        CIMObjectPath sourcePath = (CIMObjectPath) volumePath.getKey(
-                Constants._SystemElement).getValue();
-        CIMObjectPath destPath = (CIMObjectPath) volumePath.getKey(
-                Constants._SyncedElement).getValue();
-        String syncType = instance.getProperty(Constants._SyncType).getValue()
-                .toString();
-        CIMProperty<?> prop = sourcePath.getKey(Constants._SystemName);
-                String[] serialNumber_split = prop.getValue().toString().split(Constants.PATH_DELIMITER_REGEX);
-        if (serialNumber_split[1].equalsIgnoreCase((String) keyMap
-                .get(Constants._serialID))) {
-            _logger.debug(
-                    "Finding Snapshots for Volumes in this Array with SyncType : {} : {}",
-                    prop.getValue().toString(), syncType);
-            if (syncType.equalsIgnoreCase(Constants._Seven)) {
-                String key = createKeyfromPath(sourcePath);
-                if (null == getMetrics(keyMap, key)
-                        || !(getMetrics(keyMap, key) instanceof Stat))
-                    return;
-                Stat metrics = (Stat) getMetrics(keyMap, key);
-                
-                String destkey = createKeyfromPath(destPath);
-                Object value = getMetrics(keyMap, destkey);
-                if (null == value) return;
-                    
-                Long allocatedCapacityForSnapShots = 0L;
-                
-                if (value instanceof Stat) {
-                    Stat syncedMetrics = (Stat) value;
-                    allocatedCapacityForSnapShots = syncedMetrics
-                            .getAllocatedCapacity();
-                } else {
-                    allocatedCapacityForSnapShots = (Long) value;
+
+    private void processSynchronizedInstance(CloseableIterator<CIMInstance> synchronizedInstances, Map<String, Object> keyMap)
+            throws Exception {
+        while (synchronizedInstances.hasNext()) {
+
+            CIMInstance instance = synchronizedInstances.next();
+            CIMObjectPath volumePath = instance.getObjectPath();
+            CIMObjectPath sourcePath = (CIMObjectPath) volumePath.getKey(
+                    Constants._SystemElement).getValue();
+            CIMObjectPath destPath = (CIMObjectPath) volumePath.getKey(
+                    Constants._SyncedElement).getValue();
+            String syncType = instance.getProperty(Constants._SyncType).getValue()
+                    .toString();
+            CIMProperty<?> prop = sourcePath.getKey(Constants._SystemName);
+            String[] serialNumber_split = prop.getValue().toString().split(Constants.PATH_DELIMITER_REGEX);
+            if (serialNumber_split[1].equalsIgnoreCase((String) keyMap
+                    .get(Constants._serialID))) {
+                _logger.debug(
+                        "Finding Snapshots for Volumes in this Array with SyncType : {} : {}",
+                        prop.getValue().toString(), syncType);
+                if (syncType.equalsIgnoreCase(Constants._Seven)) {
+                    String key = createKeyfromPath(sourcePath);
+                    if (null == getMetrics(keyMap, key)
+                            || !(getMetrics(keyMap, key) instanceof Stat)) {
+                        return;
+                    }
+                    Stat metrics = (Stat) getMetrics(keyMap, key);
+
+                    String destkey = createKeyfromPath(destPath);
+                    Object value = getMetrics(keyMap, destkey);
+                    if (null == value) {
+                        return;
+                    }
+
+                    Long allocatedCapacityForSnapShots = 0L;
+
+                    if (value instanceof Stat) {
+                        Stat syncedMetrics = (Stat) value;
+                        allocatedCapacityForSnapShots = syncedMetrics
+                                .getAllocatedCapacity();
+                    } else {
+                        allocatedCapacityForSnapShots = (Long) value;
+                    }
+                    // removed parallel processing from framework, hence synchronization is not needed.
+                    metrics.setSnapshotCount(metrics.getSnapshotCount() + 1);
+                    metrics.setSnapshotCapacity(metrics.getSnapshotCapacity()
+                            + allocatedCapacityForSnapShots);
                 }
-                // removed parallel processing from framework, hence synchronization is not needed.
-                metrics.setSnapshotCount(metrics.getSnapshotCount() + 1);
-                metrics.setSnapshotCapacity(metrics.getSnapshotCapacity()
-                        + allocatedCapacityForSnapShots);
             }
         }
-        }
-        
+
     }
 
     @Override

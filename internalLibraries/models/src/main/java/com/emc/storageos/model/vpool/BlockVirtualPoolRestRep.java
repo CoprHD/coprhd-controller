@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model.vpool;
@@ -27,7 +17,7 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     private String autoTieringPolicyName;
     private String driveType;
     private Boolean expandable;
-    public  Boolean fastExpansion;
+    public Boolean fastExpansion;
     private Boolean multiVolumeConsistent;
     private Integer thinVolumePreAllocationPercentage;
     private BlockVirtualPoolProtectionParam protection;
@@ -37,13 +27,14 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     private Integer maxPaths;
     private Integer minPaths;
     private Integer pathsPerInitiator;
-    
-    // VMAX Host IO Limits attributes
-    private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth.  If not specified or 0, indicated unlimited
-    private Integer hostIOLimitIOPs; // Host Front End limit I/O.  If not specified or 0, indicated unlimited    
 
-    public BlockVirtualPoolRestRep() {}
-    
+    // VMAX Host IO Limits attributes
+    private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
+    private Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
+
+    public BlockVirtualPoolRestRep() {
+    }
+
     /**
      * Name of the auto tier policy for the virtual pool.
      * 
@@ -51,19 +42,19 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
      * 
      * @return The auto tier policy name.
      */
-    @XmlElement(name= "auto_tiering_policy_name")
+    @XmlElement(name = "auto_tiering_policy_name")
     public String getAutoTieringPolicyName() {
         return autoTieringPolicyName;
     }
 
     /**
      * The supported disk drive type for the virtual pool.
-     *
+     * 
      * @valid NONE = No specific drive type
      * @valid SSD = Solid State Drive
      * @valid FC = Fibre Channel
      * @valid SAS = Serial Attached SCSI
-     * @valid SATA = Serial Advanced Technology Attachment 
+     * @valid SATA = Serial Advanced Technology Attachment
      * 
      * @return The drive type.
      */
@@ -84,9 +75,11 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     public Boolean getExpandable() {
         return expandable;
     }
+
     /**
      * Indicates that virtual pool volumes should use concatenated meta volumes,
      * not striped.
+     * 
      * @valid true
      * @valid false
      */
@@ -246,16 +239,17 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     public void setMaxPaths(Integer maxPaths) {
         this.maxPaths = maxPaths;
     }
-    
+
     /*
      * Minimum number of paths to be exported by this virtual pool.
+     * 
      * @valid 1-65535
      */
     @XmlElement(name = "min_paths")
     public Integer getMinPaths() {
         return minPaths;
     }
-    
+
     public void setMinPaths(Integer minPaths) {
         this.minPaths = minPaths;
     }
@@ -273,7 +267,7 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     public void setPathsPerInitiator(Integer pathsPerInitiator) {
         this.pathsPerInitiator = pathsPerInitiator;
     }
-    
+
     @XmlElement(name = "host_io_limit_bandwidth", required = false)
     public Integer getHostIOLimitBandwidth() {
         return hostIOLimitBandwidth;
@@ -290,6 +284,5 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
 
     public void setHostIOLimitIOPs(Integer hostIOLimitIOPs) {
         this.hostIOLimitIOPs = hostIOLimitIOPs;
-    }    
+    }
 }
-

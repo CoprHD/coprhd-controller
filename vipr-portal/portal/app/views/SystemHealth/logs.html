@@ -54,13 +54,14 @@
         <td class="expandable" ng-class="{'expanded': log.expanded}">
           <span class="expand-indicator"></span>
         </td>
-        <td class="time" bind-once>{{log.time_ms | date : 'yyyy-MM-dd HH:mm:ss.sss'}}</td>
+        <td class="time" bind-once>{{getLocalDateTime($('#start'),log.time_ms)}}</td>
         <td class="severity" bind-once>
-          <span class="label" ng-class="{
+          <span  class="label" ng-class="{
             'label-danger': log.severity == 'ERROR',
             'label-warning': log.severity == 'WARN',
             'label-info': log.severity == 'INFO',
-            'label-default': ['ERROR', 'WARN', 'INFO'].indexOf(log.severity) == -1 
+            'label-default': log.severity == 'DEBUG',
+            'label:empty': ['ERROR', 'WARN', 'INFO', 'DEBUG'].indexOf(log.severity) == -1 
             }">{{log.severity}}</span>
         </td>
         <td class="message" bind-once>{{log.message}}</td>
@@ -69,8 +70,10 @@
       <tr ng-repeat-end ng-if="log.expanded" class="openedRow">
         <td colspan="5" class="expandedRow" bind-once>
           <dl class="dl-horizontal">
-            <dt>{{'system.logs.node' | t}}</dt>
+            <dt>{{'system.logs.nodeId' | t}}</dt>
             <dd>{{log.node}}</dd>
+            <dt>{{'system.logs.nodeName' | t}}</dt>
+            <dd>{{log.node_name}}</dd>
             <dt ng-if="log.thread">{{'system.logs.thread' | t}}</dt>
             <dd ng-if="log.thread">{{log.thread}}</dd>
             <dt ng-if="log.class">{{'system.logs.class' | t}}</dt>

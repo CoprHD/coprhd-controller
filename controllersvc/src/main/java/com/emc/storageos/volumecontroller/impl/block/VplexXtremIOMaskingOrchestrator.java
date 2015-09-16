@@ -1,12 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,7 +26,6 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
-import com.emc.storageos.locking.DistributedOwnerLockService;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -36,6 +34,7 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
@@ -82,13 +81,20 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     }
 
     @Override
+    public void suggestExportMasksForPlacement(
+            StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
+            ExportMaskPlacementDescriptor placementDescriptor) {
+        super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
+    }
+
+    @Override
     public Set<Map<URI, List<StoragePort>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts, Map<URI, NetworkLite> networkMap,
             URI varrayURI, int nInitiatorGroups) {
         Set<Map<URI, List<StoragePort>>> portGroups = new HashSet<Map<URI, List<StoragePort>>>();
         Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
-        //Port Group is always 1 for XtremIO as of now.
-        
+        // Port Group is always 1 for XtremIO as of now.
+
         for (URI netURI : allocatablePorts.keySet()) {
             Integer nports = allocatablePorts.get(netURI).size() / XTREMIO_NUM_PORT_GROUP;
             portsAllocatedPerNetwork.put(netURI, nports);
@@ -112,27 +118,27 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             }
             portGroups.add(portGroup);
             _log.info(String.format("Port Group %d: %s", i, portNames.toString()));
-           
+
         }
         return portGroups;
     }
 
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
             List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI) {
-        return VPlexBackEndOrchestratorUtil.allocatePorts(allocator, candidatePorts, portsRequested, net, varrayURI, 
+        return VPlexBackEndOrchestratorUtil.allocatePorts(allocator, candidatePorts, portsRequested, net, varrayURI,
                 simulation, _blockScheduler, _dbClient);
     }
 
     @Override
     public StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
-            Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap) {
-        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap);
+            Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
+        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
     }
 
     @Override
     public Method createOrAddVolumesToExportMaskMethod(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
             Map<URI, Integer> volumeMap, TaskCompleter completer) {
-        return new Workflow.Method("createOrAddVolumesToExportMask", arrayURI, 
+        return new Workflow.Method("createOrAddVolumesToExportMask", arrayURI,
                 exportGroupURI, exportMaskURI, volumeMap, completer);
     }
 
@@ -143,7 +149,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            
+
             // If the exportMask isn't found, or has been deleted, fail, ask user to retry.
             if (exportMask == null || exportMask.getInactive()) {
                 _log.info(String.format("ExportMask %s deleted or inactive, failing", exportMaskURI));
@@ -152,12 +158,12 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                 WorkflowStepCompleter.stepFailed(stepId, svcerr);
                 return;
             }
-            
+
             // Protect concurrent operations by locking {host, array} dupple.
             // Lock will be released when workflow step completes.
             List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
-            		_dbClient, ExportGroupType.Host, 
-            		StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
+                    _dbClient, ExportGroupType.Host,
+                    StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
             // Refresh the ExportMask
@@ -202,10 +208,10 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     }
 
     @Override
-    public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI, 
+    public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
             List<URI> volumes, TaskCompleter completer) {
-        return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI, 
+        return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
                 exportGroupURI, exportMaskURI, volumes, completer);
     }
 
@@ -217,19 +223,19 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            
+
             // If the exportMask isn't found, or has been deleted, nothing to do.
             if (exportMask == null || exportMask.getInactive()) {
                 _log.info(String.format("ExportMask %s inactive, returning success", exportMaskURI));
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }
-            
+
             // Protect concurrent operations by locking {host, array} dupple.
             // Lock will be released when workflow step completes.
             List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
-            		_dbClient, ExportGroupType.Host, 
-            		StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
+                    _dbClient, ExportGroupType.Host,
+                    StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
             // Make sure the completer will complete the workflow. This happens
@@ -264,12 +270,12 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     public void setSimulation(boolean simulation) {
         this.simulation = simulation;
     }
-    
-    public WorkflowService getWorkflowService() {
-		return _workflowService;
-	}
 
-	public void setWorkflowService(WorkflowService _workflowService) {
-		this._workflowService = _workflowService;
-	}
+    public WorkflowService getWorkflowService() {
+        return _workflowService;
+    }
+
+    public void setWorkflowService(WorkflowService _workflowService) {
+        this._workflowService = _workflowService;
+    }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.geo;
 
@@ -45,10 +35,10 @@ public class GeoDependencyChecker {
         this.localDependencyChecker = localDependencyChecker;
     }
 
-
     /**
      * checks to see if any references exist for this uri
      * uses dependency list created from relational indices
+     * 
      * @param uri id of the DataObject
      * @param type DataObject class name
      * @param onlyActive if true, checks for active references only (expensive)
@@ -60,7 +50,7 @@ public class GeoDependencyChecker {
             return depMsg;
         }
 
-        //If there is any vdc under disconnect status, do not check dependency, return ""
+        // If there is any vdc under disconnect status, do not check dependency, return ""
         if (hasDisconnectedVdc()) {
             return "";
         }
@@ -70,7 +60,9 @@ public class GeoDependencyChecker {
         VirtualDataCenter vDC = null;
         for (URI vDCId : vDCIds) {
             if (vDCId.equals(VdcUtil.getLocalVdc().getId()))
-                continue; //skip local vDC
+             {
+                continue; // skip local vDC
+            }
 
             vDC = dbClient.queryObject(VirtualDataCenter.class, vDCId);
 
@@ -80,11 +72,11 @@ public class GeoDependencyChecker {
             try {
                 String dependency = client.checkDependencies(type, uri, true);
                 if (!dependency.isEmpty()) {
-                    log.info("Can't GC {} because depends on {} on {}", new Object[] {uri, dependency, vDCId});
+                    log.info("Can't GC {} because depends on {} on {}", new Object[] { uri, dependency, vDCId });
                     return dependency;
                 }
-            }catch(Exception e) {
-                log.error("Failed to query depenedency for {} on {} e=", new Object[] {uri, vDC.getShortId(), e});
+            } catch (Exception e) {
+                log.error("Failed to query depenedency for {} on {} e=", new Object[] { uri, vDC.getShortId(), e });
                 log.error("so assume it has dependency");
                 return "";
             }
@@ -101,7 +93,9 @@ public class GeoDependencyChecker {
         VirtualDataCenter vDC = null;
         for (URI vDCId : vDCIds) {
             if (vDCId.equals(VdcUtil.getLocalVdc().getId()))
-                continue; //skip local vDC
+             {
+                continue; // skip local vDC
+            }
 
             vDC = dbClient.queryObject(VirtualDataCenter.class, vDCId);
 

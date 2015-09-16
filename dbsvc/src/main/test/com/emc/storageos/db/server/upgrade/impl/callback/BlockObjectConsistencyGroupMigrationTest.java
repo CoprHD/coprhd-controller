@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.server.upgrade.impl.callback;
@@ -45,41 +35,43 @@ import org.junit.Assert;
  * 
  * Here's the basic execution flow for the test case:
  * - setup() runs, bringing up a "pre-migration" version
- *   of the database, using the DbSchemaScannerInterceptor
- *   you supply to hide your new field or column family
- *   when generating the "before" schema. 
+ * of the database, using the DbSchemaScannerInterceptor
+ * you supply to hide your new field or column family
+ * when generating the "before" schema.
  * - Your implementation of prepareData() is called, allowing
- *   you to use the internal _dbClient reference to create any 
- *   needed pre-migration test data.
+ * you to use the internal _dbClient reference to create any
+ * needed pre-migration test data.
  * - The database is then shutdown and restarted (without using
- *   the interceptor this time), so the full "after" schema
- *   is available.
+ * the interceptor this time), so the full "after" schema
+ * is available.
  * - The dbsvc detects the diffs in the schema and executes the
- *   migration callbacks as part of the startup process.
+ * migration callbacks as part of the startup process.
  * - Your implementation of verifyResults() is called to
- *   allow you to confirm that the migration of your prepared
- *   data went as expected.
+ * allow you to confirm that the migration of your prepared
+ * data went as expected.
  * 
  * This class tests the following migration callback classes:
  * - BlockObjectConsistencyGroupMigration
  */
 public class BlockObjectConsistencyGroupMigrationTest extends DbSimpleMigrationTestBase {
     private static final Logger log = LoggerFactory.getLogger(BlockObjectConsistencyGroupMigrationTest.class);
-    
+
     // Used for migrations tests related to BlockSnapshots.
     private static List<URI> testBlockSnapshotURIs = new ArrayList<URI>();
 
     // Used for migrations tests related to RP ProtectionSets.
     private static List<URI> testBlockMirrorURIs = new ArrayList<URI>();
-    
+
     // Used for migrations tests related to Volumes.
     private static List<URI> testVolumeURIs = new ArrayList<URI>();
 
     @BeforeClass
     public static void setup() throws IOException {
-        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {{
-            add(new BlockObjectConsistencyGroupMigration());
-        }});
+        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {
+            {
+                add(new BlockObjectConsistencyGroupMigration());
+            }
+        });
 
         DbsvcTestBase.setup();
     }
@@ -95,7 +87,7 @@ public class BlockObjectConsistencyGroupMigrationTest extends DbSimpleMigrationT
     }
 
     @Override
-    protected void prepareData() throws Exception { 
+    protected void prepareData() throws Exception {
         createVolumeData("migrationVolume", 10);
         createBlockSnapshotData("migrationBlockSnapshot", 10);
         createBlockMirrorData("migrationBlockMirror", 10);
@@ -105,9 +97,10 @@ public class BlockObjectConsistencyGroupMigrationTest extends DbSimpleMigrationT
     protected void verifyResults() throws Exception {
         verifyBlockObjectResults();
     }
-    
+
     /**
      * Creates the consistency group used by the BlockObjects.
+     * 
      * @param name
      * @return
      */
@@ -119,7 +112,7 @@ public class BlockObjectConsistencyGroupMigrationTest extends DbSimpleMigrationT
         _dbClient.createObject(cg);
         return cg.getId();
     }
-    
+
     /**
      * Creates the BlockObject Volume data.
      * 
@@ -133,17 +126,18 @@ public class BlockObjectConsistencyGroupMigrationTest extends DbSimpleMigrationT
             Volume volume = new Volume();
             URI volumeURI = URIUtil.createId(Volume.class);
             testVolumeURIs.add(volumeURI);
-            volume.setId(volumeURI);        
+            volume.setId(volumeURI);
             volume.setLabel(name + i);
             volume.setConsistencyGroup(cgUri);
             _dbClient.createObject(volume);
         }
-        
+
         return volumes;
     }
-    
+
     /**
      * Creates the BlockObject BlockSnapshot data.
+     * 
      * @param name
      * @param numSnapshots
      * @throws Exception
@@ -153,7 +147,7 @@ public class BlockObjectConsistencyGroupMigrationTest extends DbSimpleMigrationT
         Volume volume = new Volume();
         URI volumeURI = URIUtil.createId(Volume.class);
         testVolumeURIs.add(volumeURI);
-        volume.setId(volumeURI);       
+        volume.setId(volumeURI);
         String volName = "snapVolume";
         volume.setLabel(volName);
         URI cgUri = createBlockConsistencyGroup(volName + "-cg");
@@ -170,13 +164,14 @@ public class BlockObjectConsistencyGroupMigrationTest extends DbSimpleMigrationT
             blockSnapshot.setParent(new NamedURI(volume.getId(), name + i));
             blockSnapshot.setConsistencyGroup(cgUri);
             _dbClient.createObject(blockSnapshot);
-            
+
             BlockSnapshot querySnap = _dbClient.queryObject(BlockSnapshot.class, blockSnapshotURI);
         }
     }
-    
+
     /**
      * Creates the BlockObject BlockMirror data.
+     * 
      * @param name
      * @param numSnapshots
      * @throws Exception
@@ -186,7 +181,7 @@ public class BlockObjectConsistencyGroupMigrationTest extends DbSimpleMigrationT
         Volume volume = new Volume();
         URI volumeURI = URIUtil.createId(Volume.class);
         testVolumeURIs.add(volumeURI);
-        volume.setId(volumeURI);        
+        volume.setId(volumeURI);
         volume.setLabel("blockMirrorVolume");
         URI cgUri = createBlockConsistencyGroup("blockMirrorVolume-cg");
         volume.setConsistencyGroup(cgUri);
@@ -201,20 +196,21 @@ public class BlockObjectConsistencyGroupMigrationTest extends DbSimpleMigrationT
             blockMirror.setConsistencyGroup(cgUri);
             _dbClient.createObject(blockMirror);
         }
-    }    
+    }
 
     /**
-     * Verifies that the migration has worked properly.  Checks all of the Volume, BlockSnapshot,
+     * Verifies that the migration has worked properly. Checks all of the Volume, BlockSnapshot,
      * and BlockMirror objects to ensure:
      * 1) The old consistencyGroup field is null
      * 2) The new consistencyGroups field is not null
      * 3) The new consistencyGruops field is not empty
+     * 
      * @throws Exception
      */
     private void verifyBlockObjectResults() throws Exception {
         log.info("Verifying migration of BlockObject.consistencyGroup to BlockObject.consistencyGroups.");
         List<BlockObject> blockObjects = new ArrayList<BlockObject>();
-        
+
         // get the volumes
         Iterator<Volume> volumeItr =
                 _dbClient.queryIterativeObjects(Volume.class, testVolumeURIs);
@@ -224,7 +220,7 @@ public class BlockObjectConsistencyGroupMigrationTest extends DbSimpleMigrationT
         // Get the block snapshots
         Iterator<BlockMirror> blockMirrorItr =
                 _dbClient.queryIterativeObjects(BlockMirror.class, testBlockMirrorURIs);
-        
+
         while (volumeItr.hasNext()) {
             blockObjects.add(volumeItr.next());
         }
@@ -234,14 +230,14 @@ public class BlockObjectConsistencyGroupMigrationTest extends DbSimpleMigrationT
         while (blockMirrorItr.hasNext()) {
             blockObjects.add(blockMirrorItr.next());
         }
-        
+
         for (BlockObject blockObject : blockObjects) {
-            Assert.assertTrue("Volume.consistencyGroup field should be null.", 
+            Assert.assertTrue("Volume.consistencyGroup field should be null.",
                     blockObject.getConsistencyGroup().equals(NullColumnValueGetter.getNullURI()));
-            Assert.assertNotNull("Volume.consistencyGroups field should contain at least 1 consistency group.", 
+            Assert.assertNotNull("Volume.consistencyGroups field should contain at least 1 consistency group.",
                     blockObject.getConsistencyGroups());
-            Assert.assertTrue("Volume.consistencyGroups field should contain at least 1 consistency group.", 
+            Assert.assertTrue("Volume.consistencyGroups field should contain at least 1 consistency group.",
                     !blockObject.getConsistencyGroups().isEmpty());
-        }   
-    }    
+        }
+    }
 }

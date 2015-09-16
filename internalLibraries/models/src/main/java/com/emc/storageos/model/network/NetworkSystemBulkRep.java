@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.network;
@@ -17,6 +17,7 @@ public class NetworkSystemBulkRep extends BulkRestRep {
 
     /**
      * List of network system objects that exist in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "network_system")

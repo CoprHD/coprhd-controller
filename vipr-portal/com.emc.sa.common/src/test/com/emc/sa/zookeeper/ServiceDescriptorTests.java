@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.zookeeper;
@@ -18,7 +18,6 @@ import java.util.Locale;
 public class ServiceDescriptorTests {
     private TestCoordinatorService coordinatorService;
 
-
     @Before
     public void setup() throws Exception {
         coordinatorService = new TestCoordinatorService();
@@ -31,7 +30,7 @@ public class ServiceDescriptorTests {
         serviceDescriptors.setCoordinatorClient(coordinatorService.getCoordinatorClient());
         serviceDescriptors.start();
 
-        List<ServiceDefinition> services =  ServiceDefinitionLoader.load(ServiceDescriptorTests.class.getClassLoader());
+        List<ServiceDefinition> services = ServiceDefinitionLoader.load(ServiceDescriptorTests.class.getClassLoader());
         Assert.assertEquals(1, services.size());
 
         serviceDescriptors.addServices(services);

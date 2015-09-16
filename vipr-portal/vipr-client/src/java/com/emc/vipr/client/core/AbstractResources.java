@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -34,10 +34,10 @@ import javax.ws.rs.core.UriBuilder;
  * {@link Resources#getByIds(Collection, ResourceFilter)} that looks up each resource in the collection one by one.
  * 
  * @param <T>
- *        the type of resource.
+ *            the type of resource.
  */
 public abstract class AbstractResources<T extends DataObjectRestRep> implements Resources<T> {
-    
+
     protected final RestClient client;
     protected final Class<T> resourceClass;
     protected final String baseUrl;
@@ -58,7 +58,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Configures the fetch operations to include inactive resources.
      * 
      * @param inactive
-     *        whether to include inactive resources.
+     *            whether to include inactive resources.
      * @return this AbstractResources.
      */
     public AbstractResources<T> withInactive(boolean inactive) {
@@ -68,16 +68,16 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
 
     /**
      * Configures the fetch operations to include internal resources.
-     *
+     * 
      * @param internal
-     *        whether to include internal resources.
+     *            whether to include internal resources.
      * @return this AbstractResources.
      */
     public AbstractResources<T> withInternal(boolean internal) {
         this.includeInternal = internal;
         return this;
     }
-    
+
     /**
      * Gets the URL for selecting a resource by ID: <tt><i>baseUrl</i>/{id}</tt>
      * 
@@ -98,7 +98,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
 
     /**
      * Gets the URL for registering a resource by ID: <tt><i>baseUrl</i>/{id}/register</tt>
-     *
+     * 
      * @return the deactivate URL.
      */
     protected String getRegisterUrl() {
@@ -107,7 +107,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
 
     /**
      * Gets the URL for de-registering a resource by ID: <tt><i>baseUrl</i>/{id}/deregister</tt>
-     *
+     * 
      * @return the deactivate URL.
      */
     protected String getDeregisterUrl() {
@@ -133,8 +133,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
     }
 
     /**
-     * Gets the URL for getting/setting role assignments for a resource by ID:
-     * <tt><i>baseUrl</i>/{id}/role-assignments</tt>
+     * Gets the URL for getting/setting role assignments for a resource by ID: <tt><i>baseUrl</i>/{id}/role-assignments</tt>
      * 
      * @return the role assignments URL.
      */
@@ -233,7 +232,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Deactivates a resource by ID. Some resource types return no result on deactivate.
      * 
      * @param id
-     *        the ID of the resource to deactivate.
+     *            the ID of the resource to deactivate.
      */
     protected void doDeactivate(URI id) {
         client.post(String.class, getDeactivateUrl(), id);
@@ -244,7 +243,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * deactivating.
      * 
      * @param id
-     *        the ID of the resource to deactivate.
+     *            the ID of the resource to deactivate.
      * @return the deactivate task.
      */
     protected Task<T> doDeactivateWithTask(URI id) {
@@ -256,20 +255,20 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * deactivating.
      * 
      * @param id
-     *        the ID of the resource to deactivate.
+     *            the ID of the resource to deactivate.
      * @return the deactivate tasks.
      */
     protected Tasks<T> doDeactivateWithTasks(URI id) {
         return postTasks(getDeactivateUrl(), id);
     }
-    
+
     /**
      * Gets the tasks associated with a resource by ID (when supported).
      * <p>
      * API Call: GET <tt><i>baseUrl</i>/{id}/tasks</tt>
      * 
      * @param id
-     *        the ID of the resource.
+     *            the ID of the resource.
      * @return the tasks associated with the resource.
      */
     protected Tasks<T> doGetTasks(URI id) {
@@ -283,9 +282,9 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * API Call: GET <tt><i>baseUrl</i>/{id}/tasks/{taskId}</tt>
      * 
      * @param id
-     *        the ID of the resource.
+     *            the ID of the resource.
      * @param taskId
-     *        the ID of the task to retrieve.
+     *            the ID of the task to retrieve.
      * @return the task.
      */
     protected Task<T> doGetTask(URI id, URI taskId) {
@@ -299,7 +298,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * API Call: GET <tt><i>baseUrl</i>/{id}/acl</tt>
      * 
      * @param id
-     *        the ID of the resource.
+     *            the ID of the resource.
      * @return the list of ACL entries.
      */
     protected List<ACLEntry> doGetACLs(URI id) {
@@ -313,9 +312,9 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * API Call: PUT <tt><i>baseUrl</i>/{id}/acl</tt>
      * 
      * @param id
-     *        the ID of the resource.
+     *            the ID of the resource.
      * @param aclChanges
-     *        the ACL changes.
+     *            the ACL changes.
      * @return the resulting list of ACL entries.
      */
     protected List<ACLEntry> doUpdateACLs(URI id, ACLAssignmentChanges aclChanges) {
@@ -329,7 +328,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * API Call: GET <tt><i>baseUrl</i>/{id}/quota</tt>
      * 
      * @param id
-     *        the ID of the resource.
+     *            the ID of the resource.
      * @return the quota info.
      */
     protected QuotaInfo doGetQuota(URI id) {
@@ -342,9 +341,9 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * API Call: PUT <tt><i>baseUrl</i>/{id}/quota</tt>
      * 
      * @param id
-     *        the ID of the resource.
+     *            the ID of the resource.
      * @param quota
-     *        the quota update information.
+     *            the quota update information.
      * @return the quota info.
      */
     protected QuotaInfo doUpdateQuota(URI id, QuotaUpdateParam quota) {
@@ -355,9 +354,9 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Performs a POST with no request that will return a single task as a response.
      * 
      * @param path
-     *        the path to post to.
+     *            the path to post to.
      * @param args
-     *        the path arguments.
+     *            the path arguments.
      * @return the task object.
      */
     protected Task<T> postTask(String path, Object... args) {
@@ -369,11 +368,11 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Performs a POST with a request that will return a single task as a response.
      * 
      * @param request
-     *        the request object.
+     *            the request object.
      * @param path
-     *        the path to post to.
+     *            the path to post to.
      * @param args
-     *        the path arguments.
+     *            the path arguments.
      * @return the task object.
      */
     protected Task<T> postTask(Object request, String path, Object... args) {
@@ -385,7 +384,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Performs a POST with no request and returns a single task as a response.
      * 
      * @param uri
-     *        the URI to post to.
+     *            the URI to post to.
      * @return the task object.
      */
     protected Task<T> postTaskURI(URI uri) {
@@ -393,12 +392,11 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
         return new Task<T>(client, task, resourceClass);
     }
 
-
     /**
      * Performs a DELETE with no request and returns a single task as a response.
-     *
+     * 
      * @param uri
-     *        the URI to post to.
+     *            the URI to post to.
      * @return the task object.
      */
     protected Task<T> deleteTaskURI(URI uri) {
@@ -408,11 +406,11 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
 
     /**
      * Performs a DELETE with a request that will return a single task as a response.
-     *
+     * 
      * @param path
-     *        the path to post to.
+     *            the path to post to.
      * @param args
-     *        the path arguments.
+     *            the path arguments.
      * @return the task object.
      */
     protected Task<T> deleteTask(String path, Object... args) {
@@ -424,9 +422,9 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Performs a POST with a request that will return a single task as a response.
      * 
      * @param request
-     *        the request object.
+     *            the request object.
      * @param uri
-     *        the URI to post to.
+     *            the URI to post to.
      * @return the task object.
      */
     protected Task<T> postTaskURI(Object request, URI uri) {
@@ -438,39 +436,39 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Performs a PUT with a request that will return a single task as a response.
      * 
      * @param request
-     *        the request object.
+     *            the request object.
      * @param path
-     *        the path to put to.
+     *            the path to put to.
      * @param args
-     *        the path arguments.
+     *            the path arguments.
      * @return the task object.
      */
     protected Task<T> putTask(Object request, String path, Object... args) {
         TaskResourceRep task = client.put(TaskResourceRep.class, request, path, args);
         return new Task<T>(client, task, resourceClass);
     }
-    
+
     /**
      * Performs a PUT with a request that will return a single task as a response.
      * 
      * @param request
-     *        the request object.
+     *            the request object.
      * @param uri
-     *        the URI to put to.
+     *            the URI to put to.
      * @return the task object.
-     */    
+     */
     protected Task<T> putTaskURI(Object request, URI uri) {
         TaskResourceRep task = client.putURI(TaskResourceRep.class, request, uri);
         return new Task<T>(client, task, resourceClass);
-    }    
+    }
 
     /**
      * Performs a POST with no request that will return multiple tasks as a response.
      * 
      * @param path
-     *        the path to post to.
+     *            the path to post to.
      * @param args
-     *        the path arguments.
+     *            the path arguments.
      * @return the tasks object.
      */
     protected Tasks<T> postTasks(String path, Object... args) {
@@ -482,11 +480,11 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Performs a POST with a request that will return multiple tasks as a response.
      * 
      * @param request
-     *        the request object.
+     *            the request object.
      * @param path
-     *        the path to post to.
+     *            the path to post to.
      * @param args
-     *        the path arguments.
+     *            the path arguments.
      * @return the tasks object.
      */
     protected Tasks<T> postTasks(Object request, String path, Object... args) {
@@ -498,9 +496,9 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Performs a POST with a request that will return multiple tasks as a response.
      * 
      * @param request
-     *        the request object.
+     *            the request object.
      * @param uri
-     *        the URI to post to.
+     *            the URI to post to.
      * @return the tasks object.
      */
     protected Tasks<T> postTasksURI(Object request, URI uri) {
@@ -512,9 +510,9 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Determines if the ID is accepted by the filter.
      * 
      * @param id
-     *        the ID.
+     *            the ID.
      * @param filter
-     *        the filter (may be null for no filtering).
+     *            the filter (may be null for no filtering).
      * @return true if the ID is accepted.
      */
     protected <V extends DataObjectRestRep> boolean acceptId(URI id, ResourceFilter<V> filter) {
@@ -531,9 +529,9 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Determines if the item is accepted.
      * 
      * @param item
-     *        the item.
+     *            the item.
      * @param filter
-     *        the filter (may be null for no filtering).
+     *            the filter (may be null for no filtering).
      * @return true if the item is accepted.
      */
     protected <V extends DataObjectRestRep> boolean accept(V item, ResourceFilter<V> filter) {
@@ -560,9 +558,9 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Performs a search for resources matching the a single search parameter.
      * 
      * @param name
-     *        the parameter name.
+     *            the parameter name.
      * @param value
-     *        the parameter value.
+     *            the parameter value.
      * @return the list of resources.
      */
     public List<SearchResultResourceRep> performSearchBy(String name, Object value) {
@@ -574,7 +572,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
      * Performs a search for resources matching the given parameters.
      * 
      * @param params
-     *        the search query parameters.
+     *            the search query parameters.
      * @return the list of resources.
      */
     public List<SearchResultResourceRep> performSearch(Map<String, Object> params) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file;
@@ -66,6 +66,7 @@ import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.file.SnapshotExportUpdateParams;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.Task;
 import com.google.common.collect.Lists;
@@ -92,10 +93,10 @@ public class FileStorageUtils {
 
         for (FileSystemACLs fileSystemACL : acls) {
             ShareACL shareAcl = new ShareACL();
-            if(fileSystemACL.aclType.equalsIgnoreCase("GROUP")) {
-               shareAcl.setGroup(fileSystemACL.aclName);
+            if (fileSystemACL.aclType.equalsIgnoreCase("GROUP")) {
+                shareAcl.setGroup(fileSystemACL.aclName);
             } else {
-               shareAcl.setUser(fileSystemACL.aclName);
+                shareAcl.setUser(fileSystemACL.aclName);
             }
             shareAcl.setPermission(fileSystemACL.aclPermission);
             aclList.add(shareAcl);
@@ -103,39 +104,41 @@ public class FileStorageUtils {
         aclsToAdd.setShareACLs(aclList);
         return aclsToAdd;
     }
-    
+
     public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb) {
         Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, virtualPool, virtualArray, project));
         addAffectedResource(task);
         URI fileSystemId = task.getResourceId();
-        addRollback(new DeactivateFileSystem(fileSystemId));
+        addRollback(new DeactivateFileSystem(fileSystemId, FileControllerConstants.DeleteTypeEnum.FULL));
         logInfo("file.storage.filesystem.task", fileSystemId, task.getOpId());
         return fileSystemId;
     }
 
-    public static void deleteFileSystem(URI fileSystemId) {
-        // Remove snapshots for the volume
-        for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
-            deleteFileSnapshot(snapshot.getId());
-        }
+    public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
+        if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
+            // Remove snapshots for the volume
+            for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
+                deleteFileSnapshot(snapshot.getId());
+            }
 
-        // Deactivate CIFS Shares
-        for (SmbShareResponse share : getCifsShares(fileSystemId)) {
-            deactivateCifsShare(fileSystemId, share.getShareName());
+            // Deactivate CIFS Shares
+            for (SmbShareResponse share : getCifsShares(fileSystemId)) {
+                deactivateCifsShare(fileSystemId, share.getShareName());
+            }
+    
+            // Delete all export rules for filesystem and all sub-directories
+            if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
+                deactivateFileSystemExport(fileSystemId, true, null);
+            }
+    
+            // Deactivate NFS Exports
+            for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
+                deactivateExport(fileSystemId, export);
+            }
         }
         
-        // Delete all export rules for filesystem and all sub-directories
-        if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
-            deactivateFileSystemExport(fileSystemId, true, null);
-        }
-        
-        // Deactivate NFS Exports
-        for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
-            deactivateExport(fileSystemId, export);
-        }
-
         // Remove the FileSystem
-        deactivateFileSystem(fileSystemId);
+        deactivateFileSystem(fileSystemId, fileDeletionType);
     }
 
     public static void deleteFileSnapshot(URI fileSnapshotId) {
@@ -143,12 +146,12 @@ public class FileStorageUtils {
         if (!getFileSnapshotExportRules(fileSnapshotId, true, null).isEmpty()) {
             deactivateSnapshotExport(fileSnapshotId, true, null);
         }
-        
+
         // Deactivate NFS Exports
         for (FileSystemExportParam export : getNfsSnapshotExport(fileSnapshotId)) {
             deactivateSnapshotExport(fileSnapshotId, export);
         }
-        
+
         // Deactivate Snapshot Shares
         for (SmbShareResponse share : getFileSnapshotShares(fileSnapshotId)) {
             deactivateSnapshotShare(fileSnapshotId, share);
@@ -157,9 +160,9 @@ public class FileStorageUtils {
         // Remove the FileSnapshot
         deactivateFileSnapshot(fileSnapshotId);
     }
-    
-    public static void deactivateFileSystem(URI fileSystemId) {
-        Task<FileShareRestRep> response = execute(new DeactivateFileSystem(fileSystemId));
+
+    public static void deactivateFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
+        Task<FileShareRestRep> response = execute(new DeactivateFileSystem(fileSystemId, fileDeletionType));
         addAffectedResource(response);
         logInfo("file.storage.task", response.getOpId());
     }
@@ -179,13 +182,13 @@ public class FileStorageUtils {
         logInfo("file.storage.share.task", shareId, task.getOpId());
         return shareId;
     }
-    
+
     public static void setFileSystemShareACL(URI fileSystemId, String shareName, FileSystemACLs[] acls) {
         Task<FileShareRestRep> task = execute(new SetFileSystemShareACL(fileSystemId, shareName, acls));
         addAffectedResource(task);
         logInfo("file.storage.share.filesystem.acl", fileSystemId, shareName, task.getOpId());
     }
-    
+
     public static void setFileSnapshotShareACL(URI snapshotId, String shareName, FileSystemACLs[] acls) {
         Task<FileSnapshotRestRep> task = execute(new SetFileSnapshotShareACL(snapshotId, shareName, acls));
         addAffectedResource(task);
@@ -200,9 +203,10 @@ public class FileStorageUtils {
     public static List<SmbShareResponse> getCifsShares(URI fileSystemId) {
         return execute(new GetCifsSharesForFileSystem(fileSystemId));
     }
-    
-    public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory){
-        return createFileSystemExport(fileSystemId, comment, exportRule.security, exportRule.permission, DEFAULT_ROOT_USER, exportRule.exportHosts, subDirectory);
+
+    public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory) {
+        return createFileSystemExport(fileSystemId, comment, exportRule.security, exportRule.permission, DEFAULT_ROOT_USER,
+                exportRule.exportHosts, subDirectory);
     }
 
     public static String createFileSystemExport(URI fileSystemId, String comment, String security, String permissions, String rootUser,
@@ -215,11 +219,12 @@ public class FileStorageUtils {
         logInfo("file.storage.export.task", exportId, task.getOpId());
         return exportId;
     }
-    
+
     public static String createFileSnapshotExport(URI fileSnapshotId, String comment, FileExportRule exportRule, String subDirectory) {
-        return FileStorageUtils.createFileSnapshotExport(fileSnapshotId, comment, exportRule.security, exportRule.permission, DEFAULT_ROOT_USER, exportRule.exportHosts, subDirectory);
+        return FileStorageUtils.createFileSnapshotExport(fileSnapshotId, comment, exportRule.security, exportRule.permission,
+                DEFAULT_ROOT_USER, exportRule.exportHosts, subDirectory);
     }
-    
+
     public static String createFileSnapshotExport(URI fileSnapshotId, String comment, String security, String permissions, String rootUser,
             List<String> exportHosts, String subDirectory) {
         Task<FileSnapshotRestRep> task = execute(new CreateFileSnapshotExport(fileSnapshotId, comment, NFS_PROTOCOL, security, permissions,
@@ -230,33 +235,33 @@ public class FileStorageUtils {
         logInfo("file.storage.export.task", exportId, task.getOpId());
         return exportId;
     }
-    
+
     public static void deactivateSnapshotExport(URI fileSnapshotId, Boolean allDir, String subDir) {
         Task<FileSnapshotRestRep> task = execute(new DeactivateFileSnapshotExportRule(fileSnapshotId, allDir, subDir));
         addAffectedResource(task);
     }
-    
+
     public static void deactivateSnapshotExport(URI fileSnapshotId, FileSystemExportParam export) {
         deactivateSnapshotExport(fileSnapshotId, export.getProtocol(), export.getSecurityType(), export.getPermissions(),
                 export.getRootUserMapping());
     }
-    
+
     public static void deactivateSnapshotExport(URI fileSnapshotId, String protocol, String type, String permissions,
             String rootUser) {
         Task<FileSnapshotRestRep> task = execute(new DeactivateFileSnapshotExport(fileSnapshotId, protocol, type, permissions,
                 rootUser));
         addAffectedResource(task);
     }
-    
+
     public static void deactivateSnapshotShare(URI fileSnapshotId, SmbShareResponse share) {
         deactivateSnapshotShare(fileSnapshotId, share.getShareName());
     }
-    
+
     public static void deactivateSnapshotShare(URI fileSnapshotId, String shareName) {
         Task<FileSnapshotRestRep> task = execute(new DeactivateFileSnapshotShare(fileSnapshotId, shareName));
         addAffectedResource(task);
     }
-    
+
     public static void deactivateExport(URI fileSystemId, FileSystemExportParam export) {
         deactivateExport(fileSystemId, export.getProtocol(), export.getSecurityType(), export.getPermissions(),
                 export.getRootUserMapping());
@@ -268,7 +273,7 @@ public class FileStorageUtils {
                 rootUser));
         addAffectedResource(task);
     }
-    
+
     public static List<SmbShareResponse> getFileSnapshotShares(URI fileSystemId) {
         return execute(new GetSharesForFileSnapshot(fileSystemId));
     }
@@ -276,8 +281,8 @@ public class FileStorageUtils {
     public static List<FileSystemExportParam> getNfsExports(URI fileSystemId) {
         return execute(new GetNfsExportsForFileSystem(fileSystemId));
     }
-    
-    public static List<FileSystemExportParam> getNfsSnapshotExport (URI snapshotId) {
+
+    public static List<FileSystemExportParam> getNfsSnapshotExport(URI snapshotId) {
         return execute(new GetNfsExportsForFileSnapshot(snapshotId));
     }
 
@@ -312,13 +317,13 @@ public class FileStorageUtils {
         addAffectedResource(task);
         return task.getResourceId();
     }
-    
+
     public static URI createFileSystemQuotaDirectory(URI fileSystemId, String name, Boolean oplock, String securityStyle, String size) {
         Task<QuotaDirectoryRestRep> task = execute(new CreateFileSystemQuotaDirectory(fileSystemId, name, oplock, securityStyle, size));
         addAffectedResource(task);
         return task.getResourceId();
     }
-    
+
     public static List<QuotaDirectoryRestRep> getQuotaDirectories(Collection<URI> quotaDirectoryIds) {
         List<QuotaDirectoryRestRep> quotaDirectories = Lists.newArrayList();
         for (URI quotaDirectoryId : quotaDirectoryIds) {
@@ -326,13 +331,13 @@ public class FileStorageUtils {
         }
         return quotaDirectories;
     }
-    
+
     public static void deactivateQuotaDirectory(URI quotaDirectoryId) {
         Task<QuotaDirectoryRestRep> response = execute(new DeactivateQuotaDirectory(quotaDirectoryId));
         addAffectedResource(response);
         logInfo("file.storage.task", response.getOpId());
     }
-    
+
     public static QuotaDirectoryRestRep getQuotaDirectory(URI quotaDirectoryId) {
         return execute(new GetQuotaDirectory(quotaDirectoryId));
     }
@@ -350,39 +355,39 @@ public class FileStorageUtils {
         Task<FileSnapshotRestRep> task = execute(new RestoreFileSnapshot(snapshotId));
         addAffectedResource(task);
     }
-    
+
     public static URI shareFileSnapshot(URI snapshotId, String shareName, String shareComment) {
-	Task<FileSnapshotRestRep> task = execute(new CreateFileSnapshotShare(snapshotId, shareName, shareComment));
-    	addAffectedResource(task);
-    	return task.getResourceId();
+        Task<FileSnapshotRestRep> task = execute(new CreateFileSnapshotShare(snapshotId, shareName, shareComment));
+        addAffectedResource(task);
+        return task.getResourceId();
     }
-    
+
     public static URI deactivateFileSystemExport(URI fileSystemId, Boolean allDir, String subDir) {
         Task<FileShareRestRep> task = execute(new DeactivateFileSystemExportRule(fileSystemId, allDir, subDir));
         addAffectedResource(task);
         return task.getResourceId();
     }
-    
+
     public static String updateFileSystemExport(URI fileSystemId, String subDirectory, FileExportRule[] fileExportRules) {
         List<ExportRule> exportRuleList = getFileSystemExportRules(fileSystemId, false, subDirectory);
         Set<String> existingRuleSet = Sets.newHashSet();
-        for (ExportRule rule: exportRuleList) {
+        for (ExportRule rule : exportRuleList) {
             existingRuleSet.add(rule.getSecFlavor());
         }
-        
+
         Map<String, Map<String, Set<String>>> rules = Maps.newHashMap();
         for (FileExportRule fileExportRule : fileExportRules) {
             if (!rules.containsKey(fileExportRule.security)) {
                 Map<String, Set<String>> rule = Maps.newHashMap();
                 rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-                rules.put(fileExportRule.security, rule); 
-             }
-             else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
-                 rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-             }
-             else {
-                 rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
-             }
+                rules.put(fileExportRule.security, rule);
+            }
+            else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
+                rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
+            }
+            else {
+                rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
+            }
         }
         List<ExportRule> exportRuleListToAdd = Lists.newArrayList();
         List<ExportRule> exportRuleListToModify = Lists.newArrayList();
@@ -402,8 +407,8 @@ public class FileStorageUtils {
                 exportRuleListToAdd.add(exportRule);
             }
         }
-        
-        FileShareExportUpdateParams params =  new FileShareExportUpdateParams();
+
+        FileShareExportUpdateParams params = new FileShareExportUpdateParams();
         if (!exportRuleListToAdd.isEmpty()) {
             ExportRules exportRulesToAdd = new ExportRules();
             exportRulesToAdd.setExportRules(exportRuleListToAdd);
@@ -420,27 +425,27 @@ public class FileStorageUtils {
         logInfo("file.storage.export.task", exportId, task.getOpId());
         return exportId;
     }
-    
+
     public static String updateFileSnapshotExport(URI fileSnapshotId, String subDirectory, FileExportRule[] fileExportRules) {
         List<ExportRule> exportRuleList = getFileSnapshotExportRules(fileSnapshotId, false, subDirectory);
         Set<String> existingRuleSet = Sets.newHashSet();
-        for (ExportRule rule: exportRuleList) {
+        for (ExportRule rule : exportRuleList) {
             existingRuleSet.add(rule.getSecFlavor());
         }
-        
+
         Map<String, Map<String, Set<String>>> rules = Maps.newHashMap();
         for (FileExportRule fileExportRule : fileExportRules) {
             if (!rules.containsKey(fileExportRule.security)) {
                 Map<String, Set<String>> rule = Maps.newHashMap();
                 rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-                rules.put(fileExportRule.security,rule); 
-             }
-             else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
-                 rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-             }
-             else {
-                 rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
-             }
+                rules.put(fileExportRule.security, rule);
+            }
+            else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
+                rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
+            }
+            else {
+                rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
+            }
         }
         List<ExportRule> exportRuleListToAdd = Lists.newArrayList();
         List<ExportRule> exportRuleListToModify = Lists.newArrayList();
@@ -460,8 +465,8 @@ public class FileStorageUtils {
                 exportRuleListToAdd.add(exportRule);
             }
         }
-        
-        SnapshotExportUpdateParams params =  new SnapshotExportUpdateParams();
+
+        SnapshotExportUpdateParams params = new SnapshotExportUpdateParams();
         if (!exportRuleListToAdd.isEmpty()) {
             ExportRules exportRulesToAdd = new ExportRules();
             exportRulesToAdd.setExportRules(exportRuleListToAdd);
@@ -472,22 +477,22 @@ public class FileStorageUtils {
             exportRulesToModify.setExportRules(exportRuleListToModify);
             params.setExportRulesToModify(exportRulesToModify);
         }
-        
+
         Task<FileSnapshotRestRep> task = execute(new UpdateFileSnapshotExport(fileSnapshotId, subDirectory, params));
         addAffectedResource(task);
         String exportId = task.getResourceId().toString();
         logInfo("file.storage.export.task", exportId, task.getOpId());
         return exportId;
     }
-    
+
     public static List<ExportRule> getFileSystemExportRules(URI fileSystemId, Boolean allDir, String subDir) {
         return execute(new FindFileSystemExportRules(fileSystemId, allDir, subDir));
     }
-    
+
     public static List<ExportRule> getFileSnapshotExportRules(URI fileSnapshotId, Boolean allDir, String subDir) {
         return execute(new FindFileSnapshotExportRules(fileSnapshotId, allDir, subDir));
     }
-    
+
     public static FileSystemACLs[] clearEmptyFileACLs(FileSystemACLs[] fileACLs) {
         List<FileStorageUtils.FileSystemACLs> toRemove = new ArrayList<FileStorageUtils.FileSystemACLs>();
         for (FileStorageUtils.FileSystemACLs acl : fileACLs) {
@@ -495,33 +500,33 @@ public class FileStorageUtils {
                 toRemove.add(acl);
             }
         }
-        
+
         for (FileStorageUtils.FileSystemACLs element : toRemove) {
             fileACLs = (FileStorageUtils.FileSystemACLs[]) ArrayUtils.removeElement(fileACLs, element);
         }
-        
+
         return fileACLs;
     }
-    
+
     public static class FileSystemACLs {
         @Param
         public String aclType;
-        
+
         @Param
-        public String aclName;        
-        
-        @Param 
+        public String aclName;
+
+        @Param
         public String aclPermission;
     }
-    
+
     public static class FileExportRule {
         @Param
         protected List<String> exportHosts;
-        
+
         @Param
         protected String security;
-        
-        @Param 
+
+        @Param
         protected String permission;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers;
@@ -31,12 +31,12 @@ import controllers.deadbolt.Restrictions;
 
 @With(Common.class)
 public class AdminDashboard extends Controller {
-    @Restrictions({@Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void dashboard() {
         render();
     }
 
-    @Restrictions({@Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void version() {
         License license = AdminDashboardUtils.getLicense();
         Map<String, Promise<?>> promises = Maps.newHashMap();
@@ -47,7 +47,7 @@ public class AdminDashboard extends Controller {
         render(license, clusterInfoLastUpdated);
     }
 
-    @Restrictions({@Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void health() {
         Map<String, Promise<?>> promises = Maps.newHashMap();
         promises.put("nodeHealthList", AdminDashboardUtils.nodeHealthList());
@@ -57,22 +57,22 @@ public class AdminDashboard extends Controller {
         renderArgs.put("nodeHealthListLastUpdated", AdminDashboardUtils.getNodeHealthListLastUpdated());
         render();
     }
-    
-    @Restrictions({@Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
+
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void dbStatus() {
-    	DbRepairStatus dbstatus = AdminDashboardUtils.gethealthdb();
-    	if(dbstatus.getLastCompletionTime() != null){
-    		DateTime endTime = new DateTime(dbstatus.getLastCompletionTime().getTime());
-    		renderArgs.put("endTime",endTime);
-    	}
-    	if(dbstatus.getStartTime()!=null){
-    		DateTime startTime = new DateTime(dbstatus.getStartTime().getTime());
-    		renderArgs.put("startTime", startTime);
-    	}
-    	render(dbstatus);
+        DbRepairStatus dbstatus = AdminDashboardUtils.gethealthdb();
+        if (dbstatus.getLastCompletionTime() != null) {
+            DateTime endTime = new DateTime(dbstatus.getLastCompletionTime().getTime());
+            renderArgs.put("endTime", endTime);
+        }
+        if (dbstatus.getStartTime() != null) {
+            DateTime startTime = new DateTime(dbstatus.getStartTime().getTime());
+            renderArgs.put("startTime", startTime);
+        }
+        render(dbstatus);
     }
 
-    @Restrictions({@Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void physicalAssets() {
         Map<String, Promise<?>> promises = Maps.newHashMap();
         promises.put("storageArrayCount", AdminDashboardUtils.storageArrayCount());
@@ -91,14 +91,15 @@ public class AdminDashboard extends Controller {
         renderArgs.put("storageArrayCountLastUpdated", AdminDashboardUtils.getStorageArrayCountLastUpdated());
         render();
     }
-    
-    @Restrictions({@Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
+
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void virtualAssets() {
         Map<String, Promise<?>> promises = Maps.newHashMap();
         promises.put("virtualStorageArrayCount", AdminDashboardUtils.virutalStorageArrayCount());
         if (LicenseUtils.isControllerLicensed()) {
             promises.put("blockVirtualPoolCount", AdminDashboardUtils.blockVirtualPoolCount());
             promises.put("fileVirtualPoolCount", AdminDashboardUtils.fileVirtualPoolCount());
+            promises.put("objectVirtualPoolCount", AdminDashboardUtils.objectVirtualPoolCount());
             promises.put("computeVirtualPoolCount", AdminDashboardUtils.computeVirtualPoolCount());
         }
 
@@ -107,8 +108,8 @@ public class AdminDashboard extends Controller {
         renderArgs.put("virtualStorageArrayCountLastUpdated", AdminDashboardUtils.getVirtualStorageArrayCountLastUpdated());
         render();
     }
-    
-    @Restrictions({@Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
+
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void capacity() {
         Map<String, Promise<?>> promises = Maps.newHashMap();
         promises.put("storageStats", AdminDashboardUtils.storageStats());
@@ -116,18 +117,18 @@ public class AdminDashboard extends Controller {
         render();
     }
 
-    @Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN")})
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void nodeReboot(@Required String nodeId) {
         new RebootNodeJob(getSysClient(), nodeId).in(3);
         flash.success(Messages.get("adminDashboard.nodeRebooting", nodeId));
         Maintenance.maintenance(Common.reverseRoute(AdminDashboard.class, "dashboard"));
     }
-    
-    @Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN")})
+
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void clusterPoweroff() {
         new PoweroffJob(getSysClient()).in(3);
         flash.success(MessagesUtils.get("adminDashboard.clusterPoweroff.description"));
-        flash("isShuttingDown",true);
+        flash("isShuttingDown", true);
         Maintenance.maintenance(Common.reverseRoute(AdminDashboard.class, "dashboard"));
     }
 
@@ -135,7 +136,7 @@ public class AdminDashboard extends Controller {
      * Tries to set a number of render arguments.
      * 
      * @param promises
-     *        the map or key to promise.
+     *            the map or key to promise.
      */
     private static void trySetRenderArgs(Map<String, Promise<?>> promises) {
         for (Map.Entry<String, Promise<?>> entry : promises.entrySet()) {
@@ -147,16 +148,15 @@ public class AdminDashboard extends Controller {
      * Tries to set a render argument, ignoring any errors that may occur.
      * 
      * @param name
-     *        the name of the render argument.
+     *            the name of the render argument.
      * @param promise
-     *        the promise to retrieve the value of the promise.
+     *            the promise to retrieve the value of the promise.
      */
     private static void trySetRenderArg(String name, Promise<?> promise) {
         try {
             Object value = await(promise);
             renderArgs.put(name, value);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Throwable cause = Common.unwrap(e);
             String message = Common.getUserMessage(cause);
             renderArgs.put(name + "_error", message);

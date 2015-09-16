@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -17,7 +17,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class RPCGDiscoverCompleter extends RPCGTaskCompleter {
-	private static final Logger _log = LoggerFactory.getLogger(RPCGCreateCompleter.class);
+    private static final Logger _log = LoggerFactory.getLogger(RPCGCreateCompleter.class);
 
     public RPCGDiscoverCompleter(URI uri, String task) {
         super(Volume.class, uri, task);
@@ -32,11 +32,11 @@ public class RPCGDiscoverCompleter extends RPCGTaskCompleter {
             // Tell the individual objects we're done.
             for (URI id : getIds()) {
                 switch (status) {
-                case error:
-                    dbClient.error(Volume.class, id, getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(Volume.class, id, getOpId());
+                    case error:
+                        dbClient.error(Volume.class, id, getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(Volume.class, id, getOpId());
                 }
             }
         } catch (DatabaseException e) {

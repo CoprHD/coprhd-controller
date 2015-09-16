@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.aix;
@@ -17,7 +17,7 @@ public class CreateAndMountVolumeService extends AixService {
     private CreateBlockVolumeHelper createVolumeHelper = new CreateBlockVolumeHelper();
 
     private MountBlockVolumeHelper mountBlockVolumeHelper;
-    
+
     @Override
     public void init() throws Exception {
         super.init();
@@ -37,7 +37,7 @@ public class CreateAndMountVolumeService extends AixService {
         acquireHostsLock();
         mountVolume(volume);
     }
-    
+
     private BlockObjectRestRep createVolume() {
         List<BlockObjectRestRep> volumes = createVolumeHelper.createAndExportVolumes();
         if (volumes.size() != 1) {
@@ -45,7 +45,7 @@ public class CreateAndMountVolumeService extends AixService {
         }
         return volumes.get(0);
     }
-    
+
     private void mountVolume(BlockObjectRestRep volume) {
         mountBlockVolumeHelper.mount(volume);
     }

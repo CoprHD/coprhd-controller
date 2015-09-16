@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.uimodels;
@@ -94,15 +94,15 @@ public class ExecutionLog extends ModelObject {
             return String.format("%s - %s - %s", date, level, message);
         }
         else {
-            return String.format("%s - %s - %s\n%s", date, level, message, stackTrace);
+            return String.format("%s - %s - %s%n%s", date, level, message, stackTrace);
         }
     }
 
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), getId() };
-    }        
-    
+        return new Object[] { getLabel(), getId() };
+    }
+
     public static enum LogLevel {
         DEBUG, INFO, WARN, ERROR
     }

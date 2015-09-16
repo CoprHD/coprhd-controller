@@ -21,6 +21,7 @@
                 <entry key="BlockOrchestrationController" value="rmi://localhost:10099/BlockOrchestrationController"/>
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
                 <entry key="SRDFController" value="rmi://localhost:10099/SRDFController" />
+                <entry key="ObjectController" value="rmi://localhost:10099/ObjectController"/>
             </map>
         </property>
         <property name="version" value="1"/>
@@ -51,7 +52,9 @@
                 <value>cinder</value>
                 <value>openstack</value>
                 <value>scaleio</value>
+                <value>scaleioapi</value>
                 <value>xtremio</value>
+                <value>ecs</value>
             </set>
         </property>
     </bean>

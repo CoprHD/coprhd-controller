@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.util;
@@ -18,12 +18,13 @@ import com.emc.storageos.db.client.model.StringSet;
 
 /**
  * A utility class for changing between {@link StringMap} and {@link List}
- *
+ * 
  */
 public class StringSetUtil {
-    
+
     /**
      * Creates and return a {@link List} from the values of a {@link StringSet}
+     * 
      * @param curSet the {@link java.util.Collection<String>} containing the values
      * @return the {@link List}
      */
@@ -36,10 +37,11 @@ public class StringSetUtil {
         }
         return list;
     }
-    
+
     /**
-     * Returns a set of strings from a list of URIs 
-     * @param uris the list of URIs 
+     * Returns a set of strings from a list of URIs
+     * 
+     * @param uris the list of URIs
      * @return a set of strings
      */
     public static Set<String> uriListToSet(List<URI> uris) {
@@ -51,10 +53,11 @@ public class StringSetUtil {
         }
         return set;
     }
-    
+
     /**
-     * Returns a set of strings from a list of URIs 
-     * @param uris the list of URIs 
+     * Returns a set of strings from a list of URIs
+     * 
+     * @param uris the list of URIs
      * @return a set of strings
      */
     public static StringSet uriListToStringSet(List<URI> uris) {
@@ -66,42 +69,53 @@ public class StringSetUtil {
         }
         return set;
     }
-    
-    /** 
+
+    /**
      * Returns a StringSet from the keySet of a StringMap
+     * 
      * @param map StringMap
      * @return Returns an empty set if the map is null, otherwise the keySet.
      */
     public static StringSet getStringSetFromStringMapKeySet(StringMap map) {
         StringSet result = new StringSet();
-        if (map == null) return result;
+        if (map == null) {
+            return result;
+        }
         result.addAll(map.keySet());
         return result;
     }
-    
+
     /**
      * Return true if there is any intersection in the StringSets a and b.
+     * 
      * @param a StringSet
      * @param b StringSet
      * @return true if they have a common member, false otherwise
      */
     public static boolean hasIntersection(StringSet a, StringSet b) {
-        if (a == null || b == null) return false;
-        if (a.isEmpty() || b.isEmpty()) return false;
+        if (a == null || b == null) {
+            return false;
+        }
+        if (a.isEmpty() || b.isEmpty()) {
+            return false;
+        }
         for (String s : a) {
-            if (b.contains(s)) return true;
+            if (b.contains(s)) {
+                return true;
+            }
         }
         return false;
     }
 
     /**
-     * If set1 and set2 are before and after respectively, return the items 
+     * If set1 and set2 are before and after respectively, return the items
      * that existed before and no longer exist.
+     * 
      * @param set1
      * @param set2
      * @return
      */
-    public static StringSet getRemoved (StringSet set1, StringSet set2) {
+    public static StringSet getRemoved(StringSet set1, StringSet set2) {
         StringSet removed = new StringSet();
         if (set1 != null) {
             if (set2 == null) {
@@ -116,15 +130,16 @@ public class StringSetUtil {
         }
         return removed;
     }
-    
+
     /**
-     * If set1 and set2 are before and after respectively, return the items 
+     * If set1 and set2 are before and after respectively, return the items
      * that exists now that did not exist before.
+     * 
      * @param set1
      * @param set2
      * @return
      */
-    public static StringSet getAdded (StringSet set1, StringSet set2) {
+    public static StringSet getAdded(StringSet set1, StringSet set2) {
         StringSet added = new StringSet();
         if (set2 != null) {
             if (set1 == null) {
@@ -139,14 +154,15 @@ public class StringSetUtil {
         }
         return added;
     }
-    
+
     /**
      * Compares that two sets do not have the same entries
+     * 
      * @param set1
      * @param set2
      * @return
      */
-    public static boolean isChanged (StringSet set1, StringSet set2) {
+    public static boolean isChanged(StringSet set1, StringSet set2) {
         return !getRemoved(set1, set2).isEmpty() ||
                 !getRemoved(set2, set1).isEmpty();
     }
@@ -163,8 +179,9 @@ public class StringSetUtil {
     }
 
     /**
-     * Returns a set of strings from a collection of dataObject 
-     * @param dataObjects the list of dataObjects 
+     * Returns a set of strings from a collection of dataObject
+     * 
+     * @param dataObjects the list of dataObjects
      * @return a set of strings
      */
     public static <T extends DataObject> StringSet objCollectionToStringSet(Collection<T> dataObjects) {
@@ -182,7 +199,7 @@ public class StringSetUtil {
     /**
      * This function can be used to prevent NPEs. It will either return the EMPTY_STRING_SET
      * or the set.
-     *
+     * 
      * @param set - StringSet
      * @return Returns a StringSet
      */
@@ -192,7 +209,7 @@ public class StringSetUtil {
 
     /**
      * Takes the inputList and removes any duplicates
-     *
+     * 
      * @param inputList<T> [in/out] - List to process and update
      */
     public static <T> void removeDuplicates(List<T> inputList) {

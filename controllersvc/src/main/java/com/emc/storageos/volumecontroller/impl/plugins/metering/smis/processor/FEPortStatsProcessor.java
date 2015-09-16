@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor;
 
@@ -31,14 +21,13 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
-
 /**
  * FEPortStatsProcessor used in retrieving TotalIOs,KBytesTransferred and nativeGuid of FEPort.
  */
 public class FEPortStatsProcessor extends CommonStatsProcessor {
-    private Logger       _logger = LoggerFactory.getLogger(FEPortStatsProcessor.class);
+    private Logger _logger = LoggerFactory.getLogger(FEPortStatsProcessor.class);
     PortMetricsProcessor portMetricsProcessor;
-    
+
     public static enum FEPortMetric
     {
         UnKnown,
@@ -47,7 +36,7 @@ public class FEPortStatsProcessor extends CommonStatsProcessor {
         TotalIOs,
         KBytesTransferred,
         StatisticTime;
-        
+
         private static final FEPortMetric[] metricCopyOfValues = values();
 
         public static FEPortMetric lookup(String name) {
@@ -97,17 +86,17 @@ public class FEPortStatsProcessor extends CommonStatsProcessor {
                             createPortStatMetric(metricSequence, port, keyMap, metricsObjList, metrics);
                         }
                     }
-                    
+
                 }
-                
+
                 //
-                // compute port metric to trigger if any port allocation qualification changed.  If there is
+                // compute port metric to trigger if any port allocation qualification changed. If there is
                 // changes, run vpool matcher
                 //
                 portMetricsProcessor.triggerVpoolMatcherIfPortAllocationQualificationChanged(profile.getSystemId(), systemPorts);
 
                 //
-                // compute storage system's average of port metrics.  Then, persist it into storage system object.
+                // compute storage system's average of port metrics. Then, persist it into storage system object.
                 //
                 portMetricsProcessor.computeStorageSystemAvgPortMetrics(profile.getSystemId());
             } else {
@@ -120,7 +109,8 @@ public class FEPortStatsProcessor extends CommonStatsProcessor {
     }
 
     /**
-     * Create a new PortStat. 
+     * Create a new PortStat.
+     * 
      * @param metrics
      * @param portStatsList
      * @param port
@@ -130,11 +120,11 @@ public class FEPortStatsProcessor extends CommonStatsProcessor {
             List<Stat> portStatsList, String metrics[]) {
         int count = 0;
         Stat portStat = new Stat();
-        
+
         Long kbytes = 0L;
         Long iops = 0L;
         String statisticTime = "";
-        
+
         for (String metricName : metricSequence) {
             portStat.setTimeCollected((Long) keyMap.get(Constants._TimeCollected));
             portStat.setTimeInMillis((Long) keyMap.get(Constants._TimeCollected));
@@ -143,23 +133,23 @@ public class FEPortStatsProcessor extends CommonStatsProcessor {
             portStat.setServiceType(Constants._Block);
 
             switch (FEPortMetric.lookup(metricName)) {
-            case InstanceID:
-            case ElementType:
-                break;
-            case TotalIOs:
-                iops = ControllerUtils.getLongValue(metrics[count]);
-                portStat.setTotalIOs(iops);
-                break;
-            case KBytesTransferred:
-                kbytes = ControllerUtils.getLongValue(metrics[count]);
-                portStat.setKbytesTransferred(kbytes);
-                break;
-            case StatisticTime:
-                statisticTime = metrics[count];
-                break;
-            default:
-                _logger.warn("Ignoring unknown metric {} during system metric processing:", metricName);
-                break;
+                case InstanceID:
+                case ElementType:
+                    break;
+                case TotalIOs:
+                    iops = ControllerUtils.getLongValue(metrics[count]);
+                    portStat.setTotalIOs(iops);
+                    break;
+                case KBytesTransferred:
+                    kbytes = ControllerUtils.getLongValue(metrics[count]);
+                    portStat.setKbytesTransferred(kbytes);
+                    break;
+                case StatisticTime:
+                    statisticTime = metrics[count];
+                    break;
+                default:
+                    _logger.warn("Ignoring unknown metric {} during system metric processing:", metricName);
+                    break;
             }
             count++;
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -171,7 +171,7 @@ public class ComputeElement extends DiscoveredSystemObject {
         this._slotId = _slotId;
         setChanged("slotId");
     }
-    
+
     @Name("model")
     public String getModel() {
         return _model;

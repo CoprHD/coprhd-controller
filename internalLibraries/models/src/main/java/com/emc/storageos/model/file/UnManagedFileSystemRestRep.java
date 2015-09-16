@@ -1,21 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.file;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -28,9 +19,9 @@ import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.adapters.StringSetMapAdapter;
 
 /**
- * An unmanaged file system.  UnManaged FileSystem are FileSystems, which 
+ * An unmanaged file system. UnManaged FileSystem are FileSystems, which
  * are present within ViPR Storage Systems, but are not under ViPR management.
- *
+ * 
  */
 @XmlRootElement(name = "unmanaged_filesystem")
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -40,9 +31,15 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     private List<StringHashMapEntry> filesystemCharacteristics;
     private RelatedResourceRep storageSystem;
     private RelatedResourceRep storagePool;
+    
+    /**
+     * List of supported VPool URIs associated with this UnManagedVolume.
+     */
+    private List<String> supportedVPoolUris;
 
     /**
      * GUID associated with the unmanaged file system.
+     * 
      * @valid none
      */
     @XmlElement(name = "native_guid")
@@ -55,8 +52,9 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     }
 
     /**
-     * URI for the storage system supporting the unmanaged 
+     * URI for the storage system supporting the unmanaged
      * file system.
+     * 
      * @valid none
      */
     @XmlElement(name = "storage_system")
@@ -67,12 +65,13 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     public void setStorageSystem(RelatedResourceRep storageSystem) {
         this.storageSystem = storageSystem;
     }
-    
+
     /**
-    * URI representing the storage pool supporting the unmanaged file 
-    * system.
-    * @valid none
-    */
+     * URI representing the storage pool supporting the unmanaged file
+     * system.
+     * 
+     * @valid none
+     */
     @XmlElement(name = "storage_pool")
     public RelatedResourceRep getStoragePool() {
         return storagePool;
@@ -81,10 +80,24 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     public void setStoragePool(RelatedResourceRep storagePool) {
         this.storagePool = storagePool;
     }
+    
+    @XmlElementWrapper(name = "supported_virtual_pools")
+    @XmlElement(name = "virtual_pool")
+    public List<String> getSupportedVPoolUris() {
+        if (supportedVPoolUris == null) {
+            supportedVPoolUris = new ArrayList<String>();
+        }
+        return supportedVPoolUris;
+    }
+
+    public void setSupportedVPoolUris(List<String> supportedVPoolUris) {
+        this.supportedVPoolUris = supportedVPoolUris;
+    }
 
     /**
      * A list of name-value pairs representing the characteristics of
      * the unmanaged file system.
+     * 
      * @valid none
      */
     @XmlElementWrapper(name = "unmanaged_filesystems_characterstics")
@@ -103,6 +116,7 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     /**
      * A list of name-value pairs containing information relevant to the
      * unmanaged file system.
+     * 
      * @valid none
      */
     @XmlElementWrapper(name = "unmanaged_filesystems_info")

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -16,21 +16,21 @@ public class UserPreferencesUtils {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.userPreferences().getPreferences();
     }
-    
+
     public static UserPreferencesRestRep getUserPreferences(String username) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.userPreferences().getPreferences(username);
-    }    
-    
+    }
+
     public static UserPreferencesRestRep updateUserPreferences(UserPreferencesUpdateParam updateParam) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.userPreferences().updatePreferences(updateParam);
     }
-    
+
     public static boolean getNotifyByEmail() {
-        return getUserPreferences().getNotifyByEmail() != null ? getUserPreferences().getNotifyByEmail() : false; 
+        return getUserPreferences().getNotifyByEmail() != null ? getUserPreferences().getNotifyByEmail() : false;
     }
-    
+
     public static String getEmail() {
         return getUserPreferences().getEmail();
     }

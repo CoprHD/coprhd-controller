@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -7,7 +7,7 @@ package util;
 public enum DefaultStorageProviderPortMap {
     smis,
     smis_useSSL,
-    hicommand, 
+    hicommand,
     hicommand_useSSL,
     vplex,
     vplex_useSSL,
@@ -15,8 +15,12 @@ public enum DefaultStorageProviderPortMap {
     cinder_useSSL,
     scaleio,
     scaleio_useSSL,
+    scaleioapi,
+    scaleioapi_useSSL,
     ddmc,
     ddmc_useSSL,
     ibmxiv,
-    ibmxiv_useSSL
+    ibmxiv_useSSL,
+    xtremio,
+    xtremio_useSSL
 }

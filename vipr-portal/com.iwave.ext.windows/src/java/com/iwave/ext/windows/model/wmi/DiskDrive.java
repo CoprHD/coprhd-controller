@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.model.wmi;
@@ -126,7 +126,6 @@ public class DiskDrive {
     public void setStatus(String status) {
         this.status = status;
     }
-
 
     public String getSignature() {
         return signature;

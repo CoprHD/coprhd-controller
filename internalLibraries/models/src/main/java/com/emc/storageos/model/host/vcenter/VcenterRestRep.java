@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.host.vcenter;
 
@@ -33,10 +23,11 @@ public class VcenterRestRep extends ComputeSystemRestRep {
     private Integer portNumber;
     private Boolean useSsl;
     private String osVersion;
-    
+    private Boolean cascadeTenancy;
 
-    public VcenterRestRep() {}
-    
+    public VcenterRestRep() {
+    }
+
     public VcenterRestRep(String username, String ipAddress,
             Integer portNumber, Boolean useSsl) {
         super();
@@ -46,7 +37,7 @@ public class VcenterRestRep extends ComputeSystemRestRep {
         this.useSsl = useSsl;
     }
 
-    public VcenterRestRep(RelatedResourceRep tenant, String username, 
+    public VcenterRestRep(RelatedResourceRep tenant, String username,
             String ipAddress, Integer portNumber, Boolean useSsl) {
         super(tenant);
         this.username = username;
@@ -57,10 +48,11 @@ public class VcenterRestRep extends ComputeSystemRestRep {
 
     /**
      * The login account name
+     * 
      * @valid none
      * @return the login account name
      */
-    @XmlElement(name="user_name")
+    @XmlElement(name = "user_name")
     public String getUsername() {
         return username;
     }
@@ -71,10 +63,11 @@ public class VcenterRestRep extends ComputeSystemRestRep {
 
     /**
      * The vCenter server management IP address
+     * 
      * @valid none
      * @return the vCenter server management IP address
      */
-    @XmlElement(name="ip_address")
+    @XmlElement(name = "ip_address")
     public String getIpAddress() {
         return ipAddress;
     }
@@ -85,10 +78,11 @@ public class VcenterRestRep extends ComputeSystemRestRep {
 
     /**
      * The vCenter server management port
+     * 
      * @valid none
      * @return the the vCenter server management port
      */
-    @XmlElement(name="port_number")
+    @XmlElement(name = "port_number")
     public Integer getPortNumber() {
         return portNumber;
     }
@@ -99,11 +93,12 @@ public class VcenterRestRep extends ComputeSystemRestRep {
 
     /**
      * A flag which indicates whether SSL should be used when communicating with the vCenter
+     * 
      * @valid true = use SSL
      * @valid false = do not use SSL
      * @return true if SSL should be used when communicating with the vCenter
      */
-    @XmlElement(name="use_ssl")
+    @XmlElement(name = "use_ssl")
     public Boolean getUseSsl() {
         return useSsl;
     }
@@ -111,12 +106,13 @@ public class VcenterRestRep extends ComputeSystemRestRep {
     public void setUseSsl(Boolean useSsl) {
         this.useSsl = useSsl;
     }
-    
+
     /**
      * The operating system version of the vcenter.
+     * 
      * @valid none
      */
-    @XmlElement(name="os_version")
+    @XmlElement(name = "os_version")
     public String getOsVersion() {
         return osVersion;
     }
@@ -124,6 +120,23 @@ public class VcenterRestRep extends ComputeSystemRestRep {
     public void setOsVersion(String osVersion) {
         this.osVersion = osVersion;
     }
-    
-}
 
+    /**
+     * A flag indicating whether to cascade the vCenter tenancy to all its
+     * datacenters and its clusters and hosts or not. If cascaded vCenter
+     * can belong to only one tenant.
+     *
+     * @valid true = cascades the vCenter tenancy to the datacenters
+     *                  and its hosts and clusters.
+     * @valid false = does not cascade.
+     */
+    @XmlElement(name = "cascade_tenancy")
+    public Boolean getCascadeTenancy() {
+        return cascadeTenancy;
+    }
+
+    public void setCascadeTenancy(Boolean cascadeTenancy) {
+        this.cascadeTenancy = cascadeTenancy;
+    }
+
+}

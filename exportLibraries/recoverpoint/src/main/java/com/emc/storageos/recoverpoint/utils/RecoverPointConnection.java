@@ -1,17 +1,7 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
  */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- **/
 package com.emc.storageos.recoverpoint.utils;
 
 import java.io.File;
@@ -52,62 +42,61 @@ import com.emc.fapiclient.ws.FunctionalAPIImplService;
 
 public class RecoverPointConnection {
 
-	private static final String FAPI_URL = "http://impl.version4_1.fapi.emc.com/";
-	private static final String FAPI_SERVICENAME = "FunctionalAPIImplService";
-	
-	private static final String SYSPROPS_HTTP_MAX_REDIRECTS = "http.maxRedirects";
-	private static final String NEW_MAX_REDIRECTS = "2";
-	
+    private static final String FAPI_URL = "http://impl.version4_1.fapi.emc.com/";
+    private static final String FAPI_SERVICENAME = "FunctionalAPIImplService";
+
+    private static final String SYSPROPS_HTTP_MAX_REDIRECTS = "http.maxRedirects";
+    private static final String NEW_MAX_REDIRECTS = "2";
+
     private static Logger logger = LoggerFactory.getLogger(RecoverPointConnection.class);
-   
 
     /**
      * Connect to RP and return a handle that can be used for FAPI calls
-     *
+     * 
      * @param endpoint - Address to connect to
      * @param username - Username for credentials
      * @param password - Password for credentials
-     *
+     * 
      * @return FunctionalAPIImpl - A handle for FAPI access
-     *
+     * 
      **/
     public FunctionalAPIImpl connect(URI endpoint, String username, String password) {
-         
+
         try {
             ignoreCertifications();
             // interceptCertificates();
         } catch (Exception e) {
             // so what?
         }
-        
+
         String destAddress = endpoint.toASCIIString();
-        
+
         try {
-            URL baseUrl = FunctionalAPIImplService.class.getResource(".");            
+            URL baseUrl = FunctionalAPIImplService.class.getResource(".");
             URL url = new URL(baseUrl, destAddress);
-            
+
             final String finalUser = username;
             final String finalPassword = password;
-       
-            // Modify the System Property for Max Redirects to a smaller number so we don't hammer 
+
+            // Modify the System Property for Max Redirects to a smaller number so we don't hammer
             // the device over and over unnecessarily with bad credentials (if they're bad) as this
-            // takes a long time. Default is 20 redirects. 
+            // takes a long time. Default is 20 redirects.
             // However we will save the old redirect value and restore it after we're done.
             String oldMaxRedirectsValue = null;
             try {
-            	oldMaxRedirectsValue = System.getProperty(SYSPROPS_HTTP_MAX_REDIRECTS);
+                oldMaxRedirectsValue = System.getProperty(SYSPROPS_HTTP_MAX_REDIRECTS);
             } catch (NullPointerException npe) {
-        		logger.warn("The System property " + SYSPROPS_HTTP_MAX_REDIRECTS + " does not already exist for some reason.");
-        	}
-            
+                logger.warn("The System property " + SYSPROPS_HTTP_MAX_REDIRECTS + " does not already exist for some reason.");
+            }
+
             // Set the Property for http.maxRedirects to 2 to prevent unnecessary retries
-            System.setProperty(SYSPROPS_HTTP_MAX_REDIRECTS, NEW_MAX_REDIRECTS);   
-            
+            System.setProperty(SYSPROPS_HTTP_MAX_REDIRECTS, NEW_MAX_REDIRECTS);
+
             // If we're creating a new connection, we want to clear the cache as it may be holding
             // onto a previously valid connection.
             AuthCacheValue.setAuthCache(new AuthCacheImpl());
             Authenticator.setDefault(null);
-            
+
             // Create a PasswordAuthentication so when the request is asked via HTTP for authentication,
             // the below will be automatically returned. This is set here, but invoked behind the scenes.
             Authenticator.setDefault(new Authenticator() {
@@ -116,37 +105,38 @@ public class RecoverPointConnection {
                     return new PasswordAuthentication(finalUser, finalPassword.toCharArray());
                 }
             });
-            
-            logger.info("Attempting to connect to service " + FAPI_SERVICENAME + " at url " + FAPI_URL + " using auth credentials for: " + finalUser);
-            
+
+            logger.info("Attempting to connect to service " + FAPI_SERVICENAME + " at url " + FAPI_URL + " using auth credentials for: "
+                    + finalUser);
+
             // Connect to the service
             FunctionalAPIImplService service = new FunctionalAPIImplService(url, new QName(FAPI_URL, FAPI_SERVICENAME));
-            
-            FunctionalAPIImpl impl = service.getFunctionalAPIImplPort();            
+
+            FunctionalAPIImpl impl = service.getFunctionalAPIImplPort();
             BindingProvider bp = (BindingProvider) impl;
-            
+
             Map<String, Object> map = bp.getRequestContext();
             logger.info("RecoverPoint service: Dest: " + destAddress + ", user: " + username);
             map.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, destAddress);
             map.put(BindingProvider.USERNAME_PROPERTY, username);
             map.put(BindingProvider.PASSWORD_PROPERTY, password);
-            
+
             // Reset the System Property for http.maxRedirects, but only if an existing value was present
             if (oldMaxRedirectsValue != null && !oldMaxRedirectsValue.isEmpty())
             {
-            	System.setProperty(SYSPROPS_HTTP_MAX_REDIRECTS, oldMaxRedirectsValue);
+                System.setProperty(SYSPROPS_HTTP_MAX_REDIRECTS, oldMaxRedirectsValue);
             }
-            
+
             logger.info("Connected.");
-            return impl;           
-         } catch (MalformedURLException e) {
-                logger.error("Failed to create URL for the wsdl Location: " + destAddress);
-                logger.error(e.getMessage());
-                return null;
-         }
+            return impl;
+        } catch (MalformedURLException e) {
+            logger.error("Failed to create URL for the wsdl Location: " + destAddress);
+            logger.error(e.getMessage());
+            return null;
+        }
     }
 
-        // Generate a trust manager
+    // Generate a trust manager
     /**
      * @return
      */
@@ -159,7 +149,8 @@ public class RecoverPointConnection {
             }
 
             @Override
-            public void checkClientTrusted(java.security.cert.X509Certificate[] arg0, String arg1) throws java.security.cert.CertificateException {
+            public void checkClientTrusted(java.security.cert.X509Certificate[] arg0, String arg1)
+                    throws java.security.cert.CertificateException {
                 // TODO Auto-generated method stub
 
             }
@@ -323,7 +314,7 @@ public class RecoverPointConnection {
 
     /**
      * Sets the https connection to trust all certifications.
-     *
+     * 
      * @throws KeyManagementException
      * @throws NoSuchAlgorithmException
      */
@@ -385,7 +376,8 @@ public class RecoverPointConnection {
         }
 
         @Override
-        public void checkServerTrusted(java.security.cert.X509Certificate[] arg0, String arg1) throws java.security.cert.CertificateException {
+        public void checkServerTrusted(java.security.cert.X509Certificate[] arg0, String arg1)
+                throws java.security.cert.CertificateException {
             // TODO Auto-generated method stub
 
         }
@@ -397,7 +389,8 @@ public class RecoverPointConnection {
         }
 
         @Override
-        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws java.security.cert.CertificateException {
+        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType)
+                throws java.security.cert.CertificateException {
             // TODO Auto-generated method stub
 
         }

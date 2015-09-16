@@ -1,0 +1,540 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import bourne as _bourne
+from bourne import Bourne
+import __builtin__
+
+URI_SERVICES_BASE               = ''
+URI_BLOCK_VPOOLS                   = URI_SERVICES_BASE   + '/block/vpools/{0}/storage-pools'
+URI_FILE_VPOOLS                    = URI_SERVICES_BASE   + '/file/vpools/{0}/storage-pools'
+
+#----------------------------------------------------------------------
+# cos cli functions
+#----------------------------------------------------------------------
+
+def cos_list(args):
+    bourne.connect(args.ip)
+    cos_display_hdr()
+    res = bourne.cos_list(args.type)
+    for r in res:
+        cos = bourne.cos_show(args.type, r['id'])
+        cos_display(cos)
+
+def cos_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.cos_query(args.type, args.name)
+    cos = bourne.cos_show(args.type, uri)
+    bourne.pretty_print_json(cos)
+
+def cos_query(args):
+    bourne.connect(args.ip)
+    print bourne.cos_query(args.type, args.name)
+
+def cos_create(args):
+    bourne.connect(args.ip)
+    file_cos_uri = None
+    haNhUri = None
+    haCosUri = None
+    mirrorCosUri = None
+    print "VirtualPool ARGS = : ", args
+    if (args.maxpaths):
+        args.numpaths=args.maxpaths
+    if(args.file_cos):
+        file_cos_uri = bourne.cos_query("file", args.file_cos)
+    if (args.haNeighborhood):
+        haNhUri = bourne.neighborhood_query(args.haNeighborhood)
+    if (args.haCos):
+        haCosUri = bourne.cos_query(args.type, args.haCos)
+    if (args.mirror_cos):
+        mirrorCosUri = bourne.cos_query(args.type, args.mirror_cos)
+    
+    cos = bourne.cos_create(args.type, args.name, args.description, args.useMatchedPools,
+                            args.protocols, args.numpaths, args.minpaths, args.pathsperinitiator, args.systemtype,
+                            args.highavailability, haNhUri,
+                            haCosUri, args.activeProtectionAtHASite, args.metropoint, file_cos_uri, args.provisionType,
+                            mirrorCosUri, args.neighborhoods, args.expandable,
+                            args.sourceJournalSize, args.journalVarray, args.journalVpool, 
+			    args.standbyJournalVarray, args.standbyJournalVpool, args.rp_copy_mode, args.rp_rpo_value, args.rp_rpo_type,
+                            args.protectionCoS, args.multiVolumeConsistency,
+                            args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
+                            args.long_term_retention, args.system_type, args.srdf, args.auto_tiering_policy_name, 
+                            args.host_io_limit_bandwidth, args.host_io_limit_iops, args.auto_cross_connect)
+
+    
+    print cos
+
+def cos_match(args):
+    bourne.connect(args.ip)
+    file_cos_uri = None
+    haNhUri = None
+    haCosUri = None
+    mirrorCosUri = None
+    if(args.file_cos):
+        file_cos_uri = bourne.cos_query("file", args.file_cos)
+    if (args.haNeighborhood):
+        haNhUri = bourne.neighborhood_query(args.haNeighborhood)
+    if (args.haCos):
+        haCosUri = bourne.cos_query(args.type, args.haCos)
+    if (args.mirror_cos):
+        mirrorCosUri = bourne.cos_query(args.type, args.mirror_cos)
+    
+    cos = bourne.cos_match(args.type, args.useMatchedPools,
+                            args.protocols, args.numpaths, args.highavailability, haNhUri,
+                            haCosUri, args.activeProtectionAtHASite, args.metropoint, file_cos_uri, args.provisionType,
+                            mirrorCosUri, args.neighborhoods, args.expandable,
+                            args.sourceJournalSize, args.journalVarray, args.journalVpool, 
+			    args.standbyJournalVarray, args.standbyJournalVpool, args.rp_copy_mode, args.rp_rpo_value, args.rp_rpo_type,
+			    args.protectionCoS, args.multiVolumeConsistency,
+                            args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
+                            args.system_type, args.srdf)
+
+    
+    bourne.pretty_print_json(cos)
+    
+def cos_update(args):
+    bourne.connect(args.ip)
+    pooladd = []
+    poolrem = []
+    cos_uri = bourne.cos_query(args.type, args.name)
+    cosobj = bourne.cos_show(args.type, cos_uri)
+    if (args.storage):
+        uri  = bourne.storagedevice_querybynativeguid(args.storage)
+        array_pools = bourne.storagepool_list(uri)
+        matched_pools = cosobj['matched_storage_pools']
+        
+        # Create a list of URIs for array and matched pools.
+        array_pool_uris = []
+        for it in array_pools:
+            array_pool_uris.append(it['id'])
+
+        matched_pool_uris = []
+        for it in matched_pools:
+            matched_pool_uris.append(it['id'])
+
+        # Filter the pool, so that only those array pools that match the CoS are in the
+        # update list
+        pools = []
+        for it in array_pool_uris:
+            if (it in matched_pool_uris):
+                pooladd.append(it)
+
+        if not pooladd:
+            print "Failed: No pools matched cos", str(args.name), "on array", str(args.storage)
+            return
+
+    if (args.remove_storage):
+        uri  = bourne.storagedevice_querybynativeguid(args.remove_storage)
+        array_pools = bourne.storagepool_list(uri)
+        matched_pools = cosobj['matched_storage_pools']
+
+        # Create a list of URIs for array and matched pools.
+        array_pool_uris = []
+        for it in array_pools:
+            array_pool_uris.append(it['id'])
+
+        matched_pool_uris = []
+        for it in matched_pools:
+            matched_pool_uris.append(it['id'])
+
+        # Filter the pool, so that only those array pools that match the CoS are in the
+        # update list
+        pools = []
+        for it in array_pool_uris:
+            if (it in matched_pool_uris):
+                poolrem.append(it)
+
+        if not poolrem:
+            print "Failed: No pools matched cos", str(args.name), "on array", str(args.storage)
+            return
+
+    if (args.name):
+        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, args.max_snapshots, args.max_mirrors, args.expandable, args.use_matched,args.host_io_limit_bandwidth,args.host_io_limit_iops)
+        if 'code' in cos:
+            print "FAILED: ", str(cos)
+        else:
+            print "Successfully updated VirtualPool"
+
+def cos_update_pools(args):
+    bourne.connect(args.ip)
+    pooladd = []
+    poolrem = []
+    cos_uri = bourne.cos_query(args.type, args.name)
+    cosobj = bourne.cos_show(args.type, cos_uri)
+    matched_pools = cosobj['matched_storage_pools']
+
+    matched_pool_uris = []
+    for it in matched_pools:
+        matched_pool_uris.append(it['id'])
+
+    # Filter the pool, so that only those array pools that match the CoS are in the
+    # update list
+    pools = []
+    for it in args.pools.split(','):
+        storagepool_uri = bourne.storagepool_query(it);
+        if (storagepool_uri in matched_pool_uris):
+            pooladd.append(storagepool_uri)
+        else:
+            raise Exception(str(it) + " pool is not in the matching pools list for the CoS.") 
+
+    if (args.name):
+        cos = bourne.cos_update(pooladd, poolrem, args.type, cos_uri, None, None, None, None, None, None)
+    
+
+def cos_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.cos_query(args.type, args.name)
+    res = bourne.cos_delete(args.type, uri)
+    print res
+    
+def cos_allow(args):
+    bourne.connect(args.ip)
+    uri = bourne.cos_query(args.type, args.name)
+    res = bourne.cos_add_acl(uri, args.type, args.tenant)
+    print res
+
+def cos_getpools(args):
+    bourne.connect(args.ip)
+    uri = bourne.cos_query(args.type, args.name)
+   # print args.name
+   # print uri
+    if(args.type == 'block'):
+        blockpools = bourne.list_poolsbycos(uri, URI_BLOCK_VPOOLS)
+        print blockpools
+    if(args.type =='file'):
+        filepools = bourne.list_poolsbycos(uri, URI_FILE_VPOOLS)
+        print filepools
+    
+def cos_errorhandling(args):
+    bourne.connect(args.ip)
+    print "create VirtualPool with invalid type"
+    cos_create_invalid_type()
+    print "create VirtualPool with a neighborhood that does not exist"
+    cos_create_notfound_neighborhood()
+    print "get a VirtualPool that does not exist"
+    cos_show_notfound()
+    print "deactivate a VirtualPool that does not exist"
+    cos_deactivate_notfound()
+
+def cos_show_notfound():
+    cos_uri = 'urn:storageos:VirtualPool:11111111-1111-1111-1111-111111111111:vdc1'
+    return bourne.api_check_error('GET', _bourne.URI_VPOOL_INSTANCE.format("file", cos_uri), 404, 2000, "Unable to find entity specified in URL with the given id urn:storageos:VirtualPool:11111111-1111-1111-1111-111111111111:vdc1")    
+
+def cos_deactivate_notfound():
+    cos_uri = 'urn:storageos:VirtualPool:11111111-1111-1111-1111-111111111111:vdc1'
+    return bourne.api_check_error('POST', _bourne.URI_VPOOL_DEACTIVATE.format("file", cos_uri), 404, 2000, "Unable to find entity specified in URL with the given id urn:storageos:VirtualPool:11111111-1111-1111-1111-111111111111:vdc1")    
+    
+def cos_create_invalid_type():
+    scheme="https://"
+    port=_bourne.PORT    
+    
+    if _bourne.USE_SSL == '0':
+        scheme = 'http://'
+        port   = '8080'
+
+    return cos_errorhandling_create(404, 2000, "null for uri: %s%s:%s/invalidType/vpools" % (scheme, str(args.ip), port), "invalidType")
+
+def cos_create_notfound_neighborhood():
+    neighborhood_uri = 'urn:storageos:VirtualArray:11111111-1111-1111-1111-111111111111:vdc1'
+
+    return cos_errorhandling_create(400, 1005, "Required parameter name was missing or empty", "file", neighborhood=neighborhood_uri, provisionType='Thin', protocols=['FC'])
+
+def cos_errorhandling_create(status_code, service_code, message, costype=None, name=None, description=None, useMatchedPools=None, protocols=None, numpaths=None, highavailability=None, file_cos=None, provisionType=None, neighborhood=None):
+    #print 'debug: status_code: '+ str(status_code) + ', service_code:' + str(service_code) + ', message: '+ message + ', costype: '+ costype
+    #copied from bourne.cos_create
+    parms = dict()
+
+    if (name):
+        parms['name'] = name
+    if (description):
+        parms['description'] = description
+    if (useMatchedPools):
+        parms['use_matched_pools'] = useMatchedPools
+    if (protocols):
+        parms['protocols'] = protocols
+
+    if (numpaths):
+        parms['num_paths'] = numpaths
+
+    if (highavailability):
+        parms['high_availability'] = highavailability
+
+    if (provisionType):
+        parms['provisioning_type'] = provisionType
+
+    nhs = __builtin__.list()
+    if(neighborhood):
+        nhs.append(neighborhood)
+        parms['varrays'] = nhs
+
+    return bourne.api_check_error('POST', _bourne.URI_VPOOLS.format(costype), status_code, service_code, message, parms)
+
+#
+# display cos in list form
+#
+cos_display_fmt = '{0:16s} {1:8s} {2:60s} {3:s}'
+
+def cos_display_hdr():
+    print cos_display_fmt.format('name', 'active', 'id', 'description')
+
+def cos_display(cos):
+    try:
+        descr = cos['description']
+	print cos_display_fmt.format(cos['name'], 'NO' if cos['inactive'] else 'YES', cos['id'], descr)
+    except:
+        descr="no description"
+	print cos_display_fmt.format(cos['name'], 'NO' if cos['inactive'] else 'YES', cos['id'], "No Description")
+
+def cos_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.cos_query(args.type, args.name)
+
+    if (args.type == "block"):
+        args.resource_type = "block_vpool"
+    elif (args.type == "file"):
+        args.resource_type = "file_vpool"
+    else:
+        raise 
+
+    print 'Tagging cos ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def cos_search(args):
+    bourne.connect(args.ip)
+
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching cos with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# cos <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | query | list | allow | errorhandling)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# cos create label
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('type',	help = 'type of cos, {file | block | object}, default=file', default='file')
+create.add_argument('name',	help = 'name of cos')
+create.add_argument('useMatchedPools', help = 'true - uses matchedPools else assigned pools')
+create.add_argument('--description',   help = 'Description of cos')
+create.add_argument('--protocols',     help = 'Storage protocols supported by this CoS', nargs='*')
+create.add_argument('--numpaths',      help = 'Maximum number of paths created for block storage')
+create.add_argument('--maxpaths',      help = 'Maximum number of paths created for block storage')
+create.add_argument('--minpaths',      help = 'Minimum number of paths created for block storage')
+create.add_argument('--pathsperinitiator',      help = 'Desired paths per initiator to be created for block Storage')
+create.add_argument('--file_cos',   help = 'file equivalent cos for object storage')
+create.add_argument('--highavailability',   help = 'high availability')
+create.add_argument('--system_type',   help = 'system type such as vmax or vnx')
+create.add_argument('--haNeighborhood', help = 'high availability neighborhood')
+create.add_argument('--haCos', help = 'high availability CoS')
+create.add_argument('--activeProtectionAtHASite', help = 'Use the haNeighborhood as the active RP protected site')
+create.add_argument('--metropoint', help = 'Enable MetroPoint')
+create.add_argument('--provisionType', help='Thin or Thick')
+create.add_argument('--mirror_cos',   help = 'protection mirror cos')
+create.add_argument('--neighborhoods',   help = 'Neighborhoods that this cos is part of', nargs='*')
+create.add_argument('--expandable',   help = 'Guarantee non-disruptive expansion')
+create.add_argument('--sourceJournalSize', help = 'Journal size for source copy: #.#x, #GB, or min allowed')
+create.add_argument('--journalVarray', help = 'Virtual Array of the source (primary) RP volume')
+create.add_argument('--journalVpool', help = 'Virtual Pool of the source (primary) RP volume')
+create.add_argument('--standbyJournalVarray', help = 'Virtual Array of the source (standby/secondary) RP volume')
+create.add_argument('--standbyJournalVpool', help = 'Virtual Pool of the source (standby/secondary) RP volume')
+create.add_argument('--rp_copy_mode', help = 'RP Copy Mode: asynchronous or synchronous allowed')
+create.add_argument('--rp_rpo_value', help = 'RP RPO Value')
+create.add_argument('--rp_rpo_type', help = 'RP RPO Type: bytes-TB, seconds-days, or writes')
+create.add_argument('--protectionCoS', help = 'Protection CoS per neighborhood "nh1:cos1:jrnalSize1,nh2:cos2:jrnalSize2"')
+create.add_argument('--srdf', help = 'SRDF parameters per neighborhood "varray1:varray1:policy"')
+create.add_argument('--multiVolumeConsistency', dest='multiVolumeConsistency',action='store_true')
+create.add_argument('--max_snapshots', help = 'Maximum number of native snapshots.  -1=disabled, 0=infinite (default)')
+create.add_argument('--max_mirrors', help = 'Maximum number of native continuous copies.  -1=disabled, 0=infinite (default)')
+create.add_argument('--thin_volume_preallocation_percentage', help = 'Thin volume preallocation percentage.')
+create.add_argument('--long_term_retention', help = 'Virtual pool attribute to be set to true for archiving and backup')
+create.add_argument('--systemtype', help = 'System type')
+create.add_argument('--auto_tiering_policy_name', help = 'AutoTiering Policy Name can be specified, only if system_type is specified.')
+create.add_argument('--host_io_limit_bandwidth', help = 'VMAX host io limit bandwidth in Mb/second')
+create.add_argument('--host_io_limit_iops', help = 'VMAX host io limit IOPs')
+create.add_argument('--auto_cross_connect', help='Enable auto cross connect export')
+create.set_defaults(multiVolumeConsistency=False)
+create.set_defaults(max_snapshots=-1)
+create.set_defaults(max_mirrors=0)
+
+# cos match label
+match = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+match.add_argument('type',	help = 'type of cos, {file | block | object}, default=file', default='file')
+match.add_argument('useMatchedPools', help = 'true - uses matchedPools else assigned pools')
+match.add_argument('--protocols',     help = 'Storage protocols supported by this CoS', nargs='*')
+match.add_argument('--numpaths',      help = 'number of paths for block storage: min,max,default')
+match.add_argument('--file_cos',   help = 'file equivalent cos for object storage')
+match.add_argument('--highavailability',   help = 'high availability')
+match.add_argument('--system_type',   help = 'system type such as vmax or vnx')
+match.add_argument('--haNeighborhood', help = 'high availability neighborhood')
+match.add_argument('--haCos', help = 'high availability CoS')
+match.add_argument('--activeProtectionAtHASite', help = 'Use the haNeighborhood as the active RP protected site')
+match.add_argument('--metropoint', help = 'Enable MetroPoint')
+match.add_argument('--provisionType', help='Thin or Thick')
+match.add_argument('--mirror_cos',   help = 'protection mirror cos')
+match.add_argument('--neighborhoods',   help = 'Neighborhoods that this cos is part of', nargs='*')
+match.add_argument('--expandable',   help = 'Guarantee non-disruptive expansion')
+match.add_argument('--sourceJournalSize', help = 'Journal size for source copy: #.#x, #GB, or min allowed')
+match.add_argument('--journalVarray', help = 'Virtual Array of the source (primary) RP volume')
+match.add_argument('--journalVpool', help = 'Virtual Pool of the source (primary) RP volume')
+match.add_argument('--standbyJournalVarray', help = 'Virtual Array of the source (standby/secondary) RP volume')
+match.add_argument('--standbyJournalVpool', help = 'Virtual Pool of the source (standby/secondary) RP volume')
+match.add_argument('--rp_copy_mode', help = 'RP Copy Mode: asynchronous or synchronous allowed')
+match.add_argument('--rp_rpo_value', help = 'RP RPO Value')
+match.add_argument('--rp_rpo_type', help = 'RP RPO Type: bytes-TB, seconds-days, or writes')
+match.add_argument('--protectionCoS', help = 'Protection CoS per neighborhood "nh1:cos1:jrnalSize1,nh2:cos2:jrnalSize2"')
+match.add_argument('--srdf', help = 'SRDF parameters per neighborhood "varray1:varray1:policy"')
+match.add_argument('--multiVolumeConsistency', dest='multiVolumeConsistency',action='store_true')
+match.add_argument('--max_snapshots', help = 'Maximum number of native snapshots.  -1=disabled, 0=infinite (default)')
+match.add_argument('--max_mirrors', help = 'Maximum number of native continuous copies.  -1=disabled, 0=infinite (default)')
+match.add_argument('--thin_volume_preallocation_percentage', help = 'Thin volume preallocation percentage.')
+match.set_defaults(multiVolumeConsistency=False)
+match.set_defaults(max_snapshots=-1)
+match.set_defaults(max_mirrors=0)
+
+# cos to pool assignment for all matching pools on an array
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('type',  help = 'type of cos, {file | block | object}, default=file', default='file')
+update.add_argument('name',	help = 'name of cos to be updated')
+update.add_argument('--storage',  help = 'Name of storage device')
+update.add_argument('--remove_storage',  help = 'Name of storage device to remove')
+update.add_argument('--max_snapshots', help = 'Maximum number of native snapshots')
+update.add_argument('--max_mirrors', help = 'Maximum number of native continuous copies')
+update.add_argument('--expandable', help = 'Expandable')
+update.add_argument('--use_matched', help = 'Use matched pools')
+update.add_argument('--host_io_limit_bandwidth', help = 'VMAX host io limit bandwidth in Mb/second.  To reset, use value of 0')
+update.add_argument('--host_io_limit_iops', help = 'VMAX host io limit IOPs.  To reset, use value of 0')
+
+# cos to pool assignment for any pools
+update_pools = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update_pools.add_argument('type',   help = 'type of cos, {file | block | object}, default=file', default='file')
+update_pools.add_argument('name',   help = 'name of cos to be deleted')
+update_pools.add_argument('pools',  help = 'Comma delimited list of storage pool URIs')
+
+# cos delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of cos to be deleted')
+delete.add_argument('type',	help = 'type of cos, {file | block | object}')
+
+# cos delete uri
+listpools = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+listpools.add_argument('name',     help = 'name of cos to be deleted')
+listpools.add_argument('type',     help = 'type of cos, {file | block | object}')
+
+
+# cos show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of cos')
+show.add_argument('type',	help = 'type of cos, {file | block | object}')
+
+# cos query label
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'name of cos')
+query.add_argument('type',	help = 'type of cos, {file | block | object}')
+
+# cos list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('type',	help = 'type of cos, {file | block | object}')
+
+# cos allow name type tenant
+allow = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+allow.add_argument('name',	help = 'name of cos')
+allow.add_argument('type',	help = 'type of cos, {file | block | object}')
+allow.add_argument('tenant',    help = 'tenant to add use access for')
+
+# tag 
+resource_type="cos"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('type',     metavar = 'type',   help = 'cos type, {file|block|object}')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+# cos errorhandling label
+errorhandling = argparse.ArgumentParser(parents = [create], conflict_handler='resolve')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        cos_create(args)
+    elif (cmd == "match"):
+        args = match.parse_args()
+        cos_match(args)
+    elif (cmd == "update"):
+        args = update.parse_args()
+        cos_update(args)
+    elif (cmd == "update_pools"):
+        args = update_pools.parse_args()
+        cos_update_pools(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        cos_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        cos_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        cos_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        cos_list(args)
+    elif (cmd == "allow"):
+        args = allow.parse_args()
+        cos_allow(args)
+    elif (cmd == "listPools"):
+        args = listpools.parse_args()
+        cos_getpools(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        cos_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        cos_search(args)
+    elif (cmd == "errorhandling"):
+        args = errorhandling.parse_args()
+        cos_errorhandling(args)
+    else:
+        parser.print_help()
+except:
+    raise
+

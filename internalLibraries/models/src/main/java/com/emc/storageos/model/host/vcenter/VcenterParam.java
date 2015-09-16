@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host.vcenter;
@@ -21,21 +21,31 @@ public abstract class VcenterParam {
     private String password;
     private Boolean useSsl;
     private String osVersion;
-    
-    public VcenterParam() {}
-    
+    private Boolean cascadeTenancy;
+
+    public VcenterParam() {
+    }
+
     public VcenterParam(String name, Integer portNumber, String userName,
             String password, Boolean useSsl, String osVersion) {
+        this(name, portNumber, userName, password, useSsl, osVersion, Boolean.FALSE);
+    }
+
+    public VcenterParam(String name, Integer portNumber, String userName,
+                        String password, Boolean useSsl, String osVersion,
+                        Boolean cascadeTenancy) {
         this.name = name;
         this.portNumber = portNumber;
         this.userName = userName;
         this.password = password;
         this.useSsl = useSsl;
         this.osVersion = osVersion;
+        this.cascadeTenancy = cascadeTenancy;
     }
 
-    /** 
-     * The user label for this vCenter 
+    /**
+     * The user label for this vCenter
+     * 
      * @valid none
      */
     @XmlElement()
@@ -46,13 +56,14 @@ public abstract class VcenterParam {
     public void setName(String name) {
         this.name = name;
     }
-    
-    /** 
-     * The integer port number of the vCenter management interface. 
+
+    /**
+     * The integer port number of the vCenter management interface.
+     * 
      * @Range (min=1, max= 65535)
      */
     @XmlElement(name = "port_number")
-    @Range(min=1,max=65535)
+    @Range(min = 1, max = 65535)
     @JsonProperty("port_number")
     public Integer getPortNumber() {
         return portNumber;
@@ -62,8 +73,9 @@ public abstract class VcenterParam {
         this.portNumber = portNumber;
     }
 
-    /** 
-     * The user credential used to login to the vCenter. 
+    /**
+     * The user credential used to login to the vCenter.
+     * 
      * @valid none
      */
     @XmlElement(name = "user_name")
@@ -76,8 +88,9 @@ public abstract class VcenterParam {
         this.userName = userName;
     }
 
-    /** 
-     * The password credential used to login to the vCenter. 
+    /**
+     * The password credential used to login to the vCenter.
+     * 
      * @valid none
      */
     @XmlElement()
@@ -89,8 +102,9 @@ public abstract class VcenterParam {
         this.password = password;
     }
 
-    /** 
-     * A flag indicating whether SSL should be used to communicate with the vCenter. 
+    /**
+     * A flag indicating whether SSL should be used to communicate with the vCenter.
+     * 
      * @valid true = use SSL
      * @valid false = do not use SSL
      */
@@ -104,8 +118,9 @@ public abstract class VcenterParam {
         this.useSsl = useSsl;
     }
 
-    /** 
-     * The operating system version of the vCenter. 
+    /**
+     * The operating system version of the vCenter.
+     * 
      * @valid none
      */
     @XmlElement(name = "os_version")
@@ -120,4 +135,23 @@ public abstract class VcenterParam {
 
     /** Gets the vCenter IP address */
     public abstract String findIpAddress();
+
+    /**
+     * A flag indicating whether to cascade the vCenter tenancy to all its
+     * datacenters and its clusters and hosts or not. If cascaded vCenter
+     * can belong to only one tenant.
+     *
+     * @valid true = cascades the vCenter tenancy to the datacenters
+     *                  and its hosts and clusters.
+     * @valid false = does not cascade.
+     */
+    @XmlElement(name = "cascade_tenancy")
+    @JsonProperty("cascade_tenancy")
+    public Boolean getCascadeTenancy() {
+        return cascadeTenancy;
+    }
+
+    public void setCascadeTenancy(Boolean cascadeTenancy) {
+        this.cascadeTenancy = cascadeTenancy;
+    }
 }

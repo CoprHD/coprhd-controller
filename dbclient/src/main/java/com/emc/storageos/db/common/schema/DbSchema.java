@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common.schema;
@@ -62,24 +52,24 @@ public class DbSchema implements SchemaObject {
         runtimeType.setCfClass(clazz);
 
         this.name = clazz.getSimpleName();
-        Cf cfAnnotation = (Cf)clazz.getAnnotation(Cf.class);
+        Cf cfAnnotation = (Cf) clazz.getAnnotation(Cf.class);
         if (cfAnnotation != null) {
             this.name = cfAnnotation.value();
         }
 
         BeanInfo bInfo;
-        try{
+        try {
             bInfo = Introspector.getBeanInfo(clazz);
         } catch (IntrospectionException ex) {
             log.error("Failed to get bean info:", ex);
             throw new IllegalStateException(ex.getMessage());
         }
-        
+
         PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
         for (int i = 0; i < pds.length; i++) {
             PropertyDescriptor pd = pds[i];
-            if(!DataObjectType.isColumnField(bInfo.getBeanDescriptor().getBeanClass().getName(), pd)){
-            	continue;
+            if (!DataObjectType.isColumnField(bInfo.getBeanDescriptor().getBeanClass().getName(), pd)) {
+                continue;
             }
             pd.setShortDescription(this.name + "." + pd.getShortDescription());
             this.fields.add(new FieldInfo(runtimeType, pd, this, scannerInterceptor));
@@ -90,10 +80,11 @@ public class DbSchema implements SchemaObject {
 
     @XmlAttribute
     public String getType() {
-        if (runtimeType == null)
+        if (runtimeType == null) {
             return type;
+        }
 
-        return runtimeType.getCfClass().getCanonicalName(); 
+        return runtimeType.getCfClass().getCanonicalName();
     }
 
     public void setType(String type) {
@@ -119,8 +110,8 @@ public class DbSchema implements SchemaObject {
         this.annotations = annotations;
     }
 
-    @XmlElementWrapper(name="fields")
-    @XmlElement(name="field")
+    @XmlElementWrapper(name = "fields")
+    @XmlElement(name = "field")
     public List<FieldInfo> getFields() {
         return fields;
     }
@@ -131,16 +122,19 @@ public class DbSchema implements SchemaObject {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof DbSchema)) 
+        if (!(o instanceof DbSchema)) {
             return false;
+        }
 
-        DbSchema schema = (DbSchema)o;
+        DbSchema schema = (DbSchema) o;
 
-        if (!schema.getName().equals(getName()))
+        if (!schema.getName().equals(getName())) {
             return false;
+        }
 
-        if (!annotations.equals(schema.getAnnotations()))
+        if (!annotations.equals(schema.getAnnotations())) {
             return false;
+        }
 
         return Objects.equal(getFields(), schema.getFields());
     }
@@ -154,31 +148,31 @@ public class DbSchema implements SchemaObject {
     public String describe() {
         return "column family: " + name;
     }
-    
-    public boolean hasDuplicateField(){
-    	Set<String> uniqueFields = new HashSet<String>();
-    	
-    	for(FieldInfo fieldInfo : this.fields){
-    		if(uniqueFields.contains(fieldInfo.getName())){
-    			return true;
-    		}else{
-    			uniqueFields.add(fieldInfo.getName());
-    		}
-    	}
-    	return false;
+
+    public boolean hasDuplicateField() {
+        Set<String> uniqueFields = new HashSet<String>();
+
+        for (FieldInfo fieldInfo : this.fields) {
+            if (uniqueFields.contains(fieldInfo.getName())) {
+                return true;
+            } else {
+                uniqueFields.add(fieldInfo.getName());
+            }
+        }
+        return false;
     }
-    
-    public List<FieldInfo> getDuplicateFields(){
-    	Set<String> uniqueFields = new HashSet<String>();
-    	List<FieldInfo> duplicateFields = new ArrayList<FieldInfo>();
-    	
-    	for(FieldInfo fieldInfo : this.fields){
-    		if(uniqueFields.contains(fieldInfo.getName())){
-    			duplicateFields.add(fieldInfo);
-    		}else{
-    			uniqueFields.add(fieldInfo.getName());
-    		}
-    	}
-    	return duplicateFields;
+
+    public List<FieldInfo> getDuplicateFields() {
+        Set<String> uniqueFields = new HashSet<String>();
+        List<FieldInfo> duplicateFields = new ArrayList<FieldInfo>();
+
+        for (FieldInfo fieldInfo : this.fields) {
+            if (uniqueFields.contains(fieldInfo.getName())) {
+                duplicateFields.add(fieldInfo);
+            } else {
+                uniqueFields.add(fieldInfo.getName());
+            }
+        }
+        return duplicateFields;
     }
 }

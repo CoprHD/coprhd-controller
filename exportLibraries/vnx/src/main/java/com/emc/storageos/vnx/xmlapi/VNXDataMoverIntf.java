@@ -1,29 +1,19 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnx.xmlapi;
 
 public class VNXDataMoverIntf extends VNXBaseClass {
-    
+
     private String _name;
     private String _ipAddress;
     private String _dataMoverId;
 
     public VNXDataMoverIntf(String name, String ipAddr, String id) {
-        _name        = name;
-        _ipAddress   = ipAddr;
+        _name = name;
+        _ipAddress = ipAddr;
         _dataMoverId = id;
     }
 
@@ -51,7 +41,7 @@ public class VNXDataMoverIntf extends VNXBaseClass {
         _dataMoverId = id;
     }
 
-    public static String discoverDataMovers(){
+    public static String discoverDataMovers() {
         String xml = requestHeader +
                 "\t<Query>\n" +
                 "\t<MoverQueryParams>\n" +
@@ -61,10 +51,12 @@ public class VNXDataMoverIntf extends VNXBaseClass {
                 requestFooter;
         return xml;
     }
+
     @Override
     public String toString() {
-     
-        return new StringBuilder().append("name : ").append(_name).append("ipAddress : ").append(_ipAddress).append("dataMoverId ").append(_dataMoverId).toString();
-        
+
+        return new StringBuilder().append("name : ").append(_name).append("ipAddress : ").append(_ipAddress).append("dataMoverId ")
+                .append(_dataMoverId).toString();
+
     }
 }

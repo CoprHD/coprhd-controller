@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows;
@@ -72,15 +72,17 @@ public class WindowsSystemWinRM {
         return diskPart(WindowsUtils.getRescanCommands());
     }
 
-    public String formatAndMountDisk(int diskNumber, String fsType, String allocationUnitSize, String label, String mountpoint, String partitionType)
+    public String formatAndMountDisk(int diskNumber, String fsType, String allocationUnitSize, String label, String mountpoint,
+            String partitionType)
             throws WinRMException {
-        return diskPart(WindowsUtils.getFormatAndMountDiskCommands(diskNumber, fsType, allocationUnitSize, label, mountpoint, partitionType));
+        return diskPart(WindowsUtils
+                .getFormatAndMountDiskCommands(diskNumber, fsType, allocationUnitSize, label, mountpoint, partitionType));
     }
 
     public String mountVolume(int volumeNumber, String mountpoint) throws WinRMException {
         return diskPart(WindowsUtils.getMountVolumeCommands(volumeNumber, mountpoint));
     }
-    
+
     public String unmountVolume(int volumeNumber, String mountpoint) throws WinRMException {
         return diskPart(WindowsUtils.getUnmountVolumeCommands(volumeNumber, mountpoint));
     }
@@ -108,7 +110,7 @@ public class WindowsSystemWinRM {
     public String extendVolume(String mountpoint) throws WinRMException {
         return diskPart(WindowsUtils.getExtendVolumeCommands(mountpoint));
     }
-    
+
     public String listDisk() throws WinRMException {
         return diskPart(WindowsUtils.getListDiskCommands());
     }
@@ -116,7 +118,7 @@ public class WindowsSystemWinRM {
     public String diskPart(String... commands) throws WinRMException {
         return diskPart(Arrays.asList(commands));
     }
-    
+
     public String diskPart(List<String> commands) throws WinRMException {
         StrBuilder sb = new StrBuilder();
         sb.append("(");
@@ -134,7 +136,7 @@ public class WindowsSystemWinRM {
         }
         return output.getStdout();
     }
-    
+
     public void makeDirectory(String directory) throws WinRMException {
         executeCommand("mkdir " + directory);
     }
@@ -142,7 +144,7 @@ public class WindowsSystemWinRM {
     public CommandOutput getDirectoryContents(String directory) throws WinRMException {
         return executeCommand("dir " + directory);
     }
-    
+
     public void deleteDirectory(String directory) throws WinRMException {
         executeCommand("rmdir " + directory + " /s /q");
     }
@@ -160,7 +162,7 @@ public class WindowsSystemWinRM {
             }
         }
     }
-    
+
     public List<FibreChannelHBA> listFibreChannelHBAs() throws WinRMException {
         return new ListFibreChannelHBAsQuery(target).execute();
     }
@@ -177,14 +179,14 @@ public class WindowsSystemWinRM {
         return new ListIScsiSessionsQuery(target).execute();
     }
 
-    public List<Win32Service> listServices() throws WinRMException  {
+    public List<Win32Service> listServices() throws WinRMException {
         return new ListWin32ServicesQuery(target).execute();
     }
 
     public List<DiskDrive> listDiskDrives() throws WinRMException {
         return new ListDiskDrivesQuery(target).execute();
     }
-    
+
     public List<Volume> listVolumes() throws WinRMException {
         return new ListVolumesQuery(target).execute();
     }
@@ -193,12 +195,12 @@ public class WindowsSystemWinRM {
         return new ListClustersQuery(target).execute();
     }
 
-    public boolean hasActiveClusters() throws WinRMException  {
+    public boolean hasActiveClusters() throws WinRMException {
         try {
             listClusters();
 
             return true;
-        } catch(WinRMSoapException e) {
+        } catch (WinRMSoapException e) {
             if (e.getMessage().equals("There are no more endpoints available from the endpoint mapper.")) {
                 return false;
             }
@@ -289,8 +291,7 @@ public class WindowsSystemWinRM {
                 String wwid = DeviceIdentification.getWwid(deviceIdentifierPage);
                 debug("Disk: %s, WWID: %s", disk.getDeviceId(), wwid);
                 return wwid;
-            }
-            catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 info("Could not retrieve WWID from Disk: %s", disk.getDeviceId());
                 return null;
             }
@@ -327,17 +328,18 @@ public class WindowsSystemWinRM {
         return diskToResource;
     }
 
-    public Map<String, List<MSClusterNetworkInterface>> getClusterToNetworkInterfaces() throws WinRMException  {
+    public Map<String, List<MSClusterNetworkInterface>> getClusterToNetworkInterfaces() throws WinRMException {
         List<MSClusterToNetworkInterface> clusterToNetworkInterfaces = new ListClusterToNetworkInterfaceQuery(target).execute();
         List<MSClusterNetworkInterface> networkInterfaces = new ListClusterNetworkInterfaceQuery(target).execute();
 
         Map<String, List<MSClusterNetworkInterface>> clusterNetworkInterfacesMap = Maps.newHashMap();
         for (MSClusterToNetworkInterface networkInterface : clusterToNetworkInterfaces) {
             if (!clusterNetworkInterfacesMap.containsKey(networkInterface.getClusterName())) {
-                 clusterNetworkInterfacesMap.put(networkInterface.getClusterName(), Lists.<MSClusterNetworkInterface>newArrayList());
+                clusterNetworkInterfacesMap.put(networkInterface.getClusterName(), Lists.<MSClusterNetworkInterface> newArrayList());
             }
 
-            clusterNetworkInterfacesMap.get(networkInterface.getClusterName()).add(findNetworkInterface(networkInterface.getNetworkInterface(), networkInterfaces));
+            clusterNetworkInterfacesMap.get(networkInterface.getClusterName()).add(
+                    findNetworkInterface(networkInterface.getNetworkInterface(), networkInterfaces));
         }
 
         return clusterNetworkInterfacesMap;
@@ -397,6 +399,6 @@ public class WindowsSystemWinRM {
             }
         }
 
-        throw new IllegalStateException("Cluster Network Interface "+interfaceName+" Not Found");
+        throw new IllegalStateException("Cluster Network Interface " + interfaceName + " Not Found");
     }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.parse;
 
@@ -20,12 +10,13 @@ import com.emc.vipr.model.sys.logging.LogSeverity;
 
 /**
  * Parse syslog line to LogMessage
- *
+ * 
  * @author siy
- *
+ * 
  */
 public class LogSyslogParser extends LogParser {
     private final int TIME_LENGTH = 21;
+
     /**
      * Parse line from file to LogMessage If line does not match log format(it
      * is the message part for multiple lines log), return
@@ -85,7 +76,7 @@ public class LogSyslogParser extends LogParser {
         }
 
         final int priorityStartIndex = endBracket + 2; // endBracket + 1 is
-                                                        // white space
+                                                       // white space
         if (priorityStartIndex > lineLength || priorityStartIndex > Short.MAX_VALUE) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
         }

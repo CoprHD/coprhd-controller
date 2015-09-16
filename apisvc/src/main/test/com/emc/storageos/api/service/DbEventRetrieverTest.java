@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service;
@@ -38,6 +38,7 @@ public class DbEventRetrieverTest {
     private static final String XmlTestOutputFile = "xmlEventsOutput.xml";
     private static final String JsonTestOutputFile = "jsonEventsOutput.json";
     private static final int queryThreadCount = 10;
+
     @Test
     public void monitoringServiceDBRetrieverTestXML()
             throws WebApplicationException, IOException, JAXBException {
@@ -53,7 +54,7 @@ public class DbEventRetrieverTest {
         DummyHttpHeaders header = new DummyHttpHeaders(
                 MediaType.APPLICATION_XML_TYPE);
 
-        Response r =eventResource.getEvents("2012-01-04T00:00", header);
+        Response r = eventResource.getEvents("2012-01-04T00:00", header);
         Assert.assertNotNull(r);
         Assert.assertEquals(Status.OK.getStatusCode(), r.getStatus());
         Assert.assertTrue(r.getEntity() instanceof StreamingOutput);
@@ -149,8 +150,7 @@ public class DbEventRetrieverTest {
             os.close();
         }
     }
-    
-    
+
     @Test
     public void meteringServiceDBExceptionsTestJSON()
             throws WebApplicationException, IOException, JAXBException {
@@ -195,10 +195,6 @@ public class DbEventRetrieverTest {
         deleteIfExists(JsonTestOutputFile);
     }
 
-
-
-
-    
     @Test
     public void meteringServiceNullDBclientTestXML()
             throws WebApplicationException, IOException, JAXBException {
@@ -232,7 +228,7 @@ public class DbEventRetrieverTest {
             os.close();
         }
     }
-    
+
     private void deleteIfExists(String fname) {
         File f = new File(fname);
 

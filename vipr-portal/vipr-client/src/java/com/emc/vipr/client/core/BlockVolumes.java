@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -94,7 +94,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>GET /block/volumes/search?wwn={wwn}</tt>
      * 
      * @param wwn
-     *        the volume WWN.
+     *            the volume WWN.
      * @return the list of matching volumes.
      */
     public List<VolumeRestRep> findByWwn(String wwn) {
@@ -107,24 +107,35 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>GET /block/volumes/search?name={name}</tt>
      * 
      * @param name
-     *        the volume name.
+     *            the volume name.
      * @return the list of matching volumes.
      */
     public List<VolumeRestRep> findByName(String name) {
         return search().byName(name).run();
     }
-    
+
     /**
      * Begins creating one or more block volumes.
      * <p>
      * API Call: <tt>POST /block/volumes</tt>
      * 
      * @param create
-     *        the block volume create configuration.
+     *            the block volume create configuration.
      * @return tasks for monitoring the progress of the operation(s).
      */
     public Tasks<VolumeRestRep> create(VolumeCreate create) {
         return postTasks(create, baseUrl);
+    }
+
+    /**
+     * Adds journal capacity
+     * 
+     * @param create
+     *            the block volume create configuration for journal volumes.
+     * @return tasks for monitoring the progress of the operation(s).
+     */
+    public Tasks<VolumeRestRep> addJournalCapacity(VolumeCreate create) {
+        return postTasks(create, baseUrl + "/protection/addJournalCapacity");
     }
 
     /**
@@ -133,9 +144,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/deactivate?type=FULL</tt>
      * 
      * @param id
-     *        the ID of the block volume to deactivate.
+     *            the ID of the block volume to deactivate.
      * @return a task for monitoring the progress of the operation.
-     *
+     * 
      * @see #deactivate(List, VolumeDeleteTypeEnum)
      */
     public Task<VolumeRestRep> deactivate(URI id) {
@@ -146,13 +157,13 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * Begins deactivating a block volume by ID.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/deactivate?type={deletionType}</tt>
-     *
+     * 
      * @param id
-     *        the ID of the block volume to deactivate.
+     *            the ID of the block volume to deactivate.
      * @param deletionType
-     *        {@code FULL} or {@code VIPR_ONLY}
+     *            {@code FULL} or {@code VIPR_ONLY}
      * @return a task for monitoring the progress of the operation.
-     *
+     * 
      * @see com.emc.storageos.model.block.VolumeDeleteTypeEnum
      */
     public Task<VolumeRestRep> deactivate(URI id, VolumeDeleteTypeEnum deletionType) {
@@ -167,7 +178,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/deactivate?type=FULL</tt>
      * 
      * @param ids
-     *        The IDs of the block volumes to deactivate.
+     *            The IDs of the block volumes to deactivate.
      * @return tasks for monitoring the progress of the operations.
      */
     public Tasks<VolumeRestRep> deactivate(List<URI> ids) {
@@ -178,13 +189,13 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * Begins deactivating multiple block volumes by their IDs.
      * <p>
      * API Call: <tt>POST /block/volumes/deactivate?type={deletionType}</tt>
-     *
+     * 
      * @param ids
-     *        The IDs of the block volumes to deactivate.
+     *            The IDs of the block volumes to deactivate.
      * @param deletionType
-     *        {@code FULL} or {@code VIPR_ONLY}
+     *            {@code FULL} or {@code VIPR_ONLY}
      * @return tasks for monitoring the progress of the operations.
-     *
+     * 
      * @see com.emc.storageos.model.block.VolumeDeleteTypeEnum
      */
     public Tasks<VolumeRestRep> deactivate(List<URI> ids, VolumeDeleteTypeEnum deletionType) {
@@ -199,9 +210,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/expand</tt>
      * 
      * @param id
-     *        the ID of the block volume to expand.
+     *            the ID of the block volume to expand.
      * @param input
-     *        the expand configuration.
+     *            the expand configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<VolumeRestRep> expand(URI id, VolumeExpandParam input) {
@@ -212,7 +223,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * Gets the list of volumes for the given export groups.
      * 
      * @param exportGroups
-     *        the export groups.
+     *            the export groups.
      * @return the list of volumes in the given export groups.
      */
     public List<VolumeRestRep> getByExportGroups(Collection<? extends ExportGroupRestRep> exportGroups) {
@@ -223,9 +234,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * Gets the list of volumes for the given export groups, optionally filtering the results.
      * 
      * @param exportGroups
-     *        the export groups.
+     *            the export groups.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of block volumes.
      * 
      * @see ExportGroupRestRep#getVolumes()
@@ -249,22 +260,22 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>GET /block/volumes/{id}/exports</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @return the list of exports.
      */
     public List<ITLRestRep> getExports(URI id) {
         ITLRestRepList response = client.get(ITLRestRepList.class, getIdUrl() + "/exports", id);
         return defaultList(response.getExportList());
     }
-    
+
     /**
      * Gets the exports for a list of volumes.
      * <p>
      * API Call: <tt>POST /block/volumes/exports/bulk</tt>
      * 
      * @param ids
-     *      the IDs of the block volumes.
-     *      
+     *            the IDs of the block volumes.
+     * 
      * @return the list of exports.
      */
     public ITLBulkRep getExports(BulkIdParam ids) {
@@ -286,9 +297,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/start</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the configuration of the new continuous copies.
+     *            the configuration of the new continuous copies.
      * @return tasks for monitoring the progress of the operation(s).
      */
     public Tasks<VolumeRestRep> startContinuousCopies(URI id, CopiesParam input) {
@@ -302,9 +313,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/stop</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the configuration of the copies to stop.
+     *            the configuration of the copies to stop.
      * @return tasks for monitoring the progress of the operation(s).
      */
     public Tasks<VolumeRestRep> stopContinuousCopies(URI id, CopiesParam input) {
@@ -318,9 +329,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/pause</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the copy configurations.
+     *            the copy configurations.
      * @return tasks for monitoring the progress if the operations.
      */
     public Tasks<VolumeRestRep> pauseContinuousCopies(URI id, CopiesParam input) {
@@ -334,9 +345,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/resume</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the copy configurations.
+     *            the copy configurations.
      * @return tasks for monitoring the progress of the operations.
      */
     public Tasks<VolumeRestRep> resumeContinuousCopies(URI id, CopiesParam input) {
@@ -348,11 +359,11 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * Request to reverse the replication direction, i.e. R1 and R2 are interchanged for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/swap</tt>
-     *
+     * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the copy configurations.
+     *            the copy configurations.
      * @return tasks for monitoring the progress of the operations.
      */
     public Tasks<VolumeRestRep> swapContinuousCopies(URI id, CopiesParam input) {
@@ -360,14 +371,13 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
         return new Tasks<VolumeRestRep>(client, tasks.getTaskList(), BlockMirrorRestRep.class);
     }
 
-
     /**
      * Lists the continuous copies for the given volume.
      * <p>
      * API Call: <tt>GET /block/volumes/{id}/protection/continuous-copies</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @return the list of continuous copy references.
      */
     public List<NamedRelatedResourceRep> listContinuousCopies(URI id) {
@@ -376,8 +386,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
     }
 
     /**
-     * Gets the base URL for a single continuous copy by ID:
-     * <tt>/block/volumes/{id}/protection/continuous-copies/{copyId}</tt>
+     * Gets the base URL for a single continuous copy by ID: <tt>/block/volumes/{id}/protection/continuous-copies/{copyId}</tt>
      * 
      * @return the continuous copy URL.
      */
@@ -391,9 +400,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>GET /block/volumes/{id}/protection/continuous-copies/{copyId}</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param copyId
-     *        the ID of the continuous copy.
+     *            the ID of the continuous copy.
      * @return the continuous copy.
      */
     public BlockMirrorRestRep getContinuousCopy(URI id, URI copyId) {
@@ -404,7 +413,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * Gets the list of continuous copies for the given block volume.
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @return the list of continuous copies.
      */
     public List<BlockMirrorRestRep> getContinuousCopies(URI id) {
@@ -415,9 +424,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * Gets the list of continuous copies for the given block volume, optionally filtering the results.
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of continuous copies.
      */
     public List<BlockMirrorRestRep> getContinuousCopies(URI id, ResourceFilter<BlockMirrorRestRep> filter) {
@@ -439,9 +448,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/deactivate</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the copy configurations.
+     *            the copy configurations.
      * @return tasks for monitoring the progress of the operation.
      */
     public Tasks<VolumeRestRep> deactivateContinuousCopies(URI id, CopiesParam input) {
@@ -463,7 +472,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>GET /block/volumes/{id}/protection/full-copies</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @return the list of full copy IDs.
      */
     public List<NamedRelatedResourceRep> listFullCopies(URI id) {
@@ -472,11 +481,10 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
     }
 
     /**
-     * Gets the full copies associated with the given block volume. This is a convenience method for:
-     * <tt>getByRefs(listFullCopies(id))</tt>
+     * Gets the full copies associated with the given block volume. This is a convenience method for: <tt>getByRefs(listFullCopies(id))</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @return the full copy volumes.
      * 
      * @see #listFullCopies(URI)
@@ -491,9 +499,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * for: <tt>getByRefs(listFullCopies(id), filter)</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param filter
-     *        the resource filter to apply (optional).
+     *            the resource filter to apply (optional).
      * @return the full copy volumes.
      * 
      * @see #listFullCopies(URI)
@@ -509,9 +517,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/full-copies</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return tasks for monitoring the progress of the operation(s).
      */
     public Tasks<VolumeRestRep> createFullCopy(URI id, VolumeFullCopyCreateParam input) {
@@ -524,9 +532,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/full-copies/{copyId}/activate</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param copyId
-     *        the ID of the full copy to activate.
+     *            the ID of the full copy to activate.
      * @return a task for monitoring the progress of the operation.
      */
     @Deprecated
@@ -540,9 +548,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/full-copies/{copyId}/detach</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param copyId
-     *        the ID of the full copy to detach.
+     *            the ID of the full copy to detach.
      * @return a task for monitoring the progress of the operation.
      */
     @Deprecated
@@ -557,9 +565,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/full-copies/{copyId}/check-progress</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param copyId
-     *        the ID of the full copy.
+     *            the ID of the full copy.
      * @return the full copy volume.
      * 
      * @see VolumeRestRep.FullCopyRestRep#getPercentSynced()
@@ -575,9 +583,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/failover</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the input configuration.
+     *            the input configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Tasks<VolumeRestRep> failover(URI id, CopiesParam input) {
@@ -590,9 +598,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/failover-test</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the input configuration.
+     *            the input configuration.
      * @return a task for monitoring the progress of the operation.
      * 
      * @deprecated failover-test is being replaced by failover.
@@ -608,9 +616,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/failover-test-cancel</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the input configuration.
+     *            the input configuration.
      * @return a task for monitoring the progress of the operation.
      * 
      * @see #failoverTest(URI, CopiesParam)
@@ -622,16 +630,16 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
     public Tasks<VolumeRestRep> failoverTestCancel(URI id, CopiesParam input) {
         return postTasks(input, getContinuousCopiesUrl() + "/failover-test-cancel", id);
     }
-    
+
     /**
      * Begins canceling a previously initiated failover for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/failover-cancel</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the input configuration.
+     *            the input configuration.
      * @return a task for monitoring the progress of the operation.
      * 
      * @see #failoverTest(URI, CopiesParam)
@@ -640,22 +648,21 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
     public Tasks<VolumeRestRep> failoverCancel(URI id, CopiesParam input) {
         return postTasks(input, getContinuousCopiesUrl() + "/failover-cancel", id);
     }
- 
+
     /**
      * Sync continuous copies.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/sync</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param input
-     *        the input configuration.
+     *            the input configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Tasks<VolumeRestRep> syncContinuousCopies(URI id, CopiesParam input) {
         return postTasks(input, getContinuousCopiesUrl() + "/sync", id);
     }
-    
 
     /**
      * Gets a protection set for the given block volume.
@@ -663,9 +670,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>GET /block/volumes/{volumeId}/protection/protection-sets/{protectionSetId}</tt>
      * 
      * @param volumeId
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @param protectionSetId
-     *        the ID of the protection set.
+     *            the ID of the protection set.
      * @return the protection set.
      */
     public ProtectionSetRestRep getProtectionSet(URI volumeId, URI protectionSetId) {
@@ -679,7 +686,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>POST /block/migrations</tt>
      * 
      * @param input
-     *        the migration configuration.
+     *            the migration configuration.
      * @return a task for monitoring the operation progress.
      */
     public Task<VolumeRestRep> migrate(MigrationParam input) {
@@ -692,7 +699,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>GET /block/volumes/{id}/migrations</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @return the list of migration references.
      */
     public List<NamedRelatedResourceRep> listMigrations(URI id) {
@@ -706,7 +713,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * API Call: <tt>GET /block/volumes/{id}/vpool-change/vpool</tt>
      * 
      * @param id
-     *        the ID of the block volume.
+     *            the ID of the block volume.
      * @return the list of virtual pool candidates.
      */
     public List<VirtualPoolChangeRep> listVirtualPoolChangeCandidates(URI id) {
@@ -714,14 +721,14 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
                 .get(VirtualPoolChangeList.class, getIdUrl() + "/vpool-change/vpool", id);
         return defaultList(response.getVirtualPools());
     }
-    
+
     /**
      * Lists volumes in the given project that can potentially be moved to the given virtual array.
-     *
+     * 
      * @param projectId
-     *        the ID of the project to search for potential virtual array change volumes
+     *            the ID of the project to search for potential virtual array change volumes
      * @param varrayId
-     *        the ID of the virtual array to use as a target when searching 
+     *            the ID of the virtual array to use as a target when searching
      * @return the list of volumes that are virtual array change candidates
      */
     public NamedVolumesList listVirtualArrayChangeCandidates(URI projectId, URI varrayId) {
@@ -735,40 +742,40 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * Changes the virtual pool for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/vpool-change</tt>
-     *
+     * 
      * @param input
-     *        the virtual pool change configuration.
+     *            the virtual pool change configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Tasks<VolumeRestRep> changeVirtualPool(VolumeVirtualPoolChangeParam input) {
         return postTasks(input, baseUrl + "/vpool-change");
     }
-    
+
     /**
      * Changes the virtual array for the given block volume.
      * <p>
      * API Call: <tt>PUT /block/volumes/{id}/varray</tt>
-     *  
+     * 
      * @param id
-     *        the id of the block volume.
+     *            the id of the block volume.
      * @param input
-     *        the virtual array change configuration.
+     *            the virtual array change configuration.
      * @return a task for monitoring the progress of the operation.
      */
     @Deprecated
     public Task<VolumeRestRep> changeVirtualArray(URI id, VirtualArrayChangeParam input) {
         return putTask(input, getIdUrl() + "/varray", id);
     }
-    
+
     /**
      * Changes the virtual array for the given block volumes.
      * <p>
      * API Call; <tt>POST /block/volumes/change-varray</tt>
      * 
      * @param input
-     *        the VolumeVirtualArrayChangeParam
+     *            the VolumeVirtualArrayChangeParam
      * @return
-     *        a list of tasks for monitoring the progress of the Virtual Array Change operation
+     *         a list of tasks for monitoring the progress of the Virtual Array Change operation
      */
     public Tasks<VolumeRestRep> changeVirtualArrayForVolumes(VolumeVirtualArrayChangeParam input) {
         return postTasks(input, baseUrl + "/varray-change");

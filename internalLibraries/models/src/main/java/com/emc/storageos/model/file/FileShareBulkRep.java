@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -18,7 +18,8 @@ public class FileShareBulkRep extends BulkRestRep {
     /**
      * The list of file shares, returned as response to bulk
      * queries.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "filesystem")
     public List<FileShareRestRep> getFileShares() {

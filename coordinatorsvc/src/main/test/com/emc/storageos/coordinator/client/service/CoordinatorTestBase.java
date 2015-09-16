@@ -94,6 +94,7 @@ public class CoordinatorTestBase {
         ZkConnection conn = new ZkConnection();
         conn.setServer(Arrays.asList(URI.create("coordinator://localhost:2181")));
         conn.setTimeoutMs(timeoutMs);
+        conn.setSiteId("fake-site-id");
         conn.build();
         return conn;
     }
@@ -132,6 +133,8 @@ public class CoordinatorTestBase {
         zkprop.setProperty("maxClientCnxns", "0");
         zkprop.setProperty("autopurge.purgeInterval", "30");
         zkprop.setProperty("autopurge.snapRetainCount", "16");
+        zkprop.setProperty(SpringQuorumPeerConfig.staticCfgFileKey, "/tmp/zk-static.cfg");
+        zkprop.setProperty(SpringQuorumPeerConfig.dynamicCfgFileKey, "/tmp/zk-dynamic.cfg");
         config.setProperties(zkprop);
         config.init();
 

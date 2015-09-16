@@ -447,7 +447,7 @@ public class ECSApi {
     }
 
     /**
-     * Delets a bucket on ECS Storage
+     * Deletes a bucket on ECS Storage
      * 
      * @param bucketName Bucket name
      * @throws ECSException If error occurs during delete
@@ -463,8 +463,8 @@ public class ECSApi {
             } catch (Exception e) {
                 _log.error("Error occured while delete of bucket : {}", bucketName, e);
             } finally {
-                if (null == clientResp || clientResp.getStatus() != 200) {
-                    throw ECSException.exceptions.bucketDeleteFailed(bucketName);
+                if (null == clientResp || clientResp.getStatus() != 200) { 
+                    throw ECSException.exceptions.bucketDeleteFailed(bucketName, getResponseDetails(clientResp));
                 }
                 closeResponse(clientResp);
             }
@@ -493,5 +493,20 @@ public class ECSApi {
         if (null != clientResp) {
             clientResp.close();
         }
+    }
+    
+    private String getResponseDetails(ClientResponse clientResp) {
+        String detailedResponse = null;
+        try {
+            JSONObject jObj = clientResp.getEntity(JSONObject.class);
+            detailedResponse = String.format("Description:%s, Details:%s", 
+                    jObj.getString("description"), jObj.getString("details"));
+            _log.error(String.format("HTTP error code: %d, Complete ECS error response: %s", clientResp.getStatus(),
+                    jObj.toString()));
+        } catch (Exception e) {
+            _log.error("Unable to get ECS error details");
+            detailedResponse = String.format("%1$s", (clientResp == null) ? "" : clientResp);
+        }
+        return detailedResponse;
     }
 }

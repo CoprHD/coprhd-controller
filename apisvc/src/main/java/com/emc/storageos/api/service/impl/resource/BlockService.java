@@ -73,6 +73,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
@@ -195,8 +196,8 @@ public class BlockService extends TaskResourceService {
         CHANGE_COPY_MODE("change-copy-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE),
         UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
-        private String op;
-        private ResourceOperationTypeEnum resourceType;
+        private final String op;
+        private final ResourceOperationTypeEnum resourceType;
 
         ProtectionOp(String op, ResourceOperationTypeEnum resourceType) {
             this.op = op;
@@ -526,6 +527,14 @@ public class BlockService extends TaskResourceService {
                     }
                 }
 
+                // Also check for snapshot sessions.
+                List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                        BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(srdfVolURI));
+                if (!snapSessions.isEmpty()) {
+                    throw APIException.badRequests.cannotStopSRDFBlockSnapShotExists(volume
+                            .getLabel());
+                }
+
                 // For a volume that is a full copy or is the source volume for
                 // full copies deleting the volume may not be allowed.
                 if (!getFullCopyManager().volumeCanBeDeleted(volume)) {
@@ -564,10 +573,10 @@ public class BlockService extends TaskResourceService {
      * This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id
      * 
      * @prereq Create full copy as inactive
-     *
+     * 
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
-     *
+     * 
      * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy
      *        URI id
      * 
@@ -590,10 +599,10 @@ public class BlockService extends TaskResourceService {
      * This method is deprecated. Use /block/full-copies/{id}/check-progress instead with {id} representing full copy URI id
      * 
      * @prereq none
-     *
+     * 
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
-     *
+     * 
      * @brief Show full copy synchronization progress
      * 
      * @return VolumeRestRep
@@ -616,10 +625,10 @@ public class BlockService extends TaskResourceService {
      * 
      * @prereq Create full copy as inactive
      * @prereq Activate full copy
-     *
+     * 
      * @param id the URN of a ViPR Source volume
      * @param id the URN of Full copy volume
-     *
+     * 
      * @brief Detach full copy
      * 
      * @return TaskResourceRep
@@ -646,7 +655,7 @@ public class BlockService extends TaskResourceService {
                 _request, _tenantsService);
         return fcManager;
     }
-    
+
     /**
      * Creates and returns an instance of the block snapshot session manager to handle
      * a snapshot session creation request.
@@ -655,9 +664,9 @@ public class BlockService extends TaskResourceService {
      */
     private BlockSnapshotSessionManager getSnapshotSessionManager() {
         BlockSnapshotSessionManager snapshotSessionManager = new BlockSnapshotSessionManager(_dbClient,
-            _permissionsHelper, _auditMgr, _coordinator, sc, uriInfo, _request);
+                _permissionsHelper, _auditMgr, _coordinator, sc, uriInfo, _request);
         return snapshotSessionManager;
-    }    
+    }
 
     /**
      * The fundamental abstraction in the Block Store is a
@@ -882,7 +891,7 @@ public class BlockService extends TaskResourceService {
                             if ((!VirtualPool.vPoolSpecifiesMetroPoint(requestedVpool) &&
                                     VirtualPool.vPoolSpecifiesMetroPoint(existingVpool)) ||
                                     (VirtualPool.vPoolSpecifiesMetroPoint(requestedVpool) &&
-                                            !VirtualPool.vPoolSpecifiesMetroPoint(existingVpool))) {
+                                    !VirtualPool.vPoolSpecifiesMetroPoint(existingVpool))) {
                                 throw APIException.badRequests.cannotMixMetroPointAndNonMetroPointVolumes(consistencyGroup.getLabel());
                             }
                         }
@@ -1429,7 +1438,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Request to cancel a prior test failover of the protection link associated with the param.copyID.
-     *
+     * 
      * NOTE: This is an asynchronous operation.
      * 
      * If volume is srdf protected, then its a no-op
@@ -1805,7 +1814,7 @@ public class BlockService extends TaskResourceService {
     public TaskResourceRep deleteVolume(@PathParam("id") URI id,
             @DefaultValue("false") @QueryParam("force") boolean force,
             @DefaultValue("FULL") @QueryParam("type") String type)
-                    throws InternalException {
+            throws InternalException {
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         Volume volume = queryVolumeResource(id);
 
@@ -2071,7 +2080,7 @@ public class BlockService extends TaskResourceService {
                     volumeTask.setMessage(e.getMessage());
                     _dbClient.updateTaskOpStatus(Volume.class, volumeTask
                             .getResource().getId(), task, new Operation(
-                                    Operation.Status.error.name(), e.getMessage()));
+                            Operation.Status.error.name(), e.getMessage()));
                 }
             }
         }
@@ -2237,10 +2246,10 @@ public class BlockService extends TaskResourceService {
      * @return
      */
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions")
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList createSnapshotSession(@PathParam("id") URI id, SnapshotSessionCreateParam param) {
         return getSnapshotSessionManager().createSnapshotSession(id, param, getFullCopyManager());
     }
@@ -3236,7 +3245,7 @@ public class BlockService extends TaskResourceService {
                 volumeTask.setMessage(errorMsg);
                 _dbClient.updateTaskOpStatus(Volume.class, volumeTask
                         .getResource().getId(), taskId, new Operation(
-                                Operation.Status.error.name(), errorMsg));
+                        Operation.Status.error.name(), errorMsg));
             }
             throw e;
         }
@@ -3927,6 +3936,16 @@ public class BlockService extends TaskResourceService {
                                     throw APIException.badRequests
                                             .volumeForVpoolChangeHasSnaps(volume.getId().toString());
                                 }
+
+                                // Also check for snapshot sessions.
+                                List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                                        BlockSnapshotSession.class,
+                                        ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+                                if (!snapSessions.isEmpty()) {
+                                    throw APIException.badRequests
+                                            .volumeForVpoolChangeHasSnaps(volume.getId().toString());
+                                }
+
                                 // Can't migrate the source side backend volume if it is
                                 // has full copy sessions.
                                 if (BlockFullCopyUtils.volumeHasFullCopySession(srcVolume, _dbClient)) {
@@ -3973,6 +3992,14 @@ public class BlockService extends TaskResourceService {
                 } else if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
                     // The backend would have a full copy, but the VPLEX volume would not.
                     throw APIException.badRequests.volumeForVpoolChangeHasFullCopies(volume.getLabel());
+                } else {
+                    // Can't be imported if it has snapshot sessions, because we
+                    // don't currently support these behind VPLEX.
+                    List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                            BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+                    if (!snapSessions.isEmpty()) {
+                        throw APIException.badRequests.cannotImportVolumeWithSnapshotSessions(volume.getLabel());
+                    }
                 }
             } else if (VirtualPool.vPoolSpecifiesProtection(newVpool)) {
                 // VNX/VMAX import to RP cases (currently one)
@@ -3986,6 +4013,14 @@ public class BlockService extends TaskResourceService {
                 } else if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
                     // Full copies not supported for RP protected volumes.
                     throw APIException.badRequests.volumeForRPVpoolChangeHasFullCopies(volume.getLabel());
+                } else {
+                    // Can't add RP if it has snapshot sessions, because we
+                    // don't currently support these for RP protected volumes.
+                    List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                            BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+                    if (!snapSessions.isEmpty()) {
+                        throw APIException.badRequests.volumeForRPVpoolChangeHasSnapshotSessions(volume.getLabel());
+                    }
                 }
             } else if (VirtualPool.vPoolSpecifiesSRDF(newVpool)) {
                 // VMAX import to SRDF cases (currently one)
@@ -4608,14 +4643,14 @@ public class BlockService extends TaskResourceService {
                 VplexMirror mirror = _dbClient.queryObject(VplexMirror.class, URI.create(mirrorURI));
                 if (!mirror.getInactive() &&
                         ((count > 1 && mirror.getLabel().matches("^" + name + "\\-\\d+$")) ||
-                                (count == 1 && name.equals(mirror.getLabel())))) {
+                        (count == 1 && name.equals(mirror.getLabel())))) {
                     dupList.add(mirror.getLabel());
                 }
             } else {
                 BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(mirrorURI));
                 if (null != mirror && !mirror.getInactive() &&
                         ((count > 1 && mirror.getLabel().matches("^" + name + "\\-\\d+$")) ||
-                                (count == 1 && name.equals(mirror.getLabel())))) {
+                        (count == 1 && name.equals(mirror.getLabel())))) {
                     dupList.add(mirror.getLabel());
                 }
             }
@@ -5069,9 +5104,9 @@ public class BlockService extends TaskResourceService {
      * This is because, BlockService implements Volume and
      * Mirror (BlockMirror and VplexMirror) resources. To query the
      * respective objects from DB, we should use the right class type.
-     *
+     * 
      * @param uriStr the uri to determine the right resource class type.
-     *
+     * 
      * @return returns the correct resource type of the resource.
      */
     public static Class<? extends DataObject> getBlockServiceResourceClass(String uriStr) {

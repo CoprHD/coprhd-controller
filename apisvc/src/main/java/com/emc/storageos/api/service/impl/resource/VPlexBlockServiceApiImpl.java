@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -237,15 +238,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         if (taskList == null) {
             taskList = new TaskList();
         }
-        
+
         List<URI> allVolumes = new ArrayList<URI>();
         List<VolumeDescriptor> descriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
                 volRecommendations, task, vPoolCapabilities,
                 taskList, allVolumes);
-        
+
         // Log volume descriptor information
         logVolumeDescriptorPrecreateInfo(descriptors, task);
-        
+
         // Now we get the Orchestration controller and use it to create the volumes of all types.
         try {
             BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
@@ -412,7 +413,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         poolVolumeMap.put(nullPoolURI, virtualVolumeURIs);
         vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, null);
         for (int i = 0; i < vPoolCapabilities.getResourceCount(); i++) {
-            String volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i, vPoolCapabilities.getResourceCount());
+            String volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i,
+                    vPoolCapabilities.getResourceCount());
             s_logger.info("Volume label is {}", volumeLabelBuilt);
 
             Volume volume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, volumeLabelBuilt);
@@ -420,7 +422,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (volume != null) {
                 volumePrecreated = true;
             }
-            
+
             long thinVolumePreAllocationSize = 0;
             if (null != vPool.getThinVolumePreAllocationPercentage()) {
                 thinVolumePreAllocationSize = VirtualPoolUtil
@@ -534,6 +536,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     if (!snapshots.isEmpty()) {
                         return BlockSnapshot.class.getSimpleName();
                     }
+
+                    // Also check for snapshot sessions.
+                    List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                            BlockSnapshotSession.class,
+                            ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(snapshotSourceVolume.getId()));
+                    if (!snapSessions.isEmpty()) {
+                        return BlockSnapshotSession.class.getSimpleName();
+                    }
                 }
             }
         }
@@ -588,6 +598,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     /**
      * Prepare a new Bourne Volume.
+     * 
      * @param volume pre-created volume (optional)
      * @param size The volume capacity.
      * @param thinVolumePreAllocationSize preallocation size for thin provisioning or 0.
@@ -752,7 +763,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         // Create the project
         ProjectParam projectParam = new ProjectParam(vplexSystem.getNativeGuid());
-        ProjectElement projectElement = tenantsService.createProject(rootTenant.getId(), projectParam, 
+        ProjectElement projectElement = tenantsService.createProject(rootTenant.getId(), projectParam,
                 TenantOrg.PROVIDER_TENANT_ORG, rootTenant.getId().toString());
         URI projectId = projectElement.getId();
         Project project = dbClient.queryObject(Project.class, projectId);
@@ -1235,7 +1246,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         return cg;
     }
-
 
     /**
      * Verifies if the valid storage pools for the target vpool specify a single
@@ -3196,23 +3206,24 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
         super.validateCreateSnapshot(reqVolume, volumesToSnap, snapshotType, snapshotName, fcManager);
         // If there are more than one volume in the consistency group, and they are on different backend storage system, return error.
-        if (volumesToSnap.size()>1 && !VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumesToSnap, _dbClient)) {
+        if (volumesToSnap.size() > 1 && !VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumesToSnap, _dbClient)) {
             throw APIException.badRequests.snapshotNotAllowedWhenCGAcrossMultipleSystems();
         }
-        
+
         // Check if the source volume is an ingested CG, without any back end CGs yet. if yes, throw error
         if (VPlexUtil.isVolumeInIngestedCG(reqVolume, _dbClient)) {
             throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
         }
     }
-    
+
     /**
-     * Verify that the adding volumes are valid for ingested consistency group. For ingested consistency group, 
+     * Verify that the adding volumes are valid for ingested consistency group. For ingested consistency group,
      * the valid adding volumes are either all virtual volumes in the CG, or a new virtual volume not in the CG.
+     * 
      * @param consistencyGroup
      * @param addVolumesList
      */
-    private void verifyAddVolumesToIngestedCG(BlockConsistencyGroup cg, List<URI>addVolumesList) {
+    private void verifyAddVolumesToIngestedCG(BlockConsistencyGroup cg, List<URI> addVolumesList) {
         if (cg.getTypes().contains(Types.LOCAL.toString())) {
             // Not ingested CG
             return;
@@ -3237,6 +3248,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // Not all virtual volumes are selected
             throw APIException.badRequests.notAllVolumesAddedToIngestedCG(cg.getLabel());
         }
-        
+
     }
 }

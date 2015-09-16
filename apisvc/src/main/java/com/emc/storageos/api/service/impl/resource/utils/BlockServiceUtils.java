@@ -193,6 +193,13 @@ public class BlockServiceUtils {
                 throw APIException.badRequests.noFullCopiesForVMAX3VolumeWithActiveSnapshot(replicaType);
             }
         }
+
+        // Also check for snapshot sessions.
+        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceVolURI));
+        if (!snapSessions.isEmpty()) {
+            throw APIException.badRequests.noFullCopiesForVMAX3VolumeWithActiveSnapshot(replicaType);
+        }
     }
 
     /**

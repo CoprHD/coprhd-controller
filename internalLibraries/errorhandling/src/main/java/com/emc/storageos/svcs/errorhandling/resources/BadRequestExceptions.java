@@ -2503,4 +2503,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException maximumNumberSnapshotsForSourceReached(final String sourceId);
+
+    @DeclareServiceCode(ServiceCode.API_UNSUPPORTED_CHANGE)
+    public BadRequestException cannotImportVolumeWithSnapshotSessions(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_UNSUPPORTED_CHANGE)
+    public BadRequestException volumeForRPVpoolChangeHasSnapshotSessions(final String volumeId);
 }

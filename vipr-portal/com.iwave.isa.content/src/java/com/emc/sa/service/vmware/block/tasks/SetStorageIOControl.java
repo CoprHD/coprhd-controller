@@ -40,6 +40,7 @@ public class SetStorageIOControl extends VMwareTask<Void> {
         try {
             waitForTask(task);
         } catch (Exception e) {
+            logError("SetStorageIOControl.detail.error", datastore.getName());
             cancelTask(task);
         }
     }

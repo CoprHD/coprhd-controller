@@ -582,4 +582,13 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         return _coordinator.locateService(clazz, BlockServiceApi.CONTROLLER_SVC,
                 BlockServiceApi.CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj) {
+        return CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceObj.getId()));
+    }
 }

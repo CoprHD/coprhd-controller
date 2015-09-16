@@ -202,4 +202,11 @@ public interface BlockSnapshotSessionApi {
      * @param taskId A unique task identifier.
      */
     public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId);
+
+    /**
+     * Get all BlockSnapshotSessions for the passed source.
+     * 
+     * @param sourceObj A reference to the source object.
+     */
+    public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj);
 }

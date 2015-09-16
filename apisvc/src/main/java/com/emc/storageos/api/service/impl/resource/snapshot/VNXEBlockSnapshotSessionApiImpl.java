@@ -97,4 +97,12 @@ public class VNXEBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSession
     public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, Project project) {
         throw APIException.methodNotAllowed.notSupportedForVNXE();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj) {
+        throw APIException.methodNotAllowed.notSupportedForVNXE();
+    }
 }

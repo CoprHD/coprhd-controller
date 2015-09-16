@@ -101,4 +101,12 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
     public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, Project project) {
         throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj) {
+        throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+    }
 }

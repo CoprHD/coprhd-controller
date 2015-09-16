@@ -111,6 +111,7 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BulkDeleteParam;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
@@ -2234,16 +2235,23 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
+     * Create an array snapshot of the volume with the passed Id. Creating a
+     * snapshot session simply creates and array snapshot point-in-time copy
+     * of the volume. It does not automatically create a single target volume
+     * and link it to the array snapshot as is done with the existing create
+     * snapshot API. It allows array snapshots to be created with out any linked
+     * target volumes, or multiple linked target volumes depending on the
+     * data passed in the request. This API is only supported on a limited
+     * number of platforms that support this capability.
      * 
+     * @brief Create volume snapshot session
      * 
-     * @brief
+     * @prereq Virtual pool for the volume must specify non-zero value for max_snapshots
      * 
-     * @prereq
+     * @param id The URI of a ViPR Volume.
+     * @param param Volume snapshot parameters
      * 
-     * @param id
-     * @param param
-     * 
-     * @return
+     * @return TaskList
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -2292,6 +2300,25 @@ public class BlockService extends TaskResourceService {
         list.getSnapList().addAll(activeSnaps);
         list.getSnapList().addAll(inactiveSnaps);
         return list;
+    }
+
+    /**
+     * List volume snapshot sessions.
+     * 
+     * @brief List volume snapshot sessions.
+     * 
+     * @prereq none
+     * 
+     * @param id The URI of a ViPR Volume.
+     * 
+     * @return Volume snapshot response containing list of snapshot sessions
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public BlockSnapshotSessionList getSnapshotSessions(@PathParam("id") URI id) {
+        return getSnapshotSessionManager().getSnapshotSessionsForSource(id);
     }
 
     /**

@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
@@ -39,6 +40,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
@@ -448,7 +450,7 @@ public class BlockSnapshotSessionManager {
     }
 
     /**
-     * Get the details for the BlockSnapshotSession instance with the passed id.
+     * Get the details for the BlockSnapshotSession instance with the passed URI.
      * 
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
      * 
@@ -460,9 +462,34 @@ public class BlockSnapshotSessionManager {
     }
 
     /**
+     * Get the BlockSnapshotSession instances for the source object with the passed URI.
      * 
-     * @param snapSessionURI
-     * @return
+     * @param sourceURI The URI of the snapshot session source object.
+     * 
+     * @return A BlockSnapshotSessionList of the snapshot sessions for the source.
+     */
+    public BlockSnapshotSessionList getSnapshotSessionsForSource(URI sourceURI) {
+        // Get the snapshot session source object.
+        BlockObject sourceObj = BlockSnapshotSessionUtils.validateSnapshotSessionSource(sourceURI, _uriInfo, _dbClient);
+
+        // Get the platform specific block snapshot session implementation.
+        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(sourceObj);
+
+        // Get the BlockSnapshotSession instances for the source and prepare the result.
+        List<BlockSnapshotSession> snapSessionsForSource = snapSessionApiImpl.getSnapshotSessionsForSource(sourceObj);
+        BlockSnapshotSessionList result = new BlockSnapshotSessionList();
+        for (BlockSnapshotSession snapSessionForSource : snapSessionsForSource) {
+            result.getSnapSessionRelatedResourceList().add(toNamedRelatedResource(snapSessionForSource));
+        }
+        return result;
+    }
+
+    /**
+     * Delete the snapshot session with the passed URI.
+     * 
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance.
+     * 
+     * @return TaskResourceRep representing the snapshot session task.
      */
     public TaskResourceRep deleteSnapshotSession(URI snapSessionURI) {
         s_logger.info("START delete snapshot session {}", snapSessionURI);

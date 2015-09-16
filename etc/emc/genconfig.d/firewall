@@ -59,8 +59,65 @@ _get_firewall_props() {
             list+=" ${ipaddr6}"
         done
     done
-    IFS="${OLD_IFS}"
     echo "vdc_nodes_ipaddr6=$(echo ${list})"
+
+    # List of IPv4 address of all nodes in primary/standby sites
+    # TODO - handle multiple standby sites
+    #'dr_nodes_ipaddr')
+    list=''
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ] ; then
+        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+        local cnt="${!var}"
+        for index in $(seq ${cnt}); do
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${index}_ipaddr"
+            local ipaddr="${!var}"
+            list+=" ${ipaddr}"
+        done
+    else
+        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_node_count"
+        local standby_cnt="${!var}"
+        if [ -n "${standby_cnt}" ]; then
+            for index in $(seq ${standby_cnt}); do
+                var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_network_${index}_ipaddr"
+                local ipaddr="${!var}"
+                list+=" ${ipaddr}"
+            done
+        fi
+    fi
+    echo "dr_nodes_ipaddr=${list}"
+
+    # List of IPv6 addresses of all nodes in primary/standby site
+    # TODO - handle multiple standby sites
+    #'dr_nodes_ipaddr6')
+    list=''
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ] ; then
+        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+        local cnt="${!var}"
+        for index in $(seq ${cnt}); do
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${index}_ipaddr6"
+            local ipaddr="${!var}"
+            if [ "${ipaddr6}" == "::0" ]; then
+                ipaddr=""
+            fi
+            list+=" ${ipaddr}"
+        done
+    else
+        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_node_count"
+        local standby_cnt="${!var}"
+        if [ -n "${standby_cnt}" ]; then
+            for index in $(seq ${standby_cnt}); do
+                var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_network_${index}_ipaddr6"
+                local ipaddr="${!var}"
+                if [ "${ipaddr6}" == "::0" ]; then
+                     ipaddr=""
+                fi
+                list+=" ${ipaddr}"
+            done
+        fi
+    fi
+    echo "dr_nodes_ipaddr6=${list}"
+
+    IFS="${OLD_IFS}"
     echo "network_nic_name=${_GENCONFIG_network_nic_name}"
     _get_props network_vip network_vip6 network_nodes_ipv4 network_nodes_ipv6
 }

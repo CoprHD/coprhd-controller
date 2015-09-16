@@ -84,13 +84,13 @@ _get_firewall_props() {
             done
         fi
     fi
-    echo "dr_nodes_ipaddr=$(echo ${list})"
+    echo "dr_nodes_ipaddr=${list}"
 
     # List of IPv6 addresses of all nodes in primary/standby site
     # TODO - handle multiple standby sites
     #'dr_nodes_ipaddr6')
     list=''
-        if [ "${_GENCONFIG_site_is_standby}" == "true" ] ; then
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ] ; then
         local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
         local cnt="${!var}"
         for index in $(seq ${cnt}); do
@@ -115,7 +115,7 @@ _get_firewall_props() {
             done
         fi
     fi
-    echo "dr_nodes_ipaddr6=$(echo ${list})"
+    echo "dr_nodes_ipaddr6=${list}"
 
     IFS="${OLD_IFS}"
     echo "network_nic_name=${_GENCONFIG_network_nic_name}"

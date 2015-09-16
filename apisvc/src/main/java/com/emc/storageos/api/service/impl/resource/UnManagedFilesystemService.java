@@ -682,7 +682,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             StringSet vnasStringSet = project.getAssignedVNasServers();
             if(vnasStringSet != null && !vnasStringSet.isEmpty()) {
                 //step -3 then check nasUri in project associated vnas list
-                if(vnasStringSet.contains(nasUri) == false) {
+                if(vnasStringSet.contains(nasUri) == false && virtualNAS.isNotAssignedToProject() == false) {
                     _logger.info("vNAS {} is assicated with other project", nasUri);
                     isIngestValid = false;
                 }

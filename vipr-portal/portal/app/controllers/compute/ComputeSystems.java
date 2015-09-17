@@ -137,9 +137,7 @@ public class ComputeSystems extends ViprResourceController {
 
     private static ComputeImageServersDataTable createComputeImageServersDataTable() {
         ComputeImageServersDataTable dataTable = new ComputeImageServersDataTable();
-        dataTable.alterColumn("name").hidden();
-        dataTable.alterColumn("computeImageServerStatus").setVisible(true);
-        dataTable.setDefaultSort("imageServerIp", "asc");
+        dataTable.setDefaultSort("name", "asc");
 
         return dataTable;
     }
@@ -470,8 +468,6 @@ public class ComputeSystems extends ViprResourceController {
             if (this.selectedComputeImageServer != null) {
                 ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(this.selectedComputeImageServer);
                 updateParam.setComputeImageServer(cisrr.getId());
-            } else {
-                System.out.println("update computeSystem.getComputeImageServer is null ");
             }
             updateParam.setUserName(this.userName);
             updateParam.setUseSSL(this.useSSL);

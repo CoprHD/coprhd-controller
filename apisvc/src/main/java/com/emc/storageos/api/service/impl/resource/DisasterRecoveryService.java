@@ -77,19 +77,65 @@ public class DisasterRecoveryService extends TaggedResource {
 
     /**
      * Attach one fresh install site to this primary as standby
+     * Or attach a primary site for the local standby site when it's first being added.
      * @param param site detail information
      * @return site response information
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public SiteRestRep addStandby(SiteAddParam param) {
+    public SiteRestRep addSite(SiteAddParam param) {
+        if (param.getIsPrimary()) {
+            log.info("Begin to add primary site {}", param);
+            return addPrimarySite(param);
+        } else {
+            log.info("Begin to add standby site {}", param);
+            return addStandbySite(param);
+        }
+    }
+
+    private SiteRestRep addPrimarySite(SiteAddParam param) {
+        VirtualDataCenter vdc = queryLocalVDC();
+
+        // this is the new standby site demoted from the current site
+        Site standbySite = new Site(URIUtil.createId(Site.class));
+        standbySite.setUuid(_coordinator.getSiteId());
+        standbySite.setName(param.getName());
+        standbySite.setVip(vdc.getApiEndpoint());
+        standbySite.setVdc(vdc.getId());
+        standbySite.getHostIPv4AddressMap().putAll(new StringMap(vdc.getHostIPv4AddressesMap()));
+        standbySite.getHostIPv6AddressMap().putAll(new StringMap(vdc.getHostIPv6AddressesMap()));
+        standbySite.setSecretKey(vdc.getSecretKey());
+
+        log.info("Persist standby site to DB");
+        _dbClient.createObject(standbySite);
+
+        // update the primary site
+        vdc.setApiEndpoint(param.getVip());
+        vdc.getHostIPv4AddressesMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
+        vdc.getHostIPv6AddressesMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+        vdc.setSecretKey(param.getSecretKey());
+
+        int hostCount = param.getHostIPv4AddressMap().size();
+        if (param.getHostIPv6AddressMap().size() > hostCount) {
+            hostCount = param.getHostIPv6AddressMap().size();
+        }
+        vdc.setHostCount(hostCount);
+
+        log.info("Persist primary site to DB");
+        _dbClient.updateAndReindexObject(vdc);
+
+        updateVdcTargetVersion();
+        
+        return siteMapper.map(standbySite);
+    }
+
+    private SiteRestRep addStandbySite(SiteAddParam param) {
         log.info("Retrieving standy site config from: {}", param.getVip());
         ViPRCoreClient viprClient = new ViPRCoreClient(param.getVip(), true).withLogin(param.getUser(),
                 param.getPassword());
         SiteRestRep standbyConfig = viprClient.site().getStandbyConfig();
 
-        log.info("Begin to add standby site {}", param);
         
         precheckForStandbyAttach(param);
 
@@ -98,8 +144,6 @@ public class DisasterRecoveryService extends TaggedResource {
         Site standbySite = new Site(URIUtil.createId(Site.class));
         siteMapper.map(param, standbySite);
         standbySite.setVdc(vdc.getId());
-        standbySite.setName(param.getName());
-        standbySite.setVip(param.getVip());
         standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
         standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
 
@@ -114,9 +158,10 @@ public class DisasterRecoveryService extends TaggedResource {
 
         log.info("Updating the primary site info to site: {}", param.getUuid());
         SiteAddParam primarySite = new SiteAddParam();
+        primarySite.setIsPrimary(true);
         primarySite.setHostIPv4AddressMap(new StringMap(vdc.getHostIPv4AddressesMap()));
         primarySite.setHostIPv6AddressMap(new StringMap(vdc.getHostIPv6AddressesMap()));
-        primarySite.setName("primary");
+        primarySite.setName(param.getName()); // this is the name for the standby site
         primarySite.setSecretKey(vdc.getSecretKey());
         primarySite.setUuid(_coordinator.getSiteId());
         primarySite.setVip(vdc.getApiEndpoint());
@@ -234,30 +279,6 @@ public class DisasterRecoveryService extends TaggedResource {
         
         log.info("Return result: {}", siteConfigRestRep);
         return siteConfigRestRep;
-    }
-    
-    /**
-     * Add primary site
-     * 
-     * @param param primary site configuration
-     * @return SiteRestRep primary site information
-     */
-    @POST
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/internal/standby/config")
-    public SiteRestRep addPrimary(SiteAddParam param) {
-        log.info("Begin to add primary site {}", param);
-
-        Site primarySite = toSite(param);
-        primarySite.setVdc(queryLocalVDC().getId());
-
-        log.info("Persist primary site to DB");
-        _dbClient.createObject(primarySite);
-
-        updateVdcTargetVersion();
-
-        return siteMapper.map(primarySite);
     }
 
     // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc

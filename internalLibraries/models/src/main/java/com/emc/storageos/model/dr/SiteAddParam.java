@@ -14,6 +14,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "site_add")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class SiteAddParam {
+    private boolean isPrimary;
     private String uuid;
     private String name;
     private String vip;
@@ -25,6 +26,15 @@ public class SiteAddParam {
     private String dbSchemaVersion;
     private boolean freshInstallation;
     private String secretKey;
+
+    @XmlElement(name = "is_primary")
+    public boolean getIsPrimary() {
+        return isPrimary;
+    }
+
+    public void setIsPrimary(boolean isPrimary) {
+        this.isPrimary = isPrimary;
+    }
 
     @XmlElement(name = "uuid")
     public String getUuid() {

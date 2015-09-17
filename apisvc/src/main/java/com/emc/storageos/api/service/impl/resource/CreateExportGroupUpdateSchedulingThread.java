@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +23,7 @@ import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.volumecontroller.BlockExportController;
+import com.google.common.base.Joiner;
 
 /**
  * Background thread that runs the placement, scheduling, and controller dispatching of an export group update
@@ -63,6 +63,8 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             Map<URI, Map<URI, Integer>> storageMap = exportGroupService.computeAndValidateVolumes(newVolumesMap, exportGroup,
                     exportUpdateParam);
             _log.info("Updated volumes belong to storage systems: {}", Joiner.on(',').join(storageMap.keySet()));
+            _log.info("Added volumes belong to storage systems: {}", Joiner.on(',').join(addedVolumesMap.keySet()));
+            _log.info("Removed volumes belong to storage systems: {}", Joiner.on(',').join(removedVolumesMap.keySet()));
 
             // Validate updated entries
             List<URI> newInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());

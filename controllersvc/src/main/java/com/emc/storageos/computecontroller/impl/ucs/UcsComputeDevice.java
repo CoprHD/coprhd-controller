@@ -518,7 +518,6 @@ public class UcsComputeDevice implements ComputeDevice {
 
                     _dbClient.persistObject(exportGroup);
 
-                    Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
                     Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
                     List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());

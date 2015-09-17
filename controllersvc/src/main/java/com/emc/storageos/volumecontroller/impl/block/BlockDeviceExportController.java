@@ -701,7 +701,8 @@ public class BlockDeviceExportController implements BlockExportController {
                 updatedVolumes.add(backendSrc);
                 // VPlex volume, check if it is distributed
                 Volume backendHa = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient, false);
-                if (backendHa.getVirtualPool().toString().equals(oldVpoolURI.toString())) {
+                if (backendHa != null && backendHa.getVirtualPool() != null &&
+                        backendHa.getVirtualPool().toString().equals(oldVpoolURI.toString())) {
                     backendHa.setVirtualPool(newVpoolURI);
                     rollbackList.add(backendHa.getId());
                     updatedVolumes.add(backendHa);

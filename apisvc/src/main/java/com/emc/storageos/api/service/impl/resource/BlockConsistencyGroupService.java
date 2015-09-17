@@ -416,12 +416,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.consistencyGroupNotCreated();
         }
 
-        // Fail the operation if the consistency group is of type RP and there is no corresponding
-        // native array CG.
-        if (consistencyGroup.checkForType(Types.RP) && !consistencyGroup.checkForType(Types.LOCAL)) {
-            throw APIException.badRequests.cannotCreateSnapshotNoArrayCgExistsForRPCG(consistencyGroup.getId());
-        }
-
         // Maintain pre-2.2 functionality for VPLEX CGs created prior to
         // release 2.2, which does not allow snapping a consistency group.
         URI cgStorageControllerURI = consistencyGroup.getStorageController();

@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
 import com.emc.storageos.model.compute.ComputeImageServerRestRep;
@@ -44,10 +45,10 @@ public class ComputeMapper {
         to.setUsername(from.getUsername());
         to.setVersion(from.getVersion());
         to.setOsInstallNetwork(from.getOsInstallNetwork());
-        if (from.getComputeImageServer()!=null){
-        	to.setComputeImageServer(from.getComputeImageServer().toString());
-        }else{
-        	to.setComputeImageServer("");
+        if (from.getComputeImageServer() != null) {
+            to.setComputeImageServer(from.getComputeImageServer().toString());
+        } else {
+            to.setComputeImageServer("");
         }
 
         // sort vlans as numbers
@@ -108,12 +109,51 @@ public class ComputeMapper {
         to.setImageType(from.getImageType());
         to.setComputeImageStatus(from.getComputeImageStatus());
         to.setLastImportStatusMessage(from.getLastImportStatusMessage());
+        List<NamedRelatedResourceRep> availableServersList = new ArrayList<NamedRelatedResourceRep>();
+        List<NamedRelatedResourceRep> failedServersList = new ArrayList<NamedRelatedResourceRep>();
+        to.setAvailableImageServers(availableServersList);
+        to.setFailedImageServers(failedServersList);
+
+        return to;
+    }
+
+    public static ComputeImageRestRep map(ComputeImage from, List<ComputeImageServer> availableServers,
+            List<ComputeImageServer> failedServers) {
+        if (from == null) {
+            return null;
+        }
+        ComputeImageRestRep to = new ComputeImageRestRep();
+        mapDataObjectFields(from, to);
+        to.setImageName(from.getImageName());
+        to.setImageUrl(from.getImageUrl());
+        to.setImageType(from.getImageType());
+        to.setComputeImageStatus(from.getComputeImageStatus());
+        to.setLastImportStatusMessage(from.getLastImportStatusMessage());
+        List<NamedRelatedResourceRep> availableServersList = new ArrayList<NamedRelatedResourceRep>();
+        List<NamedRelatedResourceRep> failedServersList = new ArrayList<NamedRelatedResourceRep>();
+        for (ComputeImageServer server : availableServers) {
+            NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
+            serverRep.setId(server.getId());
+            serverRep.setName(server.getImageServerIp());
+            availableServersList.add(serverRep);
+        }
+        for (ComputeImageServer server : failedServers) {
+            NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
+            serverRep.setId(server.getId());
+            serverRep.setName(server.getImageServerIp());
+            failedServersList.add(serverRep);
+        }
+
+        to.setAvailableImageServers(availableServersList);
+        to.setFailedImageServers(failedServersList);
+
         return to;
     }
 
     /**
      * Utility mapper method to map fields of {@link ComputeImageServer} columnFamily
-     *  to {@link ComputeImageServerRestRep} rest representation. 
+     * to {@link ComputeImageServerRestRep} rest representation.
+     * 
      * @param from
      * @return
      */

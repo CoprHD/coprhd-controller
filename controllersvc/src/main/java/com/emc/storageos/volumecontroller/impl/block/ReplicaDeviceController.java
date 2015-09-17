@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,6 +26,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -165,7 +167,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     log.info("Adding mirror steps for create {} volumes", firstVolumeDescriptor.getType());
                     // create new mirrors for the newly created volumes
                     // add the created mirrors to mirror groups
-                    // TODO
+                    waitFor = createMirrorSteps(workflow, waitFor, volumeDescriptors, volumeList, cgURI);
                 }
 
                 if (checkIfCGHasSnapshotReplica(volumeList)) {
@@ -258,6 +260,109 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         _dbClient.persistObject(volume);
 
         return clone;
+    }
+
+    /*
+     * 1. for each newly created volumes in a CG, create a clone
+     * 2. add all clones to an existing replication group
+     */
+    private String createMirrorSteps(final Workflow workflow, String waitFor,
+            final List<VolumeDescriptor> volumeDescriptors, List<Volume> volumeList, URI cgURI) {
+        log.info("START create mirror steps");
+        List<URI> sourceList = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        List<Volume> volumes = _dbClient.queryObject(Volume.class, sourceList);
+        URI storage = volumes.get(0).getStorageController();
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+
+        Set<String> repGroupNames = ControllerUtils.getMirrorReplicationGroupNames(volumeList, _dbClient);
+        if (repGroupNames.isEmpty()) {
+            return waitFor;
+        }
+
+        for (String repGroupName : repGroupNames) {
+            waitFor = addMirrorToReplicationGroupStep(workflow, waitFor, storageSystem, volumes, repGroupName, cgURI);
+        }
+
+        return waitFor;
+    }
+
+    private String addMirrorToReplicationGroupStep(final Workflow workflow, String waitFor, StorageSystem storageSystem,
+            List<Volume> volumes, String repGroupName, URI cgURI) {
+        log.info("START create mirror step");
+        URI storage = storageSystem.getId();
+        List<URI> mirrorList = new ArrayList<URI>();
+        for (Volume volume : volumes) {
+            String mirrorLabel = volume.getLabel() + "-" + repGroupName;
+            BlockMirror mirror = createMirror(volume, volume.getVirtualPool(), volume.getPool(), mirrorLabel);
+            URI mirrorId = mirror.getId();
+            mirrorList.add(mirrorId);
+            // TODO - use CreateListReplica to create mirrors of all volumes in one call
+            waitFor = _blockDeviceController.addStepsForCreateMirrors(workflow, waitFor, storage, 
+                    volume.getId(), Arrays.asList(mirrorId), false);
+        }
+
+        waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                String.format("Updating consistency group  %s", cgURI), waitFor, storage,
+                _blockDeviceController.getDeviceType(storage), this.getClass(),
+                addToReplicationGroupMethod(storage, cgURI, repGroupName, mirrorList),
+                _blockDeviceController.rollbackMethodNullMethod(), null);
+        log.info(String.format("Step created for adding mirror [%s] to group on device [%s]",
+                Joiner.on("\t").join(mirrorList), storage));
+
+        return waitFor;
+    }
+
+    /**
+     * Adds a BlockMirror structure for a Volume. It also calls addMirrorToVolume to
+     * link the mirror into the volume's mirror set.
+     * 
+     * @param volume Volume
+     * @param vPoolURI
+     * @param recommendedPoolURI Pool that should be used to create the mirror
+     * @param volumeLabel
+     * @return BlockMirror (persisted)
+     */
+    private BlockMirror createMirror(Volume volume, URI vPoolURI, URI recommendedPoolURI, String volumeLabel) {
+        BlockMirror createdMirror = new BlockMirror();
+        createdMirror.setSource(new NamedURI(volume.getId(), volume.getLabel()));
+        createdMirror.setId(URIUtil.createId(BlockMirror.class));
+        URI cgUri = volume.getConsistencyGroup();
+        if (!NullColumnValueGetter.isNullURI(cgUri)) {
+            createdMirror.setConsistencyGroup(cgUri);
+        }
+        createdMirror.setLabel(volumeLabel);
+        createdMirror.setStorageController(volume.getStorageController());
+        createdMirror.setVirtualArray(volume.getVirtualArray());
+        createdMirror.setProtocol(new StringSet());
+        createdMirror.getProtocol().addAll(volume.getProtocol());
+        createdMirror.setCapacity(volume.getCapacity());
+        createdMirror.setProject(new NamedURI(volume.getProject().getURI(), createdMirror.getLabel()));
+        createdMirror.setTenant(new NamedURI(volume.getTenant().getURI(), createdMirror.getLabel()));
+        createdMirror.setPool(recommendedPoolURI);
+        createdMirror.setVirtualPool(vPoolURI);
+        createdMirror.setSyncState(BlockMirror.SynchronizationState.UNKNOWN.toString());
+        createdMirror.setSyncType(BlockMirror.MIRROR_SYNC_TYPE);
+        createdMirror.setThinlyProvisioned(volume.getThinlyProvisioned());
+        _dbClient.createObject(createdMirror);
+        addMirrorToVolume(volume, createdMirror);
+        return createdMirror;
+    }
+
+    /**
+     * Adds a Mirror structure to a Volume's mirror set.
+     * 
+     * @param volume
+     * @param mirror
+     */
+    private void addMirrorToVolume(Volume volume, BlockMirror mirror) {
+        StringSet mirrors = volume.getMirrors();
+        if (mirrors == null) {
+            mirrors = new StringSet();
+        }
+        mirrors.add(mirror.getId().toString());
+        volume.setMirrors(mirrors);
+        // Persist changes
+        _dbClient.persistObject(volume);
     }
 
     static Workflow.Method addToReplicationGroupMethod(URI storage, URI consistencyGroup, String repGroupName,

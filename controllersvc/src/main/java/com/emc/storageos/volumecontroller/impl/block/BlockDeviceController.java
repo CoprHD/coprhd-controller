@@ -481,53 +481,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMirrorMethod(storage, asList(mirror)), null);
             }
         } else {
-            if (isMirrorCreationForNewlyAddedVolumes(sourceVolume, mirrorList)) {
-                for (URI mirror : mirrorList) {
-                    BlockMirror mirrorObj = _dbClient.queryObject(BlockMirror.class, mirror);
-                    workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
-                            String.format("Creating mirror for %s", mirrorObj.getSource()), waitFor, storage,
-                            getDeviceType(storage), this.getClass(),
-                            createMirrorMethod(storage, asList(mirror), false, false),
-                            rollbackMirrorMethod(storage, asList(mirror)), null);
-                }
-                Volume srcVolume = _dbClient.queryObject(Volume.class, sourceVolume);
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class,
-                        srcVolume.getConsistencyGroup());
-                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP, String.format(
-                        "Updating consistency group  %s", cg.getId()), CREATE_MIRRORS_STEP_GROUP, storage,
-                        getDeviceType(storage), this.getClass(),
-                        addToConsistencyGroupMethod(storage, cg.getId(), mirrorList),
-                        rollbackMethodNullMethod(), null);
-                _log.info(String.format("Step created for adding mirrors [%s] to CG [%s] on device [%s]",
-                        Joiner.on("\t").join(mirrorList), cg.getLabel(), storage));
-
-            } else {
                 workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
                         String.format("Creating mirror for %s", sourceVolume), waitFor,
                         storage, getDeviceType(storage),
                         this.getClass(),
                         createMirrorMethod(storage, mirrorList, isCG, false),
                         rollbackMirrorMethod(storage, mirrorList), null);
-            }
         }
         return CREATE_MIRRORS_STEP_GROUP;
-    }
-
-    private boolean isMirrorCreationForNewlyAddedVolumes(URI sourceVolumeURI,
-            List<URI> mirrorList) {
-        Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
-        URIQueryResultList cgVolumeList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getVolumesByConsistencyGroup(sourceVolume.getConsistencyGroup()), cgVolumeList);
-        int totalVolumeCount = 0;
-        while (cgVolumeList.iterator().hasNext()) {
-            Volume cgSourceVolume = _dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
-            if (cgSourceVolume != null) {
-                totalVolumeCount++;
-            }
-        }
-
-        return totalVolumeCount > mirrorList.size();
     }
 
     /**

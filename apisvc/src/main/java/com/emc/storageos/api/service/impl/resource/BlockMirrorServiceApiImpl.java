@@ -135,30 +135,18 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                 throw APIException.badRequests.invalidMirrorCountForVolumesInConsistencyGroup();
             }
 
-            List<URI> newVolumeList = getNewlyAddedVolumeList(sourceVolume);
-            if (!newVolumeList.isEmpty()) {
-                for (URI sourceVolumeURI : newVolumeList) {
-                    Volume srcVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
-                    _log.info("Processing volume {} in CG {}", srcVolume.getId(), srcVolume.getConsistencyGroup());
-                    VirtualPool cgVolumeVPool = _dbClient.queryObject(VirtualPool.class,
-                            srcVolume.getVirtualPool());
-                    populateVolumeRecommendations(capabilities, cgVolumeVPool, srcVolume, taskId, taskList,
-                            volumeCount, volumeCounter, volumeLabel, preparedVolumes, volumeRecommendations);
-                }
-            } else {
-                URIQueryResultList cgVolumeList = new URIQueryResultList();
-                _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                        .getVolumesByConsistencyGroup(sourceVolume.getConsistencyGroup()), cgVolumeList);
-                // Process all CG volumes to create a corresponding Mirror
-                // recommendation
-                while (cgVolumeList.iterator().hasNext()) {
-                    Volume cgSourceVolume = _dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
-                    _log.info("Processing volume {} in CG {}", cgSourceVolume.getId(), sourceVolume.getConsistencyGroup());
-                    VirtualPool cgVolumeVPool = _dbClient.queryObject(VirtualPool.class,
-                            cgSourceVolume.getVirtualPool());
-                    populateVolumeRecommendations(capabilities, cgVolumeVPool, cgSourceVolume, taskId, taskList,
-                            volumeCount, volumeCounter, volumeLabel, preparedVolumes, volumeRecommendations);
-                }
+            URIQueryResultList cgVolumeList = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getVolumesByConsistencyGroup(sourceVolume.getConsistencyGroup()), cgVolumeList);
+            // Process all CG volumes to create a corresponding Mirror
+            // recommendation
+            while (cgVolumeList.iterator().hasNext()) {
+                Volume cgSourceVolume = _dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
+                _log.info("Processing volume {} in CG {}", cgSourceVolume.getId(), sourceVolume.getConsistencyGroup());
+                VirtualPool cgVolumeVPool = _dbClient.queryObject(VirtualPool.class,
+                        cgSourceVolume.getVirtualPool());
+                populateVolumeRecommendations(capabilities, cgVolumeVPool, cgSourceVolume, taskId, taskList,
+                        volumeCount, volumeCounter, volumeLabel, preparedVolumes, volumeRecommendations);
             }
         } else {
             // Source Volume without CG
@@ -195,26 +183,6 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         }
 
         return taskList;
-    }
-
-    private List<URI> getNewlyAddedVolumeList(Volume sourceVolume) {
-        URIQueryResultList cgVolumeList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getVolumesByConsistencyGroup(sourceVolume.getConsistencyGroup()), cgVolumeList);
-        List<URI> newlyAddedVolList = new ArrayList<URI>();
-        int totalVolumeCount = 0;
-        while (cgVolumeList.iterator().hasNext()) {
-            totalVolumeCount++;
-            Volume cgSourceVolume = _dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
-            if (cgSourceVolume != null && (cgSourceVolume.getMirrors() == null || cgSourceVolume.getMirrors().size() == 0)) {
-                newlyAddedVolList.add(cgSourceVolume.getId());
-            }
-        }
-
-        if (totalVolumeCount > newlyAddedVolList.size()) {
-            return newlyAddedVolList;
-        }
-        return new ArrayList<>();
     }
 
     @Override

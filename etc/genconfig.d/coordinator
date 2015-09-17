@@ -11,8 +11,9 @@
 
 _get_coordinator_var() {
     local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
-    echo "--foreach:iter_primary:$(seq --separator=',' ${!var})"
-    for i in $(seq ${!var}) ; do
+    local primary_cnt="${!var}"
+    echo "--foreach:iter_primary:$(seq --separator=',' ${primary_cnt})"
+    for i in $(seq ${primary_cnt}) ; do
         local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr"
         local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr6"
         local ipaddr="${!var}"
@@ -23,7 +24,6 @@ _get_coordinator_var() {
     var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_node_count"
     local standby_cnt="${!var}"
     if [ -n "${standby_cnt}" ]; then
-        local primary_cnt="${_GENCONFIG_node_count}"
         echo "--foreach:iter_standby:$(seq --separator=',' $((${primary_cnt} + 1)) $((${primary_cnt} + ${standby_cnt})))"
         for standby_index in $(seq --separator=' ' $((${primary_cnt} + 1)) $((${primary_cnt} + ${standby_cnt}))); do
             var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_network_$((${standby_index} - ${primary_cnt}))_ipaddr"

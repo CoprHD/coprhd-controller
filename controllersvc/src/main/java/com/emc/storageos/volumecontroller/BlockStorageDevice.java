@@ -299,6 +299,20 @@ public interface BlockStorageDevice {
             throws DeviceControllerException;
 
     /**
+     * Create a single snapshot, using CreateElementReplica.
+     *
+     * @param storage
+     * @param snapshotList
+     * @param createInactive
+     * @param readOnly
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList,
+                                Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
+
+    /**
      * @param storage
      * @param snapshotList
      * @param createInactive
@@ -329,6 +343,17 @@ public interface BlockStorageDevice {
      */
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException;
+
+    /**
+     * Delete a single snapshot.
+     *
+     * @param storage
+     * @param snapshot
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    void doDeleteSelectedSnapshot(StorageSystem storage, URI snapshot,
+                                  TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException;

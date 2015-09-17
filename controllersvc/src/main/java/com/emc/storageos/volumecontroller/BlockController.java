@@ -107,6 +107,19 @@ public interface BlockController extends BlockStorageManagementController {
     public void deleteVolumes(URI storage, List<URI> volumeURIs, String opId) throws InternalException;
 
     /**
+     * Create a single snapshot using CreateElementReplica.
+     *
+     * @param storage
+     * @param snapshotList
+     * @param createInactive
+     * @param readOnly
+     * @param opId
+     * @throws ControllerException
+     */
+    void createSingleSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
+            throws ControllerException;
+
+    /**
      * Create a snapshot or snapshots of a volume or volumes.
      * Open issue: need to allow snapshots with different CoS & pool
      * 

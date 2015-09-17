@@ -902,8 +902,6 @@ public class BlockService extends TaskResourceService {
                 }
             }
 
-            checkCGForSnapshots(consistencyGroup);
-
             // Creating new volumes in a consistency group is
             // not supported when the consistency group has
             // volumes with full copies to which they are still
@@ -1809,8 +1807,6 @@ public class BlockService extends TaskResourceService {
         }
 
         BlockServiceApi blockServiceApi = getBlockServiceImpl(volume);
-
-        ArgValidator.checkReference(Volume.class, id, blockServiceApi.checkForDelete(volume));
 
         List<URI> volumeURIs = new ArrayList<URI>();
         volumeURIs.add(id);

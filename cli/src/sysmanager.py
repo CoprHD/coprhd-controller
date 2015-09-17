@@ -626,19 +626,20 @@ class Monitoring(object):
 
     def get_stats(self, nodeid , nodename):
         
+        uri = Monitoring.URI_MONITOR_STATS
+        
         if(nodeid is not None):
             uri = Monitoring.URI_MONITOR_STATS + "?node_id=" + nodeid
         if(nodename is not None):
             uri = Monitoring.URI_MONITOR_STATS + "?node_name=" + nodename
+        
             
-        if(nodeid and nodename):
-            uri = Monitoring.URI_MONITOR_STATS + "?node_id=" + nodeid + "&node_name=" + nodename
-        else:
-            uri = Monitoring.URI_MONITOR_STATS
-
+            
+        
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", uri,
                                              None)
+        
         if(not s):
             return None
 
@@ -648,15 +649,13 @@ class Monitoring(object):
 
     def get_health(self, nodeid , nodename):
         
+        uri = Monitoring.URI_MONITOR_HEALTH
+        
         if(nodeid is not None):
             uri = Monitoring.URI_MONITOR_HEALTH + "?node_id=" + nodeid
         if(nodename is not None):
             uri = Monitoring.URI_MONITOR_HEALTH + "?node_name=" + nodename
 
-        if(nodeid is not None and nodename is not None):
-            uri = Monitoring.URI_MONITOR_HEALTH + "?node_id=" + nodeid + "&node_name=" + nodename
-        else:
-            uri = Monitoring.URI_MONITOR_HEALTH
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", uri,
@@ -670,20 +669,21 @@ class Monitoring(object):
 
     def get_diagnostics(self, nodeid,nodename , verbose):
 
-        if(verbose):
+        
+        uri = Monitoring.URI_MONITOR_DIAGNOSTICS
+        
+        if(nodeid is not None and verbose == True):
+            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_id=" + nodeid + "&verbose=1"
+        if(nodename is not None and verbose == True):
+            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_name=" + nodename + "&verbose=1"
+        if(nodeid is None and nodename is None and  verbose == True):
             uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?verbose=1"
-        else:
-            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?verbose=0"
-            
-        if(nodeid is not None):
-            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_id=" + nodeid
-        if(nodename is not None):
-            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_name=" + nodename
-    
-
-        if(nodeid and nodename):
-            uri = uri + "&node_id=" + nodeid + "&node_name=" + nodename
-
+        if(nodename is not None and verbose == False):
+            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_name=" + nodename + "&verbose=0"
+        if(nodeid is not None and verbose == False):
+            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_id=" + nodeid + "&verbose=0"
+        
+           
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", uri,
                                              None)
@@ -1858,13 +1858,11 @@ def get_stats_parser(subcommand_parsers, common_parser):
     get_stats_parser.add_argument('-node', '-nd',
                                   metavar='<node>',
                                   dest='node',
-                                  help='Node',
-                                  default='')
+                                  help='Node')
     get_stats_parser.add_argument('-nodename', '-ndname',
                                   metavar='<node>',
                                   dest='nodename',
-                                  help='Node',
-                                  default='')
+                                  help='Node')
 
 
     get_stats_parser.set_defaults(func=get_stats)
@@ -1873,6 +1871,10 @@ def get_stats_parser(subcommand_parsers, common_parser):
 def get_stats(args):
     obj = Monitoring(args.ip, Monitoring.DEFAULT_SYSMGR_PORT)
     try:
+        if(args.node is not None and args.nodename is not None):
+            print "Enter Either Nodename or NodeID "
+            return
+        
         return common.format_json_object(obj.get_stats(args.node , args.nodename))
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -1894,13 +1896,11 @@ def get_health_parser(subcommand_parsers, common_parser):
     get_health_parser.add_argument('-node', '-nd',
                                    metavar='<node>',
                                    dest='node',
-                                   help='Node',
-                                   default='')
+                                   help='Node')
     get_health_parser.add_argument('-nodename', '-ndname',
                                    metavar='<node>',
                                    dest='nodename',
-                                   help='Node',
-                                   default='')
+                                   help='Node')
 
 
     get_health_parser.set_defaults(func=get_health)
@@ -1909,6 +1909,10 @@ def get_health_parser(subcommand_parsers, common_parser):
 def get_health(args):
     obj = Monitoring(args.ip, Monitoring.DEFAULT_SYSMGR_PORT)
     try:
+        if(args.node is not None and args.nodename is not None):
+            print "Enter Either Nodename or NodeID "
+            return
+        
         return common.format_json_object(obj.get_health(args.node,args.nodename))
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -1930,14 +1934,12 @@ def get_diagnostics_parser(subcommand_parsers, common_parser):
     get_diagnostics_parser.add_argument('-node', '-nd',
                                         metavar='<node>',
                                         dest='node',
-                                        help='Node',
-                                        default='')
+                                        help='Node')
     
     get_diagnostics_parser.add_argument('-nodename', '-ndname',
                                         metavar='<node>',
                                         dest='nodename',
-                                        help='Node',
-                                        default='')
+                                        help='Node')
 
     get_diagnostics_parser.add_argument('-verbose', '-v',
                                         action='store_true',
@@ -1950,6 +1952,9 @@ def get_diagnostics_parser(subcommand_parsers, common_parser):
 def get_diagnostics(args):
     obj = Monitoring(args.ip, Monitoring.DEFAULT_SYSMGR_PORT)
     try:
+        if(args.node is not None and args.nodename is not None):
+            print "Enter Either Nodename or NodeID "
+            return
         return common.format_json_object(
             obj.get_diagnostics(args.node,args.nodename, args.verbose))
     except SOSError as e:

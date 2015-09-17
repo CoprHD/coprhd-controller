@@ -72,7 +72,7 @@ class ControlService(object):
 
     def restartService(self, nodeId, serviceName , nodename):
         
-        print nodeId + " and " + serviceName 
+         
         if (nodename is not None and serviceName is not None ):
             uri = ControlService.URI_CONTROL_SERVICE_RESTART + "?node_name=" + nodename + "&name=" + serviceName
         if (nodeId is not None and serviceName is not None):

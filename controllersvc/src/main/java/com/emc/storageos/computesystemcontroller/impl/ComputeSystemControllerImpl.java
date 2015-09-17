@@ -769,7 +769,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public void updateExportGroup(URI exportGroup, Map<URI, Integer> newVolumesMap,
             List<URI> newClusters, List<URI> newHosts, List<URI> newInitiators, String stepId) {
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
-        blockController.exportGroupUpdate(exportGroup, newVolumesMap, newClusters,
+        blockController.exportGroupUpdate(exportGroup, newVolumesMap, null, newClusters,
                 newHosts, newInitiators, stepId);
     }
 

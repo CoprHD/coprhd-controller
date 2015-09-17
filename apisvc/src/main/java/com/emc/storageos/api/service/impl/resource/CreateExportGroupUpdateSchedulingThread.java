@@ -6,6 +6,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -55,7 +56,10 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
     public void run() {
         _log.info("Starting scheduling for export group update thread...");
         try {
-            Map<URI, Integer> newVolumesMap = exportGroupService.getUpdatedVolumesMap(exportUpdateParam, exportGroup);
+            Map<URI, Integer> addedVolumesMap = new HashMap<URI, Integer>();
+            Map<URI, Integer> removedVolumesMap = new HashMap<URI, Integer>();
+            Map<URI, Integer> newVolumesMap = exportGroupService.getUpdatedVolumesMap(
+                    exportUpdateParam, exportGroup, addedVolumesMap, removedVolumesMap);
             Map<URI, Map<URI, Integer>> storageMap = exportGroupService.computeAndValidateVolumes(newVolumesMap, exportGroup,
                     exportUpdateParam);
             _log.info("Updated volumes belong to storage systems: {}", Joiner.on(',').join(storageMap.keySet()));
@@ -72,7 +76,8 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             // push it to storage devices
             BlockExportController exportController = exportGroupService.getExportController();
             _log.info("Submitting export group update request.");
-            exportController.exportGroupUpdate(exportGroup.getId(), newVolumesMap, newClusters, newHosts, newInitiators, task);
+            exportController.exportGroupUpdate(exportGroup.getId(), addedVolumesMap, removedVolumesMap,
+                    newClusters, newHosts, newInitiators, task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(), (ServiceCoded) ex);

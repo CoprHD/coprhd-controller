@@ -1187,15 +1187,18 @@ public class ExportGroupService extends TaskResourceService {
      * 
      * @param param
      * @param exportGroup the export group
-     * @return the
+     * @param addedVolumesMap - OUT parameter filled with the added volumes
+     * @param removedVolumesMap -- OUT parameter filled with the removed volumes
+     * @return the VolumesMap updated with additions / deletions
      */
     Map<URI, Integer> getUpdatedVolumesMap(ExportUpdateParam param,
-            ExportGroup exportGroup) {
+            ExportGroup exportGroup, Map<URI, Integer> addedVolumesMap, Map<URI, Integer> removedVolumesMap) {
         Map<URI, Integer> newVolumes = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
+       
+        addedVolumesMap.putAll(getChangedVolumes(param, true));
+        removedVolumesMap.putAll(getChangedVolumes(param, false));
         // get the new block objects map
-        Map<URI, Integer> addedVolumesMap = getChangedVolumes(param, true);
         _log.info("Added volumes list: {}", Joiner.on(',').join(addedVolumesMap.keySet()));
-        Map<URI, Integer> removedVolumesMap = getChangedVolumes(param, false);
         _log.info("Removed volumes list: {}", Joiner.on(',').join(removedVolumesMap.keySet()));
         // remove old volumes - Do not check if the volume existed indeed or not
         // we should allow re-entry and account for the possibility that the db is

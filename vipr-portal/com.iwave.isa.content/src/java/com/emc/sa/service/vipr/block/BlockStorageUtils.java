@@ -21,7 +21,9 @@ import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 
+import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
@@ -102,6 +104,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class BlockStorageUtils {
+    private static final Logger log = Logger.getLogger(BlockStorageUtils.class);
     public static final String COPY_NATIVE = "native";
     public static final String COPY_RP = "rp";
     public static final String COPY_SRDF = "srdf";
@@ -442,18 +445,23 @@ public class BlockStorageUtils {
             ExportGroupRestRep export = getExport(exportId);
             if (ResourceUtils.isActive(export) && export.getVolumes().isEmpty()) {
                 try {
-                Task<ExportGroupRestRep> response = execute(new DeactivateBlockExport(exportId));
-                addAffectedResource(response);
-                } catch (ServiceErrorException e) {
-                    if (retryCount++ < MAX_RETRY_COUNT 
-                            && ServiceCode.toServiceCode(e.getCode()) == ServiceCode.API_TASK_EXECUTION_IN_PROGRESS) {
-                        retryNeeded = true;
-                        try {
-                            Thread.sleep(RETRY_DELAY_MSEC);
-                        } catch (Exception ex) {
+                    log.info(String.format("Attampting deletion of ExportGroup %s (%s)", export.getGeneratedName(), export.getId()));
+                    Task<ExportGroupRestRep> response = execute(new DeactivateBlockExport(exportId));
+                    addAffectedResource(response);
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof ServiceErrorException) {
+                        ServiceErrorException svcexp =(ServiceErrorException) e.getCause();
+                        if (retryCount++ < MAX_RETRY_COUNT 
+                                && ServiceCode.toServiceCode(svcexp.getCode()) == ServiceCode.API_TASK_EXECUTION_IN_PROGRESS) {
+                            log.info(String.format("ExportGroup %s deletion waiting on pending task execution", export.getId()));
+                            retryNeeded = true;
+                            try {
+                                Thread.sleep(RETRY_DELAY_MSEC);
+                            } catch (Exception ex) {
+                            }
+                        } else {
+                            throw e;
                         }
-                    } else {
-                        throw e;
                     }
                 }
             } 

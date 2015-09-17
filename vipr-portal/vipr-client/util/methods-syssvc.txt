@@ -88,9 +88,5 @@
         POST sendInternalAlert
     /callhome/alert/
         POST sendAlert
-    /callhome//alert/{id}/tasks/
-        GET getTasks
-    /callhome//alert/{id}/tasks/{op_id}/
-        GET getTask
     /callhome/esrs-device/
         GET getNodeDataForEsrs

@@ -180,17 +180,17 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
      * @param portWwnToClusterMap
      * @return
      */
-    public Method validateExportMaskMethod(URI varrayURI,
+    public Method updateZoningMapAndValidateExportMaskMethod(URI varrayURI,
             Map<URI, List<StoragePort>> initiatorPortMap, URI exportMaskURI,
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
-            Map<String, String> portWwnToClusterMap) {
-        return new Workflow.Method("validateExportMask",
+            Map<String, String> portWwnToClusterMap, StorageSystem vplex, StorageSystem array, String clusterId) {
+        return new Workflow.Method("updateZoningMapAndvalidateExportMask",
                 varrayURI,
                 initiatorPortMap,
                 exportMaskURI,
                 directorToInitiatorIds,
                 idToInitiatorMap,
-                portWwnToClusterMap);
+                portWwnToClusterMap, vplex, array, clusterId);
     }
 
     /**
@@ -210,19 +210,31 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
      * @param dbClient
      * @param portWwnToClusterMap
      */
-    public void validateExportMask(URI varrayURI,
+    public void updateZoningMapAndvalidateExportMask(URI varrayURI,
             Map<URI, List<StoragePort>> initiatorPortMap, URI exportMaskURI,
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
-            Map<String, String> portWwnToClusterMap, String stepId) {
-
+            Map<String, String> portWwnToClusterMap, StorageSystem vplex,
+            StorageSystem array, String clusterId, String stepId) {
+        
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
-
             // Export Mask is updated, read it from DB
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
+            
+            // First step would be to update the zoning map based on the connectivity
+            updateZoningMap(initiatorPortMap, exportMask);
+            
+            boolean passed = VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
                     idToInitiatorMap, _dbClient, portWwnToClusterMap);
-
+            
+            if(!passed) {
+                _log.error("Export Mask is not suitable for VPLEX to backend storage system");
+                WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
+                        vplex.getNativeGuid(), array.getNativeGuid(), clusterId));                
+                throw VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
+                        vplex.getNativeGuid(), array.getNativeGuid(), clusterId);
+            }
+            
             WorkflowStepCompleter.stepSucceded(stepId);
 
         } catch (Exception ex) {
@@ -231,6 +243,88 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
 
+    }
+
+    /**
+     * Update the zoning map entries from the updated target list in the mask
+     * 
+     * 1. Clean existing zoning map entries
+     * 2. From the target storage ports in the mask, generate a map of networkURI vs list of target storage ports
+     * 3. From the initiator ports in the mask, generate a map of InitiatorWWN vs its URI
+     * 4. From the initiatorPortMap, generate URI vs their WWN List
+     * 5. Based on the networkURI matching, generate zoning map entries.
+     * 6. Persist the updated mask.
+     * 
+     * @param initiatorPortMap
+     * @param exportMask
+     */
+    private void updateZoningMap(Map<URI, List<StoragePort>> initiatorPortMap, ExportMask exportMask) {
+        
+        //STEP 1 - Clean the existing zoning map
+        for (String initiatorURIStr : exportMask.getZoningMap().keySet()) {
+            exportMask.removeZoningMapEntry(initiatorURIStr);
+        }
+        exportMask.setZoningMap(null);
+        
+        // STEP 2- From Back-end storage system ports, which are used as target storage ports for VPLEX
+        // generate a map of networkURI vs list of target storage ports.
+        Map<URI, List<StoragePort>> nwUriVsTargetPortsFromMask = new HashMap<>();
+        StringSet targetPorts = exportMask.getStoragePorts();
+        for(String targetPortUri : targetPorts) {
+            StoragePort targetPort = _dbClient.queryObject(StoragePort.class, URI.create(targetPortUri));
+            URI networkUri = targetPort.getNetwork();
+            if(nwUriVsTargetPortsFromMask.containsKey(networkUri)) {
+                nwUriVsTargetPortsFromMask.get(networkUri).add(targetPort);
+            } else {
+                nwUriVsTargetPortsFromMask.put(networkUri, new ArrayList<StoragePort>());
+                nwUriVsTargetPortsFromMask.get(networkUri).add(targetPort);
+            }           
+        }
+        
+        // STEP 3 - From the initiator ports in the mask, generate a map of InitiatorWWN vs its URI
+        Map<String, URI> initiatorWWNvsUriFromMask = new HashMap<>();
+        StringSet initiatorPorts = exportMask.getInitiators();
+        for(String initiatorUri : initiatorPorts) {
+            Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorUri));
+            String initiatorWWN = initiator.getInitiatorPort();
+            initiatorWWNvsUriFromMask.put(initiatorWWN, initiator.getId());
+        }
+        
+        // STEP 4 - Convert networkURIvsStoragePort to networkURIvsInitiatorPortWWNs
+        Map<URI, List<String>> networkURIvsInitiatorPortWWNList = new HashMap<>();
+        Set<URI> networkURIs = initiatorPortMap.keySet();
+        for(URI networkURI : networkURIs) {
+            List<StoragePort> initiatorPortList = initiatorPortMap.get(networkURI);
+            List<String> initiatorWWNList = new ArrayList<>(initiatorPortList.size());
+            for(StoragePort initPort : initiatorPortList) {
+                initiatorWWNList.add(initPort.getPortNetworkId());
+            }
+            networkURIvsInitiatorPortWWNList.put(networkURI, initiatorWWNList);            
+        }
+        
+        // SETP 5 - Build the zoning map entries and add to mask
+        Set<String> initiatorWWNKeys = initiatorWWNvsUriFromMask.keySet();
+        Set<URI> networkURIKeys = networkURIvsInitiatorPortWWNList.keySet();
+        for(String wwn : initiatorWWNKeys) {
+            for(URI nwUri : networkURIKeys) {
+                if(networkURIvsInitiatorPortWWNList.get(nwUri).contains(wwn)) {
+                    List<StoragePort> matchingTargetPorts = nwUriVsTargetPortsFromMask.get(nwUri);
+                    String initiatorURI = initiatorWWNvsUriFromMask.get(wwn).toString();
+                    StringSet targetPortURIs = new StringSet();
+                    for(StoragePort matchedPort : matchingTargetPorts) {
+                        targetPortURIs.add(matchedPort.getId().toString());
+                    }
+                    //Add zoning map entry
+                    _log.info(String.format("Adding zoning map entry - Initiator is %s and its targetPorts %s",
+                            initiatorURI, targetPortURIs.toString()));
+                    exportMask.addZoningMapEntry(initiatorURI, targetPortURIs);
+                }
+            }
+        }
+        
+        // STEP 6 - persist the mask
+        _dbClient.updateAndReindexObject(exportMask);
+        
     }
 
     @Override

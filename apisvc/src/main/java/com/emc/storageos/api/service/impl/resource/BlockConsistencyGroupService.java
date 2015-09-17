@@ -1794,8 +1794,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // to operate off of.
         Copy updatedCopy = new Copy(copy.getType(), copy.getSync(), targetVolume.getId(),
                 copy.getName(), copy.getCount());
-        updatedCopy.setCopyMode(copy.getCopyMode());
-        updatedCopy.setSyncDirection(copy.getSyncDirection());
 
         controller.performProtectionOperation(system.getId(), updatedCopy, op, task);
 

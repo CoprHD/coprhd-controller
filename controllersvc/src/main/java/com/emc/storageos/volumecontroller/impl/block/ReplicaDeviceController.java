@@ -263,8 +263,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
     /*
-     * 1. for each newly created volumes in a CG, create a clone
-     * 2. add all clones to an existing replication group
+     * 1. for each newly created volumes in a CG, create a mirror
+     * 2. add all mirrors to an existing replication group
      */
     private String createMirrorSteps(final Workflow workflow, String waitFor,
             final List<VolumeDescriptor> volumeDescriptors, List<Volume> volumeList, URI cgURI) {
@@ -376,7 +376,6 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         TaskCompleter taskCompleter = null;
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            // TODO - define new completer
             taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
             _blockDeviceController.getDevice(storageSystem.getSystemType()).doAddToReplicationGroup(
                     storageSystem, consistencyGroup, replicationGroupName, addVolumesList, taskCompleter);
@@ -513,7 +512,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
     /*
-     * remove all clones of the to be deleted volumes in a CG
+     * Detach all clones of the to be deleted volumes in a CG
      */
     private String detachCloneSteps(final Workflow workflow, String waitFor, Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {
         log.info("START detach clone steps");
@@ -579,7 +578,6 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         TaskCompleter taskCompleter = null;
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            // TODO - define new completer
             taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
             _blockDeviceController.getDevice(storageSystem.getSystemType()).doRemoveFromReplicationGroup(
                     storageSystem, consistencyGroup, repGroupName, addVolumesList, taskCompleter);
@@ -595,36 +593,36 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     @Override
     public String addStepsForPostDeleteVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes,
             String taskId, VolumeWorkflowCompleter completer) {
-        // TODO Auto-generated method stub
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     @Override
     public String addStepsForExpandVolume(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
             String taskId) throws InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     @Override
     public String addStepsForChangeVirtualPool(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes,
             String taskId) throws InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     @Override
     public String addStepsForChangeVirtualArray(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes,
             String taskId) throws InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     @Override
     public String addStepsForRestoreVolume(Workflow workflow, String waitFor, URI storage, URI pool, URI volume, URI snapshot,
             Boolean updateOpStatus, String taskId, BlockSnapshotRestoreCompleter completer) throws InternalException {
-        // TODO Auto-generated method stub
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     public void rollbackMethodNull(String stepId) throws WorkflowException {

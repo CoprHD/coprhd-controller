@@ -34,15 +34,6 @@ public class SiteMapper {
         to.setHostIPv6AddressMap(from.getHostIPv6AddressMap());
         to.setSecretKey(from.getSecretKey());
     }
-    
-    public void map(SiteAddParam siteAddParam, Site site) {
-        site.setUuid(siteAddParam.getUuid());
-        site.setName(siteAddParam.getName());
-        site.setVip(siteAddParam.getVip());
-        site.getHostIPv4AddressMap().putAll(new StringMap(siteAddParam.getHostIPv4AddressMap()));
-        site.getHostIPv6AddressMap().putAll(new StringMap(siteAddParam.getHostIPv6AddressMap()));
-        site.setSecretKey(siteAddParam.getSecretKey());
-    }
 
     protected void mapDataObjectFields(Site from, SiteRestRep to) {
         DbObjectMapper.mapDataObjectFields(from, to);

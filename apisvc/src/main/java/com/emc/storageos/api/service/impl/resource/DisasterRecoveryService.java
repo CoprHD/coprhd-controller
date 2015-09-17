@@ -142,10 +142,13 @@ public class DisasterRecoveryService extends TaggedResource {
         VirtualDataCenter vdc = queryLocalVDC();
 
         Site standbySite = new Site(URIUtil.createId(Site.class));
-        siteMapper.map(param, standbySite);
+        standbySite.setName(param.getName());
+        standbySite.setVip(param.getVip());
         standbySite.setVdc(vdc.getId());
         standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
         standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
+        standbySite.setSecretKey(standbyConfig.getSecretKey());
+        standbySite.setUuid(standbyConfig.getUuid());
 
         if (log.isDebugEnabled()) {
             log.debug(standbySite.toString());
@@ -371,7 +374,7 @@ public class DisasterRecoveryService extends TaggedResource {
         try {
             //standby should be refresh install
             if (standby.isFreshInstallation() == false) {
-                throw new Exception("Standby is not refresh installation");
+                throw new Exception("Standby is not a fresh installation");
             }
             
             //DB schema version should be same

@@ -334,9 +334,7 @@ public class VolumeIngestionUtil {
     public static List<BlockObject> getVolumeObjects(StringSet targets, Map<String, BlockObject> createdObjectMap, DbClient dbClient) {
         List<BlockObject> targetUriList = new ArrayList<BlockObject>();
         for (String targetId : targets) {
-            _logger.info("targets are " + targets);
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(targetId));
-            _logger.info("targetUris are " + targetUris);
             if (null != targetUris && !targetUris.isEmpty()) {
                 for (URI targetUri : targetUris) {
                     BlockObject bo = (BlockObject) dbClient.queryObject(targetUri);
@@ -2059,8 +2057,6 @@ public class VolumeIngestionUtil {
         }
     }
 
-    
-    
     /**
      * This method will clear the internal flags set during ingestion.
      * Before clearing the flags check if there is any unmanaged volume corresponding to the block object.

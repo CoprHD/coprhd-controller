@@ -103,13 +103,14 @@ public class FileStorageScheduler {
                 break;
             }
         }
-        _log.info("Best vNAS selected: {}", firstVNAS.getNasName());
-        List<StoragePool> recommendedPools = vNASPoolMap.get(firstVNAS);
+        if (firstVNAS != null) {
+            _log.info("Best vNAS selected: {}", firstVNAS.getNasName());
+            List<StoragePool> recommendedPools = vNASPoolMap.get(firstVNAS);
 
-        if (recommendedPools != null && !recommendedPools.isEmpty()) {
-            candidatePools = recommendedPools;
+            if (recommendedPools != null && !recommendedPools.isEmpty()) {
+                candidatePools = recommendedPools;
+            }
         }
-
         // Get the recommendations for the candidate pools.
         List<Recommendation> poolRecommendations = _scheduler
                 .getRecommendationsForPools(vArray.getId().toString(),
@@ -121,13 +122,13 @@ public class FileStorageScheduler {
                     vArray.getId(), vPool, poolRecommendations);
         }
 
-        if (fileRecommendations.isEmpty()) {
+        if (fileRecommendations == null || fileRecommendations.isEmpty()) {
             fileRecommendations = selectStorageHADomainMatchingVpool(vPool,
                     vArray.getId(), poolRecommendations);
         }
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
-        if (fileRecommendations.isEmpty()) {
+        if (fileRecommendations == null || fileRecommendations.isEmpty()) {
             _log.error(
                     "Could not find matching pools for virtual array {} & vpool {}",
                     vArray.getId(), vPool.getId());

@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.COPIES;
+import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUME;
 
 import java.net.URI;
@@ -17,6 +18,9 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("ResynchronizeFullCopy")
 public class ResynchronizeFullCopyService extends ViPRService {
 
+    @Param(value = STORAGE_TYPE, required = false)
+    protected String storageType;
+
     @Param(value = VOLUME, required = false)
     protected URI consistencyGroupId;
 
@@ -25,12 +29,13 @@ public class ResynchronizeFullCopyService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        if (consistencyGroupId != null && !"NONE".equals(consistencyGroupId.toString())) {
+
+        if (ConsistencyUtils.isVolumeStorageType(storageType)) {
+            BlockStorageUtils.resynchronizeFullCopies(uris(copyIds));
+        } else {
             for (URI copyId : uris(copyIds)) {
                 ConsistencyUtils.resynchronizeFullCopy(consistencyGroupId, copyId);
             }
-        } else {
-            BlockStorageUtils.resynchronizeFullCopies(uris(copyIds));
         }
     }
 

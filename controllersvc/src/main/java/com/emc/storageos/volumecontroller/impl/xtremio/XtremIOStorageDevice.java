@@ -162,6 +162,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     volume.setNativeId(createdVolume.getVolInfo().get(0));
                     volume.setWWN(createdVolume.getVolInfo().get(0));
                     volume.setDeviceLabel(volume.getLabel());
+                    volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
                     // When a volume is created, the WWN field will be empty, hence use the volume's native Id as WWN
                     // If the REST API wwn field is populated, then use it.
                     if (!createdVolume.getWwn().isEmpty()) {
@@ -250,13 +251,20 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
             for (Volume volume : volumes) {
                 try {
-                    if (null != XtremIOProvUtils
-                            .isVolumeAvailableInArray(client, volume.getLabel(), clusterName)) {
+                    if (null != XtremIOProvUtils.isVolumeAvailableInArray(client, volume.getLabel(), clusterName)) {
+                        if (volume.getConsistencyGroup() != null) {
+                            BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
+                                    volume.getConsistencyGroup());
+                            // first remove the volume from cg and then delete
+                            _log.info("Removing the volume {} from consistency group {}", volume.getLabel(), consistencyGroupObj.getLabel());
+                            client.removeVolumeFromConsistencyGroup(volume.getLabel(), consistencyGroupObj.getLabel(), clusterName);
+                        }
+                        _log.info("Deleting the volume {}", volume.getLabel());
                         client.deleteVolume(volume.getLabel(), clusterName);
                     }
                     volume.setInactive(true);
+                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                     dbClient.persistObject(volume);
-
                 } catch (Exception e) {
                     failedVolumes.add(volume.getLabel());
                     _log.error("Error during volume {} delete.", volume.getLabel(), e);

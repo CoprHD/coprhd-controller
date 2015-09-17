@@ -2060,7 +2060,10 @@ public class BasePermissionsHelper {
 
         Iterator<ACLEntry> aclEntryIt = aclEntries.iterator();
         while (aclEntryIt.hasNext()) {
-            tenantUris.add(URI.create(aclEntryIt.next().getTenant()));
+            ACLEntry aclEntry = aclEntryIt.next();
+            if (!CollectionUtils.isEmpty(aclEntry.getAces())) {
+                tenantUris.add(URI.create(aclEntry.getTenant()));
+            }
         }
 
         return tenantUris;

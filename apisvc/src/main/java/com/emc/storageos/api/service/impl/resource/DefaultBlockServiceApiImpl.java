@@ -21,6 +21,8 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -71,16 +73,14 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood,
-            VirtualPool cos, List<Recommendation> recommendations, String task,
-            VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
-
-        TaskList taskList = new TaskList();
+            VirtualPool cos, List<Recommendation> recommendations, TaskList taskList,
+            String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
         // Prepare the Bourne Volumes to be created and associated
         // with the actual storage system volumes created. Also create
         // a BlockTaskList containing the list of task resources to be
         // returned for the purpose of monitoring the volume creation
         // operation for each volume to be created.
-        int volumeCounter = 1;
+        int volumeCounter = 0;
         String volumeLabel = param.getName();
         List<Volume> preparedVolumes = new ArrayList<Volume>();
         final BlockConsistencyGroup consistencyGroup = cosCapabilities.getBlockConsistencyGroup() == null ? null : _dbClient
@@ -94,6 +94,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         // Prepare the volume descriptors based on the recommendations
         final List<VolumeDescriptor> volumeDescriptors = prepareVolumeDescriptors(preparedVolumes, cosCapabilities);
 
+        // Log volume descriptor information
+        logVolumeDescriptorPrecreateInfo(volumeDescriptors, task);
+        
         final BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
 

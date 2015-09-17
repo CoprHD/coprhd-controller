@@ -14,9 +14,6 @@ class ControlService(object):
 
     # URIs
     URI_CONTROL_CLUSTER_POWEROFF = '/control/cluster/poweroff'
-    #URI_CONTROL_NODE_REBOOT = '/control/node/reboot?node_id={0}'
-    #URI_CONTROL_SERVICE_RESTART = \
-     #   '/control/service/restart?node_id={0}&name={1}'
     URI_CONTROL_NODE_REBOOT = '/control/node/reboot'
     URI_CONTROL_SERVICE_RESTART = '/control/service/restart'
     URI_TASK_DELETE = '/vdc/tasks/{0}/delete'

@@ -871,7 +871,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     private static final long CACHE_TIMEOUT = 1800000; // 30 minutes
     private Map<String, Map<String, String>> vplexToClusterIdToNameMap;
     private Map<String, Map<String, String>> vplexToVarrayToClusterIdMap;
-    private VplexBackendIngestionContext currentVplexBackendIngestionContext;
 
     /**
      * Gets a cached map of each virtual array's URI to the cluster id (1 or 2)

@@ -49,9 +49,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotCreateSnapshotOfVplexCG();
 
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException cannotCreateSnapshotNoArrayCgExistsForRPCG(final URI cgId);
-
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotCreateVolumeAsConsistencyGroupHasSnapshots(String label, URI id);
 
@@ -2461,14 +2458,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantAddMixVolumesToIngestedCG(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllVolumesAddedToIngestedCG(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException fullCopyNotAllowedForIngestedCG(final String uri);
 
-    
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException imageNotPresentOnComputeImageServer(final String computeImage, final String computeImageServer);
 

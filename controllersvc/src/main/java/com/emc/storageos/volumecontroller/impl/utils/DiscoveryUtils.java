@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -33,6 +34,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.Types;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -408,7 +410,7 @@ public class DiscoveryUtils {
     }
 
     /**
-     * check Storage Volume exists in DB
+     * check Block Snapshot exists in DB
      * 
      * @param dbClient
      * @param nativeGuid
@@ -421,6 +423,24 @@ public class DiscoveryUtils {
         Iterator<BlockSnapshot> snapshotItr = snapshots.iterator();
         if (snapshotItr.hasNext()) {
             return snapshotItr.next();
+        }
+        return null;
+    }
+
+    /**
+     * check Protection Set exists in DB
+     * 
+     * @param dbClient
+     * @param nativeGuid
+     * @return
+     * @throws IOException
+     */
+    public static ProtectionSet checkProtectionSetExistsInDB(DbClient dbClient, String nativeGuid)
+            throws IOException {
+        List<ProtectionSet> cgs = CustomQueryUtility.getActiveProtectionSetByNativeGuid(dbClient, nativeGuid);
+        Iterator<ProtectionSet> cgsItr = cgs.iterator();
+        if (cgsItr.hasNext()) {
+            return cgsItr.next();
         }
         return null;
     }
@@ -443,6 +463,45 @@ public class DiscoveryUtils {
             if (!volumeInfo.getInactive()) {
                 return volumeInfo;
             }
+        }
+        return null;
+    }
+
+    /**
+     * check UnManagedVolume exists in DB by WWN
+     * 
+     * @param dbClient db client
+     * @param wwn WWN
+     * @return volume, if it's in the DB
+     */
+    public static UnManagedVolume checkUnManagedVolumeExistsInDBByWwn(DbClient dbClient, String wwn) {
+        URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedVolumeWwnConstraint(wwn), unManagedVolumeList);
+        if (unManagedVolumeList.iterator().hasNext()) {
+            URI unManagedVolumeURI = unManagedVolumeList.iterator().next();
+            UnManagedVolume volumeInfo = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeURI);
+            if (!volumeInfo.getInactive()) {
+                return volumeInfo;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * check unmanaged Protection Set exists in DB
+     * 
+     * @param dbClient
+     * @param nativeGuid
+     * @return
+     * @throws IOException
+     */
+    public static UnManagedProtectionSet checkUnManagedProtectionSetExistsInDB(DbClient dbClient, String nativeGuid)
+            throws IOException {
+        List<UnManagedProtectionSet> cgs = CustomQueryUtility.getUnManagedProtectionSetByNativeGuid(dbClient, nativeGuid);
+        Iterator<UnManagedProtectionSet> cgsItr = cgs.iterator();
+        if (cgsItr.hasNext()) {
+            return cgsItr.next();
         }
         return null;
     }
@@ -566,4 +625,5 @@ public class DiscoveryUtils {
                 .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
         return dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
     }
+
 }

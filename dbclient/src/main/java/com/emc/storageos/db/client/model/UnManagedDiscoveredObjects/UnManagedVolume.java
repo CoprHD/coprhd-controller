@@ -145,7 +145,10 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         NEEDS_COPY_TO_TARGET("needsCopyToTarget", "needsCopyToTarget"),
         TECHNOLOGY_TYPE("technologyType", "technologyType"),
         SETTINGS_INSTANCE("settingsInstance", "settingsInstance"),
-        IS_READ_ONLY("isReadOnly", "isReadOnly");
+        IS_READ_ONLY("isReadOnly", "isReadOnly"),
+        RP_PERSONALITY("personality", "personality"),
+        RP_COPY_NAME("rpCopyName", "rpCopyName"),
+        RP_RSET_NAME("rpRSetName", "rpRSetName");
 
         private final String _infoKey;
         private final String _alternateKey;

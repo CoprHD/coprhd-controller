@@ -4,12 +4,30 @@
  */
 package com.emc.storageos.db.client.util;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+import com.emc.storageos.db.client.DbAggregatorItf;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.*;
-import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.constraint.AggregatedConstraint;
+import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.Constraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.impl.BulkDataObjQueryResultIterator;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.ColumnValue;
+import com.emc.storageos.db.client.impl.CompositeColumnName;
+import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.SMISProvider;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -17,12 +35,10 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.DbAggregatorItf;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.Row;
-import java.net.URI;
-import java.util.*;
 
 
 public class CustomQueryUtility {
@@ -67,6 +83,18 @@ public class CustomQueryUtility {
         return queryActiveResourcesByConstraint(dbClient,
                 StoragePort.class,
                 AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(nativeGuid));
+    }
+
+    public static List<ProtectionSet> getActiveProtectionSetByNativeGuid(DbClient dbClient, String nativeGuid) {
+        return queryActiveResourcesByConstraint(dbClient,
+                ProtectionSet.class,
+                AlternateIdConstraint.Factory.getProtectionSetByNativeGuidConstraint(nativeGuid));
+    }
+
+    public static List<UnManagedProtectionSet> getUnManagedProtectionSetByNativeGuid(DbClient dbClient, String nativeGuid) {
+        return queryActiveResourcesByConstraint(dbClient,
+                UnManagedProtectionSet.class,
+                AlternateIdConstraint.Factory.getUnManagedProtectionSetByNativeGuidConstraint(nativeGuid));
     }
 
     public static List<StorageHADomain> getActiveStorageHADomainByNativeGuid(DbClient dbClient, String nativeGuid) {
@@ -195,6 +223,7 @@ public class CustomQueryUtility {
                 return _activeObjects;
             }
 
+            @Override
             public String[] getAggregatedFields() {
                 return new String[] { _field };
             }
@@ -311,15 +340,15 @@ public class CustomQueryUtility {
         double getDouble(Object value) {
             double val = 0;
             if (value instanceof Integer) {
-                val = (double) ((Integer) value).intValue();
+                val = ((Integer) value).intValue();
             } else if (value instanceof Long) {
-                val = (double) ((Long) value).longValue();
+                val = ((Long) value).longValue();
             } else if (value instanceof Byte) {
-                val = (double) ((Byte) value).byteValue();
+                val = ((Byte) value).byteValue();
             } else if (value instanceof Short) {
-                val = (double) ((Short) value).shortValue();
+                val = ((Short) value).shortValue();
             } else if (value instanceof Float) {
-                val = (double) ((Float) value).floatValue();
+                val = ((Float) value).floatValue();
             } else if (value instanceof Double) {
                 val = (Double) value;
             } else {

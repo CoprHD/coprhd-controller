@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.PhysicalNAS;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.ProxyToken;
 import com.emc.storageos.db.client.model.QuotaDirectory;
@@ -58,6 +59,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
@@ -145,6 +147,11 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getVolumeWwnConstraint(String wwn) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("wwn"), wwn);
+        }
+
+        public static AlternateIdConstraint getUnManagedVolumeWwnConstraint(String wwn) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedVolume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("wwn"), wwn);
         }
 
@@ -606,6 +613,16 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(CifsShareACL.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemShareACLIndex"), fileSystemShareACLIndex);
         }
-    }
+
+        public static AlternateIdConstraint getProtectionSetByNativeGuidConstraint(String nativeGuid) {
+            DataObjectType doType = TypeMap.getDoType(ProtectionSet.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
+
+        public static AlternateIdConstraint getUnManagedProtectionSetByNativeGuidConstraint(String nativeGuid) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedProtectionSet.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
+}
 
 }

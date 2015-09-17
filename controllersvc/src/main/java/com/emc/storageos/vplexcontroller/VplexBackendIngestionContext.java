@@ -1213,10 +1213,10 @@ public class VplexBackendIngestionContext {
             fields.add("storageDevice");
             fields.add("volumeInformation");
             allUnmanagedVolumes = _dbClient.queryIterativeObjectFields(UnManagedVolume.class, fields, ids);
-        } catch (Throwable t) {
+        } catch (Exception e) {
             // have to do this because the database sometimes returns UnManagedVolume 
             // objects that no longer exist and are null
-            _logger.warn("Throwable caught: " + t.toString());
+            _logger.warn("Exception caught:", e);
         }
         if (null != allUnmanagedVolumes) {
             while (allUnmanagedVolumes.hasNext()) {

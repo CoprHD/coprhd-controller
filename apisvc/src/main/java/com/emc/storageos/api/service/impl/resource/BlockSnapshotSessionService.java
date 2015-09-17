@@ -5,6 +5,8 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
+import java.util.Iterator;
+import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -14,10 +16,17 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.api.mapper.functions.MapBlockSnapshotSession;
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
+import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.api.service.impl.response.BulkList.PermissionsEnforcingResourceFilter;
+import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.BulkRestRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
@@ -25,6 +34,7 @@ import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
+import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -184,6 +194,67 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     @Override
     public BlockSnapshotSessionBulkRep getBulkResources(BulkIdParam param) {
         return (BlockSnapshotSessionBulkRep) super.getBulkResources(param);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public BulkRestRep queryBulkResourceReps(List<URI> ids) {
+
+        Iterator<BlockSnapshotSession> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        return new BlockSnapshotSessionBulkRep(BulkList.wrapping(_dbIterator, MapBlockSnapshotSession.getInstance(_dbClient)));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected BulkRestRep queryFilteredBulkResourceReps(List<URI> ids) {
+        Iterator<BlockSnapshotSession> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        ResourceFilter<BlockSnapshotSession> filter = new BlockSnapshotSessionFilter(getUserFromContext(), _permissionsHelper);
+        return new BlockSnapshotSessionBulkRep(BulkList.wrapping(_dbIterator, MapBlockSnapshotSession.getInstance(_dbClient), filter));
+    }
+
+    /**
+     * Private class defined filter for bulk resources.
+     */
+    private class BlockSnapshotSessionFilter extends PermissionsEnforcingResourceFilter<BlockSnapshotSession> {
+
+        /**
+         * Constructor.
+         * 
+         * @param user A reference to a user.
+         * @param permissionsHelper A reference to a permissions helper.
+         */
+        protected BlockSnapshotSessionFilter(StorageOSUser user, PermissionsHelper permissionsHelper) {
+            super(user, permissionsHelper);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean isAccessible(BlockSnapshotSession snapSession) {
+            boolean isAccesible = false;
+            isAccesible = isTenantAccessible(getTenantOwner(snapSession.getId()));
+            if (!isAccesible) {
+                NamedURI project = snapSession.getProject();
+                if (project != null) {
+                    isAccesible = isProjectAccessible(project.getURI());
+                }
+            }
+            return isAccesible;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<BlockSnapshotSession> getResourceClass() {
+        return BlockSnapshotSession.class;
     }
 
     /**

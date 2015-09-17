@@ -1218,6 +1218,17 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _logger.info("{} doCreateSingleSnapshot START ...", storage.getSerialNumber());
+        List<BlockSnapshot> snapshots = _dbClient
+                .queryObject(BlockSnapshot.class, snapshotList);
+        URI snapshot = snapshots.get(0).getId();
+        _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
+                readOnly, taskCompleter);
+        _logger.info("{} doCreateSingleSnapshot END ...", storage.getSerialNumber());
+    }
+
+    @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -1268,6 +1279,11 @@ public class VNXeStorageDevice extends VNXeOperations
         }
         _logger.info("{} doDeleteSnapshot END ...", storage.getSerialNumber());
 
+    }
+
+    @Override
+    public void doDeleteSelectedSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override

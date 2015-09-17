@@ -5,29 +5,6 @@
 
 package com.emc.storageos.volumecontroller.impl.block;
 
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_MIRROR_TO_URI;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
-import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.collect.Collections2.transform;
-import static java.lang.String.format;
-import static java.util.Arrays.asList;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import javax.xml.bind.DataBindingException;
-
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
@@ -35,31 +12,13 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockMirror.SynchronizationState;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.Migration;
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.InterfaceType;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.factories.VolumeFactory;
@@ -88,40 +47,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupCreateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupDeleteCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupUpdateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorCreateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorDeactivateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorDeleteCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorDetachCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorFractureCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorResumeCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotActivateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotCreateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotDeleteCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotEstablishGroupTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockWaitForSynchronizedCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVolumeMembersCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneActivateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateWorkflowCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneFractureCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDeleteCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDetachCloneCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeUpdateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.*;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
@@ -137,6 +63,27 @@ import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.xml.bind.DataBindingException;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_MIRROR_TO_URI;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.collect.Collections2.transform;
+import static java.lang.String.format;
+import static java.util.Arrays.asList;
 
 /**
  * Generic Block Controller Implementation that does all of the database
@@ -361,6 +308,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     static final String CREATE_MIRRORS_STEP_GROUP = "BlockDeviceCreateMirrors";
     static final String CREATE_CONSISTENCY_GROUP_STEP_GROUP = "BlockDeviceCreateGroup";
     static final String UPDATE_CONSISTENCY_GROUP_STEP_GROUP = "BlockDeviceUpdateGroup";
+    static final String CREATE_SNAPSHOTS_STEP_GROUP = "BlockDeviceCreateSnapshots";
 
     /**
      * {@inheritDoc}
@@ -1331,7 +1279,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         // The the list of Volumes that the BlockDeviceController needs to process.
         volumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] {
+                new VolumeDescriptor.Type[]{
                         VolumeDescriptor.Type.BLOCK_DATA,
                         VolumeDescriptor.Type.RP_SOURCE,
                         VolumeDescriptor.Type.RP_TARGET,
@@ -1683,6 +1631,27 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     @Override
+    public void createSingleSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
+            throws ControllerException {
+        WorkflowStepCompleter.stepExecuting(opId);
+        TaskCompleter completer = null;
+        try {
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
+            getDevice(storageObj.getSystemType()).doCreateSingleSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
+            WorkflowStepCompleter.stepSucceded(opId);
+        } catch (Exception e) {
+            if (completer != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                WorkflowStepCompleter.stepFailed(opId, serviceError);
+                completer.error(_dbClient, serviceError);
+            } else {
+                throw DeviceControllerException.exceptions.createVolumeSnapshotFailed(e);
+            }
+        }
+    }
+
+    @Override
     public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
             throws ControllerException {
         TaskCompleter completer = null;
@@ -1720,15 +1689,19 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     @Override
     public void deleteSnapshot(URI storage, URI snapshot, String opId) throws ControllerException {
+        _log.info("START deleteSnapshot");
         TaskCompleter completer = null;
+        WorkflowStepCompleter.stepExecuting(opId);
         try {
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             completer = BlockSnapshotDeleteCompleter.createCompleter(_dbClient, snapObj, opId);
             getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, snapshot, completer);
+            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                WorkflowStepCompleter.stepFailed(opId, serviceError);
                 completer.error(_dbClient, serviceError);
             } else {
                 throw DeviceControllerException.exceptions.deleteVolumeSnapshotFailed(e);
@@ -2779,6 +2752,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     static final String FULL_COPY_WFS_STEP_GROUP = "waitForSyncStepGroup";
     static final String FULL_COPY_DETACH_STEP_GROUP = "detachFullCopyStepGroup";
     static final String FULL_COPY_FRACTURE_STEP_GROUP = "fractureFullCopyStepGroup";
+    static final String SNAPSHOT_DELETE_STEP_GROUP = "deleteSnapshotStepGroup";
 
     @Override
     public void createFullCopy(URI storage, List<URI> fullCopyVolumes, Boolean createInactive,
@@ -4207,6 +4181,55 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
             doFailTask(Volume.class, fullCopyVolume, taskId, serviceError);
+        }
+    }
+
+    public String deleteSnapshotStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem,
+                                     List<URI> snapshotList, boolean isRemoveAll) {
+        if (isRemoveAll) {
+            _log.info("Adding group remove snapshot step");
+            Workflow.Method deleteMethod = deleteSnapshotMethod(storage, snapshotList.get(0));
+            waitFor = workflow.createStep(SNAPSHOT_DELETE_STEP_GROUP, "Deleting snapshot", waitFor,
+                    storage, storageSystem.getSystemType(), getClass(), deleteMethod, null, null);
+        } else {
+            for (URI uri : snapshotList) {
+                _log.info("Adding single remove snapshot step: {}", uri);
+                Workflow.Method deleteMethod = deleteSelectedSnapshotMethod(storage, uri);
+                waitFor = workflow.createStep(SNAPSHOT_DELETE_STEP_GROUP, "Deleting snapshot", waitFor,
+                        storage, storageSystem.getSystemType(), getClass(), deleteMethod, null, null);
+            }
+        }
+
+
+        return waitFor;
+    }
+
+    public Workflow.Method deleteSnapshotMethod(URI storage, URI snapshot) {
+        return new Workflow.Method("deleteSnapshot", storage, snapshot);
+    }
+
+    public Workflow.Method deleteSelectedSnapshotMethod(URI storage, URI snapshot) {
+        return new Workflow.Method("deleteSelectedSnapshot", storage, snapshot);
+    }
+
+    public void deleteSelectedSnapshot(URI storage, URI snapshot, String opId) throws ControllerException {
+        _log.info("START deleteSelectedSnapshot");
+        TaskCompleter completer = null;
+        WorkflowStepCompleter.stepExecuting(opId);
+        try {
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
+            completer = BlockSnapshotDeleteCompleter.createCompleter(_dbClient, snapObj, opId);
+            getDevice(storageObj.getSystemType()).doDeleteSelectedSnapshot(storageObj, snapshot, completer);
+            WorkflowStepCompleter.stepSucceded(opId);
+        } catch (Exception e) {
+            if (completer != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                WorkflowStepCompleter.stepFailed(opId, serviceError);
+                completer.error(_dbClient, serviceError);
+            } else {
+                throw DeviceControllerException.exceptions.deleteVolumeSnapshotFailed(e);
+            }
         }
     }
 }

@@ -5,29 +5,15 @@
 
 package com.emc.storageos.geomodel;
 
-import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.vipr.model.sys.NatCheckParam;
+
+/**
+ * We hold this empty marker class because:
+ *  1. VDC NAT check may send more extra VDS-specified fields
+ *  2. Back-compatible, make sure XML has same root tag as previous version
+ */
 @XmlRootElement(name = "vdc-nat-check")
-public class VdcNatCheckParam {
-    private String ipv4Address;
-    private String ipv6Address;
-
-    @XmlElement(name = "ipv4")
-    public String getIPv4Address() {
-        return this.ipv4Address;
-    }
-
-    public void setIPv4Address(String ipv4Address) {
-        this.ipv4Address = ipv4Address;
-    }
-
-    @XmlElement(name = "ipv6")
-    public String getIPv6Address() {
-        return this.ipv6Address;
-    }
-
-    public void setIPv6Address(String ipv6Address) {
-        this.ipv6Address = ipv6Address;
-    }
+public class VdcNatCheckParam extends NatCheckParam{
 }

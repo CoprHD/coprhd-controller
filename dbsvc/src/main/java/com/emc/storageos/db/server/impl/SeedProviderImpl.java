@@ -12,10 +12,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.cassandra.locator.SeedProvider;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.util.StringUtils;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
@@ -33,10 +33,11 @@ public class SeedProviderImpl implements SeedProvider {
 
     private static final String ID = "id";
     private static final String COORDINATORS = "coordinators";
+    private static final String SEEDS = "seeds"; // define extra seed nodes in another data center
 
     private String _id;
     private CoordinatorClientImpl _client;
-
+    private List<String> extraSeeds = new ArrayList<>();
     /**
      * This constructor's argument is from cassandral's yaml configuration. Here is an example
      * seed_provider:
@@ -50,15 +51,27 @@ public class SeedProviderImpl implements SeedProvider {
      * @throws Exception
      */
     public SeedProviderImpl(Map<String, String> args) throws Exception {
+        // get current node id
         _id = args.get(ID);
         if (_id == null) {
             throw new IllegalArgumentException(ID);
         }
 
-        if (_id.contains(":")) {
-            _id = StringUtils.delimitedListToStringArray(_id, ":")[1];
+        // seed nodes in remote data centers
+        String seedsArg = args.get(SEEDS);
+        String[] seedIPs = null;
+        if (seedsArg != null && !seedsArg.trim().isEmpty()) {
+            seedIPs = seedsArg.split(",", -1);
+        }
+        if (seedIPs != null) {
+            // multiple site - assume seeds in other site is available
+            // so just pick from config file
+            for (String ip : seedIPs) {
+                extraSeeds.add(ip);
+            }
         }
 
+        // setup zk connection
         String coordinatorArg = args.get(COORDINATORS);
         if (coordinatorArg == null || coordinatorArg.trim().isEmpty()) {
             throw new IllegalArgumentException(COORDINATORS);
@@ -98,8 +111,15 @@ public class SeedProviderImpl implements SeedProvider {
         try {
             CoordinatorClientInetAddressMap nodeMap = _client.getInetAddessLookupMap();
             List<Configuration> configs = _client.queryAllConfiguration(Constants.DB_CONFIG);
-            _logger.info("configs={} size={}", configs, configs.size());
-            List<InetAddress> seeds = new ArrayList<>(configs.size());
+            List<InetAddress> seeds = new ArrayList<>();
+
+            // Add extra seeds
+            for (String seed : extraSeeds) {
+                if (StringUtils.isNotEmpty(seed)) {
+                    seeds.add(InetAddress.getByName(seed));
+                }
+            }
+            
             for (int i = 0; i < configs.size(); i++) {
                 Configuration config = configs.get(i);
                 // Bypasses item of "global" and folders of "version", just check db configurations.
@@ -131,6 +151,8 @@ public class SeedProviderImpl implements SeedProvider {
                     _logger.info("Seed {}", ip);
                 }
             }
+
+            _logger.info("Seeds list {}", StringUtils.join(seeds.toArray(), ","));
             return seeds;
         } catch (Exception e) {
             throw new IllegalStateException(e);

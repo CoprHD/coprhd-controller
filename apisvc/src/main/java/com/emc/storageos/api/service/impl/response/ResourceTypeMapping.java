@@ -18,9 +18,9 @@ import static com.emc.storageos.model.ResourceTypeEnum.*;
 public class ResourceTypeMapping {
     private static final Logger _log = LoggerFactory.getLogger(ResourceTypeMapping.class);
     // Mapping of Resource Type -> DB Class
-    private static final Map<ResourceTypeEnum, Class<? extends DataObject>> classMapping = new HashMap<ResourceTypeEnum, Class<? extends DataObject>>();
+    private static final Map<ResourceTypeEnum, Class<? extends DataObject>> classMapping = new HashMap<>();
     // Reverse mapping of DB Class -> Resource Type
-    private static final Map<Class<? extends DataObject>, ResourceTypeEnum> resourceMapping = new HashMap<Class<? extends DataObject>, ResourceTypeEnum>();
+    private static final Map<Class<? extends DataObject>, ResourceTypeEnum> resourceMapping = new HashMap<>();
 
     static {
         classMapping.put(FILE, FileShare.class);
@@ -61,6 +61,7 @@ public class ResourceTypeMapping {
         classMapping.put(INITIATOR, Initiator.class);
         classMapping.put(IPINTERFACE, IpInterface.class);
         classMapping.put(VCENTERDATACENTER, VcenterDataCenter.class);
+        classMapping.put(SITE, Site.class);
         classMapping.put(AUTO_TIERING_POLICY, AutoTieringPolicy.class);
         classMapping.put(MIGRATION, Migration.class);
         classMapping.put(UNMANAGED_VOLUMES, UnManagedVolume.class);

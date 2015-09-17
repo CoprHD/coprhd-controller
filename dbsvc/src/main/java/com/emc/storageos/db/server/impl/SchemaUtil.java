@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.*;
 
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.security.password.PasswordUtils;
@@ -60,6 +61,8 @@ import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.client.DbClient;
 
+import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
+
 /**
  * Utility class for initializing DB schema from model classes
  */
@@ -96,6 +99,7 @@ public class SchemaUtil {
     private Properties _dbCommonInfo;
     private PasswordUtils _passwordUtils;
     private DbClientContext clientContext;
+    private boolean onStandby = false;
 
     public void setClientContext(DbClientContext clientContext) {
         this.clientContext = clientContext;
@@ -162,6 +166,24 @@ public class SchemaUtil {
      */
     public void setVdcShortId(String vdcId) {
         _vdcShortId = vdcId;
+    }
+
+    /**
+     * Set true for standby site
+     * 
+     * @param onStandby
+     */
+    public void setOnStandby(boolean onStandby) {
+        this.onStandby = onStandby;
+    }
+
+    /**
+     * Check if current dbsvc is in standby site
+     *
+     * @return
+     */
+    public boolean isOnStandby() {
+        return onStandby;
     }
 
     /**
@@ -248,7 +270,7 @@ public class SchemaUtil {
                 if (kd == null) {
                     _log.info("keyspace not exist yet");
 
-                    if (waitForSchema) {
+                    if (waitForSchema || onStandby) {
                         _log.info("wait for schema from other site");
                     } else {
                         // fresh install
@@ -262,12 +284,14 @@ public class SchemaUtil {
                     }
                 } else {
                     // this is an existing cluster
-                    checkStrategyOptions(kd, cluster, replicationFactor);
+                    if (!onStandby)
+                        checkStrategyOptions(kd, cluster, replicationFactor);
                 }
 
                 // create CF's
                 if (kd != null) {
-                    checkCf(kd, clusterContext);
+                    if (!onStandby)
+                        checkCf(kd, clusterContext);
                     _log.info("scan and setup db schema succeed");
                     return;
                 }
@@ -304,7 +328,7 @@ public class SchemaUtil {
      * @param replicas
      * @return true to indicate keyspace strategy option is changed
      */
-    private boolean setStrategyOptions(KeyspaceDefinition keyspace, int replicas) {
+    protected boolean setStrategyOptions(KeyspaceDefinition keyspace, int replicas) {
         boolean changed = false;
         keyspace.setName(_keyspaceName);
 
@@ -334,8 +358,9 @@ public class SchemaUtil {
             stratOptions.put(_vdcShortId.toString(), Integer.toString(replicas));
             changed = true;
         } else {
-            keyspace.setStrategyClass(KEYSPACE_SIMPLE_STRATEGY);
-            stratOptions.put("replication_factor", Integer.toString(replicas));
+        	// Todo - add standby to strategy options
+            keyspace.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
+            stratOptions.put(_vdcShortId.toString(), Integer.toString(replicas));
             changed = true;
         }
 
@@ -380,17 +405,6 @@ public class SchemaUtil {
             return;
         }
 
-        int currentFactor = Integer.parseInt(options.get(REPLICATION_FACTOR));
-        if (currentFactor < replicationFactor) {
-            // there must have been a new node addition since replication factor
-            // of our keyspace is less than configured replication factor.
-            // we update our keyspace to new replication factor. Note that we do not
-            // currently support shrinking db cluster
-            KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
-            setStrategyOptions(update, replicationFactor);
-
-            waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
-        }
     }
 
     private Integer getIntProperty(String key, Integer defValue) {
@@ -837,6 +851,12 @@ public class SchemaUtil {
      * check and setup root tenant or my vdc info, if it doesn't exist
      */
     public void checkAndSetupBootStrapInfo(DbClient dbClient) {
+        // No need to add bootstrap records on standby site
+        if (isOnStandby()) {
+            _log.info("Skip bootstrap info setup on standby");
+            return;
+        }
+        
         // Only the first VDC need check root tenant
         if (isGeoDbsvc()) {
             if (_vdcList != null && _vdcList.size() > 1) {
@@ -1150,22 +1170,21 @@ public class SchemaUtil {
             return;
         }
 
-        VdcVersion vdcCersion = getVdcVersion(vdcVersions, vdcId);
+        VdcVersion vdcVersion = getVdcVersion(vdcVersions, vdcId);
 
-        if (vdcCersion == null) {
+        if (vdcVersion == null) {
             _log.info("insert new Vdc db version vdc={}, dbVersion={}", vdcId, version);
-            vdcCersion = new VdcVersion();
-            vdcCersion.setId(URIUtil.createId(VdcVersion.class));
-            vdcCersion.setVdcId(vdcId);
-            vdcCersion.setVersion(version);
-            ;
-            dbClient.createObject(vdcCersion);
+            vdcVersion = new VdcVersion();
+            vdcVersion.setId(URIUtil.createId(VdcVersion.class));
+            vdcVersion.setVdcId(vdcId);
+            vdcVersion.setVersion(version);
+            dbClient.createObject(vdcVersion);
         }
 
-        if (!vdcCersion.getVersion().equals(version)) {
+        if (!vdcVersion.getVersion().equals(version)) {
             _log.info("update Vdc db version vdc={} to dbVersion={}", vdcId, version);
-            vdcCersion.setVersion(version);
-            dbClient.persistObject(vdcCersion);
+            vdcVersion.setVersion(version);
+            dbClient.persistObject(vdcVersion);
         }
     }
 

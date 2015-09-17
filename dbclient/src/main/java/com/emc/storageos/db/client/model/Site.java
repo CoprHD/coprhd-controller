@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2008-2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
+
+import java.net.URI;
 
 /**
  * Representation for a ViPR standby
@@ -12,12 +14,21 @@ package com.emc.storageos.db.client.model;
 public class Site extends DataObject {
 
     private String uuid;
+    private URI vdc;
     private String name;
     private String vip;
     private String secretKey;
     private StringMap hostIPv4AddressMap = new StringMap();
     private StringMap hostIPv6AddressMap = new StringMap();
-
+    
+    public Site() {
+        
+    }
+    
+    public Site(URI id) {
+        this.setId(id);
+    }
+    
     @Name("uuid")
     public String getUuid() {
         return uuid;
@@ -26,6 +37,17 @@ public class Site extends DataObject {
     public void setUuid(String uuid) {
         this.uuid = uuid;
         setChanged("uuid");
+    }
+
+    @RelationIndex(cf = "RelationIndex", type = VirtualDataCenter.class)
+    @Name("vdc")
+    public URI getVdc() {
+        return vdc;
+    }
+
+    public void setVdc(URI vdc) {
+        this.vdc = vdc;
+        setChanged("vdc");
     }
 
     @Name("name")
@@ -78,27 +100,21 @@ public class Site extends DataObject {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
         setChanged("hostIPv6AddressMap");
     }
-
+    
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder(this.getClass().getName());
-
-        builder.append("\n\tuuid:");
+        StringBuilder builder = new StringBuilder();
+        builder.append("Site [uuid=");
         builder.append(uuid);
-
-        builder.append("\n\tname:");
+        builder.append(", name=");
         builder.append(name);
-
-        builder.append("\n\tvip:");
+        builder.append(", vip=");
         builder.append(vip);
-
-        builder.append("\n\tIPv4AddressesMap:");
+        builder.append(", hostIPv4AddressMap=");
         builder.append(hostIPv4AddressMap);
-
-        builder.append("\n\tIPv6AddressesMap:");
+        builder.append(", hostIPv6AddressMap=");
         builder.append(hostIPv6AddressMap);
-        builder.append("\n");
-
+        builder.append("]");
         return builder.toString();
     }
 }

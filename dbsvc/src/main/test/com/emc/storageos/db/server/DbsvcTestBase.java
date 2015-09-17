@@ -29,6 +29,7 @@ import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.LoggingUtils;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
 
 import org.apache.cassandra.config.Schema;
 import org.junit.AfterClass;
@@ -300,6 +301,18 @@ public class DbsvcTestBase {
         @Override
         public void insertVdcVersion(final DbClient dbClient) {
             // Do nothing
+        }
+        
+        @Override
+        protected boolean setStrategyOptions(KeyspaceDefinition keyspace, int replicas) {
+            if (!isGeoDbsvc()) {
+                Map<String, String> stratOptions = keyspace.getStrategyOptions();
+                keyspace.setName(this.getKeyspaceName());
+                keyspace.setStrategyClass("SimpleStrategy");
+                stratOptions.put("replication_factor", Integer.toString(replicas));
+                return true;
+            } 
+            return super.setStrategyOptions(keyspace, replicas);
         }
     }
     

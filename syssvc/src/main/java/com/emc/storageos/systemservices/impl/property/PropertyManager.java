@@ -19,8 +19,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.ConfigVersion;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyMetadata;
 import com.emc.storageos.services.util.Exec;
@@ -37,7 +35,6 @@ public class PropertyManager extends AbstractManager {
     private final static int TIME_LIMIT_FOR_INITIATING_POWEROFF = 60000;
 
     private static final String POWEROFFTOOL_COMMAND = "/etc/powerofftool";
-    private static final String VDC_IDS_KEY = "vdc_ids";
 
     // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
     private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
@@ -49,25 +46,17 @@ public class PropertyManager extends AbstractManager {
     private long powerOffStateChangeTimeout;
     private long powerOffStateProbeInterval;
 
-    private DbClient dbClient;
-
     // local and target info properties
     private PropertyInfoExt targetPropInfo;
     private PowerOffState targetPowerOffState;
     private PropertyInfoExt localNodePropInfo;
     private PropertyInfoExt localTargetPropInfo;
     private String localConfigVersion;
-    private PropertyInfoExt localVdcPropInfo;
-    private PropertyInfoExt targetVdcPropInfo;
 
     private HashSet<String> poweroffAgreementsKeeper = new HashSet<>();
 
     public HashSet<String> getPoweroffAgreementsKeeper() {
         return poweroffAgreementsKeeper;
-    }
-
-    public void setDbClient(DbClient dbClient) {
-        this.dbClient = dbClient;
     }
 
     public void setPowerOffStateChangeTimeout(long powerOffStateChangeTimeout) {
@@ -196,22 +185,6 @@ public class PropertyManager extends AbstractManager {
                     updateProperties(svcId);
                 } catch (Exception e) {
                     log.info("Step3a: Update failed and will be retried: {}", e.getMessage());
-                    // Restart the loop immediately so that we release the upgrade lock.
-                    continue;
-                }
-                continue;
-            }
-
-            log.info("Step4: If VDC configuration is changed update");
-            if (vdcPropertiesChanged()) {
-                log.info("Step4: Current vdc properties are not same as target vdc properties. Updating.");
-                log.debug("Current local vdc properties: " + localVdcPropInfo);
-                log.debug("Target vdc properties: " + targetVdcPropInfo);
-
-                try {
-                    updateVdcProperties(svcId);
-                } catch (Exception e) {
-                    log.info("Step4: VDC properties update failed and will be retried: {}", e.getMessage());
                     // Restart the loop immediately so that we release the upgrade lock.
                     continue;
                 }
@@ -381,20 +354,6 @@ public class PropertyManager extends AbstractManager {
                 throw e;
             }
         }
-
-        // Initialize vdc prop info
-        localVdcPropInfo = localRepository.getVdcPropertyInfo();
-        targetVdcPropInfo = loadVdcConfigFromDatabase();
-        if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE) == null) {
-            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-            localVdcPropInfo = localRepository.getVdcPropertyInfo();
-            String vdc_ids = targetVdcPropInfo.getProperty(VDC_IDS_KEY);
-            String[] vdcIds = vdc_ids.split(",");
-            if (vdcIds.length > 1) {
-                log.info("More than one Vdc, so set reboot flag");
-                shouldReboot = true;
-            }
-        }
     }
 
     /**
@@ -484,68 +443,6 @@ public class PropertyManager extends AbstractManager {
             } catch (Exception e) {
                 log.error("Step3a: Fail to invoke notifier {}", notifierTag, e);
             }
-        }
-    }
-
-    /**
-     * Load the vdc vonfiguration from the database
-     * 
-     * @return
-     */
-    private PropertyInfoExt loadVdcConfigFromDatabase() {
-        VdcConfigUtil vdcConfigUtil = new VdcConfigUtil();
-        vdcConfigUtil.setDbclient(dbClient);
-        return new PropertyInfoExt((Map) vdcConfigUtil.genVdcProperties());
-    }
-
-    /**
-     * Check if VDC configuration is different in the database vs. what is stored locally
-     * 
-     * @return
-     */
-    private boolean vdcPropertiesChanged() {
-        if (!coordinator.isControlNode()) {
-            return false;
-        }
-
-        int localVdcConfigHashcode = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE) == null ? 0 : Integer
-                .parseInt(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE));
-        int targetVdcConfigHashcode = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE) == null ? 0 : Integer
-                .parseInt(targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE));
-
-        return localVdcConfigHashcode != targetVdcConfigHashcode;
-    }
-
-    /**
-     * Update vdc properties and reboot the node if
-     * 
-     * @param svcId node service id
-     * @throws Exception
-     */
-    private void updateVdcProperties(String svcId) throws Exception {
-        // If the change is being done to create a multi VDC configuration or to reduce to a
-        // multi VDC configuration a reboot is needed. If only operating on a single VDC
-        // do not reboot the nodes.
-        if (targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
-                || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")) {
-            log.info("Step4: Acquiring property lock for vdc properties change.");
-            if (!getPropertyLock(svcId)) {
-                retrySleep();
-            } else if (!isQuorumMaintained()) {
-                try {
-                    coordinator.releasePersistentLock(svcId, propertyLockId);
-                } catch (Exception e) {
-                    log.error("Failed to release the property lock:", e);
-                }
-                retrySleep();
-            } else {
-                log.info("Step4: Setting vdc properties and rebooting for multi-vdc config change");
-                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-                reboot();
-            }
-        } else {
-            log.info("Step4: Setting vdc properties not rebooting for single VDC change");
-            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
         }
     }
 

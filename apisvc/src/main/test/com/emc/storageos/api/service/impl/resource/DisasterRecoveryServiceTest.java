@@ -12,33 +12,41 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
+import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.List;
+
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-
 
 import org.junit.Before;
 import org.junit.Test;
 
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.model.dr.DRNatCheckParam;
+import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
-import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
+import com.emc.storageos.services.util.SysUtils;
 
 public class DisasterRecoveryServiceTest {
 
     private DisasterRecoveryService drService;
     private DbClient dbClientMock;
+    private CoordinatorClient coordinator;
     private Site standbySite1;
     private Site standbySite2;
     private Site standbySite3;
@@ -46,7 +54,8 @@ public class DisasterRecoveryServiceTest {
     private SiteAddParam primarySiteParam;
     private List<URI> uriList;
     private List<Site> standbySites;
-    private CoordinatorClient coordinatorMock;
+    private SiteAddParam standby;
+    private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
 
     @Before
@@ -54,10 +63,29 @@ public class DisasterRecoveryServiceTest {
         uriList = new LinkedList<URI>();
         standbySites = new LinkedList<Site>();
         
+        Constructor constructor = ProductName.class.getDeclaredConstructors()[0];
+        constructor.setAccessible(true);
+        ProductName productName = (ProductName)constructor.newInstance(null);
+        productName.setName("vipr");
+        
+        SoftwareVersion version = new SoftwareVersion("vipr-2.4.0.0.100");
+        LinkedList<SoftwareVersion> available = new LinkedList<SoftwareVersion>();
+        available.add(version);
+        RepositoryInfo repositoryInfo = new RepositoryInfo(new SoftwareVersion("vipr-2.4.0.0.100"), available);
+        
+        // setup local VDC
+        VirtualDataCenter localVDC = new VirtualDataCenter();
+        
+        standby = new SiteAddParam();
+        standby.setFreshInstallation(true);
+        standby.setDbSchemaVersion("2.4");
+        standby.setSoftwareVersion("vipr-2.4.0.0.150");
+
         // setup standby site
         standbySite1 = new Site();
         standbySite1.setId(new URI("site-object-id-1"));
         standbySite1.setUuid("site-uuid-1");
+        standbySite1.setVdc(localVDC.getId());
         standbySite1.setVip("10.247.101.110");
         standbySite1.getHostIPv4AddressMap().put("vipr1", "10.247.101.111");
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
@@ -66,10 +94,12 @@ public class DisasterRecoveryServiceTest {
         standbySite2 = new Site();
         standbySite2.setId(new URI("site-object-id-2"));
         standbySite2.setUuid("site-uuid-2");
+        standbySite2.setVdc(localVDC.getId());
 
         standbySite3 = new Site();
         standbySite3.setId(new URI("site-object-id-3"));
         standbySite3.setUuid("site-uuid-3");
+        standbySite3.setVdc(new URI("fake-vdc-id"));
 
         primarySiteParam = new SiteAddParam();
         primarySiteParam.setUuid("primary-site-uuid");
@@ -78,24 +108,38 @@ public class DisasterRecoveryServiceTest {
         primarySiteParam.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
         primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
         
-        // setup local VDC
-        VirtualDataCenter localVDC = new VirtualDataCenter();
-        localVDC.getSiteIDs().add(standbySite1.getId().toString());
-        localVDC.getSiteIDs().add(standbySite2.getId().toString());
         localVDC.setApiEndpoint("127.0.0.2");
         localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
         localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
         localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
         localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
+        
         // mock DBClient
         dbClientMock = mock(DbClient.class);
-        coordinatorMock = mock(CoordinatorClient.class);
+        
+        // mock coordinator client
+        coordinator = mock(CoordinatorClient.class);
+        
+        natCheckParam = new DRNatCheckParam();
+
+        localVDC.getSiteUUIDs().add(standbySite1.getUuid());
+        localVDC.getSiteUUIDs().add(standbySite2.getUuid());
+        localVDC.setApiEndpoint("127.0.0.2");
+        localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
+        localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
+        localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
+        localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
+
+        // mock DBClient
+        dbClientMock = mock(DbClient.class);
         apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
         
         drService = spy(new DisasterRecoveryService());
         drService.setDbClient(dbClientMock);
+        drService.setCoordinator(coordinator);
         drService.setSiteMapper(new MockSiteMapper());
-        drService.setCoordinator(coordinatorMock);
+        drService.setSysUtils(new SysUtils());
+
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         
         standbyConfig = new Site();
@@ -104,9 +148,11 @@ public class DisasterRecoveryServiceTest {
         standbyConfig.setHostIPv4AddressMap(localVDC.getHostIPv4AddressesMap());
         standbyConfig.setHostIPv6AddressMap(localVDC.getHostIPv6AddressesMap());
         
-        doReturn(standbyConfig.getUuid()).when(this.coordinatorMock).getSiteId();
-        doReturn("primary-site-id").when(this.coordinatorMock).getPrimarySiteId();
+        doReturn(standbyConfig.getUuid()).when(coordinator).getSiteId();
+        doReturn("primary-site-id").when(coordinator).getPrimarySiteId();
         doReturn(localVDC).when(drService).queryLocalVDC();
+        doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
+        doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
     }
     
     @Test
@@ -154,10 +200,7 @@ public class DisasterRecoveryServiceTest {
         standbySites.add(standbySite3);
         doReturn(standbySites.iterator()).when(dbClientMock).queryIterativeObjects(Site.class, uriList);
 
-        SiteRestRep response = drService.getStandby("site-uuid-3");
-        assertNull(response);
-
-        response = drService.getStandby("site-uuid-not-exist");
+        SiteRestRep response = drService.getStandby("site-uuid-not-exist");
         assertNull(response);
     }
     
@@ -167,6 +210,33 @@ public class DisasterRecoveryServiceTest {
     }
     
     @Test
+    public void testPrecheckForStandbyAttach() throws Exception {
+        doReturn("primary-site-id").when(coordinator).getSiteId();
+        drService.precheckForStandbyAttach(standby);
+    }
+
+    @Test
+    public void testPrecheckForStandbyAttach_FreshInstall() throws Exception {
+        try {
+            standby.setFreshInstallation(false);
+            drService.precheckForStandbyAttach(standby);
+            fail();
+        } catch (Exception e) {
+            // ignore expected exception
+        }
+    }
+
+    @Test
+    public void testPrecheckForStandbyAttach_DBSchema() throws Exception {
+        try {
+            standby.setDbSchemaVersion("2.3");
+            drService.precheckForStandbyAttach(standby);
+            fail();
+        } catch (Exception e) {
+            // ignore expected exception
+        }
+    }    
+    
     public void testGetStandbyConfig() {
         SecretKey key = null;
         try {
@@ -178,7 +248,7 @@ public class DisasterRecoveryServiceTest {
         }
         
         doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
-        doReturn(SiteState.ACTIVE).when(this.coordinatorMock).getSiteState();
+        doReturn(SiteState.ACTIVE).when(coordinator).getSiteState();
         SiteRestRep response = drService.getStandbyConfig();
         compareSiteResponse(response, standbyConfig);
     }
@@ -192,6 +262,77 @@ public class DisasterRecoveryServiceTest {
         assertEquals(response.getVip(), primarySiteParam.getVip());
     }
 
+    @Test
+    public void testPrecheckForStandbyAttach_Version() throws Exception {
+        try {
+            standby.setSoftwareVersion("vipr-2.3.0.0.100");
+            drService.precheckForStandbyAttach(standby);
+            fail();
+        } catch (Exception e) {
+            // ignore expected exception
+        }
+    }
+    
+    @Test
+    public void testPrecheckForStandbyAttach_NotPrimarySite() throws Exception {
+        try {
+            doReturn("654321").when(coordinator).getPrimarySiteId();
+            doReturn("123456").when(coordinator).getSiteId();
+            drService.precheckForStandbyAttach(standby);
+            fail();
+        } catch (Exception e) {
+            // ignore expected exception
+        }
+    }
+    
+    @Test
+    public void testPrecheckForStandbyAttach_PrimarySite_EmptyPrimaryID() throws Exception {
+        doReturn(null).when(coordinator).getPrimarySiteId();
+        drService.precheckForStandbyAttach(standby);
+    }
+    
+    @Test
+    public void testPrecheckForStandbyAttach_PrimarySite_IsPrimary() throws Exception {
+        doReturn("123456").when(coordinator).getPrimarySiteId();
+        doReturn("123456").when(coordinator).getSiteId();
+        drService.precheckForStandbyAttach(standby);
+    }
+    
+    @Test
+    public void testCheckIfBehindNat_Fail() {
+        try {
+            drService.checkIfBehindNat(null, "");
+            fail();
+        } catch (Exception e) {
+            //ignore expected exception
+        }
+        
+        try {
+            natCheckParam.setIPv4Address("10.247.0.1");
+            natCheckParam.setIPv6Address("10.247.0.2");
+            drService.checkIfBehindNat(natCheckParam, null);
+            fail();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    @Test
+    public void testCheckIfBehindNat_NotBehindNAT() {
+        natCheckParam.setIPv4Address("10.247.101.110");
+
+        DRNatCheckResponse response = drService.checkIfBehindNat(natCheckParam, "10.247.101.110");
+        assertEquals(false, response.isBehindNAT());
+    }
+    
+    @Test
+    public void testCheckIfBehindNat_IsBehindNAT() {
+        natCheckParam.setIPv4Address("10.247.101.111");
+
+        DRNatCheckResponse response = drService.checkIfBehindNat(natCheckParam, "10.247.101.110");
+        assertEquals(true, response.isBehindNAT());
+    }
+    
     protected void compareSiteResponse(SiteRestRep response, Site site) {
         assertNotNull(response);
         assertEquals(response.getId(), site.getId());

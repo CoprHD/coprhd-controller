@@ -136,7 +136,7 @@ public class VirtualDataCenter extends DataObject {
     /**
      * id list of all sites
      */
-    private StringSet siteIDs = new StringSet();
+    private StringSet siteUUIDs = new StringSet();
 
     @Name("apiEndpoint")
     public String getApiEndpoint() {
@@ -348,14 +348,14 @@ public class VirtualDataCenter extends DataObject {
         this.lastSeenTimeInMillis = lastSeenTimeInMillis;
         setChanged("lastSeenTimeInMillis");
     }
-    
-    @Name("siteIDs")
-    public StringSet getSiteIDs() {
-        return siteIDs;
+
+    @Name("siteUUIDs")
+    public StringSet getSiteUUIDs() {
+        return siteUUIDs;
     }
 
-    public void setSiteIDs(StringSet siteIDs) {
-        this.siteIDs = siteIDs;
+    public void setSiteUUIDs(StringSet siteUUIDs) {
+        this.siteUUIDs = siteUUIDs;
     }
 
     @Override

@@ -18,6 +18,9 @@ import com.emc.storageos.coordinator.exceptions.InvalidRepositoryInfoException;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
 
 public class RepositoryInfo implements CoordinatorSerializable {
+    public static final String CONFIG_KIND = "upgradetargetconfig";
+    public static final String CONFIG_ID = "global";
+
     private static final String ENCODING_INVALID = "";
     private static final String ENCODING_SEPARATOR = "\0";
 
@@ -117,6 +120,6 @@ public class RepositoryInfo implements CoordinatorSerializable {
 
     @Override
     public CoordinatorClassInfo getCoordinatorClassInfo() {
-        return new CoordinatorClassInfo("global", "upgradetargetconfig", "repositoryInfo");
+        return new CoordinatorClassInfo(CONFIG_ID, CONFIG_KIND, "repositoryInfo");
     }
 }

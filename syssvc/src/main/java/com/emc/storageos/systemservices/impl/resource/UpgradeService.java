@@ -24,6 +24,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.systemservices.impl.property.VdcSiteManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +70,8 @@ public class UpgradeService {
     private SecretsManager _secretsManager;
     @Autowired
     private PropertyManager _propertyManager;
+    @Autowired
+    private VdcSiteManager _vdcManager;
 
     /**
      * Callback for other components to register itself for upgrade check before upgrade process starts.
@@ -152,17 +155,11 @@ public class UpgradeService {
                 AuditLogManager.AUDITLOG_SUCCESS,
                 null, targetVersion.toString());
 
-        /* wake up all */
-        _upgradeManager.wakeupOtherNodes();
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");
         }
-        try {
-            return toClusterResponse(clusterInfo);
-        } finally {
-            _upgradeManager.wakeup();
-        }
+        return toClusterResponse(clusterInfo);
     }
 
     /**
@@ -287,8 +284,6 @@ public class UpgradeService {
                 AuditLogManager.AUDITLOG_SUCCESS,
                 null, versionStr);
 
-        /* wakeup all nodes */
-        _upgradeManager.wakeupAllNodes();
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");
@@ -482,8 +477,6 @@ public class UpgradeService {
                 AuditLogManager.AUDITLOG_SUCCESS,
                 null, versionStr, FORCE.equals(forceRemove));
 
-        /* wakeup all nodes */
-        _upgradeManager.wakeupAllNodes();
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");
@@ -543,10 +536,14 @@ public class UpgradeService {
             case "property":
                 _propertyManager.wakeup();
                 break;
+            case "vdc":
+                _vdcManager.wakeup();
+                break;
             default:
                 _upgradeManager.wakeup();
                 _secretsManager.wakeup();
                 _propertyManager.wakeup();
+                _vdcManager.wakeup();
         }
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
@@ -628,8 +625,6 @@ public class UpgradeService {
                         temp._errorCounter), "downloadinfo", svcId);
 
                 _coordinator.setTargetInfo(new DownloadingInfo(version, versionSize), false);
-                // wake up all
-                _upgradeManager.wakeupAllNodes();
             }
             _log.info("uploadImage to {} end", svcId);
 

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.model.dr;
 
+import java.net.URI;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -18,12 +19,14 @@ import com.emc.storageos.model.DataObjectRestRep;
 public class SiteRestRep extends DataObjectRestRep {
 
     private String uuid;
+    private URI vdcId;
     private String name;
     private String vip;
     private String state;
     private String secretKey;
     private Map<String, String> hostIPv4AddressMap;
     private Map<String, String> hostIPv6AddressMap;
+    private Map<String, Object> extraProperties;
 
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -32,6 +35,15 @@ public class SiteRestRep extends DataObjectRestRep {
 
     public void setUuid(String uuid) {
         this.uuid = uuid;
+    }
+
+    @XmlElement(name = "vdc")
+    public URI getVdcId() {
+        return vdcId;
+    }
+
+    public void setVdcId(URI vdcId) {
+        this.vdcId = vdcId;
     }
 
     @XmlElement(name = "name")
@@ -88,6 +100,15 @@ public class SiteRestRep extends DataObjectRestRep {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
     }
 
+    @XmlElement(name = "extraProperties")
+    public Map<String, Object> getExtraProperties() {
+        return extraProperties;
+    }
+
+    public void setExtraProperties(Map<String, Object> extraProperties) {
+        this.extraProperties = extraProperties;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -103,6 +124,8 @@ public class SiteRestRep extends DataObjectRestRep {
         builder.append(hostIPv4AddressMap);
         builder.append(", hostIPv6AddressMap=");
         builder.append(hostIPv6AddressMap);
+        builder.append(", extraProperties=");
+        builder.append(extraProperties);
         builder.append("]");
         return builder.toString();
     }

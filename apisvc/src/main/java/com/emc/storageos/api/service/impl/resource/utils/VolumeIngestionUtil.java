@@ -852,23 +852,36 @@ public class VolumeIngestionUtil {
 
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
                         unManagedVolume.getStorageSystemUri());
-
+                URI potentialUnclaimedCg = null;
                 if (!groups.isEmpty()) {
                     for (BlockConsistencyGroup cg : groups) {
-                        // need to check for several matching properties
-                        URI storageControllerUri = cg.getStorageController();
-                        URI virtualArrayUri = cg.getVirtualArray();
-                        if (null != storageControllerUri && null != virtualArrayUri) {
-                            if (storageControllerUri.equals(storageSystem.getId()) &&
-                                    virtualArrayUri.equals(varrayUri) &&
-                                    cg.getProject().getURI().equals(projectUri) &&
-                                    cg.getTenant().getURI().equals(tenantUri)) {
-                                _logger.info("Found a matching BlockConsistencyGroup {} "
-                                        + "for virtual volume {}.", cgName, unManagedVolume.getLabel());
-                                return cg.getId();
+                        // first check that the tenant and project are a match
+                        if (cg.getProject().getURI().equals(projectUri) &&
+                            cg.getTenant().getURI().equals(tenantUri)) {
+                            // need to check for several matching properties
+                            URI storageControllerUri = cg.getStorageController();
+                            URI virtualArrayUri = cg.getVirtualArray();
+                            if (null != storageControllerUri && null != virtualArrayUri) {
+                                if (storageControllerUri.equals(storageSystem.getId()) &&
+                                        virtualArrayUri.equals(varrayUri)) {
+                                    _logger.info("Found a matching BlockConsistencyGroup {} "
+                                            + "for virtual volume {}.", cgName, unManagedVolume.getLabel());
+                                    return cg.getId();
+                                }
+                            }
+                            if (null == storageControllerUri && null == virtualArrayUri) {
+                                potentialUnclaimedCg = cg.getId();
                             }
                         }
                     }
+                }
+                
+                // if not match on label, project, tenant, storage array, and virtual array
+                // was found, then we can return the one found with null storage array and
+                // virtual array. this would indicate the user created the CG, but hadn't
+                // used it yet in creating a volume
+                if (null != potentialUnclaimedCg) {
+                    return potentialUnclaimedCg;
                 }
 
                 _logger.info("Did not find an existing Consistency Group named {} that is associated "
@@ -1423,7 +1436,7 @@ public class VolumeIngestionUtil {
             List<Initiator> initiators = CustomQueryUtility.iteratorToList(dbModelClient.find(Initiator.class,
                     StringSetUtil.stringSetToUriList(hostInitiatorsUri)));
             if (hasFCInitiators(initiators)) {
-                return verifyHostNumPath(pathParams, initiators, zoningMap);
+                return verifyHostNumPath(pathParams, initiators, zoningMap, dbClient);
             }
         }
         return true;
@@ -1451,10 +1464,11 @@ public class VolumeIngestionUtil {
      * @param pathParams the ingestion parameter
      * @param initiators the host initiators to be checked
      * @param zoneInfoMap the zoneInfoMap that is stored in the UnManagedExportMask
+     * @param dbClient a reference to the database client
      * @return true if the host paths are compliant. False otherwise.
      */
     private static boolean verifyHostNumPath(ExportPathParams pathParams,
-            List<Initiator> initiators, ZoneInfoMap zoneInfoMap) {
+            List<Initiator> initiators, ZoneInfoMap zoneInfoMap, DbClient dbClient) {
         if (initiators == null || initiators.isEmpty()) {
             _logger.error("Host has no initiators configured.");
             throw IngestionException.exceptions.hostHasNoInitiators();
@@ -1470,13 +1484,12 @@ public class VolumeIngestionUtil {
             }
             throw IngestionException.exceptions.hostHasNoZoning(Joiner.on(", ").join(messageArray));
         }
-        String hostName = initiators.get(0).getHostName();
-        if (hostName != null && 
-                hostName.startsWith(VPlexCommunicationInterface.VPLEX_INITIATOR_HOSTNAME_PREFIX)) {
+        if (VPlexControllerUtils.isVplexInitiator(initiators.get(0), dbClient)) {
             _logger.info("these are VPLEX backend initiators, "
-                       + "so no need to validate against virtual pool path params");
-            return true;
+                    + "so no need to validate against virtual pool path params");
+         return true;
         }
+        String hostName = initiators.get(0).getHostName();
         URI hostURI = initiators.get(0).getHost();
         _logger.info("Checking numpath for host {}", hostName);
         for (Initiator initiator : initiators) {

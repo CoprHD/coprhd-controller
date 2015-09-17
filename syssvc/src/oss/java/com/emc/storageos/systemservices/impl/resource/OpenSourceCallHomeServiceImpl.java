@@ -11,6 +11,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import com.emc.storageos.model.event.EventParameters;
+import com.emc.storageos.model.TaskResourceRep;
 
 public class OpenSourceCallHomeServiceImpl extends BaseLogSvcResource implements CallHomeService {
 

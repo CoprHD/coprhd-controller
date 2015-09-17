@@ -481,11 +481,7 @@ public class VPlexApiConsistencyGroupManager {
                 List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = clusterToVirtualVolumes.get(clusterId);
                 for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
                     s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
-                    // We use contains as at times the passed name is only
-                    // a portion of the virtual volume name for example, it
-                    // may be the name of one of the storage volumes used by
-                    // the virtual volume.
-                    if (volumeInfo.getName().contains(virtualVolumeName)) {
+                    if (volumeInfo.getName().equals(virtualVolumeName)) {
                         s_logger.info("Found virtual volume {}", volumeInfo.getName());
                         virtualVolumeInfo = volumeInfo;
                         break;

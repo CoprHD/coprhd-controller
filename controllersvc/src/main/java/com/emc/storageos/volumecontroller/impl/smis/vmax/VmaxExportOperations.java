@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -1552,13 +1553,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
             HashMap<String, CIMObjectPath> initiatorPathsMap = _cimPath.getInitiatorToInitiatorPath(storage, initiatorNames);
 
             List<String> maskNames = new ArrayList<String>();
-            for (Entry<String, CIMObjectPath> entry : initiatorPathsMap.entrySet()) {
-                String initiatorName = entry.getKey();
-                CIMObjectPath initiatorPath = entry.getValue();
+            for (String initiatorName : initiatorPathsMap.keySet()) {
+                CIMObjectPath initiatorPath = initiatorPathsMap.get(initiatorName);
 
                 maskInstanceItr = _helper.getAssociatorInstances(storage, initiatorPath, null, SmisConstants.SYMM_LUN_MASKING_VIEW, null,
-                        null,
-                        SmisConstants.PS_LUN_MASKING_CNTRL_NAME_AND_ROLE);
+                        null, SmisConstants.PS_LUN_MASKING_CNTRL_NAME_AND_ROLE);
                 while (maskInstanceItr.hasNext()) {
                     CIMInstance instance = maskInstanceItr.next();
                     String systemName = CIMPropertyFactory.getPropertyValue(instance,
@@ -1573,9 +1572,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     }
 
                     String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
-                    CIMProperty<String> deviceIdProperty =
-                            (CIMProperty<String>) instance.getObjectPath().
-                                    getKey(SmisConstants.CP_DEVICE_ID);
+                    CIMProperty<String> deviceIdProperty = (CIMProperty<String>) instance.getObjectPath()
+                            .getKey(SmisConstants.CP_DEVICE_ID);
 
                     // Look up ExportMask by deviceId/name and storage URI
                     boolean foundMaskInDb = false;
@@ -1604,6 +1602,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         exportMask.setStorageDevice(storage.getId());
                         exportMask.setId(URIUtil.createId(ExportMask.class));
                         exportMask.setCreatedBySystem(false);
+                    }
+
+                    if (!maskNames.contains(name)) {
+                        // Update the tracking containers
+                        Map<String, Integer> volumeWWNs =
+                                _helper.getVolumesFromLunMaskingInstance(client, instance);
+                        exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
+
                         // Grab the storage ports that have been allocated for this
                         // existing mask and add them.
                         List<String> storagePorts =
@@ -1616,13 +1622,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 "         URI{ %s }\n",
                                 Joiner.on(',').join(storagePorts),
                                 Joiner.on(',').join(storagePortURIs)));
-                    }
-
-                    if (!maskNames.contains(name)) {
-                        // Update the tracking containers
-                        Map<String, Integer> volumeWWNs =
-                                _helper.getVolumesFromLunMaskingInstance(client, instance);
-                        exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
                         // Add the mask name to the list for which volumes are already updated
                         maskNames.add(name);
                     }
@@ -1636,9 +1635,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         continue;
                     }
                     exportMask.addInitiator(existingInitiator);
-
-                    String volumes = (exportMask.getExistingVolumes().size() < 100) ?
-                            Joiner.on(',').join(exportMask.getExistingVolumes().keySet()) : "...";
+                    StringMap existingVolumes = exportMask.getExistingVolumes();
+                    String volumes = (null != existingVolumes && existingVolumes.size() < 100) ?
+                            Joiner.on(',').join(existingVolumes.keySet()) : "...";
                     builder.append(String.format("XM:%s is matching. " +
                             "EI: { %s }, EV: { %s }",
                             name, Joiner.on(',').join(exportMask.getExistingInitiators()), volumes));

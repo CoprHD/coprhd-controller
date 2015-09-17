@@ -8,8 +8,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -34,7 +34,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
@@ -366,6 +365,14 @@ public class VPlexControllerUtils {
         return itlList;
     }
     
+    /**
+     * Returns true if the Initiator object represents a VPLEX StoragePort.
+     * 
+     * @param initiator the Initiator to test
+     * @param dbClient a reference to the database client
+     * 
+     * @return true if the Initiator object represents a VPLEX StoragePort
+     */
     public static boolean isVplexInitiator(Initiator initiator, DbClient dbClient) {
         StoragePort port = NetworkUtil.getStoragePort(initiator.getInitiatorPort(), dbClient);
         if (null != port) {

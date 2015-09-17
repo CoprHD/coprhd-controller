@@ -829,6 +829,7 @@ public class RPHelper {
         Volume existingCGJournalVolume = null;
         Map<Long, List<URI>> cgJournalsBySize = new TreeMap<Long, List<URI>>(Collections.reverseOrder());
         Volume journal = null;
+        
         for (Volume cgSourceVolume : cgSourceVolumes) {
             if (isMetropointStandby) {
                 if (!NullColumnValueGetter.isNullURI(cgSourceVolume.getSecondaryRpJournalVolume())) {
@@ -848,17 +849,19 @@ public class RPHelper {
             }
         }
 
-        // fetch the first journal in the list with the largest capacity.
+        // Fetch the first journal in the list with the largest capacity.
         for (Long journalSize : cgJournalsBySize.keySet()) {
             existingCGJournalVolume = _dbClient.queryObject(Volume.class, cgJournalsBySize.get(journalSize).get(0));
             break;
         }
-        // we should never hit this case, but just in case we do, just return the journal volume of the first source volume in the list.
+        
+        // We should never hit this case, but just in case we do, just return the journal volume of the first source volume in the list.
         if (null == existingCGJournalVolume) {
             URI existingJournalVolumeURI = isMetropointStandby ? cgSourceVolumes.get(0).getSecondaryRpJournalVolume() : cgSourceVolumes
                     .get(0).getRpJournalVolume();
             existingCGJournalVolume = _dbClient.queryObject(Volume.class, existingJournalVolumeURI);
         }
+        
         return existingCGJournalVolume;
     }
 
@@ -1120,8 +1123,7 @@ public class RPHelper {
 
             cgJournalSizeInBytes = SizeUtil.translateSize(String.valueOf(cgJournalSize));
             _log.info(String.format("Existing total metadata size for the CG : %s GB ",
-                    SizeUtil.translateSize(cgJournalSizeInBytes, SizeUtil.SIZE_GB)));
-            ;
+                    SizeUtil.translateSize(cgJournalSizeInBytes, SizeUtil.SIZE_GB)));            
 
             Long cgVolumeSize = 0L;
             Long cgVolumeSizeInBytes = 0L;
@@ -1135,6 +1137,7 @@ public class RPHelper {
                 }
 
             }
+            
             cgVolumeSizeInBytes = SizeUtil.translateSize(String.valueOf(cgVolumeSize));
             _log.info(String.format("Cumulative %s copies size : %s GB", personality,
                     SizeUtil.translateSize(cgVolumeSizeInBytes, SizeUtil.SIZE_GB)));
@@ -1147,6 +1150,7 @@ public class RPHelper {
                     (SizeUtil.translateSize(newCgVolumeSizeInBytes, SizeUtil.SIZE_GB) * multiplier)));
             _log.info(String.format("Current allocated journal capacity : %s GB",
                     SizeUtil.translateSize(cgJournalSizeInBytes, SizeUtil.SIZE_GB)));
+            
             if (cgJournalSizeInBytes < (newCgVolumeSizeInBytes * multiplier)) {
                 additionalJournalRequired = true;
             }

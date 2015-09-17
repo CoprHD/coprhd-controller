@@ -574,7 +574,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param vpool - The vpool (potentially swapped)
      * @param originalVpool - The original vpool
      * @param param - Volume create param
-     * @param tnumberOfVolumesInRequest - Number of volumes to create
+     * @param numberOfVolumesInRequest - Number of volumes to create
      * @param newVolumeLabel - Label of volume
      * @param isChangeVpoolForProtectedVolume - Flag for protected change vpool op
      * @param capabilities - Capabilities object
@@ -594,7 +594,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             VirtualPool vpool,
             VirtualPool originalVpool,
             VolumeCreate param,
-            Integer tnumberOfVolumesInRequest,
+            Integer numberOfVolumesInRequest,
             String newVolumeLabel,
             boolean isChangeVpoolForProtectedVolume, VirtualPoolCapabilityValuesWrapper capabilities,
             URI protectionSystemURI,
@@ -628,16 +628,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             if (!cgSourceVolumes.isEmpty()) {
                 boolean isAdditionalSourceJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(vpool.getJournalSize(),
                         consistencyGroup, param.getSize(),
-                        tnumberOfVolumesInRequest, Volume.PersonalityTypes.SOURCE.toString(),
+                        numberOfVolumesInRequest, Volume.PersonalityTypes.SOURCE.toString(),
                         cgSourceVolumes.get(0).getInternalSiteName());
                 if (!isAdditionalSourceJournalRequired) {
                     _log.info(String.format("Re-use existing Source Journals"));
                     // If the CG contains volumes already and no new additional journals are provisioned,
                     // then we simply update the reference on the source for the journal volume.
-                    sourceJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
-
+                    sourceJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);                    
+                    _log.info(String.format("Existing Primary Source Journal: [%s] (%s)", sourceJournal.getLabel(), sourceJournal.getId()));
+                    
                     if (VirtualPool.vPoolSpecifiesMetroPoint(vpool) && !isChangeVpoolForProtectedVolume) {
                         standbyJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, true);
+                        _log.info(String.format("Existing Standby Source Journal: [%s] (%s)", standbyJournal.getLabel(), standbyJournal.getId()));
                     }
                 }
             }
@@ -672,10 +674,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volumeURIs.add(sourceJournal.getId());
                 volumeInfoBuffer.append(logVolumeInfo(sourceJournal));
             }
-        } else {
-            if (sourceJournal != null) {
-                volumeInfoBuffer.append(logVolumeInfo(sourceJournal));
-            }
         }
 
         ///////// STANDBY SOURCE JOURNAL ///////////
@@ -704,11 +702,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volumeURIs.add(standbyJournal.getId());
                 volumeInfoBuffer.append(logVolumeInfo(standbyJournal));
             }
-        } else {
-            if (standbyJournal != null) {
-                volumeInfoBuffer.append(logVolumeInfo(standbyJournal));
-            }
-        }
+        } 
 
         // If this is a change vpool to upgrade to Metropoint, we need to update the reference on the source volume to
         // include the new created stand-by journal.
@@ -746,22 +740,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     targetCopyVarray = targetJournalVarray;
                 }
 
-                // only need to enter this block if we already have existing journals in the CG
+                // Only need to enter this block if we already have existing journals in the CG
                 // and we want to see if more space is required or if we are performing an add
                 // journal volume operation
                 if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
                     VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
                     boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(
                             protectionSettings.getJournalSize(), consistencyGroup, param.getSize(),
-                            tnumberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(),
+                            numberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(),
                             targetJournalRec.getInternalSiteName());
                     if (!isAdditionalTargetJournalRequired) {
                         // If the CG contains volumes already and no new additional journals are provisioned,
                         // then we simply update the reference on the source for the journal volume.
-                        _log.info(String.format("Re-use existing Target Journal (%s)", targetJournalVarray.getLabel()));
+                        _log.info(String.format("Re-use existing Target Journal for target [%s]", targetJournalVarray.getLabel()));
                         Volume existingTargetJournalVolume = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
                         targetJournals.put(targetJournalVarray.getId(), existingTargetJournalVolume);
-                        volumeInfoBuffer.append(logVolumeInfo(existingTargetJournalVolume));
+                        _log.info(String.format("Existing Target Journal: [%s] (%s)", existingTargetJournalVolume.getLabel(), existingTargetJournalVolume.getId()));
                         continue;
                     }
                 }

@@ -112,7 +112,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             context = new VplexBackendIngestionContext(unManagedVolume, _dbClient);
             context.setIngestionInProgress(true);
-            currentVplexBackendIngestionContext = context;
 
             //
             // If the "Only During Discovery" system setting is set, no new data will
@@ -177,95 +176,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 _logger.info(context.getPerformanceReport());
             }
 
-            currentVplexBackendIngestionContext = null;
-
             return virtualVolume;
         } catch (Exception ex) {
             _logger.error("error during VPLEX backend ingestion wrap up: ", ex);
             preventBackendUnmanagedVolumeDeletionOnError(unManagedVolumesToBeDeleted, context);
             throw ex;
         }
-    }
-
-    @Override
-    protected boolean markUnManagedVolumeInactive(
-            UnManagedVolume currentUnmanagedVolume, 
-            BlockObject currentBlockObject,
-            List<UnManagedVolume> unManagedVolumes,
-            Map<String, BlockObject> createdObjects, 
-            Map<String, List<DataObject>> updatedObjects, 
-            Map<String, StringBuffer> taskStatusMap) {
-
-        boolean canMarkInactive = super.markUnManagedVolumeInactive(currentUnmanagedVolume, currentBlockObject, 
-                unManagedVolumes, createdObjects, updatedObjects, taskStatusMap);
-
-        // also need to check some special 
-        // conditions on the vplex virtual volume
-        if (canMarkInactive) {
-            canMarkInactive = markUnManagedVolumeInactive(currentVplexBackendIngestionContext);
-        }
-
-        return canMarkInactive;
-    }
-
-    /**
-     * Checks whether or not the virtual volume being ingested should
-     * be marked as internal due to associated resources being also 
-     * incompletely ingested.  First, the internal flag on backend
-     * volumes is checked, then the ingestion status of native VPLEX 
-     * (full virtual volume) clones, then the ingestion status of any 
-     * native VPLEX mirrors.
-     * 
-     * @param context the backend ingestion context to check
-     * @return true if the unmanaged virtual volume can be marked inactive
-     */
-    protected boolean markUnManagedVolumeInactive(VplexBackendIngestionContext context) {
-
-        if (null == context) {
-            // this means there are no backend replicas to check
-            // that is, this was a virtual volume front-end only ingestion
-            // so just return true
-            return true;
-        }
-
-        _logger.info("Running VPLEX unmanaged volume {} replica ingestion status", 
-                context.getUnmanagedVirtualVolume().getLabel());
-
-        boolean shouldMarkInactive = true;
-        
-        // check vplex clone status
-        for (Entry<UnManagedVolume, UnManagedVolume> vplexCloneEntry : 
-                context.getUnmanagedVplexClones().entrySet()) {
-            String vplexCloneGuid = vplexCloneEntry.getValue()
-                    .getNativeGuid().replace(
-                            VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME); 
-            _logger.info("Checking VPLEX front-end clone {} replica ingestion status", vplexCloneGuid);
-            
-            BlockObject volume = VolumeIngestionUtil.getBlockObject(vplexCloneGuid, _dbClient);
-            if (null != volume) {
-                if (volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
-                    _logger.info("\tthis VPLEX clone has the NO_PUBLIC_ACCESS flag set");
-                    shouldMarkInactive = false;
-                }
-            }
-        }
-        
-        // check vplex mirror status
-        for (UnManagedVolume vplexMirror : context.getUnmanagedVplexMirrors().keySet()) {
-            String vplexMirrorGuid = vplexMirror.getNativeGuid().replace(
-                    VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME); 
-            _logger.info("Checking VPLEX native mirror {} replica ingestion status", vplexMirrorGuid);
-            
-            BlockObject volume = VolumeIngestionUtil.getBlockObject(vplexMirrorGuid, _dbClient);
-            if (null != volume) {
-                if (volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
-                    _logger.info("\tthis VPLEX native mirror has the NO_PUBLIC_ACCESS flag set");
-                    shouldMarkInactive = false;
-                }
-            }
-        }
-    
-        return shouldMarkInactive;
     }
 
     /**
@@ -1008,8 +924,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             getVarrayToClusterIdMap(vplex).clear();
             cacheLastRefreshed = timeRightNow;
         }
-
-        currentVplexBackendIngestionContext = null;
 
         // TODO: it would be nice for there to be an onIngestionComplete
         // method in the ingest strategy framework that would

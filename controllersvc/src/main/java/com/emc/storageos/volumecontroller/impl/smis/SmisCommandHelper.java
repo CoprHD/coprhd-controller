@@ -51,6 +51,8 @@ import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -93,8 +95,6 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
-
-
 
 /**
  * Helper for Smis commands
@@ -450,7 +450,7 @@ public class SmisCommandHelper implements SmisConstants {
         List<CIMArgument> args = new ArrayList<>(Arrays.asList(baseArgs));
         args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, replicationSetting));
 
-        return args.toArray(new CIMArgument[]{});
+        return args.toArray(new CIMArgument[] {});
     }
 
     public CIMArgument[] getCreateElementReplicaSnapInputArgumentsWithTargetAndSetting(
@@ -463,7 +463,7 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.reference(CP_TARGET_ELEMENT, _cimPath.getVolumePath(storageDevice, targetId)));
         args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, replicaSettingData));
 
-        return args.toArray(new CIMArgument[]{});
+        return args.toArray(new CIMArgument[] {});
     }
 
     public CIMArgument[] getCreateElementReplicaMirrorInputArguments(StorageSystem storageDevice, Volume volume,
@@ -473,10 +473,10 @@ public class SmisCommandHelper implements SmisConstants {
 
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         args.addAll(Arrays.asList(baseArguments));
-        args.add(_cimArgument.referenceArray(CP_COLLECTIONS, new CIMObjectPath[]{volumeGroupPath}));
+        args.add(_cimArgument.referenceArray(CP_COLLECTIONS, new CIMObjectPath[] { volumeGroupPath }));
         args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, replicaSettingData));
 
-        return args.toArray(new CIMArgument[]{});
+        return args.toArray(new CIMArgument[] {});
     }
 
     public CIMArgument[] getCreateElementReplicaMirrorInputArguments(StorageSystem storageDevice, BlockObject volume,
@@ -499,7 +499,7 @@ public class SmisCommandHelper implements SmisConstants {
         if (pool != null) {
             addTargetPoolToArgs(storageDevice, pool, args);
         }
-        return args.toArray(new CIMArgument[]{});
+        return args.toArray(new CIMArgument[] {});
     }
 
     public CIMArgument[] getFractureMirrorInputArgumentsWithCopyState(CIMObjectPath storageSync,
@@ -535,7 +535,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FAILOVER_SYNC_PAIR),
                 _cimArgument.bool(CP_FORCE, true),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
     }
 
@@ -544,7 +544,7 @@ public class SmisCommandHelper implements SmisConstants {
         int FRACTURE_OR_SPLIT = (sync != null && sync) ? SPLIT_VALUE : FRACTURE_VALUE;
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FRACTURE_OR_SPLIT),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
     }
 
@@ -560,12 +560,12 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, DETACH_VALUE),
                 _cimArgument.bool(CP_FORCE, true),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
     }
 
     public CIMArgument[] getAddSyncPairInputArguments(CIMObjectPath groupSync, boolean forceAdd,
-                                                      Object settings, CIMObjectPath... syncPairs) {
+            Object settings, CIMObjectPath... syncPairs) {
         List<CIMArgument> args = new ArrayList<>();
 
         args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, settings));
@@ -613,7 +613,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getSRDFSplitInputArguments(Collection<CIMObjectPath> syncPaths, Object repSettingInstance) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FRACTURE_VALUE),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})),
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})),
                 _cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance) };
     }
 
@@ -631,7 +631,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, SWAP_SYNC_PAIR),
                 _cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})) };
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})) };
     }
 
     public CIMArgument[] getASyncPairFailBackInputArguments(CIMObjectPath groupSync) {
@@ -656,7 +656,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getASyncPairFailBackInputArguments(Collection<CIMObjectPath> syncPaths) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FAILBACK_SYNC_PAIR),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})) };
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})) };
     }
 
     public CIMArgument[] getASyncPairSuspendInputArguments(CIMObjectPath groupSync) {
@@ -675,7 +675,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getSyncPairResumeInputArguments(Collection<CIMObjectPath> syncPaths) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})) };
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})) };
     }
 
     public CIMArgument[] getASyncPairResumeInputArguments(CIMObjectPath groupSync) {
@@ -751,7 +751,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] {
                 _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
     }
 
@@ -926,10 +926,10 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public List<CIMArgument> getCreateVolumesInputArgumentsasList(StorageSystem storageDevice, StoragePool pool,
-                                                                  List<String> labels,
-                                                                  Long capacity,
-                                                                  int count,
-                                                                  boolean isThinlyProvisioned) {
+            List<String> labels,
+            Long capacity,
+            int count,
+            boolean isThinlyProvisioned) {
         if (storageDevice.getUsingSmis80()) {
             return getCreateVolumesInputArgumentsasList80(storageDevice, pool, labels, capacity, count,
                     isThinlyProvisioned);
@@ -940,10 +940,10 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public List<CIMArgument> getCreateVolumesInputArgumentsasList40(StorageSystem storageDevice, StoragePool pool,
-                                                                  String label,
-                                                                  Long capacity,
-                                                                  int count,
-                                                                  boolean isThinlyProvisioned) {
+            String label,
+            Long capacity,
+            int count,
+            boolean isThinlyProvisioned) {
         ArrayList<CIMArgument> list = new ArrayList<>();
         try {
             CIMProperty[] inPoolPropKeys = {
@@ -971,10 +971,10 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public List<CIMArgument> getCreateVolumesInputArgumentsasList80(StorageSystem storageDevice, StoragePool pool,
-                                                                  List<String> labels,
-                                                                  Long capacity,
-                                                                  int count,
-                                                                  boolean isThinlyProvisioned) {
+            List<String> labels,
+            Long capacity,
+            int count,
+            boolean isThinlyProvisioned) {
         ArrayList<CIMArgument> list = new ArrayList<>();
         try {
             CIMProperty[] inPoolPropKeys = {
@@ -988,7 +988,7 @@ public class SmisCommandHelper implements SmisConstants {
             Integer volumeType = isThinlyProvisioned ? STORAGE_VOLUME_TYPE_THIN : STORAGE_VOLUME_VALUE;
 
             // Create array values
-            String[] labelsArray = labels.toArray(new String[]{});  // Convert labels to array
+            String[] labelsArray = labels.toArray(new String[] {});  // Convert labels to array
 
             // Adding Goal parameter if volumes need to be FAST Enabled
             list.add(_cimArgument.referenceArray(CP_IN_POOL,
@@ -1082,7 +1082,7 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.uint32(CP_EMC_NUMBER_OF_DEVICES, count),
                 _cimArgument.uint64(CP_SIZE, capacity),
                 _cimArgument.reference(CP_IN_POOL, poolPath),
-                _cimArgument.referenceArray(CP_EMC_COLLECTIONS, new CIMObjectPath[]{volumeGroupPath}) };
+                _cimArgument.referenceArray(CP_EMC_COLLECTIONS, new CIMObjectPath[] { volumeGroupPath }) };
     }
 
     public CIMArgument[] getCreateVolumesBasedOnVolumeGroupInputArguments80(
@@ -1100,7 +1100,7 @@ public class SmisCommandHelper implements SmisConstants {
         list.add(_cimArgument.referenceArray(CP_IN_POOL,
                 toMultiElementArray(count, poolPath)));
         list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS,
-                new CIMObjectPath[]{volumeGroupPath}));
+                new CIMObjectPath[] { volumeGroupPath }));
 
         if (label != null) {
             list.add(_cimArgument.stringArray(CP_ELEMENT_NAMES,
@@ -1110,11 +1110,11 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMArgument[] getCreateVolumesInputArguments(StorageSystem storageDevice, StoragePool pool, String label,
-                                                        Long capacity,
-                                                        int count,
-                                                        boolean isThinlyProvisioned,
-                                                        CIMInstance poolSetting,
-                                                        boolean isBoundToPool) {
+            Long capacity,
+            int count,
+            boolean isThinlyProvisioned,
+            CIMInstance poolSetting,
+            boolean isBoundToPool) {
 
         List<String> labels = new ArrayList<>(asList(toMultiElementArray(count, label)));
         return getCreateVolumesInputArguments(storageDevice, pool, labels, capacity, count, isThinlyProvisioned,
@@ -1122,12 +1122,12 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMArgument[] getCreateVolumesInputArguments(StorageSystem storageDevice, StoragePool pool,
-                                                        List<String> labels,
-                                                        Long capacity,
-                                                        int count,
-                                                        boolean isThinlyProvisioned,
-                                                        CIMInstance poolSetting,
-                                                        boolean isBoundToPool) {
+            List<String> labels,
+            Long capacity,
+            int count,
+            boolean isThinlyProvisioned,
+            CIMInstance poolSetting,
+            boolean isBoundToPool) {
 
         List<CIMArgument> list = getCreateVolumesInputArgumentsasList(storageDevice, pool,
                 labels, capacity, count, isThinlyProvisioned);
@@ -1152,9 +1152,9 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMArgument[] getCreateVolumesInputArguments(StorageSystem storageDevice, StoragePool pool,
-                                                        List<String> labels, Long capacity, int count,
-                                                        boolean isThinlyProvisioned, boolean isBoundToPool,
-                                                        CIMObjectPath volumeGroupPath, boolean fullyAllocated) {
+            List<String> labels, Long capacity, int count,
+            boolean isThinlyProvisioned, boolean isBoundToPool,
+            CIMObjectPath volumeGroupPath, boolean fullyAllocated) {
 
         List<CIMArgument> list = getCreateVolumesInputArgumentsasList(storageDevice, pool, labels, capacity, count,
                 isThinlyProvisioned);
@@ -1188,11 +1188,11 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMArgument[] getCreateVolumesInputArgumentsOnFastEnabledPool(StorageSystem storageDevice, StoragePool pool,
-                                                                         String label,
-                                                                         Long capacity,
-                                                                         int count,
-                                                                         boolean isThinlyProvisioned,
-                                                                         String fastPolicyName) throws IOException {
+            String label,
+            Long capacity,
+            int count,
+            boolean isThinlyProvisioned,
+            String fastPolicyName) throws IOException {
 
         if (storageDevice.getUsingSmis80()) {
             List<String> labels = new ArrayList<>(asList(toMultiElementArray(count, label)));
@@ -1206,11 +1206,11 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMArgument[] getCreateVolumesInputArgumentsOnFastEnabledPool(StorageSystem storageDevice, StoragePool pool,
-                                                                         List<String> labels,
-                                                                         Long capacity,
-                                                                         int count,
-                                                                         boolean isThinlyProvisioned,
-                                                                         String fastPolicyName) throws IOException {
+            List<String> labels,
+            Long capacity,
+            int count,
+            boolean isThinlyProvisioned,
+            String fastPolicyName) throws IOException {
 
         List<CIMArgument> list = getCreateVolumesInputArgumentsasList(storageDevice, pool, labels, capacity, count,
                 isThinlyProvisioned);
@@ -2625,6 +2625,14 @@ public class SmisCommandHelper implements SmisConstants {
         }
 
         CIMObjectPath syncSettingsPath = _cimPath.getSyncSettingsPath(storage, volumePath, from.getSettingsInstance());
+
+        URIQueryResultList snapSessionURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(from.getId()), snapSessionURIs);
+        Iterator<URI> snapSessionURIsIter = snapSessionURIs.iterator();
+        if (!snapSessionURIsIter.hasNext()) {
+            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIsIter.next());
+            syncSettingsPath = _cimPath.objectPath(snapSession.getSessionInstance());
+        }
 
         return new CIMArgument[] {
                 _cimArgument.uint16(CP_OPERATION, RESTORE_FROM_SYNC_SETTINGS),
@@ -4736,7 +4744,7 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.reference(CP_SOURCE_GROUP, srcCG));
         args.add(_cimArgument.reference(CP_TARGET_GROUP, tgtCG));
         args.add(_cimArgument.referenceArray(CP_ELEMENT_SYNCHRONIZATIONS,
-                elementSynchronizations.toArray(new CIMObjectPath[]{})));
+                elementSynchronizations.toArray(new CIMObjectPath[] {})));
         return args.toArray(new CIMArgument[] {});
     }
 
@@ -6098,7 +6106,7 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, RESTORE_FROM_REPLICA),
                 _cimArgument.bool(CP_FORCE, true),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
         };
     }
 
@@ -6261,11 +6269,11 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice,
-                                                            CIMObjectPath[] sourceVolumePath,
-                                                            CIMObjectPath[] targetVolumePath,
-                                                            int mode,
-                                                            CIMObjectPath repCollection,
-                                                            CIMInstance repSetting) {
+            CIMObjectPath[] sourceVolumePath,
+            CIMObjectPath[] targetVolumePath,
+            int mode,
+            CIMObjectPath repCollection,
+            CIMInstance repSetting) {
         List<CIMArgument> args = new ArrayList<>();
         args.add(_cimArgument.referenceArray(CP_SOURCE_ELEMENTS, sourceVolumePath));
         args.add(_cimArgument.referenceArray(CP_TARGET_ELEMENTS, targetVolumePath));
@@ -6336,7 +6344,7 @@ public class SmisCommandHelper implements SmisConstants {
         if (replicationSettingData != null) {
             args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, replicationSettingData));
         }
-        return args.toArray(new CIMArgument[]{});
+        return args.toArray(new CIMArgument[] {});
     }
 
     /**
@@ -6553,7 +6561,7 @@ public class SmisCommandHelper implements SmisConstants {
      * When new replicas are added to the group, they can be in Sync state & old mirrors could be in SPLIT state.
      * Hence to make the group consistent, we should check for the syncState of all replicas in the group.
      * if there is any replica in split state, then resume the complete group.
-     *
+     * 
      * @param storage
      * @param replicaList
      * @param clazz
@@ -6587,16 +6595,19 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Creates an explicitly sized array of generic type T, containing the given value for all its elements.
-     *
+     * 
      * Example:
      * toMultiElementArray(2, true); => boolean[] array = new boolean[2] { true, true};
-     *
+     * 
      * @param count size of the array
+     * 
      * @param value value for each element
-     * @param <T>   type of array
-     * @return      Array of T, containing the same value for each element.
+     * 
+     * @param <T> type of array
+     * 
+     * @return Array of T, containing the same value for each element.
      */
-    public static  <T> T[] toMultiElementArray(int count, T value) {
+    public static <T> T[] toMultiElementArray(int count, T value) {
         T[] array = (T[]) Array.newInstance(value.getClass(), count);
 
         for (int i = 0; i < count; i++) {

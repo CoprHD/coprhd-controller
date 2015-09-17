@@ -18,11 +18,11 @@
                 <prop key="autopurge.snapRetainCount">16</prop>
                 <!-- auto purge interval (minutes) -->
                 <prop key="autopurge.purgeInterval">30</prop>
-                <foreach iterator="iter">
-                <prop key="server.${iter}">${network_${iter}_ipaddr_service},2888,2889,participant</prop>
+                <foreach iterator="iter_primary">
+                <prop key="server.${iter_primary}">${primary_${iter_primary}_ipaddr_service},2888,2889,participant</prop>
                 </foreach>
-                <foreach iterator="iter_site">
-                <prop key="server.${iter_site}">${standby_${iter_site}_ipaddr_service},2888,2889,observer</prop>
+                <foreach iterator="iter_standby">
+                <prop key="server.${iter_standby}">${standby_${iter_standby}_ipaddr_service},2888,2889,observer</prop>
                 </foreach>
             </props>
         </property>

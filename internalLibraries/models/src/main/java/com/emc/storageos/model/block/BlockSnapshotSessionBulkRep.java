@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.BulkRestRep;
 
@@ -15,6 +16,7 @@ import com.emc.storageos.model.BulkRestRep;
  * Class encapsulates the data returned in response to a bulk request
  * for multiple BlockSnapshotSession instances.
  */
+@XmlRootElement(name = "bulk_block_snapshot-sessions")
 public class BlockSnapshotSessionBulkRep extends BulkRestRep {
 
     // A list of BlockSnapshotSession instance response objects.

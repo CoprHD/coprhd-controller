@@ -109,8 +109,6 @@ public class ComputeImageServers extends ViprResourceController {
 
     @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(ComputeImageServerForm computeImageServers) {
-        if (computeImageServers != null) {
-        }
         computeImageServers.validate("computeImageServers");
 
         if (Validation.hasErrors()) {
@@ -200,13 +198,17 @@ public class ComputeImageServers extends ViprResourceController {
         }
 
         public void validate(String fieldName) {
-
             Validation.valid(fieldName, this);
             if (isNew()) {
                 Validation.required(fieldName + ".password", this.password);
                 Validation.required(fieldName + ".imageServerIp", this.imageServerIp);
-                if (!HostNameOrIpAddressCheck.isValidHostNameOrIp(imageServerIp)) {
+                if (!HostNameOrIpAddressCheck.isValidIp(imageServerIp)) {
                     Validation.addError(fieldName + ".imageServerIp",
+                            MessagesUtils.get("computeSystem.invalid.ipAddress"));
+                }
+                Validation.required(fieldName + ".imageServerIp", this.osInstallNetworkAddress);
+                if (!HostNameOrIpAddressCheck.isValidIp(osInstallNetworkAddress)) {
+                    Validation.addError(fieldName + ".osInstallNetworkAddress",
                             MessagesUtils.get("computeSystem.invalid.ipAddress"));
                 }
             }

@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.exceptions.DeviceControllerException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -299,9 +300,12 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             }
             log.info("Got VPLEX volume names.");
 
+            long startTime = System.currentTimeMillis();
             // Add the volumes to the CG.
             client.addVolumesToConsistencyGroup(cgName, vplexVolumeNames);
-            log.info("Added volumes to consistency group.");
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.info(String.format("TIMER: Adding %s virtual volume(s) %s to the consistency group %s took %f seconds",
+                    vplexVolumeNames.size(), vplexVolumeNames, cgName, (double) elapsed / (double) 1000));
 
             // Make sure the volumes are updated. Necessary when
             // adding volumes to a CG after volume creation.

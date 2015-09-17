@@ -461,7 +461,7 @@ public class VPlexApiConsistencyGroupManager {
     void addVolumesToConsistencyGroup(String cgName,
             List<String> virtualVolumeNames) throws VPlexApiException {
         s_logger.info("Request to add volumes {} to a consistency group {}",
-                virtualVolumeNames.toString(), cgName);
+                virtualVolumeNames, cgName);
 
         // Find the virtual volumes with the passed names.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();

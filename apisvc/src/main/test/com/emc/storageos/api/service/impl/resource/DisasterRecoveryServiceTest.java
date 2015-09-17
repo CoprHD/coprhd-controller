@@ -273,7 +273,7 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testAddPrimary() {
-        SiteRestRep response = drService.addPrimary(primarySiteParam);
+        SiteRestRep response = drService.addSite(primarySiteParam);
         assertNotNull(response);
         assertEquals(primarySiteParam.getUuid(), response.getUuid());
         assertEquals(response.getName(), primarySiteParam.getName());

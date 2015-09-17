@@ -2629,7 +2629,7 @@ public class SmisCommandHelper implements SmisConstants {
         URIQueryResultList snapSessionURIs = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(from.getId()), snapSessionURIs);
         Iterator<URI> snapSessionURIsIter = snapSessionURIs.iterator();
-        if (!snapSessionURIsIter.hasNext()) {
+        if (snapSessionURIsIter.hasNext()) {
             BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIsIter.next());
             syncSettingsPath = _cimPath.objectPath(snapSession.getSessionInstance());
         }

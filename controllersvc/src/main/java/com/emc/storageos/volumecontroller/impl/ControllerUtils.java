@@ -961,6 +961,66 @@ public class ControllerUtils {
     }
 
     /**
+     * Check if CG has any group relationship
+     *
+     * Note - on array side,  if replica has been removed from replication group, but source volume has not been removed from CG yet,
+     * the CG will not have group relationship until the source volume get removed from the CG.
+     *
+     * As a result, getting associator names cannot be used to check if CG has group relationship.
+     */
+    public static boolean checkCGHasGroupRelationship(URI cgURI, DbClient dbClient) {
+        // get volumes part of this CG
+        List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(cgURI, dbClient);
+
+        // check if replica of any of these volumes have replicationGroupInstance set
+        for (Volume volume : volumes) {
+            // clone
+            URIQueryResultList cloneList = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getAssociatedSourceVolumeConstraint(volume.getId()), cloneList);
+            Iterator<URI> iter = cloneList.iterator();
+            while (iter.hasNext()) {
+                URI cloneID = iter.next();
+                Volume clone = dbClient.queryObject(Volume.class, cloneID);
+                if (clone != null && !clone.getInactive()
+                        && NullColumnValueGetter.isNotNullValue(clone.getReplicationGroupInstance())) {
+                    return true;
+                }
+            }
+
+            // mirror
+            URIQueryResultList mirrorList = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getVolumeBlockMirrorConstraint(volume.getId()), mirrorList);
+            Iterator<URI> itr = mirrorList.iterator();
+            while (itr.hasNext()) {
+                URI mirrorID = itr.next();
+                BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorID);
+                if (mirror != null && !mirror.getInactive()
+                        && NullColumnValueGetter.isNotNullValue(mirror.getReplicationGroupInstance())) {
+                    return true;
+                }
+            }
+
+            // snapshot
+            URIQueryResultList list = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getVolumeSnapshotConstraint(volume.getId()), list);
+            Iterator<URI> it = list.iterator();
+            while (it.hasNext()) {
+                URI snapshotID = it.next();
+                BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
+                if (snapshot != null && !snapshot.getInactive()
+                        && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Gets clone replication group names from clones of all volumes in CG.
      */
     public static Set<String> getCloneReplicationGroupNames(List<Volume> volumes , DbClient dbClient) {

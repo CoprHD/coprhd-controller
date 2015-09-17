@@ -2333,23 +2333,6 @@ public class SmisCommandHelper implements SmisConstants {
         return argsList.toArray(args);
     }
 
-    public CIMArgument[] getAddVolumesToMaskingGroupInputArguments(StorageSystem storageDevice, String storageGroupName,
-            CIMObjectPath[] members, String[] deviceNumbers, boolean forceFlag) throws Exception {
-        CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storageDevice, storageGroupName,
-                MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
-        List<CIMArgument> argsList = new ArrayList<CIMArgument>();
-        argsList.add(_cimArgument.referenceArray(CP_MEMBERS, members));
-        argsList.add(_cimArgument.reference(CP_MASKING_GROUP, maskingGroupPath));
-        if (deviceNumbers != null && deviceNumbers.length > 0) {
-            argsList.add(_cimArgument.stringArray(CP_DEVICE_NUMBERS, deviceNumbers));
-        }
-        if (forceFlag) {
-            argsList.add(_cimArgument.bool(CP_EMC_FORCE, Boolean.TRUE));
-        }
-        CIMArgument[] args = {};
-        return argsList.toArray(args);
-    }
-
     public CIMArgument[] getAddVolumesToMaskingGroupInputArguments(StorageSystem storageDevice, CIMObjectPath groupPath,
             Set<String> volumeDeviceIds) throws Exception {
         String[] volumeNames = volumeDeviceIds.toArray(new String[volumeDeviceIds.size()]);
@@ -5768,6 +5751,26 @@ public class SmisCommandHelper implements SmisConstants {
                 storage, replicationGroupPath, replicas);
         replicasToAdd.removeAll(volumesInRG);
         return replicasToAdd;
+    }
+
+    /**
+     * Filter replicas that are already removed from the Replication Group.
+     *
+     * @param storage the storage
+     * @param replicationGroupPath the replication group path
+     * @param deviceIds the volumes
+     * @return new list with volumes to add
+     * @throws Exception the exception
+     */
+    public List<URI> filterReplicasAlreadyRemovedFromReplicationGroup(StorageSystem storage,
+            String replicationGroupName, List<URI> replicas) throws Exception {
+        List<URI> replicasToRemove = new ArrayList<URI>();
+        replicasToRemove.addAll(replicas);
+        CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(storage, replicationGroupName);
+        List<URI> volumesInRG = findVolumesInReplicationGroup(
+                storage, replicationGroupPath, replicas);
+        replicasToRemove.retainAll(volumesInRG);
+        return replicasToRemove;
     }
 
     /**

@@ -328,8 +328,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     @Override
     public String addStepsForDeleteVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes,
             String taskId) throws InternalException {
-        // Get the list of descriptors which represent source volumes that have
-        // just been created and added to CG possibly
+        // Get the list of descriptors which represent source volumes to be deleted
         List<VolumeDescriptor> volumeDescriptors = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.SRDF_SOURCE,
                         VolumeDescriptor.Type.SRDF_EXISTING_SOURCE,
@@ -344,17 +343,20 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         // Get the consistency groups. If no consistency group for source
         // volumes,
         // just return. Get CGs from all descriptors.
+        // Assume volumes could be in different CGs
         Map<URI, Set<URI>> cgToVolumes = new HashMap<URI, Set<URI>>();
-        for (VolumeDescriptor volume : volumeDescriptors) {
-            URI cg = volume.getConsistencyGroupURI();
-            if (NullColumnValueGetter.isNullURI(cg)) {
-                Set<URI> volumeList = cgToVolumes.get(cg);
-                if (volumeList == null) {
-                    volumeList = new HashSet<URI>();
-                    cgToVolumes.put(cg, volumeList);
+        for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
+            URI volumeURI = volumeDescriptor.getVolumeURI();
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            if (volume != null && volume.isInCG()) {
+                URI cg = volume.getConsistencyGroup();
+                Set<URI> cgVolumeList = cgToVolumes.get(cg);
+                if (cgVolumeList == null) {
+                    cgVolumeList = new HashSet<URI>();
+                    cgToVolumes.put(cg, cgVolumeList);
                 }
 
-                volumeList.add(volume.getVolumeURI());
+                cgVolumeList.add(volumeURI);
             }
         }
 
@@ -367,13 +369,11 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             // find member volumes in the group
             Set<URI> volumeURIs = entry.getValue();
             List<Volume> volumeList = _dbClient.queryObject(Volume.class, volumeURIs);
+            boolean isRemoveAllFromCG = isRemoveAllFromCG(entry.getKey(), volumeList);
+
             if (checkIfCGHasCloneReplica(volumeList)) {
                 log.info("Adding clone steps for deleting volumes");
-                // delete clones for the to be deleted volumes
-
-                // check is all volumes in CG get deleted or only subset of it
-                // if all, use alternative logic - detach then delete
-                waitFor = deleteCloneSteps(workflow, waitFor, volumeURIs, volumeList);
+                waitFor = deleteCloneSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromCG);
             }
 
             if (checkIfCGHasMirrorReplica(volumeList)) {
@@ -392,38 +392,56 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return waitFor;
     }
 
+    private boolean isRemoveAllFromCG(URI cg, List<Volume> volumes) {
+        URIQueryResultList cgVolumeList = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getVolumesByConsistencyGroup(cg), cgVolumeList);
+        int totalVolumeCount = 0;
+        while (cgVolumeList.iterator().hasNext()) {
+            Volume cgSourceVolume = _dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
+            if (cgSourceVolume != null) {
+                totalVolumeCount++;
+            }
+        }
+
+        return totalVolumeCount == volumes.size();
+    }
+
     /*
      * remove all clones of the to be deleted volumes in a CG
      */
-    private String deleteCloneSteps(final Workflow workflow, String waitFor, Set<URI> volumeURIs, List<Volume> volumes) {
+    private String deleteCloneSteps(final Workflow workflow, String waitFor, Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {
         log.info("START delete clone steps");
-        URI storage = volumes.get(0).getStorageController();
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-
         Set<String> repGroupNames = ControllerUtils.getCloneReplicationGroupNames(volumes, _dbClient);
         if (repGroupNames.isEmpty()) {
             return waitFor;
         }
 
+        URI storage = volumes.get(0).getStorageController();
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
         for (String repGroupName : repGroupNames) {
-            waitFor = removeClonesFromReplicationGroupStep(workflow, waitFor, storageSystem, volumeURIs, volumes, repGroupName);
+            List<URI> cloneList = getClonesToBeRemoved(volumeURIs, repGroupName);
+            if (!isRemoveAll) {
+                URI cgURI = volumes.get(0).getConsistencyGroup();
+                waitFor = removeClonesFromReplicationGroupStep(workflow, waitFor, storageSystem, cgURI, cloneList, repGroupName);
+            }
+
+            waitFor = _blockDeviceController.removeCloneStep(workflow, waitFor, storage, storageSystem, cloneList, isRemoveAll);
         }
 
         return waitFor;
     }
 
     private String removeClonesFromReplicationGroupStep(final Workflow workflow, String waitFor, StorageSystem storageSystem,
-            Set<URI> volumeURIs, List<Volume> volumes, String repGroupName) {
+            URI cgURI, List<URI> cloneList, String repGroupName) {
         log.info("START remove clone steps");
         URI storage = storageSystem.getId();
-        List<URI> cloneList = getClonesToBeRemoved(volumeURIs, repGroupName);
-        URI cgURI = volumes.get(0).getConsistencyGroup();
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),
                 removeFromReplicationGroupMethod(storage, cgURI, repGroupName, cloneList),
                 _blockDeviceController.rollbackMethodNullMethod(), null);
-        log.info(String.format("Step created for adding clone [%s] to group on device [%s]",
+        log.info(String.format("Step created for remove clones [%s] from group on device [%s]",
                 Joiner.on("\t").join(cloneList), storage));
 
         return waitFor;
@@ -433,7 +451,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         List<URI> replicas = new ArrayList<URI>();
         URIQueryResultList queryResults = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getMirrorReplicationGroupInstanceConstraint(repGroupName), queryResults);
+                .getCloneReplicationGroupInstanceConstraint(repGroupName), queryResults);
         Iterator<URI> resultsIter = queryResults.iterator();
         while (resultsIter.hasNext()) {
             Volume clone = _dbClient.queryObject(Volume.class, resultsIter.next());

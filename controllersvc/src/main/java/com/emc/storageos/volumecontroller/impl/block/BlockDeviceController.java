@@ -4211,4 +4211,47 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         return waitFor;
     }
+
+    public String removeCloneStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem, List<URI> cloneList,
+            boolean isRemoveAll) {
+        if (isRemoveAll) {
+            Workflow.Method detachMethod = detachFullCopyMethod(storage, cloneList.get(0));
+            waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", waitFor,
+                    storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
+        } else {
+            for (URI uri : cloneList) {
+                Workflow.Method detachMethod = detachSelectedFullCopyMethod(storage, uri);
+                waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", waitFor,
+                        storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
+            }
+
+            waitFor = workflow.createStep(DELETE_VOLUMES_STEP_GROUP,
+                    String.format("Deleting volumes:%n%s", getVolumesMsg(_dbClient, cloneList)),
+                    waitFor, storage, storageSystem.getSystemType(), getClass(),
+                    deleteVolumesMethod(storage, cloneList),
+                    null, null);
+        }
+
+        return waitFor;
+    }
+
+    public Workflow.Method detachSelectedFullCopyMethod(URI storage, URI fullCopyVolume) {
+        return new Workflow.Method("detachSelectedFullCopy", storage, fullCopyVolume);
+    }
+
+    public void detachSelectedFullCopy(URI storage, URI fullCopyVolume, String taskId)
+            throws ControllerException {
+        _log.info("START detachFullCopy: {}", fullCopyVolume);
+
+        try {
+            // TODO -ensure the clone is detachable
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            TaskCompleter taskCompleter = new VolumeDetachCloneCompleter(fullCopyVolume, taskId);
+            getDevice(storageSystem.getSystemType()).doDetachClone(storageSystem, fullCopyVolume, taskCompleter);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(taskId, serviceError);
+            doFailTask(Volume.class, fullCopyVolume, taskId, serviceError);
+        }
+    }
 }

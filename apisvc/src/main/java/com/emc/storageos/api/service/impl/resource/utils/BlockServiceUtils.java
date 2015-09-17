@@ -13,6 +13,8 @@ import java.util.Map.Entry;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
@@ -21,12 +23,18 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageProvider;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VersionChecker;
 
 /**
  * Utility class to hold generic, reusable block service methods
@@ -182,4 +190,28 @@ public class BlockServiceUtils {
         }
     }
 
+    /**
+     * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or higher
+     *
+     * @param volume Volume part of the CG
+     * @return true if the operation is supported.
+     */
+    public static boolean checkVolumeCanBeAddedOrRemoved(Volume volume, DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+        if (storage != null && storage.deviceIsType(Type.vmax)) {
+            URI providerURI = storage.getActiveProviderURI();
+            if (!NullColumnValueGetter.isNullURI(providerURI)) {
+                StorageProvider provider = dbClient.queryObject(StorageProvider.class, providerURI);
+                if (provider != null) {
+                    String version = provider.getVersionString();
+                    if (StringUtils.isNotBlank(version)) {
+                        version = version.replaceFirst("[^\\d]", "");
+                        return VersionChecker.verifyVersionDetails("8.0.3", version) >= 0;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
 }

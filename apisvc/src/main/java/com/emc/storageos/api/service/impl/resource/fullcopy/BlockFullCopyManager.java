@@ -754,6 +754,9 @@ public class BlockFullCopyManager {
      * @return true if the volume can be deleted, false otherwise.
      */
     public boolean volumeCanBeDeleted(Volume volume) {
+        if (volume.isInCG() && BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+            return true;
+        }
 
         boolean volumeCanBeDeleted = true;
 

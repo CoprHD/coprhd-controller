@@ -65,7 +65,7 @@ public class NullColumnValueGetter {
      * Checks to see if a String value is null.
      * 
      * @param s the value to be checked
-     * @return true if the String is not null
+     * @return true if the String is null
      */
     public static boolean isNullValue(String s) {
         return !isNotNullValue(s);

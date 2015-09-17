@@ -91,7 +91,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     }
 
     @IndexByKey
-    @AlternateId("KnownInitiatorNetwordIdIndex")
+    @AlternateId("KnownInitiatorNetworkIdIndex")
     @Name("knownInitiatorNetworkIds")
     public StringSet getKnownInitiatorNetworkIds() {
         if (null == _knownInitiatorNetworkIds) {

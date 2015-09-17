@@ -106,7 +106,6 @@ public abstract class BlockIngestOrchestrator {
         VolumeIngestionUtil.checkUnmanagedVolumeInactive(unManagedVolume);
         VolumeIngestionUtil.checkVPoolValidForUnManagedVolumeInProtectedMode(vPool, unManagedVolume, _dbClient);
         VolumeIngestionUtil.checkUnManagedResourceIngestable(unManagedVolume);
-        VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
     }
 
     /**

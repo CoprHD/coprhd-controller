@@ -59,7 +59,6 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             // tenant, project, vPool);
             checkVolumeExportState(unManagedVolume, unManagedVolumeExported);
             VolumeIngestionUtil.checkUnManagedResourceIngestable(unManagedVolume);
-            VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
 
             snapShot = createSnapshot(system, snapNativeGuid, virtualArray, vPool, unManagedVolume, project);
         }

@@ -131,7 +131,7 @@ public class IngestStrategyFactory {
     }
 
     public enum ReplicationStrategy {
-        LOCAL, REMOTE, VPLEX
+        LOCAL, REMOTE, VPLEX, RP
     }
     
     public enum VolumeType {
@@ -193,6 +193,7 @@ public class IngestStrategyFactory {
         LOCAL_CLONE,
         REMOTE_VOLUME,
         VPLEX_VOLUME,
+        RP_VOLUME,
         NONE;
 
         public static IngestStrategyEnum getIngestStrategy(String strategyName) {
@@ -278,7 +279,10 @@ public class IngestStrategyFactory {
         
         case VPLEX_VOLUME:
             ingestStrategy.setIngestResourceOrchestrator(blockVplexVolumeIngestOrchestrator);
+            break;
 
+        case RP_VOLUME:
+            ingestStrategy.setIngestResourceOrchestrator(blockRecoverPointIngestOrchestrator);
             break;
 
         default:
@@ -294,7 +298,9 @@ public class IngestStrategyFactory {
                 SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString());
 
         String replicationStrategy;
-        if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
+        if (VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
+            replicationStrategy = ReplicationStrategy.RP.name();
+        } else if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
             replicationStrategy = ReplicationStrategy.VPLEX.name();
         } else if (null == remoteMirrorEnabledInVolume || !Boolean.parseBoolean(remoteMirrorEnabledInVolume)) {
             replicationStrategy = ReplicationStrategy.LOCAL.name();

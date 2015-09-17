@@ -617,6 +617,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterStorageSystemNamespace(String namespace);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidParameterProtectionSystemNamespace(String namespace);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterSystemTypeforAutoTiering();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

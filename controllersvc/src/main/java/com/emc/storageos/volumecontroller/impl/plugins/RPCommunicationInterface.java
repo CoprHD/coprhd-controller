@@ -73,6 +73,7 @@ import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.recoverpoint.RPUnManagedObjectDiscoverer;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 /**
@@ -85,6 +86,13 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
     private NamespaceList namespaces;
     private Executor executor;
+
+    private RPUnManagedObjectDiscoverer unManagedCGDiscoverer;
+
+    public void setUnManagedObjectDiscoverer(
+            RPUnManagedObjectDiscoverer cgDiscoverer) {
+        this.unManagedCGDiscoverer = cgDiscoverer;
+    }
 
     private RPStatisticsHelper _rpStatsHelper;
 
@@ -230,6 +238,10 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 discoverySuccess = false;
                 String msg = "Discovery of topology failed. Protection system: " + storageSystemId;
                 buildErrMsg(errMsgBuilder, rpe, msg);
+            }
+
+            if (accessProfile.getnamespace().equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())) {
+                unManagedCGDiscoverer.discoverUnManagedObjects(accessProfile, _dbClient, _partitionManager);
             }
 
             if (!discoverySuccess) {

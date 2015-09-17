@@ -27,7 +27,6 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -80,7 +79,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
                 VolumeIngestionUtil.VOLUME);
         BlockObject blockObject = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
 
-        // validate srdf blockObjects.
         validateUnManagedVolumeProperties(unManagedVolume, virtualArray, vPool, project);
         // Check if ingested volume has exportmasks pending for ingestion.
         //if (isExportIngestionPending(blockObject, unManagedVolume.getId(), unManagedVolumeExported)) {
@@ -151,15 +149,19 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
     }
 
     /**
-     * Validates the UnManagedVolume SRDF Properties.
+     * Validates the UnManagedVolume Properties to make sure it has everything needed to be ingested.
      * 
-     * @param unManagedVolume
-     * @param virtualArray
-     * @param virtualPool
+     * @param unManagedVolume unmanaged volume 
+     * @param virtualArray virtual array 
+     * @param virtualPool virtual pool
+     * @param project project
      */
     private void validateUnManagedVolumeProperties(UnManagedVolume unManagedVolume, VirtualArray virtualArray,
             VirtualPool virtualPool, Project project) {
         StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
+
+        
+        /*
         URI rdfGroupId = getRDFGroupBasedOnPersonality(unManagedVolumeInformation);
         // To make sure rdfGroup is populated for both R1 & R2 volumes.
         if (null == rdfGroupId) {
@@ -189,6 +191,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
         } else if (RemoteMirrorObject.Types.TARGET.toString().equalsIgnoreCase(type)) {
             validateTargetVolumeVpoolWithSourceVolume(unManagedVolume, virtualArray);
         }
+        */
 
     }
 

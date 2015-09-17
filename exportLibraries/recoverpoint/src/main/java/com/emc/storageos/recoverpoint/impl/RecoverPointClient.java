@@ -101,6 +101,10 @@ import com.emc.storageos.recoverpoint.requests.RecreateReplicationSetRequestPara
 import com.emc.storageos.recoverpoint.requests.RecreateReplicationSetRequestParams.CreateRSetVolumeParams;
 import com.emc.storageos.recoverpoint.responses.CreateBookmarkResponse;
 import com.emc.storageos.recoverpoint.responses.GetBookmarksResponse;
+import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
+import com.emc.storageos.recoverpoint.responses.GetCopyResponse;
+import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
+import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
 import com.emc.storageos.recoverpoint.responses.MultiCopyDisableImageResponse;
 import com.emc.storageos.recoverpoint.responses.MultiCopyEnableImageResponse;
 import com.emc.storageos.recoverpoint.responses.MultiCopyRestoreImageResponse;
@@ -380,6 +384,137 @@ public class RecoverPointClient {
         }
 
         return false;
+    }
+
+    /**
+     * Returns all CGs, policies, and volumes within the CG.
+     *
+     * @return a set of RP consistency group objects
+     * @throws RecoverPointException
+     */
+    public Set<GetCGsResponse> getAllCGs() throws RecoverPointException {
+        String mgmtIPAddress = _endpoint.toASCIIString();
+
+        if (null == mgmtIPAddress) {
+            throw RecoverPointException.exceptions.noRecoverPointEndpoint();
+        }
+        
+        Set<GetCGsResponse> cgs = new HashSet<GetCGsResponse>();
+        try {
+            // Make sure the CG name is unique.
+            List<ConsistencyGroupUID> allCgs = functionalAPI.getAllConsistencyGroups();
+            for (ConsistencyGroupUID cg : allCgs) {
+                ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
+                
+                // First storage attributes about the top-level CG
+                GetCGsResponse ncg = new GetCGsResponse();
+                ncg.setCgName(settings.getName());
+                // TODO: Fill these in with policy values
+                // ncg.cgPolicy.copyMode = 
+                // ncg.cgPolicy.rpoType =
+                // ncg.cgPolicy.rpoValue = 
+                
+                // Fill in the Copy information
+                if (settings.getGroupCopiesSettings() == null) {
+                    continue;
+                }
+
+                Map<String, String> copyUIDToNameMap = new HashMap<String, String>();
+                // used to set the copy uid on the rset volume when adding rsets
+                Set<String> productionCopiesUID = new HashSet<String>();
+
+                // Retrieve all RP copies for this CG
+                for (ConsistencyGroupCopySettings copySettings : settings.getGroupCopiesSettings()) {
+                    GetCopyResponse copy = new GetCopyResponse();
+                    copy.setName(copySettings.getName());
+                    String copyID = copySettings.getCopyUID().getGlobalCopyUID().getClusterUID().getId() + "-" + 
+                            copySettings.getCopyUID().getGlobalCopyUID().getCopyUID();
+                    copyUIDToNameMap.put(copyID,  copySettings.getName());
+                    
+                    GlobalCopyUID globalCopyUID = copySettings.getCopyUID().getGlobalCopyUID();
+                    if (ConsistencyGroupCopyRole.ACTIVE.equals(copySettings.getRoleInfo().getRole()) ||
+                            ConsistencyGroupCopyRole.TEMPORARY_ACTIVE.equals(copySettings.getRoleInfo().getRole())) {
+                        productionCopiesUID.add(copyID);
+                        copy.setProduction(true);
+                    } else {
+                        copy.setProduction(false);
+                    }
+
+                    if (copySettings.getJournal() == null || copySettings.getJournal().getJournalVolumes() == null) {
+                        continue;
+                    }
+                    
+                    for (JournalVolumeSettings journal : copySettings.getJournal().getJournalVolumes()) {
+                        GetVolumeResponse volume = new GetVolumeResponse();
+                  
+                        volume.setRpCopyName(copySettings.getName());
+                        
+                        // Need to extract the rawUids to format: 600601608D20370089260942815CE511
+                        volume.setWwn(RecoverPointUtils.getGuidBufferAsString(journal.getVolumeInfo().getRawUids(), false));
+                        if (copy.getJournals() == null) {
+                            copy.setJournals(new ArrayList<GetVolumeResponse>());
+                        }
+                        
+                        copy.getJournals().add(volume);
+                    }
+                    
+                    if (ncg.getCopies() == null) {
+                        ncg.setCopies(new ArrayList<GetCopyResponse>());
+                    }
+                    
+                    ncg.getCopies().add(copy);
+                }
+
+                // Retrieve all replication sets for this CG
+                for (ReplicationSetSettings rsetSettings : settings.getReplicationSetsSettings()) {
+                    GetRSetResponse rset = new GetRSetResponse();
+                    rset.setName(rsetSettings.getReplicationSetName());
+                    
+                    if (rsetSettings.getVolumes() == null) {
+                        continue;
+                    }
+                    
+                    for (UserVolumeSettings volume : rsetSettings.getVolumes()) {
+                        GetVolumeResponse nvolume = new GetVolumeResponse();
+                        
+                        // Get the RP copy name, needed to match up sources to targets
+                        String copyID = volume.getGroupCopyUID().getGlobalCopyUID().getClusterUID().getId() + "-" + 
+                                volume.getGroupCopyUID().getGlobalCopyUID().getCopyUID();
+                        nvolume.setRpCopyName(copyUIDToNameMap.get(copyID));
+                        
+                        if (productionCopiesUID.contains(copyID)) {
+                            nvolume.setProduction(true);
+                        } else {
+                            nvolume.setProduction(false);
+                        }                        
+                        
+                        // Need to extract the rawUids to format: 600601608D20370089260942815CE511
+                        nvolume.setWwn(RecoverPointUtils.getGuidBufferAsString(volume.getVolumeInfo().getRawUids(), false));
+                        
+                        if (rset.getVolumes() == null) {
+                            rset.setVolumes(new ArrayList<GetVolumeResponse>());
+                        }
+                        
+                        rset.getVolumes().add(nvolume);
+                    }
+                    
+                    if (ncg.getRsets() == null) {
+                        ncg.setRsets(new ArrayList<GetRSetResponse>());
+                    }
+                    
+                    ncg.getRsets().add(rset);
+                   
+                }
+                
+                cgs.add(ncg);
+                
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw RecoverPointException.exceptions.failedToLookupConsistencyGroups(getCause(e));
+        }
+
+        return cgs;
     }
 
     /**

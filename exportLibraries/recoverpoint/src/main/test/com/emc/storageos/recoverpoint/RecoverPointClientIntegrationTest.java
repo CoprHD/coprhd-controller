@@ -34,6 +34,7 @@ import com.emc.storageos.recoverpoint.requests.MultiCopyDisableImageRequestParam
 import com.emc.storageos.recoverpoint.requests.MultiCopyEnableImageRequestParams;
 import com.emc.storageos.recoverpoint.requests.MultiCopyRestoreImageRequestParams;
 import com.emc.storageos.recoverpoint.requests.RPCopyRequestParams;
+import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
@@ -81,11 +82,11 @@ public class RecoverPointClientIntegrationTest {
     private static final String BourneRPTestJrnlLUN6WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
             "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN6WWN");
 
-    private static final String RP_USERNAME = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RP_USERNAME");
-    private static final String RP_PASSWORD = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RP_PASSWORD");
-    private static final String RPSiteToUse = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSiteToUse");
-    private static final String RPSystemName = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSystemName");
-    private static final String SITE_MGMT_IPV4 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.SITE_MGMT_IPV4");
+    private static final String RP_USERNAME = "admin"; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RP_USERNAME");
+    private static final String RP_PASSWORD = "admin"; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RP_PASSWORD");
+    private static final String RPSiteToUse = "lrmb016.lss.emc.com"; // EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSiteToUse");
+    private static final String RPSystemName = "lrmb016"; // EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSystemName");
+    private static final String SITE_MGMT_IPV4 = "10.247.169.83";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.SITE_MGMT_IPV4");
 
     private static final String FAKE_WWN = "6006016018C12D00";
     private static volatile RecoverPointClient rpClient;
@@ -162,6 +163,20 @@ public class RecoverPointClientIntegrationTest {
 
     }
 
+    @Test
+    public void testGetAllCGs() {
+        logger.info("Testing RecoverPoint CG Retrieval");
+        Set<GetCGsResponse> cgs;
+        try {
+            cgs = rpClient.getAllCGs();
+            for (GetCGsResponse cg : cgs) {
+                logger.info("CG: " + cg);
+            }
+        } catch (RecoverPointException e) {
+            fail(e.getMessage());
+        }         
+    }
+    
     @Test
     public void testGetAllSites() {
         RPSystem rpSystem = new RPSystem();

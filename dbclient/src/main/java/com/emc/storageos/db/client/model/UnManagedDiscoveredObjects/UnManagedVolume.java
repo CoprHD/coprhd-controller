@@ -273,7 +273,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
     }
 
     @IndexByKey
-    @AlternateId("InitiatorNetwordIdIndex")
+    @AlternateId("InitiatorNetworkIdIndex")
     @Name("initiatorNetworkIds")
     public StringSet getInitiatorNetworkIds() {
         if (null == _initiatorNetworkIds) {
@@ -327,6 +327,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         }
     }
     
+    @Override
     public String toString() {
         return this.getLabel() + " (" + this.getId() + ")";
     }

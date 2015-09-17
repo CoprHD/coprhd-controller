@@ -4212,7 +4212,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return waitFor;
     }
 
-    public String removeCloneStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem, List<URI> cloneList,
+    public String detachCloneStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem, List<URI> cloneList,
             boolean isRemoveAll) {
         if (isRemoveAll) {
             Workflow.Method detachMethod = detachFullCopyMethod(storage, cloneList.get(0));
@@ -4224,12 +4224,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", waitFor,
                         storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
             }
-
-            waitFor = workflow.createStep(DELETE_VOLUMES_STEP_GROUP,
-                    String.format("Deleting volumes:%n%s", getVolumesMsg(_dbClient, cloneList)),
-                    waitFor, storage, storageSystem.getSystemType(), getClass(),
-                    deleteVolumesMethod(storage, cloneList),
-                    null, null);
         }
 
         return waitFor;

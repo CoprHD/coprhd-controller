@@ -5754,26 +5754,6 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
-     * Filter replicas that are already removed from the Replication Group.
-     *
-     * @param storage the storage
-     * @param replicationGroupPath the replication group path
-     * @param deviceIds the volumes
-     * @return new list with volumes to add
-     * @throws Exception the exception
-     */
-    public List<URI> filterReplicasAlreadyRemovedFromReplicationGroup(StorageSystem storage,
-            String replicationGroupName, List<URI> replicas) throws Exception {
-        List<URI> replicasToRemove = new ArrayList<URI>();
-        replicasToRemove.addAll(replicas);
-        CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(storage, replicationGroupName);
-        List<URI> volumesInRG = findVolumesInReplicationGroup(
-                storage, replicationGroupPath, replicas);
-        replicasToRemove.retainAll(volumesInRG);
-        return replicasToRemove;
-    }
-
-    /**
      * Determines which of the provided volumes URIs are already in the replication group
      * provided.
      *

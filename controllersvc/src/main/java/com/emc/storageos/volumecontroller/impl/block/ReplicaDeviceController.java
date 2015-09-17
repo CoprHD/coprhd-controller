@@ -372,8 +372,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             boolean isRemoveAllFromCG = isRemoveAllFromCG(entry.getKey(), volumeList);
 
             if (checkIfCGHasCloneReplica(volumeList)) {
-                log.info("Adding clone steps for deleting volumes");
-                waitFor = deleteCloneSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromCG);
+                log.info("Adding clone steps for detaching volumes");
+                waitFor = detachCloneSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromCG);
             }
 
             if (checkIfCGHasMirrorReplica(volumeList)) {
@@ -410,8 +410,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     /*
      * remove all clones of the to be deleted volumes in a CG
      */
-    private String deleteCloneSteps(final Workflow workflow, String waitFor, Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {
-        log.info("START delete clone steps");
+    private String detachCloneSteps(final Workflow workflow, String waitFor, Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {
+        log.info("START detach clone steps");
         Set<String> repGroupNames = ControllerUtils.getCloneReplicationGroupNames(volumes, _dbClient);
         if (repGroupNames.isEmpty()) {
             return waitFor;
@@ -426,7 +426,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 waitFor = removeClonesFromReplicationGroupStep(workflow, waitFor, storageSystem, cgURI, cloneList, repGroupName);
             }
 
-            waitFor = _blockDeviceController.removeCloneStep(workflow, waitFor, storage, storageSystem, cloneList, isRemoveAll);
+            waitFor = _blockDeviceController.detachCloneStep(workflow, waitFor, storage, storageSystem, cloneList, isRemoveAll);
         }
 
         return waitFor;

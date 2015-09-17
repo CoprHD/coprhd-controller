@@ -531,25 +531,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     /**
-     * Associates the virtual volume with the newly-ingested backend volumes.
-     * This should be called after the parent virtual volume has already been ingested.
-     * 
-     * @param context the VplexBackendIngestionContext
-     * @param virtualVolume the ingested virtual volume's Volume object.
-     */
-    private void setAssociatedVolumes(VplexBackendIngestionContext context, Volume virtualVolume) {
-        Collection<BlockObject> createdObjects = context.getCreatedObjectMap().values();
-        StringSet vols = new StringSet();
-        for (BlockObject vol : createdObjects) {
-            if (context.getBackendVolumeGuids().contains(vol.getNativeGuid())) {
-                vols.add(vol.getId().toString());
-            }
-        }
-        _logger.info("setting associated volumes {} on virtual volume {}", vols, virtualVolume.getLabel());
-        virtualVolume.setAssociatedVolumes(vols);
-    }
-
-    /**
      * Create a VplexMirror database object if a VPLEX native mirror is present.
      * This should be called after the parent virtual volume has already been ingested.
      * 

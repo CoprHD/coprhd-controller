@@ -35,9 +35,11 @@ public class VerifyMountPointHostDriveIsNotShared extends WindowsExecutionTask<V
     public Boolean isSharedStorage(String driveletter) throws WinRMException {
         for (DiskDrive drive : getTargetSystem().listDiskDrives()) {
             Disk disk = getTargetSystem().detailDisk(drive.getNumber());
-            for (Volume volume : disk.getVolumes()) {
-                if (isVolumeMountedAtDriveLetter(driveletter, volume)) {
-                    return disk.getClusteredDisk();
+            if (disk != null) {
+                for (Volume volume : disk.getVolumes()) {
+                    if (isVolumeMountedAtDriveLetter(driveletter, volume)) {
+                        return disk.getClusteredDisk();
+                    }
                 }
             }
         }

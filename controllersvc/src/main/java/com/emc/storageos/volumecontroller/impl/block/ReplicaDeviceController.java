@@ -655,7 +655,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     private String detachMirrorSteps(final Workflow workflow, String waitFor,
             Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {
         log.info("START detach mirror steps");
-        Set<String> repGroupNames = ControllerUtils.getCloneReplicationGroupNames(volumes, _dbClient);
+        Set<String> repGroupNames = ControllerUtils.getMirrorReplicationGroupNames(volumes, _dbClient);
         if (repGroupNames.isEmpty()) {
             return waitFor;
         }

@@ -837,8 +837,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                                  final Boolean createInactive, final Boolean readOnly, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
-            List<BlockSnapshot> snapshots = _dbClient
-                    .queryObject(BlockSnapshot.class, snapshotList);
+            List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotList);
             URI snapshot = snapshots.get(0).getId();
                 _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
                         readOnly, taskCompleter);
@@ -847,7 +846,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     "IO exception when trying to create snapshot(s) on array %s",
                     storage.getSerialNumber());
             _log.error(message, e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("doCreateSnapshot",
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doCreateSingleSnapshot",
                     e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
@@ -858,8 +857,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             final Boolean createInactive, final Boolean readOnly, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
-            List<BlockSnapshot> snapshots = _dbClient
-                    .queryObject(BlockSnapshot.class, snapshotList);
+            List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotList);
             if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
                 _snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive,
                         readOnly, taskCompleter);

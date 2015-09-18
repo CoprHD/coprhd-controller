@@ -4198,7 +4198,19 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             boolean isRemoveAll) {
         String mirrorStr = Joiner.on("\t").join(mirrorList);
         _log.info("Start deleteMirror Step for mirror:{}", mirrorStr);
+        List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
         if (isRemoveAll) {
+
+            // Optionally create a step to pause (fracture) the mirror
+            if (mirrorIsPausable(mirrors)) {
+                _log.info("Adding group fracture mirror step");
+                waitFor = workflow.createStep("deactivate",
+                        String.format("Fracture mirror: %s", mirrorList.get(0)),
+                        waitFor, storage, getDeviceType(storage),
+                        this.getClass(),
+                        fractureMirrorMethod(storage, mirrorList, isRemoveAll, false),
+                        null, null);
+            }
             _log.info("Adding group detach mirror step");
             Workflow.Method detach = detachMirrorMethod(storage, mirrorList, isRemoveAll);
             waitFor = workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, waitFor, storage,
@@ -4208,14 +4220,24 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             waitFor = workflow.createStep("deactivate", "deleting mirror volume: " + mirrorStr, waitFor, storage,
                     storageSystem.getSystemType(), getClass(), delete, null, null);
         } else {
-            for (URI uri : mirrorList) {
+            for (BlockMirror mirror : mirrors) {
+                // Optionally create a step to pause (fracture) the mirror
+                if (mirrorIsPausable(Arrays.asList(mirror))) {
+                    _log.info("Adding fracture mirror step");
+                    waitFor = workflow.createStep("deactivate",
+                            String.format("Fracture mirror: %s", mirrorList.get(0)),
+                            waitFor, storage, getDeviceType(storage),
+                            this.getClass(),
+                            fractureMirrorMethod(storage, Arrays.asList(mirror.getId()), isRemoveAll, false),
+                            null, null);
+                }
                 _log.info("Adding detach mirror step");
-                Workflow.Method detach = detachMirrorMethod(storage, Arrays.asList(uri), isRemoveAll);
-                waitFor = workflow.createStep("deactivate", "detaching mirror volume: " + uri, waitFor, storage,
+                Workflow.Method detach = detachMirrorMethod(storage, Arrays.asList(mirror.getId()), isRemoveAll);
+                waitFor = workflow.createStep("deactivate", "detaching mirror volume: " + mirror.getId(), waitFor, storage,
                         storageSystem.getSystemType(), getClass(), detach, null, null);
                 _log.info("Adding delete mirror step");
-                Workflow.Method delete = deleteMirrorMethod(storage, Arrays.asList(uri), isRemoveAll);
-                waitFor = workflow.createStep("deactivate", "deleting mirror volume: " + uri, waitFor, storage,
+                Workflow.Method delete = deleteMirrorMethod(storage, Arrays.asList(mirror.getId()), isRemoveAll);
+                waitFor = workflow.createStep("deactivate", "deleting mirror volume: " + mirror.getId(), waitFor, storage,
                         storageSystem.getSystemType(), getClass(), delete, null, null);
             }
         }

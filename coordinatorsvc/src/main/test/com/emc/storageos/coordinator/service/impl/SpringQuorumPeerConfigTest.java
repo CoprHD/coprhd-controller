@@ -30,10 +30,12 @@ public class SpringQuorumPeerConfigTest {
         properties.setProperty("syncLimit", "2");
         properties.setProperty("server.1", "192.168.1.1:2888:3888;2181");
         properties.setProperty("server.2", "hostname:2888:3888;2181");
+        //TODO support IPv6
         // properties.setProperty("server.3", "fe80:0:0:0:81fe:4fd:95b1:8bbf:2888:3888");
         properties.setProperty("server.3", "hostname2:2888:3888;2181");
-        properties.setProperty(SpringQuorumPeerConfig.staticCfgFileKey, "/tmp/zk-static.cfg");
-        properties.setProperty(SpringQuorumPeerConfig.dynamicCfgFileKey, "/tmp/zk-dynamic.cfg");
+
+        properties.setProperty(SpringQuorumPeerConfig.staticCfgFileKey, "zk-static.cfg");
+        properties.setProperty(SpringQuorumPeerConfig.dynamicCfgFileKey, "zk-dynamic.cfg");
         log.info("lby properties={}", properties);
 
         springQuorumPeerConfig = new SpringQuorumPeerConfig();
@@ -85,9 +87,10 @@ public class SpringQuorumPeerConfigTest {
 
         String staticCfgFile = properties.getProperty(SpringQuorumPeerConfig.staticCfgFileKey);
         String dynamicCfgFile = properties.getProperty(SpringQuorumPeerConfig.dynamicCfgFileKey);
+        File dataDir = target.getDataDir();
 
 
-        File cfgFile = new File(staticCfgFile);
+        File cfgFile = new File(dataDir, staticCfgFile);
         assertTrue(cfgFile.exists());
 
         //make sure we can load static properties
@@ -96,7 +99,7 @@ public class SpringQuorumPeerConfigTest {
         staticProperty.load(in);
 
         //check dynamic config file
-        cfgFile = new File(dynamicCfgFile);
+        cfgFile = new File(dataDir, dynamicCfgFile);
         assertTrue(cfgFile.exists());
 
         in = new FileInputStream(cfgFile);

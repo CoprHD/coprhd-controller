@@ -133,8 +133,8 @@ public class CoordinatorTestBase {
         zkprop.setProperty("maxClientCnxns", "0");
         zkprop.setProperty("autopurge.purgeInterval", "30");
         zkprop.setProperty("autopurge.snapRetainCount", "16");
-        zkprop.setProperty(SpringQuorumPeerConfig.staticCfgFileKey, "/tmp/zk-static.cfg");
-        zkprop.setProperty(SpringQuorumPeerConfig.dynamicCfgFileKey, "/tmp/zk-dynamic.cfg");
+        zkprop.setProperty(SpringQuorumPeerConfig.staticCfgFileKey, "zk-static.cfg");
+        zkprop.setProperty(SpringQuorumPeerConfig.dynamicCfgFileKey, "zk-dynamic.cfg");
         config.setProperties(zkprop);
         config.init();
 

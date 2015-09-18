@@ -2,8 +2,7 @@ package com.emc.vipr.client.core;
 
 import java.util.List;
 
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.core.Response;
+import com.sun.jersey.api.client.ClientResponse;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.dr.*;
@@ -30,8 +29,8 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.delete(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid);
     }
 
-    public Response syncSite(SiteSyncParam input) {
-        return client.put(Response.class, input, PathConstants.SITE_URL);
+    public ClientResponse syncSite(SiteSyncParam input) {
+        return client.put(ClientResponse.class, input, PathConstants.SITE_URL);
     }
     
     public SiteRestRep getSite(String uuid){

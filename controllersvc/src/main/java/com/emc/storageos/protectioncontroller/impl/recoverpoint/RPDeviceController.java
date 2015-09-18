@@ -1000,6 +1000,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 exportGroup.setProject(new NamedURI(params.getProject(), exportGroup.getLabel()));
                 exportGroup.setVirtualArray(varrayURI);
                 exportGroup.setTenant(new NamedURI(params.getTenant(), exportGroup.getLabel()));
+                exportGroup.setType(ExportGroupType.Cluster.name());
                 String exportGroupGeneratedName = rpSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + rpSiteName + "_"
                         + varray.getLabel();
                 // Remove all non alpha-numeric characters, excluding "_".
@@ -1014,29 +1015,37 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 exportGroup.setZoneAllInitiators(true);
 
                 // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
-                Map<String, String> wwns = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
+                Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
 
-                if (wwns == null || wwns.isEmpty()) {
+                if (rpaWWNs == null || rpaWWNs.isEmpty()) {
                     throw DeviceControllerExceptions.recoverpoint.noInitiatorsFoundOnRPAs();
                 }
 
                 // Convert to initiator object
                 List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String wwn : wwns.keySet()) {
+                for (String rpaId : rpaWWNs.keySet()) {
+            	   for (Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
                     Initiator initiator = new Initiator();
                     initiator.addInternalFlags(Flag.RECOVERPOINT);
                     // Remove all non alpha-numeric characters, excluding "_", from the hostname
-                    _log.info(String.format("Setting RP initiator with cluster name : %s", rpSiteName.replaceAll("[^A-Za-z0-9_]", "")));
-                    initiator.setClusterName(rpSiteName.replaceAll("[^A-Za-z0-9_]", ""));
-                    initiator.setHostName(rpSiteName.replaceAll("[^A-Za-z0-9_]", ""));
-                    initiator.setInitiatorPort(wwn);
-                    initiator.setInitiatorNode(wwns.get(wwn));
+                    String rpClusterName = rpSiteName.replaceAll("[^A-Za-z0-9_]", "");
+                    _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
+                    initiator.setClusterName(rpClusterName);
                     initiator.setProtocol("FC");
                     initiator.setIsManualCreation(false);
-
+                    
+                    String hostName = rpClusterName + "_RPA_" + rpaId;             
+                    _log.info(String.format("Setting RP initiator host name : %s", hostName));
+                    initiator.setHostName(hostName);
+                    
+                    _log.info(String.format("Setting Initiator port WWN : %s, nodeWWN : %s", rpaWWN.getKey(), rpaWWN.getValue()));
+                    initiator.setInitiatorPort(rpaWWN.getKey());
+                    initiator.setInitiatorNode(rpaWWN.getValue());
+                   
                     // Either get the existing initiator or create a new if needed
                     initiator = getOrCreateNewInitiator(initiator);
                     initiators.add(initiator);
+            	   }
                 }
 
                 // We need to find and distill only those RP initiators that correspond to the network of the storage system and
@@ -1095,7 +1104,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 List<String> lockKeys = ControllerLockingUtil
                         .getHostStorageLockKeys(_dbClient,
-                                ExportGroupType.Host,
+                                ExportGroupType.Cluster,
                                 initiatorSet, storageSystemURI);
                 boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
                         taskId, lockKeys, LockTimeoutValue.get(LockType.RP_EXPORT));

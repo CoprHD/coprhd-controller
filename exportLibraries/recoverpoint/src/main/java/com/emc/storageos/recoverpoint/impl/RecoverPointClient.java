@@ -1628,8 +1628,8 @@ public class RecoverPointClient {
      *
      * @throws RecoverPointException
      */
-    public Map<String, String> getInitiatorWWNs(String internalSiteName) throws RecoverPointException {
-        Map<String, String> wwns = new HashMap<String, String>();
+    public Map<String, Map<String, String>> getInitiatorWWNs(String internalSiteName) throws RecoverPointException {
+        Map<String, Map<String, String>> rpaWWNs = new HashMap<String, Map<String, String>>();
         try {
             FullRecoverPointSettings fullRecoverPointSettings = functionalAPI.getFullRecoverPointSettings();
             for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration()
@@ -1637,20 +1637,26 @@ public class RecoverPointClient {
                 if (!siteSettings.getInternalClusterName().equals(internalSiteName)) {
                     continue;
                 }
+                
                 ClusterRPAsState clusterRPAState = functionalAPI.getRPAsStateFromCluster(siteSettings.getCluster());
                 for (RpaState rpaState : clusterRPAState.getRpasStates()) {
                     for (InitiatorInformation rpaPortState : rpaState.getInitiatorsStates()) {
                         if (rpaPortState instanceof FiberChannelInitiatorInformation) {
                             FiberChannelInitiatorInformation initiator = (FiberChannelInitiatorInformation) rpaPortState;
                             String nodeWWN = WwnUtils.convertWWN(initiator.getNodeWWN(), WwnUtils.FORMAT.COLON);
-                            String portWWN = WwnUtils.convertWWN(initiator.getPortWWN(), WwnUtils.FORMAT.COLON);
-                            wwns.put(portWWN, nodeWWN);
+                            String portWWN = WwnUtils.convertWWN(initiator.getPortWWN(), WwnUtils.FORMAT.COLON);                            
+                            String rpaId = String.valueOf(rpaState.getRpaUID().getRpaNumber());
                             logger.info("RPA Node WWN: " + nodeWWN + ". Port WWN: " + portWWN);
+                            logger.info("RPA ID : " + rpaId);
+                            if (!rpaWWNs.containsKey(rpaId)) {
+                            	rpaWWNs.put(rpaId, new HashMap<String, String>());
+                            }
+                            rpaWWNs.get(rpaId).put(portWWN, nodeWWN);                         
                         }
                     }
                 }
             }
-            return wwns;
+            return rpaWWNs;
         } catch (FunctionalAPIActionFailedException_Exception e) {
             logger.error(e.getMessage());
             logger.error("Received FunctionalAPIActionFailedException_Exception. Get port information");

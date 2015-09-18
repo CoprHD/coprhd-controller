@@ -241,6 +241,9 @@ public class VdcSiteManager extends AbstractManager {
             localRepository.reconfigProperties("coordinator");
             localRepository.restart("coordinatorsvc");
 
+            localRepository.reconfigProperties("firewall");
+            localRepository.reload("firewall");
+
             log.info("Step2: Updating the hash code for local vdc properties");
             vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetVdcPropVersion.getVersion()));
             localRepository.setVdcPropertyInfo(vdcProperty);

@@ -315,7 +315,7 @@ class Logging(object):
                     pass
 
     def get_logs(self, log, severity, start, end, node ,
-                 regex, format, maxcount, filepath ,nodename ):
+                 regex, format, maxcount, filepath, nodename):
 
         params = ''
         if (log != ''):
@@ -633,13 +633,9 @@ class Monitoring(object):
         if(nodename is not None):
             uri = Monitoring.URI_MONITOR_STATS + "?node_name=" + nodename
         
-            
-            
-        
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", uri,
                                              None)
-        
         if(not s):
             return None
 

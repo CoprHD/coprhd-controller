@@ -905,7 +905,7 @@ public class ProjectService extends TaggedResource {
                     for (String existingMapping : userMappingSet) {
                         UserMappingParam userMap = BasePermissionsHelper.UserMapping.toParam(
                                 BasePermissionsHelper.UserMapping.fromString(existingMapping));
-                        projectDomains.add(userMap.getDomain());
+                        projectDomains.add(userMap.getDomain().toUpperCase());
                     }
                 }
             }
@@ -935,7 +935,7 @@ public class ProjectService extends TaggedResource {
                     Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
                     for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
                         NasCifsServer cifsServer = nasCifsServer.getValue();
-                        if (projectDomains.contains(cifsServer.getDomain())) {
+                        if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
                             domainMatched = true;
                             break;
                         }

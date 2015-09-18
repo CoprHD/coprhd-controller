@@ -129,11 +129,11 @@ public class VNXeDeleteShareJob extends VNXeJob {
 
             ContainmentConstraint containmentConstraint = null;
             if (isFile && fsObj != null) {
-                _logger.info("Querying DB for Share ACLs of share {} of filesystemId {} ", fsObj.getLabel(), fsObj.getId());
+                _logger.info("Querying DB for Share ACLs of share {} of filesystemId {} ", smbShare.getName(), fsObj.getId());
                 containmentConstraint = ContainmentConstraint.Factory.getFileCifsShareAclsConstraint(fsObj.getId());
             } else if (!isFile && fsObj != null) {
                 URI snapshotId = fsObj.getId();
-                _logger.info("Querying DB for Share ACLs of share {} of SnapshotId {} ", fsObj.getLabel(), fsObj.getId());
+                _logger.info("Querying DB for Share ACLs of share {} of SnapshotId {} ", smbShare.getName(), fsObj.getId());
                 containmentConstraint = ContainmentConstraint.Factory.getSnapshotCifsShareAclsConstraint(snapshotId);
             }
 
@@ -148,10 +148,9 @@ public class VNXeDeleteShareJob extends VNXeJob {
                         shareAcl.setInactive(true);
                     }
                 }
+                _logger.info("Deleting ACLs of share {} of filesystem {}", smbShare.getName(), fsObj.getLabel());
+                dbClient.persistObject(shareAclList);
             }
-            _logger.info("Deleting ACL of share {}", smbShare.getName());
-            dbClient.persistObject(shareAclList);
-
         } catch (Exception e) {
             _logger.error("Error while querying DB for ACL(s) of a share {}", e);
         }

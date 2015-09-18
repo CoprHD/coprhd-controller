@@ -501,7 +501,7 @@ public class BlockStorageUtils {
         return true;
     }
 
-    public static void deactivateBlockResources(Collection<URI> blockResourceIds, VolumeDeleteTypeEnum type) {
+    private static void deactivateBlockResources(Collection<URI> blockResourceIds, VolumeDeleteTypeEnum type) {
         List<URI> volumes = Lists.newArrayList();
         List<URI> fullCopies = Lists.newArrayList();
         for (URI blockResourceId : blockResourceIds) {

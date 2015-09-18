@@ -602,7 +602,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 totalVolumeCount++;
             }
         }
-        log.info("totalVolumeCount {}", totalVolumeCount);
+        log.info("totalVolumeCount {} volume size {}", totalVolumeCount, volumes.size());
         return totalVolumeCount == volumes.size();
     }
 

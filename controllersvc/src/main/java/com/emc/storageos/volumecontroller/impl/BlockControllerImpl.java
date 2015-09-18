@@ -289,13 +289,13 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void deleteMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException {
-        blockRMI("deleteMirror", storage, mirrorList, opId);
+    public void deleteMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws InternalException {
+        blockRMI("deleteMirror", storage, mirrorList, isCG, opId);
     }
 
     @Override
-    public void deactivateMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException {
-        blockRMI("deactivateMirror", storage, mirrorList, opId);
+    public void deactivateMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws InternalException {
+        blockRMI("deactivateMirror", storage, mirrorList, isCG, opId);
     }
 
     @Override

@@ -4201,7 +4201,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         if (isRemoveAll) {
             _log.info("Adding group detach mirror step");
             Workflow.Method detach = detachMirrorMethod(storage, mirrorList, isRemoveAll);
-            waitFor = workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
+            waitFor = workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, waitFor, storage,
                     storageSystem.getSystemType(), getClass(), detach, null, null);
             _log.info("Adding group delete mirror step");
             Workflow.Method delete = deleteMirrorMethod(storage, mirrorList, isRemoveAll);
@@ -4211,7 +4211,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             for (URI uri : mirrorList) {
                 _log.info("Adding detach mirror step");
                 Workflow.Method detach = detachMirrorMethod(storage, Arrays.asList(uri), isRemoveAll);
-                waitFor = workflow.createStep("deactivate", "detaching mirror volume: " + uri, null, storage,
+                waitFor = workflow.createStep("deactivate", "detaching mirror volume: " + uri, waitFor, storage,
                         storageSystem.getSystemType(), getClass(), detach, null, null);
                 _log.info("Adding delete mirror step");
                 Workflow.Method delete = deleteMirrorMethod(storage, Arrays.asList(uri), isRemoveAll);

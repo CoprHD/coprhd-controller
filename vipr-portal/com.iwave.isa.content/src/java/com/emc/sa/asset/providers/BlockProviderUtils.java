@@ -70,6 +70,28 @@ public class BlockProviderUtils {
         }
         return volumes;
     }
+    
+    public static List<VolumeRestRep> getBlockVolumesForDatastore(ViPRCoreClient viprClient, URI tenantId, URI hostOrClusterId,
+            String datastore, boolean onlyMounted) {
+        List<URI> hostIds = buildHostIdsList(viprClient, hostOrClusterId, onlyMounted);
+
+        List<VolumeRestRep> volumes = Lists.newArrayList();
+        for (VolumeRestRep volume : getExportedBlockVolumes(viprClient, tenantId, hostOrClusterId)) {
+            for (URI hostId : hostIds) {
+                String ds = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
+                if (ds.equals(datastore)) {
+                    boolean isMounted = isMounted(hostId, volume);
+                    if (onlyMounted && isMounted) {
+                        volumes.add(volume);
+                    }
+                    else if (!onlyMounted && !isMounted) {
+                        volumes.add(volume);
+                    }
+                }
+            }
+        }
+        return volumes;
+    }
 
     protected static List<URI> buildHostIdsList(ViPRCoreClient viprClient, URI hostOrClusterId, boolean onlyMounted) {
         List<URI> hostIds = Lists.newArrayList();

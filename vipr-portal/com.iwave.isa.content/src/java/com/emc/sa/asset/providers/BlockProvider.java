@@ -158,6 +158,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return true;
     }
 
+    private static boolean isInConsistencyGroup(VolumeRestRep volume) {
+        return volume.getConsistencyGroup() != null;
+    }
+
     @Asset("blockVolumeOrConsistencyType")
     @AssetDependencies("project")
     public List<AssetOption> getblockVolumeOrConsistencyType(AssetOptionsContext ctx, URI project) {
@@ -593,7 +597,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         debug("getting volumes (project=%s)", project);
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(type)) {
-            return createVolumeOptions(client, listVolumes(client, project));
+            return createVolumeOptions(client, listVolumesWithoutConsistencyGroup(client, project));
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
                     .search()
@@ -1049,7 +1053,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<AssetOption> options = Lists.newArrayList();
             for (VolumeDetail detail : volumeDetails) {
                 if (isLocalSnapshotSupported(detail.vpool) || isRPSourceVolume(detail.volume)) {
-                    options.add(createVolumeOption(client, null, detail.volume, volumeNames));
+                    if (!isInConsistencyGroup(detail.volume)) {
+                        options.add(createVolumeOption(client, null, detail.volume, volumeNames));
+                    }
                 }
             }
             return options;
@@ -1340,6 +1346,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     protected List<VolumeRestRep> listVolumes(ViPRCoreClient client, URI project) {
         return client.blockVolumes().findByProject(project);
+    }
+
+    protected List<VolumeRestRep> listVolumesWithoutConsistencyGroup(ViPRCoreClient client, URI project) {
+        return client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
+
+            @Override
+            public boolean accept(VolumeRestRep item) {
+                return !isInConsistencyGroup(item);
+            }
+        });
     }
 
     protected static List<AssetOption> createVolumeWithVarrayOptions(ViPRCoreClient client,

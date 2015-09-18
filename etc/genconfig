@@ -300,6 +300,9 @@ _genconfig_system_init() {
 	
     #only owner and group user can access db folder
     chmod 750 "/data/db"
+
+    # data versioning support
+    _genconfig_data_versioning
 }
 
 _genconfig_exec_scripts() {
@@ -318,6 +321,51 @@ _genconfig_exec_scripts() {
     else
         _fatal "there's no such notifier as ${1}"
     fi
+}
+
+# setup data directory for dbsvc, geodbsvc and coordinatorsvc to link with
+# specified data versioning tag. All of them should switch as a whole to avoid
+# data inconsistency.
+_genconfig_data_versioning() {
+   local tgt_dataver=${_GENCONFIG_target_data_revision_tag}
+   if [ -n "${tgt_dataver}" ]; then
+       _genconfig_setup_versioning_dir "/data/db" "1" ${tgt_dataver}
+       _genconfig_setup_versioning_dir "/data/geodb" "1" ${tgt_dataver}
+       _genconfig_setup_versioning_dir "/data/zk" "version-2" ${tgt_dataver}
+   fi
+}
+
+# setup versioning directory for a specific service.
+# rootdir - root data directory
+# curpt   - revision pointer. It should be soft link to current data copy
+# tgtver  - target data revision
+_genconfig_setup_versioning_dir() {
+    local rootdir=$1
+    local curpt=$2
+    local tgtver=$3
+
+    # check if the pointer is expected
+    local curdir=${rootdir}/${curpt}
+    if [ -L ${curdir} ] ; then
+        local dir=$(readlink ${curdir})
+        local curver=$(basename ${dir})
+        if [ "${tgtver}" == "${curver}" ] ; then
+            # nothing to do if the pointer is linked to expected revision
+            return
+        fi
+    fi
+
+    # create target revision dir if it does not exists
+    local tgtdir="${rootdir}/${tgtver}"
+    if [ ! -d "${tgtdir}" ] ; then
+        mkdir ${tgtdir}
+        chown storageos:storageos ${tgtdir}
+    fi
+
+    # change the pointer to target revision
+    rm -fR ${curdir}
+    ln -s ${tgtdir} ${curdir}
+    chown -h storageos:storageos ${curdir}
 }
 
 _genconfig_init

@@ -224,4 +224,3 @@ _genconfig_site_id() {
     fi
     echo "${site_id}"
 }
-

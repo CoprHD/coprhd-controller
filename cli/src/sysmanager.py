@@ -314,8 +314,8 @@ class Logging(object):
                 except IOError:
                     pass
 
-    def get_logs(self, log, severity, start, end, node,
-                 regex, format, maxcount, filepath , nodename):
+    def get_logs(self, log, severity, start, end, node ,
+                 regex, format, maxcount, filepath, nodename):
 
         params = ''
         if (log != ''):
@@ -487,7 +487,7 @@ class Logging(object):
 
     def prepare_params(self, args):
 
-        params = self.prepare_get_log_lvl_params(args.log, args.node)
+        params = self.prepare_get_log_lvl_params(args.log, args.node , args.nodename)
 
         if (args.severity != ''):
             params += '&' if ('?' in params) else '?'
@@ -626,16 +626,13 @@ class Monitoring(object):
 
     def get_stats(self, nodeid , nodename):
         
+        uri = Monitoring.URI_MONITOR_STATS
+        
         if(nodeid is not None):
             uri = Monitoring.URI_MONITOR_STATS + "?node_id=" + nodeid
         if(nodename is not None):
             uri = Monitoring.URI_MONITOR_STATS + "?node_name=" + nodename
-            
-        if(nodeid and nodename):
-            uri = Monitoring.URI_MONITOR_STATS + "?node_id=" + nodeid + "&node_name=" + nodename
-        else:
-            uri = Monitoring.URI_MONITOR_STATS
-
+        
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", uri,
                                              None)
@@ -648,15 +645,13 @@ class Monitoring(object):
 
     def get_health(self, nodeid , nodename):
         
+        uri = Monitoring.URI_MONITOR_HEALTH
+        
         if(nodeid is not None):
             uri = Monitoring.URI_MONITOR_HEALTH + "?node_id=" + nodeid
         if(nodename is not None):
             uri = Monitoring.URI_MONITOR_HEALTH + "?node_name=" + nodename
 
-        if(nodeid is not None and nodename is not None):
-            uri = Monitoring.URI_MONITOR_HEALTH + "?node_id=" + nodeid + "&node_name=" + nodename
-        else:
-            uri = Monitoring.URI_MONITOR_HEALTH
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", uri,
@@ -670,20 +665,21 @@ class Monitoring(object):
 
     def get_diagnostics(self, nodeid,nodename , verbose):
 
-        if(verbose):
+        
+        uri = Monitoring.URI_MONITOR_DIAGNOSTICS
+        
+        if(nodeid is not None and verbose == True):
+            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_id=" + nodeid + "&verbose=1"
+        if(nodename is not None and verbose == True):
+            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_name=" + nodename + "&verbose=1"
+        if(nodeid is None and nodename is None and  verbose == True):
             uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?verbose=1"
-        else:
-            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?verbose=0"
-            
-        if(nodeid is not None):
-            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_id=" + nodeid
-        if(nodename is not None):
-            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_name=" + nodename
-    
-
-        if(nodeid and nodename):
-            uri = uri + "&node_id=" + nodeid + "&node_name=" + nodename
-
+        if(nodename is not None and verbose == False):
+            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_name=" + nodename + "&verbose=0"
+        if(nodeid is not None and verbose == False):
+            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_id=" + nodeid + "&verbose=0"
+        
+           
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", uri,
                                              None)
@@ -903,16 +899,14 @@ class Configuration(object):
                   }
         return params
 
-    def get_properties(self, type=None , nodename=None):
+    def get_properties(self, type ):
         uri_conf = None
         if(type == None):
             uri_conf = Configuration.URI_PROPS
-        elif(type is not None and nodename is not None):
-            uri_conf = Configuration.URI_PROPS + "?node_name=" + nodename
-        elif(type is not None and nodename is None):
+        
+        else:
             uri_conf = Configuration.URI_PROPS_CATEGORY.format(type)
-        elif ( type is None and nodename is not None):
-            uri_conf = Configuration.URI_PROPS + "?node_name=" + nodename
+        
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", uri_conf,
                                              None)
@@ -923,15 +917,12 @@ class Configuration(object):
 
         return o
 
-    def get_properties_metadata(self , nodename):
+    def get_properties_metadata(self ):
         
-        if(nodename is not None):
-            uri = Configuration.URI_PROPS_METADATA + "?node_name=" + nodename
-        else:
-            uri = Configuration.URI_PROPS_METADATA
+        
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
-            "GET", uri,
+            "GET", Configuration.URI_PROPS_METADATA,
             None)
         if(not s):
             return None
@@ -939,8 +930,8 @@ class Configuration(object):
         o = common.json_decode(s)
 
         return o
-
-    def set_properties(self, propertiesfile, propertyname, propertyvaluefile , nodename):
+    
+    def set_properties(self, propertiesfile, propertyname, propertyvaluefile):
 
         try:
             if(propertiesfile):
@@ -955,11 +946,6 @@ class Configuration(object):
 
         except Exception as e:
             raise SOSError(e.errno, e.strerror)
-        
-        if(nodename is not None):
-            uri= Configuration.URI_PROPS + "?node_name=" + nodename
-        else:
-            uri = Configuration.URI_PROPS
 
         if(propertiesfile):
             params = self.prepare_properties_body(props)
@@ -970,7 +956,7 @@ class Configuration(object):
             body = json.dumps(params)
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
-                                             "PUT", uri,
+                                             "PUT", Configuration.URI_PROPS,
                                              body)
         if(not s):
             return None
@@ -1140,6 +1126,7 @@ def get_alerts(args):
     log = "systemevents"
     from common import TableGenerator
     try:
+        
         res = obj.get_logs(
             log,
             args.severity,
@@ -1149,7 +1136,8 @@ def get_alerts(args):
             args.regular,
             args.format,
             args.maxcount,
-            args.filepath)
+            args.filepath ,
+            args.nodename)
     except SOSError as e:
         common.format_err_msg_and_raise("get", log, e.err_text, e.err_code)
 
@@ -1547,6 +1535,12 @@ def add_log_args(parser, sendAlertFlag=False):
                         dest='node',
                         help='Node',
                         default='')
+    
+    parser.add_argument('-nodename', '-ndname',
+                        metavar='<node_name>',
+                        dest='nodename',
+                        help='Nodename',
+                        default='')
 
     parser.add_argument('-regular', '-regex',
                         metavar='<msg_regex>',
@@ -1858,13 +1852,11 @@ def get_stats_parser(subcommand_parsers, common_parser):
     get_stats_parser.add_argument('-node', '-nd',
                                   metavar='<node>',
                                   dest='node',
-                                  help='Node',
-                                  default='')
+                                  help='Node')
     get_stats_parser.add_argument('-nodename', '-ndname',
                                   metavar='<node>',
                                   dest='nodename',
-                                  help='Node',
-                                  default='')
+                                  help='Node')
 
 
     get_stats_parser.set_defaults(func=get_stats)
@@ -1873,6 +1865,10 @@ def get_stats_parser(subcommand_parsers, common_parser):
 def get_stats(args):
     obj = Monitoring(args.ip, Monitoring.DEFAULT_SYSMGR_PORT)
     try:
+        if(args.node is not None and args.nodename is not None):
+            print "Enter Either Nodename or NodeID "
+            return
+        
         return common.format_json_object(obj.get_stats(args.node , args.nodename))
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -1894,13 +1890,11 @@ def get_health_parser(subcommand_parsers, common_parser):
     get_health_parser.add_argument('-node', '-nd',
                                    metavar='<node>',
                                    dest='node',
-                                   help='Node',
-                                   default='')
+                                   help='Node')
     get_health_parser.add_argument('-nodename', '-ndname',
                                    metavar='<node>',
                                    dest='nodename',
-                                   help='Node',
-                                   default='')
+                                   help='Node')
 
 
     get_health_parser.set_defaults(func=get_health)
@@ -1909,6 +1903,10 @@ def get_health_parser(subcommand_parsers, common_parser):
 def get_health(args):
     obj = Monitoring(args.ip, Monitoring.DEFAULT_SYSMGR_PORT)
     try:
+        if(args.node is not None and args.nodename is not None):
+            print "Enter Either Nodename or NodeID "
+            return
+        
         return common.format_json_object(obj.get_health(args.node,args.nodename))
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -1930,14 +1928,12 @@ def get_diagnostics_parser(subcommand_parsers, common_parser):
     get_diagnostics_parser.add_argument('-node', '-nd',
                                         metavar='<node>',
                                         dest='node',
-                                        help='Node',
-                                        default='')
+                                        help='Node')
     
     get_diagnostics_parser.add_argument('-nodename', '-ndname',
                                         metavar='<node>',
                                         dest='nodename',
-                                        help='Node',
-                                        default='')
+                                        help='Node')
 
     get_diagnostics_parser.add_argument('-verbose', '-v',
                                         action='store_true',
@@ -1950,6 +1946,9 @@ def get_diagnostics_parser(subcommand_parsers, common_parser):
 def get_diagnostics(args):
     obj = Monitoring(args.ip, Monitoring.DEFAULT_SYSMGR_PORT)
     try:
+        if(args.node is not None and args.nodename is not None):
+            print "Enter Either Nodename or NodeID "
+            return
         return common.format_json_object(
             obj.get_diagnostics(args.node,args.nodename, args.verbose))
     except SOSError as e:
@@ -2075,10 +2074,7 @@ def get_properties_parser(subcommand_parsers, common_parser):
         choices=Configuration.URI_CONFIG_PROPERTY_TYPE,
         help='configuration property type',
         dest='type')
-    get_properties_parser.add_argument(
-        '-nodename', '-ndname',
-        help='nodename',
-        dest='nodename')
+    
 
 
     get_properties_parser.set_defaults(func=get_properties)
@@ -2087,7 +2083,7 @@ def get_properties_parser(subcommand_parsers, common_parser):
 def get_properties(args):
     obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
     try:
-        return common.format_json_object(obj.get_properties(args.type , args.nodename))
+        return common.format_json_object(obj.get_properties(args.type ))
     except SOSError as e:
         common.format_err_msg_and_raise(
             "get",
@@ -2106,18 +2102,14 @@ def get_properties_metadata_parser(subcommand_parsers, common_parser):
         help='Get Properties Meta Data.')
     mandatory_args = get_properties_metadata_parser.add_argument_group(
         'mandatory arguments')
-    get_properties_metadata_parser.add_argument('-nodename', '-ndname',
-                                       help='nodename ',
-                                       metavar='<nodename>',
-                                       dest='nodename')
-
+    
     get_properties_metadata_parser.set_defaults(func=get_properties_metadata)
 
 
 def get_properties_metadata(args):
     obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
     try:
-        return common.format_json_object(obj.get_properties_metadata(args.nodename))
+        return common.format_json_object(obj.get_properties_metadata())
     except SOSError as e:
         common.format_err_msg_and_raise(
             "get",
@@ -2157,10 +2149,7 @@ def set_properties_parser(subcommand_parsers, common_parser):
                                        help='property value file',
                                        metavar='<propertyvaluefile>',
                                        dest='propertyvaluefile')
-    set_properties_parser.add_argument('-nodename', '-ndname',
-                                       help='nodename ',
-                                       metavar='<nodename>',
-                                       dest='nodename')
+    
 
     set_properties_parser.set_defaults(func=set_properties)
 
@@ -2185,8 +2174,7 @@ def set_properties(args):
             obj.set_properties(
                 args.propertyfile,
                 args.propertyname,
-                args.propertyvaluefile,
-                args.nodename))
+                args.propertyvaluefile))
     except SOSError as e:
         common.format_err_msg_and_raise(
             "set",

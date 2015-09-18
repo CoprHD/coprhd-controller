@@ -263,6 +263,30 @@ public class ProjectService extends TaggedResource {
             }
         };
 
+        QueryResultList<TypedRelatedResourceRep> bucket = new QueryResultList<TypedRelatedResourceRep>() {
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri) {
+                TypedRelatedResourceRep resource = new TypedRelatedResourceRep();
+                resource.setId(uri);
+                resource.setType(ResourceTypeEnum.BUCKET);
+                return resource;
+            }
+
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri, String name, UUID timestamp) {
+                TypedRelatedResourceRep resource = new TypedRelatedResourceRep();
+                resource.setId(uri);
+                resource.setType(ResourceTypeEnum.BUCKET);
+                resource.setName(name);
+                return resource;
+            }
+
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
+                return createQueryHit(uri);
+            }
+        };
+
         QueryResultList<TypedRelatedResourceRep> exportgroup = new QueryResultList<TypedRelatedResourceRep>() {
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri) {
@@ -388,6 +412,8 @@ public class ProjectService extends TaggedResource {
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectFileshareConstraint(project.getId()), file);
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getProjectBucketConstraint(project.getId()), bucket);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectExportGroupConstraint(project.getId()), exportgroup);
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectBlockSnapshotConstraint(project.getId()), blockSnapshot);
@@ -402,7 +428,7 @@ public class ProjectService extends TaggedResource {
 
         ResourceList list = new ResourceList();
         list.setResources(new ChainedList<TypedRelatedResourceRep>(file.iterator(),
-                volume.iterator(), exportgroup.iterator(), blockSnapshot.iterator(),
+                volume.iterator(), bucket.iterator(), exportgroup.iterator(), blockSnapshot.iterator(),
                 fileSnapshot.iterator(), file.iterator(), volume.iterator(),
                 exportgroup.iterator(), protectionSet.iterator(), blockConsistencySet.iterator()));
         return list;
@@ -853,7 +879,7 @@ public class ProjectService extends TaggedResource {
                     for (String existingMapping : userMappingSet) {
                         UserMappingParam userMap = BasePermissionsHelper.UserMapping.toParam(
                                 BasePermissionsHelper.UserMapping.fromString(existingMapping));
-                        projectDomains.add(userMap.getDomain());
+                        projectDomains.add(userMap.getDomain().toUpperCase());
                     }
                 }
             }
@@ -883,7 +909,7 @@ public class ProjectService extends TaggedResource {
                     Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
                     for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
                         NasCifsServer cifsServer = nasCifsServer.getValue();
-                        if (projectDomains.contains(cifsServer.getDomain())) {
+                        if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
                             domainMatched = true;
                             break;
                         }

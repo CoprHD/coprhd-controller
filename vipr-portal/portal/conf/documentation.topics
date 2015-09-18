@@ -54,6 +54,9 @@ auth.LDAPsources = vipr_c_authentication_providers
 auth.VDCRoleAssignments = vipr_c_roles_and_access
 auth.VDCRoleAssignments.edit = vipr_c_assign_role
 auth.VDCRoleAssignments.create = vipr_c_assign_role
+auth.UserGroup = SecurityUserGroups
+auth.UserGroup.create = SecurityCreateUserGroup
+auth.UserGroup.edit = SecurityEditUserGroup
 
 # Catalog
 catalog.ApprovalConfiguration = vipr_c_approval_settings

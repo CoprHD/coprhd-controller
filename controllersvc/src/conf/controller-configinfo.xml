@@ -49,6 +49,8 @@
         <entry key="CS_Discovery-host-all" value="discovery-computesystem-context.xml" />
         <entry key="CS_Discovery-vcenter-all" value="discovery-computesystem-context.xml" />
 
+        <entry key="Discovery-ecs-all" value="discovery-ecs-context.xml" />
+
         <entry key="Discovery-rp-all" value="discovery-recoverpoint-context.xml" />
         <entry key="Metering-block" value="metering-block-context.xml" />
         <entry key="Metering-vnxfile" value="metering-vnxfile-context.xml" />

@@ -1,0 +1,10 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.virtualStorage', 'nav.object.virtualPools'] /}
+
+#{DataTable.header titleKey:'ObjectVirtualPools.list.title'/}
+#{DataTable.crudTable id:'virtualPools', 
+                      dataTable:dataTable, 
+                      deleteConfirm:messages.get('VirtualPools.deleteConfirm')}
+  #{Form.button class:'default', name:'button.duplicate', icon:'share', submit:'duplicateSubmit', data:['enabled':'selected', 'selection':'single'] /}
+#{/DataTable.crudTable}
+#{DataTable.formAction @duplicate(), id:'duplicateSubmit', table:'virtualPools'/}

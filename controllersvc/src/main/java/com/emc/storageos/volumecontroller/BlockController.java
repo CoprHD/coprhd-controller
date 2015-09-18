@@ -285,11 +285,12 @@ public interface BlockController extends BlockStorageManagementController {
      * 
      * @param storage URI of storage controller.
      * @param mirrorList List of URIs of block mirrors
+     * @param isCG CG operation or not
      * @param deleteGroup Flag for deleting replication group or not
      * @param opId Operation ID
      * @throws InternalException When an exception occurs detaching the mirror
      */
-    public void detachMirror(URI storage, List<URI> mirrorList, Boolean deleteGroup, String opId) throws InternalException;
+    public void detachMirror(URI storage, List<URI> mirrorList, Boolean isCG, Boolean deleteGroup, String opId) throws InternalException;
 
     /**
      * Delete a mirror or mirrors of a volume or volumes.

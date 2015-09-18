@@ -4,6 +4,20 @@
  */
 package com.emc.storageos.volumecontroller.impl.block;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.Controller;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
@@ -35,19 +49,6 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class ReplicaDeviceController implements Controller, BlockOrchestrationInterface {
     private static final Logger log = LoggerFactory.getLogger(ReplicaDeviceController.class);
@@ -554,7 +555,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             Set<URI> volumeURIs = entry.getValue();
             List<Volume> volumeList = _dbClient.queryObject(Volume.class, volumeURIs);
             boolean isRemoveAllFromCG = isRemoveAllFromCG(entry.getKey(), volumeList);
-
+            log.info("isRemoveAllFromCG {}", isRemoveAllFromCG);
             if (checkIfCGHasCloneReplica(volumeList)) {
                 log.info("Adding clone steps for detaching volumes");
                 waitFor = detachCloneSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromCG);
@@ -563,7 +564,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             if (checkIfCGHasMirrorReplica(volumeList)) {
                 log.info("Adding mirror steps for deleting volumes");
                 // delete mirrors for the to be deleted volumes
-                // TODO
+                waitFor = detachMirrorSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromCG);
             }
 
             if (checkIfCGHasSnapshotReplica(volumeList)) {
@@ -587,7 +588,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 totalVolumeCount++;
             }
         }
-
+        log.info("totalVolumeCount {}", totalVolumeCount);
         return totalVolumeCount == volumes.size();
     }
 
@@ -648,10 +649,36 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return waitFor;
     }
 
+    /*
+     * Detach all clones of the to be deleted volumes in a CG
+     */
+    private String detachMirrorSteps(final Workflow workflow, String waitFor,
+            Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {
+        log.info("START detach mirror steps");
+        Set<String> repGroupNames = ControllerUtils.getCloneReplicationGroupNames(volumes, _dbClient);
+        if (repGroupNames.isEmpty()) {
+            return waitFor;
+        }
+
+        URI storage = volumes.get(0).getStorageController();
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+        for (String repGroupName : repGroupNames) {
+            List<URI> mirrorList = getMirrorsToBeRemoved(volumeURIs, repGroupName);
+            if (!isRemoveAll) {
+                URI cgURI = volumes.get(0).getConsistencyGroup();
+                waitFor = removeMirrorsFromReplicationGroupStep(workflow, waitFor, storageSystem, cgURI, mirrorList, repGroupName);
+            }
+
+            waitFor = _blockDeviceController.detachMirrorStep(workflow, waitFor, storage, storageSystem, mirrorList, isRemoveAll);
+        }
+
+        return waitFor;
+    }
+
     private String removeSnapshotsFromReplicationGroupStep(final Workflow workflow, String waitFor,
                                                            StorageSystem storageSystem,
                                                            URI cgURI, List<URI> snapshots, String repGroupName) {
-        log.info("START remove snapshot steps");
+        log.info("START remove snapshot from CG steps");
         URI storage = storageSystem.getId();
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
@@ -666,7 +693,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     private String removeClonesFromReplicationGroupStep(final Workflow workflow, String waitFor, StorageSystem storageSystem,
             URI cgURI, List<URI> cloneList, String repGroupName) {
-        log.info("START remove clone steps");
+        log.info("START remove clone from CG steps");
         URI storage = storageSystem.getId();
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
@@ -675,6 +702,21 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 _blockDeviceController.rollbackMethodNullMethod(), null);
         log.info(String.format("Step created for remove clones [%s] from group on device [%s]",
                 Joiner.on("\t").join(cloneList), storage));
+
+        return waitFor;
+    }
+
+    private String removeMirrorsFromReplicationGroupStep(final Workflow workflow, String waitFor, StorageSystem storageSystem,
+            URI cgURI, List<URI> mirrorList, String repGroupName) {
+        log.info("START remove mirror from CG steps");
+        URI storage = storageSystem.getId();
+        waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                String.format("Updating consistency group  %s", cgURI), waitFor, storage,
+                _blockDeviceController.getDeviceType(storage), this.getClass(),
+                removeFromReplicationGroupMethod(storage, cgURI, repGroupName, mirrorList),
+                _blockDeviceController.rollbackMethodNullMethod(), null);
+        log.info(String.format("Step created for remove mirrors [%s] from group on device [%s]",
+                Joiner.on("\t").join(mirrorList), storage));
 
         return waitFor;
     }
@@ -705,6 +747,22 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             Volume clone = _dbClient.queryObject(Volume.class, resultsIter.next());
             if (volumes.contains(clone.getAssociatedSourceVolume())) {
                 replicas.add(clone.getId());
+            }
+        }
+
+        return replicas;
+    }
+
+    private List<URI> getMirrorsToBeRemoved(Set<URI> volumes, String repGroupName) {
+        List<URI> replicas = new ArrayList<URI>();
+        URIQueryResultList queryResults = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getMirrorReplicationGroupInstanceConstraint(repGroupName), queryResults);
+        Iterator<URI> resultsIter = queryResults.iterator();
+        while (resultsIter.hasNext()) {
+            BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, resultsIter.next());
+            if (volumes.contains(mirror.getSource().getURI())) {
+                replicas.add(mirror.getId());
             }
         }
 

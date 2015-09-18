@@ -5,6 +5,29 @@
 
 package com.emc.storageos.volumecontroller.impl.block;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_MIRROR_TO_URI;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.collect.Collections2.transform;
+import static java.lang.String.format;
+import static java.util.Arrays.asList;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.xml.bind.DataBindingException;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
@@ -12,13 +35,31 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockMirror.SynchronizationState;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.InterfaceType;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.factories.VolumeFactory;
@@ -47,7 +88,40 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.*;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupUpdateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorDeactivateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorDetachCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorFractureCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorResumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotActivateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotEstablishGroupTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockWaitForSynchronizedCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVolumeMembersCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneActivateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneFractureCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDetachCloneCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeUpdateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
@@ -63,27 +137,6 @@ import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.xml.bind.DataBindingException;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_MIRROR_TO_URI;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
-import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.collect.Collections2.transform;
-import static java.lang.String.format;
-import static java.util.Arrays.asList;
 
 /**
  * Generic Block Controller Implementation that does all of the database
@@ -1999,7 +2052,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
 
                 _log.info("Attempting to detach {} for rollback", mirrorNativeIds);
-                detachMirror(storage, mirrorURIsToRollback, false, taskId);
+                detachMirror(storage, mirrorURIsToRollback, false, false, taskId);
                 _log.info("Attempting to delete {} for rollback", mirrorNativeIds);
                 deleteMirror(storage, mirrorURIsToRollback, taskId);
             } else { // none mirrors has native Id
@@ -2280,21 +2333,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public Workflow.Method detachMirrorMethod(URI storage, List<URI> mirrorList) {
-        return new Workflow.Method("detachMirror", storage, mirrorList, true);
+    public Workflow.Method detachMirrorMethod(URI storage, List<URI> mirrorList, Boolean isCG) {
+        return new Workflow.Method("detachMirror", storage, mirrorList, isCG, true);
     }
 
     /**
      * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method detachMirrorMethod just above (except opId).
      */
     @Override
-    public void detachMirror(URI storage, List<URI> mirrorList, Boolean deleteGroup, String opId) throws ControllerException {
+    public void detachMirror(URI storage, List<URI> mirrorList, Boolean isCG,
+            Boolean deleteGroup, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
-            boolean isCG = isCGMirror(mirrorList.get(0), _dbClient);
-            if (checkIfNotLastSrdfCGMirror(mirrorList, isCG)) {
-                isCG = false;   // detach the element pair
-            }
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             completer = new BlockMirrorDetachCompleter(mirrorList, opId);
@@ -2312,7 +2362,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    private String addStepsForDetachMirror(Workflow workflow, String waitFor,
+    public String addStepsForDetachMirror(Workflow workflow, String waitFor,
             String stepGroup, List<URI> mirrorList, Boolean isCG) throws ControllerException {
         List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
         URI controller = mirrors.get(0).getStorageController();
@@ -2336,7 +2386,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 stepId == null ? waitFor : stepId,
                 controller, getDeviceType(controller),
                 this.getClass(),
-                detachMirrorMethod(controller, mirrorList),
+                detachMirrorMethod(controller, mirrorList, isCG),
                 null, null);
 
         return stepId;
@@ -2632,26 +2682,29 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             taskCompleter = new BlockMirrorDeactivateCompleter(mirrorList, opId);
 
             String detachStep = workflow.createStepId();
-            if (storageSystem.deviceIsType(Type.vmax)) {
-                String waitFor = null;
-                /**
-                 * If CG & SRDF volume & not last mirror:
-                 * add step to remove mirror from DeviceMaskingGroup,
-                 * call detach, delete operations on Element pair
-                 */
-                boolean removeFromDMGStep = checkIfNotLastSrdfCGMirror(mirrorList, isCG);
-                if (removeFromDMGStep) {
-                    waitFor = addStepsToRemoveMirrorFromGroup(workflow, null, "deactivate", mirrorList);
-                    isCG = false; // further operations - not a group operation
-                    _log.info("Deleting a single mirror, not the group");
-                }
-                detachStep = addStepsForDetachMirror(workflow, waitFor, "deactivate", mirrorList, isCG);
-            }
-            else {
-                Workflow.Method detach = detachMirrorMethod(storage, mirrorList);
+            /*
+             * if (storageSystem.deviceIsType(Type.vmax)) {
+             * String waitFor = null;
+             *//**
+             * If CG & SRDF volume & not last mirror:
+             * add step to remove mirror from DeviceMaskingGroup,
+             * call detach, delete operations on Element pair
+             */
+            /*
+             * boolean removeFromDMGStep = checkIfNotLastSrdfCGMirror(mirrorList, isCG);
+             * if (removeFromDMGStep) {
+             * waitFor = addStepsToRemoveMirrorFromGroup(workflow, null, "deactivate", mirrorList);
+             * isCG = false; // further operations - not a group operation
+             * _log.info("Deleting a single mirror, not the group");
+             * }
+             * detachStep = addStepsForDetachMirror(workflow, waitFor, "deactivate", mirrorList, isCG);
+             * }
+             * else {
+             */
+                Workflow.Method detach = detachMirrorMethod(storage, mirrorList, isCG);
                 workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
                         storageSystem.getSystemType(), getClass(), detach, null, detachStep);
-            }
+            // }
 
             String deleteStep = workflow.createStepId();
             Workflow.Method delete = deleteMirrorMethod(storage, mirrorList);
@@ -2753,6 +2806,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     static final String FULL_COPY_DETACH_STEP_GROUP = "detachFullCopyStepGroup";
     static final String FULL_COPY_FRACTURE_STEP_GROUP = "fractureFullCopyStepGroup";
     static final String SNAPSHOT_DELETE_STEP_GROUP = "deleteSnapshotStepGroup";
+    static final String MIRROR_FRACTURE_STEP_GROUP = "fractureMirrorStepGroup";
+    static final String MIRROR_DETACH_STEP_GROUP = "detachMirrorStepGroup";
 
     @Override
     public void createFullCopy(URI storage, List<URI> fullCopyVolumes, Boolean createInactive,
@@ -4182,6 +4237,57 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
             doFailTask(Volume.class, fullCopyVolume, taskId, serviceError);
         }
+    }
+
+    public String detachMirrorStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem, List<URI> mirrorList,
+            boolean isRemoveAll) {
+        List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
+        if (isRemoveAll) {
+            String stepId = null;
+
+            // Optionally create a step to pause (fracture) the group mirror
+            if (mirrorIsPausable(mirrors)) {
+                stepId = workflow.createStep(MIRROR_FRACTURE_STEP_GROUP,
+                        String.format("Fracture mirror: %s", mirrorList.get(0)),
+                        waitFor, storage, getDeviceType(storage),
+                        this.getClass(),
+                        fractureMirrorMethod(storage, mirrorList, isRemoveAll, false),
+                        null, null);
+            }
+            // Create a step to detach the group mirror
+            waitFor = workflow.createStep(MIRROR_DETACH_STEP_GROUP,
+                    String.format("Detach mirror: %s", mirrorList.get(0)),
+                    stepId == null ? waitFor : stepId,
+                    storage, getDeviceType(storage),
+                    this.getClass(),
+                    detachMirrorMethod(storage, mirrorList, isRemoveAll),
+                    null, null);
+        } else {
+            for (BlockMirror mirror : mirrors) {
+                String stepId = null;
+
+                // Optionally create a step to pause (fracture) the mirror
+                if (mirrorIsPausable(Arrays.asList(mirror))) {
+
+                    stepId = workflow.createStep(MIRROR_FRACTURE_STEP_GROUP,
+                            String.format("Fracture mirror: %s", mirror.getId()),
+                            waitFor, storage, getDeviceType(storage),
+                            this.getClass(),
+                            fractureMirrorMethod(storage, Arrays.asList(mirror.getId()), isRemoveAll, false),
+                            null, null);
+                }
+
+                // Create a step to detach the mirror
+                waitFor = workflow.createStep(MIRROR_DETACH_STEP_GROUP,
+                        String.format("Detach mirror: %s", mirror.getId()),
+                        stepId == null ? waitFor : stepId,
+                        storage, getDeviceType(storage),
+                        this.getClass(),
+                        detachMirrorMethod(storage, mirrorList, isRemoveAll),
+                        null, null);
+            }
+        }
+        return waitFor;
     }
 
     public String deleteSnapshotStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem,

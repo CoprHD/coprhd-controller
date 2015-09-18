@@ -66,9 +66,11 @@ import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
+import com.emc.sa.service.vipr.tasks.GetStorageSystem;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
@@ -85,6 +87,7 @@ import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.filters.ExportClusterFilter;
@@ -143,6 +146,10 @@ public class BlockStorageUtils {
 
     public static BlockObjectRestRep getVolume(URI volumeId) {
         return getBlockResource(volumeId);
+    }
+
+    public static StorageSystemRestRep getStorageSystem(URI storageSystemId) {
+        return execute(new GetStorageSystem(storageSystemId));
     }
 
     public static List<BlockObjectRestRep> getVolumes(List<URI> volumeIds) {
@@ -472,14 +479,29 @@ public class BlockStorageUtils {
 
         removeBlockResourcesFromExports(allBlockResources);
         for (URI volumeId : allBlockResources) {
-            removeSnapshotsForVolume(volumeId);
-            removeContinuousCopiesForVolume(volumeId);
-            removeFullCopiesForVolume(volumeId, blockResourceIds);
+            if (canRemoveReplicas(volumeId)) {
+                removeSnapshotsForVolume(volumeId);
+                removeContinuousCopiesForVolume(volumeId);
+                removeFullCopiesForVolume(volumeId, blockResourceIds);
+            }
         }
         deactivateBlockResources(blockResourceIds, type);
     }
 
-    private static void deactivateBlockResources(Collection<URI> blockResourceIds, VolumeDeleteTypeEnum type) {
+    public static boolean canRemoveReplicas(URI blockResourceId) {
+        BlockObjectRestRep volume = getVolume(blockResourceId);
+        if (volume.getConsistencyGroup() != null) {
+            StorageSystemRestRep storageSystem = getStorageSystem(volume.getStorageController());
+            if (storageSystem != null
+                    && storageSystem.getSystemType() != null
+                    && storageSystem.getSystemType().equals(DiscoveredDataObject.Type.vmax.name())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static void deactivateBlockResources(Collection<URI> blockResourceIds, VolumeDeleteTypeEnum type) {
         List<URI> volumes = Lists.newArrayList();
         List<URI> fullCopies = Lists.newArrayList();
         for (URI blockResourceId : blockResourceIds) {

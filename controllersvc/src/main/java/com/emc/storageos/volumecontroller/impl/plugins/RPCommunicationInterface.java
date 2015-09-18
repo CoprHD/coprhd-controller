@@ -152,98 +152,106 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             if (protectionSystem.getDiscoveryStatus().equals(DiscoveredDataObject.DataCollectionJobStatus.CREATED.toString())) {
                 isNewlyCreated = true;
             }
-            try {
-                discoverCluster(protectionSystem);
-            } catch (RecoverPointException rpe) {
-                discoverySuccess = false;
-                String msg = "Discover RecoverPoint cluster failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // get RP array mappings
-            try {
-                if (discoverySuccess) {
-                    discoverRPSiteArrays(protectionSystem);
-                    _dbClient.persistObject(protectionSystem);
+            if (accessProfile.getnamespace().equals(StorageSystem.Discovery_Namespaces.UNMANAGED_CGS.toString())) {
+                try {
+                    unManagedCGDiscoverer.discoverUnManagedObjects(accessProfile, _dbClient, _partitionManager);
+                } catch (RecoverPointException rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discover RecoverPoint Unmanaged CGs failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Discover RecoverPoint site/cluster failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
+            } else {
 
-            try {
-                if (discoverySuccess) {
-                    discoverConnectivity(protectionSystem);
+                try {
+                    discoverCluster(protectionSystem);
+                } catch (RecoverPointException rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discover RecoverPoint cluster failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Discover RecoverPoint connectivity failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // Perform maintenance on the RP bookmarks; some may no longer be valid
-            try {
-                if (discoverySuccess) {
-                    cleanupSnapshots(protectionSystem);
+                // get RP array mappings
+                try {
+                    if (discoverySuccess) {
+                        discoverRPSiteArrays(protectionSystem);
+                        _dbClient.persistObject(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discover RecoverPoint site/cluster failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Snapshot maintenance failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // Rematch storage pools for RP virtual pools
-            try {
-                if (discoverySuccess && isNewlyCreated) {
-                    matchVPools(protectionSystem.getId());
+                try {
+                    if (discoverySuccess) {
+                        discoverConnectivity(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discover RecoverPoint connectivity failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Virtual Pool matching failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // Discover the Connected-via-RP-itself Storage Systems
-            try {
-                if (discoverySuccess) {
-                    discoverVisibleStorageSystems(protectionSystem);
+                // Perform maintenance on the RP bookmarks; some may no longer be valid
+                try {
+                    if (discoverySuccess) {
+                        cleanupSnapshots(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Snapshot maintenance failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "RP-visible storage system discovery failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // Discover the Connected-via-NetworkStorage Systems
-            try {
-                if (discoverySuccess) {
-                    discoverAssociatedStorageSystems(protectionSystem);
+                // Rematch storage pools for RP virtual pools
+                try {
+                    if (discoverySuccess && isNewlyCreated) {
+                        matchVPools(protectionSystem.getId());
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Virtual Pool matching failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Storage system discovery failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            // Discover the protection sets
-            discoverProtectionSets(protectionSystem);
-
-            // Discover the protection system cluster connectivity topology information
-            try {
-                if (discoverySuccess) {
-                    discoverTopology(protectionSystem);
+                // Discover the Connected-via-RP-itself Storage Systems
+                try {
+                    if (discoverySuccess) {
+                        discoverVisibleStorageSystems(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "RP-visible storage system discovery failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-            } catch (Exception rpe) {
-                discoverySuccess = false;
-                String msg = "Discovery of topology failed. Protection system: " + storageSystemId;
-                buildErrMsg(errMsgBuilder, rpe, msg);
-            }
 
-            if (accessProfile.getnamespace().equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())) {
-                unManagedCGDiscoverer.discoverUnManagedObjects(accessProfile, _dbClient, _partitionManager);
-            }
+                // Discover the Connected-via-NetworkStorage Systems
+                try {
+                    if (discoverySuccess) {
+                        discoverAssociatedStorageSystems(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Storage system discovery failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
+                }
 
+                // Discover the protection sets
+                discoverProtectionSets(protectionSystem);
+
+                // Discover the protection system cluster connectivity topology information
+                try {
+                    if (discoverySuccess) {
+                        discoverTopology(protectionSystem);
+                    }
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discovery of topology failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
+                }
+            }
+            
             if (!discoverySuccess) {
                 throw DeviceControllerExceptions.recoverpoint.discoveryFailure(errMsgBuilder.toString());
             }

@@ -7,7 +7,12 @@ package com.emc.storageos.model.protection;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.xml.bind.annotation.*;
+
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -20,7 +25,8 @@ public class ProtectionSetRestRep extends DataObjectRestRep {
     private List<RelatedResourceRep> volumes;
     private String protectionStatus;
     private RelatedResourceRep project;
-
+    private String nativeGuid;
+    
     public ProtectionSetRestRep() {
     }
 
@@ -101,5 +107,14 @@ public class ProtectionSetRestRep extends DataObjectRestRep {
 
     public void setProtectionStatus(String protectionStatus) {
         this.protectionStatus = protectionStatus;
+    }
+
+    @XmlElement(name = "native_guid")
+    public String getNativeGuid() {
+        return nativeGuid;
+    }
+
+    public void setNativeGuid(String nativeGuid) {
+        this.nativeGuid = nativeGuid;
     }
 }

@@ -9,7 +9,6 @@
 
 	<bean id="unManagedObjectDiscoverer"
         class="com.emc.storageos.volumecontroller.impl.recoverpoint.RPUnManagedObjectDiscoverer">
-        <property name="rpClientFactory" ref="RPClientFactory" />
     </bean>
 
 	<bean id="rp"

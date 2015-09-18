@@ -7,16 +7,15 @@ package com.emc.storageos.volumecontroller.impl.recoverpoint;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
@@ -31,7 +30,6 @@ import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
 import com.emc.storageos.recoverpoint.responses.GetCopyResponse;
 import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
 import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
-import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 
 public class RPUnManagedObjectDiscoverer {
@@ -39,15 +37,9 @@ public class RPUnManagedObjectDiscoverer {
     private static final Logger log = LoggerFactory.getLogger(RPUnManagedObjectDiscoverer.class);
     public static final String UNMANAGED_CG = "UnManagedCG";
 
-    private RecoverPointClientFactory rpClientFactory;
-
     List<UnManagedProtectionSet> unManagedCGsInsert = null;
     List<UnManagedProtectionSet> unManagedCGsUpdate = null;
     Set<URI> unManagedCGsReturnedFromProvider = new HashSet<URI>();
-
-    public void setRpClientFactory(RecoverPointClientFactory rpClientFactory) {
-        this.rpClientFactory = rpClientFactory;
-    }
 
     /**
      * Discovers the RP CGs and all the volumes therein.  It updates/creates the UnManagedProtectionSet
@@ -95,6 +87,7 @@ public class RPUnManagedObjectDiscoverer {
             // TODO: Only update if something actually changed from what's in the DB
             if (null == unManagedProtectionSet) {
                 unManagedProtectionSet = new UnManagedProtectionSet();
+                unManagedProtectionSet.setId(URIUtil.createId(UnManagedVolume.class));
                 unManagedProtectionSet.setNativeGuid(nativeGuid);
                 newCG = true;
             }
@@ -103,7 +96,7 @@ public class RPUnManagedObjectDiscoverer {
             unManagedProtectionSet.setCgName(cg.getCgName());
 
             // TODO: Fill in these values with reality
-            unManagedProtectionSet.getCGCharacterstics().put(UnManagedProtectionSet.SupportedCGCharacterstics.IS_ENABLED.name(), Boolean.TRUE.toString());
+            unManagedProtectionSet.getCGCharacteristics().put(UnManagedProtectionSet.SupportedCGCharacteristics.IS_ENABLED.name(), Boolean.TRUE.toString());
 
             if (newCG) {
                 dbClient.persistObject(unManagedProtectionSet);
@@ -112,7 +105,7 @@ public class RPUnManagedObjectDiscoverer {
             }
             
             // Now map UnManagedVolume objects to the journal and rset (sources/targets) and put RP fields in them
-            if (null != cg.getCopies()) {
+            if (null == cg.getCopies()) {
                 log.info("Protection Set " + nativeGuid + " does not contain any copies.  Skipping...");
                 continue;
             }
@@ -131,24 +124,25 @@ public class RPUnManagedObjectDiscoverer {
                     // Is this volume SOURCE, TARGET, or JOURNAL?
                     // What's the RP Copy Name of this volume? (what copy does it belong to?)
                     // What Replication Set does this volume belong to?  (so we can associate sources to targets.  Does not apply to JOURNALS)
-                    Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
-                    
                     StringSet personality = new StringSet();
                     personality.add(Volume.PersonalityTypes.METADATA.name());
-                    unManagedVolumeInformation.put(SupportedVolumeInformation.RP_PERSONALITY.toString(),
+                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PERSONALITY.toString(),
                             personality);
 
                     StringSet rpCopyName = new StringSet();
                     rpCopyName.add(volume.getRpCopyName());
-                    unManagedVolumeInformation.put(SupportedVolumeInformation.RP_COPY_NAME.toString(),
+                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_NAME.toString(),
                             rpCopyName);
-
-                    unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
                     
                     dbClient.updateAndReindexObject(unManagedVolume);
                 }
             }
             
+            if (null == cg.getRsets()) {
+                log.info("Protection Set " + nativeGuid + " does not contain any replication sets.  Skipping...");
+                continue;
+            }
+
             for (GetRSetResponse rset : cg.getRsets()) {
                 for (GetVolumeResponse volume : rset.getVolumes()) {
                     // Find this volume in UnManagedVolumes based on wwn
@@ -163,28 +157,24 @@ public class RPUnManagedObjectDiscoverer {
                     // Is this volume SOURCE, TARGET, or JOURNAL?
                     // What's the RP Copy Name of this volume? (what copy does it belong to?)
                     // What Replication Set does this volume belong to?  (so we can associate sources to targets.)
-                    Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
-                    
                     StringSet personality = new StringSet();
                     if (volume.isProduction()) {
                         personality.add(Volume.PersonalityTypes.SOURCE.name());
                     } else {
                         personality.add(Volume.PersonalityTypes.TARGET.name());
                     }
-                    unManagedVolumeInformation.put(SupportedVolumeInformation.RP_PERSONALITY.toString(),
+                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PERSONALITY.toString(),
                             personality);
 
                     StringSet rpCopyName = new StringSet();
                     rpCopyName.add(volume.getRpCopyName());
-                    unManagedVolumeInformation.put(SupportedVolumeInformation.RP_COPY_NAME.toString(),
+                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_NAME.toString(),
                             rpCopyName);
 
                     StringSet rsetName = new StringSet();
                     rsetName.add(rset.getName());
-                    unManagedVolumeInformation.put(SupportedVolumeInformation.RP_RSET_NAME.toString(),
+                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_RSET_NAME.toString(),
                             rsetName);
-                    
-                    unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
                     
                     dbClient.updateAndReindexObject(unManagedVolume);
                 }                    

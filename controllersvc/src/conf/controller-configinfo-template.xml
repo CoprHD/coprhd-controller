@@ -58,6 +58,7 @@
         <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>
 
         <entry key="Discovery-rp-all" value="discovery-recoverpoint-context.xml" />
+        <entry key="Discovery-rp-unmanaged_cgs" value="discovery-recoverpoint-context.xml" />
         <entry key="Metering-block" value="metering-block-context.xml" />
         <entry key="Metering-vnxfile" value="metering-vnxfile-context.xml" />
         <entry key="Metering-isilon" value="metering-block-context.xml" />

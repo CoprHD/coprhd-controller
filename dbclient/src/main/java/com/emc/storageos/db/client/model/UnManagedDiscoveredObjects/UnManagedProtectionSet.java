@@ -38,7 +38,7 @@ public class UnManagedProtectionSet extends UnManagedDiscoveredObject {
     private URI _protectionSystemUri;
 
     // Key: Characteristic, Value: TRUE/FALSE
-    private StringMap _cgCharacterstics;
+    private StringMap _cgCharacteristics;
 
     // Key: Attribute, Value: String (the value of that attribute)
     private StringSetMap _cgInformation;
@@ -55,24 +55,24 @@ public class UnManagedProtectionSet extends UnManagedDiscoveredObject {
     /**
      * These are characteristics that an RP CG can take on.
      */
-    public enum SupportedCGCharacterstics {
+    public enum SupportedCGCharacteristics {
         IS_MP("MetroPoint"),
         IS_SYNC("Synchronous"),
         IS_ENABLED("Enabled");
  
-        private final String _charactersticsKey;
+        private final String _characteristicsKey;
 
-        SupportedCGCharacterstics(String charactersticsKey) {
-            _charactersticsKey = charactersticsKey;
+        SupportedCGCharacteristics(String characteristicsKey) {
+            _characteristicsKey = characteristicsKey;
         }
 
         public String getCharacterstic() {
-            return _charactersticsKey;
+            return _characteristicsKey;
         }
 
-        public static String getCGCharacterstic(String charactersticsKey) {
-            for (SupportedCGCharacterstics characterstic : values()) {
-                if (characterstic.getCharacterstic().equalsIgnoreCase(charactersticsKey)) {
+        public static String getCGCharacterstic(String characteristicsKey) {
+            for (SupportedCGCharacteristics characterstic : values()) {
+                if (characterstic.getCharacterstic().equalsIgnoreCase(characteristicsKey)) {
                     return characterstic.toString();
                 }
             }
@@ -142,21 +142,24 @@ public class UnManagedProtectionSet extends UnManagedDiscoveredObject {
         return _cgInformation;
     }
 
-    public void putCGCharacterstics(String key, String value) {
-        if (null == _cgCharacterstics) {
-            setCGCharacterstics(new StringMap());
+    public void putCGCharacteristics(String key, String value) {
+        if (null == _cgCharacteristics) {
+            setCGCharacteristics(new StringMap());
         } else {
-            _cgCharacterstics.put(key, value);
+            _cgCharacteristics.put(key, value);
         }
     }
 
-    public void setCGCharacterstics(StringMap cgCharacterstics) {
-        _cgCharacterstics = cgCharacterstics;
+    public void setCGCharacteristics(StringMap cgCharacteristics) {
+        _cgCharacteristics = cgCharacteristics;
     }
 
-    @Name("cgCharacterstics")
-    public StringMap getCGCharacterstics() {
-        return _cgCharacterstics;
+    @Name("cgCharacteristics")
+    public StringMap getCGCharacteristics() {
+        if (null == _cgCharacteristics) {
+            setCGCharacteristics(new StringMap());
+        }
+        return _cgCharacteristics;
     }
 
     @RelationIndex(cf = "UnManagedCGRelationIndex", type = ProtectionSystem.class)

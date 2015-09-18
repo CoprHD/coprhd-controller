@@ -450,7 +450,7 @@ public class RecoverPointClient {
                         volume.setRpCopyName(copySettings.getName());
                         
                         // Need to extract the rawUids to format: 600601608D20370089260942815CE511
-                        volume.setWwn(RecoverPointUtils.getGuidBufferAsString(journal.getVolumeInfo().getRawUids(), false));
+                        volume.setWwn(RecoverPointUtils.getGuidBufferAsString(journal.getVolumeInfo().getRawUids(), false).toUpperCase(Locale.ENGLISH));
                         if (copy.getJournals() == null) {
                             copy.setJournals(new ArrayList<GetVolumeResponse>());
                         }
@@ -489,7 +489,7 @@ public class RecoverPointClient {
                         }                        
                         
                         // Need to extract the rawUids to format: 600601608D20370089260942815CE511
-                        nvolume.setWwn(RecoverPointUtils.getGuidBufferAsString(volume.getVolumeInfo().getRawUids(), false));
+                        nvolume.setWwn(RecoverPointUtils.getGuidBufferAsString(volume.getVolumeInfo().getRawUids(), false).toUpperCase(Locale.ENGLISH));
                         
                         if (rset.getVolumes() == null) {
                             rset.setVolumes(new ArrayList<GetVolumeResponse>());

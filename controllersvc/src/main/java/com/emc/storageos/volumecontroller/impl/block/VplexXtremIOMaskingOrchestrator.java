@@ -92,6 +92,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
     }
 
+    // TODO max ports per network?
     static final Integer MAX_PORTS_PER_NETWORK = 24;
 
     @Override
@@ -116,6 +117,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
 
         // Eliminate ports from the same cpus, which are in the same portGroup.
         // This is to avoid the 4096 LUN limit per cpu.
+        // TODO for XtremIO?
+
         // Cycle through the networks, picking ports that can be used while considering cpus.
         // Pick one port from each network, then cycle through them again.
         boolean portWasPicked;
@@ -157,10 +160,10 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         }
         if (useFilteredPorts) {
             _log.info("Using filtered ports: " + usedPorts.toString());
-            _log.info("Ports eliminated because of sharing a cpu with a used port: " + eliminatedPorts.toString());
+            _log.info("Ports eliminated because of sharing a X-brick with a used port: " + eliminatedPorts.toString());
             allocatablePorts = useablePorts;
         } else {
-            _log.info("Some networks have zero remaining ports after cpu filtering, will use duplicate ports on some cpus. "
+            _log.info("Some networks have zero remaining ports after X-brick filtering, will use duplicate ports on some X-bricks. "
                     + "This is not a recommended configuration.");
         }
 
@@ -211,7 +214,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             }
         }
         int numPG = minPorts / portsPerNetPerPG;
-        _log.info(String.format("Number Port Groups %d Per Network Ports Per Group %d", numPG, portsPerNetPerPG));
+        _log.info(String.format("Number Port Groups %d, Per Network Ports Per Group %d", numPG, portsPerNetPerPG));
         if (numPG == 0) {
             return portGroups;
         }
@@ -273,7 +276,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             numPortsToNetworkSet.get(numPorts).add(networkURI);
         }
 
-        for (Integer numPorts = 1; numPorts < MAX_PORTS_PER_NETWORK; numPorts++) {
+        for (Integer numPorts = 1; numPorts <= MAX_PORTS_PER_NETWORK; numPorts++) {
             Set<URI> networkURIs = numPortsToNetworkSet.get(numPorts);
             if (networkURIs == null) {
                 continue;

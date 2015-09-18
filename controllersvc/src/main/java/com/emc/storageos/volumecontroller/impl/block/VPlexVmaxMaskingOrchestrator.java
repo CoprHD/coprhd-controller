@@ -18,13 +18,13 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
@@ -276,7 +276,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             numPortsToNetworkSet.get(numPorts).add(networkURI);
         }
 
-        for (Integer numPorts = 1; numPorts < MAX_PORTS_PER_NETWORK; numPorts++) {
+        for (Integer numPorts = 1; numPorts <= MAX_PORTS_PER_NETWORK; numPorts++) {
             Set<URI> networkURIs = numPortsToNetworkSet.get(numPorts);
             if (networkURIs == null) {
                 continue;
@@ -469,6 +469,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
         return _workflowService;
     }
 
+    @Override
     public void setWorkflowService(WorkflowService _workflowService) {
         this._workflowService = _workflowService;
     }

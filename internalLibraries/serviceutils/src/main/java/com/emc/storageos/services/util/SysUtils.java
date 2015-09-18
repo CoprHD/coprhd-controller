@@ -18,7 +18,7 @@ public class SysUtils {
         InetAddress ipv6Addr = parseInetAddress(ipv6Str);
         InetAddress directAddr = parseInetAddress(clientIp);
         if (directAddr == null || ipv4Addr == null && ipv6Addr == null) {
-            String ipAddrsStr = Strings.join("|", ipv4Str, ipv6Addr);
+            String ipAddrsStr = Strings.join("|", ipv4Str, ipv6Str);
             log.error("checkParam is {}, X-Forwarded-For is {}", ipAddrsStr, clientIp);
             throw new Exception(ipAddrsStr);
         }

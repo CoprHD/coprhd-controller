@@ -24,6 +24,7 @@ import java.util.List;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
+import com.emc.storageos.model.dr.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -40,11 +41,6 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
-import com.emc.storageos.model.dr.DRNatCheckParam;
-import com.emc.storageos.model.dr.DRNatCheckResponse;
-import com.emc.storageos.model.dr.SiteAddParam;
-import com.emc.storageos.model.dr.SiteList;
-import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.services.util.SysUtils;
@@ -61,7 +57,7 @@ public class DisasterRecoveryServiceTest {
     private SiteAddParam primarySiteParam;
     private List<URI> uriList;
     private List<Site> standbySites;
-    private SiteAddParam standby;
+    private SiteConfigRestRep standby;
     private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
 
@@ -83,7 +79,7 @@ public class DisasterRecoveryServiceTest {
         // setup local VDC
         VirtualDataCenter localVDC = new VirtualDataCenter();
         
-        standby = new SiteAddParam();
+        standby = new SiteConfigRestRep();
         standby.setFreshInstallation(true);
         standby.setDbSchemaVersion("2.4");
         standby.setSoftwareVersion("vipr-2.4.0.0.150");
@@ -109,11 +105,11 @@ public class DisasterRecoveryServiceTest {
         standbySite3.setVdc(new URI("fake-vdc-id"));
 
         primarySiteParam = new SiteAddParam();
-        primarySiteParam.setUuid("primary-site-uuid");
+        /*primarySiteParam.setUuid("primary-site-uuid");
         primarySiteParam.setVip("127.0.0.1");
         primarySiteParam.setSecretKey("secret-key");
         primarySiteParam.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
-        primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
+        primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());*/
         
         localVDC.setApiEndpoint("127.0.0.2");
         localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
@@ -171,21 +167,21 @@ public class DisasterRecoveryServiceTest {
         doReturn(uriList).when(dbClientMock).queryByType(Site.class, true);
         doReturn(standbySite1).when(dbClientMock).queryObject(Site.class, standbySite1.getId());
         doReturn(standbySite2).when(dbClientMock).queryObject(Site.class, standbySite2.getId());
-        doAnswer(new Answer<Void>(){
+        doAnswer(new Answer<Void>() {
 
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {
-                URIQueryResultList resultList = (URIQueryResultList)invocation.getArguments()[1];
-                
+                URIQueryResultList resultList = (URIQueryResultList) invocation.getArguments()[1];
+
                 List<URI> uriList = new ArrayList<URI>(2);
                 uriList.add(standbySite1.getId());
                 uriList.add(standbySite2.getId());
-                
+
                 resultList.setResult(uriList.iterator());
-                
+
                 return null;
             }
-            
+
         }).when(dbClientMock).queryByConstraint(any(ContainmentConstraint.class), any(URIQueryResultList.class));
         
         SiteList responseList = drService.getAllStandby();
@@ -270,15 +266,16 @@ public class DisasterRecoveryServiceTest {
         SiteRestRep response = drService.getStandbyConfig();
         compareSiteResponse(response, standbyConfig);
     }
-    
+
+    /*
     @Test
     public void testAddPrimary() {
-        SiteRestRep response = drService.addSite(primarySiteParam);
+        SiteRestRep response = drService.addStandby(primarySiteParam);
         assertNotNull(response);
         assertEquals(primarySiteParam.getUuid(), response.getUuid());
         assertEquals(response.getName(), primarySiteParam.getName());
         assertEquals(response.getVip(), primarySiteParam.getVip());
-    }
+    }*/
 
     @Test
     public void testPrecheckForStandbyAttach_Version() throws Exception {

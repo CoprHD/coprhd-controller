@@ -1506,7 +1506,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
 
         // Add steps for deleting any local mirrors that may be present.
-        waitFor = addStepsForDeleteMirrors(workflow, waitFor, volumes);
+        //waitFor = addStepsForDeleteMirrors(workflow, waitFor, volumes);
 
         // The the list of Volumes that the BlockDeviceController needs to process.
         volumes = VolumeDescriptor.filterByType(volumes,

@@ -6,6 +6,7 @@
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -139,6 +140,7 @@ public class VNXeDeleteShareJob extends VNXeJob {
 
             List<CifsShareACL> shareAclList = CustomQueryUtility.queryActiveResourcesByConstraint(
                     dbClient, CifsShareACL.class, containmentConstraint);
+            List<CifsShareACL> deleteAclList = new ArrayList<CifsShareACL>();
 
             if (!shareAclList.isEmpty()) {
                 Iterator<CifsShareACL> shareAclIter = shareAclList.iterator();
@@ -146,10 +148,13 @@ public class VNXeDeleteShareJob extends VNXeJob {
                     CifsShareACL shareAcl = shareAclIter.next();
                     if (smbShare.getName().equals(shareAcl.getShareName())) {
                         shareAcl.setInactive(true);
+                        deleteAclList.add(shareAcl);
                     }
                 }
-                _logger.info("Deleting ACLs of share {} of filesystem {}", smbShare.getName(), fsObj.getLabel());
-                dbClient.persistObject(shareAclList);
+                if (!deleteAclList.isEmpty()) {
+                    _logger.info("Deleting ACLs of share {} of filesystem {}", smbShare.getName(), fsObj.getLabel());
+                    dbClient.persistObject(deleteAclList);
+                }
             }
         } catch (Exception e) {
             _logger.error("Error while querying DB for ACL(s) of a share {}", e);

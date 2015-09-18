@@ -246,7 +246,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             URI snapshotId = snapshot.getId();
             snapshotList.add(snapshotId);
 
-            Workflow.Method createMethod = new Workflow.Method("createSingleSnapshot", storage, snapshotList, false, false);
+            Workflow.Method createMethod = new Workflow.Method(
+                    BlockDeviceController.CREATE_SINGLE_SNAPSHOT_METHOD, storage, snapshotList, false, false);
             workflow.createStep(BlockDeviceController.CREATE_SNAPSHOTS_STEP_GROUP,
                     "Create snapshot", waitFor, storage, storageSystem.getSystemType(),
                     _blockDeviceController.getClass(),
@@ -446,20 +447,33 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         _dbClient.persistObject(volume);
     }
 
-    static Workflow.Method addToReplicationGroupMethod(URI storage, URI consistencyGroup, String repGroupName,
+    public Workflow.Method addToReplicationGroupMethod(URI storage, URI consistencyGroup, String repGroupName,
             List<URI> addVolumesList) {
         return new Workflow.Method("addToReplicationGroup", storage, consistencyGroup, repGroupName, addVolumesList);
     }
 
+    /**
+     * Orchestration method for adding members to a replication group.
+     *
+     * @param storage
+     * @param consistencyGroup
+     * @param replicationGroupName
+     * @param addVolumesList
+     * @param opId
+     * @return
+     * @throws ControllerException
+     */
     public boolean addToReplicationGroup(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList,
             String opId)
                     throws ControllerException {
+        WorkflowStepCompleter.stepExecuting(opId);
         TaskCompleter taskCompleter = null;
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
             _blockDeviceController.getDevice(storageSystem.getSystemType()).doAddToReplicationGroup(
                     storageSystem, consistencyGroup, replicationGroupName, addVolumesList, taskCompleter);
+            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
@@ -774,6 +788,17 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return new Workflow.Method("removeFromReplicationGroup", storage, consistencyGroup, repGroupName, addVolumesList);
     }
 
+    /**
+     * Orchestration method for removing members from a replication group.
+     *
+     * @param storage
+     * @param consistencyGroup
+     * @param repGroupName
+     * @param addVolumesList
+     * @param opId
+     * @return
+     * @throws ControllerException
+     */
     public boolean removeFromReplicationGroup(URI storage, URI consistencyGroup, String repGroupName, List<URI> addVolumesList,
             String opId)
                     throws ControllerException {

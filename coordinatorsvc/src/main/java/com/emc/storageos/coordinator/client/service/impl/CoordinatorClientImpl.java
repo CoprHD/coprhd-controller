@@ -159,7 +159,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private void createSiteSpecificSection() throws Exception {
-        String sitePath = getSitePrefix();
+        addSite(siteId);
+        setPrimarySite(siteId);
+    }
+
+    @Override
+    public void addSite(String siteId) throws Exception {
+        String sitePath = getSitePrefix(siteId);
         ZkConnection zkConnection = getZkConnection();
         try {
             //create /sites/${siteID} path
@@ -171,22 +177,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             throw e;
         }
 
-        // update primary site pointer to /sites/primary if it does not exists
-        String primarySitePointer = String.format("%1$s/%2$s", ZkPath.SITES, Constants.SITE_PRIMARY_PTR);
-        try {
-            boolean notExists = getZkConnection().curator().checkExists().forPath(primarySitePointer) == null;
-            if (notExists) {
-                EnsurePath ePath = new EnsurePath(primarySitePointer);
-                log.info("create ZK path {}", primarySitePointer);
-                ePath.ensure(zkConnection.curator().getZookeeperClient());
-                byte[] data = siteId.getBytes();
-                zkConnection.curator().setData().forPath(primarySitePointer, data);
-            }
-        } catch(Exception e) {
-            log.error("Failed to persist {} to {}", siteId, primarySitePointer);
-            throw e;
-        }
-
         String siteStatePath = String.format("%1$s/%2$s", sitePath, Constants.SITE_STATE);
         try {
             EnsurePath ePath = new EnsurePath(siteStatePath);
@@ -195,6 +185,27 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             zkConnection.curator().setData().forPath(siteStatePath, SiteState.ACTIVE.name().getBytes());
         } catch (Exception e) {
             log.error("Failed to init site state {}", SiteState.ACTIVE.name());
+            throw e;
+        }
+    }
+
+    @Override
+    public void setPrimarySite(String siteId) throws Exception {
+        String primarySitePointer = String.format("%1$s/%2$s", ZkPath.SITES, Constants.SITE_PRIMARY_PTR);
+        ZkConnection zkConnection = getZkConnection();
+        try {
+            EnsurePath ePath = new EnsurePath(primarySitePointer);
+            log.info("create ZK path {}", primarySitePointer);
+            ePath.ensure(zkConnection.curator().getZookeeperClient());
+            byte[] data = siteId.getBytes();
+            Stat stat = getZkConnection().curator().checkExists().forPath(primarySitePointer);
+            if (stat == null) {
+                zkConnection.curator().create().forPath(primarySitePointer, data);
+            } else {
+                zkConnection.curator().setData().forPath(primarySitePointer, data);
+            }
+        } catch(Exception e) {
+            log.error("Failed to persist {} to {}", siteId, primarySitePointer);
             throw e;
         }
     }
@@ -508,6 +519,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private String getSitePrefix() {
+        return getSitePrefix(siteId);
+    }
+
+    private String getSitePrefix(String siteId) {
         StringBuilder builder = new StringBuilder(ZkPath.SITES.toString());
         builder.append("/");
         builder.append(siteId);

@@ -97,6 +97,13 @@ public class DisasterRecoveryService extends TaggedResource {
         log.info("Persist standby site to DB");
         _dbClient.createObject(standbySite);
 
+        try {
+            _coordinator.addSite(standbyConfig.getUuid());
+        } catch (Exception e) {
+            //FIXME: throw custom API exception here
+            throw new IllegalStateException(e);
+        }
+
         updateVdcTargetVersion();
 
         log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());
@@ -151,6 +158,14 @@ public class DisasterRecoveryService extends TaggedResource {
 
         log.info("Persist primary site to DB");
         _dbClient.updateAndReindexObject(vdc);
+
+        try {
+            _coordinator.addSite(param.getUuid());
+            _coordinator.setPrimarySite(param.getUuid());
+        } catch (Exception e) {
+            //FIXME: throw custom API exception here
+            throw new IllegalStateException(e);
+        }
 
         updateVdcTargetVersion();
         

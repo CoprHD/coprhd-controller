@@ -2054,7 +2054,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 _log.info("Attempting to detach {} for rollback", mirrorNativeIds);
                 detachMirror(storage, mirrorURIsToRollback, false, false, taskId);
                 _log.info("Attempting to delete {} for rollback", mirrorNativeIds);
-                deleteMirror(storage, mirrorURIsToRollback, taskId);
+                deleteMirror(storage, mirrorURIsToRollback, false, taskId);
             } else { // none mirrors has native Id
                 for (BlockMirror mirror : mirrors) {
                     mirror.setInactive(true);
@@ -2345,6 +2345,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Boolean deleteGroup, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
+            _log.info("Start detach Mirror for mirror {}, isCG {}", mirrorList, isCG);
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             completer = new BlockMirrorDetachCompleter(mirrorList, opId);
@@ -2564,7 +2565,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         String.format("Delete mirror: %s", mirror.getId()),
                         stepId, controller, getDeviceType(controller),
                         this.getClass(),
-                        deleteMirrorMethod(controller, asList(mirror.getId())),
+                        deleteMirrorMethod(controller, asList(mirror.getId()), isCG),
                         null, null);
             }
         } else {
@@ -2579,31 +2580,27 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     String.format("Delete mirror: %s", mirror.getId()),
                     stepId, controller, getDeviceType(controller),
                     this.getClass(),
-                    deleteMirrorMethod(controller, uris),
+                    deleteMirrorMethod(controller, uris, isCG),
                     null, null);
         }
 
         return DELETE_MIRROR_STEP_GROUP;
     }
 
-    public Workflow.Method deleteMirrorMethod(URI storage, List<URI> mirrorList) {
-        return new Workflow.Method("deleteMirror", storage, mirrorList);
+    public Workflow.Method deleteMirrorMethod(URI storage, List<URI> mirrorList, Boolean isCG) {
+        return new Workflow.Method("deleteMirror", storage, mirrorList, isCG);
     }
 
     /**
      * {@inheritDoc} NOTE NOTE: The signature here MUST match the Workflow.Method deleteMirrorMethod just above (except opId).
      */
     @Override
-    public void deleteMirror(URI storage, List<URI> mirrorList, String opId) throws ControllerException {
+    public void deleteMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             completer = new BlockMirrorDeleteCompleter(mirrorList, opId);
-            boolean isCG = isCGMirror(mirrorList.get(0), _dbClient);
-            if (checkIfNotLastSrdfCGMirror(mirrorList, isCG)) {
-                isCG = false;   // delete the element pair
-            }
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doDeleteMirror(storageObj, mirrorList.get(0), completer);
             } else {
@@ -2670,10 +2667,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @throws ControllerException
      */
     @Override
-    public void deactivateMirror(URI storage, List<URI> mirrorList, String opId) throws ControllerException {
+    public void deactivateMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws ControllerException {
         _log.info("deactivateMirror: START");
         TaskCompleter taskCompleter = null;
-        boolean isCG = isCGMirror(mirrorList.get(0), _dbClient);
         String mirrorStr = Joiner.on("\t").join(mirrorList);
 
         try {
@@ -2682,32 +2678,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             taskCompleter = new BlockMirrorDeactivateCompleter(mirrorList, opId);
 
             String detachStep = workflow.createStepId();
-            /*
-             * if (storageSystem.deviceIsType(Type.vmax)) {
-             * String waitFor = null;
-             *//**
-             * If CG & SRDF volume & not last mirror:
-             * add step to remove mirror from DeviceMaskingGroup,
-             * call detach, delete operations on Element pair
-             */
-            /*
-             * boolean removeFromDMGStep = checkIfNotLastSrdfCGMirror(mirrorList, isCG);
-             * if (removeFromDMGStep) {
-             * waitFor = addStepsToRemoveMirrorFromGroup(workflow, null, "deactivate", mirrorList);
-             * isCG = false; // further operations - not a group operation
-             * _log.info("Deleting a single mirror, not the group");
-             * }
-             * detachStep = addStepsForDetachMirror(workflow, waitFor, "deactivate", mirrorList, isCG);
-             * }
-             * else {
-             */
-                Workflow.Method detach = detachMirrorMethod(storage, mirrorList, isCG);
-                workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
+            Workflow.Method detach = detachMirrorMethod(storage, mirrorList, isCG);
+            workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
                         storageSystem.getSystemType(), getClass(), detach, null, detachStep);
-            // }
 
             String deleteStep = workflow.createStepId();
-            Workflow.Method delete = deleteMirrorMethod(storage, mirrorList);
+            Workflow.Method delete = deleteMirrorMethod(storage, mirrorList, isCG);
 
             workflow.createStep("deactivate", "deleting mirror volume: " + mirrorStr, detachStep, storage,
                     storageSystem.getSystemType(), getClass(), delete, null, deleteStep);
@@ -2728,28 +2704,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 throw DeviceControllerException.exceptions.deactivateMirrorFailed(e);
             }
         }
-    }
-
-    /**
-     * Check if CG, source volume is SRDF & not last mirror in group.
-     */
-    private boolean checkIfNotLastSrdfCGMirror(List<URI> mirrorList, boolean isCG) {
-        if (isCG) {
-            BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, mirrorList.get(0));
-            Volume sourceVolume = _dbClient.queryObject(Volume.class, mirror.getSource());
-            if (sourceVolume != null && sourceVolume.checkForSRDF()) {
-                List<BlockMirror> mirrorsinCG = ControllerUtils
-                        .getMirrorsPartOfReplicationGroup(mirror.getReplicationGroupInstance(), _dbClient);
-                List<URI> mirrorURIsInCG = new ArrayList<URI>(transform(mirrorsinCG, FCTN_MIRROR_TO_URI));
-                mirrorURIsInCG.removeAll(mirrorList);
-                _log.info("Remaining mirrors in Mirror group. Count: {}, List: {}",
-                        mirrorURIsInCG.size(), Joiner.on(", ").join(mirrorURIsInCG));
-                if (!mirrorURIsInCG.isEmpty()) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     @Override
@@ -4239,52 +4193,29 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public String detachMirrorStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem, List<URI> mirrorList,
+    public String deleteMirrorStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem, List<URI> mirrorList,
             boolean isRemoveAll) {
-        List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
+        String mirrorStr = Joiner.on("\t").join(mirrorList);
+        _log.info("Start deleteMirror Step for mirror:{}", mirrorStr);
         if (isRemoveAll) {
-            String stepId = null;
-
-            // Optionally create a step to pause (fracture) the group mirror
-            if (mirrorIsPausable(mirrors)) {
-                stepId = workflow.createStep(MIRROR_FRACTURE_STEP_GROUP,
-                        String.format("Fracture mirror: %s", mirrorList.get(0)),
-                        waitFor, storage, getDeviceType(storage),
-                        this.getClass(),
-                        fractureMirrorMethod(storage, mirrorList, isRemoveAll, false),
-                        null, null);
-            }
-            // Create a step to detach the group mirror
-            waitFor = workflow.createStep(MIRROR_DETACH_STEP_GROUP,
-                    String.format("Detach mirror: %s", mirrorList.get(0)),
-                    stepId == null ? waitFor : stepId,
-                    storage, getDeviceType(storage),
-                    this.getClass(),
-                    detachMirrorMethod(storage, mirrorList, isRemoveAll),
-                    null, null);
+            _log.info("Adding group detach mirror step");
+            Workflow.Method detach = detachMirrorMethod(storage, mirrorList, isRemoveAll);
+            waitFor = workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
+                    storageSystem.getSystemType(), getClass(), detach, null, null);
+            _log.info("Adding group delete mirror step");
+            Workflow.Method delete = deleteMirrorMethod(storage, mirrorList, isRemoveAll);
+            waitFor = workflow.createStep("deactivate", "deleting mirror volume: " + mirrorStr, waitFor, storage,
+                    storageSystem.getSystemType(), getClass(), delete, null, null);
         } else {
-            for (BlockMirror mirror : mirrors) {
-                String stepId = null;
-
-                // Optionally create a step to pause (fracture) the mirror
-                if (mirrorIsPausable(Arrays.asList(mirror))) {
-
-                    stepId = workflow.createStep(MIRROR_FRACTURE_STEP_GROUP,
-                            String.format("Fracture mirror: %s", mirror.getId()),
-                            waitFor, storage, getDeviceType(storage),
-                            this.getClass(),
-                            fractureMirrorMethod(storage, Arrays.asList(mirror.getId()), isRemoveAll, false),
-                            null, null);
-                }
-
-                // Create a step to detach the mirror
-                waitFor = workflow.createStep(MIRROR_DETACH_STEP_GROUP,
-                        String.format("Detach mirror: %s", mirror.getId()),
-                        stepId == null ? waitFor : stepId,
-                        storage, getDeviceType(storage),
-                        this.getClass(),
-                        detachMirrorMethod(storage, mirrorList, isRemoveAll),
-                        null, null);
+            for (URI uri : mirrorList) {
+                _log.info("Adding detach mirror step");
+                Workflow.Method detach = detachMirrorMethod(storage, Arrays.asList(uri), isRemoveAll);
+                waitFor = workflow.createStep("deactivate", "detaching mirror volume: " + uri, null, storage,
+                        storageSystem.getSystemType(), getClass(), detach, null, null);
+                _log.info("Adding delete mirror step");
+                Workflow.Method delete = deleteMirrorMethod(storage, Arrays.asList(uri), isRemoveAll);
+                waitFor = workflow.createStep("deactivate", "deleting mirror volume: " + uri, waitFor, storage,
+                        storageSystem.getSystemType(), getClass(), delete, null, null);
             }
         }
         return waitFor;

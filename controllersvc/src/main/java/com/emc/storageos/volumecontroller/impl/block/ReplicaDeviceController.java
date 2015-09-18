@@ -564,7 +564,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             if (checkIfCGHasMirrorReplica(volumeList)) {
                 log.info("Adding mirror steps for deleting volumes");
                 // delete mirrors for the to be deleted volumes
-                waitFor = detachMirrorSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromCG);
+                waitFor = deleteMirrorSteps(workflow, waitFor, volumeURIs, volumeList, isRemoveAllFromCG);
             }
 
             if (checkIfCGHasSnapshotReplica(volumeList)) {
@@ -650,11 +650,11 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
     /*
-     * Detach all clones of the to be deleted volumes in a CG
+     * Delete all clones of the to be deleted volumes in a CG
      */
-    private String detachMirrorSteps(final Workflow workflow, String waitFor,
+    private String deleteMirrorSteps(final Workflow workflow, String waitFor,
             Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {
-        log.info("START detach mirror steps");
+        log.info("START delete mirror steps");
         Set<String> repGroupNames = ControllerUtils.getMirrorReplicationGroupNames(volumes, _dbClient);
         if (repGroupNames.isEmpty()) {
             return waitFor;
@@ -669,7 +669,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 waitFor = removeMirrorsFromReplicationGroupStep(workflow, waitFor, storageSystem, cgURI, mirrorList, repGroupName);
             }
 
-            waitFor = _blockDeviceController.detachMirrorStep(workflow, waitFor, storage, storageSystem, mirrorList, isRemoveAll);
+            waitFor = _blockDeviceController.deleteMirrorStep(workflow, waitFor, storage, storageSystem, mirrorList, isRemoveAll);
         }
 
         return waitFor;

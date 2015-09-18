@@ -300,7 +300,7 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId Operation ID
      * @throws InternalException When an exception occurs deleting the mirror
      */
-    public void deleteMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException;
+    public void deleteMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws InternalException;
 
     /**
      * Detach and delete a mirror or mirrors of a volume or volumes.
@@ -310,7 +310,7 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId Operation ID
      * @throws InternalException When an exception occurs deactivating the mirror
      */
-    public void deactivateMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException;
+    public void deactivateMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws InternalException;
 
     /**
      * Orchestrates the creation of full copy volumes

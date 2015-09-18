@@ -58,7 +58,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
@@ -551,9 +550,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, mirrorURI);
         Volume sourceVolume = _dbClient.queryObject(Volume.class, mirror.getSource().getURI());
         List<URI> mirrorURIs = new ArrayList<URI>();
-
-        if (!NullColumnValueGetter.isNullURI(sourceVolume.getConsistencyGroup())
-                && !checkIfNotLastSrdfCGMirror(mirror, sourceVolume)) {
+        boolean isCG = sourceVolume.isInCG();
+        if (isCG) {
             Map<BlockMirror, Volume> groupMirrorSourceMap = getGroupMirrorSourceMap(mirrorURI, sourceVolume);
             mirrorURIs = new ArrayList<URI>(transform(new ArrayList<BlockMirror>(groupMirrorSourceMap.keySet()), FCTN_MIRROR_TO_URI));
             populateTaskList(groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR);
@@ -565,7 +563,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         }
         try {
             BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-            controller.deactivateMirror(storageSystem.getId(), mirrorURIs, taskId);
+            controller.deactivateMirror(storageSystem.getId(), mirrorURIs, isCG, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to deactivate continuous copy %s", mirror.getId().toString());
             _log.error(errorMsg, e);
@@ -573,23 +571,6 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         }
 
         return taskList;
-    }
-
-    /**
-     * Check if CG, source volume is SRDF & not last mirror in group.
-     */
-    private boolean checkIfNotLastSrdfCGMirror(BlockMirror mirror, Volume sourceVolume) {
-        if (!NullColumnValueGetter.isNullURI(sourceVolume.getConsistencyGroup())
-                && sourceVolume.checkForSRDF()) {
-            List<BlockMirror> mirrorsinCG = ControllerUtils
-                    .getMirrorsPartOfReplicationGroup(mirror.getReplicationGroupInstance(), _dbClient);
-            List<URI> mirrorURIsInCG = new ArrayList<URI>(transform(mirrorsinCG, FCTN_MIRROR_TO_URI));
-            mirrorURIsInCG.remove(mirror.getId());
-            if (!mirrorURIsInCG.isEmpty()) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override

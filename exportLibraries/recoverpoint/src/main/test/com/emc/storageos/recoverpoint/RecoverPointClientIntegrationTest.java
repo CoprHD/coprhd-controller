@@ -46,8 +46,13 @@ import com.emc.storageos.recoverpoint.utils.WwnUtils;
 // Required LUNS (masked to lrms023/lrms024):
 //
 import com.emc.storageos.services.util.EnvConfig;
+import com.emc.storageos.services.util.LoggingUtils;
 
 public class RecoverPointClientIntegrationTest {
+
+    static {
+        LoggingUtils.configureIfNecessary("rpclient-log4j.properties");
+    }
 
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
 
@@ -160,6 +165,32 @@ public class RecoverPointClientIntegrationTest {
             fail(e.getMessage());
         }
 
+    }
+
+    @Test
+    public void testDeleteAllCGs() {
+        RPSystem rpSystem = new RPSystem();
+        RPSite site = new RPSite();
+        Set<RPSite> siteList = new HashSet<RPSite>();
+        site.setCredentials(RP_USERNAME, RP_PASSWORD);
+        site.setSiteManagementIPv4(RPSiteToUse);
+        siteList.add(site);
+        rpSystem.setSites(siteList);
+        rpSystem.setName(RPSystemName);
+
+        setup();
+        logger.info("Testing RecoverPoint Service testGetAllCGs");
+        site.setSiteManagementIPv4(RPSiteToUse); // NOSONAR
+
+        try {
+            String pattern = null;
+            int count = rpClient.deleteAllConsistencyGroups(pattern);
+            logger.info("Deleted " + count + " consistency groups");
+        } catch (Exception e) {
+            logger.error(e.toString());
+            logger.info("testGetAllCGs FAILED");
+            fail();
+        }
     }
 
     @Test

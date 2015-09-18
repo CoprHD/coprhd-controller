@@ -395,7 +395,7 @@ public class RecoverPointClient {
      * Updates an existing CG by adding new replication sets.
      *
      * @param request - contains all the information required to create the consistency group
-     * 
+     *
      * @param attachAsClean attach as clean can be true if source and target are guaranteed to be the same (as in create
      *            new volume). for change vpool, attach as clean should be false
      *
@@ -502,7 +502,7 @@ public class RecoverPointClient {
      * Creates a consistency group
      *
      * @param request - contains all the information required to create the consistency group
-     * 
+     *
      * @param attachAsClean attach as clean can be true if source and target are guaranteed to be the same (as in create
      *            new volume). for change vpool, attach as clean should be false
      *
@@ -584,7 +584,7 @@ public class RecoverPointClient {
 
     /**
      * Operation to add journal volumes to an existing recoverpoint consistency group
-     * 
+     *
      * @param request - contains both the consistency group
      *                  and the journals to add to the consistency group
      * @param copyType - indicates whether the copy is production, local or remote
@@ -608,36 +608,36 @@ public class RecoverPointClient {
     		}
     		if (cgUID == null) {
     			// The CG does not exist so we cannot add replication sets
-    			throw RecoverPointException.exceptions.failedToAddReplicationSetCgDoesNotExist(request.getCgName());    			
-    		}    		
-    		
+    			throw RecoverPointException.exceptions.failedToAddReplicationSetCgDoesNotExist(request.getCgName());
+    		}
+
     		List<CreateCopyParams> copyParams = request.getCopies();
-    		
+
     		// determine if the volumes are visible to the recoverpoint appliance
-    		Set<RPSite> allSites = scan(copyParams, null);    		    		
-    		
-    		for (CreateCopyParams copyParam : copyParams) {    		
+    		Set<RPSite> allSites = scan(copyParams, null);
+
+    		for (CreateCopyParams copyParam : copyParams) {
     			for (CreateVolumeParams journalVolume: copyParam.getJournals()) {
     				copyName = journalVolume.getRpCopyName();
-    				ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName()); 
-    				ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);    				
+    				ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName());
+    				ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);
     				DeviceUID journalDevice = RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn());
     				addedJournalVolumes.put(copyUID, journalDevice);
-    				functionalAPI.addJournalVolume(copyUID, journalDevice);        		
-    			}    			
+    				functionalAPI.addJournalVolume(copyUID, journalDevice);
+    			}
     		}
     	}
     	catch (FunctionalAPIActionFailedException_Exception e) {
     		if (!addedJournalVolumes.isEmpty()) {
     			try {
     				for (Map.Entry<ConsistencyGroupCopyUID, DeviceUID> journalVolume : addedJournalVolumes.entrySet()) {
-    					functionalAPI.removeJournalVolume(journalVolume.getKey(), journalVolume.getValue()); 			   
+    					functionalAPI.removeJournalVolume(journalVolume.getKey(), journalVolume.getValue());
     				}
     			} catch (Exception e1) {
                   logger.error("Error removing journal volume from consistency group");
                   logger.error(e1.getMessage(), e1);
     			}
-    		}    		
+    		}
     		logger.error("Error in attempting to add a journal volume to the recoverpoint consistency group");
             logger.error(e.getMessage(), e);
             throw RecoverPointException.exceptions.failedToAddJournalVolumeToConsistencyGroup(copyName, getCause(e));
@@ -645,20 +645,20 @@ public class RecoverPointClient {
     		if (!addedJournalVolumes.isEmpty()) {
     			try {
     				for (Map.Entry<ConsistencyGroupCopyUID, DeviceUID> journalVolume : addedJournalVolumes.entrySet()) {
-    					functionalAPI.removeJournalVolume(journalVolume.getKey(), journalVolume.getValue()); 			   
+    					functionalAPI.removeJournalVolume(journalVolume.getKey(), journalVolume.getValue());
     				}
     			} catch (Exception e1) {
                   logger.error("Error removing journal volume from consistency group");
                   logger.error(e1.getMessage(), e1);
     			}
-    		}  
+    		}
     		logger.error("Error in attempting to add a journal volume to the recoverpoint consistency group");
             logger.error(e.getMessage(), e);
             throw RecoverPointException.exceptions.failedToCreateConsistencyGroup(copyName, getCause(e));
     	}
-    	return true;        
+    	return true;
     }
-    
+
     /**
      * @param request
      * @param clusterIdCache
@@ -721,7 +721,7 @@ public class RecoverPointClient {
 
     /**
      * Determines and creates RecoverPointCGCopyType type based on passed int value
-     * 
+     *
      * @param type - the copy type
      * @return RecoverPointCGCopyType representing the copy type
      */
@@ -735,7 +735,7 @@ public class RecoverPointClient {
     	}
     	return copyType;
     }
-    
+
     /**
      * construct a CG copy UID
      *
@@ -3090,5 +3090,33 @@ public class RecoverPointClient {
             return false;
         }
         return false;
+    }
+
+    public int deleteAllConsistencyGroups(String pattern) {
+        int count = 0;
+        if (pattern == null || pattern.isEmpty()) {
+            logger.info("no CGs deleted; pattern is required");
+            return count;
+        }
+        try {
+            List<ConsistencyGroupUID> allCgs = functionalAPI.getAllConsistencyGroups();
+            for (ConsistencyGroupUID cg : allCgs) {
+                ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
+                logger.info("Found CG: " + settings.getName());
+                if (!settings.getName().contains("do-not-delete") && settings.getName().startsWith("ViPR-")
+                        && settings.getName().contains(pattern)) {
+                    functionalAPI.removeConsistencyGroup(cg);
+                    logger.info("Deleted consistency group: " + settings.getName());
+                    count++;
+                }
+            }
+            return count;
+        } catch (FunctionalAPIActionFailedException_Exception e) {
+            logger.error(e.getMessage(), e);
+            return count;
+        } catch (FunctionalAPIInternalError_Exception e) {
+            logger.error(e.getMessage(), e);
+            return count;
+        }
     }
 }

@@ -1034,7 +1034,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     initiator.setProtocol("FC");
                     initiator.setIsManualCreation(false);
                     
-                    String hostName = rpClusterName + "_RPA_" + rpaId;             
+                    //Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
+                    //A child RP IG will be created containing all the RPA IGs
+                    String hostName = rpClusterName + "RPA" + rpaId; 
+                    hostName = hostName.replaceAll("[^A-Za-z0-9_]", "");
                     _log.info(String.format("Setting RP initiator host name : %s", hostName));
                     initiator.setHostName(hostName);
                     

@@ -1620,12 +1620,9 @@ public class RecoverPointClient {
     }
 
     /**
-     * Get a list of WWNs given a site ID
-     *
-     * @param int siteID - Site ID to get WWNs for
-     *
-     * @return Map<String, String> - a list of WWNs
-     *
+     * Given an RP site, return a map of all the RP initiator WWNs for each RPA in that site.  
+     * @param internalSiteName - RP internal site name
+     * @return Map of RPA number to Map with portWWN being the key and nodeWWN the value.
      * @throws RecoverPointException
      */
     public Map<String, Map<String, String>> getInitiatorWWNs(String internalSiteName) throws RecoverPointException {
@@ -1646,8 +1643,7 @@ public class RecoverPointClient {
                             String nodeWWN = WwnUtils.convertWWN(initiator.getNodeWWN(), WwnUtils.FORMAT.COLON);
                             String portWWN = WwnUtils.convertWWN(initiator.getPortWWN(), WwnUtils.FORMAT.COLON);                            
                             String rpaId = String.valueOf(rpaState.getRpaUID().getRpaNumber());
-                            logger.info("RPA Node WWN: " + nodeWWN + ". Port WWN: " + portWWN);
-                            logger.info("RPA ID : " + rpaId);
+                            logger.info(String.format("RPA ID: %s - RPA Port WWN : %s, NodeWWN : %s", rpaId, portWWN, nodeWWN));                          
                             if (!rpaWWNs.containsKey(rpaId)) {
                             	rpaWWNs.put(rpaId, new HashMap<String, String>());
                             }

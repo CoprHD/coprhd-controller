@@ -36,7 +36,6 @@ public class SpringQuorumPeerConfigTest {
 
         properties.setProperty(SpringQuorumPeerConfig.staticCfgFileKey, "zk-static.cfg");
         properties.setProperty(SpringQuorumPeerConfig.dynamicCfgFileKey, "zk-dynamic.cfg");
-        log.info("lby properties={}", properties);
 
         springQuorumPeerConfig = new SpringQuorumPeerConfig();
     }
@@ -46,7 +45,6 @@ public class SpringQuorumPeerConfigTest {
         springQuorumPeerConfig.setProperties(properties);
         springQuorumPeerConfig.init();
 
-        log.info("lby1 size={}", springQuorumPeerConfig.getServers().size());
         assertTrue(springQuorumPeerConfig.getServers().size() == 3);
 
         QuorumServer server1 = springQuorumPeerConfig.getServers().get(new Long(1));
@@ -67,20 +65,7 @@ public class SpringQuorumPeerConfigTest {
 
     @Test
     public void testServerPropertiesHasbeenRemoved() throws Exception {
-        SpringQuorumPeerConfig target = new SpringQuorumPeerConfig(); /* {
-
-            @Override
-            protected void preprocessQuorumServers(Properties zkProp) throws ConfigException {
-                super.preprocessQuorumServers(zkProp);
-
-                // check whether server properties are removed
-                for (Object key : properties.keySet()) {
-                    assertFalse(key.toString().trim().startsWith("server."));
-                }
-            }
-
-        };
-            */
+        SpringQuorumPeerConfig target = new SpringQuorumPeerConfig();
 
         target.setProperties(properties);
         target.init();
@@ -106,10 +91,8 @@ public class SpringQuorumPeerConfigTest {
         Properties dynamicProperty = new Properties();
         dynamicProperty.load(in);
 
-        log.info("lby2 dynamicProperty={}", dynamicProperty);
         // check whether server properties are removed
         for (String key : dynamicProperty.stringPropertyNames()) {
-            log.info("lby3 key={}", key);
             assertTrue(key.trim().startsWith("server."));
         }
     }

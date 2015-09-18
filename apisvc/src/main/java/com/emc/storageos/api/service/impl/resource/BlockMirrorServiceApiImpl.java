@@ -206,7 +206,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         while (cgVolumeList.iterator().hasNext()) {
             totalVolumeCount++;
             Volume cgSourceVolume = _dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
-            if (cgSourceVolume != null && (cgSourceVolume.getMirrors() == null || cgSourceVolume.getMirrors().size() == 0)) {
+            if (cgSourceVolume != null && (cgSourceVolume.getMirrors() == null || cgSourceVolume.getMirrors().isEmpty())) {
                 newlyAddedVolList.add(cgSourceVolume.getId());
             }
         }

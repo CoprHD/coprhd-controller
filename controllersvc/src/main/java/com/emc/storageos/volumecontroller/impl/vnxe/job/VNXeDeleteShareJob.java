@@ -6,7 +6,6 @@
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -16,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.CifsShareACL;
+import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
@@ -106,7 +106,7 @@ public class VNXeDeleteShareJob extends VNXeJob {
             return;
         }
         shareMap.remove(smbShare.getName());
-        deleteShareACLsFromDB(dbClient, fsObj, null);
+        deleteShareACLsFromDB(dbClient, fsObj);
         dbClient.persistObject(fsObj);
     }
 
@@ -118,50 +118,40 @@ public class VNXeDeleteShareJob extends VNXeJob {
             return snapObj;
         }
         shareMap.remove(smbShare.getName());
-        deleteShareACLsFromDB(dbClient, null, snapObj);
+        deleteShareACLsFromDB(dbClient, snapObj);
         dbClient.persistObject(snapObj);
         return snapObj;
     }
 
-    private void deleteShareACLsFromDB(DbClient dbClient, FileShare fsObj, Snapshot snapObj) {
+    private void deleteShareACLsFromDB(DbClient dbClient, FileObject fsObj) {
 
-        List<CifsShareACL> acls = new ArrayList<CifsShareACL>();
         try {
 
             ContainmentConstraint containmentConstraint = null;
             if (isFile && fsObj != null) {
-                _logger.info("Querying DB for Share ACLs of share {} of filesystemId {} ",
-                        fsObj.getName(), fsObj.getId());
+                _logger.info("Querying DB for Share ACLs of share {} of filesystemId {} ", fsObj.getLabel(), fsObj.getId());
                 containmentConstraint = ContainmentConstraint.Factory.getFileCifsShareAclsConstraint(fsObj.getId());
-            } else if (!isFile && snapObj != null) {
-                URI snapshotId = snapObj.getId();
-                _logger.info("Querying DB for Share ACLs of share {} of snapshotId {} ",
-                        smbShare.getName(), snapshotId);
+            } else if (!isFile && fsObj != null) {
+                URI snapshotId = fsObj.getId();
+                _logger.info("Querying DB for Share ACLs of share {} of SnapshotId {} ", fsObj.getLabel(), fsObj.getId());
                 containmentConstraint = ContainmentConstraint.Factory.getSnapshotCifsShareAclsConstraint(snapshotId);
             }
 
             List<CifsShareACL> shareAclList = CustomQueryUtility.queryActiveResourcesByConstraint(
                     dbClient, CifsShareACL.class, containmentConstraint);
 
-            Iterator<CifsShareACL> shareAclIter = shareAclList.iterator();
-            while (shareAclIter.hasNext()) {
-                CifsShareACL shareAcl = shareAclIter.next();
-                if (smbShare.getName().equals(shareAcl.getShareName())) {
-                    acls.add(shareAcl);
+            if (!shareAclList.isEmpty()) {
+                Iterator<CifsShareACL> shareAclIter = shareAclList.iterator();
+                while (shareAclIter.hasNext()) {
+                    CifsShareACL shareAcl = shareAclIter.next();
+                    if (smbShare.getName().equals(shareAcl.getShareName())) {
+                        shareAcl.setInactive(true);
+                    }
                 }
             }
-            List<CifsShareACL> deleteAclList = new ArrayList<CifsShareACL>();
-            for (Iterator<CifsShareACL> iterator = acls.iterator(); iterator.hasNext();) {
-                CifsShareACL cifsShareACL = iterator.next();
-                if (smbShare.getName().equals(cifsShareACL.getShareName())) {
-                    cifsShareACL.setInactive(true);
-                    deleteAclList.add(cifsShareACL);
-                }
-            }
-            if (!deleteAclList.isEmpty()) {
-                _logger.info("Deleting ACL of share {}", smbShare.getName());
-                dbClient.persistObject(deleteAclList);
-            }
+            _logger.info("Deleting ACL of share {}", smbShare.getName());
+            dbClient.persistObject(shareAclList);
+
         } catch (Exception e) {
             _logger.error("Error while querying DB for ACL(s) of a share {}", e);
         }

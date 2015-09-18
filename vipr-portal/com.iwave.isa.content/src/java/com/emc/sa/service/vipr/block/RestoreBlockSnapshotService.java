@@ -37,7 +37,7 @@ public class RestoreBlockSnapshotService extends ViPRService {
             if (ConsistencyUtils.isVolumeStorageType(storageType)) {
                 task = execute(new RestoreBlockSnapshot(snapshotId));
             } else {
-                task = ConsistencyUtils.restoreSnapshot(consistencyGroupId, uri(snapshotId));
+                task = ConsistencyUtils.restoreSnapshot(consistencyGroupId);
             }
             addAffectedResource(task);
         }

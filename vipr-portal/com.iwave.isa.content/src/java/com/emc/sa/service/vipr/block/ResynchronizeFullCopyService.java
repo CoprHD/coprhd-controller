@@ -33,9 +33,7 @@ public class ResynchronizeFullCopyService extends ViPRService {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             BlockStorageUtils.resynchronizeFullCopies(uris(copyIds));
         } else {
-            for (URI copyId : uris(copyIds)) {
-                ConsistencyUtils.resynchronizeFullCopy(consistencyGroupId, copyId);
-            }
+            ConsistencyUtils.resynchronizeFullCopy(consistencyGroupId);
         }
     }
 

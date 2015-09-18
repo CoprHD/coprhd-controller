@@ -33,9 +33,7 @@ public class DetachFullCopyService extends ViPRService {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             BlockStorageUtils.detachFullCopies(uris(copyIds));
         } else {
-            for (URI copyId : uris(copyIds)) {
-                ConsistencyUtils.detachFullCopy(consistencyGroupId, copyId);
-            }
+            ConsistencyUtils.detachFullCopy(consistencyGroupId);
         }
     }
 

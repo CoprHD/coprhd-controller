@@ -34,7 +34,7 @@ public class RestoreFromFullCopyService extends ViPRService {
             BlockStorageUtils.restoreFromFullCopy(uri(copyId));
         } else {
             logInfo("Executing Consistency Group restore [%s]", consistencyGroupId);
-            ConsistencyUtils.restoreFullCopy(consistencyGroupId, uri(copyId));
+            ConsistencyUtils.restoreFullCopy(consistencyGroupId);
         }
     }
 }

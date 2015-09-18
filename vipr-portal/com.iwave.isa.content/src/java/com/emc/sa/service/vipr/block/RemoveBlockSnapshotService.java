@@ -37,7 +37,7 @@ public class RemoveBlockSnapshotService extends ViPRService {
             if (ConsistencyUtils.isVolumeStorageType(storageType)) {
                 tasks = execute(new DeactivateBlockSnapshot(snapshotId));
             } else {
-                tasks = ConsistencyUtils.removeSnapshot(consistencyGroupId, uri(snapshotId));
+                tasks = ConsistencyUtils.removeSnapshot(consistencyGroupId);
             }
             addAffectedResources(tasks);
         }

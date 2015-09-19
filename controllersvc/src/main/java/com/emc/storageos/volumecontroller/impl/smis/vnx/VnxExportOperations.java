@@ -1204,4 +1204,36 @@ public class VnxExportOperations implements ExportMaskOperations {
         return storageTierMethodologyId;
     }
 
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        Map<URI, Integer> hlus = Collections.EMPTY_MAP;
+        try {
+            CIMInstance instance = _helper.getLunMaskingProtocolController(storage, exportMask);
+            // There's a StorageGroup on the array for the ExportMask and it has userAddedVolumes.
+            // These volumes could have been ingested, but they'd still show up as userAddedVolumes.
+            if (instance != null && exportMask.getUserAddedVolumes() != null) {
+                hlus = new HashMap<>();
+                WBEMClient client = _helper.getConnection(storage).getCimClient();
+                // Get the volume WWN to HLU mapping from the StorageGroup
+                Map<String, Integer> discoveredVolumes = _helper.getVolumesFromLunMaskingInstance(client, instance);
+                for (String wwn : discoveredVolumes.keySet()) {
+                    Integer hlu = discoveredVolumes.get(wwn);
+                    if (hlu != null && exportMask.getUserAddedVolumes().containsKey(wwn)) {
+                        // Look up the volume URI given the WWN
+                        String uriString = exportMask.getUserAddedVolumes().get(wwn);
+                        // We have a proper HLU
+                        hlus.put(URI.create(uriString), hlu);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Log an error, but return an empty list
+            _log.error(String.format("Encountered an exception when attempting to get volume to HLU mapping from ExportMask %s",
+                    exportMask.getMaskName()), e);
+        }
+        _log.info(String.format("Retrieved these volumes from ExportMask %s (%s): %s", exportMask.getMaskName(), exportMask.getId(),
+                CommonTransformerFunctions.collectionString(hlus.entrySet())));
+        return hlus;
+    }
+    
 }

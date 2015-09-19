@@ -4560,4 +4560,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
         return isRPJournal;
     }
+
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return Collections.EMPTY_MAP;
+    }
 }

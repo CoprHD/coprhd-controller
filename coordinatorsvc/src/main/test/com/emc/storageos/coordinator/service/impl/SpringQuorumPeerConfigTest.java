@@ -30,9 +30,7 @@ public class SpringQuorumPeerConfigTest {
         properties.setProperty("syncLimit", "2");
         properties.setProperty("server.1", "192.168.1.1:2888:3888;2181");
         properties.setProperty("server.2", "hostname:2888:3888;2181");
-        //TODO support IPv6
-        // properties.setProperty("server.3", "fe80:0:0:0:81fe:4fd:95b1:8bbf:2888:3888");
-        properties.setProperty("server.3", "hostname2:2888:3888;2181");
+        properties.setProperty("server.3", "[fe80:0:0:0:81fe:4fd:95b1:8bbf]:2888:3888;2181");
 
         properties.setProperty(SpringQuorumPeerConfig.staticCfgFileKey, "zk-static.cfg");
         properties.setProperty(SpringQuorumPeerConfig.dynamicCfgFileKey, "zk-dynamic.cfg");
@@ -58,8 +56,8 @@ public class SpringQuorumPeerConfigTest {
         assertTrue(server2.type == LearnerType.PARTICIPANT);
 
         QuorumServer server3 = springQuorumPeerConfig.getServers().get(new Long(3));
-        // assertTrue(server3.addr.toString().equals("/fe80:0:0:0:81fe:4fd:95b1:8bbf:2888"));
-        // assertTrue(server3.electionAddr.toString().equals("/fe80:0:0:0:81fe:4fd:95b1:8bbf:3888"));
+        assertTrue(server3.addr.toString().equals("/fe80:0:0:0:81fe:4fd:95b1:8bbf:2888"));
+        assertTrue(server3.electionAddr.toString().equals("/fe80:0:0:0:81fe:4fd:95b1:8bbf:3888"));
         assertTrue(server3.type == LearnerType.PARTICIPANT);
     }
 

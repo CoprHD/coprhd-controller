@@ -9,13 +9,11 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -41,6 +39,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -51,7 +50,6 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -77,7 +75,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.volumecontroller.impl.plugins.VPlexCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -331,22 +328,25 @@ public class VolumeIngestionUtil {
         return targetUriList;
     }
 
-    public static List<BlockObject> getCloneObjects(StringSet targets, Map<String, BlockObject> createdObjectMap, DbClient dbClient) {
+    public static List<BlockObject> getVolumeObjects(StringSet targets, Map<String, BlockObject> createdObjectMap, DbClient dbClient) {
         List<BlockObject> targetUriList = new ArrayList<BlockObject>();
         for (String targetId : targets) {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(targetId));
             if (null != targetUris && !targetUris.isEmpty()) {
-                BlockObject bo = (BlockObject) dbClient.queryObject(targetUris.get(0));
-                _logger.info("found clone block object: " + bo);
-                if (null != bo) {
-                    targetUriList.add(bo);
+                for (URI targetUri : targetUris) {
+                    BlockObject bo = (BlockObject) dbClient.queryObject(targetUri);
+                    _logger.info("found volume block object: " + bo);
+                    if (null != bo) {
+                        targetUriList.add(bo);
+                        break;
+                    }
                 }
             } else {
-                _logger.info("Clone not ingested yet {}. Checking in the created object map", targetId);
+                _logger.info("Volume not ingested yet {}. Checking in the created object map", targetId);
                 // check in the created object map
                 BlockObject blockObject = createdObjectMap.get(targetId);
                 if (blockObject != null) {
-                    _logger.info("Found the clone in the created object map");
+                    _logger.info("Found the volume in the created object map");
                     targetUriList.add(blockObject);
                 }
             }
@@ -448,10 +448,14 @@ public class VolumeIngestionUtil {
                 .get(SupportedVolumeCharacterstics.HAS_REPLICAS.toString());
         String volumeHasRemoteReplicas = unManagedVolumeCharacteristics
                 .get(SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString());
+        String isVplexVolume = unManagedVolumeCharacteristics
+                .get(SupportedVolumeCharacterstics.IS_VPLEX_VOLUME.toString());
         if (null != volumeHasReplicas
                 && Boolean.parseBoolean(volumeHasReplicas)
                 || (null != volumeHasRemoteReplicas && Boolean
-                        .parseBoolean(volumeHasRemoteReplicas))) {
+                        .parseBoolean(volumeHasRemoteReplicas))
+                || (null != isVplexVolume && Boolean
+                        .parseBoolean(isVplexVolume))) {
             return true;
         }
         return false;
@@ -845,23 +849,36 @@ public class VolumeIngestionUtil {
 
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
                         unManagedVolume.getStorageSystemUri());
-
+                URI potentialUnclaimedCg = null;
                 if (!groups.isEmpty()) {
                     for (BlockConsistencyGroup cg : groups) {
-                        // need to check for several matching properties
-                        URI storageControllerUri = cg.getStorageController();
-                        URI virtualArrayUri = cg.getVirtualArray();
-                        if (null != storageControllerUri && null != virtualArrayUri) {
-                            if (storageControllerUri.equals(storageSystem.getId()) &&
-                                    virtualArrayUri.equals(varrayUri) &&
-                                    cg.getProject().getURI().equals(projectUri) &&
-                                    cg.getTenant().getURI().equals(tenantUri)) {
-                                _logger.info("Found a matching BlockConsistencyGroup {} "
-                                        + "for virtual volume {}.", cgName, unManagedVolume.getLabel());
-                                return cg.getId();
+                        // first check that the tenant and project are a match
+                        if (cg.getProject().getURI().equals(projectUri) &&
+                            cg.getTenant().getURI().equals(tenantUri)) {
+                            // need to check for several matching properties
+                            URI storageControllerUri = cg.getStorageController();
+                            URI virtualArrayUri = cg.getVirtualArray();
+                            if (null != storageControllerUri && null != virtualArrayUri) {
+                                if (storageControllerUri.equals(storageSystem.getId()) &&
+                                        virtualArrayUri.equals(varrayUri)) {
+                                    _logger.info("Found a matching BlockConsistencyGroup {} "
+                                            + "for virtual volume {}.", cgName, unManagedVolume.getLabel());
+                                    return cg.getId();
+                                }
+                            }
+                            if (null == storageControllerUri && null == virtualArrayUri) {
+                                potentialUnclaimedCg = cg.getId();
                             }
                         }
                     }
+                }
+                
+                // if not match on label, project, tenant, storage array, and virtual array
+                // was found, then we can return the one found with null storage array and
+                // virtual array. this would indicate the user created the CG, but hadn't
+                // used it yet in creating a volume
+                if (null != potentialUnclaimedCg) {
+                    return potentialUnclaimedCg;
                 }
 
                 _logger.info("Did not find an existing Consistency Group named {} that is associated "
@@ -1416,7 +1433,7 @@ public class VolumeIngestionUtil {
             List<Initiator> initiators = CustomQueryUtility.iteratorToList(dbModelClient.find(Initiator.class,
                     StringSetUtil.stringSetToUriList(hostInitiatorsUri)));
             if (hasFCInitiators(initiators)) {
-                return verifyHostNumPath(pathParams, initiators, zoningMap);
+                return verifyHostNumPath(pathParams, initiators, zoningMap, dbClient);
             }
         }
         return true;
@@ -1444,10 +1461,11 @@ public class VolumeIngestionUtil {
      * @param pathParams the ingestion parameter
      * @param initiators the host initiators to be checked
      * @param zoneInfoMap the zoneInfoMap that is stored in the UnManagedExportMask
+     * @param dbClient a reference to the database client
      * @return true if the host paths are compliant. False otherwise.
      */
     private static boolean verifyHostNumPath(ExportPathParams pathParams,
-            List<Initiator> initiators, ZoneInfoMap zoneInfoMap) {
+            List<Initiator> initiators, ZoneInfoMap zoneInfoMap, DbClient dbClient) {
         if (initiators == null || initiators.isEmpty()) {
             _logger.error("Host has no initiators configured.");
             throw IngestionException.exceptions.hostHasNoInitiators();
@@ -1463,13 +1481,12 @@ public class VolumeIngestionUtil {
             }
             throw IngestionException.exceptions.hostHasNoZoning(Joiner.on(", ").join(messageArray));
         }
-        String hostName = initiators.get(0).getHostName();
-        if (hostName != null && 
-                hostName.startsWith(VPlexCommunicationInterface.VPLEX_INITIATOR_HOSTNAME_PREFIX)) {
+        if (VPlexControllerUtils.isVplexInitiator(initiators.get(0), dbClient)) {
             _logger.info("these are VPLEX backend initiators, "
-                       + "so no need to validate against virtual pool path params");
-            return true;
+                    + "so no need to validate against virtual pool path params");
+         return true;
         }
+        String hostName = initiators.get(0).getHostName();
         URI hostURI = initiators.get(0).getHost();
         _logger.info("Checking numpath for host {}", hostName);
         for (Initiator initiator : initiators) {
@@ -2033,6 +2050,20 @@ public class VolumeIngestionUtil {
                 sourceVolume.setFullCopies(associatedFullCopies);
             }
             associatedFullCopies.add(clone.getId().toString());
+        }
+    }
+
+    public static void setupVplexParentRelations(BlockObject child, BlockObject parent, DbClient dbClient) {
+        _logger.info("Setting up relationship between VPLEX backend volume {} and parent {}", 
+                child.getId(), parent.getId());
+        if (parent instanceof Volume) {
+            Volume parentVolume = (Volume) parent;
+            StringSet associatedVolumes = parentVolume.getAssociatedVolumes();
+            if (associatedVolumes == null) {
+                associatedVolumes = new StringSet();
+                parentVolume.setAssociatedVolumes(associatedVolumes);
+            }
+            associatedVolumes.add(child.getId().toString());
         }
     }
 

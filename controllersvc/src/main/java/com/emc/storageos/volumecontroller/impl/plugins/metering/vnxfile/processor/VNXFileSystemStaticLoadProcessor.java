@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
 import java.net.URI;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -286,21 +285,19 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
 
                 if (dmFsMountMap.get(pNAS.getNativeId()) != null) {
 
-                    totalDmObjects = totalDmObjects + vdmFsMountMap.get(pNAS.getNativeId()).size();
+                    totalDmObjects = totalDmObjects + dmFsMountMap.get(pNAS.getNativeId()).size();
                 }
 
-                if (vdmCapacityMap.get(pNAS.getNativeId()) != null) {
-                    totalDmCapacity = totalDmCapacity + vdmCapacityMap.get(pNAS.getNativeId());
+                if (dmCapacityMap.get(pNAS.getNativeId()) != null) {
+                    totalDmCapacity = totalDmCapacity + dmCapacityMap.get(pNAS.getNativeId());
                 }
-
-                DecimalFormat df = new DecimalFormat("0.00");
 
                 for (VirtualNAS vNas : vNasList) {
                     // Update dbMetrics for vNAS!!
                     StringMap vNasDbMetrics = vNas.getMetrics();
                     long StorageObj = MetricsKeys.getLong(MetricsKeys.storageObjects, vNas.getMetrics());
                     double percentageLoad = ((double) StorageObj / totalDmObjects) * 100;
-                    vNasDbMetrics.put(MetricsKeys.percentLoad.name(), df.format(percentageLoad));
+                    vNasDbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
                 }
 
                 StringMap pNasDbMetrics = pNAS.getMetrics();
@@ -310,7 +307,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                 long maxObjects = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, pNasDbMetrics);
                 long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, pNasDbMetrics);
                 double percentageLoad = ((double) totalDmObjects / maxObjects) * 100;
-                pNasDbMetrics.put(MetricsKeys.percentLoad.name(), df.format(percentageLoad));
+                pNasDbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
                 if (totalDmObjects >= maxObjects || totalDmCapacity >= maxCapacity) {
                     pNasDbMetrics.put(MetricsKeys.overLoaded.name(), "true");
                     // All vNas under should be updated!!!

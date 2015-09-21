@@ -308,6 +308,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                 _helper.callModifyReplica(storage, detachCGCloneInput);
                 List<Volume> cloneVolumes = _dbClient.queryObject(Volume.class, clones);
                 for (Volume theClone : cloneVolumes) {
+                    ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(theClone, _dbClient);
                     theClone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
                     theClone.setReplicaState(ReplicationState.DETACHED.name());
                 }

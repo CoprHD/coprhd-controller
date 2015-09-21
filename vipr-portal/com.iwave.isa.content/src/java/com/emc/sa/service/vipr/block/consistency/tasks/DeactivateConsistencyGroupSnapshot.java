@@ -22,7 +22,7 @@ public class DeactivateConsistencyGroupSnapshot extends
 
     @Override
     protected Tasks<BlockConsistencyGroupRestRep> doExecute() throws Exception {
-        NamedRelatedResourceRep item = getClient().blockConsistencyGroups().getFullCopies(consistencyGroup).get(0);
+        NamedRelatedResourceRep item = getClient().blockConsistencyGroups().getSnapshots(consistencyGroup).get(0);
         return getClient().blockConsistencyGroups().deactivateSnapshot(consistencyGroup, item.getId());
     }
 }

@@ -161,7 +161,6 @@ public class PropertyManager extends AbstractManager {
                 initializeLocalAndTargetInfo(svcId);
             } catch (Exception e) {
                 log.info("Step1b failed and will be retried: {}", e.getMessage());
-                log.error("e=", e);
                 retrySleep();
                 continue;
             }

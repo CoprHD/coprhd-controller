@@ -1,5 +1,14 @@
 #!/bin/bash
 #
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
 # This script is used to clear table data and index once.
 # It won't drop table, after running this script successfully, the table is empty, still exists.
 # It won't result in inconsistency between data end index either, because it takes care of both.
@@ -9,7 +18,7 @@
 # Dependencies on tables would result in failures.
 
 _usage() {
-    echo "Usage: $0 <table_name1> <table_name2> <table_name3> ..."
+    echo "Usage: $0 [option] | [<table_name1> <table_name2> <table_name3> ...]"
     echo "This script is used for clear table (along with related index)."
     echo "For further details, please refer to top comment in script."
     echo ""
@@ -18,24 +27,23 @@ _usage() {
 }
 
 _cleanup() {
-    [ -e $TMP_FILE ] && rm -f $TMP_FILE
+    rm -f ${TMP_FILE}
 }
 
-if [ "$1" == "" ] || [ "$1" == "-h" ] || [ $1 == "--help" ] ; then
+if [ "$1" == "" -o "$1" == "-h" -o "$1" == "--help" ] ; then
     _usage
     exit 2
 fi
 
-DBUTILS=/opt/storageos/bin/dbutils
-TMP_FILE=/tmp/truncate_tmp_$(date +%s).txt
-_cleanup
+TMP_FILE=$(mktemp)
 
 trap _cleanup EXIT
 trap _cleanup ERR
 
 for table in $@ ; do
-    echo "Checking $table ..."
-    eval $DBUTILS list $table | grep id: | awk '{print $2}' > $TMP_FILE
-    [ -s $TMP_FILE ] && eval $DBUTILS delete $table -file $TMP_FILE
-    _cleanup
+    echo "Checking ${table} ..."
+    eval /opt/storageos/bin/dbutils list ${table} | grep "id:" | awk '{print $2}' > ${TMP_FILE}
+    [ -s ${TMP_FILE} ] && eval /opt/storageos/bin/dbutils delete ${table} -file ${TMP_FILE}
 done
+
+_cleanup

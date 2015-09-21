@@ -15,6 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/*
+ * Because the ZooKeeper 3.5.0 alpha (current release) doesn't support IPv6, this file is copied
+ * from ZooKeeper 3.5.0 code base with a patch (based on the patch submitted in the community see JIRA below)
+ * to support IPv6.
+ *
+ * When coordinatorsvc starts, JVM will load this class instead of the
+ * original one, so the IPv6 is supported in ViPR.
+ *
+ * The ZK community is fixing this issue see https://issues.apache.org/jira/browse/ZOOKEEPER-1460
+ * if the patch goes into the ZK 3.5.0 release, this file can be removed.
+ */
 package org.apache.zookeeper.server.quorum;
 
 import java.io.BufferedReader;

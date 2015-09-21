@@ -7,6 +7,7 @@ package com.emc.storageos.coordinator.client.service;
 
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
 import com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
@@ -133,8 +134,8 @@ public class CoordinatorTestBase {
         zkprop.setProperty("maxClientCnxns", "0");
         zkprop.setProperty("autopurge.purgeInterval", "30");
         zkprop.setProperty("autopurge.snapRetainCount", "16");
-        zkprop.setProperty(SpringQuorumPeerConfig.staticCfgFileKey, "zk-static.cfg");
-        zkprop.setProperty(SpringQuorumPeerConfig.dynamicCfgFileKey, "zk-dynamic.cfg");
+        zkprop.setProperty(Constants.STATIC_CFGFile_Key, "zk-static.cfg");
+        zkprop.setProperty(Constants.DYNAMIC_CFGFile_Key, "zk-dynamic.cfg");
         config.setProperties(zkprop);
         config.init();
 

@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.Properties;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import org.apache.zookeeper.server.quorum.QuorumPeer.LearnerType;
 import org.apache.zookeeper.server.quorum.QuorumPeer.QuorumServer;
 import org.junit.Before;
@@ -32,8 +33,8 @@ public class SpringQuorumPeerConfigTest {
         properties.setProperty("server.2", "hostname:2888:3888;2181");
         properties.setProperty("server.3", "[fe80:0:0:0:81fe:4fd:95b1:8bbf]:2888:3888;2181");
 
-        properties.setProperty(SpringQuorumPeerConfig.staticCfgFileKey, "zk-static.cfg");
-        properties.setProperty(SpringQuorumPeerConfig.dynamicCfgFileKey, "zk-dynamic.cfg");
+        properties.setProperty(Constants.STATIC_CFGFile_Key, "zk-static.cfg");
+        properties.setProperty(Constants.DYNAMIC_CFGFile_Key, "zk-dynamic.cfg");
 
         springQuorumPeerConfig = new SpringQuorumPeerConfig();
     }
@@ -68,8 +69,8 @@ public class SpringQuorumPeerConfigTest {
         target.setProperties(properties);
         target.init();
 
-        String staticCfgFile = properties.getProperty(SpringQuorumPeerConfig.staticCfgFileKey);
-        String dynamicCfgFile = properties.getProperty(SpringQuorumPeerConfig.dynamicCfgFileKey);
+        String staticCfgFile = properties.getProperty(Constants.STATIC_CFGFile_Key);
+        String dynamicCfgFile = properties.getProperty(Constants.DYNAMIC_CFGFile_Key);
         File dataDir = target.getDataDir();
 
 

@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.Set;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,8 +23,6 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 public class SpringQuorumPeerConfig extends QuorumPeerConfig {
     private static final Logger log = LoggerFactory.getLogger(SpringQuorumPeerConfig.class);
     private static final String SERVER_ID_FILE = "myid";
-    public static final String staticCfgFileKey= "staticConfigFile";
-    public static final String dynamicCfgFileKey= "dynamicConfigFile";
 
     private int _id;
     private Properties _properties;
@@ -65,7 +64,7 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
         Set<String> propertyNames = _properties.stringPropertyNames();
         for (String propertyName : propertyNames) {
             String value = _properties.getProperty(propertyName);
-            if (propertyName.equals(staticCfgFileKey)) {
+            if (propertyName.equals(Constants.STATIC_CFGFile_Key)) {
                 staticConfigFileName = dataDirName+"/"+value;
                 continue;
             }
@@ -75,7 +74,7 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
                 continue;
             }
 
-            if (propertyName.equals(dynamicCfgFileKey)) {
+            if (propertyName.equals(Constants.DYNAMIC_CFGFile_Key)) {
                 dynamicConfigFileName = dataDirName+"/"+value;
                 value = dynamicConfigFileName;
             }

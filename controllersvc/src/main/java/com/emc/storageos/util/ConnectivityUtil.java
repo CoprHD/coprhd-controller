@@ -590,6 +590,8 @@ public class ConnectivityUtil {
                     else {
                         rpSystems.add(ps);
                     }
+                } else {
+                    _log.debug(String.format("Excluding ProtectionSystem %s because it is inactive or invalid.", uri));
                 }
             }
         }

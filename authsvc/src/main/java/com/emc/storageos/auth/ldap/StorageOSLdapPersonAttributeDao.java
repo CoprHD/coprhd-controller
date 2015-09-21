@@ -1332,7 +1332,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         URIQueryResultList providers = new URIQueryResultList();
         try {
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getAuthnProviderDomainConstraint(domain), providers);
+                    .getAuthnProviderDomainConstraint(domain.toLowerCase()), providers);
         } catch (DatabaseException ex) {
             _log.error(
                     "Could not query for authn providers to check for existing domain {}",

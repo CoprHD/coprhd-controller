@@ -161,6 +161,7 @@ public class PropertyManager extends AbstractManager {
                 initializeLocalAndTargetInfo(svcId);
             } catch (Exception e) {
                 log.info("Step1b failed and will be retried: {}", e.getMessage());
+                log.error("e=", e);
                 retrySleep();
                 continue;
             }
@@ -335,13 +336,13 @@ public class PropertyManager extends AbstractManager {
         log.debug("Step1a: Local target properties: {}", localTargetPropInfo);
 
         // set target if empty
-        targetPropInfo = coordinator.getTargetInfo(PropertyInfoExt.class);
+        targetPropInfo = coordinator.getTargetProperties();
         targetPowerOffState = coordinator.getTargetInfo(PowerOffState.class);
         if (targetPropInfo == null || targetPowerOffState == null) {
             // only control node can set target
             try {
                 // Set the updated propperty info in coordinator
-                coordinator.setTargetInfo(localPropInfo);
+                coordinator.setTargetProperties(localPropInfo.getAllProperties());
                 coordinator.setTargetInfo(new PowerOffState(PowerOffState.State.NONE));
 
                 targetPropInfo = coordinator.getTargetInfo(PropertyInfoExt.class);

@@ -241,6 +241,12 @@ public class VdcSiteManager extends AbstractManager {
             localRepository.reconfigProperties("coordinator");
             localRepository.restart("coordinatorsvc");
 
+            localRepository.reconfigProperties("db");
+            localRepository.restart("dbsvc");
+
+            localRepository.reconfigProperties("geodb");
+            localRepository.restart("geodbsvc");
+
             localRepository.reconfigProperties("firewall");
             localRepository.reload("firewall");
 

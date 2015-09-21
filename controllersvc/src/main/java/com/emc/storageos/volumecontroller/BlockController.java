@@ -116,7 +116,7 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId
      * @throws ControllerException
      */
-    void createSingleSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
+    public void createSingleSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
             throws ControllerException;
 
     /**

@@ -85,10 +85,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         final VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
         if (firstVolumeDescriptor != null) {
             Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
-            log.info("CG URI:{}", volume.getConsistencyGroup());
-            if (volume == null || !volume.isInCG()) {
+            if (!(volume != null && volume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient))) {
                 return waitFor;
             }
+            log.info("CG URI:{}", volume.getConsistencyGroup());
             cgURI = volume.getConsistencyGroup();
         }
 
@@ -150,6 +150,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return waitFor;
     }
 
+    /**
+     * Creates replica snap/clone/mirror for the newly created volume, if the existing CG Volume has any replica.
+     * 
+     * @param workflow
+     * @param waitFor
+     * @param volumeDescriptors
+     * @param cgURI
+     * @return
+     */
 	private String createReplicaIfCGHasReplica(Workflow workflow,
             String waitFor, List<VolumeDescriptor> volumeDescriptors, URI cgURI) {
         log.info("CG URI {}", cgURI);
@@ -539,6 +548,17 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             return waitFor;
         }
 
+        // Get the consistency group. If no consistency group for source
+        // volumes,
+        // just return. Get CG from any descriptor.
+        final VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
+        if (firstVolumeDescriptor != null) {
+            Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
+            if (!(volume != null && volume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient))) {
+                return waitFor;
+            }
+        }
+
         // Get the consistency groups. If no consistency group for source
         // volumes,
         // just return. Get CGs from all descriptors.
@@ -670,14 +690,16 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {
         log.info("START delete mirror steps");
         Set<String> repGroupNames = ControllerUtils.getMirrorReplicationGroupNames(volumes, _dbClient);
+
         if (repGroupNames.isEmpty()) {
             return waitFor;
         }
 
+        List<URI> mirrorList = new ArrayList<>();
         URI storage = volumes.get(0).getStorageController();
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
         for (String repGroupName : repGroupNames) {
-            List<URI> mirrorList = getMirrorsToBeRemoved(volumeURIs, repGroupName);
+            mirrorList = getMirrorsToBeRemoved(volumeURIs, repGroupName);
             if (!isRemoveAll) {
                 URI cgURI = volumes.get(0).getConsistencyGroup();
                 waitFor = removeMirrorsFromReplicationGroupStep(workflow, waitFor, storageSystem, cgURI, mirrorList, repGroupName);

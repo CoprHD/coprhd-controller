@@ -308,7 +308,7 @@ public interface BlockStorageDevice {
      * @param taskCompleter
      * @throws DeviceControllerException
      */
-    void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList,
+    public void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList,
                                 Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException;
 

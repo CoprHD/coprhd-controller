@@ -4,26 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
-import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEvent;
-import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -37,6 +17,50 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Event;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.FCZoneReference;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
+import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEvent;
+import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 
 /**
  * Utilities class encapsulates controller utility methods.
@@ -1131,5 +1155,17 @@ public class ControllerUtils {
             isCgCreate = true;
         }
         return isCgCreate;
+    }
+
+    /**
+     * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
+     * 
+     * @param volume
+     * @param dbClient
+     * @return
+     */
+    public static boolean isVmaxVolumeUsing803SMIS(Volume volume, DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+        return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
     }
 }

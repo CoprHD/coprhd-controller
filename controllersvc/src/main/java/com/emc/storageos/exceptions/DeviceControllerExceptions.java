@@ -407,6 +407,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException failedToRemoveMembersFromReplicationGroup(String name, String deviceLabel, String error);
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException existingExportFoundButWithSPsInDifferentNetwork(String vArrayName, String maskInfo);
 

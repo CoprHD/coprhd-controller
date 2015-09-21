@@ -1961,6 +1961,8 @@ public class RecoverPointClient {
         boolean waitForLinkStates = false;
         //Be default, per JIRA 17082 (CoprHD), we will not wait for links to be active.
         //In a true DR scenario, we cant expect links to become active and that should not fail the swap/failover operation.
+        //This check will check in future when we think about enabling a smart check to see if the RP cluster is down, but for now this is always
+        //true. 
         if (waitForLinkStates) {
 	        logger.info("Waiting for links to become active for CG " + (cgName==null?"unknown CG name":cgName));
 	        (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, null, PipeState.ACTIVE);

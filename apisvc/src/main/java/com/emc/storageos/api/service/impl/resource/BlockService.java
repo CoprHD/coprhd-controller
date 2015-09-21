@@ -909,6 +909,7 @@ public class BlockService extends TaskResourceService {
             // are still attached to their source volumes.
             if (!activeCGVolumes.isEmpty()) {
                 if (!BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(activeCGVolumes.get(0), _dbClient)) {
+                    checkCGForSnapshots(consistencyGroup);
                     getFullCopyManager().verifyNewVolumesCanBeCreatedInConsistencyGroup(consistencyGroup,
                             activeCGVolumes);
                 }
@@ -1807,6 +1808,14 @@ public class BlockService extends TaskResourceService {
         }
 
         BlockServiceApi blockServiceApi = getBlockServiceImpl(volume);
+        
+        /**
+         * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
+         * Hence we don't require reference check for vmax.
+         */
+        if (!BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+            ArgValidator.checkReference(Volume.class, id, blockServiceApi.checkForDelete(volume));
+        }
 
         List<URI> volumeURIs = new ArrayList<URI>();
         volumeURIs.add(id);

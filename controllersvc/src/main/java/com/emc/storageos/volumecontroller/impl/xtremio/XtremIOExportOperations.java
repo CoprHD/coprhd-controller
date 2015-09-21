@@ -309,7 +309,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             blockObj.getLabel(), xioClusterName);
                 } else {
                     xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
-                            blockObj.getLabel(), xioClusterName);
+                            blockObj.getDeviceLabel(), xioClusterName);
                 }
 
                 if (null != xtremIOVolume) {
@@ -577,7 +577,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     // Create lun map
                     _log.info("Creating Lun Map for  Volume {} using IG {}", blockObj.getLabel(),
                             igName);
-                    client.createLunMap(blockObj.getLabel(), igName, hluValue, xioClusterName);
+                    client.createLunMap(blockObj.getDeviceLabel(), igName, hluValue, xioClusterName);
                 }
             }
 
@@ -585,46 +585,53 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
                 BlockObject blockObj = BlockObject.fetch(dbClient, volURIHLU.getVolumeURI());
                 Integer hluNumberFound = 0;
-
-                // get volume details again and populate wwn and hlu
-                XtremIOVolume xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
-                        blockObj.getLabel(), xioClusterName);
-
-                _log.info("Volume lunMap details Found {}", xtremIOVolume.getLunMaps().toString());
-                if (!xtremIOVolume.getWwn().isEmpty()) {
-                    blockObj.setWWN(xtremIOVolume.getWwn());
-                    blockObj.setNativeId(xtremIOVolume.getWwn());
-                    dbClient.updateAndReindexObject(blockObj);
+                // get volume/snap details again and populate wwn and hlu
+                XtremIOVolume xtremIOVolume = null;
+                if (URIUtil.isType(blockObj.getId(), Volume.class)) {
+                    xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
+                            blockObj.getLabel(), xioClusterName);
+                } else {
+                    xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
+                            blockObj.getDeviceLabel(), xioClusterName);
                 }
 
-                for (String igName : igNames) {
-                    for (List<Object> lunMapEntries : xtremIOVolume.getLunMaps()) {
-                        @SuppressWarnings("unchecked")
-                        // This can't be null
-                        List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
-                        if (null == igDetails.get(1) || null == lunMapEntries.get(2)) {
-                            _log.warn("IG Name is null in returned lun map response for volume {}", xtremIOVolume.toString());
-                            continue;
+                if (xtremIOVolume != null) {
+                    _log.info("Volume lunMap details Found {}", xtremIOVolume.getLunMaps().toString());
+                    if (!xtremIOVolume.getWwn().isEmpty()) {
+                        blockObj.setWWN(xtremIOVolume.getWwn());
+                        blockObj.setNativeId(xtremIOVolume.getWwn());
+                        dbClient.updateAndReindexObject(blockObj);
+                    }
+
+                    for (String igName : igNames) {
+                        for (List<Object> lunMapEntries : xtremIOVolume.getLunMaps()) {
+                            @SuppressWarnings("unchecked")
+                            // This can't be null
+                            List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
+                            if (null == igDetails.get(1) || null == lunMapEntries.get(2)) {
+                                _log.warn("IG Name is null in returned lun map response for volume {}", xtremIOVolume.toString());
+                                continue;
+                            }
+                            String igNameToProcess = (String) igDetails.get(1);
+
+                            _log.info("IG Name: {} found in Lun Map", igNameToProcess);
+                            if (!igName.equalsIgnoreCase(igNameToProcess)) {
+                                _log.info(
+                                        "Volume is associated with IG {} which is not in the expected list requested, ignoring..",
+                                        igNameToProcess);
+                                continue;
+                            }
+
+                            @SuppressWarnings("unchecked")
+                            Double hluNumber = (Double) lunMapEntries.get(2);
+                            _log.info("Found HLU {} for volume {}", hluNumber, blockObj.getLabel());
+                            // for each IG involved, the same volume is visible thro different HLUs.
+                            // TODO we might need a list of HLU for each Volume URI
+                            hluNumberFound = hluNumber.intValue();
+                            exportMask.getVolumes().put(blockObj.getId().toString(),
+                                    String.valueOf(hluNumberFound));
+
                         }
-                        String igNameToProcess = (String) igDetails.get(1);
-
-                        _log.info("IG Name: {} found in Lun Map", igNameToProcess);
-                        if (!igName.equalsIgnoreCase(igNameToProcess)) {
-                            _log.info(
-                                    "Volume is associated with IG {} which is not in the expected list requested, ignoring..",
-                                    igNameToProcess);
-                            continue;
-                        }
-
-                        @SuppressWarnings("unchecked")
-                        Double hluNumber = (Double) lunMapEntries.get(2);
-                        _log.info("Found HLU {} for volume {}", hluNumber, blockObj.getLabel());
-                        // for each IG involved, the same volume is visible thro different HLUs.
-                        // TODO we might need a list of HLU for each Volume URI
-                        hluNumberFound = hluNumber.intValue();
-                        exportMask.getVolumes().put(blockObj.getId().toString(),
-                                String.valueOf(hluNumberFound));
-
                     }
                 }
             }
@@ -646,9 +653,9 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         String tempIGFolderName = getInitiatorGroupFolderName(clusterName, hostName, system);
         XtremIOTag igFolder = client.getTagDetails(tempIGFolderName, XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName);
 
-        if (null != igFolder && "0".equalsIgnoreCase(igFolder.getNumberOfIGs())) {
+        if (null != igFolder && "0".equalsIgnoreCase(igFolder.getNumberOfDirectObjs())) {
             try {
-                _log.info("# of IGs  {} in Folder {}", igFolder.getNumberOfIGs(), clusterName);
+                _log.info("# of IGs  {} in Folder {}", igFolder.getNumberOfDirectObjs(), clusterName);
                 client.deleteTag(tempIGFolderName, XtremIOConstants.XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName);
             } catch (Exception e) {
                 _log.warn("Deleting Initatiator Group Folder{} fails", clusterName, e);

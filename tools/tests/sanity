@@ -183,10 +183,18 @@ if [ "$ethdev" = "" ] ; then
    ethdev=eth0
 fi
 
+# COP-16713: Sometimes a linux ethernet interface is more than 9 characters
+#            However, ifconfig will only show the first 9.  If the name is 
+#            long, run "ip link show", which will give us the full name.
+if [ ${#ethdev} > 8 ] ; then
+    ethdev=`ip link show | grep ${ethdev} | awk '{print $2}' | awk -F: '{print $1}'`
+fi
+
 macaddr=`/sbin/ifconfig ${ethdev} | /usr/bin/awk '/HWaddr/ { print $5 }'`
 if [ "$macaddr" = "" ] ; then
     macaddr=`/sbin/ifconfig en0 | /usr/bin/awk '/ether/ { print $2 }'`
 fi
+
 seed=`date "+%H%M%S%N"`
 seed2b=`printf "%02X" $$ | cut -b1-2`
 hostseed=`echo ${macaddr} | awk -F: '{print $5$6}'`
@@ -399,7 +407,7 @@ SRDF_VOLUME=srdfSanity-${HOSTNAME}-${RANDOM}
 #
 RP_SYSTEM_TYPE=rp
 RP_REMOVE_BAD_CHARS_HOSTNAME=${HOSTNAME//[^a-zA-Z0-9]/}
-RP_MODIFIED_HOSTNAME=${HOSTNAME:0:8}
+RP_MODIFIED_HOSTNAME=${RP_REMOVE_BAD_CHARS_HOSTNAME:0:8}
 RP_SANITY_RANDOM=$((RANDOM % 999))
 
 RP_VOLUME=rpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
@@ -443,6 +451,7 @@ COS_MIRROR_WITH_2_MIRRORS=cosmirror_max_2
 COS_MIRROR_BEFORE_CHANGE=cosmirror_before_change
 COS_MIRROR_AFTER_CHANGE=cosmirror_after_change
 COS_MIRROR_VNX=cosmirror_vnx
+COS_VMAX_CG_MIRROR=cosvmax_cg_mirror
 
 #
 # Export group configuration
@@ -1448,6 +1457,18 @@ mirrorblock_cos_setup()
 	                    --system_type vmax \
                             --expandable false \
 			    --neighborhoods $NH
+
+    cos create block $COS_VMAX_CG_MIRROR \
+                            --description 'CoS for VMAX block FC' true \
+                            --protocols FC \
+                            --numpaths 2 \
+                            --max_snapshots 10 \
+                            --max_mirrors 10 \
+                            --system_type vmax \
+                            --expandable false \
+                            --provisionType 'Thin' \
+                            --neighborhoods $NH \
+                            --multiVolumeConsistency
 }
 
 consistencygroup_block_cos_setup()
@@ -1861,7 +1882,7 @@ rp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
 }
@@ -1877,7 +1898,7 @@ rp_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
 }
@@ -1893,7 +1914,7 @@ rp_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
 }
@@ -1909,7 +1930,7 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_local
@@ -1926,7 +1947,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -1945,7 +1966,7 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -1964,7 +1985,7 @@ mp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -1985,7 +2006,7 @@ mp_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -2006,7 +2027,7 @@ mp_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -2368,6 +2389,163 @@ recoverpoint_failover_test()
     run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 }
 
+# Support will be added in ViPR 2.4 SP1
+recoverpoint_cg_failover_test()
+{
+	# The name of the consistency group to swap
+	cg_name=${1}
+	# The source source volume - an arbitrary source volume from the CG
+	src_volume=${2}
+	# The virtual array corresonding to the source volume (src_volume)
+	src_varray=${3}
+	# The target volume name used to identify all target volumes
+	tgt_volumes=${4}
+	# The swap target virtual arrays
+	tgt_varrays=${5}
+
+	echo '*** RP consistency group failover/swap tests ***'
+
+	# Test the CG swap and swap-back for every target virtual array
+	for tgt_varray in ${tgt_varrays}
+	do
+		echo 'Verify the current state of the source and target vols'
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+		
+		for tgt_volume in ${tgt_volumes}
+		do
+	    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+	    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+	    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+		done
+		
+	    echo 'Failover'
+	    run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+		
+	    echo 'Verify post failover'
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+		
+		# Post-failover target verification
+		for tgt_volume in ${tgt_volumes}
+		do
+			# If the volume corresponds to the target varray used for the failover we
+			# need to verify different values
+			if [[ $tgt_volume == *$tgt_varray* ]]
+			then
+			    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+			    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+			    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+			else
+		    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+		    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+		    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+			fi
+		done
+		
+	    echo 'Cancel the failover'
+	    run blockconsistencygroup failover_cancel $cg_name --copyType rp --targetVarray $tgt_varray
+
+	    echo 'Verify post failover cancel, everything should be back to the start'
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+		
+		for tgt_volume in ${tgt_volumes}
+		do
+	    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+	    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+	    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+		done
+		
+	    echo 'Failover again'
+	    run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+		
+	    echo 'Verify post failover'
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+		
+		# Post-failover target verification
+		for tgt_volume in ${tgt_volumes}
+		do
+			# If the volume corresponds to the target varray used for the failover we
+			# need to verify different values
+			if [[ $tgt_volume == *$tgt_varray* ]]
+			then
+			    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+			    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+			    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+			else
+		    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+		    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+		    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+			fi
+		done
+		
+	    echo 'Swap'
+	   	run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
+
+	    echo 'Verify post swap'
+	    # Post-swap source verification
+	    run volume verify ${PROJECT}/${src_volume} personality TARGET
+	    run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
+	    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+		
+		# Post-swap target verification
+		for tgt_volume in ${tgt_volumes}
+		do
+		    run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+		    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+		    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+		done
+		
+	    echo 'Failover once again, post swap'
+	    run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+
+	    echo 'Verify post failover, post swap'
+	    run volume verify ${PROJECT}/${src_volume} personality TARGET
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+		
+		for tgt_volume in ${tgt_volumes}
+		do
+			# If the volume corresponds to the target varray used for the failover we
+			# need to verify different values
+			if [[ $tgt_volume == *$tgt_varray* ]]
+			then
+			    run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+			    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+			    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+			else
+		    	run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+		    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+		    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+			fi
+		done
+		
+	    echo 'Swap back'
+		# Swap-back
+		run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $src_varray
+
+	    echo 'Verify post swap back, everything should be back to normal'
+		# swap-back source verification
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+		
+		# swap-back target verification
+		for tgt_volume in ${tgt_volumes}
+		do
+	    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+	    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+	    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+		done
+	done
+}
+
 recoverpoint_vpool_change_test()
 {
     base_volume=${1}
@@ -2383,7 +2561,6 @@ recoverpoint_vpool_change_test()
     echo 'Change vpool of base volume to RP'
     run volume change_cos ${PROJECT}/${base_volume}-1 ${rp_vpool}
 }
-
 
 # Simulator setup
 recoverpoint_simulator_setup()
@@ -2506,11 +2683,13 @@ recoverpoint_tests()
 
             # RP
             rp_tgt_varray=$RECOVERPOINT_VARRAY1
+			rp_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
@@ -2518,6 +2697,7 @@ recoverpoint_tests()
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
             mp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
+			mp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2)
             mp_tgt_vpool='rp_targets'
         fi
 
@@ -2527,17 +2707,20 @@ recoverpoint_tests()
 
             # RP
             rp_tgt_varray=$RECOVERPOINT_VARRAY3
+			rp_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
-            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY3
+			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+			mp_tgt_varrays=($RECOVERPOINT_VARRAY3)
             mp_standby_tgt_varray=''
             mp_tgt_vpool='rp_targets'
         fi
@@ -2548,17 +2731,20 @@ recoverpoint_tests()
 
             # RP
             rp_tgt_varray=$RECOVERPOINT_VARRAY3
+			rp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+			mp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3)
             mp_standby_tgt_varray=''
             mp_tgt_vpool='rp_targets'
         fi
@@ -2576,7 +2762,7 @@ recoverpoint_tests()
         # MP
         mp_src_vpool='mp_'$rp_type
         mpvolume=${RP_METROPOINT_VOLUME}
-        mpvolumetarget=${mpvolume}'-target-'${mp_tgt_varray}
+        mpvolumetarget=${mpvolume}'-target-'${mp_active_tgt_varray}
 
         # Setup test volumes...
         # Either use volumes that have gone through the change vpool process or
@@ -2626,6 +2812,27 @@ recoverpoint_tests()
             volume_name_modifier='-1'
         fi
 
+		# Compile a list of target volume names that have been created for RP
+		rp_tgt_volumes=()
+		for tgt in ${rp_tgt_varrays}
+		do
+			rp_tgt_volumes=("${rp_tgt_volumes[@]}" "${rpvolume}-target-${tgt}${volume_name_modifier}")
+		done
+		
+		# Compile a list of target volume names that have been created for RP+VPlex		
+		rp_vplex_tgt_volumes=()
+		for tgt in ${rpvplex_tgt_varrays}
+		do
+			rp_vplex_tgt_volumes=("${rp_vplex_tgt_volumes[@]}" "${rpvplexvolume}-target-${tgt}${volume_name_modifier}")
+		done
+		
+		# Compile a list of target volume names that have been created for MetroPoint		
+		mp_tgt_volumes=()
+		for tgt in ${mp_tgt_varrays}
+		do
+			mp_tgt_volumes=("${mp_tgt_volumes[@]}" "${mpvolume}-target-${tgt}${volume_name_modifier}")
+		done
+
         ### Begin Recoverpoint test cases ###
 
         # RP test cases
@@ -2638,6 +2845,9 @@ recoverpoint_tests()
 
                 # Failover Test
                 recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
+				
+				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
+				# recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
             fi
 
             # RP+VPLEX test cases
@@ -2647,7 +2857,10 @@ recoverpoint_tests()
                 recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier} ${rpvplex_src_varray}
 
                 # Failover Test
-                recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
+               	recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
+				
+				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
+				# recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
             fi
 
             # MP test cases
@@ -2658,6 +2871,9 @@ recoverpoint_tests()
 
                 # Failover Test
                 recoverpoint_failover_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier}
+				
+				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
+				# recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${mp_src_varray} ${mp_tgt_volumes} ${mp_tgt_varrays}
             fi
         fi
 
@@ -3426,6 +3642,9 @@ mirrorblock_setup()
 
     #cos allow $COS_MIRROR_VNX block $TENANT
     #cos update block $COS_MIRROR_VNX --storage $VNXB_NATIVEGUID    
+
+    cos allow $COS_VMAX_CG_MIRROR block $TENANT
+    cos update block $COS_VMAX_CG_MIRROR --storage $VMAX_NATIVEGUID
 }
 
 #
@@ -5087,7 +5306,6 @@ security_tests()
 ##### full_copy tests 
 #######################
 
-VMAX3_FC_NATIVEGUID=SYMMETRIX+000196700567
 VMAX3_FC_SMIS_DEV=VMAX3_FC_SMIS_DEV
 VMAX3_FC_PORTS_A="FA-1D FA-3D"
 VMAX3_FC_PORTS_B="FA-2D FA-4D"
@@ -5181,11 +5399,14 @@ full_copy_single_volume_vnx()
     echo "Listing all full copies for source volume"
     run volume full_copy_list $PROJECT/${full_copy_source}
 
-    echo "Restoring source from full copy"
+    echo "Resynchronizing full copy from source"
     run volume full_copy_resync $PROJECT/${full_copy_clone}
 
-    echo "Resynchronizing full copy from source"
+    echo "Restoring source from full copy"
     run volume full_copy_restore $PROJECT/${full_copy_clone}
+
+    echo "Detaching full copy..."
+    run volume detach ${PROJECT}/${full_copy_source} ${PROJECT}/${full_copy_clone}
 
     echo "Deactivating full copy volume"
     run volume delete $PROJECT/${full_copy_clone} --wait
@@ -5213,11 +5434,14 @@ full_copy_single_volume_vmax()
     echo "Listing all full copies for source volume"
     run volume full_copy_list $PROJECT/${full_copy_source}
 
-    echo "Restoring source from full copy"
+    echo "Resynchronizing full copy from source"
     run volume full_copy_resync $PROJECT/${full_copy_clone}
 
-    echo "Resynchronizing full copy from source"
+    echo "Restoring source from full copy"
     run volume full_copy_restore $PROJECT/${full_copy_clone}
+
+    echo "Detaching full copy..."
+    run volume detach ${PROJECT}/${full_copy_source} ${PROJECT}/${full_copy_clone}
 
     echo "Deactivating full copy volume"
     run volume delete $PROJECT/${full_copy_clone} --wait
@@ -5289,11 +5513,14 @@ full_copy_single_volume_vmax3()
     echo "Listing all full copies for source volume"
     run volume full_copy_list $PROJECT/${full_copy_source}
 
-    echo "Restoring source from full copy"
+    echo "Resynchronizing full copy from source"
     run volume full_copy_resync $PROJECT/${full_copy_clone}
 
-    echo "Resynchronizing full copy from source"
+    echo "Restoring source from full copy"
     run volume full_copy_restore $PROJECT/${full_copy_clone}
+
+    echo "Detaching full copy..."
+    run volume detach ${PROJECT}/${full_copy_source} ${PROJECT}/${full_copy_clone}
 
     echo "Deactivating full copy volume"
     run volume delete $PROJECT/${full_copy_clone} --wait
@@ -5478,6 +5705,73 @@ blockmirror_vnx()
     run volume delete $PROJECT/${mirrortest_vol} --wait
 }
 
+blockmirror_group_mirrors()
+{
+    mirrortest_vol="${MIRROR_VOLUME}-group"
+    consistency_group=`openssl passwd "$RANDOM" | cut -c1-8`
+    group_mirror="sanitytest"
+    run blockconsistencygroup create $PROJECT $consistency_group
+
+    # Create source volumes
+    echo "Creating source volumes"
+    run volume create ${mirrortest_vol}1 $PROJECT $NH $COS_VMAX_CG_MIRROR 1073741825 --thinVolume true --consistencyGroup $consistency_group
+    run volume create ${mirrortest_vol}2 $PROJECT $NH $COS_VMAX_CG_MIRROR 1073741825 --thinVolume true --consistencyGroup $consistency_group
+
+    run blockconsistencygroup show $consistency_group
+    run volume list $PROJECT
+
+    echo "Attaching group mirrors"
+    run blockmirror attach $PROJECT/${mirrortest_vol}1 $group_mirror 1
+
+    echo "Listing active mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Pausing group mirrors"
+    run blockmirror pause $PROJECT/${mirrortest_vol}1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Resuming group mirrors"
+    run blockmirror resume $PROJECT/${mirrortest_vol}1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Deactivating group mirrors"
+    run blockmirror deactivate $PROJECT/${mirrortest_vol}1 ${mirrortest_vol}1-${group_mirror}
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Attaching group mirrors"
+    run blockmirror attach $PROJECT/${mirrortest_vol}1 ${group_mirror}1 1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Detaching group mirrors"
+    run blockmirror detach $PROJECT/${mirrortest_vol}1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Deleting promoted volumes"
+    run volume delete $PROJECT/${mirrortest_vol}1-${group_mirror}1 --wait
+    run volume delete $PROJECT/${mirrortest_vol}2-${group_mirror}1 --wait
+
+    echo "Deactivating source volumes"
+    run volume delete $PROJECT/${mirrortest_vol}1 --wait
+    echo "delete $PROJECT/${mirrortest_vol}2"
+    run volume delete $PROJECT/${mirrortest_vol}2 --wait
+}
+
 blockmirror_tests()
 {
     # quick_file_tests $COS_VNXFILE default
@@ -5491,6 +5785,7 @@ blockmirror_tests()
     blockmirror_vpool_change
 
     #blockmirror_vnx
+    blockmirror_group_mirrors
 }
 
 #### end of blockmirror test section

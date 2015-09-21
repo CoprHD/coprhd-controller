@@ -258,6 +258,7 @@ public class AbstractCloneOperations implements CloneOperations {
              * @see <code>BlockService#activateFullCopy
              * volume.setSyncActive(false);
              */
+            ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, _dbClient);
             clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
             clone.setReplicaState(ReplicationState.DETACHED.name());
             _dbClient.persistObject(clone);

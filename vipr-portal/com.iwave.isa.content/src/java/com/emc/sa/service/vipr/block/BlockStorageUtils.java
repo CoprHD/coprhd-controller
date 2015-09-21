@@ -458,6 +458,7 @@ public class BlockStorageUtils {
                             try {
                                 Thread.sleep(RETRY_DELAY_MSEC);
                             } catch (Exception ex) {
+                            	log.debug("Sleep interrupted");
                             }
                         } else {
                             throw e;

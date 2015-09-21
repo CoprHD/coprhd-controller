@@ -31,6 +31,7 @@
     function renderRecoveryStatus(status, startime, endtime, errorcode){
     	
         var clusterState = $('#clusterState').data('state');
+        
     	if (!status && !endtime) {
     		// Node Recovery has never run.
     		$('#recoveryResults').css('display','none');

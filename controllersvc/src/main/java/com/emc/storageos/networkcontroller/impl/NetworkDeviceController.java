@@ -2253,6 +2253,10 @@ public class NetworkDeviceController implements NetworkController {
      * @param doPersist a boolean that indicates if the changes should be persisted in the db
      */
     public void updateZoningMap(ExportGroup exportGroup, ExportMask exportMask, boolean doPersist) {
+        _log.info("updateZoningMap was called for ExportGroup {} and exportMask {} with inits {} " +
+                        "storage ports {} and zoning Map {}",
+                new Object[] { exportGroup.getGeneratedName(),  exportMask.getMaskName(), exportMask.getInitiators(),
+                        exportMask.getStoragePorts(), exportMask.getZoningMap()});
         if (exportMask.getCreatedBySystem() == false && exportMask.getExistingInitiators() != null
                 && !exportMask.getExistingInitiators().isEmpty()) {
             // we have a mask that was not created by ViPR
@@ -2273,7 +2277,10 @@ public class NetworkDeviceController implements NetworkController {
                     }
                 }
                 exportMask.setZoningMap(zoningMap);
+                _log.info("ExportMask {} Zoning map calcualted {}", exportMask.getMaskName(), zoningMap);
                 if (doPersist) {
+                    _log.info("ExportMask {} Zoning map persisted because doPersist was passed {}",
+                            exportMask.getMaskName(),doPersist);
                     _dbClient.updateAndReindexObject(exportMask);
                 }
             }

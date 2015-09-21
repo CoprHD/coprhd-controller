@@ -1863,12 +1863,17 @@ public class BlockStorageScheduler {
             List<Initiator> initiators, StringSetMap existingZoningMap,
             ExportPathParams pathParams, Collection<URI> volumeURIs,
             NetworkDeviceController networkDeviceController, URI virtualArrayUri, String token) {
+        _log.info("assignStoragePorts was called for ExportGroup {} with inits {} " +
+                        " existing zoning Map {} and path parameters {}",
+                new Object[] { exportGroup.getGeneratedName(), initiators, existingZoningMap , pathParams});
         StringSetMap preZonedZoningMap = assignPrezonedStoragePorts(storage, exportGroup, initiators,
                 existingZoningMap, pathParams, volumeURIs, networkDeviceController, virtualArrayUri, token);
+        _log.info("assignStoragePorts  calculated prezoned map {}", preZonedZoningMap);
+
         Map<URI, List<URI>> assignments =
                 assignStoragePorts(storage, virtualArrayUri, initiators,
                         pathParams, preZonedZoningMap, volumeURIs);
-
+        _log.info("assignStoragePorts  calculated assignments {}", assignments);
         ExportUtils.addPrezonedAssignments(existingZoningMap, assignments, preZonedZoningMap);
         return assignments;
     }

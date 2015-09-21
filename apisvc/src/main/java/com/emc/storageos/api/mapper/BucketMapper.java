@@ -30,8 +30,8 @@ public class BucketMapper {
         if (null != from.getRetention()) {
             to.setRetention(from.getRetention().toString());
         }
-        to.setHardQuota(CapacityUtils.convertBytesToGBInStr(from.getHardQuota()));
-        to.setSoftQuota(CapacityUtils.convertBytesToGBInStr(from.getSoftQuota()));
+        to.setHardQuota(from.getHardQuota().toString());
+        to.setSoftQuota(from.getSoftQuota().toString());
         to.setVirtualPool(toRelatedResource(ResourceTypeEnum.OBJECT_VPOOL, from.getVirtualPool()));
         to.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, from.getVirtualArray()));
         to.setProtocols(from.getProtocol());

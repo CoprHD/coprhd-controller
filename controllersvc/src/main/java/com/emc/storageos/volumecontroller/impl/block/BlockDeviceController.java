@@ -389,7 +389,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         Map<URI, Map<Long, List<VolumeDescriptor>>> poolMap = VolumeDescriptor.getPoolSizeMap(volumeDescriptors);
 
         // Add a Step to create the consistency group if needed
-        waitFor = addStepsForCreateConsistencyGroup(workflow, waitFor, volumeDescriptors, true);
+        waitFor = addStepsForCreateConsistencyGroup(workflow, waitFor, volumeDescriptors, CREATE_CONSISTENCY_GROUP_STEP_GROUP);
 
         // Add a Step for each Pool in each Device.
         // For meta volumes add Step for each meta volume, except vmax thin meta volumes.
@@ -540,7 +540,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @throws ControllerException
      */
     public String addStepsForCreateConsistencyGroup(Workflow workflow, String waitFor,
-            List<VolumeDescriptor> volumesDescriptors, boolean waitForGroupCreate) throws ControllerException {
+            List<VolumeDescriptor> volumesDescriptors, String stepGroup) throws ControllerException {
 
         // Filter any BLOCK_DATAs that need to be created.
         List<VolumeDescriptor> volumes = VolumeDescriptor.filterByType(volumesDescriptors,
@@ -595,7 +595,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // If the consistency group has already been created in the array, just return
             if (!consistencyGroup.created(deviceURI)) {
                 // Create step to create consistency group
-                waitFor = workflow.createStep(CREATE_CONSISTENCY_GROUP_STEP_GROUP,
+                waitFor = workflow.createStep(stepGroup,
                         String.format("Creating consistency group  %s", consistencyGroupURI), waitFor,
                         deviceURI, getDeviceType(deviceURI),
                         this.getClass(),
@@ -606,8 +606,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
 
-        if (createdCg && waitForGroupCreate) {
-            waitFor = CREATE_CONSISTENCY_GROUP_STEP_GROUP;
+        if (createdCg) {
+            waitFor = stepGroup;
         }
 
         return waitFor;

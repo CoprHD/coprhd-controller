@@ -15,7 +15,9 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
+
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -63,6 +65,17 @@ public interface CIMObjectPathFactory extends SmisConstants {
     CIMObjectPath[] getTargetPortPaths(StorageSystem storageDevice, List<URI> targetURIList) throws Exception;
 
     CIMObjectPath[] getInitiatorPaths(StorageSystem storageDevice, String[] initiatorNames) throws Exception;
+
+    /**
+     * Gets the map of initiator to initiator path.
+     * 
+     * @param storageDevice reference to storage system
+     * @param initiatorNames list of initiator names
+     * @return map of initiator to initiatorPath
+     * @throws Exception
+     */
+    HashMap<String, CIMObjectPath> getInitiatorToInitiatorPath(StorageSystem storageDevice, List<String> initiatorNames)
+            throws Exception;
 
     String getMaskingGroupName(StorageSystem storageDevice, CIMObjectPath groupPath);
 

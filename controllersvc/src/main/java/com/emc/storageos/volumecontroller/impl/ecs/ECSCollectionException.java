@@ -17,18 +17,8 @@ public class ECSCollectionException extends BaseCollectionException {
         return -1;
     }
     
-    protected ECSCollectionException(final boolean retryable, final ServiceCode serviceCode, final Throwable cause,
+    public ECSCollectionException(final boolean retryable, final ServiceCode serviceCode, final Throwable cause,
             final String detailBase, final String detailKey, final Object[] detailParams) {
         super(retryable, serviceCode, cause, detailBase, detailKey, detailParams);
-    }
-    
-    @Deprecated
-    public  ECSCollectionException(Throwable e) {
-        super(e);
-    }
-
-    @Deprecated
-    public  ECSCollectionException(String message) {
-        super(message);
     }
 }

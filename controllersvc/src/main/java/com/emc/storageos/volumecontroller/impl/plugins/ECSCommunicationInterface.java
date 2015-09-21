@@ -35,6 +35,7 @@ import com.emc.storageos.ecs.api.ECSStoragePort;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.ecs.ECSCollectionException;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
@@ -254,7 +255,8 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             detailedStatusMessage = String.format("Discovery failed for Storage System ECS %s: because %s",
                     storageSystemId.toString(), e.getLocalizedMessage());
             _logger.error(detailedStatusMessage, e);
-            throw new ECSCollectionException(detailedStatusMessage);
+            throw new ECSCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                    null, detailedStatusMessage, null, null);
         } finally {
             if (storageSystem != null) {
                 try {

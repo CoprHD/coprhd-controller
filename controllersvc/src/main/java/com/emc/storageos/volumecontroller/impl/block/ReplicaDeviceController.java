@@ -50,6 +50,9 @@ import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 
+/**
+ * Specific controller implementation to support block orchestration for handling replicas of volumes in a consistency group.
+ */
 public class ReplicaDeviceController implements Controller, BlockOrchestrationInterface {
     private static final Logger log = LoggerFactory.getLogger(ReplicaDeviceController.class);
     private DbClient _dbClient;

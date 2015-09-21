@@ -154,8 +154,7 @@ public class ComputeImageServerService extends TaskResourceService {
                 }
 
                 if (hasValidImages) {
-                    throw APIException.badRequests
-                            .cannotDeleteOrUpdateImageServerWhileInUse();
+                    throw APIException.badRequests.cannotDeleteImageServer();
                 } else {
                     removeImageServerFromComputeSystem(id);
                 }
@@ -251,8 +250,7 @@ public class ComputeImageServerService extends TaskResourceService {
             @PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, ComputeImageServer.class, "id");
         ComputeImageServer imageServer = queryResource(id);
-        List<ComputeImage> failedImages = getFailedImportImages(imageServer);
-        return map(_dbClient, imageServer, failedImages);
+        return map(_dbClient, imageServer, getFailedImportImages(imageServer));
     }
 
     /**
@@ -449,11 +447,11 @@ public class ComputeImageServerService extends TaskResourceService {
     /**
      * Removes the given imageServerId from each ComputeSystem present,
      * if the computeSystem has the given imageServerId as it association or relation.
-     * Disassocates the imageServer from the computeSystem.
+     * Disassocate's the imageServer from the computeSystem.
      * @param imageServerID {@link URI} computeImageServer id
      */
     private void removeImageServerFromComputeSystem(URI imageServerID) {
-     // Remove the association with the ComputeSystem and then delete
+        // Remove the association with the ComputeSystem and then delete
         // the imageServer
         List<URI> computeSystemURIList = _dbClient.queryByType(
                 ComputeSystem.class, true);

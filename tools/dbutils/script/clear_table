@@ -9,7 +9,7 @@
 # Dependencies on tables would result in failures.
 
 _usage() {
-    echo "Usage: clear_table <table_name1> <table_name2> <table_name3> ..."
+    echo "Usage: $0 <table_name1> <table_name2> <table_name3> ..."
     echo "This script is used for clear table (along with related index)."
     echo "For further details, please refer to top comment in script."
     echo ""

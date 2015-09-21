@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.smis;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.cim.CIMArgument;
@@ -153,6 +154,12 @@ public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     @Override
     public CIMObjectPath[] getInitiatorPaths(StorageSystem storageDevice, String[] initiatorNames) throws Exception {
         return proxy.getInitiatorPaths(storageDevice, initiatorNames);
+    }
+
+    @Override
+    public HashMap<String, CIMObjectPath> getInitiatorToInitiatorPath(StorageSystem storageDevice, List<String> initiatorNames)
+            throws Exception {
+        return proxy.getInitiatorToInitiatorPath(storageDevice, initiatorNames);
     }
 
     @Override

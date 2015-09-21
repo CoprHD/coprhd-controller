@@ -31,7 +31,6 @@
     function renderRecoveryStatus(status, startime, endtime, errorcode){
     	
         var clusterState = $('#clusterState').data('state');
-        
     	if (!status && !endtime) {
     		// Node Recovery has never run.
     		$('#recoveryResults').css('display','none');
@@ -49,11 +48,11 @@
 
     		if (status == 'DONE') {
     			var doneMsg = Messages.get("renderFunctions.recovery.result.done");
-    			$('#errorMsg').html("<span>" + doneMsg + endtime + ".</span>");
+    			$('#errorMsg').html("<span>" + doneMsg + formatLocalDateTime(new Date(endtime)) + ".</span>");
     		}
     		else if (status == 'FAILED') {
     			var failedMsg = Messages.get("renderFunctions.recovery.result.failed");
-    			$('#errorMsg').html("<span>" + failedMsg + endtime + ".</span>");
+    			$('#errorMsg').html("<span>" + failedMsg + formatLocalDateTime(new Date(endtime)) + ".</span>");
     			
                 var reasonMsg = Messages.get("renderFunctions.recovery.result.reason");
     			$('#errorResult').html("<span>" + reasonMsg + errorcode + "</span>");

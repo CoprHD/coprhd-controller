@@ -241,8 +241,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         List<URI> allVolumes = new ArrayList<URI>();
         List<VolumeDescriptor> descriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
                 volRecommendations, task, vPoolCapabilities,
-                taskList, allVolumes);
-        
+                taskList, allVolumes, true);
+
         // Log volume descriptor information
         logVolumeDescriptorPrecreateInfo(descriptors, task);
         
@@ -272,7 +272,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public List<VolumeDescriptor> createVPlexVolumeDescriptors(VolumeCreate param, Project project,
             VirtualArray vArray, VirtualPool vPool, List<Recommendation> recommendations,
             String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
-            TaskList taskList, List<URI> allVolumes) {
+            TaskList taskList, List<URI> allVolumes, boolean createTask) {
         s_logger.info("Request to create {} VPlex virtual volume(s)",
                 vPoolCapabilities.getResourceCount());
 
@@ -383,8 +383,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
                     volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                     _dbClient.persistObject(volume);
-                    _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
-                            task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+                    
+                    if (createTask) {
+                        _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
+                                task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+                    }
 
                     URI volumeId = volume.getId();
                     s_logger.info("Prepared volume {}", volumeId);
@@ -448,16 +451,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             s_logger.info("Prepared virtual volume {}", volumeId);
             virtualVolumeURIs.add(volumeId);
             allVolumes.add(volumeId);
-            if ((vPoolCapabilities.getPersonality() == null)
-                    ||
-                    (vPoolCapabilities.getPersonality() != null && vPoolCapabilities.getPersonality().equals(
-                            Volume.PersonalityTypes.SOURCE.name()))) {
-                if (!volumePrecreated) {
-                    Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
-                            task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
-                    TaskResourceRep volumeTask = toTask(volume, task, op);
-                    taskList.getTaskList().add(volumeTask);
-                }
+             if (createTask && !volumePrecreated) {
+                Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
+                        task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+                TaskResourceRep volumeTask = toTask(volume, task, op);
+                taskList.getTaskList().add(volumeTask);                
             }
             VolumeDescriptor descriptor = new VolumeDescriptor(
                     VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexStorageSystemURI, volumeId,

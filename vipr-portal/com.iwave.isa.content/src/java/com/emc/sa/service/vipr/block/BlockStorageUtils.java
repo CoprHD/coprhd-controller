@@ -68,16 +68,16 @@ import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
+import com.emc.sa.service.vipr.tasks.GetStorageSystem;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
@@ -90,6 +90,7 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.filters.ExportClusterFilter;
@@ -150,6 +151,10 @@ public class BlockStorageUtils {
 
     public static BlockObjectRestRep getVolume(URI volumeId) {
         return getBlockResource(volumeId);
+    }
+
+    public static StorageSystemRestRep getStorageSystem(URI storageSystemId) {
+        return execute(new GetStorageSystem(storageSystemId));
     }
 
     public static List<BlockObjectRestRep> getVolumes(List<URI> volumeIds) {
@@ -238,7 +243,6 @@ public class BlockStorageUtils {
             addAffectedResource(volumeId);
             volumeIds.add(volumeId);
         }
-        checkSrdfCG(consistencyGroupId, volumeIds);
         return volumeIds;
     }
 
@@ -247,83 +251,6 @@ public class BlockStorageUtils {
         String volumeSize = gbToVolumeSize(sizeInGb);
         return execute(new CreateBlockVolumeByName(projectId, virtualArrayId,
                 virtualPoolId, volumeSize, consistencyGroupId, volumeName));
-    }
-
-    public static void checkSrdfCG(URI consistencyGroupId, List<URI> volumeIds) {
-        if (!NullColumnValueGetter.isNullURI(consistencyGroupId)) {
-            BlockConsistencyGroupRestRep cg = getBlockConsistencyGroup(consistencyGroupId);
-
-            if (cg != null && cg.getTypes() != null && cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.toString())) {
-                BlockObjectRestRep newSourceVolumeRep = null, newTargetVolumeRep = null;
-
-                if (volumeIds.iterator().hasNext()) {
-                    newSourceVolumeRep = getVolume(volumeIds.iterator().next());
-                    List<URI> targets = getSrdfTargetVolumes(newSourceVolumeRep);
-                    if (targets.iterator().hasNext()) {
-                        newTargetVolumeRep = getVolume(targets.iterator().next());
-                    }
-                }
-                List<RelatedResourceRep> volumes = cg.getVolumes();
-                /**
-                 * Check if one of the existing SRDF source volume has mirror,
-                 * Create mirrors for newly created source volumes.
-                 */
-                if (newSourceVolumeRep != null) {
-                    createMirrorForSourceVolume(volumeIds, newSourceVolumeRep, volumes);
-                }
-                /**
-                 * Check if one of the existing SRDF target volume has mirror,
-                 * Create mirrors for newly created target volumes.
-                 */
-                if (newTargetVolumeRep != null) {
-                    createMirrorForTargetVolume(volumeIds, newTargetVolumeRep, volumes);
-                }
-            }
-        }
-    }
-
-    public static void createMirrorForTargetVolume(List<URI> newVolumeIds, BlockObjectRestRep newTargetVolumeRep,
-            List<RelatedResourceRep> volumes) {
-        for (RelatedResourceRep volume : volumes) {
-            if (!newVolumeIds.contains(volume.getId())) {
-                BlockObjectRestRep volRep = getVolume(volume.getId());
-                List<URI> targets = getSrdfTargetVolumes(volRep);
-                /**
-                 * Check target vol has mirrors
-                 */
-                if (volumeHasMirror(targets)) {
-                    BlockStorageUtils.createContinuousCopy(newTargetVolumeRep.getId(), "mirror", 1);
-                }
-                break;
-            }
-        }
-    }
-
-    public static void createMirrorForSourceVolume(List<URI> newVolumeIds, BlockObjectRestRep newSourceVolumeRep,
-            List<RelatedResourceRep> volumes) {
-        for (RelatedResourceRep volume : volumes) {
-            if (!newVolumeIds.contains(volume.getId())) {
-                BlockObjectRestRep volRep = getVolume(volume.getId());
-                /**
-                 * Check source vol has mirrors
-                 */
-                if (volumeHasMirror(Arrays.asList(volRep.getId()))) {
-                    BlockStorageUtils.createContinuousCopy(newSourceVolumeRep.getId(), "mirror", 1);
-                }
-                break;
-            }
-        }
-    }
-
-    public static boolean volumeHasMirror(List<URI> volumes) {
-        for (URI volume : volumes) {
-            BlockObjectRestRep volumeRep = getVolume(volume);
-            List<URI> mirrors = getActiveContinuousCopies(volumeRep.getId());
-            if (!mirrors.isEmpty()) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static void expandVolumes(Collection<URI> volumeIds, double newSizeInGB) {
@@ -580,11 +507,26 @@ public class BlockStorageUtils {
 
         removeBlockResourcesFromExports(allBlockResources);
         for (URI volumeId : allBlockResources) {
-            removeSnapshotsForVolume(volumeId);
-            removeContinuousCopiesForVolume(volumeId);
-            removeFullCopiesForVolume(volumeId, blockResourceIds);
+            if (canRemoveReplicas(volumeId)) {
+                removeSnapshotsForVolume(volumeId);
+                removeContinuousCopiesForVolume(volumeId);
+                removeFullCopiesForVolume(volumeId, blockResourceIds);
+            }
         }
         deactivateBlockResources(blockResourceIds, type);
+    }
+
+    public static boolean canRemoveReplicas(URI blockResourceId) {
+        BlockObjectRestRep volume = getVolume(blockResourceId);
+        if (volume.getConsistencyGroup() != null) {
+            StorageSystemRestRep storageSystem = getStorageSystem(volume.getStorageController());
+            if (storageSystem != null
+                    && storageSystem.getSystemType() != null
+                    && storageSystem.getSystemType().equals(DiscoveredDataObject.Type.vmax.name())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static void deactivateBlockResources(Collection<URI> blockResourceIds, VolumeDeleteTypeEnum type) {

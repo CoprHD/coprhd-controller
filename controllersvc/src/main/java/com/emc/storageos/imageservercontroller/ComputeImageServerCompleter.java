@@ -48,10 +48,6 @@ public class ComputeImageServerCompleter extends TaskCompleter{
         AuditLogManager auditMgr = new AuditLogManager();
         auditMgr.setDbClient(dbClient);
         if (status == Status.error) {
-            if (opType == OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES) {
-                imageServer.setComputeImageServerStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-                dbClient.persistObject(imageServer);
-            }
             dbClient.error(ComputeImageServer.class, getId(), getOpId(), coded);
             auditMgr.recordAuditLog(null, null, serviceType,
                     opType, System.currentTimeMillis(),

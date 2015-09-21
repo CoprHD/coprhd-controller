@@ -89,7 +89,7 @@ public class ComputeImageServerUpdate {
     /**
      * @return the password
      */
-    @XmlElement(required = true, name  = "imageserver_password")
+    @XmlElement(name  = "imageserver_password")
     @JsonProperty("imageserver_password")
     public String getImageServerPassword() {
         return imageServerPassword;

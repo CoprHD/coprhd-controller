@@ -18,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImageServer;
@@ -149,7 +151,7 @@ public class ComputeMapper {
 
         return to;
     }
-
+    
     /**
      * Utility mapper method to map fields of {@link ComputeImageServer} columnFamily
      * to {@link ComputeImageServerRestRep} rest representation.
@@ -175,9 +177,57 @@ public class ComputeMapper {
         to.setComputeImageServerStatus(from.getComputeImageServerStatus());
         to.setImageServerUser(from.getImageServerUser());
         to.setOsInstallTimeoutMs(from.getOsInstallTimeoutMs());
+        /*if (from.getComputeImages() != null) {
+            for (String computeimage : from.getComputeImages()) {
+                ComputeImage image = dbclient.queryObject(ComputeImage.class,
+                        URIUtil.uri(computeimage));
+                to.getComputeImages().add(
+                        DbObjectMapper.toNamedRelatedResource(
+                                ResourceTypeEnum.COMPUTE_IMAGE, image.getId(),
+                                image.getLabel()));
+            }
+        }
+        if (failedImages != null) {
+            for (ComputeImage failedImage : failedImages) {
+                to.getComputeImages().add(
+                        DbObjectMapper.toNamedRelatedResource(
+                                ResourceTypeEnum.COMPUTE_IMAGE,
+                                failedImage.getId(), failedImage.getLabel()));
+            }
+        }*/
+        to.setComputeImages(new ArrayList<NamedRelatedResourceRep>());
+        to.setFailedImages(new ArrayList<NamedRelatedResourceRep>());
+        return to;
+    }
+
+    /**
+     * Utility mapper method to map fields of {@link ComputeImageServer} columnFamily
+     * to {@link ComputeImageServerRestRep} rest representation.
+     * 
+     * @param from
+     * @return
+     */
+    public static ComputeImageServerRestRep map(DbClient dbclient, ComputeImageServer from, List<ComputeImage> failedImages) {
+        if (from == null) {
+            return null;
+        }
+        ComputeImageServerRestRep to = map(from);
         if (from.getComputeImages() != null) {
             for (String computeimage : from.getComputeImages()) {
-                to.getComputeImages().add(toRelatedResource(ResourceTypeEnum.COMPUTE_IMAGE, URI.create(computeimage)));
+                ComputeImage image = dbclient.queryObject(ComputeImage.class,
+                        URIUtil.uri(computeimage));
+                to.getComputeImages().add(
+                        DbObjectMapper.toNamedRelatedResource(
+                                ResourceTypeEnum.COMPUTE_IMAGE, image.getId(),
+                                image.getLabel()));
+            }
+        }
+        if (failedImages != null) {
+            for (ComputeImage failedImage : failedImages) {
+                to.getComputeImages().add(
+                        DbObjectMapper.toNamedRelatedResource(
+                                ResourceTypeEnum.COMPUTE_IMAGE,
+                                failedImage.getId(), failedImage.getLabel()));
             }
         }
         return to;

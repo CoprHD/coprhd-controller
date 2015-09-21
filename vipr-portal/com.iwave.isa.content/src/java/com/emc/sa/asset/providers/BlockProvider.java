@@ -125,6 +125,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             newAssetOption("ntfs", "ntfs"),
             newAssetOption("fat32", "fat32"));
 
+    private static final String BLOCK_CONSISTENCY_GROUP_TYPE = "BlockConsistencyGroup";
+
+    private static final String VOLUME_TYPE = "Volume";
+
+    private static final String NONE_TYPE = "None";
+
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
     }
@@ -144,12 +150,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public static boolean checkTypeConsistency(URI volumeId, String volumeOrConsistencyType) {
         if (volumeId == null || volumeOrConsistencyType == null) {
             return false;
-        } else if (isVolumeType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, "Volume")) {
+        } else if (isVolumeType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, VOLUME_TYPE)) {
             return false;
-        } else if (isConsistencyGroupType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, "ConsistencyGroup")) {
+        } else if (isConsistencyGroupType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
             return false;
         }
         return true;
+    }
+
+    private static boolean isInConsistencyGroup(VolumeRestRep volume) {
+        return volume.getConsistencyGroup() != null;
     }
 
     @Asset("blockVolumeOrConsistencyType")
@@ -587,7 +597,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         debug("getting volumes (project=%s)", project);
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(type)) {
-            return createVolumeOptions(client, listVolumes(client, project));
+            return createVolumeOptions(client, listVolumesWithoutConsistencyGroup(client, project));
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
                     .search()
@@ -685,20 +695,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("blockSnapshotOrConsistencyGroup")
     @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String type, URI consistencyGroupId) {
-        if (!checkTypeConsistency(consistencyGroupId, type)) {
-            warn("Inconsistent types, %s and %s, return empty results", consistencyGroupId, type);
-            return new ArrayList<AssetOption>();
-        }
-
-        if (isVolumeType(type)) {
+        if (NONE_TYPE.equals(type)) {
             debug("getting blockSnapshots (project=%s)", project);
             return getSnapshotOptionsForProject(ctx, project);
         } else {
-            if (consistencyGroupId == null) {
-                error("Consistency Group field is required for Storage Type %s", type);
-                return Lists.newArrayList();
+            if (type == null) {
+                error("Consistency type invalid : %s", type);
+                return new ArrayList<AssetOption>();
             }
-            return getConsistencyGroupSnapshots(ctx, consistencyGroupId);
+            URI consistencyGroup = uri(type);
+            if (!BlockProviderUtils.isType(consistencyGroup, BLOCK_CONSISTENCY_GROUP_TYPE)) {
+                error("Consistency Group field is required for Storage Type [%s, %s]", type, consistencyGroupId);
+                return new ArrayList<AssetOption>();
+            }
+            return getConsistencyGroupSnapshots(ctx, consistencyGroup);
         }
     }
 
@@ -713,7 +723,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     .run();
             return createBaseResourceOptions(consistencyGroups);
         } else {
-            return Lists.newArrayList(newAssetOption("NONE", "None"));
+            return Lists.newArrayList(newAssetOption(NONE_TYPE, "None"));
         }
     }
 
@@ -1043,7 +1053,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<AssetOption> options = Lists.newArrayList();
             for (VolumeDetail detail : volumeDetails) {
                 if (isLocalSnapshotSupported(detail.vpool) || isRPSourceVolume(detail.volume)) {
-                    options.add(createVolumeOption(client, null, detail.volume, volumeNames));
+                    if (!isInConsistencyGroup(detail.volume)) {
+                        options.add(createVolumeOption(client, null, detail.volume, volumeNames));
+                    }
                 }
             }
             return options;
@@ -1189,8 +1201,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (isVolumeType(volumeOrConsistencyType)) {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
                 @Override
-                public boolean acceptId(URI id) {
-                    return !client.blockVolumes().getFullCopies(id).isEmpty();
+                public boolean accept(VolumeRestRep volume) {
+                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty() && !isInConsistencyGroup(volume)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             });
             return createVolumeOptions(client, volumes);
@@ -1207,15 +1223,19 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "volumeWithFullCopies", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getFullCopies(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
 
-        if (!checkTypeConsistency(volumeId, volumeOrConsistencyType)) {
-            warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
-            return new ArrayList<AssetOption>();
-        }
-
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
+            if (!BlockProviderUtils.isType(volumeId, VOLUME_TYPE)) {
+                warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+                return new ArrayList<AssetOption>();
+            }
+
             return createBaseResourceOptions(client.blockVolumes().getFullCopies(volumeId));
         } else {
+            if (!BlockProviderUtils.isType(volumeId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
+                warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+                return new ArrayList<AssetOption>();
+            }
             return getConsistencyGroupFullCopies(ctx, volumeId);
         }
     }
@@ -1330,6 +1350,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     protected List<VolumeRestRep> listVolumes(ViPRCoreClient client, URI project) {
         return client.blockVolumes().findByProject(project);
+    }
+
+    protected List<VolumeRestRep> listVolumesWithoutConsistencyGroup(ViPRCoreClient client, URI project) {
+        return client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
+
+            @Override
+            public boolean accept(VolumeRestRep item) {
+                return !isInConsistencyGroup(item);
+            }
+        });
     }
 
     protected static List<AssetOption> createVolumeWithVarrayOptions(ViPRCoreClient client,
@@ -1681,7 +1711,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
     }
 
-    public List<AssetOption> createVirtualPoolResourceOptions(Collection<? extends VirtualPoolCommonRestRep> virtualPools) {
+    public static List<AssetOption> createVirtualPoolResourceOptions(Collection<? extends VirtualPoolCommonRestRep> virtualPools) {
 
         List<AssetOption> options = Lists.newArrayList();
 
@@ -1692,7 +1722,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    public AssetOption createVirtualPoolResourceOption(VirtualPoolCommonRestRep virtualPool) {
+    public static AssetOption createVirtualPoolResourceOption(VirtualPoolCommonRestRep virtualPool) {
         boolean hasPools = (virtualPool.getUseMatchedPools() && !CollectionUtils.isEmpty(virtualPool.getMatchedStoragePools()) ||
                 (!virtualPool.getUseMatchedPools() && !CollectionUtils.isEmpty(virtualPool.getAssignedStoragePools())));
 

@@ -449,8 +449,10 @@ public class InvalidLoginManager {
             _log.debug("{} doesn't in zk, return 0", clientIP);
             return 0;
         } else {
-            long lastAccesstime = invLogins.getLastAccessTimeInLong();
-            return (int)((System.currentTimeMillis() - lastAccesstime) / MIN_TO_MSECS);
+            long lastAccesstime = invLogins.getLastAccessTimeInLong();  // number of minutes
+            int remainingTime = (int)(lastAccesstime + _maxAuthnLoginAttemtsLifeTimeInMins
+                    - System.currentTimeMillis() / MIN_TO_MSECS);
+            return remainingTime > 0 ? remainingTime : 0;
         }
     }
 }

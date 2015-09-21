@@ -666,7 +666,7 @@ public class UnManagedFilesystemService extends TaggedResource {
     }
     
     /**
-     * check the ingestion valid for project
+     * Validate vnas of unmanaged file system association with project       
      * @param project
      * @param dbClient
      * @param nasUri

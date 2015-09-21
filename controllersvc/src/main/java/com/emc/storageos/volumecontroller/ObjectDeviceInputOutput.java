@@ -26,9 +26,9 @@ public class ObjectDeviceInputOutput {
     private String name;
     private String namespace;
     private String devStoragePool;
-    private String retentionPeriod;
-    private String blkSizeHQ;
-    private String notSizeSQ;
+    private Integer retentionPeriod;
+    private Long blkSizeHQ;
+    private Long notSizeSQ;
     private String owner;
     private String bktNativeId;
 
@@ -59,27 +59,27 @@ public class ObjectDeviceInputOutput {
         return devStoragePool;
     }
 
-    public void setRetentionPeriod(String retentionPeriod) {
+    public void setRetentionPeriod(Integer retentionPeriod) {
         this.retentionPeriod = retentionPeriod;
     }
 
-    public String getRetentionPeriod() {
+    public Integer getRetentionPeriod() {
         return retentionPeriod;
     }
 
-    public void setBlkSizeHQ(String blkSizeHQ) {
+    public void setBlkSizeHQ(Long blkSizeHQ) {
         this.blkSizeHQ = blkSizeHQ;
     }
 
-    public String getBlkSizeHQ() {
+    public Long getBlkSizeHQ() {
         return blkSizeHQ;
     }
 
-    public void setNotSizeSQ(String notSizeSQ) {
+    public void setNotSizeSQ(Long notSizeSQ) {
         this.notSizeSQ = notSizeSQ;
     }
 
-    public String getNotSizeSQ() {
+    public Long getNotSizeSQ() {
         return notSizeSQ;
     }
 

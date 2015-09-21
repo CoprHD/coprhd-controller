@@ -117,8 +117,8 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     @Override
-    public void createBucket(URI storage, URI stPool, URI bkt, String label, String namespace, String retention,
-            String hardQuota, String softQuota, String owner, String opId) throws InternalException {
+    public void createBucket(URI storage, URI stPool, URI bkt, String label, String namespace, Integer retention,
+            Long hardQuota, Long softQuota, String owner, String opId) throws InternalException {
         _log.info("ObjectControllerImpl:createBukcet start");
         execOb("createBucket", storage, stPool, bkt, label, namespace, retention,
                 hardQuota, softQuota, owner, opId);

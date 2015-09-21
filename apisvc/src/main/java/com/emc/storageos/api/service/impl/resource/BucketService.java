@@ -84,7 +84,7 @@ public class BucketService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(BucketService.class);
     private static final String EVENT_SERVICE_TYPE = "object";
-    private static final String SLASH ="/";
+    private static final String SLASH = "/";
     private static final String UNDER_SCORE = "_";
 
     private BucketScheduler _bucketScheduler;
@@ -241,20 +241,12 @@ public class BucketService extends TaskResourceService {
                 task, ResourceOperationTypeEnum.CREATE_BUCKET);
         op.setDescription("Bucket Create");
 
-        try {
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
-            ObjectController controller = getController(ObjectController.class, system.getSystemType());
-            controller.createBucket(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), bucket.getId(),
-                    param.getLabel(), tenant.getNamespace(), param.getRetention(), param.getHardQuota(),
-                    param.getSoftQuota(), param.getOwner(), task);
-        } catch (InternalException e) {
-            bucket.setInactive(true);
-            _dbClient.persistObject(bucket);
-
-            // treating all controller exceptions as internal error for now. controller
-            // should discriminate between validation problems vs. internal errors
-            throw e;
-        }
+        // Controller invocation
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
+        ObjectController controller = getController(ObjectController.class, system.getSystemType());
+        controller.createBucket(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), bucket.getId(),
+                bucket.getLabel(), bucket.getNamespace(), bucket.getRetention(), bucket.getHardQuota(),
+                bucket.getSoftQuota(), bucket.getOwner(), task);
 
         auditOp(OperationTypeEnum.CREATE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getLabel(), param.getHardQuota(), neighborhood.getId().toString(),

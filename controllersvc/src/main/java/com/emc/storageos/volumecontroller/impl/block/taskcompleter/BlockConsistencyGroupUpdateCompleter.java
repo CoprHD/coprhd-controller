@@ -57,8 +57,14 @@ public class BlockConsistencyGroupUpdateCompleter extends BlockConsistencyGroupT
                     dbClient.queryObject(BlockConsistencyGroup.class,
                             getConsistencyGroupURI());
 
-            dbClient.ready(BlockConsistencyGroup.class, consistencyGroup.getId(),
-                    getOpId());
+            switch (status) {
+                case error:
+                    dbClient.error(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId(),
+                            coded);
+                    break;
+                default:
+                    dbClient.ready(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId());
+            }
 
             recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(),
                     eventType(Status.ready), Status.ready, eventMessage(Status.ready,

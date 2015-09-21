@@ -18,3 +18,9 @@ dependencies {
             project(":geosvc"),
             project(":com.emc.sa.model")
 }
+
+task dbutilsScript(type: Copy) {
+    from "script"
+    into "${buildDir}/bin"
+    fileMode = 0755
+}

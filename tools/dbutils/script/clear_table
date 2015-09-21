@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# This script is used to clear table data and index once.
+# It won't drop table, after running this script successfully, the table is empty, still exists.
+# It won't result in inconsistency between data end index either, because it takes care of both.
+# It can clear multiple tables once by running "clear_table <table_name1> <table_name2> <table_name3> ..."
+#
+# NOTE that: this script doesn't guarantee tables are cleared successfully.
+# Dependencies on tables would result in failures.
+
+_usage() {
+    echo "Usage: clear_table <table_name1> <table_name2> <table_name3> ..."
+    echo "This script is used for clear table (along with related index)."
+    echo "For further details, please refer to top comment in script."
+    echo ""
+    echo "Options:"
+    echo "    -h, --help        display help message ande exit"
+}
+
+_cleanup() {
+    [ -e $TMP_FILE ] && rm -f $TMP_FILE
+}
+
+if [ "$1" == "" ] || [ "$1" == "-h" ] || [ $1 == "--help" ] ; then
+    _usage
+    exit 2
+fi
+
+DBUTILS=/opt/storageos/bin/dbutils
+TMP_FILE=/tmp/truncate_tmp_$(date +%s).txt
+_cleanup
+
+trap _cleanup EXIT
+trap _cleanup ERR
+
+for table in $@ ; do
+    echo "Checking $table ..."
+    eval $DBUTILS list $table | grep id: | awk '{print $2}' > $TMP_FILE
+    [ -s $TMP_FILE ] && eval $DBUTILS delete $table -file $TMP_FILE
+    _cleanup
+done

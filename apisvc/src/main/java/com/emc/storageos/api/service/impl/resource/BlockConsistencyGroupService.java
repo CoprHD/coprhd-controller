@@ -416,6 +416,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.consistencyGroupNotCreated();
         }
 
+        // Snapshots of RecoverPoint consistency groups is not supported.
+        if (consistencyGroup.checkForType(Types.RP)) {
+            throw APIException.badRequests.cannotCreateSnapshotOfRPCG();
+        }
+
         // Maintain pre-2.2 functionality for VPLEX CGs created prior to
         // release 2.2, which does not allow snapping a consistency group.
         URI cgStorageControllerURI = consistencyGroup.getStorageController();

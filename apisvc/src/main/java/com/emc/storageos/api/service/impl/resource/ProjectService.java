@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
@@ -895,7 +896,14 @@ public class ProjectService extends TaggedResource {
                     _log.info(errorMsg.toString());
                     return null;
                 }
-
+                
+                // Validate the VNAS is in Discovery state -VISIBLE!!!
+                if (!DiscoveryStatus.VISIBLE.name().equals(vnas.getDiscoveryStatus())) {
+                    errorMsg.append(" vNas " + vnas.getNasName() + " is not in Discovery-VISIBLE state ");
+                    _log.info(errorMsg.toString());
+                    return null;
+                }
+                
                 // Validate the VNAS state should be in loaded state !!!
                 if (!vnas.getVNasState().equalsIgnoreCase(VirtualNasState.LOADED.getNasState())) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is not in Loaded state");

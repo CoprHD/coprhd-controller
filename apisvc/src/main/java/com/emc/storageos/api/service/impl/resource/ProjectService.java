@@ -446,11 +446,12 @@ public class ProjectService extends TaggedResource {
     		for( String vnasId : project.getAssignedVNasServers()) {
     			VirtualNAS vnas = _permissionsHelper.getObjectById(URI.create(vnasId), VirtualNAS.class);
     			if ( vnas != null && !vnas.getInactive() ){
+    				_log.debug("project {} has been assigned with vnas server {}", project.getLabel(), vnas.getNasName() );
     				return true;
     			}
     		}
        }
-    	_log.error("No active vnas servers assigned to project {}", project.getLabel() );
+    	_log.info("No active vnas servers assigned to project {}", project.getLabel() );
     	return false;
     }
 

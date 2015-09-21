@@ -79,15 +79,13 @@ public class BlockProviderUtils {
         for (VolumeRestRep volume : getExportedBlockVolumes(viprClient, tenantId, hostOrClusterId)) {
             for (URI hostId : hostIds) {
                 String ds = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
-                if (StringUtils.isNotBlank(ds)) {
-                    if (ds.equals(datastore)) {
-                        boolean isMounted = isMounted(hostId, volume);
-                        if (onlyMounted && isMounted) {
-                            volumes.add(volume);
-                        }
-                        else if (!onlyMounted && !isMounted) {
-                            volumes.add(volume);
-                        }
+                if (StringUtils.isNotBlank(ds) && ds.equals(datastore)) {
+                    boolean isMounted = isMounted(hostId, volume);
+                    if (onlyMounted && isMounted) {
+                        volumes.add(volume);
+                    }
+                    else if (!onlyMounted && !isMounted) {
+                        volumes.add(volume);
                     }
                 }
             }

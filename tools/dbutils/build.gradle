@@ -19,8 +19,9 @@ dependencies {
             project(":com.emc.sa.model")
 }
 
-task dbutilsScript(type: Copy) {
+task copyScripts(type: Copy) {
     from "script"
     into "${buildDir}/bin"
     fileMode = 0755
 }
+project.tasks['scripts'].dependsOn(copyScripts)

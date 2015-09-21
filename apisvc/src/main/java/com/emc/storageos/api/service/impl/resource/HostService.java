@@ -44,6 +44,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.mapper.functions.MapHost;
@@ -86,6 +87,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
@@ -106,6 +108,9 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.auth.ACLAssignmentChanges;
+import com.emc.storageos.model.auth.ACLAssignments;
+import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.block.UnManagedExportMaskList;
 import com.emc.storageos.model.block.UnManagedVolumeList;
 import com.emc.storageos.model.compute.ComputeElementListRestRep;
@@ -207,7 +212,12 @@ public class HostService extends TaskResourceService {
     public HostRestRep getHost(@PathParam("id") URI id) throws DatabaseException {
         Host host = queryObject(Host.class, id, false);
         // check the user permissions
-        verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+        try{
+        	verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+        }
+        catch(Exception e){
+        	verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(host.getAcls()));
+        }
         return map(host);
     }
 
@@ -239,6 +249,34 @@ public class HostService extends TaskResourceService {
         // get all host children
         HostList list = new HostList();
         list.setHosts(map(ResourceTypeEnum.HOST, listChildren(tenantId, Host.class, "label", "tenant")));
+        
+        URI providerTenantId = _permissionsHelper.getRootTenant().getId();
+        if(!providerTenantId.equals(tenantId)){
+        	/*HostList providerTenantHostList = new HostList();
+        	providerTenantHostList.setHosts(map(ResourceTypeEnum.HOST , 
+        										listChildren(providerTenantId, Host.class, "label", "tenant")));*/
+        	
+        	List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(providerTenantId, Host.class, "label", "tenant");
+        	for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
+        		Host hostObj = queryObject(Host.class, dataObject.getId(), true);
+        		
+        		if(verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(hostObj.getAcls()))){
+        			list.getHosts().add(toNamedRelatedResource(ResourceTypeEnum.HOST,
+                        dataObject.getId(), dataObject.getName()));
+        		}
+            }
+        	
+        	/*for(NamedRelatedResourceRep hostIter:providerTenantHostList.getHosts()){  
+        		        		
+				Host hostObj = queryObject(Host.class, hostIter.getId(), true);
+        		if(verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(hostObj.getAcls()))){
+        			list.getHosts().add();
+        		}
+        		
+        	}*/
+        	
+        }
+        
         return list;
     }
 
@@ -1193,6 +1231,232 @@ public class HostService extends TaskResourceService {
         }
         return createHostTasks(hosts, param.getComputeVpool(), param.getVarray());
     }
+    
+    
+    
+    
+    /**
+     * Add or remove individual Access Control List entry(s). When the Host is created
+     * with no shared access (Vcenter.shared = Boolean.FALSE), there cannot
+     * be multiple Access Control List Entries associated with this vCenter.
+     *
+     * @param changes Access Control List assignment changes. Request body must include
+     *                at least one add or remove operation
+     * @param id the URN of a ViPR Project.
+     *
+     * @return the vCenter discovery async task.
+     */
+    @PUT
+    @Path("/{id}/acl")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN })
+    public TaskResourceRep updateAclAssignments(@PathParam("id") URI id,
+                                                ACLAssignmentChanges changes) {
+        //Make sure the vCenter is a valid one.
+        Host host = queryObject(Host.class, id, true);
+        ArgValidator.checkEntity(host, id, isIdEmbeddedInURL(id));
+
+        //Validate the acl assignment changes. It is not valid when an
+        //acl entry contains more than one privilege or privileges
+        //other than USE.
+        validateAclAssignments(changes);
+
+        //Make sure that the vCenter with respect to the tenants
+        //that we are removing is not in use (means the datacenters
+        //and its clusters and hosts with the removing tenant do not
+        //have any exports).
+        checkHostUsage(host, changes);
+
+        _permissionsHelper.updateACLs(host, changes, new PermissionsHelper.UsageACLFilter(_permissionsHelper));
+
+        _dbClient.updateAndReindexObject(host);
+
+        auditOp(OperationTypeEnum.UPDATE_VCENTER, true, null, host.getId()
+                .toString(), host.getLabel(), changes);
+
+        //Rediscover the vCenter, this will update the updated
+        //list of tenants based its latest acls to its datacenters
+        //and hosts and clusters.
+        return doDiscoverHost(host);
+    }
+    
+    
+    /**
+     * Get Host Access Control List (ACLs)
+     *
+     * @param id the URN of a ViPR Host
+     * @prereq none
+     * @brief Show Host Access Control List
+     *
+     * @return Access Control List Assignment details
+     */
+    @GET
+    @Path("/{id}/acl")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public ACLAssignments getAclAssignments(@PathParam("id") URI id) {
+        return getAclAssignmentsResponse(id);
+    }
+    
+    
+    /**
+     * Gets the current acl assignments of the requested Host.
+     *
+     * @param hostId
+     * @return the list of acl assignments of the requested Host.
+     */
+    private ACLAssignments getAclAssignmentsResponse(URI hostId) {
+        Host host= queryObject(Host.class, hostId, true);
+        ArgValidator.checkEntity(host, hostId, isIdEmbeddedInURL(hostId));
+
+        ACLAssignments response = new ACLAssignments();
+        response.setAssignments(_permissionsHelper.convertToACLEntries(host.getAcls()));
+
+        return response;
+    }
+    
+   
+   
+   
+    private boolean verifyHostAccessToTenant(List<ACLEntry> aclEntries) {
+    	//verifyAuthorizedInTenantOrg(tenantId, getUserFromContext());        
+    	boolean isUserAuthorized = false;
+        StorageOSUser user = getUserFromContext();
+        Iterator<ACLEntry> aclEntriesIterator = aclEntries.iterator();
+        while (aclEntriesIterator.hasNext()) {
+            ACLEntry aclEntry = aclEntriesIterator.next();
+            if (aclEntry == null) {
+                continue;
+            }
+
+            if (user.getTenantId().toString().equals(aclEntry.getTenant()) ||
+                    isSystemAdminOrMonitorUser() ||
+                    _permissionsHelper.userHasGivenRole(user, URI.create(aclEntry.getTenant()), Role.TENANT_ADMIN)) {
+                isUserAuthorized = true;
+                break;
+            }
+        }
+
+        return isUserAuthorized;
+    }
+    
+    
+    /**
+     * This validates only with respect to the tenant
+     * that is being removed from the vCenter acls. If the tenant that is getting
+     * removed the host has any exports with the host.
+     *
+     * @param vcenter the host being updated.
+     * @param changes new acl assignment changes for the host.
+     */
+    private void checkHostUsage(Host host, ACLAssignmentChanges changes) {
+        //Make a copy of the vCenter's existing tenant list.
+        List<ACLEntry> existingAclEntries = _permissionsHelper.convertToACLEntries(host.getAcls());
+        if (CollectionUtils.isEmpty(existingAclEntries)) {
+            //If there no existing acl entries for the Host
+            //there is nothing to validate if it is in user or not.
+            _log.debug("Host {} does not have any existing acls", host.getLabel());
+            return;
+        }
+
+        //If there are no tenants to be removed from the Host acls,
+        //there is nothing to check for usage.
+        if (CollectionUtils.isEmpty(changes.getRemove())) {
+            _log.debug("There are not acls to remove from host {}", host.getLabel());
+            return;
+        }
+
+        Set<String> tenantsInUse = new HashSet<String>();
+
+        Set<URI> removingTenants = _permissionsHelper.getUsageURIsFromAclEntries(changes.getRemove());
+        Set<URI> existingTenants = _permissionsHelper.getUsageURIsFromAclEntries(existingAclEntries);
+
+        Iterator<URI> removingTenantsIterator = removingTenants.iterator();
+        while (removingTenantsIterator.hasNext()) {
+            URI removingTenant = removingTenantsIterator.next();
+            if (!existingTenants.contains(removingTenant)) {
+                continue;
+            }
+
+            //Check if Host is in use for the removing tenant or not.
+            //This checks for all the exportgroups of the host before 
+            //removing tenant and finds if host is using the exports 
+            //from the removing tenant or not.
+            if (ComputeSystemHelper.isHostInUseForTheTenant(_dbClient, host.getId(), removingTenant)) {
+                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, removingTenant);
+                tenantsInUse.add(tenant.getLabel());
+            }
+        }
+
+        if(!CollectionUtils.isEmpty(tenantsInUse)) {
+            throw APIException.badRequests.cannotRemoveTenant("Host", host.getLabel(), tenantsInUse);
+        }
+    }
+    
+
+    /**
+     * Validates the acl assignment changes.
+     * It is not valid acl assignment change, when an
+     * acl entry contains more than one privilege or privileges
+     * other than USE if the tenant provided in the acl entry
+     * is not a valid tenant org.
+     *
+     * @param changes acl assignment changes to validated.
+     */
+    private void validateAclAssignments(ACLAssignmentChanges changes) {
+        if(changes == null) {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("ACLAssignmentChanges");
+        }
+
+        //Make sure at least one acl entry either in the add or remove
+        //list.
+        if (CollectionUtils.isEmpty(changes.getAdd()) &&
+                CollectionUtils.isEmpty(changes.getRemove())) {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("ACLAssignmentChanges");
+        }
+
+        validateAclEntries(changes.getAdd());
+        validateAclEntries(changes.getRemove());
+    }
+    
+    /**
+     * Validates the individual list of acl entries.
+     * It is not valid acl entries list, when an
+     * acl entry contains more than one privilege or privileges
+     * other than USE and if the tenant provided in the acl entry
+     * is not a valid tenant org.
+     *
+     * @param aclEntries acl entries to be validated.
+     */
+    private void validateAclEntries(List<ACLEntry> aclEntries) {
+        if (CollectionUtils.isEmpty(aclEntries)) {
+            return;
+        }
+
+        Iterator<ACLEntry> aclEntryIterator = aclEntries.iterator();
+        while (aclEntryIterator.hasNext()) {
+            ACLEntry aclEntry = aclEntryIterator.next();
+
+            //If more than one privileges provided the ACL Entry, it is not supported
+            //for vCenter ACL. Only USE ACL can be provided.
+            if (aclEntry.getAces().size() != 1) {
+                throw APIException.badRequests.unsupportedNumberOfPrivileges(URI.create(aclEntry.getTenant()),
+                        aclEntry.getAces());
+            }
+
+            if (!aclEntry.getAces().get(0).equalsIgnoreCase(ACL.USE.name())) {
+                throw APIException.badRequests.unsupportedPrivilege(URI.create(aclEntry.getTenant()),
+                        aclEntry.getAces().get(0));
+            }
+
+            //Validate if the provided tenant is a valid tenant or not.
+            URI tenantId = URI.create(aclEntry.getTenant());
+            TenantOrg tenant = queryObject(TenantOrg.class, tenantId, true);
+            ArgValidator.checkEntity(tenant, tenantId, isIdEmbeddedInURL(tenantId));
+        }
+    }
+    
+    
+    
 
     private InterProcessLock lockBladeReservation() {
         InterProcessLock lock = _coordinator.getLock(BLADE_RESERVATION_LOCK_NAME);

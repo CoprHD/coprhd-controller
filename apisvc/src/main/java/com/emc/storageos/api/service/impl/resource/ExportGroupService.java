@@ -92,6 +92,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupBulkRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
@@ -978,8 +979,12 @@ public class ExportGroupService extends TaskResourceService {
             // validate the host is in the same tenant Org as the as the export group,
             Project project = queryObject(Project.class, exportGroup.getProject().getURI(), true);
             if (!host.getTenant().equals(project.getTenantOrg().getURI())) {
-                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(host.getHostName(),
+            	//if the host does not belong to the tenant, then see if the current tenant has 
+            	//acl to use the host. If it has, then we dont throw the error.
+            	if(!verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(host.getAcls()) , project.getTenantOrg().getURI())){
+            		throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(host.getHostName(),
                         project.getLabel());
+            	}
             }
         }
 
@@ -1011,8 +1016,12 @@ public class ExportGroupService extends TaskResourceService {
         } else {
             // validate the host is in the same tenant Org as the as the export group,
             if (!host.getTenant().equals(project.getTenantOrg().getURI())) {
-                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(host.getHostName(),
+            	//if the host does not belong to the tenant, then see if the current tenant has 
+            	//acl to use the host. If it has, then we dont throw the error.
+            	if(!verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(host.getAcls()) , project.getTenantOrg().getURI())){
+            		throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(host.getHostName(),
                         project.getLabel());
+            	}
             }
         }
         // get host connected initiators
@@ -1027,6 +1036,28 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
         _log.info("Host {} was validated successfully.", host.getId().toString());
+    }
+    
+    private boolean verifyHostAccessToTenant(List<ACLEntry> aclEntries, URI projectId ) {
+    	
+    	//verifyAuthorizedInTenantOrg(tenantId, getUserFromContext());
+        
+    	boolean isUserAuthorized = false;        
+        Iterator<ACLEntry> aclEntriesIterator = aclEntries.iterator();
+        while (aclEntriesIterator.hasNext()) {
+            ACLEntry aclEntry = aclEntriesIterator.next();
+            if (aclEntry == null) {
+                continue;
+            }
+
+            if (projectId.toString().equals(aclEntry.getTenant())) {
+                isUserAuthorized = true;
+                break;
+            }
+            return true;
+        }
+
+        return isUserAuthorized;
     }
 
     /**

@@ -463,7 +463,9 @@ public class ECSApi {
             } catch (Exception e) {
                 _log.error("Error occured while delete of bucket : {}", bucketName, e);
             } finally {
-                if (null == clientResp || clientResp.getStatus() != 200) { 
+                if (null == clientResp) {
+                    throw ECSException.exceptions.bucketDeleteFailed(bucketName, "no response");
+                } else if (clientResp.getStatus() != 200) {
                     throw ECSException.exceptions.bucketDeleteFailed(bucketName, getResponseDetails(clientResp));
                 }
                 closeResponse(clientResp);

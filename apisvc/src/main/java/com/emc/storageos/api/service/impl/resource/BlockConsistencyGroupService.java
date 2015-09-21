@@ -733,13 +733,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
 
-        // Get the storage system for the consistency group.
-        StorageSystem storage = _permissionsHelper.getObjectById(consistencyGroup.getStorageController(), StorageSystem.class);
-        if (storage.checkIfVmax3()) {
-            // T8.0.1 provider doesn't support group restore
-            throw APIException.methodNotAllowed.notSupported();
-        }
-
         // Get the parent volume.
         final Volume snapshotParentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
 
@@ -793,11 +786,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Get the storage system for the consistency group.
         StorageSystem storage = _permissionsHelper.getObjectById(consistencyGroup.getStorageController(), StorageSystem.class);
-        if (storage.checkIfVmax3()) {
-            if (snapshot.getSettingsInstance() == null) {
-                throw APIException.badRequests.snapshotNullSettingsInstance(snapshot.getLabel());
-            }
-        }
 
         // resync for OpenStack storage system type is not supported
         if (Type.openstack.name().equalsIgnoreCase(storage.getSystemType())) {

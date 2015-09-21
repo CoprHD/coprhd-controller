@@ -560,7 +560,7 @@ public class ConnectivityUtil {
                 ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, uri);
 
                 // Make sure the ProtectionSystem is active
-                if (!ps.getInactive()) {
+                if (ps != null && !ps.getInactive()) {
                     // We could be isolating the varray in question to specific RPA clusters/sites.
                     // If there is an entry for this varray in the siteAssignedVirtualArrays field
                     // we need to honour that isolation and only return Protection Systems

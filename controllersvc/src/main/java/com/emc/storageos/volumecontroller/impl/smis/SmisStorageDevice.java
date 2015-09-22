@@ -1575,7 +1575,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.ready(_dbClient);
             }
         } catch (Exception e) {
-            _log.error("Failed to create consistency group: " + e);
+            _log.error("Failed to create consistency group: ", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed(
                     "doCreateConsistencyGroup", e.getMessage());
             // Set task to error

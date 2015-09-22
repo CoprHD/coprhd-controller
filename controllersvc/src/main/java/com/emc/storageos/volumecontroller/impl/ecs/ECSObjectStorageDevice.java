@@ -74,7 +74,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             if (null != bktNativeId) {
                 try {
                     ecsApi.deleteBucket(bucket.getLabel());
-                } catch (Exception e) {
+                } catch (Exception del) {
                     _log.error("Unable to delete the Bucket at source. Name : {} Storage : {}", bucket.getLabel(),
                             bucket.getStorageDevice());
                 }

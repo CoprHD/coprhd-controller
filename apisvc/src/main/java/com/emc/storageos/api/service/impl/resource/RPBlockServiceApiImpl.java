@@ -619,9 +619,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         // Only check for existing source journals if this is not a direct journal add operation.
         if (!journalOnlyCreate) {
-            // If the CG already contains RP volumes, then we need to check if new/additional journal volumes need to be created, based on
-            // the
-            // journal policy specified.
+            // If the CG already contains RP volumes, then we need to check if new/additional journal 
+            // volumes need to be created, based on the journal policy specified.
             cgSourceVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.SOURCE.toString());
             cgTargetVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.TARGET.toString());
 
@@ -3137,7 +3136,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean isSource = false;
         boolean isMPStandby = false;
         boolean isTarget = false;
-        List<Volume> cgVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId());
+        List<Volume> cgVolumes = RPHelper.getCgVolumes(consistencyGroup.getId(), _dbClient);
         if (cgVolumes.isEmpty()) {
             throw APIException.badRequests.noExistingVolumesInCG(consistencyGroup.getId().toString());
         }

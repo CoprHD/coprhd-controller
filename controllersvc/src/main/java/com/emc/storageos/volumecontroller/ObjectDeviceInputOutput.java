@@ -30,7 +30,6 @@ public class ObjectDeviceInputOutput {
     private Long blkSizeHQ;
     private Long notSizeSQ;
     private String owner;
-    private String bktNativeId;
 
     /*
      * get and set of each members
@@ -90,13 +89,4 @@ public class ObjectDeviceInputOutput {
     public String getOwner() {
         return owner;
     }
-    
-    public void setBktNativeId(String bktNativeId) {
-        this.bktNativeId = bktNativeId;
-    }
-    
-    public String getBktNativeId() {
-        return bktNativeId;
-    }
-
 }

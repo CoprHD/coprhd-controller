@@ -57,20 +57,28 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             throws ControllerException {
         ECSApi ecsApi = getAPI(storageObj);
         BiosCommandResult result = null;
+        String bktNativeId = null;
         try {
             _log.info("ECSObjectStorageDevice:createBucket initiated for Bucket : {} Namespace : {}", args.getName(), args.getNamespace());
-            String bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool());
+            bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool());
             ecsApi.updateBucketRetention(args.getName(), args.getNamespace(), args.getRetentionPeriod());
             ecsApi.updateBucketQuota(args.getName(), args.getNamespace(), args.getNotSizeSQ(), args.getBlkSizeHQ());
             ecsApi.updateBucketOwner(args.getName(), args.getNamespace(), args.getOwner());
             _log.info("ECSObjectStorageDevice:createBucket success for Bucket : {} Namespace : {}", args.getName(), args.getNamespace());
-            args.setBktNativeId(bktNativeId);
             bucket.setNativeId(bktNativeId);
             completeTask(bucket.getId(), taskId, "Successfully created Bucket.");
             result = BiosCommandResult.createSuccessfulResult();
         } catch (ECSException e) {
-            _log.error("ECSObjectStorageDevice:doCreateBucket failed. ECSException", e);
+            _log.error("ECSObjectStorageDevice:doCreateBucket failed. Trying to cleanup at source aswell.", e);
             bucket.setInactive(true);
+            if (null != bktNativeId) {
+                try {
+                    ecsApi.deleteBucket(bucket.getLabel());
+                } catch (Exception e) {
+                    _log.error("Unable to delete the Bucket at source. Name : {} Storage : {}", bucket.getLabel(),
+                            bucket.getStorageDevice());
+                }
+            }
             completeTask(bucket.getId(), taskId, e);
             result = BiosCommandResult.createErrorResult(e);
         }

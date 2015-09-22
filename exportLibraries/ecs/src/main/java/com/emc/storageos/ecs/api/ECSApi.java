@@ -235,30 +235,6 @@ public class ECSApi {
     }
 
     /**
-     * Create Bucket and update Retention, Quota & Owner information of the Bucket.
-     * 
-     * @param bucketName Name of bucket
-     * @param namespace Namespace with this associated
-     * @param repGroup ECS storage pool name
-     * @param retentionPeriod retained value
-     * @param blkSizeHQ blocking limit
-     * @param notSizeSQ notification limit
-     * @param owner owner of bucket
-     * @return id (not used)
-     * @throws ECSException
-     */
-    public String createBucket(String bucketName, String namespace, String repGroup, Integer retention, Long blkSizeHQ,
-            Long notSizeSQ, String owner) throws ECSException {
-        _log.info("ECSApi:createBucket initiated for Bucket : {} Namespace : {}", bucketName, namespace);
-        final String id = createBucket(bucketName, namespace, repGroup);
-        updateBucketRetention(bucketName, namespace, retention);
-        updateBucketQuota(bucketName, namespace, notSizeSQ, blkSizeHQ);
-        updateBucketOwner(bucketName, namespace, owner);
-        _log.info("ECSApi:createBucket success for Bucket : {} Namespace : {}", bucketName, namespace);
-        return id;
-    }
-
-    /**
      * Create a Base Bucket instance
      * 
      * @param bucketName Bucket name
@@ -311,6 +287,7 @@ public class ECSApi {
 
         ClientResponse clientResp = null;
         String bodyOnr = " { \"new_owner\": \"" + owner + "\", \"namespace\": \"" + namespace + "\"}  ";
+
         final String path = MessageFormat.format(URI_UPDATE_BUCKET_OWNER, bucketName);
         try {
             clientResp = post(path, bodyOnr);
@@ -319,6 +296,8 @@ public class ECSApi {
         } finally {
             if (null == clientResp) {
                 throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Owner", "no response from ECS");
+            } else if (clientResp.getStatus() == 400) {
+                _log.warn("Current user and user to be modified are same"); 
             } else if (clientResp.getStatus() != 200) {
                 throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Owner", getResponseDetails(clientResp));
             }
@@ -354,7 +333,6 @@ public class ECSApi {
                 throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Quota", getResponseDetails(clientResp));
             }
             closeResponse(clientResp);
-
         }
     }
 
@@ -406,7 +384,6 @@ public class ECSApi {
                 _log.error("Error occured while delete of bucket : {}", bucketName, e);
             } finally {
                 if (null == clientResp || clientResp.getStatus() != 200) {
-                    // throw ECSException.exceptions.bucketDeleteFailed(bucketName);
                     throw ECSException.exceptions.bucketDeleteFailed(bucketName);
                 }
                 closeResponse(clientResp);

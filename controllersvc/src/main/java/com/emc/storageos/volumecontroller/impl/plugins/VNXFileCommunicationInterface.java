@@ -1228,6 +1228,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 existingNas.setProtocols(protocols);
                 existingNas.setCifsServersMap(cifsServersMap);
                 existingNas.setNasState(vdm.getState());
+                existingNas.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                 PhysicalNAS parentNas = findPhysicalNasByNativeId(system, vdm.getMoverId());
                 if (parentNas != null) {
                     existingNas.setParentNasUri(parentNas.getId());

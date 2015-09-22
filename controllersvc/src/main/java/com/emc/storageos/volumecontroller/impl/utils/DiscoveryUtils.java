@@ -433,6 +433,8 @@ public class DiscoveryUtils {
             	modifiedVNas.add(vnas);
                 _log.info("Setting discovery status of vnas {} as NOTVISIBLE", vnas.getNasName());
                 vnas.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
+                // Set the nas state to UNKNOWN!!!
+                vnas.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
                 
             }
         }

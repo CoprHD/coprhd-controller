@@ -1475,19 +1475,21 @@ public class RPHelper {
                 }
                 
                 // Clean up the Protection Set
-                ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                if (protectionSet != null) {
-                    // Remove volume IDs from the Protection Set
-                    protectionSet.getVolumes().removeAll(protectionSetIdsToRemove);
-                    
-                    // If the Protection Set is empty, we can safely set it to 
-                    // inactive.
-                    if (protectionSet.getVolumes().isEmpty()) {
-                        protectionSet.setInactive(true);
-                    }
-                    
-                    dbClient.persistObject(protectionSet);
-                }  
+                if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
+                    ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                    if (protectionSet != null) {
+                        // Remove volume IDs from the Protection Set
+                        protectionSet.getVolumes().removeAll(protectionSetIdsToRemove);
+                        
+                        // If the Protection Set is empty, we can safely set it to 
+                        // inactive.
+                        if (protectionSet.getVolumes().isEmpty()) {
+                            protectionSet.setInactive(true);
+                        }
+                        
+                        dbClient.persistObject(protectionSet);
+                    }  
+                }
                 
                 volume.setProtectionSet(NullColumnValueGetter.getNullNamedURI());                                
             } else {

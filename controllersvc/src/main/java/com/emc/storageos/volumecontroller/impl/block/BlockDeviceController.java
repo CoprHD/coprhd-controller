@@ -3600,6 +3600,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             getDevice(storageSystem.getSystemType()).doCreateConsistencyGroup(
                     storageSystem, consistencyGroup, taskCompleter);
         } catch (Exception e) {
+            _log.error("create consistency group job failed:", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
             WorkflowStepCompleter.stepFailed(opId, serviceError);

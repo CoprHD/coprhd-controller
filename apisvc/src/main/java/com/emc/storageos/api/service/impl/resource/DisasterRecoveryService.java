@@ -99,7 +99,7 @@ public class DisasterRecoveryService extends TaggedResource {
             throw new IllegalStateException(e);
         }
 
-        updateVdcTargetVersion();
+        updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
 
         log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());
         SiteSyncParam primarySite = new SiteSyncParam();
@@ -163,7 +163,7 @@ public class DisasterRecoveryService extends TaggedResource {
             throw new IllegalStateException(e);
         }
 
-        updateVdcTargetVersion(true);
+        updateVdcTargetVersion(SiteInfo.UPDATE_DATA_REVISION);
         
         return Response.ok().build();
     }
@@ -230,7 +230,7 @@ public class DisasterRecoveryService extends TaggedResource {
             if (standby.getUuid().equals(uuid)) {
                 log.info("Find standby site in local VDC and remove it");
                 _dbClient.markForDeletion(standby);
-                updateVdcTargetVersion();
+                updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
                 return siteMapper.map(standby);
             }
         }
@@ -278,22 +278,15 @@ public class DisasterRecoveryService extends TaggedResource {
         return siteConfigRestRep;
     }
 
-    private void updateVdcTargetVersion() {
-        updateVdcTargetVersion(false);
-    }
-
     // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc
-    private void updateVdcTargetVersion(boolean updateDataRevision) {
+    private void updateVdcTargetVersion(String action) {
+        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action);
         ConfigurationImpl cfg = new ConfigurationImpl();
-        String vdcTargetVersion = String.valueOf(System.currentTimeMillis());
         cfg.setId(SiteInfo.CONFIG_ID);
         cfg.setKind(SiteInfo.CONFIG_KIND);
-        cfg.setConfig(TARGET_INFO, vdcTargetVersion);
-        if (updateDataRevision) {
-            cfg.setConfig(VdcConfigUtil.UPDATE_DATA_REVISION, "true");
-        }
+        cfg.setConfig(TARGET_INFO, siteInfo.encodeAsString());
         _coordinator.persistServiceConfiguration(cfg);
-        log.info("VDC target version updated to {}", vdcTargetVersion);
+        log.info("VDC target version updated to {}, action required: {}", siteInfo.getVersion(), action);
     }
     
     @POST

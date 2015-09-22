@@ -27,13 +27,13 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
+import com.emc.storageos.locking.LockTimeoutValue;
+import com.emc.storageos.locking.LockType;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
-import com.emc.storageos.locking.LockTimeoutValue;
-import com.emc.storageos.locking.LockType;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
@@ -102,11 +102,11 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
      *         to a List of Storage Ports.
      */
     @Override
-    public Set<Map<URI, List<StoragePort>>> getPortGroups(
+    public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI,
             int nInitiatorGroups) {
-        Set<Map<URI, List<StoragePort>>> portGroups = new HashSet<Map<URI, List<StoragePort>>>();
+        Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
 
         // Determine the network with the fewest ports. It will determine how many
         // port groups can be made.
@@ -142,13 +142,16 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
 
         StoragePortsAllocator allocator = new StoragePortsAllocator();
         for (int i = 0; i < numPG; i++) {
-            Map<URI, List<StoragePort>> portGroup = new HashMap<URI, List<StoragePort>>();
+            Map<URI, List<List<StoragePort>>> portGroup = new HashMap<URI, List<List<StoragePort>>>();
             StringSet portNames = new StringSet();
             for (URI netURI : allocatablePorts.keySet()) {
                 NetworkLite net = networkMap.get(netURI);
                 List<StoragePort> allocatedPorts = allocatePorts(allocator, allocatablePorts.get(netURI),
                         portsAllocatedPerNetwork.get(netURI), net, varrayURI);
-                portGroup.put(netURI, allocatedPorts);
+                if (portGroup.get(netURI) == null) {
+                    portGroup.put(netURI, new ArrayList<List<StoragePort>>());
+                }
+                portGroup.get(netURI).add(allocatedPorts);
                 allocatablePorts.get(netURI).removeAll(allocatedPorts);
                 for (StoragePort port : allocatedPorts) {
                     portNames.add(port.getPortName());
@@ -194,7 +197,7 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
     }
 
     @Override
-    public StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
+    public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
         StringSetMap zoningMap = new StringSetMap();
@@ -219,14 +222,14 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                     // Get an A Port
                     String aPortName = " ", bPortName = " ";
                     StoragePort portA = VPlexBackEndOrchestratorUtil.assignPortToInitiator(
-                            assigner, portGroup.get(networkURI), net, initiator, portAUsage, "SP_A");
+                            assigner, portGroup.get(networkURI).iterator().next(), net, initiator, portAUsage, "SP_A");
                     if (portA != null) {
                         aPortName = portA.getPortName();
                         ports.add(portA.getId().toString());
                     }
                     // Get a B Port
                     StoragePort portB = VPlexBackEndOrchestratorUtil.assignPortToInitiator(
-                            assigner, portGroup.get(networkURI), net, initiator, portBUsage, "SP_B");
+                            assigner, portGroup.get(networkURI).iterator().next(), net, initiator, portBUsage, "SP_B");
                     if (portB != null) {
                         bPortName = portB.getPortName();
                         ports.add(portB.getId().toString());
@@ -390,6 +393,7 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
         return _workflowService;
     }
 
+    @Override
     public void setWorkflowService(WorkflowService _workflowService) {
         this._workflowService = _workflowService;
     }

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,9 +43,9 @@ import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
-public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator implements
+public class VPlexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator implements
         VplexBackEndMaskingOrchestrator, Controller {
-    private static final Logger _log = LoggerFactory.getLogger(VplexXtremIOMaskingOrchestrator.class);
+    private static final Logger _log = LoggerFactory.getLogger(VPlexXtremIOMaskingOrchestrator.class);
     private boolean simulation = false;
     private static final int XTREMIO_NUM_PORT_GROUP = 1;
     // Set morePortGroups to true for testing only if you want to generate additional port groups with
@@ -54,14 +55,14 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     BlockDeviceController _blockController = null;
     WorkflowService _workflowService = null;
 
-    public VplexXtremIOMaskingOrchestrator() {
+    public VPlexXtremIOMaskingOrchestrator() {
     }
 
     public void setBlockDeviceController(BlockDeviceController blockController) {
         this._blockController = blockController;
     }
 
-    public VplexXtremIOMaskingOrchestrator(DbClient dbClient, BlockDeviceController controller) {
+    public VPlexXtremIOMaskingOrchestrator(DbClient dbClient, BlockDeviceController controller) {
         this._dbClient = dbClient;
         this._blockController = controller;
     }
@@ -96,11 +97,12 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     static final Integer MAX_PORTS_PER_NETWORK = 24;
 
     @Override
-    public Set<Map<URI, List<StoragePort>>> getPortGroups(
+    public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts, Map<URI, NetworkLite> networkMap,
             URI varrayURI, int nInitiatorGroups) {
 
-        Set<Map<URI, List<StoragePort>>> portGroups = new HashSet<Map<URI, List<StoragePort>>>();
+        Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
+
 
         StringSet netNames = new StringSet();
         // Order the networks from those with fewest ports to those with the most ports.
@@ -110,44 +112,30 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         }
         _log.info("Calculating PortGroups for Networks: " + netNames.toString());
 
-        Set<String> cpusUsed = new HashSet<String>();
-        Map<URI, List<StoragePort>> useablePorts = new HashMap<URI, List<StoragePort>>();
+        Map<URI, List<List<StoragePort>>> useablePorts = new HashMap<URI, List<List<StoragePort>>>();
+        Map<URI, List<List<StoragePort>>> allocatablePortsNew = new HashMap<URI, List<List<StoragePort>>>();
+
         Set<String> eliminatedPorts = new HashSet<String>();
         Set<String> usedPorts = new HashSet<String>();
 
-        // Eliminate ports from the same cpus, which are in the same portGroup.
-        // This is to avoid the 4096 LUN limit per cpu.
-        // TODO for XtremIO?
-
-        // Cycle through the networks, picking ports that can be used while considering cpus.
-        // Pick one port from each network, then cycle through them again.
-        boolean portWasPicked;
+        boolean allPortsLooped = false;
         do {
-            portWasPicked = false;
-            for (URI networkURI : orderedNetworks) {
-                if (!useablePorts.containsKey(networkURI)) {
-                    useablePorts.put(networkURI, new ArrayList<StoragePort>());
-                }
-                // Pick a port if possible
-                for (StoragePort port : allocatablePorts.get(networkURI)) {
-                    // Do not choose a port that has already been chosen
-                    if (usedPorts.contains(port.getPortName())) {
-                        continue;
-                    }
-                    if (!cpusUsed.contains(port.getPortGroup().split(Constants.HYPEN)[0])) {
-                        // Choose this port, it has a new X-brick.
-                        cpusUsed.add(port.getPortGroup().split(Constants.HYPEN)[0]);
-                        usedPorts.add(port.getPortName());
-                        useablePorts.get(networkURI).add(port);
-                        portWasPicked = true;
-                        break;
-                    } else {
-                        // This port shares a X-brick, don't choose it.
-                        eliminatedPorts.add(port.getPortName());
-                    }
-                }
+            Map<URI, List<StoragePort>> useablePortsSet = getUsablePortsSet(allocatablePorts, orderedNetworks, usedPorts);
+            if (useablePortsSet == null) {
+                // if requirement not satisfied
+                // TODO break / return null ?
             }
-        } while (portWasPicked);
+            for (URI networkURI : useablePortsSet.keySet()) {
+                if (!useablePorts.containsKey(networkURI)) {
+                    useablePorts.put(networkURI, new ArrayList<List<StoragePort>>());
+                }
+                useablePorts.get(networkURI).add(useablePortsSet.get(networkURI));
+            }
+
+            allPortsLooped = isAllPortsLooped(orderedNetworks, allocatablePorts, usedPorts);
+        } while (!allPortsLooped);
+
+
 
         // If all networks have some ports remaining, use the filtered ports.
         // If not, emit a warning and do not use the filtered port configuration.
@@ -161,10 +149,16 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         if (useFilteredPorts) {
             _log.info("Using filtered ports: " + usedPorts.toString());
             _log.info("Ports eliminated because of sharing a X-brick with a used port: " + eliminatedPorts.toString());
-            allocatablePorts = useablePorts;
+            allocatablePortsNew = useablePorts;
         } else {
             _log.info("Some networks have zero remaining ports after X-brick filtering, will use duplicate ports on some X-bricks. "
                     + "This is not a recommended configuration.");
+            for (URI networkURI : allocatablePorts.keySet()) {
+                if (!allocatablePortsNew.containsKey(networkURI)) {
+                    allocatablePortsNew.put(networkURI, new ArrayList<List<StoragePort>>());
+                }
+                allocatablePortsNew.get(networkURI).add(allocatablePorts.get(networkURI));
+            }
         }
 
         // Determine the network with the lowest number of allocatable ports.
@@ -213,46 +207,209 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                 portsPerNetPerPG = 4;
             }
         }
-        int numPG = minPorts / portsPerNetPerPG;
-        _log.info(String.format("Number Port Groups %d, Per Network Ports Per Group %d", numPG, portsPerNetPerPG));
-        if (numPG == 0) {
-            return portGroups;
-        }
+
+        /**
+         * Number of Port Group for XtremIO is always one.
+         * 
+         * Single Port Group contains different set of storage ports for each network,
+         * each set to be used for each VPLEX director.
+         */
+        // int numPG = minPorts / portsPerNetPerPG;
+        int numPG = XTREMIO_NUM_PORT_GROUP;
+        _log.info(String.format("Number of Port Groups %d", numPG));
 
         // Make a map per Network of number of ports to allocate.
         Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
         for (URI netURI : allocatablePorts.keySet()) {
             Integer nports = allocatablePorts.get(netURI).size() / numPG;
-            // Don't allow this network to have more than twice the number of
-            // ports from the network with the fewest ports, i.e. do not exceed 2x portsPerPG.
-            if (nports > (2 * portsPerNetPerPG)) {
-                nports = 2 * portsPerNetPerPG;
-            }
+
+            /*
+             * // Don't allow this network to have more than twice the number of
+             * // ports from the network with the fewest ports, i.e. do not exceed 2x portsPerPG.
+             * if (nports > (2 * portsPerNetPerPG)) {
+             * nports = 2 * portsPerNetPerPG;
+             * }
+             */
+
             portsAllocatedPerNetwork.put(netURI, nports);
         }
 
-        // Now call the StoragePortsAllocator for each Network, assigning required number of ports.
+        // TODO number of ports to select - 4
 
+        // Now call the StoragePortsAllocator for each Network, assigning required number of ports.
         StoragePortsAllocator allocator = new StoragePortsAllocator();
         for (int i = 0; i < numPG; i++) {
-            Map<URI, List<StoragePort>> portGroup = new HashMap<URI, List<StoragePort>>();
+            Map<URI, List<List<StoragePort>>> portGroup = new HashMap<URI, List<List<StoragePort>>>();
             StringSet portNames = new StringSet();
-            for (URI netURI : allocatablePorts.keySet()) {
+            for (URI netURI : allocatablePortsNew.keySet()) {
                 NetworkLite net = networkMap.get(netURI);
-                List<StoragePort> allocatedPorts = allocatePorts(allocator, allocatablePorts.get(netURI),
-                        portsAllocatedPerNetwork.get(netURI), net, varrayURI);
-                portGroup.put(netURI, allocatedPorts);
-                allocatablePorts.get(netURI).removeAll(allocatedPorts);
-                for (StoragePort port : allocatedPorts) {
-                    portNames.add(port.getPortName());
+                for (List<StoragePort> portSet : allocatablePortsNew.get(netURI)) {
+                    List<StoragePort> allocatedPorts = allocatePorts(allocator, portSet,
+                            portSet.size(), net, varrayURI);
+                    if (portGroup.get(netURI) == null) {
+                        portGroup.put(netURI, new ArrayList<List<StoragePort>>());
+                    }
+                    portGroup.get(netURI).add(allocatedPorts);
+                    portSet.removeAll(allocatedPorts);
+                    for (StoragePort port : allocatedPorts) {
+                        portNames.add(port.getPortName());
+                    }
                 }
             }
             portGroups.add(portGroup);
             _log.info(String.format("Port Group %d: %s", i, portNames.toString()));
-            // Reinitialize the context in the allocator; we want redundancy within PG
-            allocator.getContext().reinitialize();
         }
         return portGroups;
+    }
+
+    /**
+     * Gets the usable ports set.
+     *
+     * @param allocatablePorts the allocatable ports
+     * @param orderedNetworks the ordered networks
+     * @param usedPorts the used ports
+     * @return the usable ports set
+     */
+    private Map<URI, List<StoragePort>> getUsablePortsSet(Map<URI, List<StoragePort>> allocatablePorts, List<URI> orderedNetworks,
+            Set<String> usedPorts) {
+
+        Set<String> usedPortsSet = new HashSet<String>();
+        Map<URI, List<StoragePort>> useablePorts = new HashMap<URI, List<StoragePort>>();
+        // map of selected X-brick to Storage Controllers across all networks
+        Map<String, List<String>> xBricksToSelectedSCs = new HashMap<String, List<String>>();
+        // map of network to selected X-bricks
+        Map<URI, List<String>> networkToSelectedXbricks = new HashMap<URI, List<String>>();
+
+        do {
+            int PreviousSize = usedPortsSet.size();
+            for (URI networkURI : orderedNetworks) {
+                if (!useablePorts.containsKey(networkURI)) {
+                    useablePorts.put(networkURI, new ArrayList<StoragePort>());
+                }
+
+                StoragePort port = getNetworkPortUniqueXbrick(networkURI, allocatablePorts.get(networkURI),
+                        usedPortsSet, networkToSelectedXbricks, xBricksToSelectedSCs);
+                if (port != null) {
+                    usedPortsSet.add(port.getPortName());
+                    useablePorts.get(networkURI).add(port);
+                }
+            }
+            boolean allPortsLooped = isAllPortsLooped(orderedNetworks, allocatablePorts, usedPortsSet);
+            if (allPortsLooped) {
+                if (usedPortsSet.size() < 2) {
+                    return null;  // 0 port groups
+                } else if (usedPortsSet.size() >= 2) {
+                    break;  // satisfies minimum requirement
+                }
+            } else {
+                // still ports available AND no ports selected in this round,
+                // clear the X-bricks map
+                if (PreviousSize == usedPortsSet.size()) {
+                    xBricksToSelectedSCs.clear();
+                    networkToSelectedXbricks.clear();
+                }
+            }
+        } while (usedPortsSet.size() <= 4);
+        // add to all usedPorts list
+        usedPorts.addAll(usedPortsSet);
+        return useablePorts;
+    }
+
+    /**
+     * Gets the network port unique x brick.
+     *
+     * @param networkURI the network uri
+     * @param storagePorts the storage ports
+     * @param usedPorts the used ports
+     * @param networkToSelectedXbricks the network to selected xbricks
+     * @param xBricksToSelectedSCs the x bricks to selected s cs
+     * @return the network port unique x brick
+     */
+    private StoragePort getNetworkPortUniqueXbrick(URI networkURI, List<StoragePort> storagePorts, Set<String> usedPorts,
+            Map<URI, List<String>> networkToSelectedXbricks, Map<String, List<String>> xBricksToSelectedSCs) {
+        /**
+         * Input:
+         * -List of network's storage ports;
+         * -X-bricks already chosen for this network;
+         * -X-bricks already chosen for all networks with StorageControllers (SC) chosen:
+         * 
+         * Choose a storage port based on below logic:
+         * -See if there is a port from X-brick other than allNetworkXbricks (select different SC for the selected X-brick)
+         * -If not, see if there is a port from X-brick other than networkXbricks (select different SC for the selected X-brick)
+         */
+        StoragePort port = null;
+        if (networkToSelectedXbricks.get(networkURI) == null) {
+            networkToSelectedXbricks.put(networkURI, new ArrayList<String>());
+        }
+        for (StoragePort sPort : storagePorts) {
+            // Do not choose a port that has already been chosen
+            if (!usedPorts.contains(sPort.getPortName())) {
+                String[] splitArray = sPort.getPortGroup().split(Constants.HYPEN);
+                String xBrick = splitArray[0];
+                String sc = splitArray[1];
+                // select port from unique X-brick/SC
+                if (!xBricksToSelectedSCs.keySet().contains(xBrick)) {
+                    port = sPort;
+                    addSCToXbrick(xBricksToSelectedSCs, xBrick, sc);
+                    networkToSelectedXbricks.get(networkURI).add(xBrick);
+                    break;
+                }
+            }
+        }
+        if (port == null) {
+            for (StoragePort sPort : storagePorts) {
+                // Do not choose a port that has already been chosen
+                if (!usedPorts.contains(sPort.getPortName())) {
+                    String[] splitArray = sPort.getPortGroup().split(Constants.HYPEN);
+                    String xBrick = splitArray[0];
+                    String sc = splitArray[1];
+                    // select port from unique X-brick/SC for this network
+                    if (!networkToSelectedXbricks.get(networkURI).contains(xBrick)
+                            && (xBricksToSelectedSCs.get(xBrick) == null || !xBricksToSelectedSCs.get(xBrick).contains(sc))) {
+                        port = sPort;
+                        addSCToXbrick(xBricksToSelectedSCs, xBrick, sc);
+                        networkToSelectedXbricks.get(networkURI).add(xBrick);
+                        break;
+                    }
+                }
+            }
+        }
+        return port;
+    }
+
+    /**
+     * Adds the sc to xbrick.
+     *
+     * @param xBricksToSelectedSCs the x bricks to selected s cs
+     * @param xBrick the x brick
+     * @param string the string
+     */
+    private void addSCToXbrick(Map<String, List<String>> xBricksToSelectedSCs, String xBrick, String storageController) {
+        if (xBricksToSelectedSCs.get(xBrick) == null) {
+            xBricksToSelectedSCs.put(xBrick, new ArrayList<String>());
+        }
+        if (!xBricksToSelectedSCs.get(xBrick).contains(storageController)) {
+            xBricksToSelectedSCs.get(xBrick).add(storageController);
+        }
+    }
+
+    /**
+     * Checks if is all ports looped.
+     *
+     * @param orderedNetworks the ordered networks
+     * @param allocatablePorts the allocatable ports
+     * @param usedPorts the used ports
+     * @return true, if is all ports looped
+     */
+    private boolean isAllPortsLooped(List<URI> orderedNetworks, Map<URI, List<StoragePort>> allocatablePorts, Set<String> usedPorts) {
+        for (URI networkURI : orderedNetworks) {
+            for (StoragePort port : allocatablePorts.get(networkURI)) {
+                if (!usedPorts.contains(port.getPortName())) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
@@ -295,9 +452,65 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     }
 
     @Override
-    public StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
+    public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
-        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
+
+        StringSetMap zoningMap = new StringSetMap();
+        // Set up a map to track port usage so that we can use all ports more or less equally.
+        Map<StoragePort, Integer> portUsage = new HashMap<StoragePort, Integer>();
+        // Iterate through each of the directors, matching each of its initiators
+        // with one port. This will ensure not to violate four paths per director.
+        int directorNumber = 1;
+        for (String director : initiatorGroup.keySet()) {
+            for (URI networkURI : initiatorGroup.get(director).keySet()) {
+                NetworkLite net = networkMap.get(networkURI);
+                for (Initiator initiator : initiatorGroup.get(director).get(networkURI)) {
+                    // If there are no ports on the initiators network, too bad...
+                    if (portGroup.get(networkURI) == null) {
+                        _log.info(String.format("%s -> no ports in network",
+                                initiator.getInitiatorPort()));
+                        continue;
+                    }
+
+                    List<StoragePort> portList = getStoragePortSetForDirector(portGroup.get(networkURI), directorNumber);
+                    // find a port for the initiator
+                    StoragePort storagePort = VPlexBackEndOrchestratorUtil.assignPortToInitiator(assigner,
+                            portList, net, initiator, portUsage, null);
+                    if (storagePort != null) {
+                        _log.info(String.format("%s %s   %s -> %s  %s", director, net.getLabel(),
+                                initiator.getInitiatorPort(), storagePort.getPortNetworkId(),
+                                storagePort.getPortName()));
+                        StringSet ports = new StringSet();
+                        ports.add(storagePort.getId().toString());
+                        zoningMap.put(initiator.getId().toString(), ports);
+                    } else {
+                        _log.info(String.format("A port could not be assigned for %s %s   %s", director, net.getLabel(),
+                                initiator.getInitiatorPort()));
+                    }
+                }
+            }
+            directorNumber++;
+        }
+        return zoningMap;
+    }
+
+    /**
+     * Gets the storage port set for director.
+     *
+     * @param list the list
+     * @param directorNumber the director number
+     * @return the storage port set for director
+     */
+    private List<StoragePort> getStoragePortSetForDirector(List<List<StoragePort>> list, int directorNumber) {
+        List<StoragePort> portsSetForDirector = null;
+        Iterator<List<StoragePort>> itr = list.iterator();
+        for (int i = 1; i <= directorNumber; i++) {
+            if (!itr.hasNext()) {
+                itr = list.iterator();
+            }
+            portsSetForDirector = itr.next();
+        }
+        return portsSetForDirector;
     }
 
     @Override

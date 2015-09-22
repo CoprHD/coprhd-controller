@@ -54,7 +54,7 @@ import com.emc.storageos.volumecontroller.impl.block.VPlexVmaxMaskingOrchestrato
 import com.emc.storageos.volumecontroller.impl.block.VPlexVnxMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexBackEndMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexCinderMaskingOrchestrator;
-import com.emc.storageos.volumecontroller.impl.block.VplexXtremIOMaskingOrchestrator;
+import com.emc.storageos.volumecontroller.impl.block.VPlexXtremIOMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnlyRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
@@ -156,7 +156,7 @@ public class VPlexBackendManager {
         }
 
         if (system.getSystemType().equals(SystemType.xtremio.name())) {
-            return new VplexXtremIOMaskingOrchestrator(_dbClient, _blockDeviceController);
+            return new VPlexXtremIOMaskingOrchestrator(_dbClient, _blockDeviceController);
         }
 
         if (system.getSystemType().equals(SystemType.hds.name())) {
@@ -725,7 +725,7 @@ public class VPlexBackendManager {
     }
 
     public ExportMask generateExportMask(URI arrayURI, String namePrefix,
-            Map<URI, List<StoragePort>> portGroup,
+            Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             StringSetMap zoningMap) {
 
@@ -749,8 +749,10 @@ public class VPlexBackendManager {
         }
         // Add all the ports in the Port Group
         for (URI networkURI : portGroup.keySet()) {
-            for (StoragePort port : portGroup.get(networkURI)) {
-                exportMask.addTarget(port.getId());
+            for (List<StoragePort> portList : portGroup.get(networkURI)) {
+                for (StoragePort port : portList) {
+                    exportMask.addTarget(port.getId());
+                }
             }
         }
         // Add the mask to the result
@@ -931,7 +933,7 @@ public class VPlexBackendManager {
         Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
         Map<URI, List<StoragePort>> allocatablePorts =
                 getAllocatablePorts(array, _networkMap.keySet(), varrayURI, zonesByNetwork, stepId);
-        Set<Map<URI, List<StoragePort>>> portGroups =
+        Set<Map<URI, List<List<StoragePort>>>> portGroups =
                 orca.getPortGroups(allocatablePorts, _networkMap, varrayURI, initiatorGroups.size());
 
         // Now generate the Masking Views that will be needed.
@@ -939,7 +941,7 @@ public class VPlexBackendManager {
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
         // get the assigner needed - it is with a pre-zoned ports assigner or the default
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones(array.getSystemType(), zonesByNetwork);
-        for (Map<URI, List<StoragePort>> portGroup : portGroups) {
+        for (Map<URI, List<List<StoragePort>>> portGroup : portGroups) {
             String maskName = clusterName.replaceAll("[^A-Za-z0-9_]", "_");
             _log.info("Generating ExportMask: " + maskName);
             if (!igIterator.hasNext()) {

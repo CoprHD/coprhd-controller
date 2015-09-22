@@ -71,7 +71,8 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * distinct port group. The mapping of available ports to port groups
      * is array dependent.
      * <p>
-     * Each PortGroup is a Map of Network URI to a List of StoragePort objects.
+     * Each PortGroup is a Map of Network URI to a List of StoragePort objects. TODO update doc
+     * 
      * <p>
      * 
      * @param allocatablePorts -- Map of Network URI to list of allocatable ports
@@ -81,7 +82,7 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param nInitiatorGroups -- the number of Initiator Groups created
      * @return Set of PortGroups.
      */
-            Set<Map<URI, List<StoragePort>>> getPortGroups(Map<URI,
+    Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI,
             List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups);
 
@@ -94,7 +95,7 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param assigner an instance of StoragePortsAssigner
      * @return StringSetMap -- the zoningMap entry that should be used for the ExportMask.
      */
-            StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
+    StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner);
 

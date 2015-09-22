@@ -67,7 +67,7 @@ public class SiteInfo implements CoordinatorSerializable {
         }
 
         final String[] strings = infoStr.split(ENCODING_SEPARATOR);
-        if (strings.length != 1) {
+        if (strings.length != 2) {
             throw CoordinatorException.fatals.decodingError("invalid site info");
         }
 

@@ -343,9 +343,6 @@ def show_sanfabrics(args):
     try:
         res = obj.san_fabrics_zones_list(args.name, args.fabricid, None ,
                                                            args.xml)
-        print args.xml
-        print " res"
-        print res
         if(res):
             if(args.xml):
                 return common.format_xml(res)

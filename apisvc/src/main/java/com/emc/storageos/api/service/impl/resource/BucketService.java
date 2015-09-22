@@ -194,9 +194,7 @@ public class BucketService extends TaskResourceService {
         Integer retention = Integer.valueOf(param.getRetention());
 
         // Hard Quota should be more than SoftQuota
-        if (softQuota >= hardQuota) {
-            throw APIException.badRequests.invalidQuotaRequestForObjectStorage(param.getLabel());
-        }
+        verifyQuotaValues(softQuota, hardQuota, param.getLabel());
 
         // check varray
         VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class, param.getVarray());
@@ -516,7 +514,7 @@ public class BucketService extends TaskResourceService {
      * @throws APIException If SoftQuota is more than HardQuota
      */
     private void verifyQuotaValues(Long softQuota, Long hardQuota, String bucketName) throws APIException {
-        if (softQuota != 0 && hardQuota != 0 && softQuota >= hardQuota) {
+        if (softQuota < 0 || hardQuota < 0 || softQuota > hardQuota) {
             throw APIException.badRequests.invalidQuotaRequestForObjectStorage(bucketName);
         }
     }

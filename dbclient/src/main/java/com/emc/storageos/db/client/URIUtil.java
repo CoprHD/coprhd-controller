@@ -127,7 +127,7 @@ public class URIUtil {
         return uri.toString().matches("(?i)(urn:storageos:" +
                 "[A-Z]+:" +
                 "[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}" +
-                "(:[A-Z0-9]+)?)");
+                ":([A-Z0-9]+)?)");
     }
 
     public static List<URI> toURIList(Collection<String> stringList) {

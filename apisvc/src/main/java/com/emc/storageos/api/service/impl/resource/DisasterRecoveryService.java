@@ -163,7 +163,7 @@ public class DisasterRecoveryService extends TaggedResource {
             throw new IllegalStateException(e);
         }
 
-        updateVdcTargetVersion();
+        updateVdcTargetVersion(true);
         
         return Response.ok().build();
     }

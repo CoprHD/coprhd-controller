@@ -238,7 +238,7 @@ public class VdcSiteManager extends AbstractManager {
             localRepository.setVdcPropertyInfo(targetVdcPropInfo);
 
             // Update the data revision tag to local cache
-            PropertyInfoExt targetProps = coordinator.getTargetInfo(PropertyInfoExt.class);
+            PropertyInfoExt targetProps = coordinator.getTargetProperties();
             localRepository.setOverrideProperties(targetProps);
 
             // reboot without acquiring the lock

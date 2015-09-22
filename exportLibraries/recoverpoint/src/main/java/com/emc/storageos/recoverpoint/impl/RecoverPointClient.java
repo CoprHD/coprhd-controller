@@ -1306,7 +1306,11 @@ public class RecoverPointClient {
             for (RPConsistencyGroup rpcg : cgSetToEnable) {
                 Set<RPCopy>copies = rpcg.getCopies();
                 for (RPCopy copy : copies) {
-                    boolean waitForLinkState = true;
+                	//ViPR will not wait for link states to be ACTIVE before proceeding with the operation. 
+            		//In a true disaster recovery, checking for link states does not make sense. 
+            		//In future, we can consider setting this variable to true or false based on whether the RP cluster is down, but for now,
+            		//as part of CoprHD CTRL-17082 we will not consider the link states.
+                    boolean waitForLinkState = false;
                     imageManager.enableCGCopy(functionalAPI, copy.getCGGroupCopyUID(), waitForLinkState, ImageAccessMode.LOGGED_ACCESS, request.getBookmark(), request.getAPITTime());
                 }
             }

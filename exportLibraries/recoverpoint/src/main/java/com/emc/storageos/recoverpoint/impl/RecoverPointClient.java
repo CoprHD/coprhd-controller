@@ -1868,7 +1868,7 @@ public class RecoverPointClient {
      * @throws RecoverPointException
      **/
     public void failoverCopyTestCancel (RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
-        RecoverPointVolumeProtectionInfo failoverCopyInfo = copyToFailoverTo.getCopyVolumeInfo();
+        RecoverPointVolumeProtectionInfo failoverCopyInfo = copyToFailoverTo.getCopyVolumeInfo();        
         resumeTransfer(failoverCopyInfo);
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
         imageManager.disableCopyImage(functionalAPI, copyToFailoverTo);
@@ -1958,11 +1958,11 @@ public class RecoverPointClient {
             logger.error(e.getMessage(), e);
         }
         
-        boolean waitForLinkStates = false;
-        //Be default, per JIRA 17082 (CoprHD), we will not wait for links to be active.
-        //In a true DR scenario, we cant expect links to become active and that should not fail the swap/failover operation.
-        //This check will check in future when we think about enabling a smart check to see if the RP cluster is down, but for now this is always
-        //true. 
+        boolean waitForLinkStates = false;		
+		//ViPR will not wait for link states to be ACTIVE before proceeding with the operation. 
+		//In a true disaster recovery, checking for link states does not make sense. 
+		//In future, we can consider setting this variable to true or false based on whether the RP cluster is down, but for now,
+		//as part of CoprHD CTRL-17082 we will not consider the link states.
         if (waitForLinkStates) {
 	        logger.info("Waiting for links to become active for CG " + (cgName==null?"unknown CG name":cgName));
 	        (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, null, PipeState.ACTIVE);

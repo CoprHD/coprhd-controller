@@ -1021,7 +1021,12 @@ public class RecoverPointImageManagementUtils {
 			}
 		}
 		
+		//ViPR will not wait for link states to be ACTIVE before proceeding with the operation. 
+		//In a true disaster recovery, checking for link states does not make sense. 
+		//In future, we can consider setting this variable to true or false based on whether the RP cluster is down, but for now,
+		//as part of CoprHD CTRL-17082 we will not consider the link states.
 		boolean waitForLinkState = false;
+		
 		imageManager.enableCGCopy(impl, cgCopyUID, waitForLinkState, ImageAccessMode.LOGGED_ACCESS,bookmarkName, apitTime);
 	}
 	

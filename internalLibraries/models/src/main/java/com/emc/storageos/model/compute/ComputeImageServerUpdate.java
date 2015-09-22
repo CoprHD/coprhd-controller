@@ -106,7 +106,7 @@ public class ComputeImageServerUpdate {
     /**
      * @return the tftpBootDir
      */
-    @XmlElement(required = true, name = "tftpBootdir")
+    @XmlElement(required = true, name = "tftpBootDir")
     @JsonProperty("tftpBootDir")
     public String getTftpBootDir() {
         return tftpBootDir;

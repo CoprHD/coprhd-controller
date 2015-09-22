@@ -217,7 +217,7 @@ public class ComputeMapper {
         }
         if (failedImages != null) {
             for (ComputeImage failedImage : failedImages) {
-                to.getComputeImages().add(
+                to.getFailedImages().add(
                         DbObjectMapper.toNamedRelatedResource(
                                 ResourceTypeEnum.COMPUTE_IMAGE,
                                 failedImage.getId(), failedImage.getLabel()));

@@ -1096,9 +1096,9 @@ public class ImageServerControllerImpl implements ImageServerController {
 
         ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
 
-        imageServer.setComputeImageServerStatus(ComputeImageServer.ComputeImageServerStatus.NOT_AVAILABLE.name());
-        dbClient.persistObject(imageServer);
         if (verifyImageServer(imageServer)) {
+            imageServer.setComputeImageServerStatus(ComputeImageServer.ComputeImageServerStatus.AVAILABLE.name());
+            dbClient.persistObject(imageServer);
             WorkflowStepCompleter.stepSucceded(stepId);
         } else {
             log.error("Unable to verify imageserver");

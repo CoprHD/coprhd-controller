@@ -23,7 +23,7 @@ public class ComputeImageServer extends DataObject {
     private String imageServerUser;
     private String imageServerPassword;
     private String tftpBootDir;
-    private String imageDir = "images";
+    private String imageDir = "images/";
     private String imageServerSecondIp;
     private String imageServerHttpPort="44491";
     private Integer sshPort = 22;

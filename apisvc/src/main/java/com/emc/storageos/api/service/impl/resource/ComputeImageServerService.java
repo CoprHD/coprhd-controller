@@ -129,35 +129,36 @@ public class ComputeImageServerService extends TaskResourceService {
         // imageServer
         List<URI> imageServerURIList = _dbClient.queryByType(
                 ComputeImageServer.class, true);
-        if (imageServerURIList != null) {
-            if (imageServerURIList.size() > 1) {
+        ArrayList<URI> tempList = Lists.newArrayList(imageServerURIList
+                .iterator());
+
+        if (tempList.size() > 1) {
+            removeImageServerFromComputeSystem(id);
+        } else if (tempList.size() == 1) {
+
+            // If the imageServer being deleted is the last one,
+            // then check if there are any valid AVAILABLE images, if so
+            // throw exception coz user cannot delete all imageServers when
+            // there are valid images available.
+            boolean hasValidImages = false;
+            List<URI> imageURIList = _dbClient.queryByType(ComputeImage.class,
+                    true);
+            Iterator<ComputeImage> imageItr = _dbClient.queryIterativeObjects(
+                    ComputeImage.class, imageURIList);
+
+            while (imageItr.hasNext()) {
+                ComputeImage computeImage = (ComputeImage) imageItr.next();
+                if (ComputeImageStatus.AVAILABLE.name().equals(
+                        computeImage.getComputeImageStatus())) {
+                    hasValidImages = true;
+                    break;
+                }
+            }
+
+            if (hasValidImages) {
+                throw APIException.badRequests.cannotDeleteImageServer();
+            } else {
                 removeImageServerFromComputeSystem(id);
-            } else if (imageServerURIList.size() == 1) {
-
-                // If the imageServer being deleted is the last one,
-                // then check if there are any valid AVAILABLE images, if so
-                // throw exception coz user cannot delete all imageServers when
-                // there are valid images available.
-                boolean hasValidImages = false;
-                List<URI> imageURIList = _dbClient.queryByType(
-                        ComputeImage.class, true);
-                Iterator<ComputeImage> imageItr = _dbClient
-                        .queryIterativeObjects(ComputeImage.class, imageURIList);
-
-                while (imageItr.hasNext()) {
-                    ComputeImage computeImage = (ComputeImage) imageItr.next();
-                    if (ComputeImageStatus.AVAILABLE.equals(computeImage
-                            .getComputeImageStatus())) {
-                        hasValidImages = true;
-                        break;
-                    }
-                }
-
-                if (hasValidImages) {
-                    throw APIException.badRequests.cannotDeleteImageServer();
-                } else {
-                    removeImageServerFromComputeSystem(id);
-                }
             }
         }
 
@@ -434,15 +435,22 @@ public class ComputeImageServerService extends TaskResourceService {
             ComputeImageServer imageServer) {
         List<URI> imagesURIList = _dbClient.queryByType(ComputeImage.class,
                 true);
-        StringSet successImages = imageServer.getComputeImages();
-        List<URI> successfulImageURIList = URIUtil.uris(successImages);
-        imagesURIList.removeAll(successfulImageURIList);
         Iterator<ComputeImage> iter = _dbClient.queryIterativeObjects(
                 ComputeImage.class, imagesURIList);
-        List<ComputeImage> failedImages = Lists.newArrayList(iter);
+        StringSet successImages = imageServer.getComputeImages();
+        List<ComputeImage> failedImages = new ArrayList<ComputeImage>();
+        if (successImages == null) {
+            failedImages = Lists.newArrayList(iter);
+        } else {
+            while (iter.hasNext()) {
+                ComputeImage image = iter.next();
+                if (!successImages.contains(image.getId().toString())) {
+                    failedImages.add(image);
+                }
+            }
+        }
         return failedImages;
     }
-
 
     /**
      * Removes the given imageServerId from each ComputeSystem present,

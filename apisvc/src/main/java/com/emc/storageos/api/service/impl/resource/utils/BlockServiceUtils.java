@@ -30,7 +30,9 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -200,6 +202,18 @@ public class BlockServiceUtils {
         if (!snapSessions.isEmpty()) {
             throw APIException.badRequests.noFullCopiesForVMAX3VolumeWithActiveSnapshot(replicaType);
         }
+    }
+
+    /**
+     * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or
+     * higher
+     * 
+     * @param volume Volume part of the CG
+     * @return true if the operation is supported.
+     */
+    public static boolean checkVolumeCanBeAddedOrRemoved(Volume volume, DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+        return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
     }
 
     /**

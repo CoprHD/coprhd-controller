@@ -163,6 +163,12 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
+    public void createSingleSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
+            throws ControllerException {
+        blockRMI("createSingleSnapshot", storage,snapshotList, createInactive, readOnly, opId);
+    }
+
+    @Override
     public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
             throws InternalException {
         blockRMI("createSnapshot", storage, snapshotList, createInactive, readOnly, opId);
@@ -279,18 +285,18 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void detachMirror(URI storage, List<URI> mirrorList, Boolean deleteGroup, String opId) throws InternalException {
-        blockRMI("detachMirror", storage, mirrorList, deleteGroup, opId);
+    public void detachMirror(URI storage, List<URI> mirrorList, Boolean isCG, Boolean deleteGroup, String opId) throws InternalException {
+        blockRMI("detachMirror", storage, mirrorList, isCG, deleteGroup, opId);
     }
 
     @Override
-    public void deleteMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException {
-        blockRMI("deleteMirror", storage, mirrorList, opId);
+    public void deleteMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws InternalException {
+        blockRMI("deleteMirror", storage, mirrorList, isCG, opId);
     }
 
     @Override
-    public void deactivateMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException {
-        blockRMI("deactivateMirror", storage, mirrorList, opId);
+    public void deactivateMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws InternalException {
+        blockRMI("deactivateMirror", storage, mirrorList, isCG, opId);
     }
 
     @Override

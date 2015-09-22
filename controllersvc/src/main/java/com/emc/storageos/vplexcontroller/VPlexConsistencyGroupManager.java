@@ -90,7 +90,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
      * @param waitFor The previous step that it needs to wait for
      * @param vplexSystem The vplex system
      * @param vplexVolumeURIs The vplex volumes to be added to the consistency group
-     * @param willBeRemovedByEarlierStep if the consistency group coudl be removed by previous step
+     * @param willBeRemovedByEarlierStep if the consistency group could be removed by previous step
      * @param cgURI The consistency group URI
      * @return
      * @throws ControllerException
@@ -101,7 +101,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
 
         // No volumes, all done.
         if (vplexVolumeURIs.isEmpty()) {
-            log.info("No volumes specified consistency group.");
+            log.info(String.format("No volumes specified to add to the consistency group %s", cgURI.toString()));
             return waitFor;
         }
         
@@ -164,7 +164,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 nextStep, vplexURI, vplexSystem.getSystemType(), this.getClass(),
                 createAddVolumesToCGMethod(vplexURI, cgURI, volumeList),
                 createRemoveVolumesFromCGMethod(vplexURI, cgURI, volumeList), null);
-        log.info("Created step for add volumes to consistency group.");
+        log.info(String.format("Created step for adding volumes to the consistency group %s", cgURI.toString()));
 
         return nextStep;
     }

@@ -131,7 +131,7 @@ public class BlockSnapshotService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, BlockSnapshot.class, "id");
         BlockSnapshot snapshot = (BlockSnapshot) queryResource(id);
         Volume sourceVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
-
+        VirtualPool vpool = _permissionsHelper.getObjectById(sourceVolume.getVirtualPool(), VirtualPool.class);
         // Only allow creation once for a given snapshot.
         // Verify its a vplex snapshot
         // Verify it is possible to create a vplex volume. There must be VPLEX accessibility in the varray.
@@ -140,24 +140,26 @@ public class BlockSnapshotService extends TaskResourceService {
         // What happens when other operations are executed on this virtual volume.
         // have to protect against deleting snapshot or VPLEX volume.
 
-        VirtualPool vp = new VirtualPool(); // Hmmm...
-        vp.setId(URIUtil.createId(VirtualPool.class));
-        vp.setType(VirtualPool.Type.block.toString());
-        vp.setLabel(snapshot.getLabel());
-        vp.setDescription(snapshot.getLabel());
-        StringSet vpVarrays = new StringSet();
-        vpVarrays.add(snapshot.getVirtualArray().toString());
-        vp.setVirtualArrays(vpVarrays);
-        _dbClient.createObject(vp);
-
-        VirtualPool vplexVp = new VirtualPool(); // Hmmm...
-        vplexVp.setId(URIUtil.createId(VirtualPool.class));
-        vp.setType(VirtualPool.Type.block.toString());
-        vplexVp.setLabel("VPlex-" + snapshot.getLabel());
-        vplexVp.setDescription("VPlex-" + snapshot.getLabel());
-        vplexVp.setVirtualArrays(vpVarrays);
-        vplexVp.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.toString());
-        _dbClient.createObject(vplexVp);
+        /*
+         * VirtualPool vp = new VirtualPool(); // Hmmm...
+         * vp.setId(URIUtil.createId(VirtualPool.class));
+         * vp.setType(VirtualPool.Type.block.toString());
+         * vp.setLabel(snapshot.getLabel());
+         * vp.setDescription(snapshot.getLabel());
+         * StringSet vpVarrays = new StringSet();
+         * vpVarrays.add(snapshot.getVirtualArray().toString());
+         * vp.setVirtualArrays(vpVarrays);
+         * _dbClient.createObject(vp);
+         * 
+         * VirtualPool vplexVp = new VirtualPool(); // Hmmm...
+         * vplexVp.setId(URIUtil.createId(VirtualPool.class));
+         * vp.setType(VirtualPool.Type.block.toString());
+         * vplexVp.setLabel("VPlex-" + snapshot.getLabel());
+         * vplexVp.setDescription("VPlex-" + snapshot.getLabel());
+         * vplexVp.setVirtualArrays(vpVarrays);
+         * vplexVp.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.toString());
+         * _dbClient.createObject(vplexVp);
+         */
 
         Volume volume = new Volume();
         volume.addInternalFlags(DataObject.Flag.INTERNAL_OBJECT);
@@ -175,7 +177,7 @@ public class BlockSnapshotService extends TaskResourceService {
         volume.setSyncActive(sourceVolume.getSyncActive());
         volume.setAccessState(sourceVolume.getAccessState());
         volume.setVirtualArray(snapshot.getVirtualArray());
-        volume.setVirtualPool(vp.getId()); // Hmmm...
+        volume.setVirtualPool(sourceVolume.getVirtualPool()); // Hmmm...
         volume.setProject(snapshot.getProject());
         volume.setTenant(sourceVolume.getTenant());
         volume.setStorageController(snapshot.getStorageController());
@@ -189,7 +191,7 @@ public class BlockSnapshotService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
 
         VPlexBlockServiceApiImpl api = (VPlexBlockServiceApiImpl) getBlockServiceImpl("vplex");
-        api.importVirtualVolume(snapshot.getStorageController(), volume, vplexVp, taskId);
+        api.importVirtualVolume(snapshot.getStorageController(), volume, vpool, taskId);
 
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);

@@ -61,7 +61,7 @@ public class Annotations {
                                 .annotationType().getSimpleName())) {
                     String msg = String.format("Class annotation %s:%s is ignored in schema due to interceptor", runtimeType.getCfClass()
                             .getSimpleName(), annotations[i].annotationType().getSimpleName());
-                    log.warn(msg);
+                    log.info(msg);
                     continue;
                 } else if (!isClassAnnotation
                         && scannerInterceptor.isAnnotationIgnored(runtimeType.getCfClass().getSimpleName(), runtimeType
@@ -69,7 +69,7 @@ public class Annotations {
                     String msg = String.format("Property annotation %s:%s:%s is ignored in schema due to interceptor", runtimeType
                             .getCfClass().getSimpleName(), runtimeType.getPropertyDescriptor().getName(), annotations[i].annotationType()
                             .getSimpleName());
-                    log.warn(msg);
+                    log.info(msg);
                     continue;
                 }
             }

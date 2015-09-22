@@ -52,6 +52,7 @@ import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.model.dr.SiteSyncParam;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -84,13 +85,17 @@ public class DisasterRecoveryService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteRestRep addStandby(SiteAddParam param) {
         log.info("Begin to add standby site {}", param);
-        
-        precheckForStandbyAttach(param);
+        // TODO call standby site and fetch standby site information
+        // Mock up of standby site information
+        SiteSyncParam standbyInfo = new SiteSyncParam();
+        standbyInfo.setName(param.getName());
+        standbyInfo.setVip(param.getVip());
+        precheckForStandbyAttach(standbyInfo);
         
         VirtualDataCenter vdc = queryLocalVDC();
 
         Site standbySite = new Site(URIUtil.createId(Site.class));
-        siteMapper.map(param, standbySite);
+        siteMapper.map(standbyInfo, standbySite);
         standbySite.setVdc(vdc.getId());
 
         if (log.isDebugEnabled()) {
@@ -225,7 +230,7 @@ public class DisasterRecoveryService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/internal/standby/config")
-    public SiteRestRep addPrimary(SiteAddParam param) {
+    public SiteRestRep addPrimary(SiteSyncParam param) {
         log.info("Begin to add primary site {}", param);
 
         Site primarySite = toSite(param);
@@ -250,7 +255,7 @@ public class DisasterRecoveryService extends TaggedResource {
         log.info("VDC target version updated to {}", vdcTargetVersion);
     }
 
-    private Site toSite(SiteAddParam param) {
+    private Site toSite(SiteSyncParam param) {
         Site site = new Site();
         site.setId(URIUtil.createId(Site.class));
         site.setUuid(param.getUuid());
@@ -325,7 +330,7 @@ public class DisasterRecoveryService extends TaggedResource {
     /*
      * Internal method to check whether standby can be attached to current primary site
      */
-    protected void precheckForStandbyAttach(SiteAddParam standby) {
+    protected void precheckForStandbyAttach(SiteSyncParam standby) {
         try {
             //standby should be refresh install
             if (standby.isFreshInstallation() == false) {

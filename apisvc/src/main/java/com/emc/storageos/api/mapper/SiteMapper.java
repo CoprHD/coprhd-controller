@@ -6,8 +6,8 @@ package com.emc.storageos.api.mapper;
 
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.model.dr.SiteSyncParam;
 
 public class SiteMapper {
     public SiteRestRep map(Site from) {
@@ -29,19 +29,15 @@ public class SiteMapper {
         to.setVdcId(from.getVdc());
         to.setName(from.getName());
         to.setVip(from.getVip());
-        to.setSecretKey(from.getSecretKey());
-        to.setHostIPv4AddressMap(from.getHostIPv4AddressMap());
-        to.setHostIPv6AddressMap(from.getHostIPv6AddressMap());
-        to.setSecretKey(from.getSecretKey());
     }
     
-    public void map(SiteAddParam siteAddParam, Site site) {
-        site.setUuid(siteAddParam.getUuid());
-        site.setName(siteAddParam.getName());
-        site.setVip(siteAddParam.getVip());
-        site.getHostIPv4AddressMap().putAll(new StringMap(siteAddParam.getHostIPv4AddressMap()));
-        site.getHostIPv6AddressMap().putAll(new StringMap(siteAddParam.getHostIPv6AddressMap()));
-        site.setSecretKey(siteAddParam.getSecretKey());
+    public void map(SiteSyncParam siteParam, Site site) {
+        site.setUuid(siteParam.getUuid());
+        site.setName(siteParam.getName());
+        site.setVip(siteParam.getVip());
+        site.getHostIPv4AddressMap().putAll(new StringMap(siteParam.getHostIPv4AddressMap()));
+        site.getHostIPv6AddressMap().putAll(new StringMap(siteParam.getHostIPv6AddressMap()));
+        site.setSecretKey(siteParam.getSecretKey());
     }
 
     protected void mapDataObjectFields(Site from, SiteRestRep to) {

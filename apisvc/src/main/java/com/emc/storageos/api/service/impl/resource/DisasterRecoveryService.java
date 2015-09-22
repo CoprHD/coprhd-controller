@@ -12,15 +12,13 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.coordinator.client.model.*;
-import com.emc.storageos.model.property.PropertiesMetadata;
-import com.emc.storageos.model.property.PropertyInfoRestRep;
-import com.emc.storageos.model.property.PropertyMetadata;
+import com.emc.storageos.db.client.util.VdcConfigUtil;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.api.mapper.SiteMapper;
@@ -160,8 +158,6 @@ public class DisasterRecoveryService extends TaggedResource {
         try {
             _coordinator.addSite(param.getUuid());
             _coordinator.setPrimarySite(param.getUuid());
-
-            updateDataRevision();
         } catch (Exception e) {
             //FIXME: throw custom API exception here
             throw new IllegalStateException(e);
@@ -181,7 +177,7 @@ public class DisasterRecoveryService extends TaggedResource {
     public SiteList getAllStandby() {
         log.info("Begin to list all standby sites of local VDC");
         SiteList standbyList = new SiteList();
-        
+
         VirtualDataCenter vdc = queryLocalVDC();
         URIQueryResultList standbySiteIds = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
@@ -267,7 +263,7 @@ public class DisasterRecoveryService extends TaggedResource {
         
         SiteConfigRestRep siteConfigRestRep = new SiteConfigRestRep(); 
         siteMapper.map(localSite, siteConfigRestRep);
-        
+
         siteConfigRestRep.setDbSchemaVersion(_coordinator.getCurrentDbSchemaVersion());
         siteConfigRestRep.setFreshInstallation(isFreshInstallation());
         siteConfigRestRep.setState(siteState.name());
@@ -277,52 +273,25 @@ public class DisasterRecoveryService extends TaggedResource {
         } catch (Exception e) {
             log.error("Fail to get software version {}", e);
         }
-        
+
         log.info("Return result: {}", siteConfigRestRep);
         return siteConfigRestRep;
     }
 
-    // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc
-    private void updateDataRevision() throws Exception{
-        PropertyInfoRestRep currentProps = _coordinator.getTargetInfo(PropertyInfoExt.class);
-        Map<String, PropertyMetadata> propsMetadata = PropertiesMetadata.getGlobalMetadata();
-        HashMap<String, String> globalProps = new HashMap<>();
-        HashMap<String, String> siteProps = new HashMap<>();
-        for (Map.Entry<String, String> prop : currentProps.getAllProperties().entrySet()) {
-            String key = prop.getKey();
-            PropertyMetadata metadata = propsMetadata.get(key);
-            if (metadata.getSiteSpecific()) {
-                siteProps.put(key, prop.getValue());
-            } else {
-                globalProps.put(key, prop.getValue());
-            }
-        }
-        String dataRevision = String.valueOf(System.currentTimeMillis());
-        siteProps.put("target_data_revision_tag", dataRevision);
-        globalProps.put(PropertyInfoRestRep.CONFIG_VERSION, dataRevision);
-
-        PropertyInfoExt siteScopeInfo = new PropertyInfoExt(siteProps);
-        ConfigurationImpl siteCfg = new ConfigurationImpl();
-        siteCfg.setId(_coordinator.getSiteId());
-        siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
-        siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
-        _coordinator.persistServiceConfiguration(siteCfg);
-
-        ConfigurationImpl globalCfg = new ConfigurationImpl();
-        globalCfg.setId(PropertyInfoExt.TARGET_PROPERTY_ID);
-        globalCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
-        PropertyInfoExt globalPropInfo = new PropertyInfoExt(globalProps);
-        globalCfg.setConfig(TARGET_INFO, globalPropInfo.encodeAsString());
-        _coordinator.persistServiceConfiguration(globalCfg);
+    private void updateVdcTargetVersion() {
+        updateVdcTargetVersion(false);
     }
 
     // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc
-    private void updateVdcTargetVersion() {
+    private void updateVdcTargetVersion(boolean updateDataRevision) {
         ConfigurationImpl cfg = new ConfigurationImpl();
         String vdcTargetVersion = String.valueOf(System.currentTimeMillis());
         cfg.setId(SiteInfo.CONFIG_ID);
         cfg.setKind(SiteInfo.CONFIG_KIND);
         cfg.setConfig(TARGET_INFO, vdcTargetVersion);
+        if (updateDataRevision) {
+            cfg.setConfig(VdcConfigUtil.UPDATE_DATA_REVISION, "true");
+        }
         _coordinator.persistServiceConfiguration(cfg);
         log.info("VDC target version updated to {}", vdcTargetVersion);
     }

@@ -6,6 +6,7 @@
 package com.emc.storageos.systemservices.impl.property;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -14,12 +15,18 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.model.property.PropertiesMetadata;
+import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.model.property.PropertyMetadata;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
+
+import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
 
 public class VdcSiteManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
@@ -214,8 +221,10 @@ public class VdcSiteManager extends AbstractManager {
         // If the change is being done to create a multi VDC configuration or to reduce to a
         // multi VDC configuration a reboot is needed. If only operating on a single VDC
         // do not reboot the nodes.
+        boolean updateDataRevision = Boolean.valueOf(targetVdcPropInfo.getProperty(VdcConfigUtil.UPDATE_DATA_REVISION));
         if (targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
-                || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")) {
+                || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
+                || updateDataRevision) {
             log.info("Step2: Acquiring vdc lock for vdc properties change.");
             if (!getVdcLock(svcId)) {
                 retrySleep();
@@ -227,8 +236,14 @@ public class VdcSiteManager extends AbstractManager {
                 }
                 retrySleep();
             } else {
-                log.info("Step2: Setting vdc properties and rebooting for multi-vdc config change");
+                log.info("Step2: Setting vdc properties and reboot");
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+                if (updateDataRevision) {
+                    PropertyInfoExt currentProps = coordinator.getTargetInfo(PropertyInfoExt.class);
+                    String dataRevision = String.valueOf(System.currentTimeMillis());
+                    currentProps.addProperty("target_data_revision_tag", dataRevision);
+                    coordinator.setTargetProperties(currentProps.getAllProperties());
+                }
                 reboot();
             }
         } else {

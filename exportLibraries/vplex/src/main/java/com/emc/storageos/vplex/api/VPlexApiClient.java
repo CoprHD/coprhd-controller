@@ -1614,18 +1614,19 @@ public class VPlexApiClient {
      */
     public VPlexResourceInfo getDeviceStructure(String deviceName, String virtualVolumeType) 
             throws VPlexApiException {
-        s_logger.info("Request to find device structure for {} on VPLEX at {}", deviceName, _baseURI);
+        s_logger.info("Request to find {} device structure for {} on VPLEX at " + _baseURI, 
+                virtualVolumeType, deviceName);
 
         VPlexResourceInfo device = null;
 
         switch (virtualVolumeType) {
             case VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME:
                 device = getDiscoveryManager()
-                            .getDeviceStructureForDistributedIngestion(deviceName, virtualVolumeType);
+                            .getDeviceStructureForDistributedIngestion(deviceName);
                 break;
             case VPlexApiConstants.LOCAL_VIRTUAL_VOLUME:
                 device = getDiscoveryManager()
-                            .getDeviceStructureForLocalIngestion(deviceName, virtualVolumeType);
+                            .getDeviceStructureForLocalIngestion(deviceName);
                 break;
         }
 

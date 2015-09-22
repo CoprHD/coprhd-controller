@@ -48,7 +48,7 @@ public class VplexBackendIngestionContext {
     public static final String VOLUME = "VOLUME";
     public static final String UNMANAGEDVOLUME = "UNMANAGEDVOLUME";
     public static final String INGESTION_METHOD_FULL = "Full";
-    public static final String INGESTION_METHOD_VVOL_ONLY = "VirtualVolumeOnly";
+    public static final String INGESTION_METHOD_VVOL_ONLY = "VirtualVolumesOnly";
     public static final String DISCOVERY_MODE = "controller_vplex_volume_discovery_mode";
     public static final String DISCOVERY_MODE_DISCOVERY_ONLY = "Only During Discovery";
     public static final String DISCOVERY_MODE_INGESTION_ONLY = "Only During Ingestion";
@@ -247,6 +247,12 @@ public class VplexBackendIngestionContext {
                 StringSet parentVol = new StringSet();
                 parentVol.add(_unmanagedVirtualVolume.getNativeGuid());
                 backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), parentVol);
+                String clusterId = getClusterIdForVolume(backendVol);
+                if (null != clusterId && !clusterId.isEmpty()) {
+                    StringSet clusterIds = new StringSet();
+                    clusterIds.add(clusterId);
+                    backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.name(), clusterIds);
+                }
                 _dbClient.persistObject(backendVol);
             }
             if (bvols != null && !bvols.isEmpty()) {
@@ -256,6 +262,31 @@ public class VplexBackendIngestionContext {
         }
     }
 
+    /**
+     * Returns the VPLEX cluster id for the given backend UnManagedVolume.
+     * 
+     * @param backendVolume the backend volume to check
+     * @return the VPLEX cluster id for the backend volume
+     */
+    private String getClusterIdForVolume(UnManagedVolume backendVolume) {
+        VPlexResourceInfo device = getTopLevelDevice();
+        String clusterId = null;
+        _logger.info("getting cluster id for backend volume " + backendVolume.getLabel());
+        if (isLocal() && (device instanceof VPlexDeviceInfo)) {
+            VPlexDeviceInfo localDevice = ((VPlexDeviceInfo) device);
+            clusterId = localDevice.getCluster();
+        } else {
+            for (VPlexDeviceInfo localDevice : ((VPlexDistributedDeviceInfo) device).getLocalDeviceInfo()) {
+                UnManagedVolume associatedVol = getAssociatedVolumeForComponentDevice(localDevice);
+                if (backendVolume.equals(associatedVol)) {
+                    clusterId = localDevice.getCluster();
+                }
+            }
+        }
+        _logger.info("\tfound cluster id " + clusterId);
+        return clusterId;
+    }
+    
     /**
      * Queries the VPLEX API to get a Map of backend storage volume WWNs
      * to VPlexStorageVolumeInfo objects.
@@ -268,48 +299,21 @@ public class VplexBackendIngestionContext {
         }
 
         _logger.info("getting backend volume wwn to api info map");
-        boolean success = false;
+        
+        // have to check for mirrors first (and validate the top-level device structure)
+        // so that we know how to query for the storage-volumes
+        boolean hasMirror = !getMirrorMap().isEmpty();
+        
         try {
-            // first trying without checking for a top-level device mirror to save some time
             backendVolumeWwnToInfoMap =
                     VPlexControllerUtils.getStorageVolumeInfoForDevice(
-                            getSupportingDeviceName(), getLocality(), getClusterName(), false,
+                            getSupportingDeviceName(), getLocality(), getClusterName(), hasMirror,
                             _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
-            success = true;
         } catch (VPlexApiException ex) {
-            _logger.warn("failed to find wwn to storage volume map on "
-                    + "first try with no mirror map, will analyze mirrors and try again", ex);
-            _shouldCheckForMirrors = true;
-        }
-
-        if (!success) {
-            // we didn't succeed the first time, so try again and check for mirrors first
-            boolean hasMirror = !getMirrorMap().isEmpty();
-            
-            if (hasMirror) {
-                // the volume has a mirrored top-level device, so we need to 
-                // send the hasMirror flag down so that the VPLEX client will
-                // know to look one level deeper in the components tree for
-                // the backend storage volumes
-                try {
-                    backendVolumeWwnToInfoMap =
-                            VPlexControllerUtils.getStorageVolumeInfoForDevice(
-                                    getSupportingDeviceName(), getLocality(), getClusterName(), hasMirror,
-                                    _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
-                    success = true;
-                } catch (VPlexApiException ex) {
-                    String reason = "could not determine backend storage volumes for " 
-                            + getSupportingDeviceName() + ": " + ex.getLocalizedMessage();
-                    _logger.error(reason);
-                    throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
-                }
-            } else {
-                String reason = "could not determine backend storage volumes for " 
-                        + getSupportingDeviceName() 
-                        + ": failed for both simple and RAID-1 top-level device configurations";
-                _logger.error(reason);
-                throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
-            }
+            String reason = "could not determine backend storage volumes for " 
+                    + getSupportingDeviceName() + ": " + ex.getLocalizedMessage();
+            _logger.error(reason);
+            throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
         }
 
         _logger.info("backend volume wwn to api info map: " + backendVolumeWwnToInfoMap);

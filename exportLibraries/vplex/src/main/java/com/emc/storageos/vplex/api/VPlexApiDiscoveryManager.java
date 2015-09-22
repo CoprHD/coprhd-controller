@@ -3560,26 +3560,24 @@ public class VPlexApiDiscoveryManager {
     }
     
     /**
-     * Returns a VPlexDistributedDeviceInfo object for the given device name based
-     * on its virtual volume type (local or distributed). For each leg, the device geometry 
-     * (RAID configuration) is analyzed to ensure an acceptable component type 
-     * for ingestion is present. RAID-0 is acceptable as is. If RAID-1 is found,
+     * Returns a VPlexDistributedDeviceInfo object for the given device. For each leg, 
+     * the device geometry (RAID configuration) is analyzed to ensure an acceptable component 
+     * type for ingestion is present. RAID-0 is acceptable as is. If RAID-1 is found,
      * then the children will need to be analyzed to make sure they are composed
      * of only RAID-0 devices (by calling getDeviceComponentInfoForIngestion).
      * RAID-C volumes at this level will be rejected.
      * 
      * @param deviceName the name of the device
-     * @param virtualVolumeType the type of virtual volume (local or distributed)
      * 
      * @return a VPlexResourceInfo object for the device name
      * @throws VPlexApiException
      */
     public VPlexDistributedDeviceInfo getDeviceStructureForDistributedIngestion(
-            String deviceName, String virtualVolumeType) throws VPlexApiException {
+            String deviceName) throws VPlexApiException {
 
         long start = System.currentTimeMillis();
-        s_logger.info("Getting device structure info for local device {} from VPLEX at "
-                + _vplexApiClient.getBaseURI().toString(), virtualVolumeType, deviceName);
+        s_logger.info("Getting device structure info for device {} from VPLEX at "
+                + _vplexApiClient.getBaseURI().toString(), deviceName);
 
         StringBuilder uriBuilder = new StringBuilder();
         // format /vplex/distributed-storage/distributed-devices
@@ -3644,8 +3642,7 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
-     * Returns a VPlexDeviceInfo object for the given device name based
-     * on its virtual volume type (local or distributed). The device geometry 
+     * Returns a VPlexDeviceInfo object for the given device. The device geometry 
      * (RAID configuration) is analyzed to ensure an acceptable component type 
      * for ingestion is present. RAID-0 is acceptable as is. If RAID-1 is found,
      * then the children will need to be analyzed to make sure they are composed
@@ -3653,17 +3650,16 @@ public class VPlexApiDiscoveryManager {
      * RAID-C volumes at this level will be rejected.
      * 
      * @param deviceName the name of the device
-     * @param virtualVolumeType the type of virtual volume (local or distributed)
      * 
      * @return a VPlexResourceInfo object for the device name
      * @throws VPlexApiException
      */
     public VPlexDeviceInfo getDeviceStructureForLocalIngestion(
-            String deviceName, String virtualVolumeType) throws VPlexApiException {
+            String deviceName) throws VPlexApiException {
 
         long start = System.currentTimeMillis();
         s_logger.info("Getting device structure info for {} device {} from VPLEX at "
-                + _vplexApiClient.getBaseURI().toString(), virtualVolumeType, deviceName);
+                + _vplexApiClient.getBaseURI().toString(), deviceName);
 
         StringBuilder uriBuilder = new StringBuilder();
         // format /vplex/clusters/*/devices/DEVICE_NAME

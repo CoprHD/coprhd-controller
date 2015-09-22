@@ -76,12 +76,12 @@ public class FileVirtualPools extends ViprResourceController {
         }
     }
 
-    private static void exception(FileVirtualPoolForm vpool, ViPRException e) {
+    private static void throwFlashException(FileVirtualPoolForm vpool, ViPRException e) {
         flashException(e);
-        error(vpool);
+        setErrorReferrer(vpool);
     }
 
-    private static void error(FileVirtualPoolForm vpool) {
+    private static void setErrorReferrer(FileVirtualPoolForm vpool) {
         // Only flash vpool parameters to reduce amount stored in flash scope
         for (String param : params.all().keySet()) {
             if (param.startsWith("vpool.")) {
@@ -180,7 +180,7 @@ public class FileVirtualPools extends ViprResourceController {
             flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
             backToReferrer();
         } catch (ViPRException e) {
-            exception(vpool, e);
+            throwFlashException(vpool, e);
         }
     }
 

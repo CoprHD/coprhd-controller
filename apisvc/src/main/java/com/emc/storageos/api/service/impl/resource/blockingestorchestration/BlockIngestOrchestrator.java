@@ -643,11 +643,11 @@ public abstract class BlockIngestOrchestrator {
         _logger.info("Running algorithm to find the root source volume for {}", currentUnmanagedVolume.getNativeGuid());
         // Get the topmost parent object
         while (parentVolumeNativeGUID != null) {
-            _logger.debug("Finding unmanagedvolume {} in vipr db", parentVolumeNativeGUID);
+            _logger.info("Finding unmanagedvolume {} in vipr db", parentVolumeNativeGUID);
             List<URI> parentUnmanagedUris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getVolumeInfoNativeIdConstraint(parentVolumeNativeGUID));
             if (!parentUnmanagedUris.isEmpty()) {
-                _logger.debug("Found unmanagedvolume {} in vipr db", parentVolumeNativeGUID);
+                _logger.info("Found unmanagedvolume {} in vipr db", parentVolumeNativeGUID);
                 rootUnManagedVolume = _dbClient.queryObject(UnManagedVolume.class, parentUnmanagedUris.get(0));
                 unManagedVolumeInformation = rootUnManagedVolume.getVolumeInformation();
                 String blockObjectNativeGUID = rootUnManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
@@ -659,22 +659,22 @@ public abstract class BlockIngestOrchestrator {
                 }
                 // Get the parent unmanagedvolume for the current unmanagedvolume.
                 parentVolumeNativeGUID = getParentVolumeNativeGUIDByRepType(unManagedVolumeInformation);
-                _logger.debug("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
+                _logger.info("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
                         rootUnManagedVolume.getNativeGuid());
             } else {
-                _logger.debug("unmanagedvolume not found looking for ingested volume {} in vipr db", parentVolumeNativeGUID);
+                _logger.info("unmanagedvolume not found looking for ingested volume {} in vipr db", parentVolumeNativeGUID);
                 // parent might be already ingested
                 // Native guid might correspond to ViPR object, find if there is still a unmanaged volume corresponding to the parent
                 parentUnmanagedUris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                         .getVolumeInfoNativeIdConstraint(parentVolumeNativeGUID.replace(VolumeIngestionUtil.VOLUME,
                                 VolumeIngestionUtil.UNMANAGEDVOLUME)));
                 if (!parentUnmanagedUris.isEmpty()) {
-                    _logger.debug("Found ingested volume {} in vipr db", parentVolumeNativeGUID);
+                    _logger.info("Found ingested volume {} in vipr db", parentVolumeNativeGUID);
                     rootUnManagedVolume = _dbClient.queryObject(UnManagedVolume.class, parentUnmanagedUris.get(0));
                     unManagedVolumeInformation = rootUnManagedVolume.getVolumeInformation();
                     rootBlockObject = VolumeIngestionUtil.getBlockObject(parentVolumeNativeGUID, _dbClient);
                     parentVolumeNativeGUID = getParentVolumeNativeGUIDByRepType(unManagedVolumeInformation);
-                    _logger.debug("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
+                    _logger.info("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
                             rootUnManagedVolume.getNativeGuid());
                 } else {
                     _logger.info("Found a replica {} whose parent is already ingested with PUBLIC_ACCESS=true", parentVolumeNativeGUID);
@@ -729,7 +729,11 @@ public abstract class BlockIngestOrchestrator {
                 } else if (replica instanceof Volume && isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
                     VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
                 } else if (replica instanceof Volume) {
-                    VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);
+                    if (VolumeIngestionUtil.isVplexVolume(currentUnmanagedVolume)) {
+                        VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);
+                    } else {
+                        VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);
+                    }
                 } else if (replica instanceof BlockSnapshot) {
                     VolumeIngestionUtil.setupSnapParentRelations(replica, parent, _dbClient);
                 }
@@ -785,6 +789,10 @@ public abstract class BlockIngestOrchestrator {
         } else if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.REMOTE_MIRROR_SOURCE_VOLUME.toString())) {
             parentVolumeNativeGuid = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.REMOTE_MIRROR_SOURCE_VOLUME.toString(),
+                    unManagedVolumeInformation);
+        } else if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString())) {
+            parentVolumeNativeGuid = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
                     unManagedVolumeInformation);
         }
         return parentVolumeNativeGuid;
@@ -871,7 +879,7 @@ public abstract class BlockIngestOrchestrator {
             unmanagedReplicaGUIDs.addAll(clones);
             StringSet cloneGUIDs = VolumeIngestionUtil.getListofVolumeIds(clones);
             expectedIngestedReplicas.addAll(cloneGUIDs);
-            foundIngestedReplicas.addAll(VolumeIngestionUtil.getCloneObjects(cloneGUIDs, createdObjectMap, _dbClient));
+            foundIngestedReplicas.addAll(VolumeIngestionUtil.getVolumeObjects(cloneGUIDs, createdObjectMap, _dbClient));
         }
 
         StringSet snaps = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.SNAPSHOTS.toString(),
@@ -880,19 +888,26 @@ public abstract class BlockIngestOrchestrator {
             unmanagedReplicaGUIDs.addAll(snaps);
             StringSet snapGUIDs = VolumeIngestionUtil.getListofVolumeIds(snaps);
             expectedIngestedReplicas.addAll(snapGUIDs);
-            _logger.error("snapGUIDs " + snapGUIDs);
-            _logger.error("createdObjectMap " + createdObjectMap);
             foundIngestedReplicas.addAll(VolumeIngestionUtil.getSnapObjects(snapGUIDs, createdObjectMap, _dbClient));
         }
 
         StringSet remoteMirrors = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.REMOTE_MIRRORS.toString(),
                 unManagedVolumeInformation);
-
         if (remoteMirrors != null && !remoteMirrors.isEmpty()) {
             unmanagedReplicaGUIDs.addAll(remoteMirrors);
             StringSet remoteMirrorGUIDs = VolumeIngestionUtil.getListofVolumeIds(remoteMirrors);
             expectedIngestedReplicas.addAll(remoteMirrorGUIDs);
-            foundIngestedReplicas.addAll(VolumeIngestionUtil.getCloneObjects(remoteMirrorGUIDs, createdObjectMap, _dbClient));
+            foundIngestedReplicas.addAll(VolumeIngestionUtil.getVolumeObjects(remoteMirrorGUIDs, createdObjectMap, _dbClient));
+        }
+
+        StringSet vplexBackendVolumes = PropertySetterUtil.extractValuesFromStringSet(
+            SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
+                unManagedVolumeInformation);
+        if (vplexBackendVolumes != null && !vplexBackendVolumes.isEmpty()) {
+            unmanagedReplicaGUIDs.addAll(vplexBackendVolumes);
+            StringSet vplexBackendVolumeGUIDs = VolumeIngestionUtil.getListofVolumeIds(vplexBackendVolumes);
+            expectedIngestedReplicas.addAll(vplexBackendVolumeGUIDs);
+            foundIngestedReplicas.addAll(VolumeIngestionUtil.getVolumeObjects(vplexBackendVolumeGUIDs, createdObjectMap, _dbClient));
         }
 
         if (unmanagedReplicaGUIDs.contains(currentUnManagedVolume.getNativeGuid())) {
@@ -959,17 +974,12 @@ public abstract class BlockIngestOrchestrator {
      * @param foundIngestedReplicaNativeGuids
      */
     private void getFoundIngestedReplicaURIs(List<BlockObject> foundIngestedReplicas, List<String> foundIngestedReplicaNativeGuids) {
-        
-        _logger.error("foundIngestedReplicas: " + foundIngestedReplicas);
-        _logger.error("foundIngestedReplicaNativeGuids: " + foundIngestedReplicaNativeGuids);
-        
         if (null != foundIngestedReplicas && !foundIngestedReplicas.isEmpty()) {
             for (BlockObject blockObj : foundIngestedReplicas) {
-                _logger.error("blockObj: " + blockObj);
+                _logger.info("getFoundIngestedReplicaURIs blockObj: " + blockObj);
                 foundIngestedReplicaNativeGuids.add(blockObj.getNativeGuid());
             }
         }
-
     }
 
 }

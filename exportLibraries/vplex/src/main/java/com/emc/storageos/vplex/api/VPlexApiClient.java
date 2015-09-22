@@ -1313,7 +1313,7 @@ public class VPlexApiClient {
     ClientResponse get(URI resourceURI) {
         return get(resourceURI,
                 VPlexApiConstants.ACCEPT_JSON_FORMAT_0,
-                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO);
     }
 
     /**
@@ -1327,7 +1327,7 @@ public class VPlexApiClient {
      */
     ClientResponse get(URI resourceURI, String jsonFormat) {
         return get(resourceURI, jsonFormat,
-                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO);
     }
 
     /**

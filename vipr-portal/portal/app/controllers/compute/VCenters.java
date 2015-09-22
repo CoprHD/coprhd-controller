@@ -37,6 +37,7 @@ import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
 import util.MessagesUtils;
+import util.StringOption;
 import util.TenantUtils;
 import util.VCenterUtils;
 import util.VcenterDataCenterUtils;
@@ -109,15 +110,22 @@ public class VCenters extends ViprResourceController {
 
     public static void create() {
         VCenterForm vCenter = new VCenterForm();
+        vCenter.setTenantsForCreation();
 
         renderTenantOptions();
-
         render("@edit", vCenter);
     }
 
     private static void renderTenantOptions() {
         if (TenantUtils.canReadAllTenantsForVcenters() && VCenterUtils.canUpdateACLs()) {
-            renderArgs.put("tenantOptions", dataObjectOptions(await(new TenantsCall().asPromise())));
+            List<StringOption> tenantOptions = dataObjectOptions(await(new TenantsCall().asPromise()));
+            renderArgs.put("tenantOptions", tenantOptions);
+
+            List<StringOption> tenantOptionsWithNone = new ArrayList<StringOption>();
+
+            tenantOptionsWithNone.add(new StringOption(NullColumnValueGetter.getNullStr().toString(), "None"));
+            tenantOptionsWithNone.addAll(tenantOptions);
+            renderArgs.put("tenantOptionsWithNone", tenantOptionsWithNone);
         }
     }
 
@@ -135,6 +143,8 @@ public class VCenters extends ViprResourceController {
             return;
         }
 
+        addNoneTenantOption(id, vCenterTenantOptions);
+
         Iterator<ACLEntry> aclEntryIterator = vcenterAcls.iterator();
         while (aclEntryIterator.hasNext()) {
             ACLEntry aclEntry = aclEntryIterator.next();
@@ -148,6 +158,16 @@ public class VCenters extends ViprResourceController {
             }
         }
         renderJSON(vCenterTenantOptions);
+    }
+
+    private static void addNoneTenantOption(String id, List<TenantOrgRestRep> vCenterTenantOptions) {
+        VcenterRestRep vcenterRestRep = VCenterUtils.getVCenter(uri(id));
+        if (vcenterRestRep != null && !vcenterRestRep.getCascadeTenancy()) {
+            TenantOrgRestRep noneTenantOption = new TenantOrgRestRep();
+            noneTenantOption.setName("None");
+            noneTenantOption.setId(NullColumnValueGetter.getNullURI());
+            vCenterTenantOptions.add(noneTenantOption);
+        }
     }
 
     public static void editVcenterDataCenter(String vcenterDataCenterId, String tenant) {
@@ -200,7 +220,7 @@ public class VCenters extends ViprResourceController {
     }
 
     public static void save(VCenterForm vCenter) {
-        if (!vCenter.canOnlyUpdateVcenterAcls()) {
+        if (!vCenter.canEditVcenter()) {
             VcenterRestRep dbVCenter = VCenterUtils.getVCenter(uri(vCenter.id));
             if (dbVCenter != null) {
                 vCenter.name = dbVCenter.getName();
@@ -265,7 +285,9 @@ public class VCenters extends ViprResourceController {
         public static final int DEFAULT_PORT = 443;
 
         public String id;
+
         public Set<String> tenants;
+        public String tenant;
 
         @Required
         @MaxSize(128)
@@ -289,10 +311,9 @@ public class VCenters extends ViprResourceController {
         @Min(1)
         public Integer port = DEFAULT_PORT;
 
-        public Boolean enableTenants = Boolean.FALSE;
+        public Boolean cascadeTenancy = Boolean.FALSE;
 
         public VCenterForm() {
-            setTenantsForCreation();
         }
 
         public VCenterForm(VcenterRestRep vCenter) {
@@ -306,6 +327,7 @@ public class VCenters extends ViprResourceController {
             this.hostname = vCenter.getIpAddress();
             this.username = vCenter.getUsername();
             this.port = vCenter.getPortNumber();
+            this.cascadeTenancy = vCenter.getCascadeTenancy();
             doReadAcls();
         }
 
@@ -314,19 +336,22 @@ public class VCenters extends ViprResourceController {
             if (CollectionUtils.isEmpty(aclEntries)) {
                 if (!CollectionUtils.isEmpty(this.tenants)) {
                     this.tenants.clear();
-                    this.enableTenants = Boolean.FALSE;
+                    this.tenant = "";
                 }
                 return;
             }
 
             this.tenants = new HashSet<String>();
-            Iterator<ACLEntry> aclIt = aclEntries.iterator();
-            while (aclIt.hasNext()) {
-                this.tenants.add(aclIt.next().getTenant());
-            }
-
-            if (!CollectionUtils.isEmpty(this.tenants)) {
-                this.enableTenants = Boolean.TRUE;
+            if (aclEntries.size() > 1) {
+                Iterator<ACLEntry> aclIt = aclEntries.iterator();
+                while (aclIt.hasNext()) {
+                    this.tenants.add(aclIt.next().getTenant());
+                }
+                renderArgs.put("disableCascadeTenancy", true);
+            } else {
+                ACLEntry aclEntry = aclEntries.iterator().next();
+                this.tenant = aclEntry.getTenant();
+                this.tenants.add(aclEntry.getTenant());
             }
         }
 
@@ -347,13 +372,18 @@ public class VCenters extends ViprResourceController {
                 vCenter.setPassword(StringUtils.trimToNull(this.password));
             }
             vCenter.setPortNumber(this.port);
+            vCenter.setCascadeTenancy(this.cascadeTenancy);
         }
 
         public ACLAssignmentChanges getAclAssignmentChanges() {
             Set<String> tenantIds = Sets.newHashSet();
 
-            if (this.enableTenants &&
-                    !CollectionUtils.isEmpty(this.tenants)) {
+            if (this.cascadeTenancy) {
+                if(StringUtils.isNotBlank(this.tenant) &&
+                        !this.tenant.equalsIgnoreCase(NullColumnValueGetter.getNullStr().toString())) {
+                    tenantIds.add(this.tenant);
+                }
+            } else if (!CollectionUtils.isEmpty(this.tenants)) {
                 tenantIds.addAll(this.tenants);
             }
 
@@ -416,11 +446,12 @@ public class VCenters extends ViprResourceController {
         }
 
         protected Task<VcenterRestRep> updateVCenter(boolean validateConnection) {
-            if (canOnlyUpdateVcenterAcls()) {
+            if (canEditVcenter()) {
                 VcenterUpdateParam vcenterUpdateParam = new VcenterUpdateParam();
                 doWriteTo(vcenterUpdateParam);
+                ACLAssignmentChanges aclAssignmentChanges = getAclAssignmentChanges();
                 return VCenterUtils.updateVCenter(uri(id), vcenterUpdateParam, validateConnection,
-                                getAclAssignmentChanges(), false);
+                        aclAssignmentChanges);
             } else {
                 return VCenterUtils.updateAcl(uri(id), getAclAssignmentChanges());
             }
@@ -430,7 +461,7 @@ public class VCenters extends ViprResourceController {
             return StringUtils.isBlank(id);
         }
 
-        public boolean canOnlyUpdateVcenterAcls() {
+        public boolean canEditVcenter() {
             if (Security.isSecurityAdmin() &&
                     !(Security.isSystemAdmin() || Security.isTenantAdmin() || isNew())) {
                 return false;
@@ -438,7 +469,7 @@ public class VCenters extends ViprResourceController {
             return true;
         }
 
-        private void setTenantsForCreation() {
+        public void setTenantsForCreation() {
             this.tenants = new HashSet<String>();
             if (StringUtils.isNotBlank(Models.currentAdminTenantForVcenter()) &&
                     Models.currentAdminTenantForVcenter().equalsIgnoreCase(TenantUtils.getNoTenantSelector())) {
@@ -450,14 +481,13 @@ public class VCenters extends ViprResourceController {
                         continue;
                     }
                     this.tenants.add(tenant.getId().toString());
+                    this.cascadeTenancy = Boolean.FALSE;
                 }
             } else if (StringUtils.isNotBlank(Models.currentAdminTenantForVcenter()) &&
                     !Models.currentAdminTenantForVcenter().equalsIgnoreCase(TenantUtils.getTenantSelectorForUnassigned())) {
-                this.tenants.add(Models.currentAdminTenantForVcenter());
-            }
-
-            if (!CollectionUtils.isEmpty(this.tenants)) {
-                this.enableTenants = Boolean.TRUE;
+                this.tenants.clear();
+                this.tenant = Models.currentAdminTenantForVcenter();
+                this.cascadeTenancy = Boolean.TRUE;
             }
         }
     }

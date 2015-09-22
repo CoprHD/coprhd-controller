@@ -133,13 +133,16 @@ public class BlockSnapshotService extends TaskResourceService {
         Volume sourceVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
 
         // Only allow creation once for a given snapshot.
-        // Verify vplex snapshot
+        // Verify its a vplex snapshot
+        // Verify it is possible to create a vplex volume. There must be VPLEX accessibility in the varray.
         // What to do about vpools and storage pools
-        // Only allow the virtual volume so created to be exported. Marl it export only?
+        // Only allow the virtual volume so created to be exported. Mark it export only?
         // What happens when other operations are executed on this virtual volume.
+        // have to protect against deleting snapshot or VPLEX volume.
 
         VirtualPool vp = new VirtualPool(); // Hmmm...
         vp.setId(URIUtil.createId(VirtualPool.class));
+        vp.setType(VirtualPool.Type.block.toString());
         vp.setLabel(snapshot.getLabel());
         vp.setDescription(snapshot.getLabel());
         StringSet vpVarrays = new StringSet();
@@ -149,6 +152,7 @@ public class BlockSnapshotService extends TaskResourceService {
 
         VirtualPool vplexVp = new VirtualPool(); // Hmmm...
         vplexVp.setId(URIUtil.createId(VirtualPool.class));
+        vp.setType(VirtualPool.Type.block.toString());
         vplexVp.setLabel("VPlex-" + snapshot.getLabel());
         vplexVp.setDescription("VPlex-" + snapshot.getLabel());
         vplexVp.setVirtualArrays(vpVarrays);

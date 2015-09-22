@@ -50,6 +50,7 @@ import util.StoragePoolUtils;
 import util.StoragePortUtils;
 import util.StorageSystemUtils;
 import util.StringOption;
+import util.VCenterUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
@@ -103,6 +104,7 @@ public class StorageSystems extends ViprResourceController {
     protected static final String UNKNOWN_PORT = "storageArrayPort.unknown";
     protected static final String NOT_REGISTERED = "StorageSystems.not.registered";
     protected static final String SCALEIO = "scaleio";
+    private static final String EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT = "2.4";
 
     private static void addReferenceData() {
         renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.OPTIONS));
@@ -390,6 +392,7 @@ public class StorageSystems extends ViprResourceController {
         	dataTable = new VirtualNasForNonProjectAdminDataTable();
         }
         renderArgs.put("storageId", id);
+        renderArgs.put("expectedGeoVersion", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT));
         render("@listVirtualNasServers", storageSystem, dataTable);
     }
     
@@ -472,6 +475,7 @@ public class StorageSystems extends ViprResourceController {
             results.add(new VirtualNasServerInfo(vNasServer,isProjectAccessible));
         }
         renderArgs.put("storageId", storageId);
+        renderArgs.put("expectedGeoVersion", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT));
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
     

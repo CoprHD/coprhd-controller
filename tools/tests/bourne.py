@@ -334,10 +334,14 @@ URI_OBJECTTZ                    = URI_SERVICES_BASE + '/object/networks'
 URI_OBJECTTZ_INSTANCE           = URI_OBJECTTZ + '/{0}'
 URI_OBJECTTZ_DELETE             = URI_OBJECTTZ + '/{0}/deactivate'
 
+URI_DISCOVERED_PROTECTION_SYSTEMS   = URI_SERVICES_BASE   + '/vdc/protection-systems'
+URI_DISCOVERED_PROTECTION_SYSTEM    = URI_DISCOVERED_PROTECTION_SYSTEMS + '/{0}'
 URI_PROTECTION_SYSTEM = URI_SERVICES_BASE + '/vdc/protection-systems/{0}'
 URI_PROTECTION_SYSTEMS = URI_SERVICES_BASE + '/vdc/protection-systems'
 URI_PROTECTION_SYSTEM_DISCOVER = URI_PROTECTION_SYSTEM + '/discover'
 URI_PROTECTION_SYSTEM_UPDATE          = URI_PROTECTION_SYSTEM
+URI_DISCOVERED_PROTECTION_SYSTEM_DISCOVER    = URI_PROTECTION_SYSTEM + '/discover'
+URI_DISCOVERED_PROTECTION_SYSTEM_NS = URI_DISCOVERED_PROTECTION_SYSTEM_DISCOVER + '?namespace={1}'
 
 URI_PROTECTIONSET = URI_SERVICES_BASE + '/block/protection-sets/{0}'
 URI_PROTECTIONSETS = URI_SERVICES_BASE + '/block/protection-sets'
@@ -857,15 +861,14 @@ class Bourne:
                         print 'Headers', newHeaders
                     response = requests.get(url,headers=newHeaders,verify=False, cookies=cookiejar, timeout=req_timeout, stream=True)
                 else:
-                    raise Excpeption("Unsupported method:", method)
+                    raise Exception("Unsupported method:", method)
 
                 if BOURNE_DEBUG == '1':
                     try:
             		print 'Headers: ', newHeaders
                         print 'Response code ' + str(response.status_code)
-                        if not method != 'GET-stream':
-                            print 'Response '
-                            self.pretty_print_json(cjson.decode(response.text))
+                        print 'Response '
+                        self.pretty_print_json(cjson.decode(response.text))
                     except:
                         print 'Exception printing debug output'
             except requests.exceptions.Timeout:
@@ -4865,12 +4868,29 @@ class Bourne:
 	s=self.api_sync_2(task['resource']['id'],task['op_id'],self.protectionsystem_show_task, ignore_error)
         return "discovery is completed"
 
+    def protectionsystem_discover_namespace(self, native_guid, namespace, ignore_error):
+        if (self.__is_uri(native_guid)):
+            return name
+        systems = self.protectionsystem_list()
+        for system in systems:
+            try:
+                protection_system = self.show_element(system['id'], URI_PROTECTION_SYSTEM)
+                if (protection_system['native_guid'] == native_guid):
+                    o = self.api('POST', URI_DISCOVERED_PROTECTION_SYSTEM_NS.format(system['id'], namespace));
+                    s=self.api_sync_2(o['resource']['id'],o['op_id'],self.protectionsystem_show_task, ignore_error)
+                    return "discovery of namespace is completed"
+            except KeyError:
+                print 'no name key'
+        raise Exception('bad protection system native_guid: ' + native_guid)
+
     def protectionsystem_list(self):
         o = self.api('GET', URI_PROTECTION_SYSTEMS)
         if (not o):
             return {};
-        else:
-            return o
+	systems = o['protection_system'];
+	if(type(systems) != list):
+	    return [systems];
+        return systems;
 
     def protectionsystem_show(self, uri):
         return self.api('GET', URI_PROTECTION_SYSTEM.format(uri))
@@ -4880,7 +4900,7 @@ class Bourne:
             return name
 
         protectionsystems = self.protectionsystem_list()
-        for protection_system in protectionsystems['protection_system']:
+        for protection_system in protectionsystems:
             protectionsystem = self.protectionsystem_show(protection_system['id'])
             if (protectionsystem['name'] == name):
                 return protectionsystem['id']

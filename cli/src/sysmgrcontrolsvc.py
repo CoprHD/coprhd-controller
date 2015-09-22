@@ -30,13 +30,13 @@ class ControlService(object):
         self.__ipAddr = ipAddr
         self.__port = port
 
-    def rebootNode(self, nodeId , nodename):
+    def rebootNode(self, nodeid , nodename):
         
         
         if (nodename is not None):
             uri = ControlService.URI_CONTROL_NODE_REBOOT + "?node_name=" + nodename 
-        if (nodeId is not None):
-            uri = ControlService.URI_CONTROL_SERVICE_RESTART + "?node_id=" + nodeId 
+        if (nodeid is not None):
+            uri = ControlService.URI_CONTROL_NODE_REBOOT + "?node_id=" + nodeid 
             
         
 
@@ -275,7 +275,7 @@ def reboot_node_parser(subcommand_parsers, common_parser):
 
 
 def reboot_node(args):
-    nodeId = args.nodeid
+    nodeid = args.nodeid
     nodename = args.nodename
 
     try:
@@ -288,10 +288,11 @@ def reboot_node(args):
         response = common.ask_continue("reboot node:" )
         if(str(response) == "y"):
             contrlSvcObj = ControlService(args.ip, args.port)
-            contrlSvcObj.rebootNode(nodeId , nodename )
+            contrlSvcObj.rebootNode(nodeid , nodename )
     except SOSError as e:
         common.format_err_msg_and_raise(
             "reboot-node",
+            "nodeid " ,
             e.err_text,
             e.err_code)
 

@@ -12,10 +12,10 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.db.client.util.VdcConfigUtil;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.client.model.*;
@@ -30,6 +30,8 @@ import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.dr.*;
+import com.emc.storageos.model.property.PropertiesMetadata;
+import com.emc.storageos.model.property.PropertyMetadata;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -38,6 +40,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.client.ViPRCoreClient;
+
 import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
@@ -52,6 +55,8 @@ public class DisasterRecoveryService extends TaggedResource {
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
     private SysUtils sysUtils;
+    @Autowired
+    private PropertiesMetadata propertyMetadata;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -158,6 +163,8 @@ public class DisasterRecoveryService extends TaggedResource {
         try {
             _coordinator.addSite(param.getUuid());
             _coordinator.setPrimarySite(param.getUuid());
+
+            updateDataRevision();
         } catch (Exception e) {
             //FIXME: throw custom API exception here
             throw new IllegalStateException(e);
@@ -276,6 +283,35 @@ public class DisasterRecoveryService extends TaggedResource {
 
         log.info("Return result: {}", siteConfigRestRep);
         return siteConfigRestRep;
+    }
+
+    private void updateDataRevision() throws Exception {
+        PropertyInfoExt currentProps = _coordinator.getTargetInfo(PropertyInfoExt.class);
+        Map<String, PropertyMetadata> propsMetadata = PropertiesMetadata.getGlobalMetadata();
+        // split properties as global, or site specific
+        HashMap<String, String> siteProps = new HashMap<>();
+        for (Map.Entry<String, String> prop : currentProps.getAllProperties().entrySet()) {
+            String key = prop.getKey();
+            PropertyMetadata metadata = propsMetadata.get(key);
+            if (metadata.getSiteSpecific()) {
+                siteProps.put(key, prop.getValue());
+            }
+        }
+
+        int dataRevision = 1;
+        if (siteProps.containsKey("target_data_revision_tag")) {
+            dataRevision = Integer.valueOf(siteProps.get("target_data_revision_tag"));
+        }
+        dataRevision ++;
+        siteProps.put("target_data_revision_tag", String.valueOf(dataRevision));
+
+        PropertyInfoExt siteScopeInfo = new PropertyInfoExt(siteProps);
+        ConfigurationImpl siteCfg = new ConfigurationImpl();
+        siteCfg.setId(_coordinator.getSiteId());
+        siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+        siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
+        log.info("Updating data revision to {} in site target", dataRevision);
+        _coordinator.persistServiceConfiguration(siteCfg);
     }
 
     // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc

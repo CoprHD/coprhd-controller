@@ -199,9 +199,11 @@ public class VcenterService extends TaskResourceService {
         if (vcenter == null || (param.findIpAddress() != null && !param.findIpAddress().equals(vcenter.getIpAddress()))) {
             checkDuplicateAltId(Vcenter.class, "ipAddress", param.findIpAddress(), "vcenter");
         }
+
         if (vcenter == null || (param.getName() != null && !param.getName().equals(vcenter.getLabel()))) {
             checkDuplicateLabel(Vcenter.class, param.getName(), "vcenter");
         }
+
         validateVcenterCredentials(param, vcenter);
 
         if (validateConnection != null && validateConnection == true) {
@@ -209,6 +211,13 @@ public class VcenterService extends TaskResourceService {
             if (StringUtils.isNotBlank(errorMessage)) {
                 throw APIException.badRequests.invalidVCenterConnection(errorMessage);
             }
+        }
+
+        updateCascadeTenancy(param, vcenter);
+
+        if (!isSystemAdmin() && vcenter != null &&
+                vcenter.getCascadeTenancy().booleanValue() != param.getCascadeTenancy().booleanValue()) {
+            throw APIException.forbidden.tenantAdminCannotModifyCascadeTenancy(getUserFromContext().getName(), vcenter.getLabel());
         }
     }
 
@@ -393,7 +402,7 @@ public class VcenterService extends TaskResourceService {
         datacenter.setId(URIUtil.createId(VcenterDataCenter.class));
         datacenter.setLabel(createParam.getName());
         datacenter.setVcenter(id);
-        if (vcenter.getTenantCreated()) {
+        if (vcenter.getCascadeTenancy()) {
             datacenter.setTenant(_permissionsHelper.getTenant(vcenter.getAcls()));
         } else {
             datacenter.setTenant(NullColumnValueGetter.getNullURI());
@@ -463,18 +472,6 @@ public class VcenterService extends TaskResourceService {
         vcenter.setId(URIUtil.createId(Vcenter.class));
         addVcenterAclIfTenantAdmin(tenant, vcenter);
         populateVcenterData(vcenter, param);
-        if (isSystemAdmin()) {
-            //Since, the creating user is either SysAdmin make the tenantCreated
-            //flag to false.
-            vcenter.setTenantCreated(Boolean.FALSE);
-        } else {
-            //Since the creating user is a TenantAdmin, just make the vCenter
-            //as a tenant created resource by default. When the SecAdmin or
-            //SysAdmin adds any new tenant then the vCenter will be shared
-            //across those tenants.
-            _log.debug("Tenant admin creates the vCenter {}", param.getName());
-            vcenter.setTenantCreated(Boolean.TRUE);
-        }
         return vcenter;
     }
 
@@ -492,6 +489,7 @@ public class VcenterService extends TaskResourceService {
         vcenter.setIpAddress(param.findIpAddress());
         vcenter.setPortNumber(param.getPortNumber());
         vcenter.setUseSSL(param.getUseSsl());
+        vcenter.setCascadeTenancy(param.getCascadeTenancy());
     }
 
     /**
@@ -613,7 +611,8 @@ public class VcenterService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public TaskResourceRep createVcenter(VcenterCreateParam createParam,
-                                         @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection) {
+                                         @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection,
+                                         @QueryParam("discover_vcenter") @DefaultValue("true") final Boolean discoverVcenter) {
         validateVcenter(createParam, null, validateConnection);
 
         // create and persist the vcenter
@@ -623,7 +622,12 @@ public class VcenterService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_VCENTER, true, null,
                 vcenter.auditParameters());
 
-        return doDiscoverVcenter(queryObject(Vcenter.class, vcenter.getId(), true));
+        if (discoverVcenter) {
+            return doDiscoverVcenter(queryObject(Vcenter.class, vcenter.getId(), true));
+        } else {
+            return createManualReadyTask(vcenter);
+
+        }
     }
 
     /**
@@ -728,7 +732,11 @@ public class VcenterService extends TaskResourceService {
         //have any exports).
         checkVcenterUsage(vcenter, changes);
 
+        validateVcenterLastDiscoveryJobStatus(vcenter);
+
         _permissionsHelper.updateACLs(vcenter, changes, new PermissionsHelper.UsageACLFilter(_permissionsHelper));
+
+        verifyVcenterCascadeTenancy(vcenter);
 
         _dbClient.updateAndReindexObject(vcenter);
 
@@ -1121,5 +1129,88 @@ public class VcenterService extends TaskResourceService {
 
         ArgValidator.checkFieldNotNull(param.getUserName(), "username");
         ArgValidator.checkFieldNotNull(param.getPassword(), "password");
+    }
+
+    /**
+     * Verifies the number acls with vCenter's cascade tenancy. If the
+     * vCenter is configured with cascade tenancy option and it contains
+     * more than one acl is not allowed.
+     *
+     * @param vcenter to be validated against the cascade tenancy and
+     *                number of acls.
+     */
+    private void verifyVcenterCascadeTenancy(Vcenter vcenter) {
+        if (vcenter.getCascadeTenancy()) {
+            Set<URI> uris = _permissionsHelper.getUsageURIsFromAcls(vcenter.getAcls());
+            if (uris.size() > 1) {
+                throw APIException.badRequests.cannotShareVcenterWithMultipleTenants(vcenter.getLabel());
+            }
+        }
+    }
+
+    /**
+     * Update the cascade tenancy to the vCenter create or update param.
+     * While creating the vCenter by default, the cascade tenancy of the vCenter
+     * is set to true if it is created by the TenantAdmin.
+     * If the SysAdmin creating the vCenter, if the cascade tenancy is not
+     * provided in the input payload then set the default cascade tenancy as
+     * false.
+     * While editing the vCenter, if the cascade tenancy is not provided
+     * use the existing one from the vCenter.
+     *
+     * @param param vCenter create or update param.
+     * @param vcenter vCenter to be updated, null while creation.
+     */
+    private void updateCascadeTenancy(VcenterParam param, Vcenter vcenter) {
+        if (vcenter == null) {
+            if (!isSystemAdmin()) {
+                param.setCascadeTenancy(Boolean.TRUE);
+            } else {
+                //Since this is SysAdmin creating the vCenter, if cascade tenancy option
+                //was not provided assume no cascade tenancy is required.
+                if (param.getCascadeTenancy() == null) {
+                    param.setCascadeTenancy(Boolean.FALSE);
+                }
+            }
+        }
+
+        if (vcenter != null && param.getCascadeTenancy() == null) {
+            param.setCascadeTenancy(vcenter.getCascadeTenancy());
+        }
+    }
+
+    /**
+     * Gets the configured refresh interval for the compute discovery from the coordinator.
+     *
+     * @return the value of the compute discovery refresh interval. .
+     */
+    private long getRefreshInterval() {
+        long refreshInterval = 60;
+        String prop = _coordinator.getPropertyInfo().getProperty("controller_cs_discovery_refresh_interval");
+        if (prop != null) {
+            refreshInterval = Long.parseLong(prop);
+        }
+        return refreshInterval;
+    }
+
+    /**
+     * Validates the vCenter's last discovery job. If discovery job is in progress or it
+     * just completed within the configured refresh interval, dont allow to update
+     * the vCenter acl. This is because, updating the vCenter acl completely depending
+     * on the vCenter discovery job. If we try to run two vCenter discovery job with in
+     * the configured refresh interval, the second job will not run at all. So, this will
+     * cause vCenter acls may not be updated to its datacenters, clusters and hosts.
+     *
+     * @param vcenter vCenter to find its last discovery status.
+     */
+    private void validateVcenterLastDiscoveryJobStatus(Vcenter vcenter) {
+        long tolerance = getRefreshInterval();
+        long lastDiscoveryTime = vcenter.getLastDiscoveryRunTime();
+        long currentSystemTime = System.currentTimeMillis();
+
+        if (DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString().equalsIgnoreCase(vcenter.getDiscoveryStatus()) ||
+                currentSystemTime - lastDiscoveryTime < tolerance * 1000) {
+            throw APIException.badRequests.cannotUpdateACL(vcenter.getLabel(), tolerance);
+        }
     }
 }

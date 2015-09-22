@@ -263,6 +263,30 @@ public class ProjectService extends TaggedResource {
             }
         };
 
+        QueryResultList<TypedRelatedResourceRep> bucket = new QueryResultList<TypedRelatedResourceRep>() {
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri) {
+                TypedRelatedResourceRep resource = new TypedRelatedResourceRep();
+                resource.setId(uri);
+                resource.setType(ResourceTypeEnum.BUCKET);
+                return resource;
+            }
+
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri, String name, UUID timestamp) {
+                TypedRelatedResourceRep resource = new TypedRelatedResourceRep();
+                resource.setId(uri);
+                resource.setType(ResourceTypeEnum.BUCKET);
+                resource.setName(name);
+                return resource;
+            }
+
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
+                return createQueryHit(uri);
+            }
+        };
+
         QueryResultList<TypedRelatedResourceRep> exportgroup = new QueryResultList<TypedRelatedResourceRep>() {
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri) {
@@ -388,6 +412,8 @@ public class ProjectService extends TaggedResource {
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectFileshareConstraint(project.getId()), file);
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getProjectBucketConstraint(project.getId()), bucket);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectExportGroupConstraint(project.getId()), exportgroup);
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectBlockSnapshotConstraint(project.getId()), blockSnapshot);
@@ -402,10 +428,31 @@ public class ProjectService extends TaggedResource {
 
         ResourceList list = new ResourceList();
         list.setResources(new ChainedList<TypedRelatedResourceRep>(file.iterator(),
-                volume.iterator(), exportgroup.iterator(), blockSnapshot.iterator(),
+                volume.iterator(), bucket.iterator(), exportgroup.iterator(), blockSnapshot.iterator(),
                 fileSnapshot.iterator(), file.iterator(), volume.iterator(),
                 exportgroup.iterator(), protectionSet.iterator(), blockConsistencySet.iterator()));
         return list;
+    }
+    
+    /**
+     * validates whether the project has active vnas servers 
+     * assigned to it or not.
+     * 
+     * @param project - a ViPR Project
+     */
+    private boolean isProjectAssignedWithVNasServers(Project project) {
+    	
+    	if(project.getAssignedVNasServers() != null && !project.getAssignedVNasServers().isEmpty() ) {
+    		for( String vnasId : project.getAssignedVNasServers()) {
+    			VirtualNAS vnas = _permissionsHelper.getObjectById(URI.create(vnasId), VirtualNAS.class);
+    			if ( vnas != null && !vnas.getInactive() ){
+    				_log.debug("project {} has been assigned with vnas server {}", project.getLabel(), vnas.getNasName() );
+    				return true;
+    			}
+    		}
+       }
+    	_log.info("No active vnas servers assigned to project {}", project.getLabel() );
+    	return false;
     }
 
     /**
@@ -427,6 +474,12 @@ public class ProjectService extends TaggedResource {
     public Response deactivateProject(@PathParam("id") URI id) {
         Project project = getProjectById(id, true);
         ArgValidator.checkReference(Project.class, id, checkForDelete(project));
+        
+        // Check the project has been assigned with vNAS servers!!!
+        if(isProjectAssignedWithVNasServers(project)) {
+        	 _log.error("Delete porject failed due to, One or more vnas servers are assigned to project.");
+        	throw APIException.badRequests.failedToDeleteVNasAssignedProject();
+        }
         _dbClient.markForDeletion(project);
 
         recordOperation(OperationTypeEnum.DELETE_PROJECT, true, project);
@@ -853,7 +906,7 @@ public class ProjectService extends TaggedResource {
                     for (String existingMapping : userMappingSet) {
                         UserMappingParam userMap = BasePermissionsHelper.UserMapping.toParam(
                                 BasePermissionsHelper.UserMapping.fromString(existingMapping));
-                        projectDomains.add(userMap.getDomain());
+                        projectDomains.add(userMap.getDomain().toUpperCase());
                     }
                 }
             }
@@ -883,7 +936,7 @@ public class ProjectService extends TaggedResource {
                     Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
                     for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
                         NasCifsServer cifsServer = nasCifsServer.getValue();
-                        if (projectDomains.contains(cifsServer.getDomain())) {
+                        if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
                             domainMatched = true;
                             break;
                         }

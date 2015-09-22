@@ -106,8 +106,9 @@ public class VplexBackendIngestionContext {
     public void discover() {
         this.setDiscoveryInProgress(true);
         this.getUnmanagedBackendVolumes();
-        this.getUnmanagedFullClones();
-        this.getUnmanagedMirrors();
+        // disabled for COP-16754
+        // this.getUnmanagedFullClones();
+        this.getUnmanagedVplexMirrors();
     }
 
     /**
@@ -120,34 +121,27 @@ public class VplexBackendIngestionContext {
     }
 
     /**
-     * Collects and returns all the various backend resource UnManagedVolume objects
-     * including those for the backend volumes and any related replicas.
+     * Collects and returns all the various backend resource UnManagedVolume objects -
+     * includes those for the backend volumes and any related VPLEX-native replicas.
      * 
-     * @return a List of all the backend UnManagedVolumes for this context
+     * @return a List of all the UnManagedVolumes to ingest for this context
      */
-    public List<UnManagedVolume> getAllUnmanagedVolumes() {
-        List<UnManagedVolume> allVolumes = new ArrayList<UnManagedVolume>();
-        allVolumes.addAll(getUnmanagedBackendVolumes());
-        allVolumes.addAll(getUnmanagedSnapshots());
-        for (Set<UnManagedVolume> backendClones : getUnmanagedBackendOnlyClones().values()) {
-            allVolumes.addAll(backendClones);
-        }
-        // only need the full clone virtual volumes
-        // their backend vols will be ingested by a nested process
-        allVolumes.addAll(getUnmanagedFullClones().values());
-        allVolumes.addAll(getUnmanagedMirrors().keySet());
-        _logger.info("collected all unmanaged volumes: " + allVolumes);
-        return allVolumes;
+    public List<UnManagedVolume> getUnmanagedVolumesToIngest() {
+        List<UnManagedVolume> volumesToIngest = new ArrayList<UnManagedVolume>();
+        volumesToIngest.addAll(getUnmanagedBackendVolumes());
+        volumesToIngest.addAll(getUnmanagedVplexMirrors().keySet());
+        _logger.info("unmanaged volumes to ingest: " + volumesToIngest);
+        return volumesToIngest;
     }
 
     /**
-     * Gets URIs for all the backend resource UnManagedVolume objects.
+     * Gets URIs for the backend UnManagedVolume objects.
      * 
-     * @return a List of URIs for all the backend resource UnManagedVolume objects
+     * @return a List of URIs for the backend UnManagedVolume objects
      */
-    public List<URI> getAllUnManagedVolumeUris() {
+    public List<URI> getUnmanagedBackendVolumeUris() {
         List<URI> allUris = new ArrayList<URI>();
-        for (UnManagedVolume vol : getAllUnmanagedVolumes()) {
+        for (UnManagedVolume vol : getUnmanagedBackendVolumes()) {
             allUris.add(vol.getId());
         }
         return allUris;
@@ -415,8 +409,8 @@ public class VplexBackendIngestionContext {
                     // virtual volume in front of it, and if so, it should
                     // be considered a "full clone" and be excluded from this
                     // backend-only clone collection
-                    if (!getUnmanagedFullClones().isEmpty()) {
-                        for (UnManagedVolume knownClone : getUnmanagedFullClones().keySet()) {
+                    if (!getUnmanagedVplexClones().isEmpty()) {
+                        for (UnManagedVolume knownClone : getUnmanagedVplexClones().keySet()) {
                             if (knownClone.getId().toString().equals(foundClone.getId().toString())) {
                                 _logger.info("clone {} is already part of a full (virtual volume) clone, "
                                         + "excluding it from backend-only clones", knownClone.getLabel());
@@ -441,14 +435,14 @@ public class VplexBackendIngestionContext {
      * Returns a Map of clone backend volume to front-end virtual volume clone 
      * for any clones (full copies) associated with this context's virtual volume.
      * 
-     * The term "full clone" implies that the clone is a backend volume clone with
+     * The term "vplex clone" implies that the clone is a backend volume clone with
      * a front-end virtual volume containing it.  This is as-opposed to a backend-only
-     * clone, which is just a simple clone of a backend volume without a virtual
+     * clone, which is just a backend array clone of a backend volume without a virtual
      * volume in front of it.
      * 
      * @return a Map of UnManagedVolume backend objects to UnManagedVolume front-end objects
      */
-    public Map<UnManagedVolume, UnManagedVolume> getUnmanagedFullClones() {
+    public Map<UnManagedVolume, UnManagedVolume> getUnmanagedVplexClones() {
         if (null != unmanagedFullClones) {
             return unmanagedFullClones;
         }
@@ -608,7 +602,7 @@ public class VplexBackendIngestionContext {
      * 
      * @return a map of UnManagedVolume to device context paths
      */
-    public Map<UnManagedVolume, String> getUnmanagedMirrors() {
+    public Map<UnManagedVolume, String> getUnmanagedVplexMirrors() {
         if (null != unmanagedMirrors) {
             return unmanagedMirrors;
         }
@@ -1219,10 +1213,10 @@ public class VplexBackendIngestionContext {
             fields.add("storageDevice");
             fields.add("volumeInformation");
             allUnmanagedVolumes = _dbClient.queryIterativeObjectFields(UnManagedVolume.class, fields, ids);
-        } catch (Throwable t) {
+        } catch (Exception e) {
             // have to do this because the database sometimes returns UnManagedVolume 
             // objects that no longer exist and are null
-            _logger.warn("Throwable caught: " + t.toString());
+            _logger.warn("Exception caught:", e);
         }
         if (null != allUnmanagedVolumes) {
             while (allUnmanagedVolumes.hasNext()) {
@@ -1301,9 +1295,9 @@ public class VplexBackendIngestionContext {
         s.append("unmanaged virtual volume: ").append(this._unmanagedVirtualVolume).append(" \n\t ");
         s.append("unmanaged backend volume(s): ").append(this.getUnmanagedBackendVolumes()).append(" \n\t ");
         s.append("unmanaged snapshots: ").append(this.getUnmanagedSnapshots()).append(" \n\t ");
-        s.append("unmanaged full clones: ").append(this.getUnmanagedFullClones()).append(" \n\t ");
+        s.append("unmanaged full clones: ").append(this.getUnmanagedVplexClones()).append(" \n\t ");
         s.append("unmanaged backend only clones: ").append(this.getUnmanagedBackendOnlyClones()).append(" \n\t ");
-        s.append("unmanaged mirrors: ").append(this.getUnmanagedMirrors()).append(" \n\t ");
+        s.append("unmanaged mirrors: ").append(this.getUnmanagedVplexMirrors()).append(" \n\t ");
         s.append("ingested objects: ").append(this.getIngestedObjects()).append(" \n\t ");
         s.append("created objects map: ").append(this.getCreatedObjectMap()).append(" \n\t ");
         s.append("updated objects map: ");

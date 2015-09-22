@@ -68,7 +68,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
                 }
             }
         } catch (Exception ex) {
-            log.error("Error retrieving xms version info", ex);
+            log.warn("Error retrieving xms version info");
             isV2 = false;
         }
 

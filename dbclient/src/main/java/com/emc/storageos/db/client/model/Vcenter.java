@@ -17,7 +17,7 @@ public class Vcenter extends DiscoveredComputeSystemWithAcls {
     private Integer _portNumber;
     private String _osVersion;
     private Boolean _useSsl;
-    private Boolean _tenantCreated;
+    private Boolean _cascadeTenancy;
 
     /**
      * Gets the login account name
@@ -141,23 +141,27 @@ public class Vcenter extends DiscoveredComputeSystemWithAcls {
     }
 
     /**
-     * Get whether the vCenter to be shared with multiple tenants or not.
+     * Get whether the vCenter's tenancy to be cascaded to its datacenters
+     * and hosts and clusters or not.
      *
-     * @return whether the vCenter to be shared with multiple tenants or not.
+     * @return whether the vCenter's tenancy to be cascaded to its datacenters
+     * and hosts and clusters or not.
      */
-    @Name("tenantCreated")
-    public Boolean getTenantCreated() {
-        return _tenantCreated;
+    @Name("cascadeTenancy")
+    public Boolean getCascadeTenancy() {
+        return _cascadeTenancy;
     }
 
     /**
-     * Sets the flag that indicates if the vCenter can be shared
-     * with multiple tenants or not
-     * @param tenantCreated true or false to indicate if vCenter can be shared or not.
+     * Sets the flag that indicates if vCenter's tenancy to be cascaded to its datacenters
+     * and hosts and clusters or not.
+     *
+     * @param cascadeTenancy true or false to indicate if vCenter's tenancy to be
+     *                       cascaded to its datacenters and hosts and clusters or not.
      */
-    public void setTenantCreated(Boolean tenantCreated) {
-        this._tenantCreated = tenantCreated;
-        setChanged("tenantCreated");
+    public void setCascadeTenancy(Boolean cascadeTenancy) {
+        this._cascadeTenancy = cascadeTenancy;
+        setChanged("cascadeTenancy");
     }
 
     @Override

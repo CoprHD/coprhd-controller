@@ -80,8 +80,8 @@ final class ConsistencyUtils {
         return execute(new DeactivateConsistencyGroupFullCopy(consistencyGroupId));
     }
 
-    static Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI consistencyGroupId, String snapshotName) {
-        return execute(new CreateConsistencyGroupSnapshot(consistencyGroupId, snapshotName));
+    static Tasks<BlockConsistencyGroupRestRep> createSnapshot(URI consistencyGroupId, String snapshotName, Boolean readOnly) {
+        return execute(new CreateConsistencyGroupSnapshot(consistencyGroupId, snapshotName, readOnly));
     }
 
     static Task<BlockConsistencyGroupRestRep> restoreSnapshot(URI consistencyGroupId) {

@@ -71,6 +71,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
                     clusters, hosts, initiators,
                     volumeMap.keySet());
             _log.info("Initiators {} will be used.", affectedInitiators);
+            this.exportGroupService._dbClient.persistObject(exportGroup);
 
             // If initiators list is empty or storage map is empty, there's no work to do (yet).
             if (storageMap.isEmpty() || affectedInitiators.isEmpty()) {

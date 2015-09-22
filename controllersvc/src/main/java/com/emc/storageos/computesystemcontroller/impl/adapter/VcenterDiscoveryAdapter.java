@@ -588,7 +588,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
          */
         private void setVcenterDataCenterTenant(VcenterDataCenter target) {
             if (NullColumnValueGetter.isNullURI(target.getTenant())) {
-                if (vcenter.getTenantCreated()) {
+                if (vcenter.getCascadeTenancy()) {
                     target.setTenant(BasePermissionsHelper.getTenant(vcenter.getAcls()));
                 } else {
                     target.setTenant(NullColumnValueGetter.getNullURI());

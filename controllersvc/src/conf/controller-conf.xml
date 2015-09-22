@@ -421,6 +421,7 @@
             <set>
                 <value>getControllerReplicationSvcPath</value>
                 <value>getReplicationGroupPath</value>
+                <value>getInitiatorToInitiatorPath</value>
             </set>
         </property>
     </bean>
@@ -575,6 +576,16 @@
 	<property name="dbClient" ref="dbclient"/>
     </bean>
 
+	<bean id="ecsapifactory" class="com.emc.storageos.ecs.api.ECSApiFactory"
+		init-method="init" destroy-method="shutdown" />
+
+	<bean id="ecsDevice"
+		class="com.emc.storageos.volumecontroller.impl.ecs.ECSObjectStorageDevice">
+		<property name="ECSApiFactory" ref="ecsapifactory">
+		</property>
+		<property name="dbClient" ref="dbclient" />
+	</bean>
+	
     <bean id="datadomainfactory" class="com.emc.storageos.datadomain.restapi.DataDomainClientFactory"
           init-method="init" destroy-method="shutdown">
         <property name="connectionTimeoutMs" value="30000"/>
@@ -715,6 +726,11 @@
         </property>
     </bean>
 
+    <bean id="replicaDeviceController" class="com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController">
+        <property name="dbClient" ref="dbclient" />
+        <property name="blockDeviceController" ref="blockDeviceController" />
+    </bean>
+
     <bean id="fileDeviceController" class="com.emc.storageos.volumecontroller.impl.FileDeviceController">
         <property name="devices">
             <map>
@@ -729,6 +745,15 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="eventManager" ref="recordableEventMgr"/>
         <property name="auditLogManager" ref="auditLogManager"/>
+    </bean>
+
+    <bean id="objectDeviceController" class="com.emc.storageos.volumecontroller.impl.ObjectDeviceController">
+        <property name="devices">
+            <map>
+                <entry key="ecs" value-ref="ecsDevice"/>
+            </map>
+         </property>
+        <property name="dbClient" ref="dbclient"/>
     </bean>
 
     <bean id="computeSystemController" class="com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl">
@@ -828,6 +853,7 @@
                 <ref bean="exportWorkflowEntryPoints"/>
                 <ref bean="blockOrchestrationDeviceController"/>
                 <ref bean="srdfDeviceController" />
+                <ref bean="replicaDeviceController" />
                 <ref bean="snapshotWorkflowEntryPoints"/>
                 <ref bean="vplexConsistencyGroupManager"/>
                 <ref bean="rpVplexConsistencyGroupManager"/>
@@ -841,6 +867,7 @@
                 <ref bean="imageservercontroller"/>
                 <ref bean="ucsDevice"/>
                 <ref bean="vcenterController"/>
+                <ref bean="objectDeviceController"/>
             </set>
         </property>
         <property name="deviceMaxConnectionMap">
@@ -894,6 +921,16 @@
         <property name="deviceImpl">
             <set>
                 <ref bean="fileDeviceController"/>
+            </set>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="objectcontroller" class="com.emc.storageos.volumecontroller.impl.ObjectControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="objectDeviceController"/>
             </set>
         </property>
         <property name="dbClient" ref="dbclient"/>
@@ -1002,6 +1039,14 @@
         <property name="serviceName" value="FileController"/>
         <property name="service" ref="filecontroller"/>
         <property name="serviceInterface" value="com.emc.storageos.volumecontroller.FileController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="ObjectController"/>
+        <property name="service" ref="objectcontroller"/>
+        <property name="serviceInterface" value="com.emc.storageos.volumecontroller.ObjectController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>
@@ -1283,6 +1328,7 @@
         <property name="vplexDeviceController" ref="vplexDeviceController" />
         <property name="rpDeviceController" ref="rpProtection" />
         <property name="srdfDeviceController" ref="srdfDeviceController" />
+        <property name="replicaDeviceController" ref="replicaDeviceController" />
         <property name="locker" ref="locker"/>
     </bean>
 

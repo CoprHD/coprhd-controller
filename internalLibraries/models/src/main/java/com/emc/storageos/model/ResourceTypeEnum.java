@@ -14,11 +14,13 @@ public enum ResourceTypeEnum {
     /* type service */
     FILE("fileshare", "/file/filesystems"),
     VOLUME("volume", "/block/volumes"),
+    BUCKET("bucket", "/object/buckets"),
     PROJECT("project", "/projects"),
     TENANT("tenant", "/tenants"),
     VPOOL("vpool", "/"),
     BLOCK_VPOOL("block_vpool", "/block/vpools"),
     FILE_VPOOL("file_vpool", "/file/vpools"),
+    OBJECT_VPOOL("object_vpool", "/object/vpools"),
     COMPUTE_VPOOL("compute_vpool", "/compute/vpools"),
     VARRAY("varray", "/vdc/varrays"),
     STORAGE_SYSTEM("storage_system", "/vdc/storage-systems"),

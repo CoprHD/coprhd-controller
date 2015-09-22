@@ -193,6 +193,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     @Override
     public void deleteSingleVolumeSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
+        _log.info("START deleteSingleVolumeSnapshot");
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(snapshot));
             BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -325,7 +326,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     @Override
     public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
-
+        _log.info("START createGroupSnapshots");
         // Target group CIM Path
         CIMObjectPath targetGroupPath = null;
 
@@ -441,6 +442,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     @Override
     public void deleteGroupSnapshots(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("START deleteGroupSnapshots");
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(snapshot));
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
@@ -913,7 +915,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             final CIMObjectPath[] theElements = _cimPath.getVolumePaths(storageSystem, deviceIds);
 
-            final CIMArgument[] inArgs = _helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements,
+            final CIMArgument[] inArgs = _helper.getReturnElementsToStoragePoolArguments(theElements,
                     SmisConstants.CONTINUE_ON_NONEXISTENT_ELEMENT);
             final CIMArgument[] outArgs = new CIMArgument[5];
 

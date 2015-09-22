@@ -19,7 +19,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import org.slf4j.Logger;
@@ -807,10 +806,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), FALSE);
         }
 
-        // set an is-ingestable flag, used later by the ingest process
-        unManagedVolumeCharacteristics.put(
-                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);
-
         // set system type
         StringSet systemTypes = new StringSet();
         systemTypes.add(vplex.getSystemType());
@@ -895,7 +890,40 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         }
 
-        if (null == matchedVPools || matchedVPools.isEmpty()) {
+        // add this info to the unmanaged volume object
+        volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
+        volume.addVolumeInformation(unManagedVolumeInformation);
+
+        // discover backend volume data
+        boolean isRecoverPointEnabled = false;
+        String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
+                _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
+        if (!VplexBackendIngestionContext.DISCOVERY_MODE_INGESTION_ONLY.equals(discoveryMode)) {
+            try {
+                VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
+                context.discover();
+                
+                for (UnManagedVolume bvol : context.getUnmanagedBackendVolumes()) {
+                    StringMap bvolUnManagedVolumeCharacteristics = bvol.getVolumeCharacterstics();
+                    String rpEnabled = bvolUnManagedVolumeCharacteristics
+                            .get(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
+                    isRecoverPointEnabled = (null != rpEnabled && Boolean.parseBoolean(rpEnabled));
+                }
+                
+                s_logger.info(context.getPerformanceReport());
+            } catch (Exception ex) {
+                s_logger.warn("error discovering backend structure for {}: ",
+                        volume.getNativeGuid(), ex);
+                // no need to throw further
+            }
+        }
+
+        // set an is-ingestable flag, used later by the ingest process
+        String ingestable = isRecoverPointEnabled ? FALSE : TRUE;
+        unManagedVolumeCharacteristics.put(
+                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), ingestable);
+
+        if (null == matchedVPools || matchedVPools.isEmpty() || isRecoverPointEnabled) {
             // clean all supported vpools.
             volume.getSupportedVpoolUris().clear();
             s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
@@ -903,24 +931,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             // replace with new StringSet
             volume.getSupportedVpoolUris().replace(matchedVPools);
             s_logger.info("Replaced Pools : {}", volume.getSupportedVpoolUris());
-        }
-
-        // add this info to the unmanaged volume object
-        volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
-        volume.addVolumeInformation(unManagedVolumeInformation);
-
-        String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
-                _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
-        if (!VplexBackendIngestionContext.DISCOVERY_MODE_INGESTION_ONLY.equals(discoveryMode)) {
-            try {
-                VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
-                context.discover();
-                s_logger.info(context.getPerformanceReport());
-            } catch (Exception ex) {
-                s_logger.warn("error discovering backend structure for {}: ",
-                        volume.getNativeGuid(), ex);
-                // no need to throw further
-            }
         }
     }
 

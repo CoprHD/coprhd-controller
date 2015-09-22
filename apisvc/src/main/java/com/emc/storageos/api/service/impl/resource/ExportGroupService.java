@@ -315,7 +315,7 @@ public class ExportGroupService extends TaskResourceService {
                 exportGroup, storageMap,
                 param.getClusters(), param.getHosts(), param.getInitiators(), volumeMap, task, taskRes);
 
-        _log.info("Kicked off thread to perform placement and scheduling.  Returning task: " + taskRes.getId());
+        _log.info("Kicked off thread to perform export create scheduling. Returning task: " + taskRes.getId());
 
         return taskRes;
     }
@@ -533,7 +533,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param newHosts a list to be populated with the updated list of hosts
      * @param newInitiators a list to be populated with the updated list of initiators
      */
-    private void validateClientsAndUpdate(ExportGroup exportGroup,
+    void validateClientsAndUpdate(ExportGroup exportGroup,
             Project project, Collection<URI> storageSystems,
             ExportUpdateParam param, List<URI> newClusters,
             List<URI> newHosts, List<URI> newInitiators) {
@@ -1147,43 +1147,12 @@ public class ExportGroupService extends TaskResourceService {
     public TaskResourceRep updateExportGroup(@PathParam("id") URI id, ExportUpdateParam param)
             throws ControllerException {
 
-        // validate the export groups
+        // Basic validation of ExportGroup and update request
         ExportGroup exportGroup = queryObject(ExportGroup.class, id, true);
+        Project project = queryObject(Project.class, exportGroup.getProject().getURI(), true);
         validateUpdateInputForExportType(param, exportGroup);
         validateUpdateRemoveInitiators(param, exportGroup);
-
-        // Validate that the update is not attempting to add/remove VPLEX
-        // backend volumes to/from a group.
-        if (param.getVolumes() != null) {
-            if (param.getVolumes().getAdd() != null) {
-                if (param.getVolumes().getAdd().size() > MAX_VOLUME_COUNT) {
-                    throw APIException.badRequests.exceedingLimit("count",
-                            MAX_VOLUME_COUNT);
-                }
-                List<URI> addVolumeURIs = new ArrayList<URI>();
-                for (VolumeParam volParam : param.getVolumes().getAdd()) {
-                    addVolumeURIs.add(volParam.getId());
-                }
-                BlockService.validateNoInternalBlockObjects(_dbClient, addVolumeURIs, false);
-            }
-
-            if (param.getVolumes().getRemove() != null && param.getVolumes().getRemove().size() > MAX_VOLUME_COUNT) {
-                throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
-            }
-            BlockService.validateNoInternalBlockObjects(_dbClient, param.getVolumes().getRemove(), false);
-        }
-
-        Map<URI, Integer> newVolumesMap = getUpdatedVolumesMap(param, exportGroup);
-        Map<URI, Map<URI, Integer>> storageMap = computeAndValidateVolumes(newVolumesMap, exportGroup, param);
-        _log.info("Updated volumes belong to storage systems: {}", storageMap.keySet().toArray());
-
-        // get and validate the new clients
-        Project project = queryObject(Project.class, exportGroup.getProject().getURI(), true);
-        List<URI> newInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-        List<URI> newHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
-        List<URI> newClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
-        validateClientsAndUpdate(exportGroup, project, storageMap.keySet(), param, newClusters, newHosts, newInitiators);
-        _log.info("All clients were successfully validated");
+        validateUpdateIsNotForVPlexBackendVolumes(param, exportGroup);
 
         // call the controller to handle all updated
         String task = UUID.randomUUID().toString();
@@ -1195,12 +1164,14 @@ public class ExportGroupService extends TaskResourceService {
                 exportGroup.getLabel(), exportGroup.getId().toString(),
                 exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
 
-        // push it to storage devices
-        BlockExportController exportController = getExportController();
-        _log.info("Submitting export group update request.");
-        exportController.exportGroupUpdate(exportGroup.getId(), newVolumesMap, newClusters,
-                newHosts, newInitiators, task);
-        return toTask(exportGroup, task, op);
+        TaskResourceRep taskRes = toTask(exportGroup, task, op);
+
+        CreateExportGroupUpdateSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, project,
+                exportGroup, param, task, taskRes);
+
+        _log.info("Kicked off thread to perform export update scheduling. Returning task: " + taskRes.getId());
+
+        return taskRes;
     }
 
     /**
@@ -1212,7 +1183,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param exportGroup the export group
      * @return the
      */
-    private Map<URI, Integer> getUpdatedVolumesMap(ExportUpdateParam param,
+    Map<URI, Integer> getUpdatedVolumesMap(ExportUpdateParam param,
             ExportGroup exportGroup) {
         Map<URI, Integer> newVolumes = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
         // get the new block objects map
@@ -1268,7 +1239,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param exportGroup the export group to be updated
      * @return a map of storage systems to volume/lun maps
      */
-    private Map<URI, Map<URI, Integer>> computeAndValidateVolumes(
+    Map<URI, Map<URI, Integer>> computeAndValidateVolumes(
             Map<URI, Integer> blockObjectsMap, ExportGroup exportGroup, ExportUpdateParam param) {
         Map<URI, Map<URI, Integer>> storageMap = new HashMap<URI, Map<URI, Integer>>();
         List<Integer> luns = new ArrayList<Integer>();
@@ -2451,6 +2422,33 @@ public class ExportGroupService extends TaskResourceService {
             if ((null != eg) && eg.getLabel().equals(param.getName()) && eg.getVirtualArray().equals(param.getVarray())) {
                 throw APIException.badRequests.duplicateExportGroupProjectAndVarray(param.getName());
             }
+        }
+    }
+
+    /**
+     * Validate that the update is not attempting to add/remove VPLEX backend volumes to/from a group.
+     * 
+     * @param param [IN] - ExportUpdateParam holds the update request parameters
+     * @param exportGroup [IN] - ExportGroup to update
+     */
+    private void validateUpdateIsNotForVPlexBackendVolumes(ExportUpdateParam param, ExportGroup exportGroup) {
+        if (param.getVolumes() != null) {
+            if (param.getVolumes().getAdd() != null) {
+                if (param.getVolumes().getAdd().size() > MAX_VOLUME_COUNT) {
+                    throw APIException.badRequests.exceedingLimit("count",
+                            MAX_VOLUME_COUNT);
+                }
+                List<URI> addVolumeURIs = new ArrayList<URI>();
+                for (VolumeParam volParam : param.getVolumes().getAdd()) {
+                    addVolumeURIs.add(volParam.getId());
+                }
+                BlockService.validateNoInternalBlockObjects(_dbClient, addVolumeURIs, false);
+            }
+
+            if (param.getVolumes().getRemove() != null && param.getVolumes().getRemove().size() > MAX_VOLUME_COUNT) {
+                throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
+            }
+            BlockService.validateNoInternalBlockObjects(_dbClient, param.getVolumes().getRemove(), false);
         }
     }
 }

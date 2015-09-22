@@ -89,8 +89,8 @@ import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.filters.ExportClusterFilter;
@@ -384,7 +384,7 @@ public class BlockStorageUtils {
                             retryNeeded = true;
                             try {
                                 Thread.sleep(RETRY_DELAY_MSEC);
-                            } catch (Exception ex) {
+                            } catch (InterruptedException ex) {
                             	log.debug("Sleep interrupted");
                             }
                         } else {

@@ -829,6 +829,7 @@ public class RPHelper {
         Volume existingCGJournalVolume = null;
         Map<Long, List<URI>> cgJournalsBySize = new TreeMap<Long, List<URI>>(Collections.reverseOrder());
         Volume journal = null;
+        
         for (Volume cgSourceVolume : cgSourceVolumes) {
             if (isMetropointStandby) {
                 if (!NullColumnValueGetter.isNullURI(cgSourceVolume.getSecondaryRpJournalVolume())) {
@@ -848,17 +849,19 @@ public class RPHelper {
             }
         }
 
-        // fetch the first journal in the list with the largest capacity.
+        // Fetch the first journal in the list with the largest capacity.
         for (Long journalSize : cgJournalsBySize.keySet()) {
             existingCGJournalVolume = _dbClient.queryObject(Volume.class, cgJournalsBySize.get(journalSize).get(0));
             break;
         }
-        // we should never hit this case, but just in case we do, just return the journal volume of the first source volume in the list.
+        
+        // We should never hit this case, but just in case we do, just return the journal volume of the first source volume in the list.
         if (null == existingCGJournalVolume) {
             URI existingJournalVolumeURI = isMetropointStandby ? cgSourceVolumes.get(0).getSecondaryRpJournalVolume() : cgSourceVolumes
                     .get(0).getRpJournalVolume();
             existingCGJournalVolume = _dbClient.queryObject(Volume.class, existingJournalVolumeURI);
         }
+        
         return existingCGJournalVolume;
     }
 
@@ -1120,8 +1123,7 @@ public class RPHelper {
 
             cgJournalSizeInBytes = SizeUtil.translateSize(String.valueOf(cgJournalSize));
             _log.info(String.format("Existing total metadata size for the CG : %s GB ",
-                    SizeUtil.translateSize(cgJournalSizeInBytes, SizeUtil.SIZE_GB)));
-            ;
+                    SizeUtil.translateSize(cgJournalSizeInBytes, SizeUtil.SIZE_GB)));            
 
             Long cgVolumeSize = 0L;
             Long cgVolumeSizeInBytes = 0L;
@@ -1135,6 +1137,7 @@ public class RPHelper {
                 }
 
             }
+            
             cgVolumeSizeInBytes = SizeUtil.translateSize(String.valueOf(cgVolumeSize));
             _log.info(String.format("Cumulative %s copies size : %s GB", personality,
                     SizeUtil.translateSize(cgVolumeSizeInBytes, SizeUtil.SIZE_GB)));
@@ -1147,6 +1150,7 @@ public class RPHelper {
                     (SizeUtil.translateSize(newCgVolumeSizeInBytes, SizeUtil.SIZE_GB) * multiplier)));
             _log.info(String.format("Current allocated journal capacity : %s GB",
                     SizeUtil.translateSize(cgJournalSizeInBytes, SizeUtil.SIZE_GB)));
+            
             if (cgJournalSizeInBytes < (newCgVolumeSizeInBytes * multiplier)) {
                 additionalJournalRequired = true;
             }
@@ -1398,5 +1402,108 @@ public class RPHelper {
      */
     public static boolean isVPlexVolume(Volume volume) {
         return (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty());
+    }
+    
+    /**
+     * Rollback protection specific fields on the existing volume. This is normally invoked if there are
+     * errors during a change vpool operation. We want to return the volume back to it's un-protected state
+     * or in the case of upgrade to MP then to remove any MP features from the protected volume.
+     * 
+     * One of the biggest motivations is to ensure that the old vpool is set back on the existing volume.
+     * 
+     * @param volume Volume to remove protection from
+     * @param oldVpool The old vpool, this the original vpool of the volume before trying to add protection 
+     * @param dbClient DBClient object
+     */
+    public static void rollbackProtectionOnVolume(Volume volume, VirtualPool oldVpool, DbClient dbClient) {
+        // Rollback any RP specific changes to this volume
+        if (volume.checkForRp()) {
+            if (!VirtualPool.vPoolSpecifiesProtection(oldVpool)) {
+                _log.info(String.format("Rollback protection changes for RP on volume [%s]...", volume.getLabel()));
+
+                // Clear out the rest of the RP related fields that would not be needed during
+                // a rollback. This resets the volume back to it's pre-RP state so it can be
+                // used again.
+                volume.setVirtualPool(oldVpool.getId());
+                volume.setPersonality(NullColumnValueGetter.getNullStr());
+                volume.setProtectionController(NullColumnValueGetter.getNullURI());
+                volume.setRSetName(NullColumnValueGetter.getNullStr());
+                volume.setInternalSiteName(NullColumnValueGetter.getNullStr());
+                volume.setRpCopyName(NullColumnValueGetter.getNullStr());
+                // Rollback the journal volume if it was created
+                if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) {
+                    rollbackVolume(volume.getRpJournalVolume(), dbClient);
+                }
+                // Rollback the secondary journal volume if it was created
+                volume.setRpJournalVolume(NullColumnValueGetter.getNullURI());
+                if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
+                    rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
+                }
+                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
+                volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                StringSet resetRpTargets = volume.getRpTargets();
+                if (resetRpTargets != null) {
+                    // Rollback any target volumes that were created
+                    for (String rpTargetId : resetRpTargets) {
+                        Volume targetVol = rollbackVolume(URI.create(rpTargetId), dbClient);
+                        // Rollback any target journal volumes that were created
+                        if (!NullColumnValueGetter.isNullURI(targetVol.getRpJournalVolume())) {
+                            rollbackVolume(targetVol.getRpJournalVolume(), dbClient);
+                        }
+                    }
+                    resetRpTargets.clear();
+                    volume.setRpTargets(resetRpTargets);
+                }
+            } else {
+                _log.info(String.format("Rollback changes for existing protected RP volume [%s]...", volume.getLabel()));
+               
+                _log.info("Rollback the secondary journal");
+                // Rollback the secondary journal volume if it was created
+                volume.setRpJournalVolume(NullColumnValueGetter.getNullURI());
+                if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
+                    rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
+                }
+                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());                                       
+            }
+
+            _log.info(String.format("Rollback protection changes for RP on volume [%s] has completed.", volume.getLabel()));
+            dbClient.persistObject(volume);
+        }
+    }
+    
+    /**
+     * Cassandra level rollback of a volume. We set the volume to inactive and rename
+     * the volume to indicate that rollback has occured. We do this so as to not 
+     * prevent subsequent use of the same volume name in the case of rollback/error. 
+     * 
+     * @param volumeURI URI of the volume to rollback
+     * @param dbClient DBClient Object
+     * @return The rolled back volume
+     */
+    public static Volume rollbackVolume(URI volumeURI, DbClient dbClient) {
+        Volume volume = dbClient.queryObject(Volume.class, volumeURI);        
+        if (!volume.getInactive()) {
+            _log.info(String.format("Rollback volume [%s]...", volume.getLabel()));
+            volume.setInactive(true);
+            volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
+            volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+            dbClient.persistObject(volume);
+    
+            // Rollback any VPLEX backing volumes too
+            if (volume.getAssociatedVolumes() != null
+                    && !volume.getAssociatedVolumes().isEmpty()) {
+                for (String associatedVolId : volume.getAssociatedVolumes()) {
+                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                    if (!associatedVolume.getInactive()) {
+                        _log.info(String.format("Rollback volume [%s]...", associatedVolume.getLabel()));
+                        associatedVolume.setInactive(true);
+                        associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
+                        dbClient.persistObject(associatedVolume);
+                    }
+                }
+            }
+        }
+
+        return volume;
     }
 }

@@ -76,6 +76,7 @@ public class Bucket extends DataObject implements ProjectResource {
     }
 
     @Name("hardQuota")
+    @AggregatedIndex(cf = "AggregatedIndex", classGlobal = true)
     public Long getHardQuota() {
         return (null == hardQuota) ? 0L : hardQuota;
     }

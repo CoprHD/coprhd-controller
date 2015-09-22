@@ -127,8 +127,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(RP_COPY_TYPE)) {
             _vpoolCapabilities.put(RP_COPY_TYPE, capabilities.getRPCopyType());
         }
-        
-        
+                
         if (capabilities.contains(IS_META_VOLUME)) {
             _vpoolCapabilities.put(IS_META_VOLUME, capabilities.getIsMetaVolume());
         }

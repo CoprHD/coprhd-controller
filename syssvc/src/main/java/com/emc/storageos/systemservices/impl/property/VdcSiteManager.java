@@ -216,8 +216,7 @@ public class VdcSiteManager extends AbstractManager {
         // do not reboot the nodes.
         String action = targetSiteInfo.getActionRequired();
         if (targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
-                || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
-                || action.equals(SiteInfo.UPDATE_DATA_REVISION)) {
+                || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")) {
             log.info("Step2: Acquiring vdc lock for vdc properties change.");
             if (!getVdcLock(svcId)) {
                 retrySleep();
@@ -231,14 +230,21 @@ public class VdcSiteManager extends AbstractManager {
             } else {
                 log.info("Step2: Setting vdc properties and reboot");
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-                if (action.equals(SiteInfo.UPDATE_DATA_REVISION)) {
-                    PropertyInfoExt currentProps = coordinator.getTargetInfo(PropertyInfoExt.class);
-                    String dataRevision = String.valueOf(System.currentTimeMillis());
-                    currentProps.addProperty("target_data_revision_tag", dataRevision);
-                    coordinator.setTargetProperties(currentProps.getAllProperties());
-                }
                 reboot();
             }
+        } else if (action.equals(SiteInfo.UPDATE_DATA_REVISION)) {
+            // TODO: synchronize between nodes to reboot at the same time
+            log.info("Step2: Setting vdc properties and update data revision");
+            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+
+            PropertyInfoExt currentProps = coordinator.getTargetInfo(PropertyInfoExt.class);
+            String dataRevision = String.valueOf(System.currentTimeMillis());
+            currentProps.addProperty("target_data_revision_tag", dataRevision);
+            coordinator.setTargetProperties(currentProps.getAllProperties());
+            localRepository.setOverrideProperties(currentProps);
+
+            // reboot without acquiring the lock
+            reboot();
         } else {
             log.info("Step2: Setting vdc properties not rebooting for single VDC change");
 

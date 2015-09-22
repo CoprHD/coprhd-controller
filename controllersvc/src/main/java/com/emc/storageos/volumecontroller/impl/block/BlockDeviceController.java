@@ -4155,8 +4155,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public String
-            createSingleCloneStep(Workflow workflow, URI storage, StorageSystem storageSystem, Volume volume, URI uri, String waitFor) {
+    public String createSingleCloneStep(Workflow workflow, URI storage, StorageSystem storageSystem,
+            Volume volume, URI uri, String waitFor) {
         Workflow.Method createMethod = createFullCopyVolumeMethod(storage, volume.getId(),
                 Arrays.asList(uri), false, false);
         Workflow.Method rollbackMethod = rollbackFullCopyVolumeMethod(storage, asList(uri));

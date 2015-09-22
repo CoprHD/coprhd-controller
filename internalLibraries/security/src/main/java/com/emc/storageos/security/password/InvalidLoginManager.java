@@ -112,7 +112,7 @@ public class InvalidLoginManager {
 
     private boolean isClientInvalidRecordExpired(InvalidLogins invLogins) {
         if (null != invLogins &&
-                (getCurrentTimeInMins() - invLogins.getLastAccessTimeInLong()) > _maxAuthnLoginAttemtsLifeTimeInMins) {
+                (getCurrentTimeInMins() - invLogins.getLastAccessTimeInLong()) >= _maxAuthnLoginAttemtsLifeTimeInMins) {
             return true;
         }
         return false;
@@ -451,7 +451,7 @@ public class InvalidLoginManager {
         } else {
             long lastAccesstime = invLogins.getLastAccessTimeInLong();  // number of minutes
             int remainingTime = (int)(lastAccesstime + _maxAuthnLoginAttemtsLifeTimeInMins
-                    - System.currentTimeMillis() / MIN_TO_MSECS);
+                    - getCurrentTimeInMins());
             return remainingTime > 0 ? remainingTime : 0;
         }
     }

@@ -762,8 +762,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumes(client, tenant, host, mounted));
     }
     
-    private List<AssetOption> getBlockVolumesForHostDatastore(ViPRCoreClient client, URI tenant, URI host, String datastore, boolean mounted) {
-        return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumesForDatastore(client, tenant, host, datastore, mounted));
+    private List<AssetOption> getBlockVolumesForHostDatastore(ViPRCoreClient client, URI tenant, URI host, String datastore) {
+        return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumesForDatastore(client, tenant, host, datastore));
     }
 
     private List<AssetOption> getProjectBlockVolumesForHost(ViPRCoreClient client, URI project, URI host,
@@ -862,7 +862,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("mountedBlockVolumeDatastore")
     @AssetDependencies({"esxHost", "blockdatastore"})
     public List<AssetOption> getMountedBlockVolumesForEsxHostDatastore(AssetOptionsContext context, URI host, String datastore) {
-        return getBlockVolumesForHostDatastore(api(context), context.getTenant(), host, datastore, true);
+        return getBlockVolumesForHostDatastore(api(context), context.getTenant(), host, datastore);
     }
 
     @Asset("mountedBlockVolume")

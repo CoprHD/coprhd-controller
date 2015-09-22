@@ -71,22 +71,26 @@ public class BlockProviderUtils {
         return volumes;
     }
     
+    /**
+     * Method to return all volumes associated with a specific datastore
+     * 
+     * @param viprClient 
+     * @param tenantId 
+     * @param hostOrClusterId 
+     * @param datastore name
+     * 
+     * @return list of volumes associated with specified datastore
+     */
     public static List<VolumeRestRep> getBlockVolumesForDatastore(ViPRCoreClient viprClient, URI tenantId, URI hostOrClusterId,
-            String datastore, boolean onlyMounted) {
-        List<URI> hostIds = buildHostIdsList(viprClient, hostOrClusterId, onlyMounted);
+            String datastore) {
+        List<URI> hostIds = buildHostIdsList(viprClient, hostOrClusterId, true);
 
         List<VolumeRestRep> volumes = Lists.newArrayList();
         for (VolumeRestRep volume : getExportedBlockVolumes(viprClient, tenantId, hostOrClusterId)) {
             for (URI hostId : hostIds) {
                 String ds = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
                 if (StringUtils.isNotBlank(ds) && ds.equals(datastore)) {
-                    boolean isMounted = isMounted(hostId, volume);
-                    if (onlyMounted && isMounted) {
-                        volumes.add(volume);
-                    }
-                    else if (!onlyMounted && !isMounted) {
-                        volumes.add(volume);
-                    }
+                    volumes.add(volume);
                 }
             }
         }

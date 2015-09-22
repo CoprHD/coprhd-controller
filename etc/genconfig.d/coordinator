@@ -44,7 +44,7 @@ _get_coordinator_var() {
         echo "coordinator_node_index=${_GENCONFIG_node_index}"
         echo "peer_type=participant"
     fi
-    _get_props node_id
+    _get_props node_id node_index
 }
 
 _get_coordinator_jmx_props() {

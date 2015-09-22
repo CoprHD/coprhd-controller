@@ -228,6 +228,10 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                     idToInitiatorMap, _dbClient, portWwnToClusterMap);
             
             if(!passed) {
+                // Mark this mask as inactive, so that we dont pick it in the next iteration
+                exportMask.setInactive(Boolean.TRUE);
+                _dbClient.persistObject(exportMask);
+                
                 _log.error("Export Mask is not suitable for VPLEX to backend storage system");
                 WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
                         vplex.getNativeGuid(), array.getNativeGuid(), clusterId));                
@@ -269,11 +273,11 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         
         // STEP 2- From Back-end storage system ports, which are used as target storage ports for VPLEX
         // generate a map of networkURI vs list of target storage ports.
-        Map<URI, List<StoragePort>> nwUriVsTargetPortsFromMask = new HashMap<>();
+        Map<String, List<StoragePort>> nwUriVsTargetPortsFromMask = new HashMap<>();
         StringSet targetPorts = exportMask.getStoragePorts();
         for(String targetPortUri : targetPorts) {
             StoragePort targetPort = _dbClient.queryObject(StoragePort.class, URI.create(targetPortUri));
-            URI networkUri = targetPort.getNetwork();
+            String networkUri = targetPort.getNetwork().toString();
             if(nwUriVsTargetPortsFromMask.containsKey(networkUri)) {
                 nwUriVsTargetPortsFromMask.get(networkUri).add(targetPort);
             } else {
@@ -305,8 +309,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 initiatorWWNvsNetworkURI.put(initPort.getPortNetworkId(), networkURI.toString());
             }
             //networkURIvsInitiatorPortWWNList.put(networkURI, initiatorWWNList);            
-        }
-        
+        }        
         
         // Consider directors to restrict paths not more than 4 for each director
         Map<StoragePort, Integer> portUsage = new HashMap<>();
@@ -323,13 +326,16 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 String initiatorNetworkURI = initiatorWWNvsNetworkURI.get(initWWN);
                 List<StoragePort> matchingTargetPorts = nwUriVsTargetPortsFromMask.get(initiatorNetworkURI);
                 
-                StoragePort assignedPort = assignPortBasedOnUsage(matchingTargetPorts, portUsage);
-                StringSet targetPortURIs = new StringSet();
-                targetPortURIs.add(assignedPort.getId().toString());
-                _log.info(String.format("Adding zoning map entry - Initiator is %s and its targetPorts %s",
-                        initiatorId, targetPortURIs.toString()));
-                exportMask.addZoningMapEntry(initiatorId, targetPortURIs);
-                directorPaths++;
+                if(null!=matchingTargetPorts && !matchingTargetPorts.isEmpty()) {
+                    StoragePort assignedPort = assignPortBasedOnUsage(matchingTargetPorts, portUsage);
+                    StringSet targetPortURIs = new StringSet();
+                    targetPortURIs.add(assignedPort.getId().toString());
+                    _log.info(String.format("Adding zoning map entry - Initiator is %s and its targetPorts %s",
+                            initiatorId, targetPortURIs.toString()));
+                    exportMask.addZoningMapEntry(initiatorId, targetPortURIs);
+                    directorPaths++;
+                }
+                
             }
             
         }

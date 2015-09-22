@@ -341,13 +341,16 @@ def show_sanfabrics(args):
         # fabric show command parser
     obj = SanFabrics(args.ip, args.port)
     try:
-        res = obj.san_fabrics_zones_list(args.name, args.fabricid,
+        res = obj.san_fabrics_zones_list(args.name, args.fabricid, None ,
                                                            args.xml)
+        print args.xml
+        print " res"
+        print res
         if(res):
-            if(args.xml == True):
+            if(args.xml):
                 return common.format_xml(res)
-            else:
-                return common.format_json_object(res)
+            
+            return common.format_json_object(res)
     except SOSError as e:
         common.format_err_msg_and_raise(
                                         "show",

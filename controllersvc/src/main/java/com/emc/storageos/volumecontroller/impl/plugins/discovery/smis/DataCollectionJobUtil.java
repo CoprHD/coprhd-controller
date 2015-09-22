@@ -41,6 +41,7 @@ import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
@@ -93,6 +94,10 @@ public class DataCollectionJobUtil {
                 StorageProvider.InterfaceType.scaleioapi.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateScaleIOAccessProfile(profile, (StorageProvider) taskObject);
+        } else if (clazz == StorageProvider.class &&
+                DiscoveredDataObject.Type.scaleio.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
+            throw ScaleIOException.exceptions.scaleioCliNotSupported();
         } else if (clazz == StorageProvider.class &&
                 StorageProvider.InterfaceType.ddmc.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
@@ -494,13 +499,7 @@ public class DataCollectionJobUtil {
             }
         } else if (storageDevice.getSystemType().equals(
                 Type.scaleio.toString())) {
-            accessProfile.setSystemType(storageDevice.getSystemType());
-            accessProfile.setIpAddress(storageDevice.getSmisProviderIP());
-            accessProfile.setUserName(storageDevice.getSmisUserName());
-            accessProfile.setserialID(storageDevice.getSerialNumber());
-            accessProfile.setPassword(storageDevice.getSmisPassword());
-            accessProfile.setPortNumber(storageDevice.getSmisPortNumber());
-            accessProfile.setLastSampleTime(0L);
+            injectDiscoveryProfile(accessProfile, storageDevice);
             if (null != nameSpace) {
                 accessProfile.setnamespace(nameSpace);
             }

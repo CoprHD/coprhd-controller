@@ -133,6 +133,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
         _locker.acquireLock(accessProfile.getIpAddress(), LOCK_WAIT_SECONDS);
         log.info("Starting discovery of ScaleIO StorageProvider. IP={} StorageSystem {}",
                 accessProfile.getIpAddress(), storageSystem.getNativeGuid());
+        String statusMsg = "";
         try {
             ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(_dbClient).getClientHandle(storageSystem);
             if (scaleIOHandle != null) {
@@ -258,13 +259,20 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                     allPools.addAll(notVisiblePools);
                 }
                 StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports, null, _dbClient, _coordinator, allPools);
+                statusMsg = String.format("Discovery completed successfully for Storage System: %s",
+                        storageSystem.getNativeGuid());
             }
         } catch (Exception e) {
             storageSystem.setReachableStatus(false);
             log.error(String.format("Exception was encountered when attempting to discover ScaleIO Instance %s",
                     accessProfile.getIpAddress()), e);
+            statusMsg = String.format("Discovery failed because %s", e.getLocalizedMessage());
+            throw ScaleIOException.exceptions.discoveryFailed(e);
         } finally {
             _locker.releaseLock(accessProfile.getIpAddress());
+            if (storageSystem != null) {
+                storageSystem.setLastDiscoveryStatusMessage(statusMsg);                
+            }
         }
         _dbClient.updateAndReindexObject(storageSystem);
         log.info("Completed of ScaleIO StorageProvider. IP={} StorageSystem {}",

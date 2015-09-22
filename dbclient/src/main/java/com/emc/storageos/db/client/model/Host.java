@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.util.EndpointUtility;
  */
 @Cf("Host")
 public class Host extends DiscoveredComputeSystemWithAcls {
-
     public static enum ProvisioningJobStatus {
         NONE,
         IN_PROGRESS,

@@ -1040,8 +1040,7 @@ public class ExportGroupService extends TaskResourceService {
     
     private boolean verifyHostAccessToTenant(List<ACLEntry> aclEntries, URI projectId ) {
     	
-    	//verifyAuthorizedInTenantOrg(tenantId, getUserFromContext());
-        
+    	//verifyAuthorizedInTenantOrg(tenantId, getUserFromContext());        
     	boolean isUserAuthorized = false;        
         Iterator<ACLEntry> aclEntriesIterator = aclEntries.iterator();
         while (aclEntriesIterator.hasNext()) {

@@ -252,10 +252,6 @@ public class HostService extends TaskResourceService {
         
         URI providerTenantId = _permissionsHelper.getRootTenant().getId();
         if(!providerTenantId.equals(tenantId)){
-        	/*HostList providerTenantHostList = new HostList();
-        	providerTenantHostList.setHosts(map(ResourceTypeEnum.HOST , 
-        										listChildren(providerTenantId, Host.class, "label", "tenant")));*/
-        	
         	List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(providerTenantId, Host.class, "label", "tenant");
         	for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
         		Host hostObj = queryObject(Host.class, dataObject.getId(), true);
@@ -265,16 +261,6 @@ public class HostService extends TaskResourceService {
                         dataObject.getId(), dataObject.getName()));
         		}
             }
-        	
-        	/*for(NamedRelatedResourceRep hostIter:providerTenantHostList.getHosts()){  
-        		        		
-				Host hostObj = queryObject(Host.class, hostIter.getId(), true);
-        		if(verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(hostObj.getAcls()))){
-        			list.getHosts().add();
-        		}
-        		
-        	}*/
-        	
         }
         
         return list;
@@ -1237,8 +1223,7 @@ public class HostService extends TaskResourceService {
     
     /**
      * Add or remove individual Access Control List entry(s). When the Host is created
-     * with no shared access (Vcenter.shared = Boolean.FALSE), there cannot
-     * be multiple Access Control List Entries associated with this vCenter.
+     * under provider tenant, we can give ACL to other tenants using this call.
      *
      * @param changes Access Control List assignment changes. Request body must include
      *                at least one add or remove operation
@@ -1254,6 +1239,11 @@ public class HostService extends TaskResourceService {
                                                 ACLAssignmentChanges changes) {
         //Make sure the vCenter is a valid one.
         Host host = queryObject(Host.class, id, true);
+        
+        if(!host.getTenant().toString().equals(_permissionsHelper.getRootTenant().getId())){
+        	throw APIException.badRequests.changesNotSupportedFor("Host ACL changes","Hosts not created by root tenant");
+        }
+        
         ArgValidator.checkEntity(host, id, isIdEmbeddedInURL(id));
 
         //Validate the acl assignment changes. It is not valid when an
@@ -1261,9 +1251,8 @@ public class HostService extends TaskResourceService {
         //other than USE.
         validateAclAssignments(changes);
 
-        //Make sure that the vCenter with respect to the tenants
-        //that we are removing is not in use (means the datacenters
-        //and its clusters and hosts with the removing tenant do not
+        //Make sure that the host  with respect to the tenants
+        //that we are removing is not in use means removing tenant do not
         //have any exports).
         checkHostUsage(host, changes);
 
@@ -1274,9 +1263,7 @@ public class HostService extends TaskResourceService {
         auditOp(OperationTypeEnum.UPDATE_VCENTER, true, null, host.getId()
                 .toString(), host.getLabel(), changes);
 
-        //Rediscover the vCenter, this will update the updated
-        //list of tenants based its latest acls to its datacenters
-        //and hosts and clusters.
+        //Rediscover the host, this will update the updated
         return doDiscoverHost(host);
     }
     

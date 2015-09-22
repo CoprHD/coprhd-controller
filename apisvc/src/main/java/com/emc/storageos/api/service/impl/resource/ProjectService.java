@@ -433,6 +433,27 @@ public class ProjectService extends TaggedResource {
                 exportgroup.iterator(), protectionSet.iterator(), blockConsistencySet.iterator()));
         return list;
     }
+    
+    /**
+     * validates whether the project has active vnas servers 
+     * assigned to it or not.
+     * 
+     * @param project - a ViPR Project
+     */
+    private boolean isProjectAssignedWithVNasServers(Project project) {
+    	
+    	if(project.getAssignedVNasServers() != null && !project.getAssignedVNasServers().isEmpty() ) {
+    		for( String vnasId : project.getAssignedVNasServers()) {
+    			VirtualNAS vnas = _permissionsHelper.getObjectById(URI.create(vnasId), VirtualNAS.class);
+    			if ( vnas != null && !vnas.getInactive() ){
+    				_log.debug("project {} has been assigned with vnas server {}", project.getLabel(), vnas.getNasName() );
+    				return true;
+    			}
+    		}
+       }
+    	_log.info("No active vnas servers assigned to project {}", project.getLabel() );
+    	return false;
+    }
 
     /**
      * Deactivates the project.
@@ -453,6 +474,12 @@ public class ProjectService extends TaggedResource {
     public Response deactivateProject(@PathParam("id") URI id) {
         Project project = getProjectById(id, true);
         ArgValidator.checkReference(Project.class, id, checkForDelete(project));
+        
+        // Check the project has been assigned with vNAS servers!!!
+        if(isProjectAssignedWithVNasServers(project)) {
+        	 _log.error("Delete porject failed due to, One or more vnas servers are assigned to project.");
+        	throw APIException.badRequests.failedToDeleteVNasAssignedProject();
+        }
         _dbClient.markForDeletion(project);
 
         recordOperation(OperationTypeEnum.DELETE_PROJECT, true, project);

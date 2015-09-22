@@ -280,8 +280,6 @@ public abstract class CommandHandler {
             if (type.equalsIgnoreCase(TYPE_EVENTS)) {
                 _client.queryForCustomDayEvents(queryTimeWindow, file);
             } else if (type.equalsIgnoreCase(TYPE_STATS)) {
-                _client.queryForCustomDayEvents(queryTimeWindow, file);
-            } else if (type.equalsIgnoreCase(TYPE_STATS)) {
                 _client.queryForCustomDayStats(queryTimeWindow, file);
             } else if (type.equalsIgnoreCase(TYPE_AUDITS)) {
                 _client.queryForCustomDayAudits(queryTimeWindow, file);

@@ -550,7 +550,6 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 log.info("Created step for add volumes to consistency group.");
             } else if (isNewCg && addVolumesList != null && !addVolumesList.isEmpty()) {
                 addStepsForCreateConsistencyGroup(workflow, waitFor, vplexSystem, addVolumesList, false, cgURI);
-                log.info("Added steps for creating consistency group");
                 
             }
 

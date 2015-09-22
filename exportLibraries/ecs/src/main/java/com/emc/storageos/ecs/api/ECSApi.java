@@ -38,7 +38,7 @@ public class ECSApi {
     private static final String ROLE_SYSTEM_ADMIN = "<role>SYSTEM_ADMIN</role>";
     private static final String URI_UPDATE_BUCKET_RETENTION = "/object/bucket/{0}/retention.json";
     private static final String URI_UPDATE_BUCKET_QUOTA = "/object/bucket/{0}/quota.json";
-    private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json";
+    private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json?namespace={1}";
     private static final long  DAY_TO_SECONDS = 24*60*60;
 
     /**
@@ -450,14 +450,15 @@ public class ECSApi {
      * Deletes a bucket on ECS Storage
      * 
      * @param bucketName Bucket name
+     * @param namespace Namespace where bucket resides
      * @throws ECSException If error occurs during delete
      */
-    public void deleteBucket(String bucketName) throws ECSException {
+    public void deleteBucket(String bucketName, String namespace) throws ECSException {
         ClientResponse clientResp = null;
 
         if (null != bucketName) {
             String deleteBody = " {  }  ";
-            final String path = MessageFormat.format(URI_DEACTIVATE_BUCKET, bucketName);
+            final String path = MessageFormat.format(URI_DEACTIVATE_BUCKET, bucketName, namespace);
             try {
                 clientResp = post(path, deleteBody);
             } catch (Exception e) {

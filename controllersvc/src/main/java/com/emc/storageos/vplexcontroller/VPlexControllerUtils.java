@@ -7,6 +7,7 @@ package com.emc.storageos.vplexcontroller;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -407,7 +408,7 @@ public class VPlexControllerUtils {
             log.error("cannot load vplex api client", e);
         }
 
-        Map<String, String> distributedDevicePathToClusterMap = null;
+        Map<String, String> distributedDevicePathToClusterMap = Collections.emptyMap();
         if (null != client) {
             distributedDevicePathToClusterMap = 
                     client.getDistributedDevicePathToClusterMap();

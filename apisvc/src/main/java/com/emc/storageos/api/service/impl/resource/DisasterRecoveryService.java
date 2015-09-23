@@ -267,16 +267,12 @@ public class DisasterRecoveryService extends TaggedResource {
         VirtualDataCenter vdc = queryLocalVDC();
         SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
         
-        Site localSite = new Site();
-        localSite.setUuid(siteId);
-        localSite.setVip(vdc.getApiEndpoint());
-        localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
-        localSite.getHostIPv4AddressMap().putAll(vdc.getHostIPv4AddressesMap());
-        localSite.getHostIPv6AddressMap().putAll(vdc.getHostIPv6AddressesMap());
-        
-        SiteConfigRestRep siteConfigRestRep = new SiteConfigRestRep(); 
-        siteMapper.map(localSite, siteConfigRestRep);
-
+        SiteConfigRestRep siteConfigRestRep = new SiteConfigRestRep();
+        siteConfigRestRep.setUuid(siteId);
+        siteConfigRestRep.setVip(vdc.getApiEndpoint());
+        siteConfigRestRep.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
+        siteConfigRestRep.getHostIPv4AddressMap().putAll(vdc.getHostIPv4AddressesMap());
+        siteConfigRestRep.getHostIPv6AddressMap().putAll(vdc.getHostIPv6AddressesMap());
         siteConfigRestRep.setDbSchemaVersion(_coordinator.getCurrentDbSchemaVersion());
         siteConfigRestRep.setFreshInstallation(isFreshInstallation());
         siteConfigRestRep.setState(siteState.name());

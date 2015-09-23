@@ -2416,6 +2416,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException failedToAssignVNasToProject(final String assignVnasError);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException failedToDeleteVNasAssignedProject();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noVNasServersAssociatedToProject(final String project);
@@ -2460,6 +2463,7 @@ public interface BadRequestExceptions {
     public BadRequestException imageNotPresentOnComputeImageServer(final String computeImage, final String computeImageServer);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException clientIpNotExist();
     public BadRequestException cannotShareVcenterWithMultipleTenants(final String vcenterName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

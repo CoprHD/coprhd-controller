@@ -158,6 +158,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return true;
     }
 
+    private static boolean isInConsistencyGroup(VolumeRestRep volume) {
+        return volume.getConsistencyGroup() != null;
+    }
+
     @Asset("blockVolumeOrConsistencyType")
     @AssetDependencies("project")
     public List<AssetOption> getblockVolumeOrConsistencyType(AssetOptionsContext ctx, URI project) {
@@ -593,7 +597,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         debug("getting volumes (project=%s)", project);
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(type)) {
-            return createVolumeOptions(client, listVolumes(client, project));
+            return createVolumeOptions(client, listVolumesWithoutConsistencyGroup(client, project));
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
                     .search()
@@ -761,6 +765,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private List<AssetOption> getBlockVolumesForHost(ViPRCoreClient client, URI tenant, URI host, boolean mounted) {
         return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumes(client, tenant, host, mounted));
     }
+    
+    private List<AssetOption> getBlockVolumesForHostDatastore(ViPRCoreClient client, URI tenant, URI host, String datastore) {
+        return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumesForDatastore(client, tenant, host, datastore));
+    }
 
     private List<AssetOption> getProjectBlockVolumesForHost(ViPRCoreClient client, URI project, URI host,
             boolean mounted) {
@@ -853,6 +861,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("esxHost")
     public List<AssetOption> getMountedBlockVolumesForEsxHost(AssetOptionsContext context, URI host) {
         return getBlockVolumesForHost(api(context), context.getTenant(), host, true);
+    }
+    
+    @Asset("mountedBlockVolumeDatastore")
+    @AssetDependencies({"esxHost", "blockdatastore"})
+    public List<AssetOption> getMountedBlockVolumesForEsxHostDatastore(AssetOptionsContext context, URI host, String datastore) {
+        return getBlockVolumesForHostDatastore(api(context), context.getTenant(), host, datastore);
     }
 
     @Asset("mountedBlockVolume")
@@ -1049,7 +1063,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<AssetOption> options = Lists.newArrayList();
             for (VolumeDetail detail : volumeDetails) {
                 if (isLocalSnapshotSupported(detail.vpool) || isRPSourceVolume(detail.volume)) {
-                    options.add(createVolumeOption(client, null, detail.volume, volumeNames));
+                    if (!isInConsistencyGroup(detail.volume)) {
+                        options.add(createVolumeOption(client, null, detail.volume, volumeNames));
+                    }
                 }
             }
             return options;
@@ -1340,6 +1356,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     protected List<VolumeRestRep> listVolumes(ViPRCoreClient client, URI project) {
         return client.blockVolumes().findByProject(project);
+    }
+
+    protected List<VolumeRestRep> listVolumesWithoutConsistencyGroup(ViPRCoreClient client, URI project) {
+        return client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
+
+            @Override
+            public boolean accept(VolumeRestRep item) {
+                return !isInConsistencyGroup(item);
+            }
+        });
     }
 
     protected static List<AssetOption> createVolumeWithVarrayOptions(ViPRCoreClient client,

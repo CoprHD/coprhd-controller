@@ -2562,7 +2562,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @return the protection system.
      */
     public ProtectionSystem getCgProtectionSystem(URI blockConsistencyGroupUri) {
-        List<Volume> cgVolumes = rpHelper.getCgVolumes(blockConsistencyGroupUri);
+        List<Volume> cgVolumes = RPHelper.getCgVolumes(blockConsistencyGroupUri, dbClient);
 
         if (cgVolumes != null && !cgVolumes.isEmpty()) {
             for (Volume cgVolume : cgVolumes) {
@@ -2591,7 +2591,7 @@ public class RecoverPointScheduler implements Scheduler {
      */
     private String getCgSourceInternalSiteNameAndAssociatedStorageSystem(URI blockConsistencyGroupUri) {
         String associatedStorageSystem = null;
-        List<Volume> cgSourceVolumes = rpHelper.getCgVolumes(blockConsistencyGroupUri, Volume.PersonalityTypes.SOURCE.toString());
+        List<Volume> cgSourceVolumes = RPHelper.getCgSourceVolumes(blockConsistencyGroupUri, dbClient);
 
         if (!cgSourceVolumes.isEmpty()) {
             Volume cgVol = cgSourceVolumes.get(0);

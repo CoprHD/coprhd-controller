@@ -9,9 +9,7 @@ import java.net.URI;
 /**
  * Representation for a ViPR standby
  */
-@SuppressWarnings("serial")
-@Cf("Site")
-public class Site extends DataObject {
+public class Site {
 
     private String uuid;
     private URI vdc;
@@ -21,56 +19,38 @@ public class Site extends DataObject {
     private StringMap hostIPv4AddressMap = new StringMap();
     private StringMap hostIPv6AddressMap = new StringMap();
     
-    public Site() {
-        
-    }
-    
-    public Site(URI id) {
-        this.setId(id);
-    }
-    
-    @Name("uuid")
     public String getUuid() {
         return uuid;
     }
 
     public void setUuid(String uuid) {
         this.uuid = uuid;
-        setChanged("uuid");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = VirtualDataCenter.class)
-    @Name("vdc")
     public URI getVdc() {
         return vdc;
     }
 
     public void setVdc(URI vdc) {
         this.vdc = vdc;
-        setChanged("vdc");
     }
 
-    @Name("name")
     public String getName() {
         return name;
     }
 
     public void setName(String name) {
         this.name = name;
-        setChanged("name");
     }
 
-    @Name("vip")
     public String getVip() {
         return vip;
     }
 
     public void setVip(String vip) {
         this.vip = vip;
-        setChanged("vip");
     }
     
-    @Name("secretKey")
     @Encrypt
     public String getSecretKey() {
         return secretKey;
@@ -78,27 +58,22 @@ public class Site extends DataObject {
 
     public void setSecretKey(String secretKey) {
         this.secretKey = secretKey;
-        setChanged("secretKey");
     }
 
-    @Name("hostIPv4AddressMap")
     public StringMap getHostIPv4AddressMap() {
         return hostIPv4AddressMap;
     }
 
     public void setHostIPv4AddressMap(StringMap hostIPv4AddressMap) {
         this.hostIPv4AddressMap = hostIPv4AddressMap;
-        setChanged("hostIPv4AddressMap");
     }
 
-    @Name("hostIPv6AddressMap")
     public StringMap getHostIPv6AddressMap() {
         return hostIPv6AddressMap;
     }
 
     public void setHostIPv6AddressMap(StringMap hostIPv6AddressMap) {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
-        setChanged("hostIPv6AddressMap");
     }
     
     @Override

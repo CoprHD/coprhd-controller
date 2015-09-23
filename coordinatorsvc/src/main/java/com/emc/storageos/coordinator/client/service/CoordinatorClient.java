@@ -503,4 +503,21 @@ public interface CoordinatorClient {
      */
     public SiteState getSiteState();
     
+    /**
+     * 
+     * Persist the whole object to ZK as bytes in specified path
+     * @param path path location to save object
+     * @param object data object
+     * @throws CoordinatorException
+     */
+    void persistObject(String path, Object object) throws CoordinatorException;
+    
+    /**
+     * deserialize the data object from path as class T
+     * @param clazz
+     * @param path
+     * @return deserialize data object
+     * @throws CoordinatorException
+     */
+    <T> T queryObject(Class<T> clazz, String path) throws CoordinatorException;
 }

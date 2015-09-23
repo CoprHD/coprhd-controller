@@ -42,7 +42,6 @@ import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
-import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -92,7 +91,6 @@ public class DisasterRecoveryServiceTest {
 
         // setup standby site
         standbySite1 = new Site();
-        standbySite1.setId(new URI("site-object-id-1"));
         standbySite1.setUuid("site-uuid-1");
         standbySite1.setVdc(localVDC.getId());
         standbySite1.setVip("10.247.101.110");
@@ -101,12 +99,10 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
 
         standbySite2 = new Site();
-        standbySite2.setId(new URI("site-object-id-2"));
         standbySite2.setUuid("site-uuid-2");
         standbySite2.setVdc(localVDC.getId());
 
         standbySite3 = new Site();
-        standbySite3.setId(new URI("site-object-id-3"));
         standbySite3.setUuid("site-uuid-3");
         standbySite3.setVdc(new URI("fake-vdc-id"));
 
@@ -146,7 +142,7 @@ public class DisasterRecoveryServiceTest {
         drService = spy(new DisasterRecoveryService());
         drService.setDbClient(dbClientMock);
         drService.setCoordinator(coordinator);
-        drService.setSiteMapper(new MockSiteMapper());
+        drService.setSiteMapper(new SiteMapper());
         drService.setSysUtils(new SysUtils());
 
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
@@ -168,7 +164,8 @@ public class DisasterRecoveryServiceTest {
     public void testAddStandby() {
         //TODO this test case will be add when implement attach standby feature
     }
-
+    
+    /*
     @Test
     public void testGetAllStandby() {
         
@@ -225,7 +222,7 @@ public class DisasterRecoveryServiceTest {
         SiteRestRep response = drService.getStandby("site-uuid-not-exist");
         assertNull(response);
     }
-    
+    */
     @Test
     public void testRemoveStandby() {
         //TODO this test case will be add when implement detach standby feature
@@ -356,7 +353,6 @@ public class DisasterRecoveryServiceTest {
     
     protected void compareSiteResponse(SiteConfigRestRep response, Site site) {
         assertNotNull(response);
-        assertEquals(response.getId(), site.getId());
         assertEquals(response.getUuid(), site.getUuid());
         assertEquals(response.getName(), site.getName());
         assertEquals(response.getVip(), site.getVip());
@@ -369,14 +365,6 @@ public class DisasterRecoveryServiceTest {
         for (String key : response.getHostIPv6AddressMap().keySet()) {
             assertNotNull(site.getHostIPv6AddressMap().get(key));
             assertEquals(response.getHostIPv6AddressMap().get(key), site.getHostIPv6AddressMap().get(key));
-        }
-    }
-
-    private static class MockSiteMapper extends SiteMapper {
-
-        @Override
-        protected void mapDataObjectFields(Site from, SiteRestRep to) {
-            to.setId(from.getId());
         }
     }
 }

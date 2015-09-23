@@ -9,11 +9,8 @@ import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
 
-import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 import javax.crypto.SecretKey;
@@ -36,16 +33,15 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
-import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
@@ -64,12 +60,14 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 @Path("/site")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-public class DisasterRecoveryService extends TaggedResource {
+public class DisasterRecoveryService {
 
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
     private SysUtils sysUtils;
+    private CoordinatorClient _coordinator;
+    private DbClient _dbClient;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -93,17 +91,19 @@ public class DisasterRecoveryService extends TaggedResource {
         precheckForStandbyAttach(standbyInfo);
         
         VirtualDataCenter vdc = queryLocalVDC();
-
-        Site standbySite = new Site(URIUtil.createId(Site.class));
+        
+        Site standbySite = new Site();
         siteMapper.map(standbyInfo, standbySite);
-        standbySite.setVdc(vdc.getId());
 
         if (log.isDebugEnabled()) {
             log.debug(standbySite.toString());
         }
+        
+        vdc.getSiteUUIDs().add(standbySite.getUuid());
+        _dbClient.persistObject(vdc);
 
-        log.info("Persist standby site to DB");
-        _dbClient.createObject(standbySite);
+        log.info("Persist standby site to ZK");
+        _coordinator.persistObject(String.format("%1$s/%2$s", ZkPath.SITES, standbySite.getUuid()), standbySite);
 
         updateVdcTargetVersion();
 
@@ -121,12 +121,9 @@ public class DisasterRecoveryService extends TaggedResource {
         SiteList standbyList = new SiteList();
         
         VirtualDataCenter vdc = queryLocalVDC();
-        URIQueryResultList standbySiteIds = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
-                standbySiteIds);
-
-        for (URI siteId : standbySiteIds) {
-            Site standby = _dbClient.queryObject(Site.class, siteId);
+        
+        for (String uuid : vdc.getSiteUUIDs()) {
+            Site standby = _coordinator.queryObject(Site.class, String.format("%1$s/%2$s", ZkPath.SITES, uuid));
             standbyList.getSites().add(siteMapper.map(standby));
         }
         
@@ -144,18 +141,10 @@ public class DisasterRecoveryService extends TaggedResource {
     public SiteRestRep getStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to get standby site by uuid {}", uuid);
         
-        List<URI> ids = _dbClient.queryByType(Site.class, true);
-
-        Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
-        while (sites.hasNext()) {
-            Site standby = sites.next();
-            if (standby.getUuid().equals(uuid)) {
-                return siteMapper.map(standby);
-            }
-        }
+        Site standby = _coordinator.queryObject(Site.class, String.format("%1$s/%2$s", ZkPath.SITES, uuid));
         
         log.info("Can't find site with specified site ID {}", uuid);
-        return null;
+        return siteMapper.map(standby);
     }
 
     @DELETE
@@ -164,17 +153,19 @@ public class DisasterRecoveryService extends TaggedResource {
     public SiteRestRep removeStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to remove standby site from local vdc by uuid: {}", uuid);
         
-        List<URI> ids = _dbClient.queryByType(Site.class, true);
+        Site standby = _coordinator.queryObject(Site.class, String.format("%1$s/%2$s", ZkPath.SITES, uuid));
 
-        Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
-        while (sites.hasNext()) {
-            Site standby = sites.next();
-            if (standby.getUuid().equals(uuid)) {
-                log.info("Find standby site in local VDC and remove it");
-                _dbClient.markForDeletion(standby);
-                updateVdcTargetVersion();
-                return siteMapper.map(standby);
-            }
+        if (standby != null) {
+            log.info("Find standby site in local VDC and remove it");
+            
+            VirtualDataCenter vdc = queryLocalVDC();
+            vdc.getSiteUUIDs().remove(uuid);
+            _dbClient.persistObject(vdc);
+            
+            _coordinator.persistObject(String.format("%1$s/%2$s", ZkPath.SITES, uuid), null);
+            
+            updateVdcTargetVersion();
+            return siteMapper.map(standby);
         }
         
         return null;
@@ -234,10 +225,13 @@ public class DisasterRecoveryService extends TaggedResource {
         log.info("Begin to add primary site {}", param);
 
         Site primarySite = toSite(param);
-        primarySite.setVdc(queryLocalVDC().getId());
+        
+        VirtualDataCenter vdc = queryLocalVDC();
+        vdc.getSiteUUIDs().add(primarySite.getUuid());
+        _dbClient.persistObject(vdc);
 
-        log.info("Persist primary site to DB");
-        _dbClient.createObject(primarySite);
+        log.info("Persist standby site to ZK");
+        _coordinator.persistObject(String.format("%1$s/%2$s", ZkPath.SITES, primarySite.getUuid()), primarySite);
 
         updateVdcTargetVersion();
 
@@ -257,7 +251,6 @@ public class DisasterRecoveryService extends TaggedResource {
 
     private Site toSite(SiteSyncParam param) {
         Site site = new Site();
-        site.setId(URIUtil.createId(Site.class));
         site.setUuid(param.getUuid());
         site.setName(param.getName());
         site.setVip(param.getVip());
@@ -297,19 +290,6 @@ public class DisasterRecoveryService extends TaggedResource {
         return resp;
     }
     
-    @Override
-    protected Site queryResource(URI id) {
-        ArgValidator.checkUri(id);
-        Site standby = _dbClient.queryObject(Site.class, id);
-        ArgValidator.checkEntityNotNull(standby, id, isIdEmbeddedInURL(id));
-        return standby;
-    }
-
-    @Override
-    protected URI getTenantOwner(URI id) {
-        return null;
-    }
-
     private Set<String> getStandbyIds(Set<String> siteUUIds) {
         Set<String> standbyIds = new HashSet<String>();
         String primarySiteId = _coordinator.getPrimarySiteId();
@@ -320,11 +300,6 @@ public class DisasterRecoveryService extends TaggedResource {
             }
         }
         return standbyIds;
-    }
-
-    @Override
-    protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.SITE;
     }
     
     /*
@@ -411,5 +386,13 @@ public class DisasterRecoveryService extends TaggedResource {
 
     public void setSysUtils(SysUtils sysUtils) {
         this.sysUtils = sysUtils;
+    }
+    
+    public void setDbClient(DbClient dbClient) {
+        _dbClient = dbClient;
+    }
+
+    public void setCoordinator(CoordinatorClient locator) {
+        _coordinator = locator;
     }
 }

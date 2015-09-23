@@ -595,11 +595,5 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("associatedSourceVolume");
             return new ContainmentConstraintImpl(sourceURI, Volume.class, field);
         }
-
-        public static ContainmentConstraint getVirtualDataCenterSiteConstraint(URI vdcId) {
-            DataObjectType doType = TypeMap.getDoType(Site.class);
-            ColumnField field = doType.getColumnField("vdc");
-            return new ContainmentConstraintImpl(vdcId, Site.class, field);
-        }
     }
 }

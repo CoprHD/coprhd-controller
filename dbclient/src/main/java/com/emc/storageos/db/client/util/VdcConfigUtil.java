@@ -4,20 +4,26 @@
  */
 package com.emc.storageos.db.client.util;
 
-import java.net.*;
-import java.util.*;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.model.Site;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 
@@ -163,11 +169,9 @@ public class VdcConfigUtil {
         String address;
         int standbyNodeCnt = 0;
         String shortId = vdc.getShortId();
-        URIQueryResultList standbySiteIds = new URIQueryResultList();
-        dbclient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
-                standbySiteIds);
-        for (URI siteId : standbySiteIds) {
-            Site site = dbclient.queryObject(Site.class, siteId);
+        
+        for (String siteUUID : vdc.getSiteUUIDs()) {
+            Site site = coordinator.queryObject(Site.class, String.format("%1$s/%2$s", ZkPath.SITES, siteUUID));
             StringMap standbyIPv4Addrs = site.getHostIPv4AddressMap();
             StringMap standbyIPv6Addrs = site.getHostIPv6AddressMap();
             List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);

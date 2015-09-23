@@ -449,4 +449,16 @@ public class TestCoordinator implements CoordinatorClient {
     public SiteState getSiteState() {
         return SiteState.ACTIVE;
     }
+
+    @Override
+    public void persistObject(String path, Object object) throws CoordinatorException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public <T> T queryObject(Class<T> clazz, String path) throws CoordinatorException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

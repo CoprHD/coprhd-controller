@@ -5,23 +5,41 @@
 
 package com.emc.storageos.coordinator.client.service.impl;
 
-import com.emc.storageos.coordinator.client.model.*;
-import com.emc.storageos.coordinator.client.service.*;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.common.impl.ServiceImpl;
-import com.emc.storageos.coordinator.common.impl.ZkConnection;
-import com.emc.storageos.coordinator.common.impl.ZkPath;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
-import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.storageos.model.property.PropertyInfoRestRep;
-import com.emc.storageos.services.util.NamedThreadPoolExecutor;
-import com.emc.storageos.services.util.PlatformUtils;
-import com.emc.storageos.services.util.Strings;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
-import com.emc.vipr.model.sys.ClusterInfo;
+import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
+import static com.emc.storageos.coordinator.client.model.Constants.DB_CONFIG;
+import static com.emc.storageos.coordinator.client.model.Constants.GLOBAL_ID;
+import static com.emc.storageos.coordinator.client.model.Constants.MIGRATION_STATUS;
+import static com.emc.storageos.coordinator.client.model.Constants.NODE_DUALINETADDR_CONFIG;
+import static com.emc.storageos.coordinator.client.model.Constants.SCHEMA_VERSION;
+import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_INFO;
+import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY;
+import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY_ID;
+import static com.emc.storageos.coordinator.mapper.PropertyInfoMapper.decodeFromString;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Proxy;
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
+import java.util.regex.Pattern;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
@@ -41,18 +59,41 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.lang.reflect.Proxy;
-import java.net.URI;
-import java.net.UnknownHostException;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.regex.Pattern;
-
-import static com.emc.storageos.coordinator.client.model.Constants.*;
-import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_INFO;
-import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.*;
-import static com.emc.storageos.coordinator.mapper.PropertyInfoMapper.decodeFromString;
+import com.emc.storageos.coordinator.client.model.ConfigVersion;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.CoordinatorClassInfo;
+import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
+import com.emc.storageos.coordinator.client.model.DbVersionInfo;
+import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.model.PowerOffState;
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
+import com.emc.storageos.coordinator.client.service.DistributedQueue;
+import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
+import com.emc.storageos.coordinator.client.service.LicenseInfo;
+import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.client.service.WorkPool;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.common.impl.ServiceImpl;
+import com.emc.storageos.coordinator.common.impl.ZkConnection;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
+import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.services.util.NamedThreadPoolExecutor;
+import com.emc.storageos.services.util.PlatformUtils;
+import com.emc.storageos.services.util.Strings;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.vipr.model.sys.ClusterInfo;
 
 /**
  * Default coordinator client implementation
@@ -1578,5 +1619,49 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             throw CoordinatorException.retryables.errorWhileFindingNode(path, e);
         }
         return state;
+    }
+	
+    @Override
+    public void persistObject(String path, Object object) throws CoordinatorException {
+        try (ByteArrayOutputStream byteOutput = new ByteArrayOutputStream();
+                ObjectOutputStream objectOutput = new ObjectOutputStream(byteOutput);) {
+
+            objectOutput.writeObject(object);
+
+            Stat stat = _zkConnection.curator().checkExists().forPath(path);
+            if (stat != null) {
+                _zkConnection.curator().setData().forPath(path, byteOutput.toByteArray());
+            } else {
+                _zkConnection.curator().create().forPath(path, byteOutput.toByteArray());
+            }
+        } catch (final Exception e) {
+            log.info("Failed to persist service configuration e=", e);
+            throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
+        }
+    }
+
+    @Override
+    public <T> T queryObject(Class<T> clazz, String path) throws CoordinatorException {
+        try {
+            try {
+                byte[] data = _zkConnection.curator().getData().forPath(path);
+
+                if (data == null || data.length == 0)
+                    return null;
+
+                ByteArrayInputStream input = new ByteArrayInputStream(data);
+                ObjectInputStream inputStream = new ObjectInputStream(input);
+
+                return (T) inputStream.readObject();
+            } catch (KeeperException.NoNodeException ignore) {
+                log.debug("Caught exception but ignoring it: " + ignore);
+                return null;
+            } catch (Exception e) {
+                throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
+            }
+        } catch (final Exception e) {
+            log.info("Failed to persist service configuration e=", e);
+            throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
+        }
     }
 }

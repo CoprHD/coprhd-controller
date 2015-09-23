@@ -24,7 +24,6 @@ public class SiteMapper {
             return;
         }
         
-        mapDataObjectFields(from, to);
         to.setUuid(from.getUuid());
         to.setVdcId(from.getVdc());
         to.setName(from.getName());
@@ -38,9 +37,5 @@ public class SiteMapper {
         site.getHostIPv4AddressMap().putAll(new StringMap(siteParam.getHostIPv4AddressMap()));
         site.getHostIPv6AddressMap().putAll(new StringMap(siteParam.getHostIPv6AddressMap()));
         site.setSecretKey(siteParam.getSecretKey());
-    }
-
-    protected void mapDataObjectFields(Site from, SiteRestRep to) {
-        DbObjectMapper.mapDataObjectFields(from, to);
     }
 }

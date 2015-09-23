@@ -14,8 +14,9 @@ import com.emc.storageos.coordinator.exceptions.DecodingException;
  * DataRevision represents a data revision number.
  */
 public class DataRevision implements CoordinatorSerializable {
-    private static final String TARGET_PROPERTY_ID = "global";
-    private static final String TARGET_PROPERTY_ATTR = "datarevision";
+    public static final String CONFIG_KIND = "targetdatarevision";
+    public static final String CONFIG_ID = "global";
+    private static final String CONFIG_ATTR = "datarevision";
     
     private static final String KEY_DATA_REVISION = "target_data_revision";
     
@@ -51,7 +52,7 @@ public class DataRevision implements CoordinatorSerializable {
 
     @Override
     public CoordinatorClassInfo getCoordinatorClassInfo() {
-        return new CoordinatorClassInfo(TARGET_PROPERTY_ID, Constants.TARGET_DATA_REVISION_PROPERTY, TARGET_PROPERTY_ATTR);
+        return new CoordinatorClassInfo(CONFIG_ID, CONFIG_KIND, CONFIG_ATTR);
     }
 
     @Override

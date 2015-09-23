@@ -535,7 +535,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isSiteSpecific(String kind) {
-        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equals(Constants.TARGET_DATA_REVISION_PROPERTY)) {
+        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equals(DataRevision.CONFIG_KIND)) {
             return true;
         }
         return false;

@@ -11,6 +11,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DataRevision;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
@@ -87,11 +88,55 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
 
+    /**
+     * Register site info listener to monitor data revision
+     */
+    private void addDataRevisionListener() {
+        try {
+            coordinator.getCoordinatorClient().addNodeListener(new DataRevisionListener());
+        } catch (Exception e) {
+            log.error("Fail to add node listener for data revision target znode", e);
+            throw APIException.internalServerErrors.addListenerFailed();
+        }
+        log.info("Successfully added node listener for data revision target znode");
+    }
+
+    /**
+     * the listener class to listen on data revision change.
+     */
+    class DataRevisionListener implements NodeListener {
+        public String getPath() {
+            return String.format("/sites/%s/config/%s/%s", coordinator.getCoordinatorClient().getSiteId(), DataRevision.CONFIG_KIND, DataRevision.CONFIG_ID);
+        }
+
+        /**
+         * called when user update the site
+         */
+        @Override
+        public void nodeChanged() {
+            log.info("Data revision changed. Waking up the vdc manager...");
+            wakeup();
+        }
+
+        /**
+         * called when connection state changed.
+         */
+        @Override
+        public void connectionStateChanged(State state) {
+            log.info("Data revision connection state changed to {}", state);
+            if (state.equals(State.CONNECTED)) {
+                log.info("Curator (re)connected. Waking up the vdc manager...");
+                wakeup();
+            }
+        }
+    }
+
     @Override
     protected void innerRun() {
         final String svcId = coordinator.getMySvcId();
 
         addSiteInfoListener();
+        addDataRevisionListener();
 
         while (doRun) {
             log.debug("Main loop: Start");

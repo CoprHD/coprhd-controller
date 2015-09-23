@@ -22,16 +22,16 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.DataRevision;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 import com.emc.storageos.coordinator.exceptions.InvalidRepositoryInfoException;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
-
 import com.emc.storageos.systemservices.exceptions.SyssvcException;
-
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.Strings;
@@ -69,6 +69,8 @@ public class LocalRepository {
     private static final String _SYSTOOL_SET_VDC_PROPS = "--setvdcprops";
     private static final String _SYSTOOL_GET_SSL_PROPS = "--getsslprops";
     private static final String _SYSTOOL_SET_SSL_PROPS = "--setsslprops";
+    private static final String _SYSTOOL_SET_DATA_REVISION = "--set-data-revision";
+    private static final String _SYSTOOL_GET_DATA_REVISION = "--get-data-revision";
 
     private static final String _SYSTOOL_REBOOT = "--reboot";
     private static final String _SYSTOOL_POWEROFF = "--poweroff";
@@ -434,6 +436,44 @@ public class LocalRepository {
 
         _log.info(prefix + ret[0]);
         return Boolean.valueOf(ret[0]);
+    }
+
+    /***
+     * Update data revision property
+     *
+     * @param state
+     * @throws LocalRepositoryException
+     */
+    public void setDataRevision(DataRevision revisionTag) throws LocalRepositoryException {
+        final String prefix = "setDataRevisionTag(): to=" + revisionTag;
+        _log.debug(prefix);
+
+        final Path tmpFilePath = FileSystems.getDefault().getPath(DATA_REVISION_TMP);
+        createTmpFile(tmpFilePath, revisionTag.encodeAsString(), prefix);
+
+        try {
+            final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_DATA_REVISION, DATA_REVISION_TMP };
+            exec(prefix, cmd);
+            _log.info(prefix + "Success");
+        } finally {
+            cleanupTmpFile(tmpFilePath);
+        }
+    }
+
+    /***
+     * Get data revision from disk
+     * 
+     * @return DataRevisonTag
+     */
+    public DataRevision getDataRevision() throws LocalRepositoryException {
+        final String prefix = "getDataRevision(): ";
+        _log.debug(prefix);
+
+        final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_DATA_REVISION };
+        String[] props = exec(prefix, cmd1);
+
+        _log.debug(prefix + "properties={}", Strings.repr(props));
+        return new DataRevision().decodeFromString(props[0]);
     }
 
     /**

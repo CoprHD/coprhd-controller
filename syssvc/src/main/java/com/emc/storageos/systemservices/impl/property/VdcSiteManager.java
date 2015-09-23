@@ -11,6 +11,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.DataRevision;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
@@ -32,7 +33,8 @@ public class VdcSiteManager extends AbstractManager {
     private PropertyInfoExt localVdcPropInfo;
     private PropertyInfoExt targetVdcPropInfo;
     private SiteInfo targetVdcPropVersion;
-
+    private DataRevision targetDataRevision;
+    
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
@@ -143,8 +145,16 @@ public class VdcSiteManager extends AbstractManager {
                 continue;
             }
 
-            // Step3: sleep
-            log.info("Step3: sleep");
+            // Step3: change data revision
+            log.info("Step3: check if target data revision is changed - {}", targetDataRevision);
+            try {
+                updateDataRevision();
+            } catch (Exception e) {
+                log.error("Step3: Failed to update data revision. {}", e);
+            }
+            
+            // Step4: sleep
+            log.info("Step4: sleep");
             longSleep();
         }
     }
@@ -164,6 +174,7 @@ public class VdcSiteManager extends AbstractManager {
         // Initialize vdc prop info
         localVdcPropInfo = localRepository.getVdcPropertyInfo();
         targetVdcPropInfo = loadVdcConfigFromDatabase();
+        targetDataRevision = coordinator.getTargetInfo(DataRevision.class);
         if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null) {
             localVdcPropInfo = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
             localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
@@ -272,4 +283,27 @@ public class VdcSiteManager extends AbstractManager {
         log.info("Successfully acquired the vdc lock.");
         return true;
     }
+
+    /**
+     * Check if data revision is same as local one. If not, switch to target revision and reboot the whole cluster
+     * simultaneously.
+     * 
+     * @throws Exception
+     */
+    private void updateDataRevision() throws Exception {
+        DataRevision localRevision = localRepository.getDataRevision();
+        log.info("Step3: local data revision is {}", localRevision);
+        if (targetDataRevision != null && !targetDataRevision.equals(localRevision)) {
+            localRepository.setDataRevision(targetDataRevision);
+            log.info("Step3: Trying to reach agreement with timeout on cluster poweroff");
+            if (checkAllNodesAgreeToPowerOff(false) && initiatePoweroff(false)) {
+                log.info("Step3: Reach agreement on cluster poweroff");
+                resetTargetPowerOffState();
+                reboot();
+            } else {
+                log.warn("Step3: Failed to reach agreement among all the nodes. Delay data revision change until next run");
+                localRepository.setDataRevision(localRevision);
+            }
+        }
+    }    
 }

@@ -409,20 +409,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 for (URI id : ids) {
                     if (URIUtil.isType(id, Volume.class)) {
                         Volume volume = dbClient.queryObject(Volume.class, id);
-                        List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(dbClient,
-                                volume.getNativeGuid());
-                        if (!snapshots.isEmpty()) {
-                            // There should only be one.
-                            switch (status) {
-                                case error:
-                                    super.setErrorOnDataObject(dbClient, BlockSnapshot.class, snapshots.get(0), coded);
-                                    break;
-                                case ready:
-                                    super.setReadyOnDataObject(dbClient, BlockSnapshot.class, snapshots.get(0));
-                                    break;
-                                default:
-                                    _log.error("Unexpected status {} on completer", status.name());
-                                    break;
+                        String nativeGuid = volume.getNativeGuid();
+                        if (NullColumnValueGetter.isNotNullValue(nativeGuid)) {
+                            List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(dbClient, nativeGuid);
+                            if (!snapshots.isEmpty()) {
+                                // There should only be one.
+                                switch (status) {
+                                    case error:
+                                        super.setErrorOnDataObject(dbClient, BlockSnapshot.class, snapshots.get(0), coded);
+                                        break;
+                                    case ready:
+                                        super.setReadyOnDataObject(dbClient, BlockSnapshot.class, snapshots.get(0));
+                                        break;
+                                    default:
+                                        _log.error("Unexpected status {} on completer", status.name());
+                                        break;
+                                }
                             }
                         }
                     }
@@ -5804,7 +5806,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     vplexVolume.setNativeGuid(virtvinfo.getPath());
                     vplexVolume.setDeviceLabel(virtvinfo.getName());
                     _dbClient.persistObject(vplexVolume);
-
                 }
             } else {
                 virtvinfo = new VPlexVirtualVolumeInfo();

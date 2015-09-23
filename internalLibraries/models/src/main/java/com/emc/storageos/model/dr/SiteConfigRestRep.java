@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.model.dr;
 
+import java.util.Map;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -15,6 +17,11 @@ public class SiteConfigRestRep extends SiteRestRep {
     private String softwareVersion;
     private String dbSchemaVersion;
     private boolean freshInstallation;
+    
+    private String secretKey;
+    private Map<String, String> hostIPv4AddressMap;
+    private Map<String, String> hostIPv6AddressMap;
+    private Map<String, Object> extraProperties;
     
     @XmlElement(name = "softwareVersion")
     public String getSoftwareVersion() {
@@ -41,6 +48,42 @@ public class SiteConfigRestRep extends SiteRestRep {
 
     public void setFreshInstallation(boolean freshInstallation) {
         this.freshInstallation = freshInstallation;
+    }
+    
+    @XmlElement(name = "secretKey")
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
+    }
+
+    @XmlElement(name = "hostIPv4AddressMap")
+    public Map<String, String> getHostIPv4AddressMap() {
+        return hostIPv4AddressMap;
+    }    
+
+    public void setHostIPv4AddressMap(Map<String, String> hostIPv4AddressMap) {
+        this.hostIPv4AddressMap = hostIPv4AddressMap;
+    }
+
+    @XmlElement(name = "hostIPv6AddressMap")
+    public Map<String, String> getHostIPv6AddressMap() {
+        return hostIPv6AddressMap;
+    }
+
+    public void setHostIPv6AddressMap(Map<String, String> hostIPv6AddressMap) {
+        this.hostIPv6AddressMap = hostIPv6AddressMap;
+    }
+    
+    @XmlElement(name = "extraProperties")
+    public Map<String, Object> getExtraProperties() {
+        return extraProperties;
+    }
+
+    public void setExtraProperties(Map<String, Object> extraProperties) {
+        this.extraProperties = extraProperties;
     }
     
     @Override

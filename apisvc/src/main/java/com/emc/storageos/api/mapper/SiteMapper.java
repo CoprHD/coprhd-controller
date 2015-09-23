@@ -6,8 +6,8 @@ package com.emc.storageos.api.mapper;
 
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.model.dr.SiteSyncParam;
 
 public class SiteMapper {
     public SiteRestRep map(Site from) {
@@ -29,10 +29,6 @@ public class SiteMapper {
         to.setVdcId(from.getVdc());
         to.setName(from.getName());
         to.setVip(from.getVip());
-        to.setSecretKey(from.getSecretKey());
-        to.setHostIPv4AddressMap(from.getHostIPv4AddressMap());
-        to.setHostIPv6AddressMap(from.getHostIPv6AddressMap());
-        to.setSecretKey(from.getSecretKey());
     }
 
     protected void mapDataObjectFields(Site from, SiteRestRep to) {

@@ -29,9 +29,15 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.dr.*;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyMetadata;
+import com.emc.storageos.model.dr.DRNatCheckParam;
+import com.emc.storageos.model.dr.DRNatCheckResponse;
+import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteConfigRestRep;
+import com.emc.storageos.model.dr.SiteList;
+import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.model.dr.SiteSyncParam;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -73,7 +79,7 @@ public class DisasterRecoveryService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteRestRep addStandby(SiteAddParam param) {
         log.info("Retrieving standby site config from: {}", param.getVip());
-        ViPRCoreClient viprClient = new ViPRCoreClient(param.getVip(), true).withLogin(param.getUser(),
+        ViPRCoreClient viprClient = new ViPRCoreClient(param.getVip(), true).withLogin(param.getUsername(),
                 param.getPassword());
         SiteConfigRestRep standbyConfig = viprClient.site().getStandbyConfig();
 
@@ -284,7 +290,7 @@ public class DisasterRecoveryService extends TaggedResource {
         log.info("Return result: {}", siteConfigRestRep);
         return siteConfigRestRep;
     }
-
+    
     private void updateDataRevision() throws Exception {
         PropertyInfoExt currentProps = _coordinator.getTargetInfo(PropertyInfoExt.class);
         Map<String, PropertyMetadata> propsMetadata = PropertiesMetadata.getGlobalMetadata();

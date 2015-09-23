@@ -17,16 +17,12 @@ import com.emc.storageos.model.DataObjectRestRep;
 @XmlRootElement(name = "site")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class SiteRestRep extends DataObjectRestRep {
-
     private String uuid;
     private URI vdcId;
     private String name;
+    private String description;
     private String vip;
     private String state;
-    private String secretKey;
-    private Map<String, String> hostIPv4AddressMap;
-    private Map<String, String> hostIPv6AddressMap;
-    private Map<String, Object> extraProperties;
 
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -73,40 +69,13 @@ public class SiteRestRep extends DataObjectRestRep {
         this.state = state;
     }
 
-    @XmlElement(name = "secretKey")
-    public String getSecretKey() {
-        return secretKey;
+    
+    public String getDescription() {
+        return description;
     }
 
-    public void setSecretKey(String secretKey) {
-        this.secretKey = secretKey;
-    }
-
-    @XmlElement(name = "hostIPv4AddressMap")
-    public Map<String, String> getHostIPv4AddressMap() {
-        return hostIPv4AddressMap;
-    }    
-
-    public void setHostIPv4AddressMap(Map<String, String> hostIPv4AddressMap) {
-        this.hostIPv4AddressMap = hostIPv4AddressMap;
-    }
-
-    @XmlElement(name = "hostIPv6AddressMap")
-    public Map<String, String> getHostIPv6AddressMap() {
-        return hostIPv6AddressMap;
-    }
-
-    public void setHostIPv6AddressMap(Map<String, String> hostIPv6AddressMap) {
-        this.hostIPv6AddressMap = hostIPv6AddressMap;
-    }
-
-    @XmlElement(name = "extraProperties")
-    public Map<String, Object> getExtraProperties() {
-        return extraProperties;
-    }
-
-    public void setExtraProperties(Map<String, Object> extraProperties) {
-        this.extraProperties = extraProperties;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     @Override
@@ -120,12 +89,6 @@ public class SiteRestRep extends DataObjectRestRep {
         builder.append(vip);
         builder.append(", state=");
         builder.append(state);
-        builder.append(", hostIPv4AddressMap=");
-        builder.append(hostIPv4AddressMap);
-        builder.append(", hostIPv6AddressMap=");
-        builder.append(hostIPv6AddressMap);
-        builder.append(", extraProperties=");
-        builder.append(extraProperties);
         builder.append("]");
         return builder.toString();
     }

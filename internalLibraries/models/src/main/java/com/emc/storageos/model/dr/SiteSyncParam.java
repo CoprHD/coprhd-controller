@@ -4,23 +4,24 @@
  */
 package com.emc.storageos.model.dr;
 
+import java.util.Map;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.Map;
 
-@XmlRootElement(name = "site_add")
+@XmlRootElement(name = "site_sync")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 //TODO: potentially this should be a list of sites
 public class SiteSyncParam {
     private String uuid;
     private String name;
     private String vip;
-    private String user;
-    private String password;
     private Map<String, String> hostIPv4AddressMap;
     private Map<String, String> hostIPv6AddressMap;
+    private String softwareVersion;
+    private String dbSchemaVersion;
+    private boolean freshInstallation;
     private String secretKey;
 
     @XmlElement(name = "uuid")
@@ -59,24 +60,6 @@ public class SiteSyncParam {
         this.secretKey = secretKey;
     }
 
-    @XmlElement
-    public String getUser() {
-        return user;
-    }
-
-    public void setUser(String user) {
-        this.user = user;
-    }
-
-    @XmlElement
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-    
     @XmlElement(name = "hostIPv4AddressMap")
     public Map<String, String> getHostIPv4AddressMap() {
         return hostIPv4AddressMap;
@@ -93,6 +76,33 @@ public class SiteSyncParam {
 
     public void setHostIPv6AddressMap(Map<String, String> hostIPv6AddressMap) {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
+    };
+    
+    @XmlElement(name = "softwareVersion")
+    public String getSoftwareVersion() {
+        return softwareVersion;
+    }
+
+    public void setSoftwareVersion(String softwareVersion) {
+        this.softwareVersion = softwareVersion;
+    }
+
+    @XmlElement(name = "dbSchemaVersion")
+    public String getDbSchemaVersion() {
+        return dbSchemaVersion;
+    }
+
+    public void setDbSchemaVersion(String dbSchemaVersion) {
+        this.dbSchemaVersion = dbSchemaVersion;
+    }
+
+    @XmlElement(name = "freshInstallation")
+    public boolean isFreshInstallation() {
+        return freshInstallation;
+    }
+
+    public void setFreshInstallation(boolean freshInstallation) {
+        this.freshInstallation = freshInstallation;
     }
 
     @Override
@@ -108,6 +118,12 @@ public class SiteSyncParam {
         builder.append(hostIPv4AddressMap);
         builder.append(", hostIPv6AddressMap=");
         builder.append(hostIPv6AddressMap);
+        builder.append(", softwareVersion=");
+        builder.append(softwareVersion);
+        builder.append(", dbSchemaVersion=");
+        builder.append(dbSchemaVersion);
+        builder.append(", freshInstallation=");
+        builder.append(freshInstallation);
         builder.append("]");
         return builder.toString();
     }

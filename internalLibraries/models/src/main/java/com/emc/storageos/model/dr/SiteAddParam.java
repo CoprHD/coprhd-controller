@@ -13,8 +13,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class SiteAddParam {
     private String name;
+    private String description;
     private String vip;
-    private String user;
+    private String username;
     private String password;
 
     @XmlElement(name = "name")
@@ -35,16 +36,25 @@ public class SiteAddParam {
         this.vip = vip;
     }
 
-    @XmlElement
-    public String getUser() {
-        return user;
+    @XmlElement(name = "description")
+    public String getDescription() {
+        return description;
     }
 
-    public void setUser(String user) {
-        this.user = user;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
-    @XmlElement
+    @XmlElement(name = "username")
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    @XmlElement(name = "password")
     public String getPassword() {
         return password;
     }
@@ -56,7 +66,8 @@ public class SiteAddParam {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("SiteAddParam [name=");
+        builder.append("SiteAddParam [");
+        builder.append("name=");
         builder.append(name);
         builder.append(", vip=");
         builder.append(vip);

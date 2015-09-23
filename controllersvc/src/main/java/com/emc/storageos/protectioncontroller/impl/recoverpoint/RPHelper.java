@@ -1419,7 +1419,8 @@ public class RPHelper {
         // Rollback any RP specific changes to this volume
         if (volume.checkForRp()) {
             if (!VirtualPool.vPoolSpecifiesProtection(oldVpool)) {
-                _log.info(String.format("Rollback protection changes for RP on volume [%s]...", volume.getLabel()));      
+                _log.info(String.format("Start rollback of RP protection changes for volume [%s] (%s)...", 
+                        volume.getLabel(), volume.getId()));      
                 // List of volume IDs to clean up from the ProtectionSet
                 List<String> protectionSetIdsToRemove = new ArrayList<String>();
                 protectionSetIdsToRemove.add(volume.getId().toString());
@@ -1428,25 +1429,29 @@ public class RPHelper {
                 List<Volume> cgSourceVolumes = getCgSourceVolumes(volume.getConsistencyGroup(), dbClient);
                 // Only rollback the Journals if there is only one volume in the CG and it's the one we're 
                 // trying to roll back.
-                boolean rollbackJournals = (cgSourceVolumes != null && cgSourceVolumes.size() == 1 
+                boolean lastSourceVolumeInCG = (cgSourceVolumes != null && cgSourceVolumes.size() == 1 
                                             && cgSourceVolumes.get(0).getId().equals(volume.getId()));
                 
                 // Potentially rollback the journal volume
                 if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) {
-                    if (rollbackJournals) {
+                    if (lastSourceVolumeInCG) {
+                        _log.info(String.format("Rolling back RP Journal (%s)", volume.getRpJournalVolume()));
                         protectionSetIdsToRemove.add(volume.getRpJournalVolume().toString());
                         rollbackVolume(volume.getRpJournalVolume(), dbClient);
                     }
                 }
                 // Potentially rollback the standby journal volume
                 if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
-                    if (rollbackJournals) {
+                    if (lastSourceVolumeInCG) {
+                        _log.info(String.format("Rolling back RP Journal (%s)", volume.getSecondaryRpJournalVolume()));
                         protectionSetIdsToRemove.add(volume.getSecondaryRpJournalVolume().toString());
                         rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
                     }
                 }
                 
                 // Set the old vpool back on the volume
+                _log.info(String.format("Resetting Vpool on volume from (%s) back to it's original vpool (%s)", 
+                        volume.getVirtualPool(), oldVpool.getId()));
                 volume.setVirtualPool(oldVpool.getId());
                                                
                 // Null out any RP specific fields on the volume
@@ -1467,7 +1472,10 @@ public class RPHelper {
                         Volume targetVol = rollbackVolume(URI.create(rpTargetId), dbClient);
                         // Rollback any target journal volumes that were created
                         if (!NullColumnValueGetter.isNullURI(targetVol.getRpJournalVolume())) {
-                            rollbackVolume(targetVol.getRpJournalVolume(), dbClient);
+                            if (lastSourceVolumeInCG) {
+                                protectionSetIdsToRemove.add(targetVol.getRpJournalVolume().toString());
+                                rollbackVolume(targetVol.getRpJournalVolume(), dbClient);
+                            }
                         }
                     }
                     resetRpTargets.clear();
@@ -1481,9 +1489,14 @@ public class RPHelper {
                         // Remove volume IDs from the Protection Set
                         protectionSet.getVolumes().removeAll(protectionSetIdsToRemove);
                         
+                        _log.info(String.format("Removing the following volumes from Protection Set [%s] (%s): %s",                                
+                                protectionSet.getLabel(), protectionSet.getId(), Joiner.on(',').join(protectionSetIdsToRemove)));
+                        
                         // If the Protection Set is empty, we can safely set it to 
                         // inactive.
-                        if (protectionSet.getVolumes().isEmpty()) {
+                        if (lastSourceVolumeInCG) {                            
+                            _log.info(String.format("Setting Protection Set [%s] (%s) to inactive",                                
+                                    protectionSet.getLabel(), protectionSet.getId()));                            
                             protectionSet.setInactive(true);
                         }
                         
@@ -1512,7 +1525,7 @@ public class RPHelper {
                 }
             }
 
-            _log.info(String.format("Rollback protection changes for RP on volume [%s] has completed.", volume.getLabel()));
+            _log.info(String.format("Rollback of RP protection changes for volume [%s] (%s) has completed.", volume.getLabel(), volume.getId()));
             dbClient.persistObject(volume);
         }
     }

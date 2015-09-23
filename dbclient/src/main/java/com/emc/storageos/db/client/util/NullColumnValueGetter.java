@@ -37,7 +37,7 @@ public class NullColumnValueGetter {
     /**
      * Constant return null URI.
      */
-    private static final NamedURI NULL_NAMED_URI = NamedURI.fromString(NULL_STR);
+    private static final NamedURI NULL_NAMED_URI = new NamedURI(NULL_URI, NULL_STR);
 
     /**
      * Return a null String value.

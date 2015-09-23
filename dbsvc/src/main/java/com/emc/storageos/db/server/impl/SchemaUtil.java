@@ -270,12 +270,9 @@ public class SchemaUtil {
                 if (kd == null) {
                     _log.info("keyspace not exist yet");
 
-                    if (waitForSchema) {
+                    if (waitForSchema || onStandby) {
                         _log.info("wait for schema from other site");
-                    } else if (onStandby) {
-                        _log.info("setting current version to {} in zk for standby", _service.getVersion());
-                        setCurrentVersion(_service.getVersion());
-                    } else {
+                    }  else {
                         // fresh install
                         _log.info("setting current version to {} in zk for fresh install", _service.getVersion());
                         setCurrentVersion(_service.getVersion());
@@ -286,9 +283,12 @@ public class SchemaUtil {
                         waitForSchemaChange(cluster.addKeyspace(kd).getResult().getSchemaId(), cluster);
                     }
                 } else {
-                    // this is an existing cluster
-                    if (!onStandby)
+                    if (onStandby) {
+                        _log.info("setting current version to {} in zk for standby", _service.getVersion());
+                        setCurrentVersion(_service.getVersion());
+                    } else {
                         checkStrategyOptions(kd, cluster, replicationFactor);
+                    }
                 }
 
                 // create CF's

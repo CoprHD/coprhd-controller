@@ -1017,8 +1017,9 @@ public class RPHelper {
     /**
      * Gets a list of RecoverPoint consistency group volumes.
      * 
-     * @param blockConsistencyGroupUri
-     * @return
+     * @param blockConsistencyGroupUri The CG to check
+     * @param dbClient The dbClient instance
+     * @return List of volumes in the CG
      */
     public static List<Volume> getCgVolumes(URI blockConsistencyGroupUri, DbClient dbClient) {
         final List<Volume> cgVolumes = CustomQueryUtility
@@ -1033,6 +1034,7 @@ public class RPHelper {
      * consistency group.
      * 
      * @param blockConsistencyGroupUri The CG to check
+     * @param dbClient The dbClient instance
      * @return All Source volumes in the CG
      */
     public static List<Volume> getCgSourceVolumes(URI blockConsistencyGroupUri, DbClient dbClient) {
@@ -1056,6 +1058,7 @@ public class RPHelper {
      * consistency group.
      * 
      * @param blockConsistencyGroupUri The CG to check
+     * @param personality The personality of the volumes to filter with
      * @return All Source volumes in the CG
      */
     public List<Volume> getCgVolumes(URI blockConsistencyGroupUri, String personality) {

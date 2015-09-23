@@ -101,6 +101,8 @@ import com.emc.vipr.model.sys.ClusterInfo;
 public class CoordinatorClientImpl implements CoordinatorClient {
     private static final String CONN_POOL_NAME = "ConnectionStateWorkerPool";
     private static final String NODE_POOL_NAME = "NodeChangeWorkerPool";
+    private static final int NODE_MAX_SIZE = 1048576;
+    
     private static final Logger log = LoggerFactory.getLogger(CoordinatorClientImpl.class);
 
     private final ConcurrentMap<String, Object> _proxyCache = new ConcurrentHashMap<String, Object>();
@@ -1625,9 +1627,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public void persistObject(String path, Object object) throws CoordinatorException {
         try (ByteArrayOutputStream byteOutput = new ByteArrayOutputStream();
                 ObjectOutputStream objectOutput = new ObjectOutputStream(byteOutput);) {
-
+            
             objectOutput.writeObject(object);
 
+            byte[] byteArray = byteOutput.toByteArray();
+            if (byteArray.length > NODE_MAX_SIZE) {
+                log.error("Byte Array length is " + byteArray.length + " which is more than default limit " + NODE_MAX_SIZE);
+                throw CoordinatorException.fatals.exceedingLimit("byte array size", NODE_MAX_SIZE);
+            }
+            
             Stat stat = _zkConnection.curator().checkExists().forPath(path);
             if (stat != null) {
                 _zkConnection.curator().setData().forPath(path, byteOutput.toByteArray());

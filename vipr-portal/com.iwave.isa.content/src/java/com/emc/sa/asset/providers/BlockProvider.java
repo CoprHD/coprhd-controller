@@ -158,7 +158,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return true;
     }
 
-    private static boolean isInConsistencyGroup(VolumeRestRep volume) {
+    private static boolean isInConsistencyGroup(BlockObjectRestRep volume) {
         return volume.getConsistencyGroup() != null;
     }
 
@@ -692,12 +692,25 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return getSnapshotOptionsForProject(ctx, project);
     }
 
+    private List<AssetOption> getVolumeSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {
+        final ViPRCoreClient client = api(ctx);
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().findByProject(project,
+                new DefaultResourceFilter<BlockSnapshotRestRep>() {
+                    @Override
+                    public boolean accept(BlockSnapshotRestRep snapshot) {
+                        return !isInConsistencyGroup(snapshot);
+                    }
+                });
+
+        return constructSnapshotOptions(client, project, snapshots);
+    }
+
     @Asset("blockSnapshotOrConsistencyGroup")
     @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String type, URI consistencyGroupId) {
         if (NONE_TYPE.equals(type)) {
             debug("getting blockSnapshots (project=%s)", project);
-            return getSnapshotOptionsForProject(ctx, project);
+            return getVolumeSnapshotOptionsForProject(ctx, project);
         } else {
             if (type == null) {
                 error("Consistency type invalid : %s", type);
@@ -1056,7 +1069,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getSnapshotBlockVolumes(AssetOptionsContext context, URI project, String type) {
         final ViPRCoreClient client = api(context);
         if (isVolumeType(type)) {
-            List<VolumeRestRep> volumes = listVolumes(client, project);
+            List<VolumeRestRep> volumes = listVolumesWithoutConsistencyGroup(client, project);
             List<VolumeDetail> volumeDetails = getVolumeDetails(client, volumes);
             Map<URI, VolumeRestRep> volumeNames = ResourceUtils.mapById(volumes);
 
@@ -1211,8 +1224,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (isVolumeType(volumeOrConsistencyType)) {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
                 @Override
-                public boolean acceptId(URI id) {
-                    return !client.blockVolumes().getFullCopies(id).isEmpty();
+                public boolean accept(VolumeRestRep volume) {
+                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty() && !isInConsistencyGroup(volume)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             });
             return createVolumeOptions(client, volumes);

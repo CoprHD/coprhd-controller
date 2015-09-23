@@ -2416,7 +2416,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException failedToAssignVNasToProject(final String assignVnasError);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException failedToDeleteVNasAssignedProject();
 
@@ -2470,4 +2470,16 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotUpdateACL(final String vcenterName, final long refreshInterval);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantImportNonVPLEXSnapshotToVplex(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantImportInactiveSnapshotToVplex(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantImportUnsynchronizedSnapshotToVplex(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotAlreadyImportedIntoVplex(final String snapshotId);
 }

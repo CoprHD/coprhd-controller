@@ -28,8 +28,7 @@ dependencies {
             rootProject.toolsJar,
             project(":coordinatorsvc"),
             "org.testng:testng:6.7",
-            compile("com.unboundid:unboundid-ldapsdk:3.0.0"),
-            compile("ch.qos.logback:logback-classic:0.9.26")
+            compile("com.unboundid:unboundid-ldapsdk:3.0.0")
 
     testRuntime library(log4j)
     testRuntime library(commons_logging)

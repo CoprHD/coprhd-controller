@@ -113,4 +113,7 @@ public interface Constants {
     public static final String SITE_PRIMARY_PTR = "primary";
     public static final String SITE_STATE = "state";
     public static final String SITE_ID= "siteid";
+
+    public static final String STATIC_CFGFile_Key = "staticConfigFile";
+    public static final String DYNAMIC_CFGFile_Key = "dynamicConfigFile";
 }

@@ -29,6 +29,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
+import com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVarrayChangeTaskCompleter;
@@ -47,6 +48,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     private static VPlexDeviceController _vplexDeviceController;
     private static RPDeviceController _rpDeviceController;
     private static SRDFDeviceController _srdfDeviceController;
+    private static ReplicaDeviceController _replicaDeviceController;
     private ControllerLockingService _locker;
 
     static final String CREATE_VOLUMES_WF_NAME = "CREATE_VOLUMES_WORKFLOW";
@@ -92,6 +94,11 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _rpDeviceController.addStepsForCreateVolumes(
                     workflow, waitFor, volumes, taskId);
 
+            s_logger.info("Checking for Replica steps");
+            // Call the ReplicaDeviceController to add its methods if volumes are added to CG, and the CG associated with replication group(s)
+            waitFor = _replicaDeviceController.addStepsForCreateVolumes(
+                    workflow, waitFor, volumes, taskId);
+
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
             String successMessage = "Create volumes successful for: " + volUris.toString();
@@ -135,6 +142,10 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             workflow = _workflowService.getNewWorkflow(this,
                     DELETE_VOLUMES_WF_NAME, true, taskId);
             String waitFor = null;    // the wait for key returned by previous call
+
+            // Call the ReplicaDeviceController to add its methods if volumes are removed from, and the CG associated with replication group(s)
+            waitFor = _replicaDeviceController.addStepsForDeleteVolumes(
+                    workflow, waitFor, volumes, taskId);
 
             // Call the RPDeviceController to add its methods if there are RP protections.
             waitFor = _rpDeviceController.addStepsForDeleteVolumes(
@@ -539,6 +550,14 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     public static void setSrdfDeviceController(SRDFDeviceController srdfDeviceController) {
         BlockOrchestrationDeviceController._srdfDeviceController = srdfDeviceController;
+    }
+
+    public static ReplicaDeviceController getReplicaDeviceController() {
+        return BlockOrchestrationDeviceController._replicaDeviceController;
+    }
+
+    public static void setReplicaDeviceController(ReplicaDeviceController replicaDeviceController) {
+        BlockOrchestrationDeviceController._replicaDeviceController = replicaDeviceController;
     }
 
     private void releaseWorkflowLocks(Workflow workflow) {

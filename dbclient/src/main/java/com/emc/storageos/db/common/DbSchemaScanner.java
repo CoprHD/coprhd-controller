@@ -42,7 +42,7 @@ public class DbSchemaScanner extends PackageScanner {
         DbSchema schema = null;
         if (DataObject.class.isAssignableFrom(clazz)) {
             if (_scannerInterceptor != null && _scannerInterceptor.isClassIgnored(clazz.getSimpleName())) {
-                log.warn("{} is ignored in schema due to interceptor", clazz.getSimpleName());
+                log.info("{} is ignored in schema due to interceptor", clazz.getSimpleName());
                 return;
             }
             schema = new DataObjectSchema(clazz, _scannerInterceptor);

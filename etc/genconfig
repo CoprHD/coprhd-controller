@@ -332,6 +332,7 @@ _genconfig_data_versioning() {
        _genconfig_setup_versioning_dir "/data/db" "1" ${tgt_dataver}
        _genconfig_setup_versioning_dir "/data/geodb" "1" ${tgt_dataver}
        _genconfig_setup_versioning_dir "/data/zk" "version-2" ${tgt_dataver}
+       rm -f /data/zk/myid
    fi
 }
 

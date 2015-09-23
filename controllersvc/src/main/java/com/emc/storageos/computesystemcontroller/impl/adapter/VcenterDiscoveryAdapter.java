@@ -330,6 +330,10 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 }
             }
 
+            for (Host oldHost : oldHosts) {
+                DiscoveryStatusUtils.markAsFailed(getModelClient(), oldHost, "Unable to discover host. Host may be disconnected.", null);
+            }
+
             Collection<URI> oldClusterIds = Lists.newArrayList(Collections2.transform(oldClusters,
                     CommonTransformerFunctions.fctnDataObjectToID()));
             deletedClusters.addAll(oldClusterIds);

@@ -52,6 +52,13 @@
           validation:{
             min:1
           }
+        },
+        numberOfVolumes:{
+          type:"number",
+          initialValue: "1",
+          validation:{
+              min:1
+          }
         }
       }
     },

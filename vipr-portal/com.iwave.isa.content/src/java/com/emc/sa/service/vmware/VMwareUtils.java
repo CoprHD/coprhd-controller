@@ -288,16 +288,19 @@ public class VMwareUtils {
         protected String nameParam;
         @Param(SIZE_IN_GB)
         protected Double sizeInGb;
+        @Param(value = NUMBER_OF_VOLUMES, required = false)
+        protected Integer count;
 
         @Override
         public String toString() {
-            return "Volume=" + nameParam + ", size=" + sizeInGb;
+            return "Volume=" + nameParam + ", size=" + sizeInGb + ", count=" + count;
         }
 
         public Map<String, Object> getParams() {
             Map<String, Object> map = new HashMap<String, Object>();
             map.put(NAME, nameParam);
             map.put(SIZE_IN_GB, sizeInGb);
+            map.put(NUMBER_OF_VOLUMES, count);
             return map;
         }
     }

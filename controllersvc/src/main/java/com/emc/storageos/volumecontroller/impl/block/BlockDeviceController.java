@@ -934,7 +934,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             // If we didn't find that volume in a mask, it's OK to remove it.
                             if (!foundInMask) {
                                 exportGroup.removeVolume(volume.getId());
-                                if (exportGroup.getVolumes().isEmpty()) {
+                                if (exportGroup.getVolumes() == null ||
+                                        exportGroup.getVolumes().isEmpty()) {
                                     _dbClient.removeObject(exportGroup);
                                 } else {
                                     _dbClient.updateAndReindexObject(exportGroup);

@@ -1086,7 +1086,8 @@ public class ExportUtils {
         Set<ExportMask> mirrorExportMasks = new HashSet<ExportMask>();
         List<DataObject> updatedObjects = new ArrayList<DataObject>();
         for (ExportGroup exportGroup : exportGroups) {
-            if (!exportGroup.getInactive() && exportGroup.getExportMasks() != null) {
+            if (!exportGroup.getInactive() && exportGroup.getExportMasks() != null
+                    && exportGroup.getVolumes() != null) {
                 List<URI> exportMasks = new ArrayList<URI>(Collections2.transform(
                         exportGroup.getExportMasks(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
                 mirrorExportMasks.addAll(dbClient.queryObject(ExportMask.class, exportMasks));
@@ -1095,7 +1096,7 @@ public class ExportUtils {
                 _log.info("Removing mirror {} from export group {}", mirror.getId(), exportGroup.getId());
                 exportGroup.removeVolume(mirror.getId());
                 _log.info("Adding promoted volume {} to export group {}", promotedVolume.getId(), exportGroup.getId());
-                exportGroup.getVolumes().put(promotedVolume.getId().toString(), lunString);
+                exportGroup.addVolume(promotedVolume.getId(), Integer.valueOf(lunString));
                 updatedObjects.add(exportGroup);
             }
         }

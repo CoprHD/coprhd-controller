@@ -235,20 +235,23 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             URI storageURI)
             throws IOException {
         Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
-        _log.info("Export Group Volumes {} ", Joiner.on(",").join(exportGroup.getVolumes().entrySet()));
-        for (String uri : exportGroup.getVolumes().keySet()) {
-            URI volUri = URI.create(uri);
-            BlockObject blockObj = Volume.fetchExportMaskBlockObject(_dbClient, volUri);
-            if (blockObj == null) {
-                _log.warn("Volume {} could not be found in DB", volUri.toString());
-                continue;
+        if (exportGroup.getVolumes() != null) {
+            _log.info("Export Group Volumes {} ", Joiner.on(",").join(exportGroup.getVolumes().entrySet()));
+            for (String uri : exportGroup.getVolumes().keySet()) {
+                URI volUri = URI.create(uri);
+                BlockObject blockObj = Volume.fetchExportMaskBlockObject(_dbClient, volUri);
+                if (blockObj == null) {
+                    _log.warn("Volume {} could not be found in DB", volUri.toString());
+                    continue;
+                }
+                _log.info("Volume {} storage {}", volUri, blockObj.getStorageController());
+                if (!blockObj.getStorageController().equals(storageURI)) {
+                    continue;
+                }
+                volumeMap.put(volUri, Integer.valueOf(exportGroup.getVolumes().get(volUri.toString())));
             }
-            _log.info("Volume {} storage {}", volUri, blockObj.getStorageController());
-            if (!blockObj.getStorageController().equals(storageURI)) {
-                continue;
-            }
-            volumeMap.put(volUri, Integer.valueOf(exportGroup.getVolumes().get(volUri.toString())));
         }
+
         return volumeMap;
     }
 

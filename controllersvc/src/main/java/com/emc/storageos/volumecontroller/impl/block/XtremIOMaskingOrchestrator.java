@@ -614,7 +614,9 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             // CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
             refreshExportMask(storage, getDevice(), null);
             if (exportGroup == null || exportGroup.getInactive()) {
-                exportGroup.getVolumes().clear();
+                if (exportGroup.getVolumes() != null) {
+                    exportGroup.getVolumes().clear();
+                }
                 taskCompleter.ready(_dbClient);
                 return;
             }

@@ -431,11 +431,15 @@ public class VcenterDataCenterService extends TaskResourceService {
                 if (exportGroup.forCluster()) {
                     _log.info("Export group " + exportGroup.getLabel() + " is cluster/shared type");
                     StringMap volumes = exportGroup.getVolumes();
-                    _log.info("Export group " + exportGroup.getLabel() + " has " + volumes.size() + " volumes");
-                    for (String volumeUriString : volumes.keySet()) {
-                        _log.info("Volume URI " + volumeUriString + " found in export group " + exportGroup.getLabel());
-                        URI uri = URI.create(volumeUriString);
-                        volumeUris.add(uri);
+                    if (null != volumes) {
+                        _log.info("Export group " + exportGroup.getLabel() + " has " + volumes.size() + " volumes");
+                        for (String volumeUriString : volumes.keySet()) {
+                            _log.info("Volume URI " + volumeUriString + " found in export group " + exportGroup.getLabel());
+                            URI uri = URI.create(volumeUriString);
+                            volumeUris.add(uri);
+                        }
+                    } else {
+                        _log.info("Export group " + exportGroup.getLabel() + " has 0 volumes");
                     }
                 }
 

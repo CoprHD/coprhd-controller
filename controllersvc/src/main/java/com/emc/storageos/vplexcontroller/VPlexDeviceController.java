@@ -3049,11 +3049,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // in use by another export group
                     boolean volumesFromThisMaskAreStillInExportGroup = false;
                     for (String maskVolUri : exportMask.getVolumes().keySet()) {
-                        for (String egVolUri : exportGroup.getVolumes().keySet()) {
-                            BlockObject blockObject = Volume.fetchExportMaskBlockObject(_dbClient, URI.create(egVolUri));
-                            if (blockObject.getId().toString().equals(maskVolUri)) {
-                                volumesFromThisMaskAreStillInExportGroup = true;
-                                break;
+                        if (exportGroup.getVolumes() != null) {
+                            for (String egVolUri : exportGroup.getVolumes().keySet()) {
+                                BlockObject blockObject = Volume.fetchExportMaskBlockObject(_dbClient, URI.create(egVolUri));
+                                if (blockObject.getId().toString().equals(maskVolUri)) {
+                                    volumesFromThisMaskAreStillInExportGroup = true;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -9409,7 +9411,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Varray matching the Varray of our ExportMask.
                 // This is done because the other ExportGroup might have volumes it isn't allowed to
                 // export to this Varray because autoCrossConnectExport == false for those volumes.
-                List<URI> otherGroupVolumes = StringSetUtil.stringSetToUriList(otherGroup.getVolumes().keySet());
+                List<URI> otherGroupVolumes = otherGroup.getVolumes() != null ? 
+                        StringSetUtil.stringSetToUriList(otherGroup.getVolumes().keySet()) :
+                            new ArrayList<URI>();
                 Map<URI, Set<URI>> varrayToVolumesMap = VPlexUtil.mapBlockObjectsToVarrays(_dbClient,
                         otherGroupVolumes, exportMask.getStorageDevice(), otherGroup);
                 for (URI varray : varrayToVolumesMap.keySet()) {

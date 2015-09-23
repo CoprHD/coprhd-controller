@@ -2512,17 +2512,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String exportStep = workflow.createStepId();
         initTaskStatus(exportGroup, exportStep, Operation.Status.pending, "export delete");
         StorageSystem device = null;
-        for (String volumeIDString : exportGroup.getVolumes().keySet()) {
-            URI blockID;
-            try {
-                blockID = new URI(volumeIDString);
-                BlockObject block = BlockObject.fetch(_dbClient, blockID);
-                if (block.getProtectionController() != null && device == null) {
-                    device = _dbClient.queryObject(StorageSystem.class, block.getStorageController());
+        if (exportGroup != null && exportGroup.getVolumes() != null) {
+            for (String volumeIDString : exportGroup.getVolumes().keySet()) {
+                URI blockID;
+                try {
+                    blockID = new URI(volumeIDString);
+                    BlockObject block = BlockObject.fetch(_dbClient, blockID);
+                    if (block.getProtectionController() != null && device == null) {
+                        device = _dbClient.queryObject(StorageSystem.class, block.getStorageController());
+                    }
+                } catch (URISyntaxException e) {
+                    _log.error("Couldn't find volume ID for export delete: " + volumeIDString, e);
+                    // continue
                 }
-            } catch (URISyntaxException e) {
-                _log.error("Couldn't find volume ID for export delete: " + volumeIDString, e);
-                // continue
             }
         }
 
@@ -2630,14 +2632,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // In order to find all of the snapshots to deactivate, go through the devices, find the RP snapshots, and deactivate any active
             // ones
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-            for (String exportVolumeIDStr : exportGroup.getVolumes().keySet()) {
-                URI blockID;
-                blockID = new URI(exportVolumeIDStr);
-                BlockObject block = BlockObject.fetch(_dbClient, blockID);
-                if (block.getProtectionController() != null) {
-                    if (block.getId().toString().contains("BlockSnapshot")) {
-                        // Collect this snapshot; it needs to be disabled
-                        snapshots.add(block.getId());
+            if (exportGroup != null && exportGroup.getVolumes() != null) {
+                for (String exportVolumeIDStr : exportGroup.getVolumes().keySet()) {
+                    URI blockID;
+                    blockID = new URI(exportVolumeIDStr);
+                    BlockObject block = BlockObject.fetch(_dbClient, blockID);
+                    if (block.getProtectionController() != null) {
+                        if (block.getId().toString().contains("BlockSnapshot")) {
+                            // Collect this snapshot; it needs to be disabled
+                            snapshots.add(block.getId());
+                        }
                     }
                 }
             }
@@ -3327,7 +3331,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // 1. The Volume associated to it.
             // 2. Have the same Virtual Array as the Volume.
             // 3. Have the Initiators for the Volumes RP internal site in it.
-            if (exportGroup.getVolumes().containsKey(volumeUri.toString())
+            if (null != exportGroup.getVolumes() 
+                    && exportGroup.getVolumes().containsKey(volumeUri.toString())
                     && exportGroup.getVirtualArray().equals(virtualArrayUri)) {
 
                 // Get the Initiators from the Export Group

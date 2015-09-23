@@ -473,7 +473,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
         // Populate a map of volumes on the storage device associated with this ExportGroup
         List<BlockObject> blockObjects = new ArrayList<BlockObject>();
-        if (exportGroup != null) {
+        if (exportGroup != null && exportGroup.getVolumes() != null) {
             for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
                 URI boURI = URI.create(entry.getKey());
                 BlockObject bo = BlockObject.fetch(_dbClient, boURI);

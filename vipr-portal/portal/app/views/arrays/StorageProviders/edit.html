@@ -37,7 +37,7 @@
         <select-one options="optionsSIO" ></select-one>
       </control-group>
       
-      <control-group v-field="smisProvider.interfaceType" ng-if="(editMode && !isScaleio) && smisProvider.interfaceType !='scaleio'" ng-hide="smisProvider.interfaceType=='scaleioapi'" required>
+      <control-group v-field="smisProvider.interfaceType" ng-if="editMode && smisProvider.interfaceType !='scaleio' && smisProvider.interfaceType != 'scaleioapi'" required>
         <select-one options="interfaceTypeOptions" ng-disabled="editMode"></select-one>
       </control-group>
             
@@ -87,3 +87,14 @@
     #{Form.saveCancel cancelHref:referrer/}  
   #{/form}
 </div>
+<script>
+$(document).ready(function() {
+	disableTypeScaleIOAPI();
+});
+function disableTypeScaleIOAPI() {
+	var providerType = '${smisProvider.interfaceType}';
+	if (providerType == 'scaleioapi') {
+		$("#smisProvider_interfaceType").attr('disabled',true);
+	}
+}
+</script>

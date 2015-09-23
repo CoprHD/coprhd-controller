@@ -1638,7 +1638,17 @@ public class VPlexApiClient {
         return device;
     }
     
-    public Map<String, String> getDistributedDevicePathToClusterMap() {
+    /**
+     * Returns a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names.
+     * 
+     * @return  a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names
+     * 
+     * @throws VPlexApiException
+     */
+    public Map<String, String> getDistributedDevicePathToClusterMap() 
+            throws VPlexApiException {
         return _discoveryMgr.getDistributedDevicePathToClusterMap();
     }
 }

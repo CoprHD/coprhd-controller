@@ -385,6 +385,17 @@ public class VPlexControllerUtils {
         return false;
     }
     
+    /**
+     * Returns a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names.
+     * 
+     * @param vplexUri the VPLEX to query
+     * @param dbClient a reference to the database client
+     * @return  a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names
+     * 
+     * @throws VPlexApiException
+     */
     public static Map<String, String> getDistributedDevicePathToClusterMap(
             URI vplexUri, DbClient dbClient) throws VPlexApiException {
         VPlexApiClient client = null;

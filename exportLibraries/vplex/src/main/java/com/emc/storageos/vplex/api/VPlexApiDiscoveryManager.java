@@ -3369,7 +3369,9 @@ public class VPlexApiDiscoveryManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
         s_logger.info("Storage Volume Request URI is {}", requestURI.toString());
 
-        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        ClientResponse response = _vplexApiClient.get(requestURI, 
+                VPlexApiConstants.ACCEPT_JSON_FORMAT_1, 
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
@@ -3590,7 +3592,9 @@ public class VPlexApiDiscoveryManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
         s_logger.info("Distributed Device Info Request URI is {}", requestURI.toString());
 
-        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        ClientResponse response = _vplexApiClient.get(requestURI, 
+                VPlexApiConstants.ACCEPT_JSON_FORMAT_1, 
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
@@ -3671,7 +3675,9 @@ public class VPlexApiDiscoveryManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
         s_logger.info("Local Device Info Request URI is {}", requestURI.toString());
 
-        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        ClientResponse response = _vplexApiClient.get(requestURI, 
+                VPlexApiConstants.ACCEPT_JSON_FORMAT_1, 
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
@@ -3754,7 +3760,9 @@ public class VPlexApiDiscoveryManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
         s_logger.info("Child Device Component Info Request URI is {}", requestURI.toString());
 
-        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        ClientResponse response = _vplexApiClient.get(requestURI, 
+                VPlexApiConstants.ACCEPT_JSON_FORMAT_1,
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
@@ -3795,8 +3803,16 @@ public class VPlexApiDiscoveryManager {
 
         return deviceInfoList;
     }
-    
 
+    /**
+     * Returns a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names.
+     * 
+     * @return  a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names
+     * 
+     * @throws VPlexApiException
+     */
     public Map<String, String> getDistributedDevicePathToClusterMap()
             throws VPlexApiException {
 
@@ -3805,8 +3821,7 @@ public class VPlexApiDiscoveryManager {
                 + _vplexApiClient.getBaseURI().toString());
 
         StringBuilder uriBuilder = new StringBuilder();
-        // format /vplex/distributed-storage/distributed-devices
-        // /DEVICE_NAME/distributed-device-components/*
+        // format /vplex/distributed-storage/distributed-devices/*/distributed-device-components/*
         uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICES.toString());
         uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
         uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP.toString());

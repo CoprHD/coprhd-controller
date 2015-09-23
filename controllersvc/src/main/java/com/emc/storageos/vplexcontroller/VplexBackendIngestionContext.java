@@ -814,12 +814,29 @@ public class VplexBackendIngestionContext {
         return null;
     }
 
+    /**
+     * Returns the cluster location (i.e., the cluster name) for a given
+     * VPlexStorageVolumeInfo by searching through each key in the 
+     * DistributedDevicePathToClusterMap for an overlapping VPLEX API
+     * context path.
+     * 
+     * @param storageVolume the storage volume to check
+     * @return a cluster name where the volume is located from the VPLEX
+     */
     private String getClusterLocationForStorageVolume(VPlexStorageVolumeInfo storageVolume) {
         String storageVolumePath = storageVolume.getPath();
         for (Entry<String, String> deviceMapEntry : this.getDistributedDevicePathToClusterMap().entrySet()) {
+            // example storage volume path:
+            //    /distributed-storage/distributed-devices/dd_VAPM00140844986-00904_V000198700412-024D2/
+            //    distributed-device-components/device_V000198700412-024D2/components/
+            //    extent_V000198700412-024D2_1/components/V000198700412-024D2
+            // is overlapped by (startsWith) device path:
+            //    /distributed-storage/distributed-devices/dd_VAPM00140844986-00904_V000198700412-024D2/
+            //    distributed-device-components/device_V000198700412-024D2
             if (storageVolumePath.startsWith(deviceMapEntry.getKey())) {
                 _logger.info("found cluster {} for distributed component storage volume {}", 
                         deviceMapEntry.getValue(), storageVolume.getName());
+                // the value here is the cluster-id
                 return deviceMapEntry.getValue();
             }
         }
@@ -1280,7 +1297,11 @@ public class VplexBackendIngestionContext {
     }
 
     /**
-     * @return the distributedDevicePathToClusterMap
+     * Returns a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names.
+     * 
+     * @return  a Map of distributed device component context
+     * paths to VPLEX cluster names
      */
     public Map<String, String> getDistributedDevicePathToClusterMap() {
         if (null == distributedDevicePathToClusterMap) {
@@ -1293,7 +1314,11 @@ public class VplexBackendIngestionContext {
     }
 
     /**
-     * @param distributedDevicePathToClusterMap the distributedDevicePathToClusterMap to set
+     * Sets the distributed device path to cluster Map. This can be used to
+     * cache this Map from the outside when iterating through a lot of
+     * VplexBackendIngestionContexts (see VPlexCommunicationInterface.discover).
+     * 
+     * @param distributedDevicePathToClusterMap the distributed device path to cluster Map
      */
     public void setDistributedDevicePathToClusterMap(Map<String, String> distributedDevicePathToClusterMap) {
         this.distributedDevicePathToClusterMap = distributedDevicePathToClusterMap;

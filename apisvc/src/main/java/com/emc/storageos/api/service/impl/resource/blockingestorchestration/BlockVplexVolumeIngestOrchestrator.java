@@ -313,17 +313,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     }
 
-    private void validateBackendVolumeVpool(UnManagedVolume backendVolume, VirtualPool vpool) {
-        URI storagePoolUri = backendVolume.getStoragePoolUri();
-        if (!vpool.getMatchedStoragePools().contains(storagePoolUri.toString())) {
-            String reason = "vpool " + vpool.getLabel() 
-                    + " does not match the backend volume's storage pool URI " 
-                    + storagePoolUri;
-            _logger.error(reason);
-            throw IngestionException.exceptions.validationException(reason);
-        }
-    }
-    
     /**
      * Ingests the backend volumes and any related replicas.
      * 
@@ -948,6 +937,15 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         return clusterIdToNameMap;
     }
 
+    /**
+     * Find the VPLEX cluster name for the cluster connected 
+     * to a given Virtual Array.
+     * 
+     * @param varray the Virtual Array to check
+     * @param vplex the VPLEX to look at
+     * 
+     * @return the cluster name (e.g. cluster-1 or cluster-2)
+     */
     private String getClusterNameForVarray(VirtualArray varray, StorageSystem vplex) {
         if (null == varray || null == vplex) {
             return null;
@@ -979,6 +977,24 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
         
         return varrayClusterName;
+    }
+
+    /**
+     * Validates a backend UnMangedVolume against the Virtual Pool into which
+     * it will be ingested.
+     * 
+     * @param backendVolume the backend UnManagedVolume to validate
+     * @param vpool the Virtual Pool to check 
+     */
+    private void validateBackendVolumeVpool(UnManagedVolume backendVolume, VirtualPool vpool) {
+        URI storagePoolUri = backendVolume.getStoragePoolUri();
+        if (!vpool.getMatchedStoragePools().contains(storagePoolUri.toString())) {
+            String reason = "vpool " + vpool.getLabel() 
+                    + " does not match the backend volume's storage pool URI " 
+                    + storagePoolUri;
+            _logger.error(reason);
+            throw IngestionException.exceptions.validationException(reason);
+        }
     }
 
     /**

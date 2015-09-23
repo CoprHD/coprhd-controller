@@ -22,10 +22,10 @@
                 <prop key="dynamicConfigFile">coordinator-dynamic.cfg</prop>
                 <prop key="peerType">${peer_type}</prop>
                 <foreach iterator="iter_primary">
-                <prop key="server.${iter_primary}">${primary_${iter_primary}_ipaddr_service},2888,2889,participant;2181</prop>
+                <prop key="server.${iter_primary}">${primary_${iter_primary}_ipaddr_service}:2888:2889:participant;2181</prop>
                 </foreach>
                 <foreach iterator="iter_standby">
-                <prop key="server.${iter_standby}">${standby_${iter_standby}_ipaddr_service},2888,2889,observer;2181</prop>
+                <prop key="server.${iter_standby}">${standby_${iter_standby}_ipaddr_service}:2888:2889:observer;2181</prop>
                 </foreach>
             </props>
         </property>

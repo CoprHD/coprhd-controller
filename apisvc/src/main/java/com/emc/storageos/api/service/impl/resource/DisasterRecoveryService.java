@@ -271,8 +271,8 @@ public class DisasterRecoveryService extends TaggedResource {
         siteConfigRestRep.setUuid(siteId);
         siteConfigRestRep.setVip(vdc.getApiEndpoint());
         siteConfigRestRep.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
-        siteConfigRestRep.getHostIPv4AddressMap().putAll(vdc.getHostIPv4AddressesMap());
-        siteConfigRestRep.getHostIPv6AddressMap().putAll(vdc.getHostIPv6AddressesMap());
+        siteConfigRestRep.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
+        siteConfigRestRep.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
         siteConfigRestRep.setDbSchemaVersion(_coordinator.getCurrentDbSchemaVersion());
         siteConfigRestRep.setFreshInstallation(isFreshInstallation());
         siteConfigRestRep.setState(siteState.name());

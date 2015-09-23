@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -476,12 +477,30 @@ public class BlockDeviceExportController implements BlockExportController {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, expoUri);
         Map<URI, Integer> existingMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
         List<URI> existingInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+        
+        BlockObjectControllerKey controllerKey = null;
 
+        // If there are existing volumes, make sure their controller is represented in the
+        // addedBlockObjects and removedBlockObjects maps, even if nothing was added / or removed.
+        // This is necessary because the addBlockObjects.keyset() is used by the caller to iterate
+        // over the controllers needed for the workflow.
         if (exportGroup.getVolumes() != null) {
             _log.info("Existing export group volumes: " + Joiner.on(',').join(exportGroup.getVolumes().keySet()));
+            Map<URI, Integer> existingBlockObjectMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
+            for (Map.Entry<URI, Integer> existingBlockObjectEntry : existingBlockObjectMap.entrySet()) {
+                BlockObject bo = BlockObject.fetch(_dbClient, existingBlockObjectEntry.getKey());
+                URI storageControllerUri = getExportStorageController(bo);
+                controllerKey = new BlockObjectControllerKey();
+                controllerKey.setStorageControllerUri(bo.getStorageController());
+                if (!storageControllerUri.equals(bo.getStorageController())) {
+                    controllerKey.setProtectionControllerUri(storageControllerUri);
+                }
+                Log.info("Existing block object {} in storage {}", bo.getId(), controllerKey.getController());
+                // add an entry in each map for the storage system if not already exists
+                getOrAddStorageMap(controllerKey, addedBlockObjects);
+                getOrAddStorageMap(controllerKey, removedBlockObjects);
+            }
         }
-
-        BlockObjectControllerKey controllerKey = null;
 
         // compute a map of storage-system-to-volumes for volumes to be added
         for (URI uri : addedBlockObjectsFromRequest.keySet()) {

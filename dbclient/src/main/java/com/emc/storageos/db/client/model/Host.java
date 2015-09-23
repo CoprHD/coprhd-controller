@@ -17,15 +17,14 @@ import com.emc.storageos.db.client.util.EndpointUtility;
  * 
  */
 @Cf("Host")
-public class Host extends AbstractComputeSystem {
-
+public class Host extends DiscoveredComputeSystemWithAcls {
     public static enum ProvisioningJobStatus {
         NONE,
         IN_PROGRESS,
         COMPLETE,
         ERROR
     }
-
+    
     private String _type;
     private String _hostName;
     private Integer _portNumber;

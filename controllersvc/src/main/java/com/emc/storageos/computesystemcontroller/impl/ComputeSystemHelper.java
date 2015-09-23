@@ -537,6 +537,7 @@ public class ComputeSystemHelper {
         return uris;
     }
 
+    
     public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI, URI hostURI) {
         Cluster cluster = dbClient.queryObject(Cluster.class, clusterURI);
         List<Initiator> initiators = ComputeSystemHelper.queryInitiators(dbClient, hostURI);
@@ -644,4 +645,25 @@ public class ComputeSystemHelper {
         }
         return false;
     }
+    
+    
+    
+    /**
+     * Checks if an host with respect to the tenant is in use by an export groups
+     *
+     * @param dbClient
+     * @param hostURI the host URI
+     * @return true if the host is in used by an export group.
+     */
+    public static boolean isHostInUseForTheTenant(DbClient dbClient, URI hostURI, URI tenantId) {
+    	Host host = dbClient.queryObject(Host.class, hostURI);
+        if (host != null &&
+                URIUtil.identical(tenantId, host.getTenant()) &&
+                isHostInUse(dbClient, hostURI)) {
+            return true;
+        }
+        return false;
+    }
+    
+    
 }

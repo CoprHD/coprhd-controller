@@ -1291,6 +1291,8 @@ def get_cluster_state(args):
     from common import TableGenerator
     try:
         res = obj.get_cluster_state(args.force)
+        
+        
 
         state = dict()
         node = []
@@ -1312,8 +1314,7 @@ def get_cluster_state(args):
 
         if 'removable_versions' in res:
             if(res['removable_versions'] is not None):
-                state["removable_versions"] = res[
-                    'removable_versions']['removable_version']
+                state["removable_versions"] = res['removable_versions']
             else:
                 state["removable_versions"] = ""
 
@@ -2431,6 +2432,8 @@ def system_parser(parent_subparser, common_parser):
     sysmgrcontrolsvc.create_backup_parser(subcommand_parsers, common_parser)
     
     sysmgrcontrolsvc.delete_backup_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.list_tenant_tasks_parser(subcommand_parsers, common_parser)
     
     sysmgrcontrolsvc.list_backup_parser(subcommand_parsers, common_parser)
     

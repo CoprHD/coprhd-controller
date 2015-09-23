@@ -17,6 +17,8 @@ class ControlService(object):
     URI_CONTROL_NODE_REBOOT = '/control/node/reboot'
     URI_CONTROL_SERVICE_RESTART = '/control/service/restart'
     URI_TASK_DELETE = '/vdc/tasks/{0}/delete'
+    URI_TASK_LIST = '/vdc/tasks'
+
     
     
     
@@ -99,7 +101,34 @@ class ControlService(object):
 
          (s,h) = common.service_json_request(self.__ipAddr,self.__port,
 	            "POST",ControlService.URI_TASK_DELETE.format(uri),None)
-         return s		 
+         return s	
+     
+     
+    def list_tenant_task(self,tenant):
+        
+
+        from tenant import Tenant
+        tenant_obj = Tenant(self.__ipAddr, self.__port)
+        try:
+            tenant_uri = tenant_obj.tenant_query(tenant)
+        except SOSError as e:
+            raise e
+        
+        uri = ControlService.URI_TASK_LIST + "?tenant=" + tenant_uri
+        
+       
+        (s,h) = common.service_json_request(self.__ipAddr,self.__port,
+        "GET",uri,None)
+        
+        
+        o = common.json_decode(s)
+        
+        return o
+        
+        
+       
+        
+            	 
 
 class Backup(object):
 
@@ -327,6 +356,36 @@ def cluster_poweroff(args):
             "",
             e.err_text,
             e.err_code)
+        
+
+def list_tenant_tasks_parser(subcommand_parsers,common_parser):
+    #delete task command parser
+    list_tenant_tasks_parser = subcommand_parsers.add_parser('list-tasks',
+                description='ViPR List Task CLI usage.',
+                                          parents=[common_parser],
+                          conflict_handler='resolve',
+                          help='Lists all task ')
+    mandatory_args = list_tenant_tasks_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-tenant','-tn',
+                                metavar='<tenant_name>',
+                dest='tenant',
+                help='Provide name of the tenant or system',
+                required=True)
+    
+    list_tenant_tasks_parser.set_defaults(func=list_tenant_task)
+
+def list_tenant_task(args):
+
+    try:
+        obj = ControlService(args.ip,args.port)
+        res = obj.list_tenant_task(args.tenant)
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            'task-list', 'system',
+        e.err_text, e.err_code)
+    
+    
 
 
 def delete_tasks_parser(subcommand_parsers,common_parser):

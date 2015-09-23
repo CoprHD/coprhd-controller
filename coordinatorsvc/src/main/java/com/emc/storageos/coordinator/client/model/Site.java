@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.coordinator.client.model;
 
+import java.io.Serializable;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,8 +12,10 @@ import java.util.Map;
 /**
  * Representation for a ViPR standby
  */
-public class Site {
+public class Site implements Serializable{
 
+    private static final long serialVersionUID = 3137385326379758604L;
+    
     private String uuid;
     private URI vdc;
     private String name;

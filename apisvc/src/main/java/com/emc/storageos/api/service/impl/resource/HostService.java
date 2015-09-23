@@ -1228,7 +1228,7 @@ public class HostService extends TaskResourceService {
      *                at least one add or remove operation
      * @param id the URN of a ViPR Project.
      *
-     * @return the vCenter discovery async task.
+     * @return the Host discovery async task.
      */
     @PUT
     @Path("/{id}/acl")
@@ -1330,11 +1330,11 @@ public class HostService extends TaskResourceService {
      * that is being removed from the Host acls. Checks if the tenant that is getting
      * removed from the host ACL has any exports with the host.
      *
-     * @param vcenter the host being updated.
+     * @param host the host being updated.
      * @param changes new acl assignment changes for the host.
      */
     private void checkHostUsage(Host host, ACLAssignmentChanges changes) {
-        //Make a copy of the vCenter's existing tenant list.
+        //Make a copy of the Host's existing tenant list.
         List<ACLEntry> existingAclEntries = _permissionsHelper.convertToACLEntries(host.getAcls());
         if (CollectionUtils.isEmpty(existingAclEntries)) {
             //If there no existing acl entries for the Host

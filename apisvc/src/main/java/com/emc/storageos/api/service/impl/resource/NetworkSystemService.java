@@ -29,6 +29,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.api.mapper.functions.MapNetworkSystem;
@@ -111,6 +114,8 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class NetworkSystemService extends TaskResourceService {
+
+    private static final Logger _log = LoggerFactory.getLogger(NetworkSystemService.class);
 
     // how many times to retry a procedure before returning failure to the user.
     // Is used with "system delete" operation.
@@ -813,6 +818,30 @@ public class NetworkSystemService extends TaskResourceService {
     }
 
     /**
+     * Returns true if valid zone name.
+     * Throw exception if zone name is invalid based on device type
+     *
+     * @param name
+     * @return
+     */
+    private boolean validateZoneName(String name, String deviceType) {
+        boolean validZoneName = false;
+        if (deviceType.equalsIgnoreCase(Type.brocade.toString())) {
+            if (name.matches("[a-zA-Z0-9_]+")) {
+                validZoneName = true;
+            }
+        } else if (deviceType.equalsIgnoreCase(Type.mds.toString())) {
+            if (name.matches("[a-zA-Z0-9_\\-]+")) {
+                validZoneName = true;
+            }
+        }
+        if(!validZoneName) {
+            throw APIException.badRequests.illegalZoneName(name);
+        }
+        return validZoneName;
+    }
+
+    /**
      * Throw exception if alias is invalid
      * 
      * @param alias
@@ -887,7 +916,8 @@ public class NetworkSystemService extends TaskResourceService {
         List<Zone> zones = new ArrayList<Zone>();
         for (SanZone sz : sanZones.getZones()) {
             Zone zone = new Zone(sz.getName());
-            validateZoneName(sz.getName());
+            boolean zoneNameValid = validateZoneName(sz.getName(), device.getSystemType());
+            _log.info("Zone name {} is valid for add {}", sz.getName(), zoneNameValid);
             zones.add(zone);
             for (String szm : sz.getMembers()) {
                 ZoneMember member = createZoneMember(szm);
@@ -1002,7 +1032,8 @@ public class NetworkSystemService extends TaskResourceService {
         List<ZoneUpdate> updateZones = new ArrayList<ZoneUpdate>();
         for (SanZoneUpdateParam sz : updateSanZones.getUpdateZones()) {
             ZoneUpdate updateZone = new ZoneUpdate(sz.getName());
-            validateZoneName(sz.getName());
+            boolean zoneNameValid = validateZoneName(sz.getName(), device.getSystemType());
+            _log.info("Zone name {} is valid for update {}", sz.getName(), zoneNameValid);
 
             for (String szm : sz.getAddMembers()) {
                 if (StringUtils.isEmpty(szm)) {

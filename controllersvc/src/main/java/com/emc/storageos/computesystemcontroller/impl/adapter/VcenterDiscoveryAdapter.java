@@ -272,6 +272,23 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             return null;
         }
 
+        private boolean isDuplicateHost(HostHardwareInfo hw, VcenterDataCenter dataCenter) {
+            if (hw != null && hw.systemInfo != null && StringUtils.isNotBlank(hw.systemInfo.uuid)) {
+                String uuid = hw.systemInfo.uuid;
+                Host targetHost = findHostByUuid(uuid);
+
+                // check if host already exists in ViPR and is part of another vCenter
+                if (targetHost != null && !NullColumnValueGetter.isNullURI(targetHost.getVcenterDataCenter())) {
+                    VcenterDataCenter hostDataCenter = getModelClient().datacenters().findById(targetHost.getVcenterDataCenter());
+                    if (hostDataCenter != null && hostDataCenter.getVcenter() != null
+                            && !hostDataCenter.getVcenter().equals(dataCenter.getVcenter())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         private void discoverDatacenter(Datacenter source, VcenterDataCenter target, List<HostStateChange> changes, List<URI> deletedHosts,
                 List<URI> deletedClusters) {
             info("processing datacenter %s", source.getName());
@@ -292,41 +309,45 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 Host targetHost = null;
                 HostHardwareInfo hw = sourceHost.getHardware();
                 String uuid = null;
-                if (hw != null && hw.systemInfo != null && StringUtils.isNotBlank(hw.systemInfo.uuid)) {
-                    // try finding host by UUID
-                    uuid = hw.systemInfo.uuid;
-                    targetHost = findHostByUuid(uuid);
-                }
-                if (targetHost == null) {
-                    if (findHostByLabel(oldHosts, sourceHost.getName()) != null) {
-                        targetHost = getOrCreateHost(oldHosts, sourceHost.getName());
+                if (isDuplicateHost(hw, target)) {
+                    error("Host %s belongs to a different vCenter. Unable to add duplicate host.", sourceHost.getName());
+                } else {
+                    if (hw != null && hw.systemInfo != null && StringUtils.isNotBlank(hw.systemInfo.uuid)) {
+                        // try finding host by UUID
+                        uuid = hw.systemInfo.uuid;
+                        targetHost = findHostByUuid(uuid);
                     }
-                    else {
-                        Host existingHost = findExistingHost(sourceHost);
-                        if (existingHost != null) {
-                            targetHost = existingHost;
-                        }
-                        else {
+                    if (targetHost == null) {
+                        if (findHostByLabel(oldHosts, sourceHost.getName()) != null) {
                             targetHost = getOrCreateHost(oldHosts, sourceHost.getName());
                         }
-                    }
-                }
-                else {
-                    for (int i = 0; i < oldHosts.size(); i++) {
-                        if (oldHosts.get(i).getId().equals(targetHost.getId())) {
-                            oldHosts.remove(i);
-                            break;
+                        else {
+                            Host existingHost = findExistingHost(sourceHost);
+                            if (existingHost != null) {
+                                targetHost = existingHost;
+                            }
+                            else {
+                                targetHost = getOrCreateHost(oldHosts, sourceHost.getName());
+                            }
                         }
                     }
-                }
+                    else {
+                        for (int i = 0; i < oldHosts.size(); i++) {
+                            if (oldHosts.get(i).getId().equals(targetHost.getId())) {
+                                oldHosts.remove(i);
+                                break;
+                            }
+                        }
+                    }
 
-                DiscoveryStatusUtils.markAsProcessing(getModelClient(), targetHost);
-                try {
-                    discoverHost(source, sourceHost, uuid, target, targetHost, newClusters, changes);
-                    DiscoveryStatusUtils.markAsSucceeded(getModelClient(), targetHost);
-                } catch (RuntimeException e) {
-                    warn(e, "Problem discovering host %s", targetHost.getLabel());
-                    DiscoveryStatusUtils.markAsFailed(getModelClient(), targetHost, e.getMessage(), e);
+                    DiscoveryStatusUtils.markAsProcessing(getModelClient(), targetHost);
+                    try {
+                        discoverHost(source, sourceHost, uuid, target, targetHost, newClusters, changes);
+                        DiscoveryStatusUtils.markAsSucceeded(getModelClient(), targetHost);
+                    } catch (RuntimeException e) {
+                        warn(e, "Problem discovering host %s", targetHost.getLabel());
+                        DiscoveryStatusUtils.markAsFailed(getModelClient(), targetHost, e.getMessage(), e);
+                    }
                 }
             }
 

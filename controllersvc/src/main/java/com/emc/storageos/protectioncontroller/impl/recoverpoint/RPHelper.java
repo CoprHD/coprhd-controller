@@ -1422,8 +1422,8 @@ public class RPHelper {
                 _log.info(String.format("Start rollback of RP protection changes for volume [%s] (%s)...", 
                         volume.getLabel(), volume.getId()));      
                 // List of volume IDs to clean up from the ProtectionSet
-                List<String> protectionSetIdsToRemove = new ArrayList<String>();
-                protectionSetIdsToRemove.add(volume.getId().toString());
+                List<String> protectionSetVolumeIdsToRemove = new ArrayList<String>();
+                protectionSetVolumeIdsToRemove.add(volume.getId().toString());
                 
                 // All source volumes in this CG
                 List<Volume> cgSourceVolumes = getCgSourceVolumes(volume.getConsistencyGroup(), dbClient);
@@ -1436,7 +1436,7 @@ public class RPHelper {
                 if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) {
                     if (lastSourceVolumeInCG) {
                         _log.info(String.format("Rolling back RP Journal (%s)", volume.getRpJournalVolume()));
-                        protectionSetIdsToRemove.add(volume.getRpJournalVolume().toString());
+                        protectionSetVolumeIdsToRemove.add(volume.getRpJournalVolume().toString());
                         rollbackVolume(volume.getRpJournalVolume(), dbClient);
                     }
                 }
@@ -1444,7 +1444,7 @@ public class RPHelper {
                 if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
                     if (lastSourceVolumeInCG) {
                         _log.info(String.format("Rolling back RP Journal (%s)", volume.getSecondaryRpJournalVolume()));
-                        protectionSetIdsToRemove.add(volume.getSecondaryRpJournalVolume().toString());
+                        protectionSetVolumeIdsToRemove.add(volume.getSecondaryRpJournalVolume().toString());
                         rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
                     }
                 }
@@ -1468,12 +1468,12 @@ public class RPHelper {
                 if (resetRpTargets != null) {
                     // Rollback any target volumes that were created
                     for (String rpTargetId : resetRpTargets) {
-                        protectionSetIdsToRemove.add(rpTargetId);
+                        protectionSetVolumeIdsToRemove.add(rpTargetId);
                         Volume targetVol = rollbackVolume(URI.create(rpTargetId), dbClient);
                         // Rollback any target journal volumes that were created
                         if (!NullColumnValueGetter.isNullURI(targetVol.getRpJournalVolume())) {
                             if (lastSourceVolumeInCG) {
-                                protectionSetIdsToRemove.add(targetVol.getRpJournalVolume().toString());
+                                protectionSetVolumeIdsToRemove.add(targetVol.getRpJournalVolume().toString());
                                 rollbackVolume(targetVol.getRpJournalVolume(), dbClient);
                             }
                         }
@@ -1487,10 +1487,10 @@ public class RPHelper {
                     ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                     if (protectionSet != null) {
                         // Remove volume IDs from the Protection Set
-                        protectionSet.getVolumes().removeAll(protectionSetIdsToRemove);
+                        protectionSet.getVolumes().removeAll(protectionSetVolumeIdsToRemove);
                         
                         _log.info(String.format("Removing the following volumes from Protection Set [%s] (%s): %s",                                
-                                protectionSet.getLabel(), protectionSet.getId(), Joiner.on(',').join(protectionSetIdsToRemove)));
+                                protectionSet.getLabel(), protectionSet.getId(), Joiner.on(',').join(protectionSetVolumeIdsToRemove)));
                         
                         // If the Protection Set is empty, we can safely set it to 
                         // inactive.

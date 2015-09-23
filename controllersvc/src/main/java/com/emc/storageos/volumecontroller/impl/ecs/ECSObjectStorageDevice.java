@@ -107,7 +107,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         BiosCommandResult result;
         try {
             ECSApi objectAPI = getAPI(storageObj);
-            objectAPI.deleteBucket(bucket.getLabel());
+            objectAPI.deleteBucket(bucket.getLabel(), bucket.getNamespace());
             bucket.setInactive(true);
             _dbClient.persistObject(bucket);
             result = BiosCommandResult.createSuccessfulResult();

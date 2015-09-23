@@ -10,8 +10,8 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -283,7 +283,7 @@ public class FileStorageScheduler {
             VirtualPool vPool, URI vArrayURI,
             List<StoragePool> candidatePools, Project project) {
 
-        Map<VirtualNAS, List<StoragePool>> map = new HashMap<VirtualNAS, List<StoragePool>>();
+        Map<VirtualNAS, List<StoragePool>> map = new LinkedHashMap<VirtualNAS, List<StoragePool>>();
 
         _log.info(
                 "Get matching recommendations based on assigned VNAS to project {}",

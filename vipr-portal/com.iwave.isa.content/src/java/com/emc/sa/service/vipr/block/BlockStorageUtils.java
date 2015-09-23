@@ -24,6 +24,8 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
+import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
+import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolumeByName;
@@ -48,6 +50,7 @@ import com.emc.sa.service.vipr.block.tasks.FindVirtualArrayInitiators;
 import com.emc.sa.service.vipr.block.tasks.GetActiveContinuousCopiesForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveFullCopiesForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotsForVolume;
+import com.emc.sa.service.vipr.block.tasks.GetBlockConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
@@ -58,18 +61,23 @@ import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
 import com.emc.sa.service.vipr.block.tasks.RestoreFromFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ResynchronizeFullCopy;
+import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
+import com.emc.sa.service.vipr.tasks.GetStorageSystem;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
-import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
@@ -79,8 +87,9 @@ import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
-import com.emc.vipr.client.Tasks;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.filters.ExportClusterFilter;
 import com.emc.vipr.client.core.filters.ExportHostFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -139,6 +148,10 @@ public class BlockStorageUtils {
         return getBlockResource(volumeId);
     }
 
+    public static StorageSystemRestRep getStorageSystem(URI storageSystemId) {
+        return execute(new GetStorageSystem(storageSystemId));
+    }
+
     public static List<BlockObjectRestRep> getVolumes(List<URI> volumeIds) {
         List<BlockObjectRestRep> volumes = Lists.newArrayList();
         for (URI volumeId : volumeIds) {
@@ -153,6 +166,10 @@ public class BlockStorageUtils {
 
     public static BlockObjectRestRep getBlockResource(URI resourceId) {
         return execute(new GetBlockResource(resourceId));
+    }
+
+    public static BlockConsistencyGroupRestRep getBlockConsistencyGroup(URI resourceId) {
+        return execute(new GetBlockConsistencyGroup(resourceId));
     }
 
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
@@ -195,6 +212,20 @@ public class BlockStorageUtils {
         return execute(new FindExportsContainingHost(host, projectId, varrayId));
     }
 
+    public static List<URI> addJournalCapacity(URI projectId, URI virtualArrayId, URI virtualPoolId, double sizeInGb, Integer count,
+            URI consistencyGroupId, String copyName) {
+        String volumeSize = gbToVolumeSize(sizeInGb);
+        Tasks<VolumeRestRep> tasks = execute(new AddJournalCapacity(virtualPoolId, virtualArrayId, projectId, volumeSize,
+                count, consistencyGroupId, copyName));
+        List<URI> volumeIds = Lists.newArrayList();
+        for (Task<VolumeRestRep> task : tasks.getTasks()) {
+            URI volumeId = task.getResourceId();
+            addAffectedResource(volumeId);
+            volumeIds.add(volumeId);
+        }
+        return volumeIds;
+    }
+
     public static List<URI> createVolumes(URI projectId, URI virtualArrayId, URI virtualPoolId,
             String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId) {
         String volumeSize = gbToVolumeSize(sizeInGb);
@@ -215,7 +246,6 @@ public class BlockStorageUtils {
         String volumeSize = gbToVolumeSize(sizeInGb);
         return execute(new CreateBlockVolumeByName(projectId, virtualArrayId,
                 virtualPoolId, volumeSize, consistencyGroupId, volumeName));
-
     }
 
     public static void expandVolumes(Collection<URI> volumeIds, double newSizeInGB) {
@@ -449,11 +479,26 @@ public class BlockStorageUtils {
 
         removeBlockResourcesFromExports(allBlockResources);
         for (URI volumeId : allBlockResources) {
-            removeSnapshotsForVolume(volumeId);
-            removeContinuousCopiesForVolume(volumeId);
-            removeFullCopiesForVolume(volumeId, blockResourceIds);
+            if (canRemoveReplicas(volumeId)) {
+                removeSnapshotsForVolume(volumeId);
+                removeContinuousCopiesForVolume(volumeId);
+                removeFullCopiesForVolume(volumeId, blockResourceIds);
+            }
         }
         deactivateBlockResources(blockResourceIds, type);
+    }
+
+    public static boolean canRemoveReplicas(URI blockResourceId) {
+        BlockObjectRestRep volume = getVolume(blockResourceId);
+        if (volume.getConsistencyGroup() != null) {
+            StorageSystemRestRep storageSystem = getStorageSystem(volume.getStorageController());
+            if (storageSystem != null
+                    && storageSystem.getSystemType() != null
+                    && storageSystem.getSystemType().equals(DiscoveredDataObject.Type.vmax.name())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static void deactivateBlockResources(Collection<URI> blockResourceIds, VolumeDeleteTypeEnum type) {
@@ -611,10 +656,33 @@ public class BlockStorageUtils {
         return copies;
     }
 
+    public static Tasks<VolumeRestRep> createContinuousCopy(URI volumeId, String name, Integer count, String type, URI copyId) {
+        int countValue = (count != null) ? count : 1;
+        Tasks<VolumeRestRep> copies = execute(new CreateContinuousCopy(volumeId, name, countValue, type, copyId));
+        addAffectedResources(copies);
+        return copies;
+    }
+
+    public static void startSnapshot(URI snapshotId) {
+        Task<BlockSnapshotRestRep> task = execute(new StartBlockSnapshot(snapshotId));
+        addAffectedResource(task);
+    }
+
+    public static void startFullCopy(URI fullCopyId) {
+        Tasks<VolumeRestRep> task = execute(new StartFullCopy(fullCopyId));
+        addAffectedResources(task);
+    }
+
     public static Tasks<VolumeRestRep> swapContinuousCopy(URI targetVolumeId, String type) {
         Tasks<VolumeRestRep> copies = execute(new SwapContinuousCopies(targetVolumeId, type));
         addAffectedResources(copies);
         return copies;
+    }
+
+    public static Task<BlockConsistencyGroupRestRep> addVolumesToConsistencyGroup(URI consistencyGroupId, List<URI> volumeIds) {
+        Task<BlockConsistencyGroupRestRep> task = execute(new AddVolumesToConsistencyGroup(consistencyGroupId, volumeIds));
+        addAffectedResource(task);
+        return task;
     }
 
     /**

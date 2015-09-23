@@ -229,7 +229,7 @@ public interface RecoverPointExceptions {
     public RecoverPointException failedToGetRPSiteID(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-    public RecoverPointException failedToRecreateReplicationSet(final String volumeWWN,
+    public RecoverPointException failedToRecreateReplicationSet(final String volumeWWNs,
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
@@ -317,4 +317,7 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException cgLinksFailedToBecomeActive(final String cgName);
+    
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToAddJournalVolumeToConsistencyGroup(final String cgName, Throwable cause);
 }

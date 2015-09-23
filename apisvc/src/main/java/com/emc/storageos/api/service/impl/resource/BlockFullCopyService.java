@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
+import java.util.Arrays;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -112,6 +113,11 @@ public class BlockFullCopyService extends TaskResourceService {
     public TaskList activateFullCopy(@PathParam("id") URI fullCopyURI)
             throws InternalException {
         Volume fullCopyVolume = queryFullCopy(fullCopyURI);
+        
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(fullCopyVolume.getTenant().getURI()), Arrays.asList(fullCopyVolume));
+
         return getFullCopyManager().activateFullCopy(
                 fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
     }
@@ -164,6 +170,11 @@ public class BlockFullCopyService extends TaskResourceService {
     public TaskList restoreFullCopy(@PathParam("id") URI fullCopyURI)
             throws InternalException {
         Volume fullCopyVolume = queryFullCopy(fullCopyURI);
+        
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(fullCopyVolume.getTenant().getURI()), Arrays.asList(fullCopyVolume));
+        
         return getFullCopyManager().restoreFullCopy(
                 fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
     }
@@ -190,8 +201,35 @@ public class BlockFullCopyService extends TaskResourceService {
     public TaskList resynchronizeFullCopy(@PathParam("id") URI fullCopyURI)
             throws InternalException {
         Volume fullCopyVolume = queryFullCopy(fullCopyURI);
+        
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(fullCopyVolume.getTenant().getURI()), Arrays.asList(fullCopyVolume));
+        
         return getFullCopyManager().resynchronizeFullCopy(
                 fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
+    }
+
+    /**
+     * Generates a group synchronized between volume Replication group
+     * and clone Replication group.
+     * 
+     * @prereq There should be existing Storage synchronized relations
+     * between volumes and clones.
+     * 
+     * @param fullCopyURI The URI of the full copy volume.
+     * 
+     * @return TaskList
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/start")
+    public TaskList startFullCopy(@PathParam("id") URI fullCopyURI)
+        throws InternalException {
+        Volume fullCopyVolume = queryFullCopy(fullCopyURI);
+        return getFullCopyManager().startFullCopy(
+            fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
     }
 
     /**

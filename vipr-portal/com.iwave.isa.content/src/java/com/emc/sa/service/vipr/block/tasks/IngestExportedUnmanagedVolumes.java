@@ -12,13 +12,14 @@ import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.exceptions.ViPRException;
 
 /**
  * @author Chris Dail
  */
 public class IngestExportedUnmanagedVolumes extends WaitForTasks<UnManagedVolumeRestRep> {
 
-    public static final int INGEST_CHUNK_SIZE = 1000;
+    public static final int INGEST_CHUNK_SIZE = 50;
 
     public static final int MAX_ERROR_DISPLAY = 10;
 
@@ -28,14 +29,17 @@ public class IngestExportedUnmanagedVolumes extends WaitForTasks<UnManagedVolume
     private URI hostId;
     private URI clusterId;
     private List<URI> unmanagedVolumeIds;
+    private String ingestionMethod;
 
-    public IngestExportedUnmanagedVolumes(URI vpoolId, URI varrayId, URI projectId, URI hostId, URI clusterId, List<URI> unmanagedVolumeIds) {
+    public IngestExportedUnmanagedVolumes(URI vpoolId, URI varrayId, URI projectId, URI hostId, 
+            URI clusterId, List<URI> unmanagedVolumeIds, String ingestionMethod) {
         this.vpoolId = vpoolId;
         this.varrayId = varrayId;
         this.projectId = projectId;
         this.hostId = hostId;
         this.clusterId = clusterId;
         this.unmanagedVolumeIds = unmanagedVolumeIds;
+        this.ingestionMethod = ingestionMethod;
         setWaitFor(true);
         setMaxErrorDisplay(MAX_ERROR_DISPLAY);
         provideDetailArgs(vpoolId, projectId, varrayId, hostId != null ? hostId : clusterId, unmanagedVolumeIds.size());
@@ -53,31 +57,39 @@ public class IngestExportedUnmanagedVolumes extends WaitForTasks<UnManagedVolume
         ingest.setVarray(varrayId);
         ingest.setCluster(clusterId);
         ingest.setHost(hostId);
+        ingest.setVplexIngestionMethod(ingestionMethod);
 
         return executeChunks(ingest);
     }
 
     private Tasks<UnManagedVolumeRestRep> executeChunks(VolumeExportIngestParam ingest) {
 
-        Tasks<UnManagedVolumeRestRep> results = null;
+        Tasks<UnManagedVolumeRestRep> results = new Tasks<UnManagedVolumeRestRep>(getClient().auth().getClient(), null,
+                UnManagedVolumeRestRep.class);
 
         int i = 0;
-        for (Iterator<URI> ids = unmanagedVolumeIds.iterator(); ids.hasNext();) {
+        Iterator<URI> ids = unmanagedVolumeIds.iterator();
+        while (ids.hasNext()) {
             i++;
             URI id = ids.next();
             ingest.getUnManagedVolumes().add(id);
             if (i == INGEST_CHUNK_SIZE || !ids.hasNext()) {
                 Tasks<UnManagedVolumeRestRep> currentChunk = ingestVolumes(ingest);
-                if (results == null) {
-                    results = currentChunk;
-                } else {
-                    results.getTasks().addAll(currentChunk.getTasks());
-                }
+                results.getTasks().addAll(currentChunk.getTasks());
+                processBatch(currentChunk, i);
                 ingest.getUnManagedVolumes().clear();
                 i = 0;
             }
         }
-
         return results;
+    }
+
+    private void processBatch(Tasks<UnManagedVolumeRestRep> batch, int batchSize) {
+        try {
+            logInfo("ingest.exported.unmanaged.volume.service.batch", batchSize);
+            batch.waitFor(-1);
+        } catch (ViPRException e) {
+            logError(e.getMessage());
+        }
     }
 }

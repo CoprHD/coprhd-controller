@@ -134,6 +134,9 @@ class Volume(object):
     URI_CG_CLONE_LIST = "/block/consistency-groups/{0}/protection/full-copies"
     URI_CG_CLONE_GET= "/block/consistency-groups/{0}/protection/full-copies/{1}"
     
+    #New API for adding volumes to RP Journal CG 
+    URI_RP_JOURNAL_CAPACITY = "/block/volumes/protection/addJournalCapacity"
+    
     VOLUME_PROTECTIONS = ['rp', 'native', 'srdf']
     VOLUME_PROTECTION_HELP = \
         'type of protection(rp or native or srdf) - default:native'
@@ -762,7 +765,7 @@ class Volume(object):
         return o
 
     def unmanaged_volume_ingest(self, tenant, project,
-                                varray, vpool, volumes):
+                                varray, vpool, volumes, ingestmethod):
         '''
         This function is to ingest given unmanaged volumes
         into ViPR.
@@ -778,15 +781,20 @@ class Volume(object):
         from virtualarray import VirtualArray
         varray_obj = VirtualArray(self.__ipAddr, self.__port)
         varray_uri = varray_obj.varray_query(varray)
+        
+        if(ingestmethod is None):
+            ingestmethod = "Full"
 
         request = {
             'vpool': vpool_uri,
             'varray': varray_uri,
+            'vplexIngestionMethod': ingestmethod,
             'project': project_uri,
             'unmanaged_volume_list': volumes
         }
 
         body = json.dumps(request)
+        
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
@@ -796,7 +804,7 @@ class Volume(object):
         return o
 
     def unmanaged_exported_volume_ingest(self, tenant, project,
-                                varray, vpool, volumes, host, cluster):
+                                varray, vpool, volumes, host, cluster, ingestmethod):
         '''
         This function is to ingest given unmanaged volumes
         into ViPR.
@@ -812,9 +820,13 @@ class Volume(object):
         from virtualarray import VirtualArray
         varray_obj = VirtualArray(self.__ipAddr, self.__port)
         varray_uri = varray_obj.varray_query(varray)
+        
+        if(ingestmethod is None):
+            ingestmethod = "Full"
 
         request = {
             'vpool': vpool_uri,
+            'vplexIngestionMethod': ingestmethod, 
             'varray': varray_uri,
             'project': project_uri,
             'unmanaged_volume_list': volumes
@@ -924,6 +936,75 @@ class Volume(object):
                         "error: task list is empty, no task response found")
         else:
             return o
+        
+    #Routine to add additional journal capacity 
+    def rp_journal_create(self,consistencygroup, number_of_volumes ,label,project,  size, varray, vpool, sync ):
+        '''
+        Makes REST API call to create additional journal space under a project
+        Parameters:
+            project: name of the project under which the volumes will be created
+            label: name of volume
+            size: size of volume
+            varray: name of varray
+            vpool: name of vpool
+            protocol: protocol used for the volume (FC or iSCSI)
+        Returns:
+            Created task details in JSON response payload
+        '''
+
+        from project import Project
+        proj_obj = Project(self.__ipAddr, self.__port)
+        project_uri = proj_obj.project_query(project)
+
+        from virtualpool import VirtualPool
+        vpool_obj = VirtualPool(self.__ipAddr, self.__port)
+        vpool_uri = vpool_obj.vpool_query(vpool, "block")
+
+        varray_obj = VirtualArray(self.__ipAddr, self.__port)
+        varray_uri = varray_obj.varray_query(varray)
+
+        request = {
+            'name': label,
+            'size': size,
+            'varray': varray_uri,
+            'project': project_uri,
+            'vpool': vpool_uri
+        }
+        
+        if(number_of_volumes and number_of_volumes > 0):
+            request["count"] = number_of_volumes
+        
+        from consistencygroup import ConsistencyGroup
+        if(consistencygroup):
+
+            cgobj = ConsistencyGroup(self.__ipAddr, self.__port)
+            (tenant, project) = common.get_parent_child_from_xpath(project)
+            consuri = cgobj.consistencygroup_query(
+                consistencygroup,
+                project,
+                tenant)
+            request['consistency_group'] = consuri
+
+        body = json.dumps(request)
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             Volume.URI_RP_JOURNAL_CAPACITY,
+                                             body)
+        o = common.json_decode(s)
+
+        if(sync):
+            if(number_of_volumes < 2):
+                # check task empty
+                if (len(o["task"]) > 0):
+                    task = o["task"][0]
+                    return self.check_for_sync(task, sync)
+                else:
+                    raise SOSError(
+                        SOSError.SOS_FAILURE_ERR,
+                        "error: task list is empty, no task response found")
+        else:
+            return o
+        
 
 
     # Update a volume information
@@ -1613,6 +1694,67 @@ def create_parser(subcommand_parsers, common_parser):
                                action='store_true')
     create_parser.set_defaults(func=volume_create)
     
+    
+
+#Parser function to add Journal Capacity 
+def rp_journal_parser(subcommand_parsers, common_parser):
+    rp_journal_parser = subcommand_parsers.add_parser(
+        'add-journal-space',
+        description='Creating Volumes to increase journal capacity CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='increase journal capacity')
+    mandatory_args = rp_journal_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-copyname', '-n',
+                                help='Name of copy volume',
+                                metavar='<volumename>',
+                                dest='copyname',
+                                required=True)
+    mandatory_args.add_argument('-size', '-s',
+                                help='Size of volume: {number}[unit]. ' +
+                                'A size suffix of K for kilobytes, ' +
+                                ' M for megabytes, G for gigabytes, T for ' +
+                                'terabytes is optional.' +
+                                'Default unit is bytes.Minimum 10GB ',
+                                metavar='<volumesize[kKmMgGtT]>',
+                                dest='size',
+                                required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                help='Name of project',
+                                metavar='<projectname>',
+                                dest='project',
+                                required=True)
+    rp_journal_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    mandatory_args.add_argument('-vpool', '-vp',
+                                help='Name of vpool',
+                                metavar='<vpoolname>',
+                                dest='vpool',
+                                required=True)
+    mandatory_args.add_argument('-varray', '-va',
+                                help='Name of varray',
+                                metavar='<varray>',
+                                dest='varray',
+                                required=True)
+    mandatory_args.add_argument('-count', '-cu',
+                               dest='count',
+                               metavar='<count>',
+                               type=int,
+                               required=True,
+                               help='Number of volumes to be created')
+    mandatory_args.add_argument('-cg', '-consistencygroup',
+                               help='The name of the consistency group',
+                               dest='consistencygroup',
+                               metavar='<consistentgroupname>',
+                               required=True)
+    rp_journal_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
+    rp_journal_parser.set_defaults(func=rp_journal_create)
+    
 # Common Parser for clone 
 def volume_clone_list_parser(cc_common_parser):
     mandatory_args = cc_common_parser.add_argument_group('mandatory arguments')
@@ -2132,6 +2274,40 @@ def volume_create(args):
                 "volume",
                 e.err_text,
                 e.err_code)
+            
+
+def rp_journal_create(args):
+    obj = Volume(args.ip, args.port)
+    size = common.to_bytes(args.size)
+    if(not size):
+        raise SOSError(SOSError.CMD_LINE_ERR, 'error: Invalid input for -size')
+    if(args.count <= 0):
+        raise SOSError(
+            SOSError.CMD_LINE_ERR,
+            'error: Invalid input for -count')
+    if(args.count > 1 and args.sync):
+        raise SOSError(
+            SOSError.CMD_LINE_ERR,
+            'error: Synchronous operation is not allowed for' +
+            ' bulk creation of volumes')
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.rp_journal_create(
+            args.consistencygroup , args.count , args.copyname, args.tenant + "/" + args.project, args.size,
+            args.varray, args.vpool , args.sync)
+
+    except SOSError as e:
+        if (e.err_code in [SOSError.NOT_FOUND_ERR,
+                           SOSError.ENTRY_ALREADY_EXISTS_ERR]):
+            raise SOSError(e.err_code, "Create failed: " + e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "create",
+                "additional journal volumes",
+                e.err_text,
+                e.err_code)
+
 
 
 # volume Update routines
@@ -2503,6 +2679,12 @@ def unmanaged_parser(subcommand_parsers, common_parser):
                                 metavar='<cluster name>',
                                 dest='cluster',
                                 help='Name of cluster')
+    ingest_parser.add_argument('-ingestmethod', '-inmd',
+                                metavar='<ingest method>',
+                                dest='ingestmethod',
+                                choices = ["Full" ,"VirtualVolumesOnly"],
+                                default = "Full" ,
+                                help='Ingest Method')
 
     # show unmanaged volume
     umshow_parser = subcommand_parsers.add_parser('show',
@@ -2538,11 +2720,11 @@ def unmanaged_volume_ingest(args):
                 obj.unmanaged_exported_volume_ingest(args.tenant, args.project,
                                           args.varray, args.vpool,
                                           args.volumes, args.host,
-                                          args.cluster)
+                                          args.cluster ,args.ingestmethod)
             else:
                 obj.unmanaged_volume_ingest(args.tenant, args.project,
                                           args.varray, args.vpool,
-                                          args.volumes)
+                                          args.volumes,args.ingestmethod)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "ingest",
@@ -3806,6 +3988,8 @@ def volume_parser(parent_subparser, common_parser):
 
     # create command parser
     create_parser(subcommand_parsers, common_parser)
+    
+    rp_journal_parser(subcommand_parsers, common_parser)
 
     # Clone command parser
     clone_parser(subcommand_parsers, common_parser)

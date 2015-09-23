@@ -33,6 +33,14 @@ import zlib
 import struct
 from time import sleep
 
+try:
+    # OpenSUSE CoprHD kits tend to display certificate warnings which aren't
+    # relevant to running sanity tests
+    requests.packages.urllib3.disable_warnings()
+except AttributeError:
+    # Swallow error, likely ViPR devkit
+    pass
+
 URI_SERVICES_BASE               = ''
 URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'
@@ -415,6 +423,11 @@ URI_REPLICATION_GROUP           = URI_SERVICES_BASE + '/vdc/data-service/vpools/
 URI_REPLICATION_GROUPS          = URI_SERVICES_BASE + '/vdc/data-service/vpools'
 URI_REPLICATION_EXTEND          = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/addvarrays'
 URI_REPLICATION_COMPRESS        = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/removevarrays'
+
+URI_VNAS_SERVERS                = URI_SERVICES_BASE + '/vdc/vnas-servers'
+URI_VNAS_SERVER                 = URI_SERVICES_BASE + '/vdc/vnas-servers/{0}'
+URI_VNAS_SERVER_ASSIGN          = URI_SERVICES_BASE + '/projects/{0}/assign-vnas-servers'
+URI_VNAS_SERVER_UNASSIGN        = URI_SERVICES_BASE + '/projects/{0}/unassign-vnas-servers'
 
 URI_GEO_SERVICES_BASE           = ''
 URI_CHUNKINFO                   = URI_GEO_SERVICES_BASE + '/chunkinfo'
@@ -1504,7 +1517,8 @@ class Bourne:
 
     def cos_match(self, type, useMatchedPools,
                    protocols, numpaths, highavailability, haNhUri, haCosUri, activeProtectionAtHASite, metropoint, file_cos, provisionType,
-                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, protectionCoS,
+                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
+                   standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    system_type, srdf):
 
@@ -8067,6 +8081,46 @@ class Bourne:
 
     def vdcinfo_list(self):
         return self.api('GET', URI_VDCINFO_LIST)
+
+    def vnas_list(self):
+        vnaslist = self.api('GET', URI_VNAS_SERVERS)
+        if('vnas_server' in vnaslist):
+            return vnaslist['vnas_server']
+    
+    def vnas_query(self, name):
+        if name.startswith('urn:storageos:VirtualNAS'):
+            return name
+	vnasservers = self.vnas_list()
+        for vnas in vnasservers:
+            if('name' in vnas and vnas['name'] == name):
+                return vnas['id']	
+        raise Exception('bad vnas name ' + name)
+		
+    def vnas_show(self, name):
+        vnasid = self.vnas_query(name)
+	if(vnasid is not None):
+	    return self.api('GET', URI_VNAS_SERVER.format(vnasid))
+			
+    def assign_vnas(self, name, project):
+        vnasid = self.vnas_query(name)
+	projectURI = self.project_query(project)
+        params = dict()
+        vnaslist = []
+	if(projectURI is not None):
+            vnaslist.append(vnasid)
+            params['vnas_server'] = vnaslist
+	    return self.api('PUT', URI_VNAS_SERVER_ASSIGN.format(projectURI), params)	
+
+    def unassign_vnas(self, name, project):
+        vnasid = self.vnas_query(name)
+	projectURI = self.project_query(project)
+        params = dict()
+        vnaslist = []
+	if(projectURI is not None):
+            vnaslist.append(vnasid)
+            params['vnas_server'] = vnaslist
+            return self.api('PUT', URI_VNAS_SERVER_UNASSIGN.format(projectURI), params)			
+		
 
     def unmanaged_volume_query(self, name):
         if (self.__is_uri(name)):

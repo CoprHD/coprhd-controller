@@ -210,6 +210,10 @@ public class VolumeDescriptor implements Serializable {
             List<VolumeDescriptor> descriptors,
             Type[] inclusive, Type[] exclusive) {
         List<VolumeDescriptor> result = new ArrayList<VolumeDescriptor>();
+        if (descriptors == null) {
+            return result;
+        }
+        
         HashSet<Type> included = new HashSet<Type>();
         if (inclusive != null) {
             included.addAll(Arrays.asList(inclusive));

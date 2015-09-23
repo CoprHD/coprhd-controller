@@ -22,6 +22,8 @@ public enum DefaultStorageArrayPortMap {
     openstack_useSSL,
     scaleio,
     scaleio_useSSL,
+    scaleioapi,
+    scaleioapi_useSSL,
     datadomain,
     datadomain_useSSL,
     ibmxiv,
@@ -29,5 +31,7 @@ public enum DefaultStorageArrayPortMap {
     xtremio,
     xtremeio_useSSL,
     vnxe,
-    netappc
+    netappc,
+    ecs,
+    ecs_useSSl
 }

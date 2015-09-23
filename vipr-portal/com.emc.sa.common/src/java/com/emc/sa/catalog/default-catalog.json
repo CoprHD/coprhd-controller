@@ -63,6 +63,10 @@
         {
           "image": "Service_Change_Virtual_Array.png",
           "baseService": "ChangeVolumeVirtualArray"
+        },
+        {
+          "image": "icon_consistency_group_add_volumes.png",
+          "baseService": "AddVolumesToConsistencyGroup"
         }
       ]
     },
@@ -130,6 +134,10 @@
         {
           "image": "icon_host_remove_snapshot.png",
           "baseService": "UnexportSnapshot"
+        },
+        {
+          "image": "Service_Add_Journal_Capacity.png",
+          "baseService": "AddJournalCapacity"
         }
       ]
     },
@@ -449,6 +457,25 @@
         {
           "image": "icon_VPLEX_data_migration.png",
           "baseService": "VplexDataMigration"
+        }
+      ]
+    },
+    {
+      "title": "objectstorageservice.title",
+      "image": "icon_data_services.png",
+      "description": "objectstorageservice.description",
+      "services": [
+        {
+          "image": "icon_create_bucket.png",
+          "baseService": "CreateBucket"
+        },
+        {
+          "image": "icon_edit_bucket.png",
+          "baseService": "EditBucket"
+        },
+        {
+          "image": "icon_delete_bucket.png",
+          "baseService": "DeleteBucket"
         }
       ]
     }

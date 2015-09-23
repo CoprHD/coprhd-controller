@@ -27,8 +27,8 @@ public class ObjectBucketsDataTable extends DataTable {
     
     public ObjectBucketsDataTable() {
         addColumn("name");
-        addColumn("hardquota");
-        addColumn("softquota");
+        addColumn("hardquota").setRenderFunction("render.sizeInGb");
+        addColumn("softquota").setRenderFunction("render.sizeInGb");
         addColumn("varray");
         addColumn("vpool");
         addColumn("protocols");

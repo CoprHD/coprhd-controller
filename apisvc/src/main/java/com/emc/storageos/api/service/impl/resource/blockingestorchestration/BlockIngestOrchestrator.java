@@ -903,7 +903,6 @@ public abstract class BlockIngestOrchestrator {
         StringSet vplexBackendVolumes = PropertySetterUtil.extractValuesFromStringSet(
             SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
                 unManagedVolumeInformation);
-        _logger.info("!!! vplexBackendVolumes is " + vplexBackendVolumes);
         if (vplexBackendVolumes != null && !vplexBackendVolumes.isEmpty()) {
             unmanagedReplicaGUIDs.addAll(vplexBackendVolumes);
             StringSet vplexBackendVolumeGUIDs = VolumeIngestionUtil.getListofVolumeIds(vplexBackendVolumes);

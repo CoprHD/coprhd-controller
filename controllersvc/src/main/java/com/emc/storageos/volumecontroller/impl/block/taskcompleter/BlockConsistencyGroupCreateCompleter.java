@@ -28,8 +28,22 @@ public class BlockConsistencyGroupCreateCompleter extends BlockConsistencyGroupT
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) {
         try {
             super.complete(dbClient, status, coded);
+            
             BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, getConsistencyGroupURI());
-
+            switch (status) {
+                case error:
+                    dbClient.error(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId(),
+                            coded);
+                    break;
+                case ready:
+                    dbClient.ready(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId());
+                    break;
+                default:
+                    _log.error(String.format("Unexpected status %s when creating consistency group %s", status.name(),
+                            getConsistencyGroupURI().toString()));
+                    break;
+            }
+            
             recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(), eventType(status),
                     status, eventMessage(status, consistencyGroup));
         } catch (Exception e) {

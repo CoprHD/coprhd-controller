@@ -127,15 +127,7 @@ public class InvalidLoginManager {
      */
     public void removeInvalidRecord(String clientIP) {
         try {
-            if (!StringUtils.isBlank(clientIP)) {
-
-                // check if zk contains the IP.
-                InvalidLogins invLogins = (InvalidLogins) _distDataManager.getData(getZkPath(clientIP), false);
-                if (null == invLogins) {
-                    _log.debug("{} doesn't in zk, return from removeInvalidRecord", clientIP);
-                    return;
-                }
-
+            if (isClientIPExist(clientIP)) {
                 // zk contains the ClientIP, start removing.
                 InterProcessLock lock = null;
                 try {
@@ -162,6 +154,31 @@ public class InvalidLoginManager {
             }
         } catch (Exception ex) {
             _log.error("Unexpected exception", ex);
+        }
+    }
+
+    /**
+     * check if zk contains the IP.
+     *
+     * @param clientIP
+     * @return
+     */
+    public boolean isClientIPExist(String clientIP) {
+        if (StringUtils.isBlank(clientIP)) {
+            return false;
+        }
+
+        InvalidLogins invLogins = null;
+        try {
+            invLogins = (InvalidLogins) _distDataManager.getData(getZkPath(clientIP), false);
+        } catch (Exception ex) {
+            _log.error("Unexpected exception", ex);
+        }
+        if (null == invLogins) {
+            _log.debug("{} doesn't in zk", clientIP);
+            return false;
+        } else {
+            return true;
         }
     }
 

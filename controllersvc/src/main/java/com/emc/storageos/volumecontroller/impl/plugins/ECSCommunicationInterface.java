@@ -35,7 +35,9 @@ import com.emc.storageos.ecs.api.ECSStoragePort;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.ecs.ECSCollectionException;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 /**
@@ -243,15 +245,21 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 _dbClient.persistObject(storagePorts.get(EXISTING));
             }
 
+            //Discovery success
+            detailedStatusMessage = String.format("Discovery completed successfully for ECS: %s",
+                    storageSystemId.toString());
         } catch (Exception e) {
+            if (storageSystem != null) {
+                cleanupDiscovery(storageSystem);
+            }
             detailedStatusMessage = String.format("Discovery failed for Storage System ECS %s: because %s",
-                    accessProfile.getIpAddress(), e.getMessage());
+                    storageSystemId.toString(), e.getLocalizedMessage());
             _logger.error(detailedStatusMessage, e);
+            throw new ECSCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                    null, detailedStatusMessage, null, null);
         } finally {
             if (storageSystem != null) {
                 try {
-                    detailedStatusMessage = String.format("Discovery completed successfully for ECS: %s",
-                            accessProfile.getIpAddress());
                     // set detailed message
                     storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
                     _dbClient.persistObject(storageSystem);
@@ -280,6 +288,21 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
         return ecsApiFactory
                 .getRESTClient(deviceURI, ecsSystem.getUsername(), ecsSystem.getPassword());
+    }
+
+    /**
+     * If discovery fails, then mark the system as unreachable.
+     *
+     * @param system  the system that failed discovery.
+     */
+    private void cleanupDiscovery(StorageSystem system) {
+        try {
+            system.setReachableStatus(false);
+            _dbClient.persistObject(system);
+        } catch (DatabaseException e) {
+            _logger.error("discoverStorage failed.  Failed to update discovery status to ERROR.", e);
+        }
+
     }
 
 }

@@ -16,7 +16,6 @@ import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.models.HostIpPortCreateParam;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeHostIpPort;
-
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 
 public class HostIpPortRequests extends KHRequests<VNXeHostIpPort> {
@@ -46,7 +45,7 @@ public class HostIpPortRequests extends KHRequests<VNXeHostIpPort> {
      */
     public VNXeHostIpPort getIpPortByIpAddress(String address) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.IPADDRESS_FILTER + address);
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.IPADDRESS_FILTER + "\"" + address + "\"");
         setQueryParameters(queryParams);
         VNXeHostIpPort result = null;
         List<VNXeHostIpPort> ipPortList = getDataForObjects(VNXeHostIpPort.class);

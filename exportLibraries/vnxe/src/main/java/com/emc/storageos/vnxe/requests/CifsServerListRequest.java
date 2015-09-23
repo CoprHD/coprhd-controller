@@ -31,7 +31,7 @@ public class CifsServerListRequest extends KHRequests<VNXeCifsServer> {
      * @return list of cifsServer
      */
     public List<VNXeCifsServer> getCifsServersForNasServer(String nasServerId) {
-        setFilter(VNXeConstants.NASSERVER_FILTER + nasServerId);
+        setFilter(VNXeConstants.NASSERVER_FILTER + "\"" + nasServerId + "\"");
 
         return getDataForObjects(VNXeCifsServer.class);
     }

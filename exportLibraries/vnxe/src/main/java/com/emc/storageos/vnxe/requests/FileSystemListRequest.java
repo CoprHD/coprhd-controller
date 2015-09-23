@@ -65,7 +65,7 @@ public class FileSystemListRequest extends KHRequests<VNXeFileSystem> {
      */
     public VNXeFileSystem getByFSName(String fsName) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + fsName);
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + "\"" + fsName + "\"");
         setQueryParameters(queryParams);
         VNXeFileSystem result = null;
         List<VNXeFileSystem> fsList = getDataForObjects(VNXeFileSystem.class);

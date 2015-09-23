@@ -25,6 +25,17 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
     private static final String URL = "/api/types/filesystemSnap/instances";
     private static final String URL_INSTANCE = "/api/instances/filesystemSnap/";
     private static final String URL_RESTORE = "/action/restore";
+    private static final String URL_2 = "/api/types/snap/instances";
+    private static final String URL_INSTANCE_2 = "/api/instances/snap/";
+
+    public FileSystemSnapRequests(KHClient client, float softwareVersion) {
+        super(client);
+        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+            _url = URL;
+        } else {
+            _url = URL_2;
+        }
+    }
 
     public FileSystemSnapRequests(KHClient client) {
         super(client);
@@ -54,7 +65,7 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      */
     public VNXeFileSystemSnap getByName(String name) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + name);
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + "\"" + name + "\"");
         setQueryParameters(queryParams);
         VNXeFileSystemSnap result = null;
         List<VNXeFileSystemSnap> snapList = getDataForObjects(VNXeFileSystemSnap.class);
@@ -74,8 +85,12 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      * @return
      * @throws VNXeException
      */
-    public VNXeCommandJob deleteFileSystemSnap(String snapId) throws VNXeException {
-        _url = URL_INSTANCE + snapId;
+    public VNXeCommandJob deleteFileSystemSnap(String snapId, float softwareVersion) throws VNXeException {
+        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+            _url = URL_INSTANCE + snapId;
+        } else {
+            _url = URL_INSTANCE_2 + snapId;
+        }
         setQueryParameters(null);
         if (getDataForOneObject(VNXeFileSystemSnap.class) != null) {
             return deleteRequestAsync(null);
@@ -91,8 +106,12 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      * 
      * @return
      */
-    public VNXeFileSystemSnap getFileSystemSnap(String snapId) throws VNXeException {
-        _url = URL_INSTANCE + snapId;
+    public VNXeFileSystemSnap getFileSystemSnap(String snapId, float softwareVersion) throws VNXeException {
+        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+            _url = URL_INSTANCE + snapId;
+        } else {
+            _url = URL_INSTANCE_2 + snapId;
+        }
         setQueryParameters(null);
         return getDataForOneObject(VNXeFileSystemSnap.class);
 
@@ -106,10 +125,14 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      * @return VNXeCommandJob
      * @throws VNXeException
      */
-    public VNXeCommandJob restoreFileSystemSnap(String snapId, VNXeSnapRestoreParam restoreParam)
+    public VNXeCommandJob restoreFileSystemSnap(String snapId, VNXeSnapRestoreParam restoreParam, float softwareVersion)
             throws VNXeException {
-
-        StringBuilder urlBuilder = new StringBuilder(URL_INSTANCE);
+        StringBuilder urlBuilder;
+        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+            urlBuilder = new StringBuilder(URL_INSTANCE);
+        } else {
+            urlBuilder = new StringBuilder(URL_INSTANCE_2);
+        }
         urlBuilder.append(snapId);
         urlBuilder.append(URL_RESTORE);
         _url = urlBuilder.toString();
@@ -126,7 +149,7 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      */
     public List<VNXeFileSystemSnap> getFileSystemSnaps(String resourceId) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.STORAGE_RESOURCE_FILTER + resourceId);
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.STORAGE_RESOURCE_FILTER + "\"" + resourceId + "\"");
         setQueryParameters(queryParams);
         return getDataForObjects(VNXeFileSystemSnap.class);
     }

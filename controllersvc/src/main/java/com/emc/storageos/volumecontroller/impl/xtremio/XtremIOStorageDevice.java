@@ -100,8 +100,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             client = getXtremIOClient(storage);
             BlockConsistencyGroup cgObj = null;
             boolean isCG = false;
-            Volume vol = volumes.get(0);
-            if (vol.getConsistencyGroup() != null) {
+            Volume vol = volumes.get(0);            
+            if (vol.getConsistencyGroup() != null && !vol.checkForRp()) {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                 isCG = true;
             }

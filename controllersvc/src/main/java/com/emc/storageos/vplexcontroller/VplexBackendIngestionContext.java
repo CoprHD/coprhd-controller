@@ -238,7 +238,8 @@ public class VplexBackendIngestionContext {
 
     /**
      * Sets the VPLEX_BACKEND_VOLUMES information on the virtual UnManagedVolume
-     * as well as the VPLEX_PARENT_VOLUME on each associated UnManagedVolume.
+     * as well as the VPLEX_PARENT_VOLUME and VPLEX_BACKEND_CLUSTER_ID 
+     * on each associated UnManagedVolume.
      */
     private void updateUnmanagedBackendVolumesInParent() {
         if (!getUnmanagedBackendVolumes().isEmpty()) {

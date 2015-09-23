@@ -353,8 +353,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 haVpool = _dbClient.queryObject(VirtualPool.class, URI.create(haVpoolStr));
             }
         }
-        _logger.info("the high availability varray is {} and the vpool is {}", 
-                haVarray.getLabel(), haVpool.getLabel());
         
         String sourceClusterId = getClusterNameForVarray(sourceVarray, vplex);
         String haClusterId = getClusterNameForVarray(haVarray, vplex);

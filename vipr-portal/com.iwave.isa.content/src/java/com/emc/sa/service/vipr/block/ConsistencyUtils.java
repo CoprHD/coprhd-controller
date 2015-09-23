@@ -41,11 +41,11 @@ final class ConsistencyUtils {
     }
 
     static boolean validateConsistencyGroupFullCopies(final ViPRCoreClient client, final URI consistencyGroupId) {
-        return client.blockConsistencyGroups().getFullCopies(consistencyGroupId).get(0) != null;
+        return !client.blockConsistencyGroups().getFullCopies(consistencyGroupId).isEmpty();
     }
 
     static boolean validateConsistencyGroupSnapshots(final ViPRCoreClient client, final URI consistencyGroupId) {
-        return client.blockConsistencyGroups().getSnapshots(consistencyGroupId).get(0) != null;
+        return !client.blockConsistencyGroups().getSnapshots(consistencyGroupId).isEmpty();
     }
 
     static Tasks<BlockConsistencyGroupRestRep> createFullCopy(URI consistencyGroupId, String name, Integer count) {

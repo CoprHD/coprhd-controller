@@ -48,7 +48,7 @@ public class VplexBackendIngestionContext {
     public static final String VOLUME = "VOLUME";
     public static final String UNMANAGEDVOLUME = "UNMANAGEDVOLUME";
     public static final String INGESTION_METHOD_FULL = "Full";
-    public static final String INGESTION_METHOD_VVOL_ONLY = "VirtualVolumeOnly";
+    public static final String INGESTION_METHOD_VVOL_ONLY = "VirtualVolumesOnly";
     public static final String DISCOVERY_MODE = "controller_vplex_volume_discovery_mode";
     public static final String DISCOVERY_MODE_DISCOVERY_ONLY = "Only During Discovery";
     public static final String DISCOVERY_MODE_INGESTION_ONLY = "Only During Ingestion";

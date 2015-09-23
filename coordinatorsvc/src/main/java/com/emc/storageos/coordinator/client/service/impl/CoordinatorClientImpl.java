@@ -1636,7 +1636,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             }
         } catch (final Exception e) {
             log.info("Failed to persist service configuration e=", e);
-            throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
+            throw CoordinatorException.fatals.unableToPersistObjectForPath(path, e);
         }
     }
 
@@ -1657,11 +1657,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 log.debug("Caught exception but ignoring it: " + ignore);
                 return null;
             } catch (Exception e) {
-                throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
+                throw CoordinatorException.fatals.unableToFindObjectForPath(path, e);
             }
         } catch (final Exception e) {
             log.info("Failed to persist service configuration e=", e);
-            throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
+            throw CoordinatorException.fatals.unableToFindObjectForPath(path, e);
         }
     }
 }

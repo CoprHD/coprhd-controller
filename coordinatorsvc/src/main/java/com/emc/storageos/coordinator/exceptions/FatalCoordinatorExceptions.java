@@ -130,5 +130,10 @@ public interface FatalCoordinatorExceptions {
 
     @DeclareServiceCode(ServiceCode.COORDINATOR_NOTCONNECTABLE_ERROR)
     public NotConnectableException notConnectableError(final String parameter);
-
+    
+    @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
+    public FatalCoordinatorException unableToFindObjectForPath(final String path, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
+    public FatalCoordinatorException unableToPersistObjectForPath(final String path, final Throwable cause);
 }

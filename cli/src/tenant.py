@@ -38,7 +38,7 @@ class Tenant(object):
     URI_NAMESPACE_INSTANCE = URI_NAMESPACE_BASE + '/{0}'
     URI_NAMESPACE_TENANT_BASE = URI_NAMESPACE_COMMON + '/tenant'
     URI_NAMESPACE_TENANT_INSTANCE = URI_NAMESPACE_TENANT_BASE + '/{0}'
-
+    URI_WHOAMI = '/user/whoami'
     PROVIDER_TENANT = "Provider Tenant"
     TENANT_ROLES = ['TENANT_ADMIN', 'PROJECT_ADMIN', 'TENANT_APPROVER']
 
@@ -323,14 +323,17 @@ class Tenant(object):
         if not label:
             return id
 
-        subtenants = self.tenant_list(id)
-        subtenants.append(self.tenant_show(None))
+        res = self.get_whoami()
 
-        for tenant in subtenants:
-            if (tenant['name'] == label):
-                rslt = self.tenant_show_by_uri(tenant['id'])
-                if(rslt):
-                    return tenant['id']
+        if('tenant' in res):
+            if(res['tenantName'] == label):
+                return res['tenant']
+        if('subtenant_roles' in res):
+            subtenants = res['subtenant_roles']
+            for subtenant in subtenants:
+                if('tenant' in subtenant):
+                    if(subtenant['tenantName'] == label):
+                        return subtenant['tenant']
 
         raise SOSError(SOSError.NOT_FOUND_ERR,
                        "Tenant " + label + ": not found")
@@ -361,6 +364,24 @@ class Tenant(object):
         else:
             return []
 
+    def tenant_list_uris(self, uri=None):
+        '''
+        Returns all the tenants under a parent tenant
+        Parameters:
+            parent: The parent tenant name
+        Returns:
+                JSON payload of tenant list
+        '''
+        tenantUris = []
+        res = self.get_whoami()
+        if('tenant' in res):
+            tenantUris.append(res['tenant'])
+        if('subtenant_roles' in res):
+            subtenants = res['subtenant_roles']
+            for subtenant in subtenants:
+                if('tenant' in subtenant):
+                    tenantUris.append(subtenant['tenant'])
+        return tenantUris    
 
 
     def tenant_show(self, label, xml=False):
@@ -746,6 +767,14 @@ class Tenant(object):
         '''
         uri = self.tenant_query(label)
         return self.tenant_delete_by_uri(uri)
+    def get_whoami(self):
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "GET", Tenant.URI_WHOAMI,
+                                             None)
+        if(not s):
+            return None
+        o = common.json_decode(s)
+        return o
 
 # TENANT Create routines
 
@@ -1137,23 +1166,19 @@ def tenant_list(args):
     quota_obj = Quota(args.ip, args.port)
 
     try:
-        uris = obj.tenant_list()
+        uris = obj.tenant_list_uris()
 
         output = []
 
-        myid = obj.tenant_getid()
-        tenant_details = obj.tenant_show(myid)
         # append quota attributes
-        quota_obj.append_quota_attributes("tenant", myid, tenant_details)
-        output.append(tenant_details)
 
         for uri in uris:
-            uri_details = obj.tenant_show(uri['id'])
+            uri_details = obj.tenant_show(uri)
             if(uri_details):
                 # append quota attributes
                 quota_obj.append_quota_attributes(
                     "tenant",
-                    uri['id'],
+                    uri,
                     uri_details)
                 output.append(uri_details)
         if(len(output) > 0):

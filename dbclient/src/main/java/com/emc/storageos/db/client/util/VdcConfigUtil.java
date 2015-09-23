@@ -20,10 +20,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 
@@ -172,8 +172,8 @@ public class VdcConfigUtil {
         
         for (String siteUUID : vdc.getSiteUUIDs()) {
             Site site = coordinator.queryObject(Site.class, String.format("%1$s/%2$s", ZkPath.SITES, siteUUID));
-            StringMap standbyIPv4Addrs = site.getHostIPv4AddressMap();
-            StringMap standbyIPv6Addrs = site.getHostIPv6AddressMap();
+            Map<String, String> standbyIPv4Addrs = site.getHostIPv4AddressMap();
+            Map<String, String> standbyIPv6Addrs = site.getHostIPv6AddressMap();
             List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
 
             for (String hostName : standbyHosts) {
@@ -196,7 +196,7 @@ public class VdcConfigUtil {
         vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
     }
 
-    private List<String> getHostsFromIPAddrMap(StringMap IPv4Addresses, StringMap IPv6Addresses) {
+    private List<String> getHostsFromIPAddrMap(Map<String, String> IPv4Addresses, Map<String, String> IPv6Addresses) {
         List<String> hostNameListV4 = new ArrayList<>(IPv4Addresses.keySet());
         List<String> hostNameListV6 = new ArrayList<>(IPv6Addresses.keySet());
         List<String> hostNameList = hostNameListV4;

@@ -2,9 +2,11 @@
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.db.client.model;
+package com.emc.storageos.coordinator.client.model;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Representation for a ViPR standby
@@ -16,8 +18,8 @@ public class Site {
     private String name;
     private String vip;
     private String secretKey;
-    private StringMap hostIPv4AddressMap = new StringMap();
-    private StringMap hostIPv6AddressMap = new StringMap();
+    private Map<String, String> hostIPv4AddressMap = new HashMap<String, String>();
+    private Map<String, String> hostIPv6AddressMap = new HashMap<String, String>();
     
     public String getUuid() {
         return uuid;
@@ -51,7 +53,6 @@ public class Site {
         this.vip = vip;
     }
     
-    @Encrypt
     public String getSecretKey() {
         return secretKey;
     }
@@ -60,19 +61,19 @@ public class Site {
         this.secretKey = secretKey;
     }
 
-    public StringMap getHostIPv4AddressMap() {
+    public Map<String, String> getHostIPv4AddressMap() {
         return hostIPv4AddressMap;
     }
 
-    public void setHostIPv4AddressMap(StringMap hostIPv4AddressMap) {
+    public void setHostIPv4AddressMap(Map<String, String> hostIPv4AddressMap) {
         this.hostIPv4AddressMap = hostIPv4AddressMap;
     }
 
-    public StringMap getHostIPv6AddressMap() {
+    public Map<String, String> getHostIPv6AddressMap() {
         return hostIPv6AddressMap;
     }
 
-    public void setHostIPv6AddressMap(StringMap hostIPv6AddressMap) {
+    public void setHostIPv6AddressMap(Map<String, String> hostIPv6AddressMap) {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
     }
     

@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
@@ -38,7 +39,6 @@ import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;

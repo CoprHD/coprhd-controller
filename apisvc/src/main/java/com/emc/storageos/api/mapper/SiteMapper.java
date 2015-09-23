@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.api.mapper;
 
-import com.emc.storageos.db.client.model.Site;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteSyncParam;

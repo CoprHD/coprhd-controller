@@ -6,10 +6,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -17,7 +14,6 @@ import static org.mockito.Mockito.spy;
 import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -26,24 +22,20 @@ import javax.crypto.SecretKey;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.Site;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
-import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteSyncParam;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
@@ -114,7 +106,7 @@ public class DisasterRecoveryServiceTest {
         primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
         
         localVDC.setApiEndpoint("127.0.0.2");
-        localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
+        localVDC.setHostIPv4AddressesMap(new StringMap(standbySite1.getHostIPv4AddressMap()));
         localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
         localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
         localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
@@ -130,7 +122,7 @@ public class DisasterRecoveryServiceTest {
         localVDC.getSiteUUIDs().add(standbySite1.getUuid());
         localVDC.getSiteUUIDs().add(standbySite2.getUuid());
         localVDC.setApiEndpoint("127.0.0.2");
-        localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
+        localVDC.setHostIPv4AddressesMap(new StringMap(standbySite1.getHostIPv4AddressMap()));
         localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
         localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
         localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");

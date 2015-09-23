@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
 /**
  * Responsible for ingesting block local volumes.
@@ -88,7 +89,9 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         }
 
         // Run this always when volume NO_PUBLIC_ACCESS
-        if (markUnManagedVolumeInactive(unManagedVolume, volume,
+        boolean vplexVvolOnly = VolumeIngestionUtil.isVplexVolume(unManagedVolume) &&
+                VplexBackendIngestionContext.INGESTION_METHOD_VVOL_ONLY.equals(vplexIngestionMethod);
+        if (vplexVvolOnly || markUnManagedVolumeInactive(unManagedVolume, volume,
                 unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap,
                 taskStatusMap)) {
             _logger.info("All the related replicas and parent has been ingested ",

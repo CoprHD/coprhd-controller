@@ -283,12 +283,7 @@ public class SchemaUtil {
                         waitForSchemaChange(cluster.addKeyspace(kd).getResult().getSchemaId(), cluster);
                     }
                 } else {
-                    if (onStandby) {
-                        _log.info("setting current version to {} in zk for standby", _service.getVersion());
-                        setCurrentVersion(_service.getVersion());
-                    } else {
-                        checkStrategyOptions(kd, cluster, replicationFactor);
-                    }
+                    checkStrategyOptions(kd, cluster);
                 }
 
                 // create CF's
@@ -332,43 +327,39 @@ public class SchemaUtil {
      * @return true to indicate keyspace strategy option is changed
      */
     protected boolean setStrategyOptions(KeyspaceDefinition keyspace, int replicas) {
-        boolean changed = false;
         keyspace.setName(_keyspaceName);
 
         // Get existing strategy options if the keyspace exists
-        Map<String, String> stratOptions = keyspace.getStrategyOptions();
-        if (isGeoDbsvc()) {
-            Map<String, String> strategyOptions = keyspace.getStrategyOptions();
-
+        Map<String, String> strategyOptions = keyspace.getStrategyOptions();
+        if (isGeoDbsvc() || onStandby) {
+            String vdcShortId = onStandby ? _vdcShortId + "-standby" : _vdcShortId;
             _log.info("vdcList={} strategyOptions={}", _vdcList, strategyOptions);
-            if (_vdcList.size() == 1) {
+            if (!onStandby && _vdcList.size() == 1) {
                 // the current vdc is removed
                 strategyOptions.clear();
             }
 
-            if (strategyOptions.containsKey(_vdcShortId.toString())) {
-                _log.info("The strategy options contains {}", _vdcShortId);
+            if (strategyOptions.containsKey(vdcShortId)) {
+                _log.info("The strategy options contains {}", vdcShortId);
                 return false;
             }
 
-            _log.info("The strategy doesn't has {} so set it", _vdcShortId);
+            _log.info("The strategy doesn't have {} so set it", vdcShortId);
             if (_vdcShortId == null) {
-                _log.info("No vdc id specified for geodbsvc");
+                _log.error("No vdc id specified for geodbsvc");
                 throw new IllegalStateException("Unexpected error. No vdc short id specified");
             }
 
             keyspace.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-            stratOptions.put(_vdcShortId.toString(), Integer.toString(replicas));
-            changed = true;
+            strategyOptions.put(vdcShortId, Integer.toString(replicas));
         } else {
         	// Todo - add standby to strategy options
             keyspace.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-            stratOptions.put(_vdcShortId.toString(), Integer.toString(replicas));
-            changed = true;
+            strategyOptions.put(_vdcShortId, Integer.toString(replicas));
         }
 
-        keyspace.setStrategyOptions(stratOptions);
-        return changed;
+        keyspace.setStrategyOptions(strategyOptions);
+        return true;
     }
 
     /**
@@ -376,38 +367,36 @@ public class SchemaUtil {
      * 
      * @param kd
      * @param cluster
-     * @param replicationFactor
      */
-    private void checkStrategyOptions(KeyspaceDefinition kd, Cluster cluster, int replicationFactor)
+    private void checkStrategyOptions(KeyspaceDefinition kd, Cluster cluster)
             throws ConnectionException, InterruptedException {
         _log.info("keyspace exist already");
 
         String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
         if (currentDbSchemaVersion == null) {
-            _log.info("missing current version in zk, assuming upgrade from {}", SOURCE_VERSION);
-            setCurrentVersion(SOURCE_VERSION);
+            if (onStandby) {
+                _log.info("set current version for standby {}", _service.getVersion());
+                setCurrentVersion(_service.getVersion());
+            } else {
+                _log.info("missing current version in zk, assuming upgrade from {}", SOURCE_VERSION);
+                setCurrentVersion(SOURCE_VERSION);
+            }
         }
 
         // Update keyspace strategy option
         Map<String, String> options = kd.getStrategyOptions();
 
-        if (isGeoDbsvc()) {
-            // Set current vdc to geodb strategy option if there is only one vdc
-            if (!options.containsKey(_vdcShortId.toString()))
-            {
-                KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
-                update.setStrategyOptions(options);
+        if (isGeoDbsvc() && !options.containsKey(_vdcShortId)
+                || onStandby && !options.containsKey(_vdcShortId + "-standby")) {
+            KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
+            update.setStrategyOptions(options);
 
-                boolean changed = setStrategyOptions(update, getReplicationFactor());
+            boolean changed = setStrategyOptions(update, getReplicationFactor());
 
-                if (changed) {
-                    waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
-                }
+            if (changed) {
+                waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
             }
-
-            return;
         }
-
     }
 
     private Integer getIntProperty(String key, Integer defValue) {

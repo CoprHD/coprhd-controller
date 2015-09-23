@@ -76,7 +76,10 @@ README.properties
    reconfigRequired - reconfiguration or reboot is required to propagate the property change
    controlNodeOnly  - if true, the property is masked out on datanodes (obsolete)
    value            - default value
-
+   notifiers        -
+   siteSpecific     - only applied to current site. for DR
+   poweroffAgreementRequired - all nodes need reboot simultaneously to propagate the property change
+ 
    The following types are supported: uint8, int8, uint16, int16, uint32, int32, uint64, int64, real32,
    real64, string, boolean, encryptedstring, text, encryptedtext, ipv6addr, iplist, emaillist.
 

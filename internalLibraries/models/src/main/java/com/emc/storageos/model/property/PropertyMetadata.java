@@ -33,6 +33,7 @@ public class PropertyMetadata {
     private String value;
     private Boolean controlNodeOnly = false;    // Control node only property flag
     private Boolean siteSpecific = false; // Site specific attribute
+    private Boolean poweroffAgreementRequired = false; // Whether all nodes reach agreement before reboot. Effective only after rebootRequired is true
 
     public PropertyMetadata() {
     }
@@ -215,6 +216,16 @@ public class PropertyMetadata {
 
     public void setSiteSpecific(Boolean siteSpecific) {
         this.siteSpecific = siteSpecific;
+    }
+
+    @XmlElement(name = "poweroffAgreementRequired")
+    @JsonProperty("poweroffAgreementRequired")
+    public Boolean getPoweroffAgreementRequired() {
+        return poweroffAgreementRequired;
+    }
+
+    public void setPoweroffAgreementRequired(Boolean poweroffAgreementRequired) {
+        this.poweroffAgreementRequired = poweroffAgreementRequired;
     }
 
     /**

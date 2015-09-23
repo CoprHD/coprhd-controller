@@ -2526,11 +2526,12 @@
      maxLen : 255,
      userMutable : true,
      userConfigurable : true,
-     reconfigRequired : true,
+     reconfigRequired : false,
      rebootRequired : true,
      value : "",
      controlNodeOnly : true,
-     siteSpecific : true
+     siteSpecific : true,
+     poweroffAgreementRequired : true
     }
 
 ]

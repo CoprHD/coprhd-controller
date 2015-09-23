@@ -133,6 +133,26 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
         return false;
     }
 
+    public boolean hasPoweroffAgreementRequiredProperty() {
+        Map<String, PropertyMetadata> metadata = PropertiesMetadata.getGlobalMetadata();
+
+        if (getProperties() == null || metadata == null) {
+            return false;
+        }
+
+        for (Map.Entry<String, String> entry : getProperties().entrySet()) {
+            final String key = entry.getKey();
+            final PropertyMetadata propertyMetadata = metadata.get(key);
+            if (propertyMetadata != null
+                    && propertyMetadata.getPoweroffAgreementRequired() != null
+                    && propertyMetadata.getPoweroffAgreementRequired().booleanValue()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public List<String> getNotifierTags() {
         return getNotifierTags(false);
     }

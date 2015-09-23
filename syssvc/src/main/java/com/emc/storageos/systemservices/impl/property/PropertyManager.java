@@ -370,7 +370,20 @@ public class PropertyManager extends AbstractManager {
         PropertyInfoExt override_properties = new PropertyInfoExt(localRepository.getOverrideProperties().getAllProperties());
         log.info("Step3a: Updating User Changed properties file: {}", override_properties);
         PropertyInfoExt updatedUserChangedProps = combineProps(override_properties, diffProperties);
-        if (diffProperties.hasRebootProperty()) {
+        if (diffProperties.hasRebootProperty() && diffProperties.hasPoweroffAgreementRequiredProperty()) {
+            // simultaneously reboot
+            log.info("Step3a: Reboot & poweroffAgreement required property found");
+            localRepository.setOverrideProperties(updatedUserChangedProps);
+            if (checkAllNodesAgreeToPowerOff(false) && initiatePoweroff(false)) {
+                log.info("Step3a: Reach agreement with all other nodes for poweroff");
+            } else {
+                log.warn("Step3a: Failed to reach agreement among all the nodes. Proceed with best-effort poweroff");
+                initiatePoweroff(true);
+            }
+            resetTargetPowerOffState();
+            reboot();
+        } else if (diffProperties.hasRebootProperty()) {
+            // rolling reboot
             if (!getPropertyLock(svcId)) {
                 retrySleep();
             } else if (!isQuorumMaintained()) {

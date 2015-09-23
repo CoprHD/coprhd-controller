@@ -1247,11 +1247,10 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             && exportMask.getStorageDevice().equals(storageURI)) {
                         exportMask = getDevice().refreshExportMask(storage, exportMask);
 
-                        Collection<URI> volumeURIs = new ArrayList<URI>(); 
-                        if (exportGroup.getVolumes() != null) {
-                            volumeURIs = Collections2.transform(exportGroup.getVolumes().keySet(),
-                                    CommonTransformerFunctions.FCTN_STRING_TO_URI);
-                        }
+                        Collection<URI> volumeURIs = exportGroup.getVolumes() != null ?
+                            Collections2.transform(exportGroup.getVolumes().keySet(),
+                                    CommonTransformerFunctions.FCTN_STRING_TO_URI) :
+                                        new ArrayList<URI>();
 
                         // One way to know if we should delete the mask is if all of the volumes in the mask
                         // are represented in the export group.

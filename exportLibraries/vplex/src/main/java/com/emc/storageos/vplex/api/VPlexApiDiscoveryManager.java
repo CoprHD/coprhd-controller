@@ -3795,4 +3795,51 @@ public class VPlexApiDiscoveryManager {
 
         return deviceInfoList;
     }
+    
+
+    public Map<String, String> getDistributedDevicePathToClusterMap()
+            throws VPlexApiException {
+
+        long start = System.currentTimeMillis();
+        s_logger.info("Getting distributed device path to cluster id map from VPLEX at "
+                + _vplexApiClient.getBaseURI().toString());
+
+        StringBuilder uriBuilder = new StringBuilder();
+        // format /vplex/distributed-storage/distributed-devices
+        // /DEVICE_NAME/distributed-device-components/*
+        uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICES.toString());
+        uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+        uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP.toString());
+        uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+        s_logger.info("Distributed Device Component Info Request URI is {}", requestURI.toString());
+
+        ClientResponse response = _vplexApiClient.get(requestURI, 
+                VPlexApiConstants.ACCEPT_JSON_FORMAT_1, 
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
+        String responseStr = response.getEntity(String.class);
+        int status = response.getStatus();
+        response.close();
+
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            throw VPlexApiException.exceptions.failedGettingDeviceStructure(String.valueOf(status));
+        }
+
+        // Successful Response
+        List<VPlexDeviceInfo> deviceInfoList = 
+             VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                responseStr, VPlexDeviceInfo.class);
+        
+        Map<String, String> distributedDevicePathToClusterMap = new HashMap<String, String>();
+        for (VPlexDeviceInfo device : deviceInfoList) {
+            distributedDevicePathToClusterMap.put(device.getPath(), device.getCluster());
+        }
+
+        s_logger.info("TIMER: getDistributedDevicePathToClusterMap took {}ms",
+                System.currentTimeMillis() - start);
+
+        return distributedDevicePathToClusterMap;
+    }
+
 }

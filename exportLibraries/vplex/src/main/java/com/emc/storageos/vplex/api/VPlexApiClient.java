@@ -1573,7 +1573,12 @@ public class VPlexApiClient {
                 s_logger.error(reason);
                 throw VPlexApiException.exceptions.failedGettingStorageVolumeInfoForIngestion(reason);
             }
-            storageVolumeWwns.put(info.getWwn(), info);
+            String wwn = info.getWwn();
+            if (wwn != null && !wwn.isEmpty()) {
+                wwn = wwn.replaceAll("[^A-Fa-f0-9]", "");
+                wwn = wwn.toUpperCase();
+            }
+            storageVolumeWwns.put(wwn, info);
         }
 
         return storageVolumeWwns;
@@ -1631,5 +1636,9 @@ public class VPlexApiClient {
         }
 
         return device;
+    }
+    
+    public Map<String, String> getDistributedDevicePathToClusterMap() {
+        return _discoveryMgr.getDistributedDevicePathToClusterMap();
     }
 }

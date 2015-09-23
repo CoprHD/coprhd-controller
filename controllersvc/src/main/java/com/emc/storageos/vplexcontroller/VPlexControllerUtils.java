@@ -384,4 +384,24 @@ public class VPlexControllerUtils {
         
         return false;
     }
+    
+    public static Map<String, String> getDistributedDevicePathToClusterMap(
+            URI vplexUri, DbClient dbClient) throws VPlexApiException {
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        Map<String, String> distributedDevicePathToClusterMap = null;
+        if (null != client) {
+            distributedDevicePathToClusterMap = 
+                    client.getDistributedDevicePathToClusterMap();
+        }
+
+        return distributedDevicePathToClusterMap;
+    }
 }

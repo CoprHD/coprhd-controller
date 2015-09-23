@@ -402,10 +402,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 _logger.info("backend cluster id is " + backendClusterId);
                 if (null != backendClusterId && null != haClusterId 
                         && backendClusterId.equals(haClusterId)) {
-                    _logger.info("using high availability varray " + haVarray);
+                    _logger.info("using high availability varray " + haVarray.getLabel());
                     varrayForThisVolume = haVarray;
                     if (null != haVpool) {
-                        _logger.info("using high availability vpool " + haVpool);
+                        _logger.info("using high availability vpool " + haVpool.getLabel());
                         vpoolForThisVolume = haVpool;
                     }
                 }

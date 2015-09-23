@@ -74,6 +74,7 @@ public class VplexBackendIngestionContext {
     private Map<UnManagedVolume, String> unmanagedMirrors;
     private Map<String, Map<String, VPlexDeviceInfo>> mirrorMap;
     private Map<String, VPlexStorageVolumeInfo> backendVolumeWwnToInfoMap;
+    private Map<String, String> distributedDevicePathToClusterMap;
 
     private Project backendProject;
     private Project frontendProject;
@@ -244,14 +245,27 @@ public class VplexBackendIngestionContext {
             StringSet bvols = new StringSet();
             for (UnManagedVolume backendVol : unmanagedBackendVolumes) {
                 bvols.add(backendVol.getNativeGuid());
+                
+                // set the parent volume native guid on the backend volume
                 StringSet parentVol = new StringSet();
                 parentVol.add(_unmanagedVirtualVolume.getNativeGuid());
                 backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), parentVol);
-                String clusterId = getClusterIdForVolume(backendVol);
-                if (null != clusterId && !clusterId.isEmpty()) {
-                    StringSet clusterIds = new StringSet();
-                    clusterIds.add(clusterId);
-                    backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.name(), clusterIds);
+                
+                if (!isLocal()) {
+                    // determine cluster location of distributed component storage volume leg
+                    VPlexStorageVolumeInfo storageVolume = 
+                            getBackendVolumeWwnToInfoMap().get(backendVol.getWwn());
+                    if (null != storageVolume) {
+                        String clusterId = getClusterLocationForStorageVolume(storageVolume);
+                        if (null != clusterId && !clusterId.isEmpty()) {
+                            _logger.info("setting VPLEX_BACKEND_CLUSTER_ID: " + clusterId);
+                            StringSet clusterIds = new StringSet();
+                            clusterIds.add(clusterId);
+                            backendVol.putVolumeInfo(
+                                    SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.name(), 
+                                    clusterIds);
+                        }
+                    }
                 }
                 _dbClient.persistObject(backendVol);
             }
@@ -262,31 +276,6 @@ public class VplexBackendIngestionContext {
         }
     }
 
-    /**
-     * Returns the VPLEX cluster id for the given backend UnManagedVolume.
-     * 
-     * @param backendVolume the backend volume to check
-     * @return the VPLEX cluster id for the backend volume
-     */
-    private String getClusterIdForVolume(UnManagedVolume backendVolume) {
-        VPlexResourceInfo device = getTopLevelDevice();
-        String clusterId = null;
-        _logger.info("getting cluster id for backend volume " + backendVolume.getLabel());
-        if (isLocal() && (device instanceof VPlexDeviceInfo)) {
-            VPlexDeviceInfo localDevice = ((VPlexDeviceInfo) device);
-            clusterId = localDevice.getCluster();
-        } else {
-            for (VPlexDeviceInfo localDevice : ((VPlexDistributedDeviceInfo) device).getLocalDeviceInfo()) {
-                UnManagedVolume associatedVol = getAssociatedVolumeForComponentDevice(localDevice);
-                if (backendVolume.equals(associatedVol)) {
-                    clusterId = localDevice.getCluster();
-                }
-            }
-        }
-        _logger.info("\tfound cluster id " + clusterId);
-        return clusterId;
-    }
-    
     /**
      * Queries the VPLEX API to get a Map of backend storage volume WWNs
      * to VPlexStorageVolumeInfo objects.
@@ -299,21 +288,48 @@ public class VplexBackendIngestionContext {
         }
 
         _logger.info("getting backend volume wwn to api info map");
-        
-        // have to check for mirrors first (and validate the top-level device structure)
-        // so that we know how to query for the storage-volumes
-        boolean hasMirror = !getMirrorMap().isEmpty();
-        
+        boolean success = false;
         try {
+            // first trying without checking for a top-level device mirror to save some time
             backendVolumeWwnToInfoMap =
                     VPlexControllerUtils.getStorageVolumeInfoForDevice(
-                            getSupportingDeviceName(), getLocality(), getClusterName(), hasMirror,
+                            getSupportingDeviceName(), getLocality(), getClusterName(), false,
                             _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
+            success = true;
         } catch (VPlexApiException ex) {
-            String reason = "could not determine backend storage volumes for " 
-                    + getSupportingDeviceName() + ": " + ex.getLocalizedMessage();
-            _logger.error(reason);
-            throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
+            _logger.warn("failed to find wwn to storage volume map on "
+                    + "first try with no mirror map, will analyze mirrors and try again", ex);
+            _shouldCheckForMirrors = true;
+        }
+
+        if (!success) {
+            // we didn't succeed the first time, so try again and check for mirrors first
+            boolean hasMirror = !getMirrorMap().isEmpty();
+
+            if (hasMirror) {
+                // the volume has a mirrored top-level device, so we need to
+                // send the hasMirror flag down so that the VPLEX client will
+                // know to look one level deeper in the components tree for
+                // the backend storage volumes
+                try {
+                    backendVolumeWwnToInfoMap =
+                            VPlexControllerUtils.getStorageVolumeInfoForDevice(
+                                    getSupportingDeviceName(), getLocality(), getClusterName(), hasMirror,
+                                    _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
+                    success = true;
+                } catch (VPlexApiException ex) {
+                    String reason = "could not determine backend storage volumes for "
+                            + getSupportingDeviceName() + ": " + ex.getLocalizedMessage();
+                    _logger.error(reason);
+                    throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
+                }
+            } else {
+                String reason = "could not determine backend storage volumes for "
+                        + getSupportingDeviceName()
+                        + ": failed for both simple and RAID-1 top-level device configurations";
+                _logger.error(reason);
+                throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
+            }
         }
 
         _logger.info("backend volume wwn to api info map: " + backendVolumeWwnToInfoMap);
@@ -798,6 +814,19 @@ public class VplexBackendIngestionContext {
         return null;
     }
 
+    private String getClusterLocationForStorageVolume(VPlexStorageVolumeInfo storageVolume) {
+        String storageVolumePath = storageVolume.getPath();
+        for (Entry<String, String> deviceMapEntry : this.getDistributedDevicePathToClusterMap().entrySet()) {
+            if (storageVolumePath.startsWith(deviceMapEntry.getKey())) {
+                _logger.info("found cluster {} for distributed component storage volume {}", 
+                        deviceMapEntry.getValue(), storageVolume.getName());
+                return deviceMapEntry.getValue();
+            }
+        }
+        
+        return null;
+    }
+    
     /**
      * Creates a Map of cluster name to sorted Map of slot numbers to VPlexDeviceInfos
      * for use in describing the layout of VPLEX native mirrors.
@@ -1248,6 +1277,26 @@ public class VplexBackendIngestionContext {
         }
         _logger.info("creating deviceToUnManagedVolumeMap took {} ms", new Date().getTime() - dingleTimer);
         return deviceToUnManagedVolumeMap;
+    }
+
+    /**
+     * @return the distributedDevicePathToClusterMap
+     */
+    public Map<String, String> getDistributedDevicePathToClusterMap() {
+        if (null == distributedDevicePathToClusterMap) {
+            distributedDevicePathToClusterMap = 
+                VPlexControllerUtils.getDistributedDevicePathToClusterMap(
+                        getUnmanagedVirtualVolume().getStorageSystemUri(), _dbClient);
+        }
+        
+        return distributedDevicePathToClusterMap;
+    }
+
+    /**
+     * @param distributedDevicePathToClusterMap the distributedDevicePathToClusterMap to set
+     */
+    public void setDistributedDevicePathToClusterMap(Map<String, String> distributedDevicePathToClusterMap) {
+        this.distributedDevicePathToClusterMap = distributedDevicePathToClusterMap;
     }
 
     /**

@@ -2526,8 +2526,8 @@
      maxLen : 255,
      userMutable : true,
      userConfigurable : true,
-     reconfigRequired : true,
-     rebootRequired : true,
+     reconfigRequired : false,
+     rebootRequired : false,
      value : "",
      controlNodeOnly : true,
      siteSpecific : true

@@ -13,7 +13,9 @@ public class VNXeConstants {
     public static final String STORAGE_RESOURCE_FILTER = "storageResource.id eq ";
     public static final String NASSERVER_FILTER = "nasServer.id eq ";
     public static final String FILE_SYSTEM_FILTER = "parentFilesystem.id eq ";
+    public static final String FILE_SYSTEM_FILTER_2 = "filesystem.id eq ";
     public static final String SNAP_FILTER = "parentFilesystemSnap.id eq ";
+    public static final String SNAP_FILTER_2 = "snap.id eq ";
     public static final String ISCSINODE_FILTER = "iscsiNode.id eq ";
     public static final String IPADDRESS_FILTER = "address eq ";
     public static final String AND = " and ";

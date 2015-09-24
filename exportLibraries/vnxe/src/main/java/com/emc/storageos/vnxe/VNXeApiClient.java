@@ -847,6 +847,7 @@ public class VNXeApiClient {
     public VNXeCommandJob createNfsShareForSnap(String snapId, List<String> roEndpoints,
             List<String> rwEndpoints, List<String> rootEndpoints,
             AccessEnum access, String path, String shareName, String comments) throws VNXeException {
+
         _logger.info("creating nfs share for the snap: " + snapId);
         NfsShareRequests request = new NfsShareRequests(_khClient);
         float softwareVersion = Float.parseFloat(getBasicSystemInfo().getSoftwareVersion().substring(0, 3));
@@ -858,14 +859,24 @@ public class VNXeApiClient {
         }
         NfsShareCreateForSnapParam nfsCreateParam = new NfsShareCreateForSnapParam();
         VNXeBase snap = new VNXeBase(snapId);
-        nfsCreateParam.setFilesystemSnap(snap);
-
+        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+            nfsCreateParam.setFilesystemSnap(snap);
+        } else {
+            nfsCreateParam.setSnap(snap);
+        }
         List<VNXeBase> roHosts = getHosts(roEndpoints);
         List<VNXeBase> rwHosts = getHosts(rwEndpoints);
         List<VNXeBase> rootHosts = getHosts(rootEndpoints);
 
         VNXeNfsShare nfsShareFound = null;
-        boolean isShared = snapshot.getIsShared();
+        boolean isShared;
+        VNXeNfsShare shareList = request.findSnapNfsShare(snapId, shareName, softwareVersion);
+        if (shareList == null) {
+            _logger.info("No NFS share found for snapshot :" + snapId);
+            isShared = false;
+        } else {
+            isShared = true;
+        }
         VNXeCommandJob job = null;
         if (!isShared) {
             nfsCreateParam.setReadOnlyHosts(roHosts);

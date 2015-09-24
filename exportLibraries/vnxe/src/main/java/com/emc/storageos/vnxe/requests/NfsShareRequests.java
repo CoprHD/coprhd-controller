@@ -56,8 +56,10 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
             queryFilter.append(fsId);
         } else {
             queryFilter.append("\"" + shareName + "\"");
+            queryFilter.append(VNXeConstants.AND);
+            queryFilter.append(VNXeConstants.FILE_SYSTEM_FILTER_2);
+            queryFilter.append("\"" + fsId + "\"");
         }
-
         setFilter(queryFilter.toString());
         List<VNXeNfsShare> shareList = getDataForObjects(VNXeNfsShare.class);
         if (shareList != null && !shareList.isEmpty()) {
@@ -68,18 +70,31 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
         return result;
     }
 
-    public VNXeNfsShare findSnapNfsShare(String snapId, String shareName) {
+    /**
+     * find Snapshot nfsShare using snapshot id and share name
+     * 
+     * @param snapId
+     * @param shareName
+     * @return VNXeNfsShare
+     */
+    public VNXeNfsShare findSnapNfsShare(String snapId, String shareName, float softwareVersion) {
 
-        StringBuilder queryFilter = new StringBuilder(VNXeConstants.SNAP_FILTER);
-        queryFilter.append(snapId);
-        queryFilter.append(VNXeConstants.AND);
-        queryFilter.append(VNXeConstants.NAME_FILTER);
-        queryFilter.append(shareName);
+        StringBuilder queryFilter = new StringBuilder(VNXeConstants.NAME_FILTER);
+
+        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+            queryFilter.append(shareName);
+            queryFilter.append(VNXeConstants.AND);
+            queryFilter.append(VNXeConstants.SNAP_FILTER);
+            queryFilter.append(snapId);
+        } else {
+            queryFilter.append("\"" + shareName + "\"");
+            queryFilter.append(VNXeConstants.AND);
+            queryFilter.append(VNXeConstants.SNAP_FILTER_2);
+            queryFilter.append("\"" + snapId + "\"");
+        }
         setFilter(queryFilter.toString());
-
         VNXeNfsShare result = null;
-        List<VNXeNfsShare> shareList = getDataForObjects(VNXeNfsShare.class);
-        // it should just return 1
+        List<VNXeNfsShare> shareList = getDataForObjects(VNXeNfsShare.class);// it should just return 1
         if (shareList != null && !shareList.isEmpty()) {
             result = shareList.get(0);
         } else {

@@ -66,7 +66,7 @@ public class UnManagedFileSystems extends AbstractCoreBulkResources<UnManagedFil
 
     public List<NamedRelatedResourceRep> listByStorageSystemVirtualPool(URI storageSystemId, URI vpool) {
         UnManagedFileSystemList response = client.get(UnManagedFileSystemList.class,
-                PathConstants.UNMANAGED_FILESYSTEM_BY_STORAGE_SYSTEM_VIRTUAL_POOL_URL, storageSystemId);
+                PathConstants.UNMANAGED_FILESYSTEM_BY_STORAGE_SYSTEM_VIRTUAL_POOL_URL, storageSystemId, vpool);
         return ResourceUtils.defaultList(response.getNamedUnManagedFileSystem());
     }
 

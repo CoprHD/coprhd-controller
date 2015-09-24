@@ -48,6 +48,7 @@ public class ManagedResourcesCapacity {
          * @valid VOLUME
          * @valid FILESHARE
          * @valid POOL
+         * @valid BUCKET
          */
         @XmlElement
         public CapacityResourceType getType() {
@@ -92,7 +93,8 @@ public class ManagedResourcesCapacity {
     public enum CapacityResourceType {
         VOLUME,
         FILESHARE,
-        POOL
+        POOL, 
+        BUCKET
     }
 
 }

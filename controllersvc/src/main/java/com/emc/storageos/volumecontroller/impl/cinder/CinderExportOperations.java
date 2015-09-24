@@ -641,26 +641,14 @@ public class CinderExportOperations implements ExportMaskOperations {
             exportMask.removeTarget(removeUri);
         }
         exportMask.setStoragePorts(null);
-        
-        // Clean the existing zoning map
-        for (String initiatorURIStr : exportMask.getZoningMap().keySet()) {
-            exportMask.removeZoningMapEntry(initiatorURIStr);
-        }
-        exportMask.setZoningMap(null);
 
         // Now add new target ports and populate the zoning map
         Set<URI> initiatorURIKeys = mapFilteredInitiatorURIVsTargetURIList.keySet();
         for (URI initiatorURI : initiatorURIKeys) {
-            StringSet targetPortURIStrings = new StringSet();
             List<URI> storagePortURIList = mapFilteredInitiatorURIVsTargetURIList.get(initiatorURI);
             for (URI portURI : storagePortURIList) {
                 exportMask.addTarget(portURI);
-                targetPortURIStrings.add(portURI.toString());
             }
-            
-            String initiatorURIString = initiatorURI.toString();
-            log.info(String.format("Adding zoning map entry - Initiator is %s and its targetPorts %s", initiatorURIString, targetPortURIStrings.toString()));
-            exportMask.addZoningMapEntry(initiatorURIString, targetPortURIStrings);
         }
 
         log.debug("END - updateTargetsInExportMask");
@@ -827,6 +815,7 @@ public class CinderExportOperations implements ExportMaskOperations {
         for (URI nwUri : networkUriSet) {
             List<StoragePort> ports = networkUriVsStoragePorts.get(nwUri);
             for (StoragePort port : ports) {
+                log.info("Varray Tagged Port is "+port.getPortNetworkId());
                 String wwnNoColon = port.getPortNetworkId().replaceAll(CinderConstants.COLON, "");
                 varrayTaggedStoragePortWWNs.put(wwnNoColon, port.getId());
             }

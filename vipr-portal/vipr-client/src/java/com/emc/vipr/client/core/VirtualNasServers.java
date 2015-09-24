@@ -27,10 +27,6 @@ import com.emc.vipr.client.impl.RestClient;
  * Base URL: <tt>/vdc/vnasservers/</tt>
  *
  */
-/**
- * @author hariks
- *
- */
 public class VirtualNasServers extends AbstractCoreBulkResources<VirtualNASRestRep> implements
         TopLevelResources<VirtualNASRestRep> {
 
@@ -200,25 +196,25 @@ public class VirtualNasServers extends AbstractCoreBulkResources<VirtualNASRestR
     /**
      * This method assign vNas Servers to a project.
      * PUT /projects/{project_id}/assign-vnas-servers
+     * 
      * @param projectId
      * @param vNasParam
      */
-    public Task<VirtualNASRestRep> assignVnasServers(URI projectId, VirtualNasParam vNasParam){
-        UriBuilder builder = client.uriBuilder(getVnasAssignUrl());
-        URI targetUri = builder.build(projectId);
-        return putTaskURI(vNasParam, targetUri);
+    public void assignVnasServers(URI projectId, VirtualNasParam vNasParam) {
+
+        client.put(String.class, vNasParam, getVnasAssignUrl(), projectId);
+
     }
     
     /**
      * This method unassign vNas Servers from a project.
      * PUT /projects/{project_id}/unassign-vnas-servers
+     * 
      * @param projectId
      * @param vNasParam
      */
-    public Task<VirtualNASRestRep> unassignVnasServers(URI projectId, VirtualNasParam vNasParam){
-        UriBuilder builder = client.uriBuilder(getVnasUnAssignUrl());
-        URI targetUri = builder.build(projectId); 
-        return putTaskURI(vNasParam, targetUri);
+    public void unassignVnasServers(URI projectId, VirtualNasParam vNasParam) {
+        client.put(String.class, vNasParam, getVnasUnAssignUrl(), projectId);
     }
 
 }

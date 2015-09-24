@@ -1297,7 +1297,7 @@ public class SmisCommandHelper implements SmisConstants {
         ArrayList<CIMArgument> list = new ArrayList<CIMArgument>();
         try {
             CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storageDevice, volume);
-            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false, new String[] { CP_THINLY_PROVISIONED });
+            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false, new String[]{CP_THINLY_PROVISIONED});
             String isThinVolume = CIMPropertyFactory.getPropertyValue(volumeInstance, CP_THINLY_PROVISIONED);
             list.add(_cimArgument.reference(CP_THE_ELEMENT, volumePath));
             list.add(_cimArgument.uint64(CP_SIZE, size));
@@ -1548,7 +1548,9 @@ public class SmisCommandHelper implements SmisConstants {
             if (storage.checkIfVmax3()) {
                 CIMInstance instance = getInstance(storage, storageGroupPath, false, true, SmisConstants.PS_HOST_IO);
                 String policyName = SmisUtils.getSLOPolicyName(instance);
-                policies.add(policyName);
+                if (policyName != null) {
+                    policies.add(policyName);
+                }
             } else {
                 tierPolicyRuleItr = getAssociatorNames(storage, storageGroupPath, null,
                         CIM_TIER_POLICY_RULE, null, null);
@@ -1556,7 +1558,9 @@ public class SmisCommandHelper implements SmisConstants {
                     CIMObjectPath tierPolicyRulePath = tierPolicyRuleItr.next();
                     String policyRuleName = tierPolicyRulePath.getKey(Constants.POLICYRULENAME)
                             .getValue().toString();
-                    policies.add(policyRuleName);
+                    if (policyRuleName != null) {
+                        policies.add(policyRuleName);
+                    }
                 }
             }
         } finally {
@@ -1575,26 +1579,22 @@ public class SmisCommandHelper implements SmisConstants {
      * @throws Exception
      */
     public StringSet findTierPoliciesForStorageGroup(StorageSystem storage, String storageGroup) throws Exception {
-        CloseableIterator<CIMObjectPath> tierPolicyRuleItr = null;
-        CloseableIterator<CIMInstance> cimInstanceItr = null;
+        CloseableIterator<CIMInstance> cimInstanceItr;
         StringSet policies = new StringSet();
-        try {
-            CIMObjectPath storageGroupPath = _cimPath.getStorageGroupObjectPath(storageGroup, storage);
-            if (this.isCascadedSG(storage, storageGroupPath)) {
-                cimInstanceItr = getAssociatorInstances(storage, storageGroupPath, null,
-                        SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null,
-                        PS_ELEMENT_NAME);
-                while (cimInstanceItr.hasNext()) {
-                    CIMInstance childGroupInstance = cimInstanceItr.next();
-                    String returnedgroupName = CIMPropertyFactory.getPropertyValue(childGroupInstance,
-                            CP_ELEMENT_NAME);
-                    policies.addAll(findTierPoliciesForSingleStorageGroup(storage, returnedgroupName));
-                }
-            } else {
-                policies.addAll(findTierPoliciesForSingleStorageGroup(storage, storageGroup));
+
+        CIMObjectPath storageGroupPath = _cimPath.getStorageGroupObjectPath(storageGroup, storage);
+        if (this.isCascadedSG(storage, storageGroupPath)) {
+            cimInstanceItr = getAssociatorInstances(storage, storageGroupPath, null,
+                    SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null,
+                    PS_ELEMENT_NAME);
+            while (cimInstanceItr.hasNext()) {
+                CIMInstance childGroupInstance = cimInstanceItr.next();
+                String returnedgroupName = CIMPropertyFactory.getPropertyValue(childGroupInstance,
+                        CP_ELEMENT_NAME);
+                policies.addAll(findTierPoliciesForSingleStorageGroup(storage, returnedgroupName));
             }
-        } finally {
-            closeCIMIterator(tierPolicyRuleItr);
+        } else {
+            policies.addAll(findTierPoliciesForSingleStorageGroup(storage, storageGroup));
         }
 
         return policies;

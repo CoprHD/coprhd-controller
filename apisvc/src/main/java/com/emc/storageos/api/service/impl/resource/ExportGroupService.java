@@ -108,6 +108,8 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -1149,6 +1151,10 @@ public class ExportGroupService extends TaskResourceService {
 
         // Basic validation of ExportGroup and update request
         ExportGroup exportGroup = queryObject(ExportGroup.class, id, true);
+        if (exportGroup.checkInternalFlags(DataObject.Flag.DELETION_IN_PROGRESS)) {
+            throw BadRequestException.badRequests.deletionInProgress(
+                    exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
+        }
         Project project = queryObject(Project.class, exportGroup.getProject().getURI(), true);
         validateUpdateInputForExportType(param, exportGroup);
         validateUpdateRemoveInitiators(param, exportGroup);
@@ -1181,10 +1187,9 @@ public class ExportGroupService extends TaskResourceService {
      * 
      * @param param
      * @param exportGroup the export group
-     * @return the
+     * @return the updateVolumesMap derived from the params
      */
-    Map<URI, Integer> getUpdatedVolumesMap(ExportUpdateParam param,
-            ExportGroup exportGroup) {
+    Map<URI, Integer> getUpdatedVolumesMap(ExportUpdateParam param, ExportGroup exportGroup) {
         Map<URI, Integer> newVolumes = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
         // get the new block objects map
         Map<URI, Integer> addedVolumesMap = getChangedVolumes(param, true);
@@ -1449,6 +1454,15 @@ public class ExportGroupService extends TaskResourceService {
         Operation op = null;
         ExportGroup exportGroup = lookupExportGroup(groupId);
         Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(exportGroup, true, _dbClient);
+        
+        // Don't allow deactivation if there is an operation in progress.
+        Set<URI> tenants = new HashSet<URI>();
+        tenants.add(exportGroup.getTenant().getURI());
+        Set<ExportGroup> dataObjects = new HashSet<ExportGroup>();
+        dataObjects.add(exportGroup);
+        checkForPendingTasks(tenants, dataObjects);
+        // Mark deletion in progress. This will cause future updates to fail.
+        exportGroup.addInternalFlags(DataObject.Flag.DELETION_IN_PROGRESS);
 
         if (storageMap.isEmpty()) {
             op = initTaskStatus(exportGroup, task, Operation.Status.ready, ResourceOperationTypeEnum.DELETE_EXPORT_GROUP);

@@ -539,6 +539,11 @@ public class VcenterDataCenterService extends TaskResourceService {
             updateParam.setTenant(dataCenter.getTenant());
         }
 
+        if (NullColumnValueGetter.isNullURI(updateParam.getTenant()) &&
+                vcenter.getCascadeTenancy()) {
+            throw APIException.badRequests.cannotRemoveDatacenterTenant(dataCenter.getLabel(), vcenter.getLabel());
+        }
+
         Set<URI> vcenterTenants = _permissionsHelper.getUsageURIsFromAcls(vcenter.getAcls());
         if (!NullColumnValueGetter.isNullURI(updateParam.getTenant()) &&
                 (CollectionUtils.isEmpty(vcenterTenants) || !vcenterTenants.contains(updateParam.getTenant()))) {

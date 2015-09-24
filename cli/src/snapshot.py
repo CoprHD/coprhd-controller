@@ -173,16 +173,19 @@ class Snapshot(object):
             }
             if(rptype):
                 parms['type'] = rptype
+            if(readonly == "true"):
+                parms['read_only'] = readonly
             body = json.dumps(parms)
 
         else:
             parms = {
                 'name': snaplabel
             }
+            if(readonly == "true"):
+                parms['read_only'] = readonly
             body = json.dumps(parms)
         
-        if(readonly is not None):
-            parms['read_only'] = readonly
+        
         # REST api call
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,

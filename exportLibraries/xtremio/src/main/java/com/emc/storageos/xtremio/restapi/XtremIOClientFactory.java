@@ -19,7 +19,7 @@ public class XtremIOClientFactory extends RestClientFactory {
     private Logger log = LoggerFactory.getLogger(XtremIOClientFactory.class);
 
     private static final String DOT_OPERATOR = "\\.";
-    private static final String XIO_4X_VERSION = "4";
+    private static final Integer XIO_MIN_4X_VERSION = 4;
 
     @Override
     protected RestClientItf createNewRestClient(URI endpoint, String username,
@@ -43,7 +43,7 @@ public class XtremIOClientFactory extends RestClientFactory {
         XtremIOClient version2Client = new XtremIOV2Client(endpoint, username, password, client);
         if (version2Client.isVersion2()) {
             return version2Client;
-        } else if (null != model && model.split(DOT_OPERATOR)[0].equalsIgnoreCase(XIO_4X_VERSION)) {
+        } else if (null != model && Integer.valueOf(model.split(DOT_OPERATOR)[0]) > XIO_MIN_4X_VERSION) {
             log.error("Not able to get the v2 client for xio system model {}", model);
             throw XtremIOApiException.exceptions.noConnectionFound(endpoint.toString());
         } else {

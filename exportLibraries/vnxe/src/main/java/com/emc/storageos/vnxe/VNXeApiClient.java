@@ -821,6 +821,7 @@ public class VNXeApiClient {
 
         _logger.info("creating nfs share for the snap: " + snapId);
         NfsShareRequests request = new NfsShareRequests(_khClient);
+        // VNXe Software version check
         float softwareVersion = Float.parseFloat(getBasicSystemInfo().getSoftwareVersion().substring(0, 3));
         FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
         VNXeFileSystemSnap snapshot = req.getFileSystemSnap(snapId, softwareVersion);
@@ -839,17 +840,10 @@ public class VNXeApiClient {
         List<VNXeBase> rwHosts = getHosts(rwEndpoints);
         List<VNXeBase> rootHosts = getHosts(rootEndpoints);
 
-        VNXeNfsShare nfsShareFound = null;
-        boolean isShared;
-        VNXeNfsShare shareList = request.findSnapNfsShare(snapId, shareName, softwareVersion);
-        if (shareList == null) {
-            _logger.info("No NFS share found for snapshot :" + snapId);
-            isShared = false;
-        } else {
-            isShared = true;
-        }
         VNXeCommandJob job = null;
-        if (!isShared) {
+        VNXeNfsShare nfsShareFound = request.findSnapNfsShare(snapId, shareName, softwareVersion);
+
+        if (nfsShareFound == null) {   // new export
             nfsCreateParam.setReadOnlyHosts(roHosts);
             nfsCreateParam.setReadWriteHosts(rwHosts);
             nfsCreateParam.setRootAccessHosts(rootHosts);
@@ -859,15 +853,7 @@ public class VNXeApiClient {
                 nfsCreateParam.setDescription(comments);
             }
             job = request.createShareForSnapshot(nfsCreateParam);
-
         } else {
-            List<VNXeNfsShare> nfsShares = request.get();
-            for (VNXeNfsShare nfsShare : nfsShares) {
-                if (nfsShare.getParentFilesystemSnap() != null
-                        && nfsShare.getParentFilesystemSnap().getId().equalsIgnoreCase(snap.getId())) {
-                    nfsShareFound = nfsShare;
-                }
-            }
             String nfsShareId = nfsShareFound.getId();
             NFSShareDefaultAccessEnum nfsShareDefaultAccess = nfsShareFound.getDefaultAccess();
             NfsShareModifyForShareParam nfsModifyParam = new NfsShareModifyForShareParam();

@@ -481,13 +481,7 @@ public class VNXeApiClient {
         float softwareVersion = Float.parseFloat(getBasicSystemInfo().getSoftwareVersion().substring(0, 3));
         NfsShareRequests req = new NfsShareRequests(_khClient);
         VNXeNfsShare share = req.findNfsShare(fsId, shareName, softwareVersion);
-        if (share != null) {
-            _logger.info("Got the nfsShare: {}", share.getId());
-            return share;
-        } else {
-            _logger.info("Could not find nfsShare for fsId: {}, nfsShare name: {}", fsId, shareName);
-            return null;
-        }
+        return share;
     }
 
     /**
@@ -497,48 +491,25 @@ public class VNXeApiClient {
      * @return nfsShare
      */
     public VNXeNfsShare getNfsShareById(String shareId) {
-        _logger.info("finding nfsShare id: {} ",
-                shareId);
-
+        _logger.info("finding nfsShare id: {} ", shareId);
         NfsShareRequests req = new NfsShareRequests(_khClient);
         VNXeNfsShare share = req.getShareById(shareId);
-        if (share != null) {
-            _logger.info("Got the nfsShare: {}", share.getId());
-            return share;
-        } else {
-            _logger.info("Could not find nfsShare by Id: {}", shareId);
-            return null;
-        }
+        return share;
     }
 
     /**
-     * Find nfsShare using file system Id and vipr exportKey
+     * Find nfsShare using snapshot Id and snapshot share name
      * 
      * @param snapId file system snapshot Id
      * @param shareName NFS Export/Share name
-     * @return nfsShare Id
+     * @return nfsShare
      */
     public VNXeNfsShare findSnapNfsShare(String snapId, String shareName) {
-        _logger.info("finding nfsShare id for snap id: {}, and shareName: {} ",
-                snapId, shareName);
-
+        _logger.info("finding nfsShare id for snap id: {}, and shareName: {} ", snapId, shareName);
         NfsShareRequests req = new NfsShareRequests(_khClient);
-        VNXeNfsShare share = null;
-        List<VNXeNfsShare> nfsShares = req.get();
-        for (VNXeNfsShare nfsShare : nfsShares) {
-            if (nfsShare.getParentFilesystemSnap() != null && nfsShare.getParentFilesystemSnap().getId().equalsIgnoreCase(snapId)
-                    && nfsShare.getName().equalsIgnoreCase(shareName)) {
-                share = nfsShare;
-            }
-        }
-
-        if (share != null) {
-            _logger.info("Got the nfsShare: {}", share.getId());
-            return share;
-        } else {
-            _logger.info("Could not find nfsShare for snapId: {}, nfsShare name: {}", snapId, shareName);
-            return null;
-        }
+        float softwareVersion = Float.parseFloat(getBasicSystemInfo().getSoftwareVersion().substring(0, 3));
+        VNXeNfsShare share = req.findSnapNfsShare(snapId, shareName, softwareVersion);
+        return share;
     }
 
     /**

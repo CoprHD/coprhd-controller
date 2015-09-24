@@ -89,11 +89,9 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         }
 
         // Run this always when volume NO_PUBLIC_ACCESS
-        boolean vplexVvolOnly = VolumeIngestionUtil.isVplexVolume(unManagedVolume) &&
-                VplexBackendIngestionContext.INGESTION_METHOD_VVOL_ONLY.equals(vplexIngestionMethod);
-        if (vplexVvolOnly || markUnManagedVolumeInactive(unManagedVolume, volume,
+        if (markUnManagedVolumeInactive(unManagedVolume, volume,
                 unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap,
-                taskStatusMap)) {
+                taskStatusMap, vplexIngestionMethod)) {
             _logger.info("All the related replicas and parent has been ingested ",
                     unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as

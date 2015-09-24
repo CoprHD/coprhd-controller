@@ -3259,8 +3259,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     @Override
     public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
         String snapshotNativeGuid = snapshot.getNativeGuid();
-        if (!CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid).isEmpty()) {
-            throw APIException.badRequests.cantDeleteSnapshotExportedToVPLEX(snapshot.getId().toString());
+        List<Volume> volumesWithSameNativeGuid = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid);
+        if (!volumesWithSameNativeGuid.isEmpty()) {
+            // There should only be one and it should be a backend volume for
+            // a VPLEX volume.
+            List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
+                    _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
+                            volumesWithSameNativeGuid.get(0).getId().toString()));
+            throw APIException.badRequests.cantDeleteSnapshotExportedToVPLEX(snapshot.getId().toString(), vplexVolumes.get(0).getLabel());
         }
         super.deleteSnapshot(snapshot, taskId);
     }

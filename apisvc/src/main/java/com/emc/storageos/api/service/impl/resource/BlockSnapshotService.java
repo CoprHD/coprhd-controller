@@ -734,9 +734,7 @@ public class BlockSnapshotService extends TaskResourceService {
     }
 
     // What to do about vpools and storage pools
-    // Only allow the virtual volume so created to be exported. Mark it export only?
-    // What happens when other operations are executed on this virtual volume.
-    // have to protect against deleting snapshot or VPLEX volume.
+    // Only allow the virtual volume so created to be exported.
     // Consider VPLEX+RP
 
     /**

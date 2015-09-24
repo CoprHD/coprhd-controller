@@ -1573,7 +1573,12 @@ public class VPlexApiClient {
                 s_logger.error(reason);
                 throw VPlexApiException.exceptions.failedGettingStorageVolumeInfoForIngestion(reason);
             }
-            storageVolumeWwns.put(info.getWwn(), info);
+            String wwn = info.getWwn();
+            if (wwn != null && !wwn.isEmpty()) {
+                wwn = wwn.replaceAll("[^A-Fa-f0-9]", "");
+                wwn = wwn.toUpperCase();
+            }
+            storageVolumeWwns.put(wwn, info);
         }
 
         return storageVolumeWwns;
@@ -1614,21 +1619,36 @@ public class VPlexApiClient {
      */
     public VPlexResourceInfo getDeviceStructure(String deviceName, String virtualVolumeType) 
             throws VPlexApiException {
-        s_logger.info("Request to find device structure for {} on VPLEX at {}", deviceName, _baseURI);
+        s_logger.info("Request to find {} device structure for {} on VPLEX at " + _baseURI, 
+                virtualVolumeType, deviceName);
 
         VPlexResourceInfo device = null;
 
         switch (virtualVolumeType) {
             case VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME:
                 device = getDiscoveryManager()
-                            .getDeviceStructureForDistributedIngestion(deviceName, virtualVolumeType);
+                            .getDeviceStructureForDistributedIngestion(deviceName);
                 break;
             case VPlexApiConstants.LOCAL_VIRTUAL_VOLUME:
                 device = getDiscoveryManager()
-                            .getDeviceStructureForLocalIngestion(deviceName, virtualVolumeType);
+                            .getDeviceStructureForLocalIngestion(deviceName);
                 break;
         }
 
         return device;
+    }
+    
+    /**
+     * Returns a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names.
+     * 
+     * @return  a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names
+     * 
+     * @throws VPlexApiException
+     */
+    public Map<String, String> getDistributedDevicePathToClusterMap() 
+            throws VPlexApiException {
+        return _discoveryMgr.getDistributedDevicePathToClusterMap();
     }
 }

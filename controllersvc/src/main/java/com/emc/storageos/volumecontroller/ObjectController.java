@@ -29,8 +29,8 @@ public interface ObjectController extends StorageController {
      * @throws InternalException
      */
 
-    public void createBucket(URI storage, URI Pool, URI bkt, String label, String namespace, String retention,
-            String hardQuota, String softQuota, String owner, String opId) throws InternalException;
+    public void createBucket(URI storage, URI Pool, URI bkt, String label, String namespace, Integer retention,
+            Long hardQuota, Long softQuota, String owner, String opId) throws InternalException;
 
     /**
      * Deactivates Bucket

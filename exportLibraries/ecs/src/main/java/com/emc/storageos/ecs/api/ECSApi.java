@@ -13,6 +13,7 @@ import java.util.List;
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,13 +34,14 @@ public class ECSApi {
     private static final URI URI_WHOAMI = URI.create("/user/whoami");
     private static final URI URI_STORAGE_POOL = URI.create("/vdc/data-service/vpools.json");
     private final String ECS_VARRAY_BASE = "/object/capacity/";
-    private static final URI URI_CREATE_BUCKET = URI.create("/object/bucket.json");
-    private final String ECS_BUCKET_UPDATE_BASE = "/object/bucket/";
+    private static final String URI_CREATE_BUCKET = "/object/bucket.json";
     private static final String ROLE_SYSTEM_ADMIN = "<role>SYSTEM_ADMIN</role>";
     private static final String URI_UPDATE_BUCKET_RETENTION = "/object/bucket/{0}/retention.json";
     private static final String URI_UPDATE_BUCKET_QUOTA = "/object/bucket/{0}/quota.json";
+    private static final String URI_UPDATE_BUCKET_OWNER = "/object/bucket/{0}/owner.json";
     private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json?namespace={1}";
-    private static final long  DAY_TO_SECONDS = 24*60*60;
+    private static final long DAY_TO_SECONDS = 24 * 60 * 60;
+    private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
     /**
      * Constructor for using http connections
@@ -233,158 +235,75 @@ public class ECSApi {
     }
 
     /**
+     * Create a Base Bucket instance
      * 
-     * @param name Name of bucket
-     * @param namespace Namespace with this associated
-     * @param repGroup ECS storage pool name
-     * @param retentionPeriod retained value
-     * @param blkSizeHQ blocking limit
-     * @param notSizeSQ notification limit
-     * @param owner owner of bucket
-     * @return id (not used)
-     * @throws ECSException
+     * @param bucketName Bucket name
+     * @param namespace Namespace where Bucket should reside
+     * @param repGroup Volume
+     * @return Source ID of the Bucket created
      */
-    public String createBucket(String name, String namespace, String repGroup, String retentionPeriod, String blkSizeHQ,
-            String notSizeSQ, String owner) throws ECSException {
-        _log.info("ECSApi:createBucket enter");
-        ClientResponse clientResp = null;
+    public String createBucket(String bucketName, String namespace, String repGroup) {
+        _log.debug("ECSApi:createBucket Create bucket initiated for : {}", bucketName);
         String id = null;
-        String body = " { \"name\": \"" + name + "\", " + "\"vpool\": \"" + repGroup + "\", \"namespace\": \"" + namespace + "\"}  ";
-
+        ClientResponse clientResp = null;
+        String body = " { \"name\": \"" + bucketName + "\", " + "\"vpool\": \"" + repGroup + "\", \"namespace\": \"" + namespace + "\"}  ";
         try {
-            _log.info("ECSApi:createBucket Create bucket base");
-            clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
-            if (clientResp.getStatus() != 200) {
-                if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
-                    getAuthToken();
-                    clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
-                }
-
-                if (clientResp.getStatus() != 200) {
-                    throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(URI_CREATE_BUCKET), clientResp.getStatus(),
-                            "creating base bucket");
-                }
-            }
-
-            // update retention period
-            if (retentionPeriod != null && !retentionPeriod.isEmpty()) {
-                _log.info("ECSApi:createBucket update retention");
-                ClientResponse clientRespRet = null;
-
-                //Convert retention from days to seconds
-                Long lRet = Long.parseLong(retentionPeriod);
-                lRet = lRet * DAY_TO_SECONDS;
-
-                String bodyRet = " { \"period\": \"" + lRet.toString() + "\", \"namespace\": \"" + namespace + "\"}  ";               
-
-                // ECS_BUCKET_UPDATE_BASE
-                String bucketRetention = ECS_BUCKET_UPDATE_BASE + name + "/retention.json";
-                URI uriBucketRetention = URI.create(bucketRetention);
-
-                clientRespRet = _client.put_json(_baseUrl.resolve(uriBucketRetention), authToken, bodyRet);
-                if (clientRespRet.getStatus() != 200) {
-                    if (clientRespRet.getStatus() == 401 || clientRespRet.getStatus() == 302) {
-                        getAuthToken();
-                        clientRespRet = _client.put_json(_baseUrl.resolve(uriBucketRetention), authToken, bodyRet);
-                    }
-
-                    if (clientRespRet.getStatus() != 200) {
-                        throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(uriBucketRetention),
-                                clientRespRet.getStatus(), "add bucket retention");
-                    }
-                }
-
-                if (clientRespRet != null) {
-                    clientRespRet.close();
-                }
-            }// end retention period != null
-
-            // update hard=block and soft=notification quota
-            if (blkSizeHQ != null && notSizeSQ != null && !blkSizeHQ.isEmpty() && !notSizeSQ.isEmpty()) {
-                _log.info("ECSApi:createBucket update hard and soft quota");
-                ClientResponse clientRespQt = null;
-
-                String bodyQt = " {  \"blockSize\": \"" + blkSizeHQ + "\", \"notificationSize\": \"" + notSizeSQ +
-                        "\", \"namespace\": \"" + namespace + "\"}  ";
-
-                // ECS_BUCKET_UPDATE_BASE
-                String bucketQuota = ECS_BUCKET_UPDATE_BASE + name + "/quota.json";
-                URI uriBucketQuota = URI.create(bucketQuota);
-
-                clientRespQt = _client.put_json(_baseUrl.resolve(uriBucketQuota), authToken, bodyQt);
-                if (clientRespQt.getStatus() != 200) {
-                    if (clientRespQt.getStatus() == 401 || clientRespQt.getStatus() == 302) {
-                        getAuthToken();
-                        clientRespQt = _client.put_json(_baseUrl.resolve(uriBucketQuota), authToken, bodyQt);
-                    }
-
-                    if (clientRespQt.getStatus() != 200) {
-                        throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(uriBucketQuota),
-                                clientRespQt.getStatus(), "add hard and soft quota");
-                    }
-                }
-
-                if (clientRespQt != null) {
-                    clientRespQt.close();
-                }
-            }// end update hard=block and soft=notification quota
-
-            // update owner
-            if (owner != null && !owner.isEmpty()) {
-                _log.info("ECSApi:createBucket update owner");
-                ClientResponse clientRespOnr = null;
-
-                String bodyOnr = " { \"new_owner\": \"" + owner + "\", \"namespace\": \"" + namespace + "\"}  ";
-
-                // ECS_BUCKET_UPDATE_BASE
-                String bucketOwner = ECS_BUCKET_UPDATE_BASE + name + "/owner.json";
-                URI uriBucketOwner = URI.create(bucketOwner);
-
-                clientRespOnr = _client.post_json(_baseUrl.resolve(uriBucketOwner), authToken, bodyOnr);
-                if (clientRespOnr.getStatus() != 200) {
-                    if (clientRespOnr.getStatus() == 401 || clientRespOnr.getStatus() == 302) {
-                        getAuthToken();
-                        clientRespOnr = _client.post_json(_baseUrl.resolve(uriBucketOwner), authToken, bodyOnr);
-                    }
-
-                    if (clientRespOnr.getStatus() != 200) {
-                        if (clientRespOnr.getStatus() == 400) {
-                            _log.warn("Current user and user to be modified are same"); 
-                        } else {
-                        throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(uriBucketOwner),
-                                clientRespOnr.getStatus(), "add bucket owner");
-                        }
-                    }
-                }
-
-                if (clientRespOnr != null) {
-                    clientRespOnr.close();
-                }
-            }// end update owner
-
-            _log.info("ECSApi:createBucket leave");
-
-            //extract bucket id
-            JSONObject jObj = clientResp.getEntity(JSONObject.class);
-            if (jObj.has("id")) {
-                id = jObj.getString("id");
-            }
-            return id;
-        } catch (ECSException ie) {
-            _log.info("ECSApi:createBucket ECSException");
-            throw ie;
+            clientResp = post(URI_CREATE_BUCKET, body);
         } catch (Exception e) {
-            _log.info("ECSApi:createBucket Exception");
-            String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
-            throw ECSException.exceptions.createBucketFailed(response, e);
+            _log.error("Error occured while Owner update for bucket : {}", bucketName, e);
         } finally {
-            _log.info("ECSApi:createBucket success");
-            if (clientResp != null) {
-                clientResp.close();
+            if (null == clientResp) {
+                throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(URI_CREATE_BUCKET), 500,
+                        "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
+                throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(URI_CREATE_BUCKET), clientResp.getStatus(), response);
+            } else {
+                // extract bucket id
+                JSONObject jObj = clientResp.getEntity(JSONObject.class);
+                if (jObj.has("id")) {
+                    try {
+                        id = jObj.getString("id");
+                    } catch (JSONException e) {
+                        throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(URI_CREATE_BUCKET), clientResp.getStatus(),
+                                "Unable to extract source ID of the bucket");
+                    }
+                }
             }
+            closeResponse(clientResp);
         }
+        return id;
+    }
 
-    }// end create bucket
+    /**
+     * Update Bucket Owner information.
+     * 
+     * @param bucketName Bucket Name
+     * @param namespace Namespace where bucket resides
+     * @param owner Owner of the Bucket
+     */
+    public void updateBucketOwner(String bucketName, String namespace, String owner) {
+        _log.debug("ECSApi:updateBucketOwner Update bucket initiated for : {}", bucketName);
+
+        ClientResponse clientResp = null;
+        String bodyOnr = " { \"new_owner\": \"" + owner + "\", \"namespace\": \"" + namespace + "\"}  ";
+
+        final String path = MessageFormat.format(URI_UPDATE_BUCKET_OWNER, bucketName);
+        try {
+            clientResp = post(path, bodyOnr);
+        } catch (Exception e) {
+            _log.error("Error occured while Owner update for bucket : {}", bucketName, e);
+        } finally {
+            if (null == clientResp) {
+                throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Owner", "no response from ECS");
+            } else if (clientResp.getStatus() == 400) {
+                _log.warn("Current user and user to be modified are same");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Owner", getResponseDetails(clientResp));
+            }
+            closeResponse(clientResp);
+        }
+    }
 
     /**
      * Updates Bucket Quota
@@ -396,24 +315,24 @@ public class ECSApi {
      * @throws ECSException if Error occurs during update
      */
     public void updateBucketQuota(String bucketName, String namespace, Long softQuota, Long hardQuota) throws ECSException {
+        _log.debug("ECSApi:updateBucketQuota Update bucket initiated for : {}", bucketName);
+
         ClientResponse clientResp = null;
 
-        if (null != namespace && null != bucketName) {
-            if (null != softQuota || null != hardQuota) {
-                String quotaUpdate = " { \"blockSize\": \"" + hardQuota + "\", \"notificationSize\": \"" + softQuota
-                        + "\", \"namespace\": \"" + namespace + "\" }  ";
-                final String path = MessageFormat.format(URI_UPDATE_BUCKET_QUOTA, bucketName);
-                try {
-                    clientResp = put(path, quotaUpdate);
-                } catch (Exception e) {
-                    _log.error("Error occured while Quota update for bucket : {}", bucketName, e);
-                } finally {
-                    if (null == clientResp || clientResp.getStatus() != 200) {
-                        throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Quota");
-                    }
-                    closeResponse(clientResp);
-                }
+        String quotaUpdate = " { \"blockSize\": \"" + hardQuota / BYTES_TO_GB + "\", \"notificationSize\": \"" + softQuota / BYTES_TO_GB
+                + "\", \"namespace\": \"" + namespace + "\" }  ";
+        final String path = MessageFormat.format(URI_UPDATE_BUCKET_QUOTA, bucketName);
+        try {
+            clientResp = put(path, quotaUpdate);
+        } catch (Exception e) {
+            _log.error("Error occured while Quota update for bucket : {}", bucketName, e);
+        } finally {
+            if (null == clientResp) {
+                throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Quota", "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Quota", getResponseDetails(clientResp));
             }
+            closeResponse(clientResp);
         }
     }
 
@@ -426,23 +345,24 @@ public class ECSApi {
      * @throws ECSException If error occurs during update
      */
     public void updateBucketRetention(String bucketName, String namespace, Integer retention) throws ECSException {
+        _log.debug("ECSApi:updateBucketRetention Update bucket initiated for : {}", bucketName);
         ClientResponse clientResp = null;
-        
-        if (null != namespace && null != bucketName) {
-            if (null != retention) {
-                String retentionUpdate = " { \"period\": \"" + (retention*DAY_TO_SECONDS) + "\", \"namespace\": \"" + namespace + "\" }  ";
-                final String path = MessageFormat.format(URI_UPDATE_BUCKET_RETENTION, bucketName);
-                try {
-                    clientResp = put(path, retentionUpdate);
-                } catch (Exception e) {
-                    _log.error("Error occured while Retention update for bucket : {}", bucketName, e);
-                } finally {
-                    if (null == clientResp || clientResp.getStatus() != 200) {
-                        throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Retention");
-                    }
-                    closeResponse(clientResp);
-                }
+
+        String retentionUpdate = " { \"period\": \"" + (retention * DAY_TO_SECONDS) + "\", \"namespace\": \"" + namespace
+                + "\" }  ";
+        final String path = MessageFormat.format(URI_UPDATE_BUCKET_RETENTION, bucketName);
+        try {
+            clientResp = put(path, retentionUpdate);
+        } catch (Exception e) {
+            _log.error("Error occured while Retention update for bucket : {}", bucketName, e);
+        } finally {
+            if (null == clientResp) {
+                throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Quota", "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Retention", getResponseDetails(clientResp));
             }
+            closeResponse(clientResp);
+
         }
     }
 
@@ -497,12 +417,12 @@ public class ECSApi {
             clientResp.close();
         }
     }
-    
+
     private String getResponseDetails(ClientResponse clientResp) {
         String detailedResponse = null;
         try {
             JSONObject jObj = clientResp.getEntity(JSONObject.class);
-            detailedResponse = String.format("Description:%s, Details:%s", 
+            detailedResponse = String.format("Description:%s, Details:%s",
                     jObj.getString("description"), jObj.getString("details"));
             _log.error(String.format("HTTP error code: %d, Complete ECS error response: %s", clientResp.getStatus(),
                     jObj.toString()));

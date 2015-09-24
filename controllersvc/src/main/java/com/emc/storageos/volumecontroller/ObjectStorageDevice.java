@@ -1,3 +1,8 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.volumecontroller;
 
 import com.emc.storageos.db.client.model.Bucket;

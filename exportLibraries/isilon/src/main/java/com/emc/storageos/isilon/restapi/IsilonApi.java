@@ -1202,8 +1202,7 @@ public class IsilonApi {
      * @param fspath directory path to chek
      * @return boolean true if exists, false otherwise
      */
-    public void supportsNFSv4() throws IsilonException {
-        
+    public boolean nfsv4Enabled() throws IsilonException {
         ClientResponse resp = null;
         try {
             sLogger.debug("IsilonApi check nfsV4 support retrive global status - start");
@@ -1227,5 +1226,7 @@ public class IsilonApi {
                 resp.close();
             }
         }
+        
+        return false;
     }
 }

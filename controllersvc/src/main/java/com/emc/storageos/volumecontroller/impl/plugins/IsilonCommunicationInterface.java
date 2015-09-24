@@ -299,8 +299,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             isilonApi.getClusterInfo();
             
-            isilonApi.supportsNFSv4();
-
             discoverCluster(storageSystem);
             _dbClient.persistObject(storageSystem);
             if (!storageSystem.getReachableStatus()) {
@@ -433,6 +431,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             StoragePool storagePool;
+            
+            boolean nfsSupport = isilonApi.nfsv4Enabled();
 
             List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
             for (IsilonStoragePool isilonPool : isilonStoragePools) {
@@ -467,6 +467,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     StringSet protocols = new StringSet();
                     protocols.add("NFS");
                     protocols.add("CIFS");
+                    if(nfsSupport){
+                    	protocols.add("NFSv4");
+                    }
                     storagePool.setProtocols(protocols);
                     storagePool.setPoolName(isilonPool.getNativeId());
                     storagePool.setNativeId(isilonPool.getNativeId());

@@ -49,6 +49,7 @@ public class IsilonApi {
     private static final URI URI_CLUSTER_CONFIG = URI.create("/platform/1/cluster/config");
     private static final URI URI_STATS = URI.create("/platform/1/statistics/");
     private static final URI URI_STORAGE_POOLS = URI.create("/platform/1/diskpool/diskpools");
+    private static final URI URI_ARRAY_GLOBAL_STATUS= URI.create("/platform/1/protocols/nfs/settings/global"); 
     private static final URI URI_STORAGE_PORTS = URI
             .create("/platform/1/cluster/smartconnect_zones");
     // private static final URI URI_EVENTS = URI.create("/platform/1/events/");
@@ -1192,6 +1193,39 @@ public class IsilonApi {
         } else {
             throw IsilonException.exceptions.processErrorResponseFromIsilon(operationKey,
                     objectKey, httpStatus, _baseUrl);
+        }
+    }
+    
+    /**
+     * Checks to see if the dir with the given path exists on the isilon device
+     * 
+     * @param fspath directory path to chek
+     * @return boolean true if exists, false otherwise
+     */
+    public void supportsNFSv4() throws IsilonException {
+        
+        ClientResponse resp = null;
+        try {
+            sLogger.debug("IsilonApi check nfsV4 support retrive global status - start");
+            resp = _client.head(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS));
+            sLogger.debug("IsilonApi check nfsV4 support retrive global status - complete");
+            
+            JSONObject jsonResp = resp.getEntity(JSONObject.class);
+            
+            
+            String enabled = jsonResp.getJSONObject("settings").getString("nfsv4_enabled");
+            
+            sLogger.debug("IsilonApi  nfsv4 is enable/disable is set to {}",enabled);
+            
+        } catch (Exception e) {
+            if (e.getCause() instanceof ConnectException) {
+                throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+            }
+            final Status status = resp != null ? resp.getClientResponseStatus() : Status.NOT_FOUND;
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
         }
     }
 }

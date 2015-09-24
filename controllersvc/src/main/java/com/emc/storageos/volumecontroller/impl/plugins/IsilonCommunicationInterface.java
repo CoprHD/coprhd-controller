@@ -298,6 +298,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // try to connect to the Isilon cluster first to check if cluster is available
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             isilonApi.getClusterInfo();
+            
+            isilonApi.supportsNFSv4();
 
             discoverCluster(storageSystem);
             _dbClient.persistObject(storageSystem);

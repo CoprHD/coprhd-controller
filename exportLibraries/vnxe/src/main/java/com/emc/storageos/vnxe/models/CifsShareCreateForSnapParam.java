@@ -18,6 +18,7 @@ public class CifsShareCreateForSnapParam extends ParamBase {
     private Boolean isReadOnly;
     private Boolean isContinuousAvailabilityEnabled;
     private Boolean isEncryptionEnabled;
+    private VNXeBase snap;
 
     public String getPath() {
         return path;
@@ -33,6 +34,14 @@ public class CifsShareCreateForSnapParam extends ParamBase {
 
     public void setFilesystemSnap(VNXeBase filesystemSnap) {
         this.filesystemSnap = filesystemSnap;
+    }
+
+    public VNXeBase getSnap() {
+        return snap;
+    }
+
+    public void setSnap(VNXeBase snap) {
+        this.snap = snap;
     }
 
     public String getDescription() {

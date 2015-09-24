@@ -816,7 +816,13 @@ public class VNXeApiClient {
         param.setPath(path);
         VNXeBase snap = new VNXeBase();
         snap.setId(snapId);
-        param.setFilesystemSnap(snap);
+        // version specific pay load
+        float softwareVersion = Float.parseFloat(getBasicSystemInfo().getSoftwareVersion().substring(0, 3));
+        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+            param.setFilesystemSnap(snap);
+        } else {
+            param.setSnap(snap);
+        }
         param.setName(shareName);
         if (permission != null && !permission.isEmpty() &&
                 permission.equalsIgnoreCase(AccessEnum.READ.name())) {

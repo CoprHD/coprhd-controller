@@ -100,7 +100,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             client = getXtremIOClient(storage);
             BlockConsistencyGroup cgObj = null;
             boolean isCG = false;
-            Volume vol = volumes.get(0);            
+            Volume vol = volumes.get(0);
             if (vol.getConsistencyGroup() != null && !vol.checkForRp()) {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                 isCG = true;
@@ -649,11 +649,11 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     private XtremIOClient getXtremIOClient(StorageSystem system) {
+        xtremioRestClientFactory.setModel(system.getFirmwareVersion());
         XtremIOClient client = (XtremIOClient) xtremioRestClientFactory
                 .getRESTClient(
                         URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
-                                system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword(), true,
-                        system.getFirmwareVersion());
+                                system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword(), true);
         return client;
     }
 

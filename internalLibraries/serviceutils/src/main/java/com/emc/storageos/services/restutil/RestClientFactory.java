@@ -204,20 +204,6 @@ abstract public class RestClientFactory {
         return clientApi;
     }
 
-    public RestClientItf getRESTClient(URI endpoint, String username, String password, boolean authFilter, String model) {
-        RestClientItf clientApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
-        if (clientApi == null) {
-            Client jerseyClient = new ApacheHttpClient(_clientHandler);
-            if (authFilter) {
-                jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
-            }
-            clientApi = createNewRestClient(endpoint, username, password, jerseyClient, model);
-
-            _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, clientApi);
-        }
-        return clientApi;
-    }
-
     public RestClientItf getRESTClient(URI endpoint, String username, String password) {
         RestClientItf clientApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
         if (clientApi == null) {
@@ -230,8 +216,5 @@ abstract public class RestClientFactory {
 
     abstract protected RestClientItf createNewRestClient(URI endpoint, String username, String password,
             com.sun.jersey.api.client.Client client);
-
-    abstract protected RestClientItf createNewRestClient(URI endpoint, String username, String password,
-            com.sun.jersey.api.client.Client client, String model);
 
 }

@@ -149,11 +149,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
         log.info("Started discovery of UnManagedVolumes for system {}", accessProfile.getSystemId());
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
                 accessProfile.getSystemId());
+        xtremioRestClientFactory.setModel(storageSystem.getFirmwareVersion());
         XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory
                 .getRESTClient(URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(),
                         accessProfile.getPortNumber())),
                         accessProfile.getUserName(),
-                        accessProfile.getPassword(), true, storageSystem.getFirmwareVersion());
+                        accessProfile.getPassword(), true);
 
         unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
         unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();

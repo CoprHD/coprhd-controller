@@ -35,7 +35,4 @@ public interface XtremIOApiExceptions {
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
     XtremIOApiException operationNotSupportedForVersion(String operationName);
 
-    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
-    XtremIOApiException noConnectionFound(String endpoint);
-
 }

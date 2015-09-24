@@ -32,7 +32,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
-import com.emc.storageos.services.restutil.RestClientFactory;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -56,7 +55,7 @@ public class XtremIOCommunicationInterface extends
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
 
-    private RestClientFactory xtremioRestClientFactory = null;
+    private XtremIOClientFactory xtremioRestClientFactory = null;
     private XtremIOUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
 
     public void setXtremioRestClientFactory(
@@ -82,9 +81,10 @@ public class XtremIOCommunicationInterface extends
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
                 accessProfile.getSystemId());
         try {
+            xtremioRestClientFactory.setModel(provider.getVersionString());
             XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
-                    accessProfile.getUserName(), accessProfile.getPassword(), true, provider.getVersionString());
+                    accessProfile.getUserName(), accessProfile.getPassword(), true);
             String xmsVersion = xtremIOClient.getXtremIOXMSVersion();
             String minimumSupportedVersion = VersionChecker
                     .getMinimumSupportedVersion(StorageSystem.Type.xtremio).replace("-", ".");
@@ -133,9 +133,10 @@ public class XtremIOCommunicationInterface extends
             discoverUnManagedVolumes(accessProfile);
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
+            xtremioRestClientFactory.setModel(storageSystem.getFirmwareVersion());
             XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
-                    accessProfile.getUserName(), accessProfile.getPassword(), true, storageSystem.getFirmwareVersion());
+                    accessProfile.getUserName(), accessProfile.getPassword(), true);
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());
             discoverXtremIOSystem(xtremIOClient, storageSystem);
         }

@@ -21,8 +21,4 @@ public class DataDomainClientFactory extends RestClientFactory {
         return new DataDomainClient(endpoint, username, password, client);
     }
 
-    @Override
-    protected RestClientItf createNewRestClient(URI endpoint, String username, String password, Client client, String model) {
-        return new DataDomainClient(endpoint, username, password, client);
-    }
 }

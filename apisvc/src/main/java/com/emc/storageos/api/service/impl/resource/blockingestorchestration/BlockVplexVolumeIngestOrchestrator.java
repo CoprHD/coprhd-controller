@@ -220,9 +220,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         _logger.info("validating the ingestion context for these backend volumes: " + unManagedBackendVolumes);
 
         _logger.info("checking if we have found enough backend volumes for ingestion");
-        boolean isLocal = context.isLocal();
-        if ((isLocal && (unManagedBackendVolumes.isEmpty()))
-                || !isLocal && (unManagedBackendVolumes.size() < 2)) {
+        if ((context.isLocal() && (unManagedBackendVolumes.isEmpty()))
+                || context.isDistributed() && (unManagedBackendVolumes.size() < 2)) {
             String supportingDevice = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),
                     unManagedVirtualVolume.getVolumeInformation());
@@ -480,6 +479,28 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 String reason = "The ingested block object is null. Skipping ingestion of export masks.";
                 throw IngestionException.exceptions.generalVolumeException(
                         processedUnManagedVolume.getLabel(), reason);
+            }
+
+            // we need to make sure we're using the correct varray and vpool for this backend volume.
+            // in the case of distributed, it could be the HA array (which would have been determined
+            // by the ingestBackendVolumes method before processing got to this point).
+            // the processedBlockObject here is the ingested backend volume for the leg we're looking at
+            // and it will have the correct virtual array and virtual pool already set on it
+            if (context.isDistributed()) {
+                // a backend volume can only be a Volume BlockObject type, so this is safe
+                Volume backendVolume = ((Volume) processedBlockObject);
+
+                virtualArray = _dbClient.queryObject(VirtualArray.class, backendVolume.getVirtualArray());
+                vPool = _dbClient.queryObject(VirtualPool.class, backendVolume.getVirtualArray());
+
+                if (virtualArray == null) {
+                    throw IngestionException.exceptions.failedToIngestVplexBackend(
+                            "Could not find virtual array for backend volume " + backendVolume.getLabel());
+                }
+                if (vPool == null) {
+                    throw IngestionException.exceptions.failedToIngestVplexBackend(
+                            "Could not find virtual pool for backend volume " + backendVolume.getLabel());
+                }
             }
 
             try {

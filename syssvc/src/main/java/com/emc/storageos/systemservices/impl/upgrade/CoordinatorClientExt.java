@@ -558,7 +558,7 @@ public class CoordinatorClientExt {
     public PropertyInfoExt getConfigFromCoordinator(String kind, String id) {
         Configuration config = _coordinator.queryConfiguration(kind, id);
         if (config != null) {
-            String str = config.getConfig(PropertyInfoExt.TARGET_INFO);
+            String str = config.getConfig(TARGET_INFO);
             return new PropertyInfoExt(new PropertyInfoExt().decodeFromString(str).getAllProperties());
         }
 

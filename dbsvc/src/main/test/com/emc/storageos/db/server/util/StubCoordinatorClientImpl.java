@@ -18,6 +18,7 @@ import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.ClusterInfo;
+
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -309,6 +310,11 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void setTargetInfo(final CoordinatorSerializable info, String id, String kind) throws CoordinatorException {
+        
+    }
+    
     @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
             throws Exception {

@@ -384,6 +384,11 @@ public class TestCoordinator implements CoordinatorClient {
     }
 
     @Override
+    public void setTargetInfo(final CoordinatorSerializable info, String id, String kind) throws CoordinatorException {
+        
+    }
+    
+    @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
             throws Exception {
         return null;

@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -46,7 +45,6 @@ import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.client.ViPRCoreClient;
 
-import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
@@ -286,7 +284,12 @@ public class DisasterRecoveryService extends TaggedResource {
     }
     
     private void updateDataRevision() throws Exception {
-        DataRevision newRevision = new DataRevision("test");
+        int ver = 1;
+        DataRevision currentRevision = _coordinator.getTargetInfo(DataRevision.class);
+        if (currentRevision != null) {
+            ver = Integer.valueOf(currentRevision.getTargetRevision());
+        }
+        DataRevision newRevision = new DataRevision(String.valueOf(++ver));
         _coordinator.setTargetInfo(newRevision, newRevision.CONFIG_ID, newRevision.CONFIG_KIND);
         log.info("Updating data revision to {} in site target", newRevision);
         
@@ -295,11 +298,7 @@ public class DisasterRecoveryService extends TaggedResource {
     // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc
     private void updateVdcTargetVersion(String action) {
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action);
-        ConfigurationImpl cfg = new ConfigurationImpl();
-        cfg.setId(SiteInfo.CONFIG_ID);
-        cfg.setKind(SiteInfo.CONFIG_KIND);
-        cfg.setConfig(TARGET_INFO, siteInfo.encodeAsString());
-        _coordinator.persistServiceConfiguration(cfg);
+        _coordinator.setTargetInfo(siteInfo, SiteInfo.CONFIG_ID, SiteInfo.CONFIG_KIND);
         log.info("VDC target version updated to {}, action required: {}", siteInfo.getVersion(), action);
     }
     

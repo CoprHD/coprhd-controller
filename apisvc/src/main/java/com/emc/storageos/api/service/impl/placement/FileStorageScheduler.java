@@ -112,7 +112,7 @@ public class FileStorageScheduler {
                     _log.info("Best vNAS selected: {}", currvNAS.getNasName());
                     List<StoragePool> recommendedPools = eachVNASEntry.getValue();
                     
-                    // Get the recommendations for the candidate pools.
+                    // Get the recommendations for the current vnas pools.
                     List<Recommendation> poolRecommendations = _scheduler
                             .getRecommendationsForPools(vArray.getId().toString(),
                             		recommendedPools, capabilities);
@@ -138,6 +138,11 @@ public class FileStorageScheduler {
             
         }
         
+        // In case of
+        // 1. vNAS does not provide file recommendations or
+        // 2. vpool does not have storage pools from vnx or
+        // 3. vnx does not have vdms
+        // Get the file recommendations
         if(fileRecommendations == null || fileRecommendations.isEmpty()) {
         	// Get the recommendations for the candidate pools.
         	_log.info("Placement on HADomain matching pools");
@@ -146,10 +151,8 @@ public class FileStorageScheduler {
                             candidatePools, capabilities);
             
             fileRecommendations = selectStorageHADomainMatchingVpool(vPool,
-                    vArray.getId(), poolRecommendations);
-            
+                    vArray.getId(), poolRecommendations); 
         }
-        
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
         if (fileRecommendations == null || fileRecommendations.isEmpty()) {

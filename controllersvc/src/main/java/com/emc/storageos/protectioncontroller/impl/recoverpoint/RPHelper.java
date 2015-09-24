@@ -869,49 +869,40 @@ public class RPHelper {
      * Returns an existing journal volume to be used as journal for a new target volume.
      * In 2.2, the largest sized journal volume already allocated to the CG will be returned.
      * 
-     * @param cgVolumes Volumes in the consistency group
-     * @param protectionVarrayTgtJournal Map of protection varray to RP target journal in that varray
+     * @param cgTargetVolumes Volumes in the consistency group
      * @param varray protection varray
      * @param copyInternalSiteName RP internal site of the volume
      * @return existing Journal volume to be used/shared by volumes
      */
+    public Volume selectExistingJournalForTargetVolume(List<Volume> cgTargetVolumes, URI varray, String copyInternalSiteName) {
+        Volume existingCGTargetJournalVolume = null;
+        List<Volume> validExistingTargetJournalVolumes = new ArrayList<Volume>();
+        Map<Long, List<Volume>> cgTargetJournalsBySize = new TreeMap<Long, List<Volume>>(Collections.reverseOrder());
 
-    public Volume selectExistingJournalForTargetVolume(List<Volume> cgVolumes, Map<URI, URI> protectionVarrayTgtJournal,
-            URI varray, String copyInternalSiteName) {
-        Volume existingCGJournalVolume = null;
-        List<Volume> validExistingJournalVolumes = new ArrayList<Volume>();
-        Map<Long, List<URI>> cgJournalsBySize = new TreeMap<Long, List<URI>>(Collections.reverseOrder());
-
-        // If we are creating multiple resources, grab the journal we already created for this
-        // protection virtual array and re-use it.
-        if (!protectionVarrayTgtJournal.isEmpty() && (null != protectionVarrayTgtJournal.get(varray))) {
-            return _dbClient.queryObject(Volume.class, protectionVarrayTgtJournal.get(varray));
-        }
-
-        for (Volume cgVolume : cgVolumes) {
-            // Make sure we only consider exists CG target volumes from the same virtual array
-            if (cgVolume.getVirtualArray().equals(varray) && cgVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
-                if (null != cgVolume.getRpJournalVolume()) {
-                    Volume journal = _dbClient.queryObject(Volume.class, cgVolume.getRpJournalVolume());
-                    if (!cgJournalsBySize.containsKey(journal.getProvisionedCapacity())) {
-                        cgJournalsBySize.put(journal.getProvisionedCapacity(), new ArrayList<URI>());
+        for (Volume cgTargetVolume : cgTargetVolumes) {
+            // Make sure we only consider existing CG target volumes from the same virtual array
+            if (cgTargetVolume.getVirtualArray().equals(varray) && cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
+                if (null != cgTargetVolume.getRpJournalVolume()) {
+                    Volume targetJournal = _dbClient.queryObject(Volume.class, cgTargetVolume.getRpJournalVolume());
+                    if (!cgTargetJournalsBySize.containsKey(targetJournal.getProvisionedCapacity())) {
+                        cgTargetJournalsBySize.put(targetJournal.getProvisionedCapacity(), new ArrayList<Volume>());
                     }
-                    cgJournalsBySize.get(journal.getProvisionedCapacity()).add(journal.getId());
-                    validExistingJournalVolumes.add(journal);
+                    cgTargetJournalsBySize.get(targetJournal.getProvisionedCapacity()).add(targetJournal);
+                    validExistingTargetJournalVolumes.add(targetJournal);
                 }
             }
         }
 
         // fetch the first journal in the list with the largest capacity.
-        for (Long journalSize : cgJournalsBySize.keySet()) {
-            existingCGJournalVolume = _dbClient.queryObject(Volume.class, cgJournalsBySize.get(journalSize).get(0));
+        for (Long targetJournalSize : cgTargetJournalsBySize.keySet()) {
+            existingCGTargetJournalVolume = cgTargetJournalsBySize.get(targetJournalSize).get(0);
             break;
         }
         // we should never hit this case, but just in case we do, just return the journal volume of the first source volume in the list.
-        if (null == existingCGJournalVolume) {
-            existingCGJournalVolume = validExistingJournalVolumes.get(0);
+        if (null == existingCGTargetJournalVolume) {
+            existingCGTargetJournalVolume = validExistingTargetJournalVolumes.get(0);
         }
-        return existingCGJournalVolume;
+        return existingCGTargetJournalVolume;
     }
 
     /**

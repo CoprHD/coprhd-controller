@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
@@ -43,6 +44,7 @@ public class ComputeImageServerMigration extends BaseCustomMigrationCallback {
             if (p.getProperty("image_server_address") != null) {
 
                 ComputeImageServer imageServer = new ComputeImageServer();
+                imageServer.setId(URIUtil.createId(ComputeImageServer.class));
                 imageServer.setImageServerIp(p
                         .getProperty(IMAGE_SERVER_ADDRESS));
                 imageServer.setImageServerUser(p

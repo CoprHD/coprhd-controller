@@ -131,7 +131,7 @@ class Snapshot(object):
         )
 
     def snapshot_create(self, otype, typename, ouri,
-                        snaplabel, inactive, rptype, sync ,readonly):
+                        snaplabel, inactive, rptype, sync ,readonly=False):
         '''new snapshot is created, for a given shares or volumes
             parameters:
                 otype      : either file or block or object

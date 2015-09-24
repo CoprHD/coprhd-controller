@@ -2300,8 +2300,11 @@ recoverpoint_ingest_test()
 {
     echo '*** RP ingest tests ***'
 
-    src_volume=${1}
-    tgt_volume=${2}
+    ingestbase=rpingest5vol
+    src_volume=${ingestbase}
+    tgt_volume=${ingestbase}-target-varray1
+    src_journal=${ingestbase}-primary-source-journal
+    tgt_journal=${ingestbase}-target-journal-varray1
     src_varray=${3}
 
     # Figure out the journal volume spec we would need for import
@@ -2321,9 +2324,13 @@ recoverpoint_ingest_test()
     # Discover unmanaged volumes on the array
     run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+    exit;
 
-    # Ingest Journals
-    run unmanagedvolume ingest_unexport $NH rp_targets $PROJECT --volspec "$tgt_volume"
+    # Ingest Journals, Target, then Source
+    run unmanagedvolume ingest_unexport varray1 rp_targets $PROJECT --volspec "$src_journal"
+    run unmanagedvolume ingest_unexport varray1 rp_targets $PROJECT --volspec "$tgt_journal"
+    run unmanagedvolume ingest_unexport varray1 rp_targets $PROJECT --volspec "$tgt_volume"
+    run unmanagedvolume ingest_unexport varray1 rp_cdp $PROJECT --volspec "$source_volume"
 }
 
 recoverpoint_failover_test()

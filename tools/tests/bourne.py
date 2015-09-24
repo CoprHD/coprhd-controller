@@ -172,6 +172,7 @@ URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
 URI_UNMANAGED_VOLUMES_SEARCH     = URI_UNMANAGED + "/search"
 URI_UNMANAGED_VOLUMES_SEARCH_NAME= URI_UNMANAGED_VOLUMES_SEARCH + "?name={0}"
 URI_UNMANAGED_EXPORTED_VOLUMES   = URI_UNMANAGED + '/volumes/ingest-exported' 
+URI_UNMANAGED_TASK               = URI_VDC + '/tasks/{0}'
 
 URI_BLOCK_MIRRORS_BASE          = URI_VOLUME               + '/protection/continuous-copies'
 URI_BLOCK_MIRRORS_LIST          = URI_BLOCK_MIRRORS_BASE
@@ -8151,6 +8152,10 @@ class Bourne:
             return  self.api('GET', URI_UNMANAGED_VOLUMES_SEARCH_NAME.format(name))
         
 
+    def ingest_show_task(self, vol, task):
+        uri_ingest_task = URI_VDC + '/tasks/{1}'
+        return self.api('GET', uri_ingest_task.format(vol, task))
+
     def ingest_exported_volumes(self, host, cluster, varray, vpool, project, volspec):
         projectURI = self.project_query(project).strip()
         varrayURI = self.neighborhood_query(varray).strip()
@@ -8187,10 +8192,11 @@ class Bourne:
         if('details' in resp):
            print "Failed operation: "+ resp['details']
            return resp;
-        tr_list = resp['volume']
+        tr_list = resp['task']
         result = list()
         for tr in tr_list:
-           result.append(tr['id'])
+            s = self.api_sync_2(tr['resource']['id'], tr['id'], self.ingest_show_task)
+            result.append(s)
         return result
     
     def ingest_unexported_volumes(self, varray, vpool, project, volspec):
@@ -8218,8 +8224,9 @@ class Bourne:
         if('details' in resp):
            print "Failed operation: "+ resp['details']
            return resp;
-        tr_list = resp['volume']
+        tr_list = resp['task']
         result = list()
         for tr in tr_list:
-           result.append(tr['id'])
+            s = self.api_sync_2(tr['resource']['id'], tr['id'], self.ingest_show_task)
+            result.append(s)
         return result

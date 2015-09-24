@@ -752,7 +752,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // If the CG contains volumes already and no new additional journals are provisioned,
                         // then we simply update the reference on the source for the journal volume.
                         _log.info(String.format("Re-use existing Target Journal for target [%s]", targetJournalVarray.getLabel()));
-                        Volume existingTargetJournalVolume = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
+                        Volume existingTargetJournalVolume = _rpHelper.selectExistingJournalForTargetVolume(cgTargetVolumes, 
+                                targetJournalVarray.getId(), targetJournalRec.getInternalSiteName());
                         targetJournals.put(targetJournalVarray.getId(), existingTargetJournalVolume);
                         _log.info(String.format("Existing Target Journal: [%s] (%s)", existingTargetJournalVolume.getLabel(), existingTargetJournalVolume.getId()));
                         continue;

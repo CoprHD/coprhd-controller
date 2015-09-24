@@ -491,7 +491,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 Volume backendVolume = ((Volume) processedBlockObject);
 
                 virtualArray = _dbClient.queryObject(VirtualArray.class, backendVolume.getVirtualArray());
-                vPool = _dbClient.queryObject(VirtualPool.class, backendVolume.getVirtualArray());
+                vPool = _dbClient.queryObject(VirtualPool.class, backendVolume.getVirtualPool());
 
                 if (virtualArray == null) {
                     throw IngestionException.exceptions.failedToIngestVplexBackend(

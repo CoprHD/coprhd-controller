@@ -311,8 +311,11 @@ class Tenant(object):
 
     def tenant_query(self, label):
         '''
-        Returns the UID of the tenant specified by the hierarchial name
-        (ex tenant`1/tenant2/tenant3)
+        Returns the UID of the specified tenant name
+        (ex tenant1/tenant2/tenant3)
+        By using whoami api we are retriving the tenants specific for that user only.
+        if any of the retrived tenant matches with tenant name then UID is returned
+        otherwise not found error is displayed.
         '''
 
         if (common.is_uri(label)):
@@ -767,6 +770,8 @@ class Tenant(object):
         '''
         uri = self.tenant_query(label)
         return self.tenant_delete_by_uri(uri)
+
+
     def get_whoami(self):
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", Tenant.URI_WHOAMI,

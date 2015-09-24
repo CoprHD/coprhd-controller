@@ -427,9 +427,9 @@ public class DiscoveryUtils {
         Set<URI> vNasDiff = Sets.difference(new HashSet<URI>(existingVNasURI), new HashSet<URI>(discoveredVNasURI));
 
         if (!vNasDiff.isEmpty()) {
-            Iterator<VirtualNAS> vNasPortIt = dbClient.queryIterativeObjects(VirtualNAS.class, vNasDiff, true);
-            while (vNasPortIt.hasNext()) {
-            	VirtualNAS vnas = vNasPortIt.next();
+            Iterator<VirtualNAS> vNasIt = dbClient.queryIterativeObjects(VirtualNAS.class, vNasDiff, true);
+            while (vNasIt.hasNext()) {
+            	VirtualNAS vnas = vNasIt.next();
             	modifiedVNas.add(vnas);
                 _log.info("Setting discovery status of vnas {} as NOTVISIBLE", vnas.getNasName());
                 vnas.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());

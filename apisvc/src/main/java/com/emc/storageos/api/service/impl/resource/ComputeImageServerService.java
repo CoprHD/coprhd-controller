@@ -138,7 +138,7 @@ public class ComputeImageServerService extends TaskResourceService {
 
             // If the imageServer being deleted is the last one,
             // then check if there are any valid AVAILABLE images, if so
-            // throw exception coz user cannot delete all imageServers when
+            // throw exception because user cannot delete all imageServers when
             // there are valid images available.
             boolean hasValidImages = false;
             List<URI> imageURIList = _dbClient.queryByType(ComputeImage.class,
@@ -382,7 +382,7 @@ public class ComputeImageServerService extends TaskResourceService {
         @Override
         public ComputeImageServerRestRep apply(
                 final ComputeImageServer imageserver) {
-            return ComputeMapper.map(imageserver);
+            return ComputeMapper.map(_dbClient, imageserver, null);
         }
     }
 
@@ -455,7 +455,7 @@ public class ComputeImageServerService extends TaskResourceService {
     /**
      * Removes the given imageServerId from each ComputeSystem present,
      * if the computeSystem has the given imageServerId as it association or relation.
-     * Disassocate's the imageServer from the computeSystem.
+     * Disassociate's  the imageServer from the computeSystem.
      * @param imageServerID {@link URI} computeImageServer id
      */
     private void removeImageServerFromComputeSystem(URI imageServerID) {

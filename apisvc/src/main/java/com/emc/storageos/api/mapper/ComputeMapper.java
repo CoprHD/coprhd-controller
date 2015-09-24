@@ -158,10 +158,17 @@ public class ComputeMapper {
      * Utility mapper method to map fields of {@link ComputeImageServer}
      * columnFamily to {@link ComputeImageServerRestRep} rest representation.
      * 
-     * @param from {@link ComputeImageServer} instance that has to be mapped.
+     * @param dbclient
+     *            {@link DbClient} instance
+     * @param from
+     *            {@link ComputeImageServer} instance that has to be mapped.
+     * @param failedImages
+     *            {@link List} of {@link ComputeImage} instances that failed
+     *            import on the imageServer
      * @return
      */
-    public static ComputeImageServerRestRep map(ComputeImageServer from) {
+    public static ComputeImageServerRestRep map(DbClient dbclient,
+            ComputeImageServer from, List<ComputeImage> failedImages) {
         if (from == null) {
             return null;
         }
@@ -183,28 +190,6 @@ public class ComputeMapper {
         to.setOsInstallTimeoutMs(from.getOsInstallTimeoutMs());
         to.setComputeImages(new ArrayList<NamedRelatedResourceRep>());
         to.setFailedImages(new ArrayList<NamedRelatedResourceRep>());
-        return to;
-    }
-
-    /**
-     * Utility mapper method to map fields of {@link ComputeImageServer}
-     * columnFamily to {@link ComputeImageServerRestRep} rest representation.
-     * 
-     * @param dbclient
-     *            {@link DbClient} instance
-     * @param from
-     *            {@link ComputeImageServer} instance that has to be mapped.
-     * @param failedImages
-     *            {@link List} of {@link ComputeImage} instances that failed
-     *            import on the imageServer
-     * @return
-     */
-    public static ComputeImageServerRestRep map(DbClient dbclient,
-            ComputeImageServer from, List<ComputeImage> failedImages) {
-        if (from == null) {
-            return null;
-        }
-        ComputeImageServerRestRep to = map(from);
         if (from.getComputeImages() != null) {
             for (String computeimage : from.getComputeImages()) {
                 ComputeImage image = dbclient.queryObject(ComputeImage.class,

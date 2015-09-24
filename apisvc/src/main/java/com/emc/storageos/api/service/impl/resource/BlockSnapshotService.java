@@ -223,9 +223,18 @@ public class BlockSnapshotService extends TaskResourceService {
         // snapshot is the source side backend volume, which will have the same
         // vpool as the VPLEX volume and therefore, the correct implementation
         // should be returned.
-        BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
-
-        blockServiceApiImpl.deleteSnapshot(snap, task);
+        try {
+            BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
+            blockServiceApiImpl.deleteSnapshot(snap, task);
+        } catch (InternalException e) {
+            String errorMsg = String.format("Exception attempting to delete snapshot %s: %s", snap.getId(), e.getMessage());
+            _log.error(errorMsg);
+            for (TaskResourceRep taskResourceRep : response.getTaskList()) {
+                taskResourceRep.setState(Operation.Status.error.name());
+                taskResourceRep.setMessage(errorMsg);
+                _dbClient.error(BlockSnapshot.class, taskResourceRep.getResource().getId(), task, e);
+            }
+        }
 
         auditOp(OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                 id.toString(), snap.getLabel(), snap.getParent().getName(), device.getId().toString());

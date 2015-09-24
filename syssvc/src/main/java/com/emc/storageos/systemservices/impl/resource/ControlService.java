@@ -43,6 +43,7 @@ import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
+import com.emc.storageos.systemservices.impl.property.VdcSiteManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
@@ -73,6 +74,9 @@ public class ControlService {
     private PropertyManager propertyManager;
     private final static String FORCE = "1";
 
+    @Autowired
+    private VdcSiteManager vdcManager;
+    
     @Context
     protected SecurityContext sc;
 
@@ -300,7 +304,7 @@ public class ControlService {
     @Produces({ MediaType.APPLICATION_JSON })
     public Response receivePoweroffAgreement(@QueryParam("sender") String svcId) {
         _log.info("Receiving poweroff agreement");
-        propertyManager.getPoweroffAgreementsKeeper().add(svcId);
+        vdcManager.getPoweroffAgreementsKeeper().add(svcId);
         return Response.ok().build();
     }
 

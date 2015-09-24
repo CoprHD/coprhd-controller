@@ -11,14 +11,16 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DataRevision;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
@@ -35,6 +37,12 @@ public class VdcSiteManager extends AbstractManager {
     private PropertyInfoExt targetVdcPropInfo;
     private SiteInfo targetVdcPropVersion;
     private DataRevision targetDataRevision;
+    private PowerOffState targetPowerOffState;
+    
+    private static final String POWEROFFTOOL_COMMAND = "/etc/powerofftool";
+
+    // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
+    private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
     
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
@@ -173,7 +181,15 @@ public class VdcSiteManager extends AbstractManager {
                 retrySleep();
                 continue;
             }
-
+            
+            // Step2: power off if all nodes agree.
+            log.info("Step2: Power off if poweroff state != NONE. {}", targetPowerOffState);
+            try {
+                gracefulPoweroffCluster();
+            } catch (Exception e) {
+                log.error("Step2: Failed to poweroff. {}", e);
+            }
+            
             log.info("Step2: If VDC configuration is changed update");
             if (vdcPropertiesChanged()) {
                 log.info("Step2: Current vdc properties are not same as target vdc properties. Updating.");
@@ -233,6 +249,22 @@ public class VdcSiteManager extends AbstractManager {
                 reboot();
             }
         }
+        
+        targetPowerOffState = coordinator.getTargetInfo(PowerOffState.class);
+        if (targetPowerOffState == null) {
+            // only control node can set target
+            try {
+                // Set the updated propperty info in coordinator
+                coordinator.setTargetInfo(new PowerOffState(PowerOffState.State.NONE));
+                targetPowerOffState = coordinator.getTargetInfo(PowerOffState.class);
+                log.info("Step1b: Target poweroff state set to: {}", PowerOffState.State.NONE);
+            } catch (CoordinatorClientException e) {
+                log.info("Step1b: Wait another control node to set target");
+                retrySleep();
+                throw e;
+            }
+        }
+
     }
 
     /**
@@ -330,6 +362,33 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     /**
+     * If target poweroff state is not NONE, that means user has set it to STARTED.
+     * in the checkAllNodesAgreeToPowerOff, all nodes, including control nodes and data nodes
+     * will start to publish their poweroff state in the order of [NOTICED, ACKNOWLEDGED, POWEROFF].
+     * Every node can publish the next state only if it sees the previous state are found on every other nodes.
+     * By doing this, we can gaurantee that all nodes receive the acknowledgement of powering among each other,
+     * we can then safely poweroff.
+     * No matter the poweroff failed or not, at the end, we reset the target poweroff state back to NONE.
+     * CTRL-11690: the new behavior is if an agreement cannot be reached, a best-effort attempt to poweroff the
+     * remaining nodes will be made, as if the force parameter is provided.
+     */
+    private void gracefulPoweroffCluster() {
+        if (targetPowerOffState != null && targetPowerOffState.getPowerOffState() != PowerOffState.State.NONE) {
+            boolean forceSet = targetPowerOffState.getPowerOffState() == PowerOffState.State.FORCESTART;
+            log.info("Step2: Trying to reach agreement with timeout on cluster poweroff");
+            if (checkAllNodesAgreeToPowerOff(forceSet) && initiatePoweroff(forceSet)) {
+                resetTargetPowerOffState();
+                poweroffCluster();
+            } else {
+                log.warn("Step2: Failed to reach agreement among all the nodes. Proceed with best-effort poweroff");
+                initiatePoweroff(true);
+                resetTargetPowerOffState();
+                poweroffCluster();
+            }
+        }
+    }
+    
+    /**
      * Check if data revision is same as local one. If not, switch to target revision and reboot the whole cluster
      * simultaneously.
      * 
@@ -347,8 +406,17 @@ public class VdcSiteManager extends AbstractManager {
                 reboot();
             } else {
                 log.warn("Step3: Failed to reach agreement among all the nodes. Delay data revision change until next run");
+                publishNodePowerOffState(PowerOffState.State.NONE);
+                resetTargetPowerOffState();
                 localRepository.setDataRevision(localRevision);
             }
         }
     }    
+
+    public void poweroffCluster() {
+        log.info("powering off the cluster!");
+        final String[] cmd = { POWEROFFTOOL_COMMAND };
+        Exec.sudo(SHUTDOWN_TIMEOUT_MILLIS, cmd);
+    }
+
 }

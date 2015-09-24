@@ -317,7 +317,7 @@ public abstract class AbstractManager implements Runnable {
                         retrySleep();
                     }
                 } else {
-                    log.info("Step2: Wait control node to set target poweroff state");
+                    log.info("Wait control node to set target poweroff state");
                     retrySleep();
                 }
 
@@ -327,7 +327,7 @@ public abstract class AbstractManager implements Runnable {
                 }
             } catch (Exception e) {
                 retrySleep();
-                log.info("Step2: reset cluster poweroff state retrying. {}", e);
+                log.info("reset cluster poweroff state retrying. {}", e);
             }
         }
     }
@@ -338,8 +338,8 @@ public abstract class AbstractManager implements Runnable {
      * @param toState
      * @throws com.emc.storageos.systemservices.exceptions.CoordinatorClientException
      */
-    private void publishNodePowerOffState(PowerOffState.State toState) throws CoordinatorClientException {
-        log.info("Step2: Send {} signal", toState);
+    protected void publishNodePowerOffState(PowerOffState.State toState) throws CoordinatorClientException {
+        log.info("Send {} signal", toState);
         coordinator.setNodeSessionScopeInfo(new PowerOffState(toState));
     }
 

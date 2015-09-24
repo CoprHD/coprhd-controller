@@ -7,6 +7,7 @@ package com.emc.sa.service.vipr.block.consistency.tasks;
 import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.vipr.client.Tasks;
 
@@ -14,15 +15,14 @@ public class DeactivateConsistencyGroupSnapshot extends
         WaitForTasks<BlockConsistencyGroupRestRep> {
 
     private URI consistencyGroup;
-    private URI fullCopy;
 
-    public DeactivateConsistencyGroupSnapshot(URI consistencyGroup, URI fullCopy) {
+    public DeactivateConsistencyGroupSnapshot(URI consistencyGroup) {
         this.consistencyGroup = consistencyGroup;
-        this.fullCopy = fullCopy;
     }
 
     @Override
     protected Tasks<BlockConsistencyGroupRestRep> doExecute() throws Exception {
-        return getClient().blockConsistencyGroups().deactivateSnapshot(consistencyGroup, fullCopy);
+        NamedRelatedResourceRep item = getClient().blockConsistencyGroups().getSnapshots(consistencyGroup).get(0);
+        return getClient().blockConsistencyGroups().deactivateSnapshot(consistencyGroup, item.getId());
     }
 }

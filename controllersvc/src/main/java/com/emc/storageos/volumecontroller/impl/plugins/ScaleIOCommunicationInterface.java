@@ -5,6 +5,7 @@
 
 package com.emc.storageos.volumecontroller.impl.plugins;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
@@ -76,6 +77,13 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
         log.info("Starting scan of ScaleIO StorageProvider. IP={}", accessProfile.getIpAddress());
         StorageProvider.ConnectionStatus cxnStatus = StorageProvider.ConnectionStatus.CONNECTED;
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class, accessProfile.getSystemId());
+        if (provider.getInterfaceType().equalsIgnoreCase(DiscoveredDataObject.Type.scaleio.name())) {
+            provider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED.name());
+            ScaleIOException ex = ScaleIOException.exceptions.scaleioCliNotSupported();
+            provider.setLastScanStatusMessage(ex.getLocalizedMessage());
+            _dbClient.persistObject(provider);
+            throw ScaleIOException.exceptions.scaleioCliNotSupported();
+        }
         _locker.acquireLock(accessProfile.getIpAddress(), LOCK_WAIT_SECONDS);
         try {
             ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(_dbClient).getClientHandle(provider);

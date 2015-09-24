@@ -95,10 +95,6 @@ public class DataCollectionJobUtil {
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateScaleIOAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageProvider.class &&
-                DiscoveredDataObject.Type.scaleio.name().equalsIgnoreCase(
-                        ((StorageProvider) taskObject).getInterfaceType())) {
-            throw ScaleIOException.exceptions.scaleioCliNotSupported();
-        } else if (clazz == StorageProvider.class &&
                 StorageProvider.InterfaceType.ddmc.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateDataDomainAccessProfile(profile, (StorageProvider) taskObject);

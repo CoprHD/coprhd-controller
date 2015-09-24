@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -1350,6 +1351,32 @@ public class ExportUtils {
         String modfiedArraySerialNumber = array.getSerialNumber().substring(beginIndex, endIndex);
 
         return String.format("VPlex_%s_%s", modfiedVPlexSerialNumber, modfiedArraySerialNumber);
+    }
+    
+    /**
+     * Given an updatedBlockObjectMap (maps BlockObject URI to Lun Integer) representing the desired state,
+     * and an Export Group, makes addedBlockObjects containing the entries that were added,
+     * and removedBlockObjects containing the entries that were removed.
+     * @param updatedBlockObjectMap : desired state of the Block Object Map
+     * @param exportGroup : existing map taken from exportGroup.getVolumes()
+     * @param addedBlockObjects : OUTPUT - contains map of added Block Objects
+     * @param removedBlockObjects : OUTPUT -- contains map of removed Block Objects
+     */
+    public static void getAddedAndRemovedBlockObjects(Map<URI, Integer> updatedBlockObjectMap, 
+            ExportGroup exportGroup, Map<URI, Integer> addedBlockObjects, Map<URI, Integer> removedBlockObjects) {
+        Map<URI, Integer> existingBlockObjectMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
+        // Determine the removed entries; they are in existing but not updated
+        for (Entry<URI, Integer> entry : existingBlockObjectMap.entrySet()) {
+            if (!updatedBlockObjectMap.keySet().contains(entry.getKey())) {
+                removedBlockObjects.put(entry.getKey(), entry.getValue());
+            }
+        }
+        // Determine the added entries; they are in updated but not existing
+        for (Entry<URI, Integer> entry : updatedBlockObjectMap.entrySet()) {
+            if (!existingBlockObjectMap.keySet().contains(entry.getKey())) {
+                addedBlockObjects.put(entry.getKey(), entry.getValue());
+            }
+        }
     }
 
     /**

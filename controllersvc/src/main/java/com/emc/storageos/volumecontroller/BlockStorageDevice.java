@@ -299,6 +299,20 @@ public interface BlockStorageDevice {
             throws DeviceControllerException;
 
     /**
+     * Create a single snapshot, using CreateElementReplica.
+     *
+     * @param storage
+     * @param snapshotList
+     * @param createInactive
+     * @param readOnly
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    public void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList,
+                                Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
+
+    /**
      * @param storage
      * @param snapshotList
      * @param createInactive
@@ -329,6 +343,17 @@ public interface BlockStorageDevice {
      */
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException;
+
+    /**
+     * Delete a single snapshot.
+     *
+     * @param storage
+     * @param snapshot
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    void doDeleteSelectedSnapshot(StorageSystem storage, URI snapshot,
+                                  TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException;
@@ -698,6 +723,12 @@ public interface BlockStorageDevice {
             List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void doRemoveFromConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
+            List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
+
+    public void doAddToReplicationGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName,
+            List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
+
+    public void doRemoveFromReplicationGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName,
             List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**

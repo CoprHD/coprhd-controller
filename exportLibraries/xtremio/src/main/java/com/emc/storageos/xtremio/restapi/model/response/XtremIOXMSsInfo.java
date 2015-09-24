@@ -16,11 +16,19 @@ public class XtremIOXMSsInfo {
     private XtremIOObjectInfo[] xmssInfo;
 
     public XtremIOObjectInfo[] getXmssInfo() {
-        return xmssInfo;
+    	XtremIOObjectInfo[] result = null;
+    	if(xmssInfo != null){
+    		result = xmssInfo.clone();
+    	}
+        return result;
     }
 
     public void setXmssInfo(XtremIOObjectInfo[] xmssInfo) {
-        this.xmssInfo = xmssInfo;
+    	XtremIOObjectInfo[] input = null;
+    	if(xmssInfo != null){
+    		input = xmssInfo.clone();
+    	}
+        this.xmssInfo = input;
     }
 
     @Override

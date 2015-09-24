@@ -195,7 +195,7 @@ class VcenterDatacenter(object):
 
                 body = json.dumps(params)
                 (s, h) = common.service_json_request(
-                    self.__ipAddr, self.__port, "PUT",
+                    self.__ipAddr, self.__port, "POST",
                     VcenterDatacenter.URI_VCENTER_DATACENTERS.format(
                         vcenteruri), body)
                 o = common.json_decode(s)
@@ -281,11 +281,11 @@ class VcenterDatacenter(object):
         try:
             check = self.vcenterdatacenter_show(label, vcenter, tenantname)
             if check:
-                raise SOSError(SOSError.NOT_FOUND_ERR,
+                raise SOSError(SOSError.ENTRY_ALREADY_EXISTS_ERR,
                                "vcenterdatacenter " + label + ": found")
 
         except SOSError as e:
-            if e.err_code == SOSError.NOT_FOUND_ERR:
+            if e.err_code == SOSError.ENTRY_ALREADY_EXISTS_ERR:
 
                 uri = self.vcenterdatacenter_query(label, vcenter, VcenterDatacenter.DATACENTERS_FROM_ALL_TENANTS)
 
@@ -312,7 +312,7 @@ class VcenterDatacenter(object):
                 raise e
 
         if not check:
-            raise SOSError(SOSError.ENTRY_ALREADY_EXISTS_ERR,
+            raise SOSError(SOSError.NOT_FOUND_ERR,
                            "vcenterdatacenter with name " + label +
                            " dost not exist")
 

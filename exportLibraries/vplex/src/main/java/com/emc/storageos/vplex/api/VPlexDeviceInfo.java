@@ -135,7 +135,7 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append("DeviceInfo ( ");
+        str.append("VPlexDeviceInfo ( ");
         str.append(super.toString());
         str.append(", cluster: ").append(getCluster());
         str.append(", geometry: ").append(geometry);

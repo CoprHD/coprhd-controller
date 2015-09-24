@@ -1219,6 +1219,17 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _logger.info("{} doCreateSingleSnapshot START ...", storage.getSerialNumber());
+        List<BlockSnapshot> snapshots = _dbClient
+                .queryObject(BlockSnapshot.class, snapshotList);
+        URI snapshot = snapshots.get(0).getId();
+        _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
+                readOnly, taskCompleter);
+        _logger.info("{} doCreateSingleSnapshot END ...", storage.getSerialNumber());
+    }
+
+    @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -1257,7 +1268,6 @@ public class VNXeStorageDevice extends VNXeOperations
     @Override
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-
         _logger.info("{} doDeleteSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
 
@@ -1269,6 +1279,23 @@ public class VNXeStorageDevice extends VNXeOperations
         }
         _logger.info("{} doDeleteSnapshot END ...", storage.getSerialNumber());
 
+    }
+
+    @Override
+    public void doDeleteSelectedSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _logger.info("{} doDeleteSelectedSnapshot START ...", storage.getSerialNumber());
+        try {
+            _snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
+        } catch (DatabaseException e) {
+            String message = String.format(
+                    "IO exception when trying to delete snapshot(s) on array %s",
+                    storage.getSerialNumber());
+            _logger.error(message, e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteSnapshot",
+                    e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        }
+        _logger.info("{} doDeleteSelectedSnapshot END ...", storage.getSerialNumber());
     }
 
     @Override
@@ -1601,6 +1628,22 @@ public class VNXeStorageDevice extends VNXeOperations
                             consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
 
+    }
+
+    @Override
+    public void doAddToReplicationGroup(StorageSystem storage,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doRemoveFromReplicationGroup(StorageSystem storage,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
     }
 
     @Override

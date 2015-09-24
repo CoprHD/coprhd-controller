@@ -324,7 +324,8 @@ public class XtremIOV1Client extends XtremIOClient {
             XtremIOInitiators initiators = getResponseObject(XtremIOInitiators.class, response);
             return initiators.getContent();
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            // No need to log this message at error level.
+            log.warn(e.getMessage(), e);
         }
         log.info("Initiators not registered on Array with name : {}", initiatorName);
         return null;

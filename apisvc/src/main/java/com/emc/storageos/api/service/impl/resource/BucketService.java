@@ -84,7 +84,7 @@ public class BucketService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(BucketService.class);
     private static final String EVENT_SERVICE_TYPE = "object";
-    private static final String SLASH ="/";
+    private static final String SLASH = "/";
     private static final String UNDER_SCORE = "_";
 
     private BucketScheduler _bucketScheduler;
@@ -194,9 +194,7 @@ public class BucketService extends TaskResourceService {
         Integer retention = Integer.valueOf(param.getRetention());
 
         // Hard Quota should be more than SoftQuota
-        if (softQuota >= hardQuota) {
-            throw APIException.badRequests.invalidQuotaRequestForObjectStorage(param.getLabel());
-        }
+        verifyQuotaValues(softQuota, hardQuota, param.getLabel());
 
         // check varray
         VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class, param.getVarray());
@@ -218,7 +216,7 @@ public class BucketService extends TaskResourceService {
 
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
 
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, Integer.valueOf(1));
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.FALSE);
 
         List<BucketRecommendation> placement = _bucketScheduler.placeBucket(neighborhood, cos, capabilities);
@@ -231,7 +229,7 @@ public class BucketService extends TaskResourceService {
         BucketRecommendation recommendation = placement.get(0);
 
         String task = UUID.randomUUID().toString();
-        Bucket bucket = prepareBucket(param, project, tenant, neighborhood, cos, flags, recommendation, task);
+        Bucket bucket = prepareBucket(param, project, tenant, neighborhood, cos, flags, recommendation);
 
         _log.info(String.format(
                 "createBucket --- Bucket: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
@@ -241,20 +239,12 @@ public class BucketService extends TaskResourceService {
                 task, ResourceOperationTypeEnum.CREATE_BUCKET);
         op.setDescription("Bucket Create");
 
-        try {
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
-            ObjectController controller = getController(ObjectController.class, system.getSystemType());
-            controller.createBucket(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), bucket.getId(),
-                    param.getLabel(), tenant.getNamespace(), param.getRetention(), param.getHardQuota(),
-                    param.getSoftQuota(), param.getOwner(), task);
-        } catch (InternalException e) {
-            bucket.setInactive(true);
-            _dbClient.persistObject(bucket);
-
-            // treating all controller exceptions as internal error for now. controller
-            // should discriminate between validation problems vs. internal errors
-            throw e;
-        }
+        // Controller invocation
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
+        ObjectController controller = getController(ObjectController.class, system.getSystemType());
+        controller.createBucket(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), bucket.getId(),
+                bucket.getLabel(), bucket.getNamespace(), bucket.getRetention(), bucket.getHardQuota(),
+                bucket.getSoftQuota(), bucket.getOwner(), task);
 
         auditOp(OperationTypeEnum.CREATE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getLabel(), param.getHardQuota(), neighborhood.getId().toString(),
@@ -363,11 +353,10 @@ public class BucketService extends TaskResourceService {
      * @param vpool
      * @param flags
      * @param placement
-     * @param token
      * @return
      */
     private Bucket prepareBucket(BucketParam param, Project project, TenantOrg tenantOrg,
-            VirtualArray neighborhood, VirtualPool vpool, DataObject.Flag[] flags, BucketRecommendation placement, String token) {
+            VirtualArray neighborhood, VirtualPool vpool, DataObject.Flag[] flags, BucketRecommendation placement) {
         _log.debug("Preparing Bucket creation for Param : {}", param);
         StoragePool pool = null;
         Bucket bucket = new Bucket();
@@ -439,9 +428,7 @@ public class BucketService extends TaskResourceService {
         }
 
         // Hard Quota should be more than SoftQuota
-        if (softQuota != 0 && hardQuota != 0 && softQuota >= hardQuota) {
-            throw APIException.badRequests.invalidQuotaRequestForObjectStorage(bucket.getLabel());
-        }
+        verifyQuotaValues(softQuota, hardQuota, bucket.getLabel());
 
         // if no retention is provided, use the old value
         if (retention == 0) {
@@ -508,5 +495,19 @@ public class BucketService extends TaskResourceService {
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
             PermissionsHelper permissionsHelper) {
         return new ProjOwnedResRepFilter(user, permissionsHelper, Bucket.class);
+    }
+    
+    /**
+     * Hard Quota should be more than SoftQuota
+     * 
+     * @param softQuota Soft Quota value
+     * @param hardQuota Hard Quota value
+     * @param bucketName Bucket name
+     * @throws APIException If SoftQuota is more than HardQuota
+     */
+    private void verifyQuotaValues(Long softQuota, Long hardQuota, String bucketName) throws APIException {
+        if (softQuota < 0 || hardQuota < 0 || softQuota > hardQuota) {
+            throw APIException.badRequests.invalidQuotaRequestForObjectStorage(bucketName);
+        }
     }
 }

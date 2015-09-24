@@ -1505,8 +1505,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public String addStepsForDeleteVolumes(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
 
+        // Add steps for deleting any local mirrors that may be present.
+        // waitFor = addStepsForDeleteMirrors(workflow, waitFor, volumes);
+
         // The the list of Volumes that the BlockDeviceController needs to process.
-        List<VolumeDescriptor> filteredVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
+        volumes = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] {
                         VolumeDescriptor.Type.BLOCK_DATA,
                         VolumeDescriptor.Type.RP_JOURNAL,
@@ -1519,46 +1522,21 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
 
         // Segregate by device.
-        Map<URI, List<VolumeDescriptor>> deviceMap = VolumeDescriptor.getDeviceMap(filteredVolumeDescriptors);
+        Map<URI, List<VolumeDescriptor>> deviceMap = VolumeDescriptor.getDeviceMap(volumes);
 
-        // Add a step to delete the volumes in each device. Note that it is possible
-        // that there is a BlockSnaphot instance that references the same device Volume
-        // if a VPLEX virtual volume has been created from the snapshot. If this is the
-        // case then the VPLEX volume is being deleted and this volume descriptor is
-        // for the source side backend volume for that VPLEX volume. In this case, we
-        // won't delete the backend volume because the volume is still a block snapshot
-        // target and the deletion would fail. The volume will be deleted when the
-        // BlockSnapshot instance is deleted.
-        boolean stepAdded = false;
+        // Add a step to delete the volumes in each device.
         for (URI deviceURI : deviceMap.keySet()) {
-            List<VolumeDescriptor> deviceVolumeDescriptors = deviceMap.get(deviceURI);
-            List<URI> deviceVolumeURIs = VolumeDescriptor.getVolumeURIs(deviceVolumeDescriptors);
-            Iterator<Volume> deviceVolumesIter = _dbClient.queryIterativeObjects(Volume.class, deviceVolumeURIs, true);
-            while (deviceVolumesIter.hasNext()) {
-                Volume deviceVolume = deviceVolumesIter.next();
-                String volumeNativeGuid = deviceVolume.getNativeGuid();
-                List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, volumeNativeGuid);
-                if (!snapshots.isEmpty()) {
-                    deviceVolumeURIs.remove(deviceVolume.getId());
-                }
-            }
+            volumes = deviceMap.get(deviceURI);
+            List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumes);
 
-            if (!deviceVolumeURIs.isEmpty()) {
-                workflow.createStep(DELETE_VOLUMES_STEP_GROUP,
-                        String.format("Deleting volumes:%n%s", getVolumesMsg(_dbClient, deviceVolumeURIs)),
-                        waitFor, deviceURI, getDeviceType(deviceURI),
-                        this.getClass(),
-                        deleteVolumesMethod(deviceURI, deviceVolumeURIs),
-                        null, null);
-                stepAdded = true;
-            }
+            workflow.createStep(DELETE_VOLUMES_STEP_GROUP,
+                    String.format("Deleting volumes:%n%s", getVolumesMsg(_dbClient, volumeURIs)),
+                    waitFor, deviceURI, getDeviceType(deviceURI),
+                    this.getClass(),
+                    deleteVolumesMethod(deviceURI, volumeURIs),
+                    null, null);
         }
-
-        if (stepAdded) {
-            return DELETE_VOLUMES_STEP_GROUP;
-        } else {
-            return waitFor;
-        }
+        return DELETE_VOLUMES_STEP_GROUP;
     }
 
     /**
@@ -1598,6 +1576,22 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         .getPool().toString(), volumeURI.toString()));
                 VolumeDeleteCompleter volumeCompleter = new VolumeDeleteCompleter(volumeURI, opId);
                 if (volume.getInactive() == false) {
+                    // It is possible that there is a BlockSnaphot instance that references the
+                    // same device Volume if a VPLEX virtual volume has been created from the
+                    // snapshot. If this is the case then the VPLEX volume is being deleted and
+                    // volume is represents the source side backend volume for that VPLEX volume.
+                    // In this case, we won't delete the backend volume because the volume is
+                    // still a block snapshot target and the deletion would fail. The volume will
+                    // be deleted when the BlockSnapshot instance is deleted. All we want to do is
+                    // mark the Volume instance inactive.
+                    List<BlockSnapshot> snapshots = CustomQueryUtility
+                            .getActiveBlockSnapshotByNativeGuid(_dbClient, volume.getNativeGuid());
+                    if (!snapshots.isEmpty()) {
+                        volume.setInactive(true);
+                        _dbClient.persistObject(volume);
+                        continue;
+                    }
+
                     // Add the volume to the list to delete
                     volumes.add(volume);
                 } else {

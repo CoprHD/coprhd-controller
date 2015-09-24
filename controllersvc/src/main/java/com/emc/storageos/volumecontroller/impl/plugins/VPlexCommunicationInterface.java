@@ -84,6 +84,7 @@ import com.emc.storageos.vplex.api.VPlexPortInfo.SpeedUnits;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexTargetInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
@@ -548,6 +549,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             Map<String, String> clusterIdToNameMap = client.getClusterIdToNameMap();
             Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
+            Map<String, String> distributedDevicePathToClusterMap = 
+                    VPlexControllerUtils.getDistributedDevicePathToClusterMap(vplexUri, _dbClient);
 
             if (null != allVirtualVolumes) {
                 for (String name : allVirtualVolumes.keySet()) {
@@ -609,13 +612,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             // just refresh / update the existing unmanaged volume
                             s_logger.info("Unmanaged Volume {} is already known to ViPR", name);
 
-                            updateUnmanagedVolume(info, vplex, unmanagedVolume, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
+                            updateUnmanagedVolume(info, vplex, unmanagedVolume, volumesToCgs, 
+                                    clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap);
                             knownUnmanagedVolumes.add(unmanagedVolume);
                         } else {
                             // set up new unmanaged vplex volume
                             s_logger.info("Unmanaged Volume {} is not known to ViPR", name);
 
-                            unmanagedVolume = createUnmanagedVolume(info, vplex, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
+                            unmanagedVolume = createUnmanagedVolume(info, vplex, volumesToCgs, 
+                                    clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap);
                             newUnmanagedVolumes.add(unmanagedVolume);
                         }
 
@@ -750,7 +755,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             StorageSystem vplex, UnManagedVolume volume,
             Map<String, String> volumesToCgs,
             Map<String, String> clusterIdToNameMap,
-            Map<String, String> varrayToClusterIdMap) {
+            Map<String, String> varrayToClusterIdMap,
+            Map<String, String> distributedDevicePathToClusterMap) {
 
         s_logger.info("Updating UnManagedVolume {} with latest from VPLEX volume {}",
                 volume.getLabel(), info.getName());
@@ -763,31 +769,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         volume.getUnmanagedExportMasks().clear();
         volume.getInitiatorUris().clear();
         volume.getInitiatorNetworkIds().clear();
-
-        boolean isRecoverPointEnabled = false;
-        
-        // discover backend volume data
-        String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
-                _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
-        if (!VplexBackendIngestionContext.DISCOVERY_MODE_INGESTION_ONLY.equals(discoveryMode)) {
-            try {
-                VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
-                context.discover();
-                
-                for (UnManagedVolume bvol : context.getUnmanagedBackendVolumes()) {
-                    StringMap unManagedVolumeCharacteristics = bvol.getVolumeCharacterstics();
-                    String rpEnabled = unManagedVolumeCharacteristics
-                            .get(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
-                    isRecoverPointEnabled = (null != rpEnabled && Boolean.parseBoolean(rpEnabled));
-                }
-                
-                s_logger.info(context.getPerformanceReport());
-            } catch (Exception ex) {
-                s_logger.warn("error discovering backend structure for {}: ",
-                        volume.getNativeGuid(), ex);
-                // no need to throw further
-            }
-        }
 
         // set volume characteristics and volume information
         Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
@@ -831,11 +812,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), FALSE);
         }
 
-        // set an is-ingestable flag, used later by the ingest process
-        String ingestable = isRecoverPointEnabled ? FALSE : TRUE;
-        unManagedVolumeCharacteristics.put(
-                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), ingestable);
-
         // set system type
         StringSet systemTypes = new StringSet();
         systemTypes.add(vplex.getSystemType());
@@ -865,64 +841,96 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
         // set supported vpool list
         StringSet matchedVPools = new StringSet();
-        if (TRUE.equals(ingestable)) {
-            String highAvailability = info.getLocality().equals(LOCAL) ?
-                    VirtualPool.HighAvailabilityType.vplex_local.name() :
-                    VirtualPool.HighAvailabilityType.vplex_distributed.name();
-            List<URI> allVpoolUris = _dbClient.queryByType(VirtualPool.class, true);
-            List<VirtualPool> allVpools = _dbClient.queryObject(VirtualPool.class, allVpoolUris);
-            s_logger.info("finding valid virtual pools for UnManagedVolume {}", volume.getLabel());
+        String highAvailability = info.getLocality().equals(LOCAL) ?
+                VirtualPool.HighAvailabilityType.vplex_local.name() :
+                VirtualPool.HighAvailabilityType.vplex_distributed.name();
+        List<URI> allVpoolUris = _dbClient.queryByType(VirtualPool.class, true);
+        List<VirtualPool> allVpools = _dbClient.queryObject(VirtualPool.class, allVpoolUris);
+        s_logger.info("finding valid virtual pools for UnManagedVolume {}", volume.getLabel());
 
-            for (VirtualPool vpool : allVpools) {
+        for (VirtualPool vpool : allVpools) {
 
-                // VPool must specify the correct VPLEX HA.
-                if ((vpool.getHighAvailability() == null) ||
-                        (!vpool.getHighAvailability().equals(highAvailability))) {
-                    s_logger.info("   virtual pool {} is not valid because "
-                            + "its high availability setting does not match the unmanaged volume",
-                            vpool.getLabel());
-                    continue;
+            // VPool must specify the correct VPLEX HA.
+            if ((vpool.getHighAvailability() == null) ||
+                    (!vpool.getHighAvailability().equals(highAvailability))) {
+                s_logger.info("   virtual pool {} is not valid because "
+                        + "its high availability setting does not match the unmanaged volume",
+                        vpool.getLabel());
+                continue;
+            }
+
+            // CTRL-12225 we shouldn't ingest to vpools that have recoverpoint enabled
+            if (VirtualPool.vPoolSpecifiesRPVPlex(vpool)) {
+                s_logger.info("   virtual pool {} is not valid because it is RecoverPoint enabled",
+                        vpool.getLabel());
+                continue;
+            }
+
+            // If the volume is in a CG, the vpool must specify multi-volume consistency.
+            Boolean mvConsistency = vpool.getMultivolumeConsistency();
+            if ((TRUE.equals(unManagedVolumeCharacteristics.get(
+                    SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString()))) &&
+                    ((mvConsistency == null) || (mvConsistency == Boolean.FALSE))) {
+                s_logger.info("   virtual pool {} is not valid because it does not have the "
+                        + "multi-volume consistency flag set, and the unmanaged volume is in a consistency group",
+                        vpool.getLabel());
+                continue;
+            }
+
+            // VPool must be assigned to a varray corresponding to volumes clusters.
+            StringSet varraysForVpool = vpool.getVirtualArrays();
+            for (String varrayId : varraysForVpool) {
+                String varrayClusterId = varrayToClusterIdMap.get(varrayId);
+                if (null == varrayClusterId) {
+                    varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(URI.create(varrayId), vplex.getId(), _dbClient);
+                    varrayToClusterIdMap.put(varrayId, varrayClusterId);
                 }
 
-                // CTRL-12225 we shouldn't ingest to vpools that have recoverpoint enabled
-                if (VirtualPool.vPoolSpecifiesRPVPlex(vpool)) {
-                    s_logger.info("   virtual pool {} is not valid because it is RecoverPoint enabled",
-                            vpool.getLabel());
-                    continue;
-                }
-
-                // If the volume is in a CG, the vpool must specify multi-volume consistency.
-                Boolean mvConsistency = vpool.getMultivolumeConsistency();
-                if ((TRUE.equals(unManagedVolumeCharacteristics.get(
-                        SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString()))) &&
-                        ((mvConsistency == null) || (mvConsistency == Boolean.FALSE))) {
-                    s_logger.info("   virtual pool {} is not valid because it does not have the "
-                            + "multi-volume consistency flag set, and the unmanaged volume is in a consistency group",
-                            vpool.getLabel());
-                    continue;
-                }
-
-                // VPool must be assigned to a varray corresponding to volumes clusters.
-                StringSet varraysForVpool = vpool.getVirtualArrays();
-                for (String varrayId : varraysForVpool) {
-                    String varrayClusterId = varrayToClusterIdMap.get(varrayId);
-                    if (null == varrayClusterId) {
-                        varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(URI.create(varrayId), vplex.getId(), _dbClient);
-                        varrayToClusterIdMap.put(varrayId, varrayClusterId);
-                    }
-
-                    if (!ConnectivityUtil.CLUSTER_UNKNOWN.equals(varrayClusterId)) {
-                        String varrayClusterName = clusterIdToNameMap.get(varrayClusterId);
-                        if (volumeClusters.contains(varrayClusterName)) {
-                            matchedVPools.add(vpool.getId().toString());
-                            break;
-                        }
+                if (!ConnectivityUtil.CLUSTER_UNKNOWN.equals(varrayClusterId)) {
+                    String varrayClusterName = clusterIdToNameMap.get(varrayClusterId);
+                    if (volumeClusters.contains(varrayClusterName)) {
+                        matchedVPools.add(vpool.getId().toString());
+                        break;
                     }
                 }
             }
         }
 
-        if (null == matchedVPools || matchedVPools.isEmpty()) {
+        // add this info to the unmanaged volume object
+        volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
+        volume.addVolumeInformation(unManagedVolumeInformation);
+
+        // discover backend volume data
+        boolean isRecoverPointEnabled = false;
+        String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
+                _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
+        if (!VplexBackendIngestionContext.DISCOVERY_MODE_INGESTION_ONLY.equals(discoveryMode)) {
+            try {
+                VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
+                context.setDistributedDevicePathToClusterMap(distributedDevicePathToClusterMap);
+                context.discover();
+                
+                for (UnManagedVolume bvol : context.getUnmanagedBackendVolumes()) {
+                    StringMap bvolUnManagedVolumeCharacteristics = bvol.getVolumeCharacterstics();
+                    String rpEnabled = bvolUnManagedVolumeCharacteristics
+                            .get(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
+                    isRecoverPointEnabled = (null != rpEnabled && Boolean.parseBoolean(rpEnabled));
+                }
+                
+                s_logger.info(context.getPerformanceReport());
+            } catch (Exception ex) {
+                s_logger.warn("error discovering backend structure for {}: ",
+                        volume.getNativeGuid(), ex);
+                // no need to throw further
+            }
+        }
+
+        // set an is-ingestable flag, used later by the ingest process
+        String ingestable = isRecoverPointEnabled ? FALSE : TRUE;
+        unManagedVolumeCharacteristics.put(
+                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), ingestable);
+
+        if (null == matchedVPools || matchedVPools.isEmpty() || isRecoverPointEnabled) {
             // clean all supported vpools.
             volume.getSupportedVpoolUris().clear();
             s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
@@ -931,10 +939,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             volume.getSupportedVpoolUris().replace(matchedVPools);
             s_logger.info("Replaced Pools : {}", volume.getSupportedVpoolUris());
         }
-
-        // add this info to the unmanaged volume object
-        volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
-        volume.addVolumeInformation(unManagedVolumeInformation);
     }
 
     /**
@@ -947,7 +951,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     private UnManagedVolume createUnmanagedVolume(VPlexVirtualVolumeInfo info,
             StorageSystem vplex, Map<String, String> volumesToCgs, Map<String, String> clusterIdToNameMap,
-            Map<String, String> varrayToClusterIdMap) {
+            Map<String, String> varrayToClusterIdMap, Map<String, String> distributedDevicePathToClusterMap) {
 
         s_logger.info("Creating new UnManagedVolume from VPLEX volume {}",
                 info.getName());
@@ -955,7 +959,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         UnManagedVolume volume = new UnManagedVolume();
         volume.setId(URIUtil.createId(UnManagedVolume.class));
 
-        updateUnmanagedVolume(info, vplex, volume, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
+        updateUnmanagedVolume(info, vplex, volume, volumesToCgs, 
+                clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap);
 
         return volume;
     }

@@ -483,12 +483,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMirrorMethod(storage, asList(mirror)), null);
             }
         } else {
-                workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
-                        String.format("Creating mirror for %s", sourceVolume), waitFor,
-                        storage, getDeviceType(storage),
-                        this.getClass(),
-                        createMirrorMethod(storage, mirrorList, isCG, false),
-                        rollbackMirrorMethod(storage, mirrorList), null);
+            workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
+                    String.format("Creating mirror for %s", sourceVolume), waitFor,
+                    storage, getDeviceType(storage),
+                    this.getClass(),
+                    createMirrorMethod(storage, mirrorList, isCG, false),
+                    rollbackMirrorMethod(storage, mirrorList), null);
         }
         return CREATE_MIRRORS_STEP_GROUP;
     }
@@ -1333,7 +1333,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         // The the list of Volumes that the BlockDeviceController needs to process.
         volumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[]{
+                new VolumeDescriptor.Type[] {
                         VolumeDescriptor.Type.BLOCK_DATA,
                         VolumeDescriptor.Type.RP_SOURCE,
                         VolumeDescriptor.Type.RP_TARGET,
@@ -1505,11 +1505,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public String addStepsForDeleteVolumes(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
 
-        // Add steps for deleting any local mirrors that may be present.
-        //waitFor = addStepsForDeleteMirrors(workflow, waitFor, volumes);
-
         // The the list of Volumes that the BlockDeviceController needs to process.
-        volumes = VolumeDescriptor.filterByType(volumes,
+        List<VolumeDescriptor> filteredVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] {
                         VolumeDescriptor.Type.BLOCK_DATA,
                         VolumeDescriptor.Type.RP_JOURNAL,
@@ -1522,21 +1519,46 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
 
         // Segregate by device.
-        Map<URI, List<VolumeDescriptor>> deviceMap = VolumeDescriptor.getDeviceMap(volumes);
+        Map<URI, List<VolumeDescriptor>> deviceMap = VolumeDescriptor.getDeviceMap(filteredVolumeDescriptors);
 
-        // Add a step to delete the volumes in each device.
+        // Add a step to delete the volumes in each device. Note that it is possible
+        // that there is a BlockSnaphot instance that references the same device Volume
+        // if a VPLEX virtual volume has been created from the snapshot. If this is the
+        // case then the VPLEX volume is being deleted and this volume descriptor is
+        // for the source side backend volume for that VPLEX volume. In this case, we
+        // won't delete the backend volume because the volume is still a block snapshot
+        // target and the deletion would fail. The volume will be deleted when the
+        // BlockSnapshot instance is deleted.
+        boolean stepAdded = false;
         for (URI deviceURI : deviceMap.keySet()) {
-            volumes = deviceMap.get(deviceURI);
-            List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumes);
+            List<VolumeDescriptor> deviceVolumeDescriptors = deviceMap.get(deviceURI);
+            List<URI> deviceVolumeURIs = VolumeDescriptor.getVolumeURIs(deviceVolumeDescriptors);
+            Iterator<Volume> deviceVolumesIter = _dbClient.queryIterativeObjects(Volume.class, deviceVolumeURIs, true);
+            while (deviceVolumesIter.hasNext()) {
+                Volume deviceVolume = deviceVolumesIter.next();
+                String volumeNativeGuid = deviceVolume.getNativeGuid();
+                List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, volumeNativeGuid);
+                if (!snapshots.isEmpty()) {
+                    deviceVolumeURIs.remove(deviceVolume.getId());
+                }
+            }
 
-            workflow.createStep(DELETE_VOLUMES_STEP_GROUP,
-                    String.format("Deleting volumes:%n%s", getVolumesMsg(_dbClient, volumeURIs)),
-                    waitFor, deviceURI, getDeviceType(deviceURI),
-                    this.getClass(),
-                    deleteVolumesMethod(deviceURI, volumeURIs),
-                    null, null);
+            if (!deviceVolumeURIs.isEmpty()) {
+                workflow.createStep(DELETE_VOLUMES_STEP_GROUP,
+                        String.format("Deleting volumes:%n%s", getVolumesMsg(_dbClient, deviceVolumeURIs)),
+                        waitFor, deviceURI, getDeviceType(deviceURI),
+                        this.getClass(),
+                        deleteVolumesMethod(deviceURI, deviceVolumeURIs),
+                        null, null);
+                stepAdded = true;
+            }
         }
-        return DELETE_VOLUMES_STEP_GROUP;
+
+        if (stepAdded) {
+            return DELETE_VOLUMES_STEP_GROUP;
+        } else {
+            return waitFor;
+        }
     }
 
     /**
@@ -1763,9 +1785,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-
     @Override
-    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId) throws ControllerException {
+    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId)
+            throws ControllerException {
         _log.info("START establishVolumeAndSnapshotGroupRelation workflow");
 
         Workflow workflow = _workflowService.getNewWorkflow(this, ESTABLISH_VOLUME_SNAPSHOT_GROUP_WF_NAME, false, opId);
@@ -1773,7 +1795,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
         try {
-            workflow.createStep("establishStep", "create group relation between Volume group and Snapshot group", null, storage, storageObj.getSystemType(),
+            workflow.createStep("establishStep", "create group relation between Volume group and Snapshot group", null, storage,
+                    storageObj.getSystemType(),
                     this.getClass(), establishVolumeAndSnapshotGroupRelationMethod(storage, sourceVolume, snapshot), null, null);
 
             taskCompleter = new BlockSnapshotEstablishGroupTaskCompleter(snapshot, opId);
@@ -2681,7 +2704,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String detachStep = workflow.createStepId();
             Workflow.Method detach = detachMirrorMethod(storage, mirrorList, isCG);
             workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
-                        storageSystem.getSystemType(), getClass(), detach, null, detachStep);
+                    storageSystem.getSystemType(), getClass(), detach, null, detachStep);
 
             String deleteStep = workflow.createStepId();
             Workflow.Method delete = deleteMirrorMethod(storage, mirrorList, isCG);
@@ -3657,7 +3680,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * 2. Get the target volumes for the SRDF source volumes and adds them to the
      * target consistency group
      * Note: Target CG will be created using source system provider
-     *
+     * 
      * @param sourceCG the source cg
      * @param addVolumesList the add volumes list
      * @param workflow the workflow
@@ -4122,7 +4145,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public String createSingleCloneStep(Workflow workflow, URI storage, StorageSystem storageSystem, Volume volume, URI uri, String waitFor) {
+    public String
+            createSingleCloneStep(Workflow workflow, URI storage, StorageSystem storageSystem, Volume volume, URI uri, String waitFor) {
         Workflow.Method createMethod = createFullCopyVolumeMethod(storage, volume.getId(),
                 Arrays.asList(uri), false, false);
         Workflow.Method rollbackMethod = rollbackFullCopyVolumeMethod(storage, asList(uri));
@@ -4140,7 +4164,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         // detach if storage system is not vmax/vnx/hds
         if (!(storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.hds)
-                || storageSystem.deviceIsType(Type.vnxblock))) {
+        || storageSystem.deviceIsType(Type.vnxblock))) {
             Workflow.Method detachMethod = detachFullCopyMethod(storage, uri);
             waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy",
                     waitFor, storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
@@ -4245,7 +4269,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public String deleteSnapshotStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem,
-                                     List<URI> snapshotList, boolean isRemoveAll) {
+            List<URI> snapshotList, boolean isRemoveAll) {
         if (isRemoveAll) {
             _log.info("Adding group remove snapshot step");
             Workflow.Method deleteMethod = deleteSnapshotMethod(storage, snapshotList.get(0));
@@ -4259,7 +4283,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         storage, storageSystem.getSystemType(), getClass(), deleteMethod, null, null);
             }
         }
-
 
         return waitFor;
     }

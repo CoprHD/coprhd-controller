@@ -737,6 +737,7 @@ public class BlockSnapshotService extends TaskResourceService {
     // Only allow the virtual volume so created to be exported. Mark it export only?
     // What happens when other operations are executed on this virtual volume.
     // have to protect against deleting snapshot or VPLEX volume.
+    // Consider VPLEX+RP
 
     /**
      * Creates a VPLEX volume using the target volume associated with

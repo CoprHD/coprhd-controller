@@ -284,7 +284,7 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
     @Override
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
-        return Collections.EMPTY_MAP;
+        return Collections.emptyMap();
     }
 
     /**

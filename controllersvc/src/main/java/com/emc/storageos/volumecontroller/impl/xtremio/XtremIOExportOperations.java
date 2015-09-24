@@ -700,6 +700,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
     @Override
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
-        return Collections.EMPTY_MAP;
+        return Collections.emptyMap();
     }
 }

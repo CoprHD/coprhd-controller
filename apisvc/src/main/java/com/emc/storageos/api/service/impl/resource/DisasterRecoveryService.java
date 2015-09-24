@@ -4,43 +4,27 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
-
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.crypto.SecretKey;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.api.mapper.SiteMapper;
-import com.emc.storageos.coordinator.client.model.RepositoryInfo;
-import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.model.SoftwareVersion;
-import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
@@ -60,6 +44,12 @@ import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.vipr.client.ViPRCoreClient;
+
+import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
+import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
+import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
+import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
 
 @Path("/site")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
@@ -70,6 +60,7 @@ public class DisasterRecoveryService extends TaggedResource {
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
     private SysUtils sysUtils;
+    @Autowired
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -77,6 +68,7 @@ public class DisasterRecoveryService extends TaggedResource {
 
     /**
      * Attach one fresh install site to this primary as standby
+     * Or attach a primary site for the local standby site when it's first being added.
      * @param param site detail information
      * @return site response information
      */
@@ -84,19 +76,23 @@ public class DisasterRecoveryService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteRestRep addStandby(SiteAddParam param) {
-        log.info("Begin to add standby site {}", param);
-        // TODO call standby site and fetch standby site information
-        // Mock up of standby site information
-        SiteSyncParam standbyInfo = new SiteSyncParam();
-        standbyInfo.setName(param.getName());
-        standbyInfo.setVip(param.getVip());
-        precheckForStandbyAttach(standbyInfo);
-        
+        log.info("Retrieving standby site config from: {}", param.getVip());
+        ViPRCoreClient viprClient = new ViPRCoreClient(param.getVip(), true).withLogin(param.getUsername(),
+                param.getPassword());
+        SiteConfigRestRep standbyConfig = viprClient.site().getStandbyConfig();
+
+        precheckForStandbyAttach(standbyConfig);
+
         VirtualDataCenter vdc = queryLocalVDC();
 
         Site standbySite = new Site(URIUtil.createId(Site.class));
-        siteMapper.map(standbyInfo, standbySite);
+        standbySite.setName(param.getName());
+        standbySite.setVip(param.getVip());
         standbySite.setVdc(vdc.getId());
+        standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
+        standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
+        standbySite.setSecretKey(standbyConfig.getSecretKey());
+        standbySite.setUuid(standbyConfig.getUuid());
 
         if (log.isDebugEnabled()) {
             log.debug(standbySite.toString());
@@ -105,9 +101,82 @@ public class DisasterRecoveryService extends TaggedResource {
         log.info("Persist standby site to DB");
         _dbClient.createObject(standbySite);
 
-        updateVdcTargetVersion();
+        try {
+            _coordinator.addSite(standbyConfig.getUuid());
+        } catch (Exception e) {
+            //FIXME: throw custom API exception here
+            throw new IllegalStateException(e);
+        }
+
+        updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
+
+        log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());
+        SiteSyncParam primarySite = new SiteSyncParam();
+        primarySite.setHostIPv4AddressMap(new StringMap(vdc.getHostIPv4AddressesMap()));
+        primarySite.setHostIPv6AddressMap(new StringMap(vdc.getHostIPv6AddressesMap()));
+        primarySite.setName(param.getName()); // this is the name for the standby site
+        primarySite.setSecretKey(vdc.getSecretKey());
+        primarySite.setUuid(_coordinator.getSiteId());
+        primarySite.setVip(vdc.getApiEndpoint());
+
+        viprClient.site().syncSite(primarySite);
 
         return siteMapper.map(standbySite);
+    }
+
+    /**
+     * Sync all the site information from the primary site to the new standby
+     * The current site will be demoted from primary to standby during the process
+     * @param param
+     * @return
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response syncSites(SiteSyncParam param) {
+        VirtualDataCenter vdc = queryLocalVDC();
+
+        // this is the new standby site demoted from the current site
+        Site standbySite = new Site(URIUtil.createId(Site.class));
+        standbySite.setUuid(_coordinator.getSiteId());
+        standbySite.setName(param.getName());
+        standbySite.setVip(vdc.getApiEndpoint());
+        standbySite.setVdc(vdc.getId());
+        standbySite.getHostIPv4AddressMap().putAll(new StringMap(vdc.getHostIPv4AddressesMap()));
+        standbySite.getHostIPv6AddressMap().putAll(new StringMap(vdc.getHostIPv6AddressesMap()));
+        standbySite.setSecretKey(vdc.getSecretKey());
+
+        log.info("Persist standby site to DB");
+        _dbClient.createObject(standbySite);
+
+        // update the primary site
+        vdc.setApiEndpoint(param.getVip());
+        vdc.getHostIPv4AddressesMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
+        vdc.getHostIPv6AddressesMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+        vdc.setSecretKey(param.getSecretKey());
+
+        int hostCount = param.getHostIPv4AddressMap().size();
+        if (param.getHostIPv6AddressMap().size() > hostCount) {
+            hostCount = param.getHostIPv6AddressMap().size();
+        }
+        vdc.setHostCount(hostCount);
+
+        log.info("Persist primary site to DB");
+        _dbClient.updateAndReindexObject(vdc);
+
+        try {
+            _coordinator.addSite(param.getUuid());
+            _coordinator.setPrimarySite(param.getUuid());
+
+            updateDataRevision();
+        } catch (Exception e) {
+            //FIXME: throw custom API exception here
+            throw new IllegalStateException(e);
+        }
+
+        updateVdcTargetVersion(SiteInfo.UPDATE_DATA_REVISION);
+        
+        return Response.ok().build();
     }
 
     /**
@@ -119,7 +188,7 @@ public class DisasterRecoveryService extends TaggedResource {
     public SiteList getAllStandby() {
         log.info("Begin to list all standby sites of local VDC");
         SiteList standbyList = new SiteList();
-        
+
         VirtualDataCenter vdc = queryLocalVDC();
         URIQueryResultList standbySiteIds = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
@@ -172,7 +241,7 @@ public class DisasterRecoveryService extends TaggedResource {
             if (standby.getUuid().equals(uuid)) {
                 log.info("Find standby site in local VDC and remove it");
                 _dbClient.markForDeletion(standby);
-                updateVdcTargetVersion();
+                updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
                 return siteMapper.map(standby);
             }
         }
@@ -196,16 +265,12 @@ public class DisasterRecoveryService extends TaggedResource {
         VirtualDataCenter vdc = queryLocalVDC();
         SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
         
-        Site localSite = new Site();
-        localSite.setUuid(siteId);
-        localSite.setVip(vdc.getApiEndpoint());
-        localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
-        localSite.getHostIPv4AddressMap().putAll(vdc.getHostIPv4AddressesMap());
-        localSite.getHostIPv6AddressMap().putAll(vdc.getHostIPv6AddressesMap());
-        
-        SiteConfigRestRep siteConfigRestRep = new SiteConfigRestRep(); 
-        siteMapper.map(localSite, siteConfigRestRep);
-        
+        SiteConfigRestRep siteConfigRestRep = new SiteConfigRestRep();
+        siteConfigRestRep.setUuid(siteId);
+        siteConfigRestRep.setVip(vdc.getApiEndpoint());
+        siteConfigRestRep.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
+        siteConfigRestRep.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
+        siteConfigRestRep.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
         siteConfigRestRep.setDbSchemaVersion(_coordinator.getCurrentDbSchemaVersion());
         siteConfigRestRep.setFreshInstallation(isFreshInstallation());
         siteConfigRestRep.setState(siteState.name());
@@ -215,56 +280,27 @@ public class DisasterRecoveryService extends TaggedResource {
         } catch (Exception e) {
             log.error("Fail to get software version {}", e);
         }
-        
+
         log.info("Return result: {}", siteConfigRestRep);
         return siteConfigRestRep;
     }
     
-    /**
-     * Add primary site
-     * 
-     * @param param primary site configuration
-     * @return SiteRestRep primary site information
-     */
-    @POST
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/internal/standby/config")
-    public SiteRestRep addPrimary(SiteSyncParam param) {
-        log.info("Begin to add primary site {}", param);
-
-        Site primarySite = toSite(param);
-        primarySite.setVdc(queryLocalVDC().getId());
-
-        log.info("Persist primary site to DB");
-        _dbClient.createObject(primarySite);
-
-        updateVdcTargetVersion();
-
-        return siteMapper.map(primarySite);
+    private void updateDataRevision() throws Exception {
+        DataRevision newRevision = new DataRevision("test");
+        _coordinator.setTargetInfo(newRevision, newRevision.CONFIG_ID, newRevision.CONFIG_KIND);
+        log.info("Updating data revision to {} in site target", newRevision);
+        
     }
 
     // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc
-    private void updateVdcTargetVersion() {
+    private void updateVdcTargetVersion(String action) {
+        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action);
         ConfigurationImpl cfg = new ConfigurationImpl();
-        String vdcTargetVersion = String.valueOf(System.currentTimeMillis());
         cfg.setId(SiteInfo.CONFIG_ID);
         cfg.setKind(SiteInfo.CONFIG_KIND);
-        cfg.setConfig(TARGET_INFO, vdcTargetVersion);
+        cfg.setConfig(TARGET_INFO, siteInfo.encodeAsString());
         _coordinator.persistServiceConfiguration(cfg);
-        log.info("VDC target version updated to {}", vdcTargetVersion);
-    }
-
-    private Site toSite(SiteSyncParam param) {
-        Site site = new Site();
-        site.setId(URIUtil.createId(Site.class));
-        site.setUuid(param.getUuid());
-        site.setName(param.getName());
-        site.setVip(param.getVip());
-        site.setSecretKey(param.getSecretKey());
-        site.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
-        site.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
-        return site;
+        log.info("VDC target version updated to {}, action required: {}", siteInfo.getVersion(), action);
     }
     
     @POST
@@ -330,11 +366,11 @@ public class DisasterRecoveryService extends TaggedResource {
     /*
      * Internal method to check whether standby can be attached to current primary site
      */
-    protected void precheckForStandbyAttach(SiteSyncParam standby) {
+    protected void precheckForStandbyAttach(SiteConfigRestRep standby) {
         try {
             //standby should be refresh install
-            if (standby.isFreshInstallation() == false) {
-                throw new Exception("Standby is not refresh installation");
+            if (!standby.isFreshInstallation()) {
+                throw new Exception("Standby is not a fresh installation");
             }
             
             //DB schema version should be same

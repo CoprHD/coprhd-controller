@@ -44,6 +44,15 @@ _get_geodbconf_props() {
         done
         IFS="${OLD_IFS}"
     fi
+    # for standby sites, add the first node from primary site to the list as well
+    # TODO: add first node from other standby sites
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
+        var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_1_ipaddr"
+        if [ -z "${!var}" ]; then
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_1_ipaddr6"
+        fi
+        list+=" ${!var}"
+    fi
     echo "vdc_seeds_ipaddr=$(echo $list | tr ' ' ',')"
 
     _get_props site_id

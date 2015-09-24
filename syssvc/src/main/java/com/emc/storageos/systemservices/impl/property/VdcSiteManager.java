@@ -35,7 +35,6 @@ public class VdcSiteManager extends AbstractManager {
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
     private PropertyInfoExt targetVdcPropInfo;
-    private SiteInfo targetVdcPropVersion;
     private DataRevision targetDataRevision;
     private PowerOffState targetPowerOffState;
     
@@ -44,6 +43,8 @@ public class VdcSiteManager extends AbstractManager {
     // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
     private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
     
+    private SiteInfo targetSiteInfo;
+
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
@@ -227,9 +228,9 @@ public class VdcSiteManager extends AbstractManager {
      */
     private void initializeLocalAndTargetInfo() throws Exception {
         // set target if empty
-        targetVdcPropVersion = coordinator.getTargetInfo(SiteInfo.class);
-        if (targetVdcPropVersion == null) {
-            targetVdcPropVersion = new SiteInfo();
+        targetSiteInfo = coordinator.getTargetInfo(SiteInfo.class);
+        if (targetSiteInfo == null) {
+            targetSiteInfo = new SiteInfo();
         }
 
         // Initialize vdc prop info
@@ -239,7 +240,7 @@ public class VdcSiteManager extends AbstractManager {
         if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null) {
             localVdcPropInfo = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
             localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
-                    String.valueOf(targetVdcPropVersion.getVersion()));
+                    String.valueOf(targetSiteInfo.getVersion()));
             localRepository.setVdcPropertyInfo(localVdcPropInfo);
 
             String vdc_ids = targetVdcPropInfo.getProperty(VDC_IDS_KEY);
@@ -287,7 +288,7 @@ public class VdcSiteManager extends AbstractManager {
     private boolean vdcPropertiesChanged() {
         long localVdcConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null ? 0 :
                 Long.parseLong(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
-        long targetVdcConfigVersion = targetVdcPropVersion.getVersion();
+        long targetVdcConfigVersion = targetSiteInfo.getVersion();
 
         return localVdcConfigVersion != targetVdcConfigVersion;
     }
@@ -302,6 +303,7 @@ public class VdcSiteManager extends AbstractManager {
         // If the change is being done to create a multi VDC configuration or to reduce to a
         // multi VDC configuration a reboot is needed. If only operating on a single VDC
         // do not reboot the nodes.
+        String action = targetSiteInfo.getActionRequired();
         if (targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
                 || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")) {
             log.info("Step2: Acquiring vdc lock for vdc properties change.");
@@ -315,21 +317,48 @@ public class VdcSiteManager extends AbstractManager {
                 }
                 retrySleep();
             } else {
-                log.info("Step2: Setting vdc properties and rebooting for multi-vdc config change");
+                log.info("Step2: Setting vdc properties and reboot");
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
                 reboot();
             }
+        } else if (action.equals(SiteInfo.UPDATE_DATA_REVISION)) {
+            // TODO: synchronize between nodes to reboot at the same time
+            log.info("Step2: Setting vdc properties and update data revision");
+            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+
+            // Update the data revision tag to local cache
+            PropertyInfoExt targetProps = coordinator.getTargetProperties();
+            localRepository.setOverrideProperties(targetProps);
+
+            // reboot without acquiring the lock
+            reboot();
         } else {
             log.info("Step2: Setting vdc properties not rebooting for single VDC change");
-            PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-            localRepository.setVdcPropertyInfo(vdcProperty);
 
-            localRepository.reconfigProperties("coordinator");
-            localRepository.restart("coordinatorsvc");
+            if (action.equals(SiteInfo.RECONFIG_RESTART)) {
+                PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+                // set the vdc_config_version to an invalid value so that it always gets retried on failure.
+                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
+                localRepository.setVdcPropertyInfo(vdcProperty);
 
-            log.info("Step2: Updating the hash code for local vdc properties");
-            vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetVdcPropVersion.getVersion()));
-            localRepository.setVdcPropertyInfo(vdcProperty);
+                localRepository.reconfigProperties("coordinator");
+                localRepository.restart("coordinatorsvc");
+
+                localRepository.reconfigProperties("db");
+                localRepository.restart("dbsvc");
+
+                localRepository.reconfigProperties("geodb");
+                localRepository.restart("geodbsvc");
+
+                localRepository.reconfigProperties("firewall");
+                localRepository.reload("firewall");
+
+                log.info("Step2: Updating the hash code for local vdc properties");
+                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVersion()));
+                localRepository.setVdcPropertyInfo(vdcProperty);
+            } else {
+                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+            }
         }
     }
 

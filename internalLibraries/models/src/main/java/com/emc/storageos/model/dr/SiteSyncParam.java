@@ -5,7 +5,6 @@
 package com.emc.storageos.model.dr;
 
 import java.util.Map;
-
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -13,6 +12,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "site_sync")
 @XmlAccessorType(XmlAccessType.PROPERTY)
+//TODO: potentially this should be a list of sites
 public class SiteSyncParam {
     private String uuid;
     private String name;
@@ -58,8 +58,8 @@ public class SiteSyncParam {
 
     public void setSecretKey(String secretKey) {
         this.secretKey = secretKey;
-    };
-    
+    }
+
     @XmlElement(name = "hostIPv4AddressMap")
     public Map<String, String> getHostIPv4AddressMap() {
         return hostIPv4AddressMap;

@@ -63,7 +63,7 @@ public class DisasterRecoveryServiceTest {
     private SiteSyncParam primarySiteParam;
     private List<URI> uriList;
     private List<Site> standbySites;
-    private SiteSyncParam standby;
+    private SiteConfigRestRep standby;
     private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
 
@@ -85,7 +85,7 @@ public class DisasterRecoveryServiceTest {
         // setup local VDC
         VirtualDataCenter localVDC = new VirtualDataCenter();
         
-        standby = new SiteSyncParam();
+        standby = new SiteConfigRestRep();
         standby.setFreshInstallation(true);
         standby.setDbSchemaVersion("2.4");
         standby.setSoftwareVersion("vipr-2.4.0.0.150");
@@ -111,11 +111,11 @@ public class DisasterRecoveryServiceTest {
         standbySite3.setVdc(new URI("fake-vdc-id"));
 
         primarySiteParam = new SiteSyncParam();
-        primarySiteParam.setUuid("primary-site-uuid");
+        /*primarySiteParam.setUuid("primary-site-uuid");
         primarySiteParam.setVip("127.0.0.1");
         primarySiteParam.setSecretKey("secret-key");
         primarySiteParam.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
-        primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
+        primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());*/
         
         localVDC.setApiEndpoint("127.0.0.2");
         localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
@@ -131,8 +131,6 @@ public class DisasterRecoveryServiceTest {
         
         natCheckParam = new DRNatCheckParam();
 
-        localVDC.getSiteUUIDs().add(standbySite1.getUuid());
-        localVDC.getSiteUUIDs().add(standbySite2.getUuid());
         localVDC.setApiEndpoint("127.0.0.2");
         localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
         localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
@@ -175,21 +173,21 @@ public class DisasterRecoveryServiceTest {
         doReturn(uriList).when(dbClientMock).queryByType(Site.class, true);
         doReturn(standbySite1).when(dbClientMock).queryObject(Site.class, standbySite1.getId());
         doReturn(standbySite2).when(dbClientMock).queryObject(Site.class, standbySite2.getId());
-        doAnswer(new Answer<Void>(){
+        doAnswer(new Answer<Void>() {
 
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {
-                URIQueryResultList resultList = (URIQueryResultList)invocation.getArguments()[1];
-                
+                URIQueryResultList resultList = (URIQueryResultList) invocation.getArguments()[1];
+
                 List<URI> uriList = new ArrayList<URI>(2);
                 uriList.add(standbySite1.getId());
                 uriList.add(standbySite2.getId());
-                
+
                 resultList.setResult(uriList.iterator());
-                
+
                 return null;
             }
-            
+
         }).when(dbClientMock).queryByConstraint(any(ContainmentConstraint.class), any(URIQueryResultList.class));
         
         SiteList responseList = drService.getAllStandby();
@@ -274,15 +272,16 @@ public class DisasterRecoveryServiceTest {
         SiteConfigRestRep response = drService.getStandbyConfig();
         compareSiteResponse(response, standbyConfig);
     }
-    
+
+    /*
     @Test
     public void testAddPrimary() {
-        SiteRestRep response = drService.addPrimary(primarySiteParam);
+        SiteRestRep response = drService.addStandby(primarySiteParam);
         assertNotNull(response);
         assertEquals(primarySiteParam.getUuid(), response.getUuid());
         assertEquals(response.getName(), primarySiteParam.getName());
         assertEquals(response.getVip(), primarySiteParam.getVip());
-    }
+    }*/
 
     @Test
     public void testPrecheckForStandbyAttach_Version() throws Exception {

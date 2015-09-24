@@ -16,6 +16,7 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.ClusterInfo;
+
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -350,6 +351,16 @@ public interface CoordinatorClient {
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception;
 
     /**
+     * Set Target info
+     * 
+     * @param info
+     * @param id
+     * @param kind
+     * @throws CoordinatorException
+     */
+    public void setTargetInfo(final CoordinatorSerializable info, String id, String kind) throws CoordinatorException;
+    
+    /**
      * Get control nodes' state
      */
     public ClusterInfo.ClusterState getControlNodesState();
@@ -502,5 +513,16 @@ public interface CoordinatorClient {
      * @return SiteState the state of site
      */
     public SiteState getSiteState();
-    
+
+    /**
+     * Add a site ZNode in ZK
+     * This should only be used by the add standby site API
+     */
+    public void addSite(String siteId) throws Exception;
+
+    /**
+     * Update the primary site pointer in ZK
+     * This should only be used by the sync site API
+     */
+    public void setPrimarySite(String siteId) throws Exception;
 }

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.coordinator.client.model;
 
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 
 import com.emc.storageos.coordinator.exceptions.DecodingException;
@@ -18,54 +19,60 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String CONFIG_KIND = "sitetargetconfig";
     public static final String CONFIG_ID = "global";
 
+    public static final String UPDATE_DATA_REVISION = "update_data_revision";
+    public static final String RECONFIG_RESTART = "reconfig_restart";
+    public static final String NONE = "none";
+
+    private static final String ENCODING_SEPARATOR = "\0";
+
     private final long version;
+    private final String actionRequired;
 
     public SiteInfo() {
         version = 0;
+        actionRequired = NONE;
     }
 
-    public SiteInfo(final long version) {
+    public SiteInfo(final long version, final String actionRequired) {
         this.version = version;
+        this.actionRequired = actionRequired;
     }
 
     public long getVersion() {
         return version;
     }
 
+    public String getActionRequired() {
+        return actionRequired;
+    }
+
     @Override
     public String toString() {
-        return "config hash=" + Strings.repr(version);
-    }
-
-    @Override
-    public boolean equals(Object object) {
-        if (object == null) {
-            return false;
-        }
-
-        if (!(object instanceof SiteInfo)) {
-            return false;
-        }
-
-        final SiteInfo state = (SiteInfo) object;
-        return version == state.version;
-    }
-
-    @Override
-    public int hashCode() {
-        HashCodeBuilder builder = new HashCodeBuilder();
-        return builder.append(this.version).toHashCode();
+        return "config version=" + Strings.repr(version) + ", action=" + actionRequired;
     }
 
     @Override
     public String encodeAsString() {
-        return String.valueOf(version);
+        StringBuilder sb = new StringBuilder();
+        sb.append(version);
+        sb.append(ENCODING_SEPARATOR);
+        sb.append(actionRequired);
+        return sb.toString();
     }
 
     @Override
     public SiteInfo decodeFromString(String infoStr) throws DecodingException {
-        Long hash = Long.valueOf(infoStr);
-        return new SiteInfo(hash);
+        if (infoStr == null) {
+            return null;
+        }
+
+        final String[] strings = infoStr.split(ENCODING_SEPARATOR);
+        if (strings.length != 2) {
+            throw CoordinatorException.fatals.decodingError("invalid site info");
+        }
+
+        Long hash = Long.valueOf(strings[0]);
+        return new SiteInfo(hash, strings[1]);
     }
 
     @Override

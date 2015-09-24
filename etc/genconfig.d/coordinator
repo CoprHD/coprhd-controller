@@ -10,18 +10,22 @@
 # it is provided by or on behalf of EMC.
 
 _get_coordinator_var() {
-    for i in ${_GENCONFIG_node_indexes} ; do
-        local var="_GENCONFIG_network_${i}_ipaddr_service"
-        echo "network_${i}_ipaddr_service=${!var}"
+    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+    local primary_cnt="${!var}"
+    echo "--foreach:iter_primary:$(seq --separator=',' ${primary_cnt})"
+    for i in $(seq ${primary_cnt}) ; do
+        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr"
+        local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr6"
+        local ipaddr="${!var}"
+        [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
+        echo "primary_${i}_ipaddr_service=${ipaddr}"
     done
 
-    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_node_count"
+    var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_node_count"
     local standby_cnt="${!var}"
     if [ -n "${standby_cnt}" ]; then
-        local primary_cnt="${_GENCONFIG_node_count}"
-        local standby_indexes="$(seq --separator=' ' $((${primary_cnt} + 1)) $((${primary_cnt} + ${standby_cnt})))"
-        echo "--foreach:iter_site:${standby_indexes}"
-        for standby_index in ${standby_indexes}; do
+        echo "--foreach:iter_standby:$(seq --separator=',' $((${primary_cnt} + 1)) $((${primary_cnt} + ${standby_cnt})))"
+        for standby_index in $(seq --separator=' ' $((${primary_cnt} + 1)) $((${primary_cnt} + ${standby_cnt}))); do
             var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_network_$((${standby_index} - ${primary_cnt}))_ipaddr"
             var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_network_$((${standby_index} - ${primary_cnt}))_ipaddr6"
             local ipaddr="${!var}"
@@ -29,7 +33,16 @@ _get_coordinator_var() {
             echo "standby_${standby_index}_ipaddr_service=${ipaddr}"
         done
     else
-        echo "--foreach:iter_site:"
+        echo "--foreach:iter_standby:"
+    fi
+
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ] ; then
+        # FIXME: doesn't support multi-standby scenario now
+        echo "coordinator_node_index=$((${primary_cnt} + ${_GENCONFIG_node_index}))"
+        echo "peer_type=observer"
+    else
+        echo "coordinator_node_index=${_GENCONFIG_node_index}"
+        echo "peer_type=participant"
     fi
     _get_props node_id node_index
 }

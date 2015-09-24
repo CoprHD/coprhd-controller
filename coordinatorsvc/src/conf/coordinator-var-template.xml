@@ -5,7 +5,7 @@
     <bean id="config" class="com.emc.storageos.coordinator.service.impl.SpringQuorumPeerConfig"
           init-method="init">
         <!-- each node in cluster must have unique id starting from 1 -->
-        <property name="machineId" value="${node_index}"/>
+        <property name="machineId" value="${coordinator_node_index}"/>
         <property name="properties">
             <props>
                 <!-- see zk configuration guide -->
@@ -18,16 +18,14 @@
                 <prop key="autopurge.snapRetainCount">16</prop>
                 <!-- auto purge interval (minutes) -->
                 <prop key="autopurge.purgeInterval">30</prop>
-
                 <prop key="staticConfigFile">coordinator-static.cfg</prop>
                 <prop key="dynamicConfigFile">coordinator-dynamic.cfg</prop>
-
-                <foreach iterator="iter">
-                <prop key="server.${iter}">${network_${iter}_ipaddr_service}:2888:2889:participant;2181</prop>
+                <prop key="peerType">${peer_type}</prop>
+                <foreach iterator="iter_primary">
+                <prop key="server.${iter_primary}">${primary_${iter_primary}_ipaddr_service}:2888:2889:participant;2181</prop>
                 </foreach>
-
-                <foreach iterator="iter_site">
-                <prop key="server.${iter_site}">${standby_${iter_site}_ipaddr_service}:2888:2889:observer;2181</prop>
+                <foreach iterator="iter_standby">
+                <prop key="server.${iter_standby}">${standby_${iter_standby}_ipaddr_service}:2888:2889:observer;2181</prop>
                 </foreach>
             </props>
         </property>

@@ -412,4 +412,14 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     public SiteState getSiteState() {
         return SiteState.ACTIVE;
     }
+
+    @Override
+    public void addSite(String siteId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setPrimarySite(String siteId) {
+        throw new UnsupportedOperationException();
+    }
 }

@@ -269,12 +269,7 @@ public class CoordinatorClientExt {
                 if (checkClusterUpgradable && !isClusterUpgradable()) {
                     throw APIException.serviceUnavailable.clusterStateNotStable();
                 }
-                ConfigurationImpl cfg = new ConfigurationImpl();
-                cfg.setId(id);
-                cfg.setKind(kind);
-                cfg.setConfig(TARGET_INFO, info.encodeAsString());
-                _coordinator.persistServiceConfiguration(cfg);
-                _log.info("Target info set: {}", info);
+                _coordinator.setTargetInfo(info, id, kind);
             } catch (Exception e) {
                 throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target state. " + e.getMessage());
             } finally {
@@ -302,12 +297,7 @@ public class CoordinatorClientExt {
                 if (!isClusterUpgradable()) {
                     throw APIException.serviceUnavailable.clusterStateNotStable();
                 }
-                ConfigurationImpl cfg = new ConfigurationImpl();
-                cfg.setId(id);
-                cfg.setKind(kind);
-                cfg.setConfig(TARGET_INFO, info.encodeAsString());
-                _coordinator.persistServiceConfiguration(cfg);
-                _log.info("Target info set: {}", info);
+                _coordinator.setTargetInfo(info, id, kind);
             } catch (Exception e) {
                 throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target state. " + e.getMessage());
             } finally {

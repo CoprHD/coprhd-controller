@@ -117,4 +117,6 @@ public interface Constants {
 
     public static final String STATIC_CFGFile_Key = "staticConfigFile";
     public static final String DYNAMIC_CFGFile_Key = "dynamicConfigFile";
+    
+    public static final String KEY_CERTIFICATE_PAIR_CONFIG_KIND = "keyCertificatePairConfig";
 }

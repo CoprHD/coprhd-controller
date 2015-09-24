@@ -30,15 +30,6 @@ public class SiteMapper {
         to.setName(from.getName());
         to.setVip(from.getVip());
     }
-    
-    public void map(SiteSyncParam siteParam, Site site) {
-        site.setUuid(siteParam.getUuid());
-        site.setName(siteParam.getName());
-        site.setVip(siteParam.getVip());
-        site.getHostIPv4AddressMap().putAll(new StringMap(siteParam.getHostIPv4AddressMap()));
-        site.getHostIPv6AddressMap().putAll(new StringMap(siteParam.getHostIPv6AddressMap()));
-        site.setSecretKey(siteParam.getSecretKey());
-    }
 
     protected void mapDataObjectFields(Site from, SiteRestRep to) {
         DbObjectMapper.mapDataObjectFields(from, to);

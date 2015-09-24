@@ -960,8 +960,9 @@ public class StorageScheduler implements Scheduler {
     public static Volume getPrecreatedVolume(DbClient dbClient, TaskList taskList, String label) {
         // The label we've been given has already been appended with the appropriate volume number
         String volumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(label, 0, 1);
-        if (taskList == null)
+        if (taskList == null) {
             return null;
+        }
 
         for (TaskResourceRep task : taskList.getTaskList()) {
             Volume volume = dbClient.queryObject(Volume.class, task.getResource().getId());

@@ -39,7 +39,7 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_RETENTION = "/object/bucket/{0}/retention.json";
     private static final String URI_UPDATE_BUCKET_QUOTA = "/object/bucket/{0}/quota.json";
     private static final String URI_UPDATE_BUCKET_OWNER = "/object/bucket/{0}/owner.json";
-    private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json";
+    private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json?namespace={1}";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -253,7 +253,7 @@ public class ECSApi {
             _log.error("Error occured while Owner update for bucket : {}", bucketName, e);
         } finally {
             if (null == clientResp) {
-                throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(URI_CREATE_BUCKET), clientResp.getStatus(),
+                throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(URI_CREATE_BUCKET), 500,
                         "no response from ECS");
             } else if (clientResp.getStatus() != 200) {
                 String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
@@ -297,7 +297,7 @@ public class ECSApi {
             if (null == clientResp) {
                 throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Owner", "no response from ECS");
             } else if (clientResp.getStatus() == 400) {
-                _log.warn("Current user and user to be modified are same"); 
+                _log.warn("Current user and user to be modified are same");
             } else if (clientResp.getStatus() != 200) {
                 throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Owner", getResponseDetails(clientResp));
             }
@@ -367,24 +367,27 @@ public class ECSApi {
     }
 
     /**
-     * Delets a bucket on ECS Storage
+     * Deletes a bucket on ECS Storage
      * 
      * @param bucketName Bucket name
+     * @param namespace Namespace where bucket resides
      * @throws ECSException If error occurs during delete
      */
-    public void deleteBucket(String bucketName) throws ECSException {
+    public void deleteBucket(String bucketName, String namespace) throws ECSException {
         ClientResponse clientResp = null;
 
         if (null != bucketName) {
             String deleteBody = " {  }  ";
-            final String path = MessageFormat.format(URI_DEACTIVATE_BUCKET, bucketName);
+            final String path = MessageFormat.format(URI_DEACTIVATE_BUCKET, bucketName, namespace);
             try {
                 clientResp = post(path, deleteBody);
             } catch (Exception e) {
                 _log.error("Error occured while delete of bucket : {}", bucketName, e);
             } finally {
-                if (null == clientResp || clientResp.getStatus() != 200) {
-                    throw ECSException.exceptions.bucketDeleteFailed(bucketName);
+                if (null == clientResp) {
+                    throw ECSException.exceptions.bucketDeleteFailed(bucketName, "no response");
+                } else if (clientResp.getStatus() != 200) {
+                    throw ECSException.exceptions.bucketDeleteFailed(bucketName, getResponseDetails(clientResp));
                 }
                 closeResponse(clientResp);
             }

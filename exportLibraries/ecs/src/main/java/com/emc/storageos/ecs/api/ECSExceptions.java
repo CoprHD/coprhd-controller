@@ -40,6 +40,6 @@ public interface ECSExceptions {
     public ECSException bucketUpdateFailed(final String bucketName, final String attributeType, final String message);
 
     @DeclareServiceCode(ServiceCode.ECS_BUCKET_DELETE_ERROR)
-    public ECSException bucketDeleteFailed(final String bucketName);
+    public ECSException bucketDeleteFailed(final String bucketName, final String info);
 
 }

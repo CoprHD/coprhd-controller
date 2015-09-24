@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.cinder;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -189,8 +190,8 @@ public class CinderExportOperations implements ExportMaskOperations {
             Map<Volume, Map<String, List<String>>> volumeToFCInitiatorTargetMap = new HashMap<Volume, Map<String, List<String>>>();
 
             attachVolumesToInitiators(storage, volumes, initiatorList,
-            		                  volumeToTargetLunMap, volumeToFCInitiatorTargetMap,
-            		                  exportMask);
+                    volumeToTargetLunMap, volumeToFCInitiatorTargetMap,
+                    exportMask);
 
             // Update targets in the export mask
             if (!volumeToFCInitiatorTargetMap.isEmpty())
@@ -899,6 +900,9 @@ public class CinderExportOperations implements ExportMaskOperations {
         }
 
     }
-    	
-    	
+
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return Collections.emptyMap();
+    }
 }

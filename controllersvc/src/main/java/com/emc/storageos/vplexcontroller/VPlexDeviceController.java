@@ -5802,10 +5802,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // and the volume will not be deleted if the native id is
                 // not set.
                 if (newVolume != null) {
-                    vplexVolume.setNativeId(virtvinfo.getPath());
-                    vplexVolume.setNativeGuid(virtvinfo.getPath());
-                    vplexVolume.setDeviceLabel(virtvinfo.getName());
-                    _dbClient.persistObject(vplexVolume);
+                    List<VPlexVirtualVolumeInfo> virtualVolumeInfos = new ArrayList<VPlexVirtualVolumeInfo>();
+                    virtualVolumeInfos.add(virtvinfo);
+                    List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(false, false);
+                    Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = client
+                            .findVirtualVolumes(clusterInfoList, virtualVolumeInfos);
+                    if (!foundVirtualVolumes.isEmpty()) {
+                        VPlexVirtualVolumeInfo vvInfo = foundVirtualVolumes.get(virtvinfo.getName());
+                        _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
+                        vplexVolume.setNativeId(vvInfo.getPath());
+                        vplexVolume.setNativeGuid(vvInfo.getPath());
+                        vplexVolume.setDeviceLabel(vvInfo.getName());
+                        _dbClient.persistObject(vplexVolume);
+                    }
                 }
             } else {
                 virtvinfo = new VPlexVirtualVolumeInfo();
@@ -5831,12 +5840,26 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     WorkflowStepCompleter.stepFailed(stepId, serviceError);
                     return;
                 }
-            }
 
-            // Update the virtual volume device label and native Id.
-            vplexVolume.setNativeId(virtvinfo.getPath());
-            vplexVolume.setNativeGuid(virtvinfo.getPath());
-            vplexVolume.setDeviceLabel(virtvinfo.getName());
+                // Update the virtual volume device label and native Id.
+                vplexVolume.setNativeId(virtvinfo.getPath());
+                vplexVolume.setNativeGuid(virtvinfo.getPath());
+                vplexVolume.setDeviceLabel(virtvinfo.getName());
+            } else {
+                List<VPlexVirtualVolumeInfo> virtualVolumeInfos = new ArrayList<VPlexVirtualVolumeInfo>();
+                virtualVolumeInfos.add(virtvinfo);
+                List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(false, false);
+                Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = client
+                        .findVirtualVolumes(clusterInfoList, virtualVolumeInfos);
+                if (!foundVirtualVolumes.isEmpty()) {
+                    VPlexVirtualVolumeInfo vvInfo = foundVirtualVolumes.get(virtvinfo.getName());
+                    _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
+                    vplexVolume.setNativeId(vvInfo.getPath());
+                    vplexVolume.setNativeGuid(vvInfo.getPath());
+                    vplexVolume.setDeviceLabel(vvInfo.getName());
+                    _dbClient.persistObject(vplexVolume);
+                }
+            }
 
             // If we are importing, we need to move the existing import volume to
             // the system project/tenant, update its label, and set the new CoS.

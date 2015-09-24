@@ -1206,11 +1206,10 @@ public class VnxExportOperations implements ExportMaskOperations {
 
     @Override
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
-        Map<URI, Integer> hlus = Collections.EMPTY_MAP;
+        Map<URI, Integer> hlus = Collections.emptyMap();
         try {
             CIMInstance instance = _helper.getLunMaskingProtocolController(storage, exportMask);
             // There's a StorageGroup on the array for the ExportMask and it has userAddedVolumes.
-            // These volumes could have been ingested, but they'd still show up as userAddedVolumes.
             if (instance != null && exportMask.getUserAddedVolumes() != null) {
                 hlus = new HashMap<>();
                 WBEMClient client = _helper.getConnection(storage).getCimClient();
@@ -1226,13 +1225,17 @@ public class VnxExportOperations implements ExportMaskOperations {
                     }
                 }
             }
+            _log.info(String.format("Retrieved these volumes from ExportMask %s (%s): %s", exportMask.getMaskName(), exportMask.getId(),
+                    CommonTransformerFunctions.collectionString(hlus.entrySet())));
         } catch (Exception e) {
             // Log an error, but return an empty list
             _log.error(String.format("Encountered an exception when attempting to get volume to HLU mapping from ExportMask %s",
                     exportMask.getMaskName()), e);
+            // We encountered an exception, so let's not return partial data ...
+            if (!hlus.isEmpty()) {
+                hlus.clear();
+            }
         }
-        _log.info(String.format("Retrieved these volumes from ExportMask %s (%s): %s", exportMask.getMaskName(), exportMask.getId(),
-                CommonTransformerFunctions.collectionString(hlus.entrySet())));
         return hlus;
     }
     

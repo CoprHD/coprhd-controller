@@ -3251,6 +3251,17 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // Not all virtual volumes are selected
             throw APIException.badRequests.notAllVolumesAddedToIngestedCG(cg.getLabel());
         }
+    }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
+        String snapshotNativeGuid = snapshot.getNativeGuid();
+        if (!CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid).isEmpty()) {
+            throw APIException.badRequests.cantDeleteSnapshotExportedToVPLEX(snapshot.getId().toString());
+        }
+        super.deleteSnapshot(snapshot, taskId);
     }
 }

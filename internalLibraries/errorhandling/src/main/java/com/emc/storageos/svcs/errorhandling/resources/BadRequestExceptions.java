@@ -2482,4 +2482,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotAlreadyImportedIntoVplex(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantDeleteSnapshotExportedToVPLEX(final String snapshotId);
 }

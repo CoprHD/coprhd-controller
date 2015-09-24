@@ -305,7 +305,7 @@ class ExportGroup(object):
 
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
                                 projectname, volumenames, snapshots=None,
-                                cg=None):
+                                cg=None ,blockmirror=None):
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
@@ -317,11 +317,21 @@ class ExportGroup(object):
         # incase of snapshots from volume, this will hold the source volume
         # URI.
         volume_snapshots = []
+        mirror_param = {}
         if(volumenames):
             volume_snapshots = self._get_resource_lun_tuple(
                 volumenames, "volumes", None, tenantname,
                 projectname, None)
-
+            
+        if(blockmirror is not None):
+            from volume import Volume
+            vol = Volume(self.__ipAddr, self.__port)
+            fullpathvol = tenantname + "/" + projectname + "/" + volumenames[0]
+            block_mirror_uri = vol.mirror_protection_show(fullpathvol, blockmirror[0])
+            mirror_param = {}
+            mirror_param['id'] = block_mirror_uri['id']
+            volume_snapshots = [mirror_param]
+        
         # if snapshot given then snapshot added to exportgroup
         if(snapshots and len(snapshots) > 0):
             resuri = None
@@ -335,7 +345,7 @@ class ExportGroup(object):
                 blockTypeName = 'volumes'
                 if(len(volume_snapshots) > 0):
                     resuri = volume_snapshots[0]['id']
-
+                    
             volume_snapshots = self._get_resource_lun_tuple(
                 snapshots, "snapshots", resuri, tenantname,
                 projectname, blockTypeName)
@@ -346,6 +356,7 @@ class ExportGroup(object):
         volChanges = {}
         volChanges['add'] = volume_snapshots
         parms['volume_changes'] = volChanges
+        
         o = self.send_json_request(exportgroup_uri, parms)
         return self.check_for_sync(o, sync)
 
@@ -869,6 +880,12 @@ def add_volume_parser(subcommand_parsers, common_parser):
                                    help="List of snapshot lunId pair in the " +
                                         "format <snapshot_name>:<lun_id>",
                                    default=None)
+    add_volume_parser.add_argument('-blockmirror', '-bmr',
+                                   metavar='<Block Mirror for volume>',
+                                   dest='blockmirror', nargs='+',
+                                   help="List of block mirrors lunId pair in the " +
+                                        "format <block_mirror_name>:<lun_id>",
+                                   default=None)
     add_volume_parser.add_argument('-consistencygroup', '-cg',
                                    metavar='<consistencygroup>',
                                    dest='consistencygroup',
@@ -888,7 +905,7 @@ def exportgroup_add_volumes(args):
         objExGroup = ExportGroup(args.ip, args.port)
         objExGroup.exportgroup_add_volumes(
             args.sync, args.name, args.tenant,
-            args.project, args.volume, args.snapshot, args.consistencygroup)
+            args.project, args.volume, args.snapshot, args.consistencygroup, args.blockmirror)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_vol", "exportgroup",
                                               e.err_text, e.err_code)

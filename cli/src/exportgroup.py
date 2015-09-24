@@ -366,7 +366,7 @@ class ExportGroup(object):
 
     def exportgroup_remove_volumes(self, sync, exportgroupname, tenantname,
                                    projectname, volumenames, snapshots=None,
-                                   cg=None):
+                                   cg=None, blockmirror=None):
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
@@ -376,9 +376,16 @@ class ExportGroup(object):
         if(tenantname is None):
             tenantname = ""
         volumeObject = Volume(self.__ipAddr, self.__port)
-        for vol in volumenames:
+        for vol in volumenames:            
             fullvolname = tenantname + "/" + projectname + "/" + vol
             volumeIdList.append(volumeObject.volume_query(fullvolname))
+            
+        if(blockmirror is not None):
+            volumeIdList = []
+            for bmr in blockmirror:
+                fullpathvol = tenantname + "/" + projectname + "/" + volumenames[0]
+                block_mirror_uri = volumeObject.mirror_protection_show(fullpathvol, bmr)
+                volumeIdList.append(block_mirror_uri['id'])
 
         return (
             self.exportgroup_remove_volumes_by_uri(
@@ -956,6 +963,12 @@ def remove_volume_parser(subcommand_parsers, common_parser):
                                       metavar='<tenantname>',
                                       dest='tenant',
                                       help='container tenant name')
+    remove_volume_parser.add_argument('-blockmirror', '-bmr',
+                                      metavar='<Block Mirror for volume>',
+                                      dest='blockmirror', nargs='+',
+                                      help="List of block mirrors lunId pair in the " +
+                                      "format <block_mirror_name>:<lun_id>",
+                                      default=None)
 
     remove_volume_parser.add_argument('-synchronous', '-sync',
                                       dest='sync',
@@ -971,7 +984,7 @@ def exportgroup_remove_volumes(args):
 
         objExGroup.exportgroup_remove_volumes(
             args.sync, args.name, args.tenant, args.project,
-            args.volume, args.snapshot, args.consistencygroup)
+            args.volume, args.snapshot, args.consistencygroup, args.blockmirror)
 
     except SOSError as e:
         raise common.format_err_msg_and_raise("remove_vol", "exportgroup",

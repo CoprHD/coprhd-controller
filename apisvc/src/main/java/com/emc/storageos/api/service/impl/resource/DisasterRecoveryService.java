@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.*;
+
 import javax.crypto.SecretKey;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -23,6 +24,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
@@ -135,7 +137,7 @@ public class DisasterRecoveryService extends TaggedResource {
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response SyncSites(SiteSyncParam param) {
+    public Response syncSites(SiteSyncParam param) {
         VirtualDataCenter vdc = queryLocalVDC();
 
         // this is the new standby site demoted from the current site

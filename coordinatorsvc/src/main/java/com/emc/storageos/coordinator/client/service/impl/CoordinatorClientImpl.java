@@ -550,7 +550,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isSiteSpecific(String kind) {
-        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG)) {
+        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equalsIgnoreCase("keyCertificatePairConfig")) {
             return true;
         }
         return false;

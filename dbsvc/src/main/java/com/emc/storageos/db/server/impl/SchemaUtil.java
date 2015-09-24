@@ -36,6 +36,7 @@ import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
 
+import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
@@ -843,12 +844,21 @@ public class SchemaUtil {
      * check and setup root tenant or my vdc info, if it doesn't exist
      */
     public void checkAndSetupBootStrapInfo(DbClient dbClient) {
-        // No need to add bootstrap records on standby site
+     // No need to add bootstrap records on standby site
         if (isOnStandby()) {
-            _log.info("Skip bootstrap info setup on standby");
+            _log.info("Check bootstrap info on standby");
+            boolean rebuildData = false;
+            if (isGeoDbsvc()) {
+                rebuildData = !isRootTenantExist(dbClient);
+            } else {
+                rebuildData = !isVdcInfoExist(dbClient);
+            }
+            if (rebuildData) {
+                _log.info("Rebuild bootstrap data from primary site");
+                StorageService.instance.rebuild(null);
+            }
             return;
         }
-        
         // Only the first VDC need check root tenant
         if (isGeoDbsvc()) {
             if (_vdcList != null && _vdcList.size() > 1) {

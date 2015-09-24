@@ -41,7 +41,6 @@ public class VdcConfigUtil {
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
     public static final String VDC_VIP6_PTN = "vdc_%s_network_vip6";
     public static final String SITE_IS_STANDBY="site_is_standby";
-    public static final String UPDATE_DATA_REVISION="update_data_revision";
 
     private DbClient dbclient;
     private CoordinatorClient coordinator;

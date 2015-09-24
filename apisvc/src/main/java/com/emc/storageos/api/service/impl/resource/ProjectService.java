@@ -893,21 +893,21 @@ public class ProjectService extends TaggedResource {
                 // Validate the VNAS is assigned to project!!!
                 if (!vnas.isNotAssignedToProject()) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is associated to project " + project.getLabel());
-                    _log.info(errorMsg.toString());
+                    _log.error(errorMsg.toString());
                     return null;
                 }
                 
                 // Validate the VNAS is in Discovery state -VISIBLE!!!
                 if (!DiscoveryStatus.VISIBLE.name().equals(vnas.getDiscoveryStatus())) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is not in Discovery-VISIBLE state ");
-                    _log.info(errorMsg.toString());
+                    _log.error(errorMsg.toString());
                     return null;
                 }
                 
                 // Validate the VNAS state should be in loaded state !!!
                 if (!vnas.getVNasState().equalsIgnoreCase(VirtualNasState.LOADED.getNasState())) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is not in Loaded state");
-                    _log.info(errorMsg.toString());
+                    _log.error(errorMsg.toString());
                     return null;
                 }
 
@@ -927,7 +927,7 @@ public class ProjectService extends TaggedResource {
                 }
                 if (!domainMatched) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " domain is not matched with project domain");
-                    _log.info(errorMsg.toString());
+                    _log.error(errorMsg.toString());
                     return null;
                 }
 
@@ -952,7 +952,7 @@ public class ProjectService extends TaggedResource {
                 }
                 if (!projectMatched) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " has file systems belongs to other project");
-                    _log.info(errorMsg.toString());
+                    _log.error(errorMsg.toString());
                     return null;
                 }
 

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +43,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
@@ -645,24 +647,30 @@ public class ComputeSystemHelper {
         }
         return false;
     }
-    
-    
+        
     
     /**
-     * Checks if an host with respect to the tenant is in use by an export groups
+     * Checks if host access is granted to the specified tenant
      *
-     * @param dbClient
-     * @param hostURI the host URI
-     * @return true if the host is in used by an export group.
+     * @param acl entries associated to host
+     * @param tenantId the tenantId
+     * @return true if the tenant has access to the given host.
      */
-    public static boolean isHostInUseForTheTenant(DbClient dbClient, URI hostURI, URI tenantId) {
-    	Host host = dbClient.queryObject(Host.class, hostURI);
-        if (host != null &&
-                URIUtil.identical(tenantId, host.getTenant()) &&
-                isHostInUse(dbClient, hostURI)) {
-            return true;
+    public static boolean verifyHostAccessToTenant(List<ACLEntry> aclEntries, String tenantId) {        
+    	boolean isUserAuthorized = false;
+        Iterator<ACLEntry> aclEntriesIterator = aclEntries.iterator();
+        while (aclEntriesIterator.hasNext()) {
+            ACLEntry aclEntry = aclEntriesIterator.next();            
+            if (aclEntry == null) {
+                continue;
+            }
+
+            if (tenantId.equals(aclEntry.getTenant())) {
+                isUserAuthorized = true;
+                break;
+            }
         }
-        return false;
+        return isUserAuthorized;
     }
     
     

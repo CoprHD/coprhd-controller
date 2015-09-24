@@ -212,11 +212,14 @@ public class HostService extends TaskResourceService {
     public HostRestRep getHost(@PathParam("id") URI id) throws DatabaseException {
         Host host = queryObject(Host.class, id, false);
         // check the user permissions
-        try{
-        	verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+        try{        	
+        	verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());        	
         }
-        catch(Exception e){
-        	verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(host.getAcls()));
+        catch(Exception e){        	
+        	if(!ComputeSystemHelper.verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(host.getAcls()), 
+        											getUserFromContext().getTenantId())){
+        		throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getUserName());        		
+        	}
         }
         return map(host);
     }
@@ -255,7 +258,7 @@ public class HostService extends TaskResourceService {
         	for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
         		Host hostObj = queryObject(Host.class, dataObject.getId(), true);
         		
-        		if(verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(hostObj.getAcls()))){
+        		if(ComputeSystemHelper.verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(hostObj.getAcls()), tenantId.toString() )){
         			list.getHosts().add(toNamedRelatedResource(ResourceTypeEnum.HOST,
                         dataObject.getId(), dataObject.getName()));
         		}
@@ -1240,29 +1243,29 @@ public class HostService extends TaskResourceService {
         Host host = queryObject(Host.class, id, true);
         
         if(!host.getTenant().toString().equals(_permissionsHelper.getRootTenant().getId())){
-        	throw APIException.badRequests.changesNotSupportedFor("Host ACL changes","Hosts not created by root tenant");
+        	throw APIException.badRequests.changesNotSupportedFor("Host ACL changes","Hosts not created by Provider Tenant");
         }
         
         ArgValidator.checkEntity(host, id, isIdEmbeddedInURL(id));
 
-        //Validate the acl assignment changes. It is not valid when an
-        //acl entry contains more than one privilege or privileges
-        //other than USE.
+        // Validate the acl assignment changes. It is not valid when an
+        // acl entry contains more than one privilege or privileges
+        // other than USE.
         validateAclAssignments(changes);
 
-        //Make sure that the host  with respect to the tenants
-        //that we are removing is not in use means removing tenant do not
-        //have any exports).
+        // Make sure that the host  with respect to the tenants
+        // that we are removing is not in use means removing tenant do not
+        // have any exports).
         checkHostUsage(host, changes);
 
         _permissionsHelper.updateACLs(host, changes, new PermissionsHelper.UsageACLFilter(_permissionsHelper));
 
         _dbClient.updateAndReindexObject(host);
 
-        auditOp(OperationTypeEnum.UPDATE_VCENTER, true, null, host.getId()
+        auditOp(OperationTypeEnum.UPDATE_HOST, true, null, host.getId()
                 .toString(), host.getLabel(), changes);
 
-        //Rediscover the host, this will update the updated
+        // Rediscover the host.
         return doDiscoverHost(host);
     }
     
@@ -1279,7 +1282,7 @@ public class HostService extends TaskResourceService {
     @GET
     @Path("/{id}/acl")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public ACLAssignments getAclAssignments(@PathParam("id") URI id) {
+    public ACLAssignments getAclAssignments(@PathParam("id") URI id) throws DatabaseException{    	
         return getAclAssignmentsResponse(id);
     }
     
@@ -1291,7 +1294,13 @@ public class HostService extends TaskResourceService {
      * @return the list of acl assignments of the requested Host.
      */
     private ACLAssignments getAclAssignmentsResponse(URI hostId) {
-        Host host= queryObject(Host.class, hostId, true);
+        Host host= queryObject(Host.class, hostId, true);        
+        String tenantId = getUserFromContext().getTenantId().toString();
+        
+        if(!host.getTenant().toString().equals(tenantId) && 
+           !ComputeSystemHelper.verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(host.getAcls()) , tenantId) ){
+        	throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getUserName());
+        }
         ArgValidator.checkEntity(host, hostId, isIdEmbeddedInURL(hostId));
 
         ACLAssignments response = new ACLAssignments();
@@ -1299,31 +1308,7 @@ public class HostService extends TaskResourceService {
 
         return response;
     }
-    
-   
-   
-   
-    private boolean verifyHostAccessToTenant(List<ACLEntry> aclEntries) {        
-    	boolean isUserAuthorized = false;
-        StorageOSUser user = getUserFromContext();
-        Iterator<ACLEntry> aclEntriesIterator = aclEntries.iterator();
-        while (aclEntriesIterator.hasNext()) {
-            ACLEntry aclEntry = aclEntriesIterator.next();
-            if (aclEntry == null) {
-                continue;
-            }
-
-            if (user.getTenantId().toString().equals(aclEntry.getTenant()) ||
-                    isSystemAdminOrMonitorUser() ||
-                    _permissionsHelper.userHasGivenRole(user, URI.create(aclEntry.getTenant()), Role.TENANT_ADMIN)) {
-                isUserAuthorized = true;
-                break;
-            }
-        }
-
-        return isUserAuthorized;
-    }
-    
+             
     
     /**
      * This validates only with respect to the tenant
@@ -1366,7 +1351,7 @@ public class HostService extends TaskResourceService {
             //This checks for all the exportgroups of the host before 
             //removing tenant and finds if host is using the exports 
             //from the removing tenant or not.
-            if (ComputeSystemHelper.isHostInUseForTheTenant(_dbClient, host.getId(), removingTenant)) {
+            if (isHostInUseForTheTenant(_dbClient, host.getId(), removingTenant)) {
                 TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, removingTenant);
                 tenantsInUse.add(tenant.getLabel());
             }
@@ -1377,6 +1362,23 @@ public class HostService extends TaskResourceService {
         }
     }
     
+    
+    /**
+     * Checks if an host with respect to the tenant is in use by an export groups
+     *
+     * @param dbClient
+     * @param hostURI the host URI
+     * @return true if the host is in used by an export group.
+     */
+    public static boolean isHostInUseForTheTenant(DbClient dbClient, URI hostURI, URI tenantId) {
+    	Host host = dbClient.queryObject(Host.class, hostURI);
+        if (host != null &&
+                URIUtil.identical(tenantId, host.getTenant()) &&
+                ComputeSystemHelper.isHostInUse(dbClient, hostURI)) {
+            return true;
+        }
+        return false;
+    }
 
     /**
      * Validates the acl assignment changes.

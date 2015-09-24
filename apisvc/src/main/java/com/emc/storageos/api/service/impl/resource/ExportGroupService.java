@@ -250,7 +250,6 @@ public class ExportGroupService extends TaskResourceService {
         if (param.getVolumes() != null && param.getVolumes().size() > MAX_VOLUME_COUNT) {
             throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
         }
-
         
         // validate input for the type of export
         validateCreateInputForExportType(param);
@@ -982,7 +981,7 @@ public class ExportGroupService extends TaskResourceService {
             if (!host.getTenant().equals(project.getTenantOrg().getURI())) {
             	//if the host does not belong to the tenant, then see if the current tenant has 
             	//acl to use the host. If it has, then we dont throw the error.
-            	if(!verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(host.getAcls()) , project.getTenantOrg().getURI())){
+            	if(!ComputeSystemHelper.verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(host.getAcls()) , project.getTenantOrg().getURI().toString())){
             		throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(host.getHostName(),
                         project.getLabel());
             	}
@@ -1019,7 +1018,7 @@ public class ExportGroupService extends TaskResourceService {
             if (!host.getTenant().equals(project.getTenantOrg().getURI())) {
             	//if the host does not belong to the tenant, then see if the current tenant has 
             	//acl to use the host. If it has, then we dont throw the error.
-            	if(!verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(host.getAcls()) , project.getTenantOrg().getURI())){
+            	if(!ComputeSystemHelper.verifyHostAccessToTenant(_permissionsHelper.convertToACLEntries(host.getAcls()) , project.getTenantOrg().getURI().toString())){
             		throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(host.getHostName(),
                         project.getLabel());
             	}
@@ -1039,24 +1038,6 @@ public class ExportGroupService extends TaskResourceService {
         _log.info("Host {} was validated successfully.", host.getId().toString());
     }
     
-    private boolean verifyHostAccessToTenant(List<ACLEntry> aclEntries, URI projectId ) { 
-    	boolean isUserAuthorized = false;        
-        Iterator<ACLEntry> aclEntriesIterator = aclEntries.iterator();
-        while (aclEntriesIterator.hasNext()) {
-            ACLEntry aclEntry = aclEntriesIterator.next();
-            if (aclEntry == null) {
-                continue;
-            }
-
-            if (projectId.toString().equals(aclEntry.getTenant())) {
-                isUserAuthorized = true;
-                break;
-            }
-            return true;
-        }
-
-        return isUserAuthorized;
-    }
 
     /**
      * Validates that a cluster is in the same tenant org and/or project as the export group.

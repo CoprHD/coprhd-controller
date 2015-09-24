@@ -1980,6 +1980,23 @@ public class RecoverPointScheduler implements Scheduler {
         }
 
         RPProtectionRecommendation recommendation = new RPProtectionRecommendation();
+
+        if (sourceVolume.getProtectionController() != null) {
+            ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, sourceVolume.getProtectionController());
+
+            if (ps.getInactive()) {
+                // If our existing CG has an inactive ProtectionSystem reference, volumes in this CG cannot
+                // be protected so we must fail.
+                throw APIException.badRequests.cgReferencesInvalidProtectionSystem(capabilities.getBlockConsistencyGroup(),
+                        sourceVolume.getProtectionController());
+            }
+        } else {
+            // If our existing CG has a null ProtectionSystem reference, volumes in this CG cannot
+            // be protected so we must fail.
+            throw APIException.badRequests.cgReferencesInvalidProtectionSystem(capabilities.getBlockConsistencyGroup(),
+                    sourceVolume.getProtectionController());
+        }
+
         recommendation.setProtectionDevice(sourceVolume.getProtectionController());
         recommendation.setVpoolChangeVolume(vpoolChangeVolume != null ? vpoolChangeVolume.getId() : null);
         recommendation.setVpoolChangeVpool(vpoolChangeVolume != null ? vpoolChangeVolume.getVirtualPool() : null);
@@ -2572,7 +2589,7 @@ public class RecoverPointScheduler implements Scheduler {
                     if (protectionSystem != null && !protectionSystem.getInactive()) {
                         return protectionSystem;
                     } else {
-                        _log.debug(String.format("Excluding ProtectionSystem %s because it is inactive.",
+                        _log.info(String.format("Excluding ProtectionSystem %s because it is inactive.",
                                 cgVolume.getProtectionController()));
                     }
                 }

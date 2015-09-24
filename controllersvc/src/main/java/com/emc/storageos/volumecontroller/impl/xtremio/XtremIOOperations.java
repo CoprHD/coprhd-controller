@@ -43,9 +43,11 @@ public class XtremIOOperations {
      * @return A reference to the xtremio client.
      */
     protected XtremIOClient getXtremIOClient(StorageSystem system) {
-        XtremIOClient client = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
-                URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
-                        system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword(), true);
+        XtremIOClient client = (XtremIOClient) xtremioRestClientFactory
+                .getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
+                                system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword(), true,
+                        system.getFirmwareVersion());
         return client;
     }
 }

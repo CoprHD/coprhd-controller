@@ -5,10 +5,11 @@
 
 package com.emc.storageos.datadomain.restapi;
 
-import com.emc.storageos.services.restutil.RestClientItf;
-import com.emc.storageos.services.restutil.RestClientFactory;
-
 import java.net.URI;
+
+import com.emc.storageos.services.restutil.RestClientFactory;
+import com.emc.storageos.services.restutil.RestClientItf;
+import com.sun.jersey.api.client.Client;
 
 /**
  * Created by zeldib on 1/30/14.
@@ -16,7 +17,12 @@ import java.net.URI;
 public class DataDomainClientFactory extends RestClientFactory {
 
     @Override
-    protected RestClientItf createNewRestClient(URI endpoint, String username, String password, com.sun.jersey.api.client.Client client) {
+    protected RestClientItf createNewRestClient(URI endpoint, String username, String password, Client client) {
+        return new DataDomainClient(endpoint, username, password, client);
+    }
+
+    @Override
+    protected RestClientItf createNewRestClient(URI endpoint, String username, String password, Client client, String model) {
         return new DataDomainClient(endpoint, username, password, client);
     }
 }

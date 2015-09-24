@@ -84,7 +84,7 @@ public class XtremIOCommunicationInterface extends
         try {
             XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
-                    accessProfile.getUserName(), accessProfile.getPassword(), true);
+                    accessProfile.getUserName(), accessProfile.getPassword(), true, provider.getVersionString());
             String xmsVersion = xtremIOClient.getXtremIOXMSVersion();
             String minimumSupportedVersion = VersionChecker
                     .getMinimumSupportedVersion(StorageSystem.Type.xtremio).replace("-", ".");
@@ -132,11 +132,11 @@ public class XtremIOCommunicationInterface extends
                 && (accessProfile.getnamespace().equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString()))) {
             discoverUnManagedVolumes(accessProfile);
         } else {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
             XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
-                    accessProfile.getUserName(), accessProfile.getPassword(), true);
+                    accessProfile.getUserName(), accessProfile.getPassword(), true, storageSystem.getFirmwareVersion());
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
             discoverXtremIOSystem(xtremIOClient, storageSystem);
         }
     }

@@ -226,7 +226,7 @@ public class BlockSnapshotService extends TaskResourceService {
         try {
             BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
             blockServiceApiImpl.deleteSnapshot(snap, task);
-        } catch (InternalException e) {
+        } catch (APIException | InternalException e) {
             String errorMsg = String.format("Exception attempting to delete snapshot %s: %s", snap.getId(), e.getMessage());
             _log.error(errorMsg);
             for (TaskResourceRep taskResourceRep : response.getTaskList()) {

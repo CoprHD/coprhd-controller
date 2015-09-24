@@ -54,7 +54,7 @@ import com.emc.storageos.volumecontroller.impl.block.VPlexVmaxMaskingOrchestrato
 import com.emc.storageos.volumecontroller.impl.block.VPlexVnxMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexBackEndMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexCinderMaskingOrchestrator;
-import com.emc.storageos.volumecontroller.impl.block.VPlexXtremIOMaskingOrchestrator;
+import com.emc.storageos.volumecontroller.impl.block.VplexXtremIOMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnlyRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
@@ -156,7 +156,7 @@ public class VPlexBackendManager {
         }
 
         if (system.getSystemType().equals(SystemType.xtremio.name())) {
-            return new VPlexXtremIOMaskingOrchestrator(_dbClient, _blockDeviceController);
+            return new VplexXtremIOMaskingOrchestrator(_dbClient, _blockDeviceController);
         }
 
         if (system.getSystemType().equals(SystemType.hds.name())) {

@@ -6,10 +6,10 @@ package com.emc.storageos.volumecontroller.placement;
 
 import java.util.Random;
 
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 
 public class PortAllocatorTestContext extends PortAllocationContext {
@@ -22,6 +22,7 @@ public class PortAllocatorTestContext extends PortAllocationContext {
      * @param port -- StoragePort object
      * @param switchName -- Switch name
      */
+    @Override
     public void addPort(StoragePort port, StorageHADomain haDomain,
             StorageSystem.Type arrayType, String switchName, Long usage) {
         port.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
@@ -34,6 +35,8 @@ public class PortAllocatorTestContext extends PortAllocationContext {
             haDomain.setNativeGuid("SYMMETRIX+" + portName);
         } else if (portGroup != null && portGroup.startsWith("director-")) {
             haDomain.setNativeGuid("VPLEX+" + port.getPortGroup());
+        } else if (portGroup.startsWith("X")) {
+            haDomain.setNativeGuid("XTREMIO+" + port.getPortGroup());
         } else {
             haDomain.setNativeGuid("VNX+" + portName);
         }
@@ -57,6 +60,9 @@ public class PortAllocatorTestContext extends PortAllocationContext {
                 }
             }
             haDomain.setSlotNumber(portName.substring(3, index));
+        } else if (portName.startsWith("X")) {
+            haDomain.setAdapterName(portGroup);
+            type = StorageSystem.Type.xtremio;
         } else {
             haDomain.setSlotNumber("0");
         }

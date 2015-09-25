@@ -65,6 +65,8 @@ _get_firewall_props() {
     # TODO - handle multiple standby sites
     #'dr_nodes_ipaddr')
     list=''
+    list6=''
+    # iterate all nodes in primary site - if current site is standby
     if [ "${_GENCONFIG_site_is_standby}" == "true" ] ; then
         local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
         local cnt="${!var}"
@@ -72,50 +74,38 @@ _get_firewall_props() {
             var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${index}_ipaddr"
             local ipaddr="${!var}"
             list+=" ${ipaddr}"
-        done
-    else
-        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_node_count"
-        local standby_cnt="${!var}"
-        if [ -n "${standby_cnt}" ]; then
-            for index in $(seq ${standby_cnt}); do
-                var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_network_${index}_ipaddr"
-                local ipaddr="${!var}"
-                list+=" ${ipaddr}"
-            done
-        fi
-    fi
-    echo "dr_nodes_ipaddr=${list}"
-
-    # List of IPv6 addresses of all nodes in primary/standby site
-    # TODO - handle multiple standby sites
-    #'dr_nodes_ipaddr6')
-    list=''
-    if [ "${_GENCONFIG_site_is_standby}" == "true" ] ; then
-        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
-        local cnt="${!var}"
-        for index in $(seq ${cnt}); do
             var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${index}_ipaddr6"
-            local ipaddr="${!var}"
+            ipaddr6="${!var}"
             if [ "${ipaddr6}" == "::0" ]; then
-                ipaddr=""
+               ipaddr6=""
             fi
-            list+=" ${ipaddr}"
+            list6+=" ${ipaddr6}"
         done
-    else
-        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_node_count"
-        local standby_cnt="${!var}"
-        if [ -n "${standby_cnt}" ]; then
-            for index in $(seq ${standby_cnt}); do
-                var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_network_${index}_ipaddr6"
-                local ipaddr="${!var}"
-                if [ "${ipaddr6}" == "::0" ]; then
-                     ipaddr=""
-                fi
-                list+=" ${ipaddr}"
-            done
-        fi
     fi
-    echo "dr_nodes_ipaddr6=${list}"
+    # iterate all nodes in standby sites
+    OLD_IFS="${IFS}"
+    IFS=","
+    for standby in ${_GENCONFIG_site_ids} ; do
+        if [ "${standby}" == "${_GENCONFIG_site_myid}" ] ; then
+            continue # ignore current site
+        fi
+        var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_node_count"
+        local standby_cnt="${!var}"
+        for standby_index in $(seq --separator=',' ${standby_cnt}); do
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_${standby_index}_ipaddr"
+            local ipaddr="${!var}"
+            list+=" ${ipaddr}"
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_${standby_index}_ipaddr6"
+            ipaddr6="${!var}"
+            if [ "${ipaddr6}" == "::0" ]; then
+               ipaddr6=""
+            fi
+            list6+=" ${ipaddr6}"
+        done
+    done
+    IFS="${OLD_IFS}"
+    echo "dr_nodes_ipaddr=${list}"
+    echo "dr_nodes_ipaddr6=${list6}"
 
     IFS="${OLD_IFS}"
     echo "network_nic_name=${_GENCONFIG_network_nic_name}"

@@ -2104,18 +2104,18 @@ public class VolumeIngestionUtil {
             }
             associatedFullCopies.add(clone.getId().toString());
         }
-        setupVplexCloneRelations(clone, parent, dbClient);
+        setupVplexVirtualVolumeCloneRelations(clone, parent, dbClient);
     }
 
     /**
      * Creates relationships between the parent virtual volumes of
-     * linked backend volume clones.
+     * linked VPLEX backend volume clones.
      * 
      * @param clone the backend clone
      * @param parent the backend clone's parent/source volume
      * @param dbClient a reference to the database client
      */
-    private static void setupVplexCloneRelations(BlockObject clone, BlockObject parent, DbClient dbClient) {
+    private static void setupVplexVirtualVolumeCloneRelations(BlockObject clone, BlockObject parent, DbClient dbClient) {
         Volume parentVvolSource = checkForVplexVirtualVolumeParent(parent, dbClient);
         Volume parentVvolClone = checkForVplexVirtualVolumeParent(clone, dbClient);
         
@@ -2135,6 +2135,8 @@ public class VolumeIngestionUtil {
             parentVvolSource.setFullCopies(associatedFullCopies);
         }
         associatedFullCopies.add(parentVvolClone.getId().toString());
+        dbClient.updateAndReindexObject(parentVvolSource);
+        dbClient.updateAndReindexObject(parentVvolClone);
     }
 
     public static void setupVplexParentRelations(BlockObject child, BlockObject parent, DbClient dbClient) {

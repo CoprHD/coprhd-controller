@@ -1510,7 +1510,7 @@ public class RPHelper {
                 volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
 
                 // Clean up the Protection Set
-                if (!NullColumnValueGetter.isNullURI(volume.getProtectionSet().getURI())) {
+                if (volume.getProtectionSet() != null && !NullColumnValueGetter.isNullURI(volume.getProtectionSet().getURI())) {
                     ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                     if (protectionSet != null) {
                         // Remove volume ID from the Protection Set

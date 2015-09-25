@@ -401,6 +401,14 @@ public class RecoverPointClient {
         
         Set<GetCGsResponse> cgs = new HashSet<GetCGsResponse>();
         try {
+            // Quickly get a map of cluster/sitenames
+            Map<Long, String> clusterIdToInternalSiteNameMap = new HashMap<Long, String>();
+            FullRecoverPointSettings fullRecoverPointSettings = functionalAPI.getFullRecoverPointSettings();
+            for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration()
+                    .getClustersConfigurations()) {
+                clusterIdToInternalSiteNameMap.put(siteSettings.getCluster().getId(), siteSettings.getInternalClusterName());
+            }
+            
             // Make sure the CG name is unique.
             List<ConsistencyGroupUID> allCgs = functionalAPI.getAllConsistencyGroups();
             for (ConsistencyGroupUID cg : allCgs) {
@@ -409,6 +417,8 @@ public class RecoverPointClient {
                 // First storage attributes about the top-level CG
                 GetCGsResponse ncg = new GetCGsResponse();
                 ncg.setCgName(settings.getName());
+                ncg.setCgId(cg.getId());
+                
                 // TODO: Fill these in with policy values
                 // ncg.cgPolicy.copyMode = 
                 // ncg.cgPolicy.rpoType =
@@ -448,6 +458,7 @@ public class RecoverPointClient {
                         GetVolumeResponse volume = new GetVolumeResponse();
                   
                         volume.setRpCopyName(copySettings.getName());
+                        volume.setInternalSiteName(clusterIdToInternalSiteNameMap.get(journal.getClusterUID().getId()));
                         
                         // Need to extract the rawUids to format: 600601608D20370089260942815CE511
                         volume.setWwn(RecoverPointUtils.getGuidBufferAsString(journal.getVolumeInfo().getRawUids(), false).toUpperCase(Locale.ENGLISH));
@@ -481,6 +492,7 @@ public class RecoverPointClient {
                         String copyID = volume.getGroupCopyUID().getGlobalCopyUID().getClusterUID().getId() + "-" + 
                                 volume.getGroupCopyUID().getGlobalCopyUID().getCopyUID();
                         nvolume.setRpCopyName(copyUIDToNameMap.get(copyID));
+                        nvolume.setInternalSiteName(clusterIdToInternalSiteNameMap.get(volume.getClusterUID().getId()));
                         
                         if (productionCopiesUID.contains(copyID)) {
                             nvolume.setProduction(true);

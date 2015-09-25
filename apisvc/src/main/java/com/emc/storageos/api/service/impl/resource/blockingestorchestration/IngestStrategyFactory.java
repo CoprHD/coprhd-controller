@@ -80,6 +80,11 @@ public class IngestStrategyFactory {
         this.blockVplexVolumeIngestOrchestrator = blockVplexVolumeIngestOrchestrator;
     }
 
+    public void setBlockRecoverPointIngestOrchestrator(
+            BlockIngestOrchestrator blockRecoverPointIngestOrchestrator) {
+        this.blockRecoverPointIngestOrchestrator = blockRecoverPointIngestOrchestrator;
+    }
+    
     public BlockIngestOrchestrator getBlockSnapshotIngestOrchestrator() {
         return blockSnapshotIngestOrchestrator;
     }

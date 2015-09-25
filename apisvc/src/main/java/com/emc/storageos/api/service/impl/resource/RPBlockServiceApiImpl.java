@@ -1589,8 +1589,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     recommendations, volumeLabel, capabilities,
                     volumeDescriptors, volumeURIs);
         } catch (Exception e) {
-            String errorMsg = "Error occurred while preparing RP volumes.";
-            _log.error(errorMsg, e);
+            _log.error(e.getMessage(), e);
 
             // If there is a change vpool volume, we need to ensure that we rollback protection on it.
             // We want to return the volume back to it's original state.
@@ -1613,8 +1612,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             if (taskList.getTaskList() != null && !taskList.getTaskList().isEmpty()) {
                 for (TaskResourceRep volumeTask : taskList.getTaskList()) {
                     volumeTask.setState(Operation.Status.error.name());
-                    volumeTask.setMessage(errorMsg);
-                    Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMsg);
+                    volumeTask.setMessage(e.getMessage());
+                    Operation statusUpdate = new Operation(Operation.Status.error.name(), e.getMessage());
                     _dbClient.updateTaskOpStatus(Volume.class, volumeTask.getResource()
                             .getId(), task, statusUpdate);
                 }
@@ -1656,33 +1655,37 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
         } catch (Exception e) {
-            if (_log.isErrorEnabled()) {
-                _log.error("Controller error", e);
+            _log.error(e.getMessage(), e);
+
+            // If there is a change vpool volume, we need to ensure that we rollback protection on it.
+            // We want to return the volume back to it's original state.
+            if (isChangeVpool || isChangeVpoolForProtectedVolume) {
+                Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, rpProtectionRec.getVpoolChangeVolume());
+                VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, changeVpoolVolume.getVirtualPool());
+                RPHelper.rollbackProtectionOnVolume(changeVpoolVolume, oldVpool, _dbClient);
             }
 
-            String errorMsg = String.format("Controller error: %s", e.getMessage());
-            _log.error("Create volume failed - %s", errorMsg);
             for (URI volumeURI : volumeURIs) {
-                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                if (volume != null) {
-                    TaskResourceRep volumeTask = toTask(volume, task);
-                    volumeTask.setState(Operation.Status.error.name());
-                    volumeTask.setMessage(errorMsg);
-                    Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMsg);
-                    _dbClient.updateTaskOpStatus(Volume.class, volumeTask.getResource()
-                            .getId(), task, statusUpdate);
-                    if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
-                        taskList.getTaskList().add(volumeTask);
-                    }
+                // Rollback any volumes that were created during prepare, excluding the change vpool volume
+                // which would have already been handled above. Not too mention we of course do not want to
+                // completely rollback an existing volume (which the change vpool volume would be).
+                if (!volumeURI.equals(rpProtectionRec.getVpoolChangeVolume())) {
+                    RPHelper.rollbackVolume(volumeURI, _dbClient);
                 }
             }
 
-            // If there was a controller error creating the volumes,
-            // throw an internal server error and include the task
-            // information in the response body, which will inform
-            // the user what succeeded and what failed.
-            throw new WebApplicationException(Response
-                    .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
+            // Let's check to see if there are existing tasks, if so, put them in error.
+            if (taskList.getTaskList() != null && !taskList.getTaskList().isEmpty()) {
+                for (TaskResourceRep volumeTask : taskList.getTaskList()) {
+                    volumeTask.setState(Operation.Status.error.name());
+                    volumeTask.setMessage(e.getMessage());
+                    Operation statusUpdate = new Operation(Operation.Status.error.name(), e.getMessage());
+                    _dbClient.updateTaskOpStatus(Volume.class, volumeTask.getResource()
+                            .getId(), task, statusUpdate);
+                }
+            }
+
+            throw APIException.badRequests.rpBlockApiImplPrepareVolumeException(volumeLabel);
         }
 
         return taskList;

@@ -1035,7 +1035,7 @@ public class RPHelper {
         // Filter only source volumes
         if (cgVolumes != null) {
             for (Volume cgVolume : cgVolumes) {
-                if (cgVolume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) {
+                if (cgVolume.getPersonality() != null && cgVolume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) {
                     cgSourceVolumes.add(cgVolume);
                 }
             }

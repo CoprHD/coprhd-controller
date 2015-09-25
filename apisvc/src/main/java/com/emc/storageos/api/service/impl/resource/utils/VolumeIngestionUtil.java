@@ -684,11 +684,11 @@ public class VolumeIngestionUtil {
     
     /**
      * Returns an UnManagedVolume object if the blockObject is a VPLEX backend volume.
-     * Otherwise, return null;
+     * Otherwise, returns null;
      * 
-     * @param blockObject
-     * @param dbClient
-     * @return
+     * @param blockObject the block object to check
+     * @param dbClient a reference to the database client
+     * @return a UnManagedVolume object
      */
     public static UnManagedVolume getUnManagedVolumeIfVplexBackend(BlockObject blockObject, DbClient dbClient) {
         String unmanagedVolumeGUID = blockObject.getNativeGuid().replace(VOLUME, UNMANAGEDVOLUME);

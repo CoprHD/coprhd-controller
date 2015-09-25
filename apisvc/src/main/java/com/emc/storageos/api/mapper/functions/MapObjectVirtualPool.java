@@ -9,7 +9,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import com.google.common.base.Function;
 
-public class MapObjectVirtualPool implements Function<VirtualPool, ObjectVirtualPoolRestRep> {
+public final class MapObjectVirtualPool implements Function<VirtualPool, ObjectVirtualPoolRestRep> {
     public static final MapObjectVirtualPool instance = new MapObjectVirtualPool();
 
     public static MapObjectVirtualPool getInstance() {

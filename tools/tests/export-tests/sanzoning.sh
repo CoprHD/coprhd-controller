@@ -10,8 +10,10 @@ CWD=$(pwd)
 export PATH=$CWD:$CWD/..:$PATH
 echo "PATH: " $PATH
 
+# Configuration file to be used  
+source conf/sanity.conf
+
 SAN_VA=san-va
-SAN_ZONE_losam82=FABRIC_losam082-fabric
 SAN_NETWORK_losam82=$SAN_VA/$SAN_ZONE_losam82
 COS_VMAXBLOCK_THIN=cosvmaxb_thin
 COS2_VMAXBLOCK_THIN=cosvmaxb_thin2
@@ -27,27 +29,6 @@ ZONE1_NAME_VNX=VNXsanityzonetest1
 ZONE2_NAME_VNX=VNXsanityzonetest2
 ZONE3_NAME_VNX=VNXsanityzonetest3
 ZONE4_NAME_VNX=VNXsanityzonetest4
-ZONE1_ADDR1=12:12:12:12:12:12:12:21
-ZONE2_ADDR1=13:13:13:13:13:13:13:21
-ZONE3_ADDR1=14:14:14:14:14:14:14:21
-ZONE4_ADDR1=15:15:15:15:15:15:15:21
-
-# VNX Ports
-ZONE1_ADDR2_VNX=50:06:01:66:36:60:1A:9C
-ZONE2_ADDR2_VNX=50:06:01:6E:36:60:1A:9C
-ZONE3_ADDR2_VNX=50:06:01:60:36:64:1A:9C
-ZONE4_ADDR2_VNX=50:06:01:68:36:64:1A:9C
-ZONE3_ADDR2_VNX_NAME=SP_A:8
-ZONE4_ADDR2_VNX_NAME=SP_B:8
-# VMAX Ports
-ZONE1_ADDR2_VMAX=50:00:09:73:00:17:85:1C
-ZONE2_ADDR2_VMAX=50:00:09:73:00:17:85:1D
-ZONE3_ADDR2_VMAX=50:00:09:73:00:17:85:24
-ZONE4_ADDR2_VMAX=50:00:09:73:00:17:85:25
-FABRIC_ID=losam082-fabric
-
-# Configuration file to be used  
-source conf/sanity.conf
 
 tenant=${tenant:-standalone}
 [ "$tenant" ] || {
@@ -65,8 +46,6 @@ tenant=${tenant:-standalone}
     echo "hostbase $hostbase"
 }
 
-HOST_NAME=zonereusesanityhost
-HOST=zonereusesanityhost.lss.emc.com
 VNX_VOLUME1_NAME=VnxSanityVol1-${HOST_NAME}-${hostseed}
 VNX_VOLUME2_NAME=VnxSanityVol2-${HOST_NAME}-${hostseed}
 vnx_vol1=$project/$VNX_VOLUME1_NAME
@@ -134,7 +113,7 @@ setup_hosts() {
     # Create host and initiators
     echo "Creating hosts and initiators"
     hosts create $HOST_NAME $tenant Other $HOST --port 22
-    initiator create $HOST_NAME FC $ZONE1_ADDR1 --node 12:12:12:12:12:12:12:01
+    initiator create $HOST_NAME FC $ZONE1_ADDR1 --node $INITIATOR1_NODE
 }
 
 delete_initiators() {
@@ -153,7 +132,7 @@ delete_hosts() {
 add_initiator_to_host() {
     # Add host initiators to network vplex154nbr2
     transportzone add $SAN_NETWORK_losam82 $ZONE2_ADDR1
-    initiator create $HOST_NAME FC $ZONE2_ADDR1 --node 13:13:13:13:13:13:13:11
+    initiator create $HOST_NAME FC $ZONE2_ADDR1 --node $INITIATOR2_NODE
 }
 
 setup_initiators() {
@@ -330,9 +309,9 @@ setup_virtual_pools() {
 add_initiators_to_host() {
     # Add host initiators to network vplex154nbr2
     transportzone add $SAN_NETWORK_losam82 $ZONE3_ADDR1
-    initiator create $HOST_NAME FC $ZONE3_ADDR1 --node 14:14:14:14:14:14:14:11
+    initiator create $HOST_NAME FC $ZONE3_ADDR1 --node $INITIATOR3_NODE
     transportzone add $SAN_NETWORK_losam82 $ZONE4_ADDR1
-    initiator create $HOST_NAME FC $ZONE4_ADDR1 --node 15:15:15:15:15:15:15:11
+    initiator create $HOST_NAME FC $ZONE4_ADDR1 --node $INITIATOR4_NODE
 }
 
 add_path_to_vpool_vmax() {

@@ -49,6 +49,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
         boolean useOldVpoolMap = (oldVpool == null);
+        try {
         switch (status) {
             case error:
                 _log.error(
@@ -109,6 +110,20 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
             default:
                 break;
         }
-        super.complete(dbClient, status, serviceCoded);
+        } finally {
+            switch (status) {
+            case error:
+                for (URI migrationURI : migrationURIs) {
+                    dbClient.error(Migration.class, migrationURI, getOpId(), serviceCoded);
+                }
+                break;
+            case ready:
+            default:
+                for (URI migrationURI : migrationURIs) {
+                    dbClient.ready(Migration.class, migrationURI, getOpId());
+                }
+            }
+            super.complete(dbClient, status, serviceCoded);
+        }
     }
 }

@@ -96,6 +96,7 @@ public class DisasterRecoveryService {
     
             Site standbySite = new Site();
             standbySite.setName(param.getName());
+            standbySite.setVdc(vdc.getId());
             standbySite.setVip(param.getVip());
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
@@ -173,6 +174,7 @@ public class DisasterRecoveryService {
             standbySite.setUuid(_coordinator.getSiteId());
             standbySite.setName(param.getName());
             standbySite.setVip(vdc.getApiEndpoint());
+            standbySite.setVdc(vdcId);
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(vdc.getHostIPv4AddressesMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(vdc.getHostIPv6AddressesMap()));
             standbySite.setSecretKey(vdc.getSecretKey());

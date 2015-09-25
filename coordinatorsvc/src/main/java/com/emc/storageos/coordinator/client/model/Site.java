@@ -4,9 +4,14 @@
  */
 package com.emc.storageos.coordinator.client.model;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 
 /**
@@ -18,8 +23,11 @@ public class Site implements CoordinatorSerializable {
 
     private static final String ENCODING_SEPERATOR = ",";
     private static final String ENCODING_MAP_KEYVALUE_SEPERATOR = ";";
+    
+    private static final Logger log = LoggerFactory.getLogger(Site.class);
 
     private String uuid;
+    private URI vdc;
     private String name;
     private String vip;
     private String secretKey;
@@ -32,6 +40,14 @@ public class Site implements CoordinatorSerializable {
 
     public void setUuid(String uuid) {
         this.uuid = uuid;
+    }
+    
+    public URI getVdc() {
+        return vdc;
+    }
+
+    public void setVdc(URI vdc) {
+        this.vdc = vdc;
     }
 
     public String getName() {
@@ -78,6 +94,7 @@ public class Site implements CoordinatorSerializable {
     public String encodeAsString() {
         StringBuilder buffer = new StringBuilder();
         buffer.append(uuid).append(ENCODING_SEPERATOR);
+        buffer.append(vdc).append(ENCODING_SEPERATOR);
         buffer.append(name).append(ENCODING_SEPERATOR);
         buffer.append(vip).append(ENCODING_SEPERATOR);
         buffer.append(secretKey).append(ENCODING_SEPERATOR);
@@ -103,20 +120,28 @@ public class Site implements CoordinatorSerializable {
             return null;
         }
 
-        String[] array = infoStr.split(ENCODING_SEPERATOR);
+        Site site;
+        try {
+            String[] array = infoStr.split(ENCODING_SEPERATOR);
 
-        Site site = new Site();
-        site.setUuid(array[0]);
-        site.setName(array[1]);
-        site.setVip(array[2]);
-        site.setSecretKey(array[3]);
+            int index = 0;
+            site = new Site();
+            site.setUuid(array[index++]);
+            site.setVdc(new URI(array[index++]));
+            site.setName(array[index++]);
+            site.setVip(array[index++]);
+            site.setSecretKey(array[index++]);
 
-        if (array.length >= 5) {
-            convertString2Map(array[4], site.getHostIPv4AddressMap());
-        }
+            if (index < array.length) {
+                convertString2Map(array[index++], site.getHostIPv4AddressMap());
+            }
 
-        if (array.length >= 6) {
-            convertString2Map(array[5], site.getHostIPv6AddressMap());
+            if (index < array.length) {
+                convertString2Map(array[index++], site.getHostIPv6AddressMap());
+            }
+        } catch (Exception e) {
+            log.error("Cant't decode String {} to Site, {}", infoStr, e);
+            throw CoordinatorException.fatals.decodingError(e.getMessage());
         }
 
         return site;
@@ -166,6 +191,8 @@ public class Site implements CoordinatorSerializable {
         StringBuilder builder = new StringBuilder();
         builder.append("Site [uuid=");
         builder.append(uuid);
+        builder.append(", vdc=");
+        builder.append(vdc);
         builder.append(", name=");
         builder.append(name);
         builder.append(", vip=");

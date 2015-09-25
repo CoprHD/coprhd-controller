@@ -80,9 +80,10 @@ public class XtremIOCommunicationInterface extends
         StorageProvider.ConnectionStatus cxnStatus = StorageProvider.ConnectionStatus.CONNECTED;
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
                 accessProfile.getSystemId());
+        XtremIOClient xtremIOClient = null;
         try {
             xtremioRestClientFactory.setModel(provider.getVersionString());
-            XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
+            xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getXtremIOV1Client(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
                     accessProfile.getUserName(), accessProfile.getPassword(), true);
             String xmsVersion = xtremIOClient.getXtremIOXMSVersion();
@@ -120,6 +121,7 @@ public class XtremIOCommunicationInterface extends
         } finally {
             provider.setConnectionStatus(cxnStatus.name());
             _dbClient.persistObject(provider);
+            xtremIOClient.close();
             _logger.info("Completed scan of XtremIO StorageProvider. IP={}", accessProfile.getIpAddress());
         }
     }

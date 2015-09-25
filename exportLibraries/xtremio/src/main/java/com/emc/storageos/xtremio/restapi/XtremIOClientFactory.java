@@ -6,17 +6,12 @@ package com.emc.storageos.xtremio.restapi;
 
 import java.net.URI;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.services.restutil.RestClientFactory;
 import com.emc.storageos.services.restutil.RestClientItf;
-import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.sun.jersey.api.client.Client;
 
 public class XtremIOClientFactory extends RestClientFactory {
 
-    private Logger log = LoggerFactory.getLogger(XtremIOClientFactory.class);
     private static final String DOT_OPERATOR = "\\.";
     private static final Integer XIO_MIN_4X_VERSION = 4;
 
@@ -36,18 +31,12 @@ public class XtremIOClientFactory extends RestClientFactory {
         } else {
             xioClient = new XtremIOV1Client(endpoint, username, password, client);
         }
-        // Validate connection before adding to cache.
-        try {
-            if (null == xioClient.getXtremIOXMSVersion()) {
-                log.error("invalid connection found for {}", endpoint.toString());
-                throw XtremIOApiException.exceptions.noConnectionFound(endpoint.toString());
-            }
-        } catch (Exception ex) {
-            log.error("invalid connection found for {}", endpoint.toString());
-            throw XtremIOApiException.exceptions.noConnectionFound(endpoint.toString());
-        }
-
         return xioClient;
     }
 
+    public RestClientItf getXtremIOV1Client(URI endpoint, String username,
+            String password, boolean authFilter) {
+        Client jerseyClient = super.getBaseClient(endpoint, username, password, authFilter);
+        return new XtremIOV1Client(endpoint, username, password, jerseyClient);
+    }
 }

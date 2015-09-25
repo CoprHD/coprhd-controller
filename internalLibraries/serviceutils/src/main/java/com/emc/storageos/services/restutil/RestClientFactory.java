@@ -217,4 +217,12 @@ abstract public class RestClientFactory {
     abstract protected RestClientItf createNewRestClient(URI endpoint, String username, String password,
             com.sun.jersey.api.client.Client client);
 
+    protected Client getBaseClient(URI endpoint, String username, String password, boolean authFilter) {
+        Client jerseyClient = new ApacheHttpClient(_clientHandler);
+        if (authFilter) {
+            jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
+        }
+        return jerseyClient;
+    }
+
 }

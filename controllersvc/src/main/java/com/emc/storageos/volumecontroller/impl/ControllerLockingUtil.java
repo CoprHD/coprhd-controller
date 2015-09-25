@@ -110,6 +110,10 @@ public class ControllerLockingUtil {
     static public String getConsistencyGroupStorageKey(DbClient dbClient, URI cgURI, URI storageURI)  {
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
-        return consistencyGroup.getLabel() + "::" + storage.getNativeGuid();
+        if (storage == null) {
+            return consistencyGroup.getLabel() + "::" + storageURI.toString();
+        } else {
+            return consistencyGroup.getLabel() + "::" + storage.getNativeGuid();
+        }   
     }
 }

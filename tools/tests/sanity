@@ -1791,7 +1791,7 @@ vplexexport_tests() {
 # All varrays for regular targets
 rp_targets()
 {
-    cos create block rp_targets$1 true \
+    cos create block rp_targets$1 $POOLS_AUTO_MATCH \
         --description 'RP Targets' \
         --protocols FC \
         --numpaths 2 \
@@ -1866,7 +1866,7 @@ rpvplex_dist_regular()
 # RP CDP
 rp_cdp()
 {
-    cos create block rp_cdp$1 true \
+    cos create block rp_cdp$1 $POOLS_AUTO_MATCH \
         --description 'RP Source - CDP'  \
         --protocols FC \
         --numpaths 2 \
@@ -2296,6 +2296,43 @@ recoverpoint_auto_snapshot_cleanup_test()
     fail blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${src_varray}
 }
 
+recoverpoint_ingest_test()
+{
+    echo '*** RP ingest tests ***'
+
+    ingestbase=rpingest5vol
+    src_volume=${ingestbase}
+    tgt_volume=${ingestbase}-target-varray1
+    src_journal=${ingestbase}-primary-source-journal
+    tgt_journal=${ingestbase}-target-journal-varray1
+    src_varray=${3}
+
+    # Figure out the journal volume spec we would need for import
+    
+
+    # Delete the RP volume from inventory
+    #echo 'Deleting created volume from CoprHD inventory only'
+    #run volume delete ${1} --wait --vipronly
+
+    INGEST_NATIVEGUID=$VMAX1_SIMULATOR_NATIVEGUID
+    RP_NATIVEGUID=$RECOVERPOINT_RP_SIM_NATIVEGUID
+    if [ "$RP_QUICK_PARAM" != "quick" ]; then
+	INGEST_NATIVEGUID=$RECOVERPOINT_STORAGE_ARRAY_A_GUID
+	RP_NATIVEGUID=$RECOVERPOINT_RP_NATIVEGUID
+    fi
+
+    # Discover unmanaged volumes on the array
+    run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+    exit;
+
+    # Ingest Journals, Target, then Source
+    run unmanagedvolume ingest_unexport varray1 rp_targets $PROJECT --volspec "$src_journal"
+    run unmanagedvolume ingest_unexport varray1 rp_targets $PROJECT --volspec "$tgt_journal"
+    run unmanagedvolume ingest_unexport varray1 rp_targets $PROJECT --volspec "$tgt_volume"
+    run unmanagedvolume ingest_unexport varray1 rp_cdp $PROJECT --volspec "$source_volume"
+}
+
 recoverpoint_failover_test()
 {
     echo '*** RP failover tests ***'
@@ -2402,33 +2439,45 @@ recoverpoint_vpool_change_test()
 recoverpoint_simulator_setup()
 {
     echo 'Sim running'
-#    project_setup
-#    rp_varray_setup
+    project_setup
+    rp_varray_setup
 
 
-    #    syssvc $CONFIG_FILE localhost set_prop controller_discovery_refresh_interval 5
+    syssvc $CONFIG_FILE localhost set_prop controller_discovery_refresh_interval 5
     #    elif [ "$PARAM" = "simulator" ]; then
 
     # Simulators being used
 #    echo 'Using simulators in recoverpoint_setup_once'
 #    smisprovider show $PROVIDER_SIMULATOR &> /dev/null && return $?
-#    smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
-#    networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
+     # smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+     run smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP $RP_VMAX_SMIS_SIM_PORT $SMIS_USER "$SMIS_PASSWD" false
+     run networksystem create $FABRIC_SIMULATOR  mds --devip $SIMULATOR_CISCO_MDS_IP --devport 22 --username $RP_FABRIC_SIM_USER --password $RP_FABRIC_SIM_PW
 #
 #    transportzone listall
 #    echo 'sleeping 30s after network system create to allow for discovery'
-#    sleep 30
-#    transportzone assign ${SIMULATOR_VSAN_11} $RECOVERPOINT_VARRAY1
+     run transportzone assign ${SIMULATOR_VSAN_11} $RECOVERPOINT_VARRAY1
 #
-#    storagedevice discover_all
+     storagedevice discover_all
 #    storagedevice list
 #
-#    rp_vpool_setup
+     run storagepool update $VMAX1_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
+     run storagepool update $VMAX2_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY2 --type block
+     
+     POOLS_AUTO_MATCH=false
 
-    RECOVERPOINT=$RP_SIMULATOR
-    RECOVERPOINT_IP=$RP_SIMULATOR_IP
-    rp_protection_system_setup
+     rp_vpool_setup
 
+     # Simulator adjustments to cos (shouldn't be needed but assignment above isn't restricting us to that array in cos)
+     run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
+     run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
+
+     RECOVERPOINT=$RP_SIMULATOR
+     RECOVERPOINT_IP=$RP_SIMULATOR_IP
+     rp_protection_system_setup
+
+     run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_1rp1 --addvarrays $RECOVERPOINT_VARRAY1
+     run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_2rp1 --addvarrays $RECOVERPOINT_VARRAY2
+     run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_3rp1 --addvarrays $RECOVERPOINT_VARRAY3
 #
 #        # VPLEX
 #        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
@@ -2464,6 +2513,7 @@ recoverpoint_common_setup()
 
 recoverpoint_setup()
 {
+    POOLS_AUTO_MATCH=true
     if [ "$RP_RUN_SETUP" = "1" ]; then
         if [ "$RP_QUICK_PARAM" = "quick" ]; then
             echo '*** RecoverPoint Simulator setup ***'
@@ -2611,7 +2661,11 @@ recoverpoint_tests()
                 echo 'MP change vpool...NOT SUPPORTED YET!!'
             fi
 
-        else
+        elif [ "$RP_INGESTTESTS" = "1" ]; then
+	    echo '*** RP ingest volumes ***'
+	    recoverpoint_ingest_test
+	    exit;  # for now, exit after this test.
+	else
             echo '*** RP create volumes ***'
 
             if [ "$RP_TESTS" = "1" ]; then
@@ -2644,6 +2698,7 @@ recoverpoint_tests()
         # RP test cases
         # Run these test cases unless specified to only run create/delete tests
         if [ "$RP_RUN_VOLUME_CREATE_ONLY" = "0" ]; then
+
             if [ "$RP_TESTS" = "1" ]; then
                 echo 'RP tests...'
                 # Snapshot/Bookmark Test
@@ -2651,7 +2706,7 @@ recoverpoint_tests()
 
                 # Failover Test
                 recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
-            fi
+	    fi
 
             # RP+VPLEX test cases
             if [ "$RPVPLEX_TESTS" = "1" ]; then

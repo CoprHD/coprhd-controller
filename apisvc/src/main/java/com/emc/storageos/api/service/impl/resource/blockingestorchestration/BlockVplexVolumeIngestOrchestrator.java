@@ -173,8 +173,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             if (ingestBackend && (null != context) && (null != virtualVolume)) {
                 setFlags(context);
                 createVplexMirrorObjects(context, (Volume) virtualVolume);
-                // disabled for COP-16754, need to revisit
-                // sortOutCloneAssociations(context, (Volume) virtualVolume);
                 _logger.info(context.toStringDebug());
                 _logger.info(context.getPerformanceReport());
             }
@@ -663,85 +661,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * Sort out the clone-parent associations if any full front-end clones are present.
-     * This should be called after the parent virtual volume has already been ingested.
-     * 
-     * @param context the VplexBackendIngestionContext
-     * @param virtualVolume the ingested virtual volume's Volume object.
-     */
-    private void sortOutCloneAssociations(VplexBackendIngestionContext context, Volume virtualVolumeSource) {
-
-        for (Entry<UnManagedVolume, UnManagedVolume> entry : context.getUnmanagedVplexClones().entrySet()) {
-
-            //
-            // TODO: this will currently only work with a clone detected on a vplex local volume.
-            // out of ~4000 existing volumes on our dev vplex i found only one full
-            // front end clone (which i created myself), so i'm delaying this somewhat
-            // complicated work to supported a clone on both legs;
-            // will file a separate JIRA to add support; sorry :(
-            //
-
-            // locate the source backend Volume object
-            UnManagedVolume backendUnmanagedVolumeSource = context.getUnmanagedBackendVolumes().get(0);
-            Volume backendVolumeSource = (Volume) context.getCreatedObjectMap().get(backendUnmanagedVolumeSource.getNativeGuid().replace(
-                    VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME));
-            if (null == backendVolumeSource) {
-                throw IngestionException.exceptions.generalException(
-                        "could not determine source backend volume for clone (full copy)");
-            }
-            if (null == backendVolumeSource.getId()) {
-                // the backend source volume may not have been persisted yet
-                backendVolumeSource.setId(URIUtil.createId(Volume.class));
-            }
-
-            // locate the target virtual Volume object
-            Volume virtualVolumeTarget = (Volume) context.getCreatedObjectMap().get(entry.getValue().getNativeGuid().replace(
-                    VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME));
-
-            // locate the target backend Volume object
-            Volume backendVolumeTarget = null;
-            if (null != virtualVolumeTarget.getAssociatedVolumes() &&
-                    !virtualVolumeTarget.getAssociatedVolumes().isEmpty()) {
-                String targetVvolUri = virtualVolumeTarget.getAssociatedVolumes().iterator().next();
-                backendVolumeTarget = _dbClient.queryObject(Volume.class, URI.create(targetVvolUri));
-            }
-            if (null == backendVolumeTarget) {
-                throw IngestionException.exceptions.generalException(
-                        "could not determine target backend volume for clone (full copy)");
-            }
-
-            // set associations on the backend target Volume
-            backendVolumeTarget.setAssociatedSourceVolume(backendVolumeSource.getId());
-            backendVolumeTarget.setReplicaState(ReplicationState.SYNCHRONIZED.name());
-            backendVolumeTarget.setSyncActive(true);
-            // need to persist this one, but the others will be handled by callers
-            _dbClient.updateAndReindexObject(backendVolumeTarget);
-
-            // set associations on the front-end target Volume
-            NamedURI namedUri = new NamedURI(
-                    context.getFrontendProject().getId(), virtualVolumeTarget.getLabel());
-            virtualVolumeTarget.setProject(namedUri);
-            _logger.info("set project named uri on {} to " + namedUri.toString(), virtualVolumeTarget.getLabel());
-            virtualVolumeTarget.clearInternalFlags(Flag.INTERNAL_OBJECT);
-            virtualVolumeTarget.setAssociatedSourceVolume(virtualVolumeSource.getId());
-            virtualVolumeTarget.setReplicaState(ReplicationState.SYNCHRONIZED.name());
-            virtualVolumeTarget.setSyncActive(true);
-
-            // set full copies and sync state on the backend source Volume
-            StringSet backendFullCopies = new StringSet();
-            backendFullCopies.add(backendVolumeTarget.getId().toString());
-            backendVolumeSource.setFullCopies(backendFullCopies);
-            backendVolumeSource.setSyncActive(true);
-
-            // set full copies and sync state on the front-end source Volume
-            StringSet frontendFullCopies = new StringSet();
-            frontendFullCopies.add(virtualVolumeTarget.getId().toString());
-            virtualVolumeSource.setFullCopies(frontendFullCopies);
-            virtualVolumeSource.setSyncActive(true);
         }
     }
 

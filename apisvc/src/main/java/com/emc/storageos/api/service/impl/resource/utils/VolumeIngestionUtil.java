@@ -61,6 +61,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -2103,6 +2104,37 @@ public class VolumeIngestionUtil {
             }
             associatedFullCopies.add(clone.getId().toString());
         }
+        setupVplexCloneRelations(clone, parent, dbClient);
+    }
+
+    /**
+     * Creates relationships between the parent virtual volumes of
+     * linked backend volume clones.
+     * 
+     * @param clone
+     * @param parent
+     * @param dbClient
+     */
+    private static void setupVplexCloneRelations(BlockObject clone, BlockObject parent, DbClient dbClient) {
+        Volume parentVvolSource = checkForVplexVirtualVolumeParent(parent, dbClient);
+        Volume parentVvolClone = checkForVplexVirtualVolumeParent(clone, dbClient);
+        
+        if (null == parentVvolSource || null == parentVvolClone) {
+            return;
+        }
+        
+        _logger.info("Setting up relationship between VPLEX virtual volume clone {} and parent {}", 
+                parentVvolClone.getLabel(), parentVvolSource.getLabel());
+        parentVvolClone.setAssociatedSourceVolume(parentVvolSource.getId());
+        parentVvolClone.setReplicaState(ReplicationState.SYNCHRONIZED.name());
+        parentVvolClone.setSyncActive(true);
+        parentVvolSource.setSyncActive(true);
+        StringSet associatedFullCopies = parentVvolSource.getFullCopies();
+        if (associatedFullCopies == null) {
+            associatedFullCopies = new StringSet();
+            parentVvolSource.setFullCopies(associatedFullCopies);
+        }
+        associatedFullCopies.add(parentVvolClone.getId().toString());
     }
 
     public static void setupVplexParentRelations(BlockObject child, BlockObject parent, DbClient dbClient) {

@@ -33,7 +33,7 @@ public class SiteRestRep extends DataObjectRestRep {
         this.uuid = uuid;
     }
 
-    @XmlElement(name = "vdc")
+    @XmlElement(name = "vdcId")
     public URI getVdcId() {
         return vdcId;
     }
@@ -83,8 +83,12 @@ public class SiteRestRep extends DataObjectRestRep {
         StringBuilder builder = new StringBuilder();
         builder.append("SiteRestRep [uuid=");
         builder.append(uuid);
+        builder.append(", vdcId=");
+        builder.append(vdcId);
         builder.append(", name=");
         builder.append(name);
+        builder.append(", description=");
+        builder.append(description);
         builder.append(", vip=");
         builder.append(vip);
         builder.append(", state=");
@@ -92,4 +96,6 @@ public class SiteRestRep extends DataObjectRestRep {
         builder.append("]");
         return builder.toString();
     }
+
+    
 }

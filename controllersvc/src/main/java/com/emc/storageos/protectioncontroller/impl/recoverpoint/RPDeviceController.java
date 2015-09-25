@@ -2964,7 +2964,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Gather information necessary to give a good error message...
             Volume volume = null;
             if (URIUtil.isType(completer.getId(), BlockConsistencyGroup.class)) {
-                List<Volume> volumes = _rpHelper.getCgVolumes(completer.getId());
+                List<Volume> volumes = RPHelper.getCgVolumes(completer.getId(), _dbClient);
                 if (volumes != null && !volumes.isEmpty()) {
                     volume = volumes.get(0);
                 }
@@ -5234,7 +5234,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 URI newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
                 URI oldVPoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID);
-                
+
                 VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVPoolURI);
 

@@ -22,10 +22,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
@@ -60,7 +60,7 @@ public class ConnectivityUtil {
     /**
      * Determines whether or not the passed in Storage System in a VPLEX by checking
      * the System Type.
-     * 
+     *
      * @param system The Storage System to check
      * @return boolean value of whether or not this is a VPLEX
      */
@@ -70,10 +70,10 @@ public class ConnectivityUtil {
 
     /**
      * Determines if the passed storage port is on a VPLEX storage system.
-     * 
+     *
      * @param storagePort A reference to a storage port.
      * @param dbClient Reference to a DB client.
-     * 
+     *
      * @return true if the port is a VPLEX port, false otherwise.
      */
     public static boolean isAVplexPort(StoragePort storagePort, DbClient dbClient) {
@@ -88,11 +88,11 @@ public class ConnectivityUtil {
     /**
      * Determines if the passed VPLEX storage port can be assigned the passed
      * virtual array. Presumes the passed storage port is a VPLEX storage port.
-     * 
+     *
      * @param storagePort A reference to a VPLEX storage port.
      * @param varrayId The id of a virtual array.
      * @param dbClient Reference to a DB client.
-     * 
+     *
      * @return true if the storage port can be assigned to the passed virtual
      *         array, false otherwise.
      */
@@ -145,7 +145,7 @@ public class ConnectivityUtil {
 
     /**
      * Returns the Virtual Storage Array URIs for a given VPLEX system.
-     * 
+     *
      * @param dbClient -- Used by static method.
      * @param vplexSystemURI
      * @return List<URI> of Neighborhoods associated with this VPLEX.
@@ -167,7 +167,7 @@ public class ConnectivityUtil {
     /**
      * Gets a list of the high availability Virtual Storage Arrays for the passed VPlex
      * storage systems.
-     * 
+     *
      * @param dbClient - Used to access DB by static method
      * @param vplexStorageSystemIds A set of VPlex storage system ids.
      * @param excludeVarray A varray to exclude from the list (or null to ignore).
@@ -205,7 +205,7 @@ public class ConnectivityUtil {
      * Finds the associations of a seed storage system to others by determining they both have
      * StoragePorts in a common Network and virtual array. The method will not return an association to
      * the seed array. Chooses frontend or backend ports on associated systems as appropriate.
-     * 
+     *
      * @param dbClient
      * @param seedURI -- the StorageSystem we wish to find associations for
      * @param PortType (frontend or backend) to be matched against on seed array
@@ -315,7 +315,7 @@ public class ConnectivityUtil {
     /**
      * Returns the set of virtual arrays the storage ports are in. This is the union
      * of all the ports' virtual arrays.
-     * 
+     *
      * @param storagePorts a list of storage ports.
      * @return the union of all the tagged virtual arrays of all the ports.
      */
@@ -335,7 +335,7 @@ public class ConnectivityUtil {
      * This requires a connectivity such that backend ports on the vplex and frontend ports
      * on the storage array are in the same network and virtual array. This condition is necessary
      * to create the backend export group between the storage array and vplex.
-     * 
+     *
      * @param dbClient and instance of dbClient.
      * @param arrayURI the storage array whose vplex associations are requested.
      * @return a list of vplex devices that can use the storage array to create vplex volumes.
@@ -352,7 +352,7 @@ public class ConnectivityUtil {
      * This requires a connectivity such that backend ports on the vplex and frontend ports
      * on the storage array are in the same network and virtual array. This condition is necessary
      * to create the backend export group between the storage array and vplex.
-     * 
+     *
      * @param dbClient and instance of dbClient.
      * @param arrayURI the storage array whose vplex associations are requested.
      * @param varrayUris an optional filter to limit the results by vplexes connected to the storage
@@ -369,7 +369,7 @@ public class ConnectivityUtil {
 
     /**
      * Retrieve all the storage ports of a given StorageSystem and type in a Map by Network URI.
-     * 
+     *
      * @param storage -- StorageSystem URI
      * @param type -- frontend or backend (note normal array ports are frontend).
      * @return Map<URI, List<StoragePort>> -- A map of the Network URI the Storage Ports in that Network
@@ -396,7 +396,7 @@ public class ConnectivityUtil {
 
     /**
      * Retrieve all the storage ports of a given StorageSystem and type in a Map by Network URI.
-     * 
+     *
      * @param storage -- StorageSystem URI
      * @param type -- frontend or backend (note normal array ports are frontend).
      * @param varrayURI -- URI of varray that must be in port's tagged varrays
@@ -432,7 +432,7 @@ public class ConnectivityUtil {
 
     /**
      * Retrieve all the storage ports of a given StorageSystem and type.
-     * 
+     *
      * @param storage -- StorageSystem URI
      * @return List<StoragePort> -- A list of the the Storage Ports in that Network
      */
@@ -444,7 +444,7 @@ public class ConnectivityUtil {
                 storagePortURIs);
         Iterator<URI> storagePortsIter = storagePortURIs.iterator();
         while (storagePortsIter.hasNext()) {
-            URI portURI = (URI) storagePortsIter.next();
+            URI portURI = storagePortsIter.next();
             StoragePort port = dbClient.queryObject(StoragePort.class, portURI);
             if (port == null || port.getInactive() == true) {
                 continue;
@@ -468,7 +468,7 @@ public class ConnectivityUtil {
 
     /**
      * Get all protection systems associated with an array.
-     * 
+     *
      * @param dbClient - db client
      * @param storageSystem - storage array
      * @return list of URIs corresponding to rp systems
@@ -504,12 +504,12 @@ public class ConnectivityUtil {
 
     /**
      * Gets a list of the RP Protection systems for the passed pool.
-     * 
+     *
      * @param dbClient Reference to a DB client
      * @param storagePool Reference to a storage pool
      * @param varrayId Optional, filter by varray
      * @param isRPVPlex Optional, specifies whether or not this is an RP+VPLEX/MetroPoint request
-     * 
+     *
      * @return A list of the RP protection systems.
      */
     public static Set<ProtectionSystem> getProtectionSystemsForStoragePool(DbClient dbClient, StoragePool storagePool,
@@ -559,34 +559,39 @@ public class ConnectivityUtil {
             for (URI uri : rpSystemURIs) {
                 ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, uri);
 
-                // We could be isolating the varray in question to specific RPA clusters/sites.
-                // If there is an entry for this varray in the siteAssignedVirtualArrays field
-                // we need to honour that isolation and only return Protection Systems
-                // with an entry for that varray.
-                boolean varrayHasBeenIsolated = false;
-                if (varrayId != null) {
-                    if (ps.getSiteAssignedVirtualArrays() != null
-                            && !ps.getSiteAssignedVirtualArrays().isEmpty()) {
+                // Make sure the ProtectionSystem is active
+                if (ps != null && !ps.getInactive()) {
+                    // We could be isolating the varray in question to specific RPA clusters/sites.
+                    // If there is an entry for this varray in the siteAssignedVirtualArrays field
+                    // we need to honour that isolation and only return Protection Systems
+                    // with an entry for that varray.
+                    boolean varrayHasBeenIsolated = false;
+                    if (varrayId != null) {
+                        if (ps.getSiteAssignedVirtualArrays() != null
+                                && !ps.getSiteAssignedVirtualArrays().isEmpty()) {
 
-                        // Loop over all entries to see if this Protection System has an entry for this varray to be isolated
-                        for (Map.Entry<String, AbstractChangeTrackingSet<String>> entry : ps.getSiteAssignedVirtualArrays().entrySet()) {
-                            // Check to see if this entry contains the varray
-                            if (entry.getValue().contains(varrayId.toString())) {
-                                // This varray has been isolated to a RP cluster/site
-                                varrayHasBeenIsolated = true;
-                                isolatedRPSites.add(entry.getKey());
-                                break;
+                            // Loop over all entries to see if this Protection System has an entry for this varray to be isolated
+                            for (Map.Entry<String, AbstractChangeTrackingSet<String>> entry : ps.getSiteAssignedVirtualArrays().entrySet()) {
+                                // Check to see if this entry contains the varray
+                                if (entry.getValue().contains(varrayId.toString())) {
+                                    // This varray has been isolated to a RP cluster/site
+                                    varrayHasBeenIsolated = true;
+                                    isolatedRPSites.add(entry.getKey());
+                                    break;
+                                }
                             }
                         }
                     }
-                }
 
-                _log.info(String.format("Found Protection System [%s]", ps.getLabel()));
-                if (varrayHasBeenIsolated) {
-                    rpSystemsWithIsolatedVarrayEntry.add(ps);
-                }
-                else {
-                    rpSystems.add(ps);
+                    _log.info(String.format("Found Protection System [%s]", ps.getLabel()));
+                    if (varrayHasBeenIsolated) {
+                        rpSystemsWithIsolatedVarrayEntry.add(ps);
+                    }
+                    else {
+                        rpSystems.add(ps);
+                    }
+                } else {
+                    _log.info(String.format("Excluding ProtectionSystem %s because it is inactive or invalid.", uri));
                 }
             }
         }
@@ -617,7 +622,7 @@ public class ConnectivityUtil {
     /**
      * Get all of the virtual arrays associated with the RP system. RP System ->
      * Storage System -> Storage Pools -> Virtual Arrays
-     * 
+     *
      * @param dbClient - db client
      * @param rpSystemId - URI of RP system
      * @return list of virtual array URIs
@@ -647,7 +652,7 @@ public class ConnectivityUtil {
 
     /**
      * Find all the associated VSA URIs for the passed in RPSiteArray
-     * 
+     *
      * @param dbClient
      * @param siteArray
      * @return all the URIs of the associated VSAs
@@ -686,7 +691,7 @@ public class ConnectivityUtil {
 
     /**
      * Get all of the storage pools associated with the RP System
-     * 
+     *
      * @param dbClient db client
      * @param rpSystemId URI of the RP system
      * @return list of storage pool URIs
@@ -731,7 +736,7 @@ public class ConnectivityUtil {
      * <li>Finds all the RP systems that have sites in one or more of the storage systems</li>
      * <li>for each RP system, find all the virtual arrays for all their connected storage systems' pools.</li>
      * </ol>
-     * 
+     *
      * @param storageSystemUris the storage systems that have some change in their varray associations
      * @param dbClient an instance of {@link DbClient}
      */
@@ -750,7 +755,7 @@ public class ConnectivityUtil {
 
     /**
      * Refreshes the list of connected varrays for an RP system.
-     * 
+     *
      * @param rpSystem
      */
     public static void updateRpSystemConnectivity(ProtectionSystem rpSystem, DbClient dbClient) {
@@ -767,7 +772,7 @@ public class ConnectivityUtil {
 
     /**
      * Queries and return a list of RP systems that have sites in one or more of the storage systems
-     * 
+     *
      * @param storageSystemUris a list of storage systems URIs
      * @param dbClient an instance of {@link DbClient}
      * @return a list of RP systems that have sites for in one or more of the storage systems
@@ -791,7 +796,7 @@ public class ConnectivityUtil {
      * to all storage ports that are in its network and all those that are in a network
      * that is routed to the initiator network. The list varrays is all the varrays containing
      * one or more such ports
-     * 
+     *
      * @param initiatorId the initiator port WWN
      * @param dbClient an instance of DbClient
      * @return all the varrays the initiator can have exports in.
@@ -811,7 +816,7 @@ public class ConnectivityUtil {
      * Checks the connectivity between a network and a group of networks.
      * If the network is either in the collection or is routed to a network
      * in the collection, this method returns true
-     * 
+     *
      * @param networkUri the network being checked for connectivity
      * @param networkUris the networks being checked
      * @param dbClient an instance of dbClient
@@ -831,10 +836,10 @@ public class ConnectivityUtil {
     /**
      * Returns cluster1 or cluster2 according to which cluster a VPLEX StoragePort
      * is in. Only works for VPLEX ports.
-     * 
+     *
      * @param vplexPort StoragePort
      * @return "1" or "2". Returns "unknown-cluster" if error.
-     * 
+     *
      *         TODO: Move this method to VPlexUtil
      */
     public static String getVplexClusterOfPort(StoragePort vplexPort) {
@@ -863,12 +868,12 @@ public class ConnectivityUtil {
      * varrayURI will not have ports from both VPLEX clusters. This is true when its called for the varray
      * which has VPLEX volume created on it. Until VPLEX volume create is attempted on the varray we cannot use this
      * method as user can just assign the network and varray could get ports from both the VPLEX clusters
-     * 
+     *
      * @param varrayURI The URI of the virtaul array
      * @param vplexStorageSystemURI The URI of the VPLEX storage system
      * @param dbClient dbclient
      * @return "1" or "2". Returns "unknown-cluster" if error.
-     * 
+     *
      *         TODO: Move this method to VPlexUtil
      */
     public static String getVplexClusterForVarray(URI varrayURI, URI vplexStorageSystemURI, DbClient dbClient) {
@@ -902,7 +907,7 @@ public class ConnectivityUtil {
     /**
      * Given an initiator and StorageSystem object, find if the initiator is connect to the StorageSystem
      * through one of its network associations. Optionally checks that the port is in one of the specified varrays.
-     * 
+     *
      * @param initiator [in] Initiator object representing the initiator for which we would like
      *            to check the connection.
      * @param storageSystem [in] StorageSystem object representing the array we want to check the connection to.
@@ -959,7 +964,7 @@ public class ConnectivityUtil {
      * have 2 storage systems with the same serial number if both block and file
      * are registered. Use the fileOnly param to distinguish between the
      * system type that's wanted.
-     * 
+     *
      * @param serialNumber
      *            StorageSystem serial number
      * @param dbClient

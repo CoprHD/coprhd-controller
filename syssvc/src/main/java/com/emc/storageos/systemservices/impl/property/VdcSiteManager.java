@@ -370,7 +370,7 @@ public class VdcSiteManager extends AbstractManager {
         String targetDataRevision = targetSiteInfo.getTargetDataRevision();
         String localRevision = localRepository.getDataRevision();
         log.info("Step3: local data revision is {}", localRevision);
-        if (targetDataRevision != null && !targetDataRevision.equals(localRevision)) {
+        if (!targetSiteInfo.isNullTargetDataRevision() && !targetDataRevision.equals(localRevision)) {
             localRepository.setDataRevision(targetDataRevision);
             log.info("Step3: Trying to reach agreement with timeout on cluster poweroff");
             if (checkAllNodesAgreeToPowerOff(false) && initiatePoweroff(false)) {

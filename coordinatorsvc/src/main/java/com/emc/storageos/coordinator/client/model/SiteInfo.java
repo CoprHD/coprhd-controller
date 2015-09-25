@@ -35,7 +35,7 @@ public class SiteInfo implements CoordinatorSerializable {
     public SiteInfo() {
         vdcConfigVersion = 0;
         actionRequired = NONE;
-        targetDataRevision = "1";
+        targetDataRevision = DEFAULT_TARGET_VERSION;
     }
 
     public SiteInfo(final long version, final String actionRequired) {

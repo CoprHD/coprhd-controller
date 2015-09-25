@@ -223,4 +223,11 @@ public interface InternalServerErrorExceptions {
     
     @DeclareServiceCode(ServiceCode.SYS_DR_NAT_CHECK_FAILED)
     public InternalServerErrorException invalidNatCheckCall(String clientIP, String directClientIp);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_FAILED)
+    public InternalServerErrorException addStandbyFailed(String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_CONFIG_STANDBY_FAILED)
+    public InternalServerErrorException configStandbyFailed(String errMsg);
+    
 }

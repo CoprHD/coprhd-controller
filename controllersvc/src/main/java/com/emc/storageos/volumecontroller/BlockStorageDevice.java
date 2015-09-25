@@ -299,6 +299,20 @@ public interface BlockStorageDevice {
             throws DeviceControllerException;
 
     /**
+     * Create a single snapshot, using CreateElementReplica.
+     *
+     * @param storage
+     * @param snapshotList
+     * @param createInactive
+     * @param readOnly
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    public void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList,
+                                Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
+
+    /**
      * @param storage
      * @param snapshotList
      * @param createInactive
@@ -329,6 +343,17 @@ public interface BlockStorageDevice {
      */
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException;
+
+    /**
+     * Delete a single snapshot.
+     *
+     * @param storage
+     * @param snapshot
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    void doDeleteSelectedSnapshot(StorageSystem storage, URI snapshot,
+                                  TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException;
@@ -700,6 +725,12 @@ public interface BlockStorageDevice {
     public void doRemoveFromConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
             List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
 
+    public void doAddToReplicationGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName,
+            List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
+
+    public void doRemoveFromReplicationGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName,
+            List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
+
     /**
      * Validate storage provider connection.
      * 
@@ -821,4 +852,14 @@ public interface BlockStorageDevice {
      */
     public void doResyncGroupClone(StorageSystem storageDevice, List<URI> clone,
             TaskCompleter completer) throws Exception;
+
+    /**
+     * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs
+     *
+     * @param storage the storage system
+     * @param exportMask the ExportMask that represents the masking component of the array
+     *
+     * @return The BlockObject URI to HLU mapping for the ExportMask
+     */
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
 }

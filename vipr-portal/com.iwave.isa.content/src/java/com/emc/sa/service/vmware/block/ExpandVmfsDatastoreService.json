@@ -20,7 +20,7 @@
       type:"assetType.vipr.blockdatastore"
     },
     volumes: {
-      type:"assetType.vipr.mountedBlockVolume",   
+      type:"assetType.vipr.mountedBlockVolumeDatastore",   
       select:"one" 
     },
     size:{

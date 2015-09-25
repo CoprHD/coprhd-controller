@@ -1424,7 +1424,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             // lock around create and delete operations on the same CG
             List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(cgId, rpSystem.getId()));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, cgId, rpSystem.getId()));
             boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(token, lockKeys, LockTimeoutValue.get(LockType.RP_CG));
             if (!lockAcquired) {
                 lockException = true;
@@ -1850,7 +1850,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // lock around create and delete operations on the same CG
             List<String> lockKeys = new ArrayList<String>();
             Volume tempVol = _dbClient.queryObject(Volume.class, volumeIDs.iterator().next());
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(tempVol.getConsistencyGroup(), system.getId()));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, tempVol.getConsistencyGroup(), system.getId()));
             boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(token, lockKeys, LockTimeoutValue.get(LockType.RP_CG));
             if (!lockAcquired) {
                 lockException = true;
@@ -5234,8 +5234,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 URI newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
                 URI oldVPoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID);
-                ;
-
+                
                 VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVPoolURI);
 

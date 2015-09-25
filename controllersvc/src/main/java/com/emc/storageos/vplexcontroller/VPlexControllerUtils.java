@@ -7,6 +7,7 @@ package com.emc.storageos.vplexcontroller;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -383,5 +384,36 @@ public class VPlexControllerUtils {
         }
         
         return false;
+    }
+    
+    /**
+     * Returns a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names.
+     * 
+     * @param vplexUri the VPLEX to query
+     * @param dbClient a reference to the database client
+     * @return  a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names
+     * 
+     * @throws VPlexApiException
+     */
+    public static Map<String, String> getDistributedDevicePathToClusterMap(
+            URI vplexUri, DbClient dbClient) throws VPlexApiException {
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        Map<String, String> distributedDevicePathToClusterMap = Collections.emptyMap();
+        if (null != client) {
+            distributedDevicePathToClusterMap = 
+                    client.getDistributedDevicePathToClusterMap();
+        }
+
+        return distributedDevicePathToClusterMap;
     }
 }

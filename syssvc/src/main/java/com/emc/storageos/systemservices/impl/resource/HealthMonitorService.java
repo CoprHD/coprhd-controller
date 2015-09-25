@@ -322,6 +322,9 @@ public class HealthMonitorService extends BaseLogSvcResource {
                     case POOL:
                         controllerStats.setFreeManagedCapacityKB(cap.getResourceCapacity() / StatConstants.CAPACITY_CONVERSION_VALUE);
                         break;
+                    case BUCKET:
+                        controllerStats.setObjectCapacityKB(cap.getResourceCapacity() / StatConstants.CAPACITY_CONVERSION_VALUE);
+                        break;
                 }
             }
         }

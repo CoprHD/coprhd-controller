@@ -53,12 +53,11 @@ import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIN
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class DisasterRecoveryService extends TaggedResource {
-
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
+    
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
     private SysUtils sysUtils;
-    @Autowired
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -131,37 +130,44 @@ public class DisasterRecoveryService extends TaggedResource {
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @ExcludeLicenseCheck
     public Response syncSites(SiteSyncParam param) {
+        // Recreate the primary site
         VirtualDataCenter vdc = queryLocalVDC();
-
+        String currentShortId = vdc.getShortId();
+        _dbClient.markForDeletion(vdc);
+        
+        URI vdcId = URIUtil.createId(VirtualDataCenter.class);
+        vdc = new VirtualDataCenter();
+        vdc.setId(vdcId);
+        vdc.setApiEndpoint(param.getVip());
+        vdc.getHostIPv4AddressesMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
+        vdc.getHostIPv6AddressesMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+        vdc.setSecretKey(param.getSecretKey());
+        vdc.setLocal(true);
+        vdc.setShortId(currentShortId);
+        int hostCount = param.getHostIPv4AddressMap().size();
+        if (param.getHostIPv6AddressMap().size() > hostCount) {
+            hostCount = param.getHostIPv6AddressMap().size();
+        }
+        vdc.setHostCount(hostCount);
+        log.info("Persist primary site to DB");
+        _dbClient.createObject(vdc);
+        
         // this is the new standby site demoted from the current site
         Site standbySite = new Site(URIUtil.createId(Site.class));
         standbySite.setUuid(_coordinator.getSiteId());
         standbySite.setName(param.getName());
         standbySite.setVip(vdc.getApiEndpoint());
-        standbySite.setVdc(vdc.getId());
+        standbySite.setVdc(vdcId);
         standbySite.getHostIPv4AddressMap().putAll(new StringMap(vdc.getHostIPv4AddressesMap()));
         standbySite.getHostIPv6AddressMap().putAll(new StringMap(vdc.getHostIPv6AddressesMap()));
         standbySite.setSecretKey(vdc.getSecretKey());
 
         log.info("Persist standby site to DB");
         _dbClient.createObject(standbySite);
-
-        // update the primary site
-        vdc.setApiEndpoint(param.getVip());
-        vdc.getHostIPv4AddressesMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
-        vdc.getHostIPv6AddressesMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
-        vdc.setSecretKey(param.getSecretKey());
-
-        int hostCount = param.getHostIPv4AddressMap().size();
-        if (param.getHostIPv6AddressMap().size() > hostCount) {
-            hostCount = param.getHostIPv6AddressMap().size();
-        }
-        vdc.setHostCount(hostCount);
-
-        log.info("Persist primary site to DB");
-        _dbClient.updateAndReindexObject(vdc);
-
+        
+        updateVdcTargetVersion(SiteInfo.UPDATE_DATA_REVISION);
         try {
             _coordinator.addSite(param.getUuid());
             _coordinator.setPrimarySite(param.getUuid());
@@ -171,8 +177,6 @@ public class DisasterRecoveryService extends TaggedResource {
             //FIXME: throw custom API exception here
             throw new IllegalStateException(e);
         }
-
-        updateVdcTargetVersion(SiteInfo.UPDATE_DATA_REVISION);
         
         return Response.ok().build();
     }
@@ -343,18 +347,6 @@ public class DisasterRecoveryService extends TaggedResource {
     @Override
     protected URI getTenantOwner(URI id) {
         return null;
-    }
-
-    private Set<String> getStandbyIds(Set<String> siteUUIds) {
-        Set<String> standbyIds = new HashSet<String>();
-        String primarySiteId = _coordinator.getPrimarySiteId();
-
-        for (String siteId : siteUUIds){
-            if (siteId != null && !siteId.equals(primarySiteId)) {
-                standbyIds.add(siteId);
-            }
-        }
-        return standbyIds;
     }
 
     @Override

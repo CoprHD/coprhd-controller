@@ -87,30 +87,6 @@ public abstract class AbstractPermissionsFilterFactory implements com.sun.jersey
     protected abstract AbstractPermissionFilter getPermissionsFilter(Role[] roles, ACL[] acls,
             boolean blockProxies, Class resourceClazz);
 
-    /**
-     * Check if we should do license check for given API call.
-     * 
-     * @param am
-     * @return true for no license check, otherwise false
-     */
-    private boolean isExcludedForLicenseCheck(AbstractMethod am) {
-        // Exclude DR APIs
-        Path p = am.getAnnotation(Path.class);
-        if (p != null && p.value().startsWith("/site")) {
-            return true;
-        }
-        // add license check for all non GET methods that are not annotated with ExcludeLicenseCheck
-        // except for POST requests on '/bulk' api
-        if (am.getAnnotation(GET.class) == null && am.getAnnotation(ExcludeLicenseCheck.class) == null) {
-            if (!(p != null && am.getAnnotation(POST.class) != null && p.value().endsWith("/bulk")) ) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-        return true;
-    }
-
     @Override
     public List<ResourceFilter> create(AbstractMethod am) {
         List<ResourceFilter> filters = new ArrayList<ResourceFilter>();
@@ -121,8 +97,13 @@ public abstract class AbstractPermissionsFilterFactory implements com.sun.jersey
 
         // Adding license filter for all operations that should be forbidden without it.
         if (!isLicenseCheckDisabled()) {
-            if (!isExcludedForLicenseCheck(am)) {
-                filters.add(getLicenseFilter());
+            // add license check for all non GET methods that are not annotated with ExcludeLicenseCheck
+            // except for POST requests on '/bulk' api
+            if (am.getAnnotation(GET.class) == null && am.getAnnotation(ExcludeLicenseCheck.class) == null) {
+                Path p = am.getAnnotation(Path.class);
+                if (!(p != null && am.getAnnotation(POST.class) != null && p.value().endsWith("/bulk")) ) {
+                    filters.add(getLicenseFilter());
+                } 
             }
         }
 

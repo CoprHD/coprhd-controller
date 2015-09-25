@@ -855,7 +855,7 @@ public class SchemaUtil {
             }
             if (rebuildData) {
                 _log.info("Rebuild bootstrap data from primary site");
-                StorageService.instance.rebuild(null);
+                StorageService.instance.rebuild(_vdcShortId);
             }
             return;
         }

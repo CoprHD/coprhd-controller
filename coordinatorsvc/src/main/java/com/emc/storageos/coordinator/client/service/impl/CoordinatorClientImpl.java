@@ -51,7 +51,8 @@ import java.util.concurrent.*;
 import java.util.regex.Pattern;
 
 import static com.emc.storageos.coordinator.client.model.Constants.*;
-import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.*;
+import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY;
+import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY_ID;
 import static com.emc.storageos.coordinator.mapper.PropertyInfoMapper.decodeFromString;
 
 /**

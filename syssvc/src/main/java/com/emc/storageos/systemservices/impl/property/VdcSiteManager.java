@@ -191,9 +191,9 @@ public class VdcSiteManager extends AbstractManager {
                 log.error("Step2: Failed to poweroff. {}", e);
             }
             
-            log.info("Step2: If VDC configuration is changed update");
+            log.info("Step3: If VDC configuration is changed update");
             if (vdcPropertiesChanged()) {
-                log.info("Step2: Current vdc properties are not same as target vdc properties. Updating.");
+                log.info("Step3: Current vdc properties are not same as target vdc properties. Updating.");
                 log.debug("Current local vdc properties: " + localVdcPropInfo);
                 log.debug("Target vdc properties: " + targetVdcPropInfo);
 
@@ -306,7 +306,7 @@ public class VdcSiteManager extends AbstractManager {
         String action = targetSiteInfo.getActionRequired();
         if (targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
                 || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")) {
-            log.info("Step2: Acquiring vdc lock for vdc properties change.");
+            log.info("Step3: Acquiring vdc lock for vdc properties change.");
             if (!getVdcLock(svcId)) {
                 retrySleep();
             } else if (!isQuorumMaintained()) {
@@ -321,19 +321,8 @@ public class VdcSiteManager extends AbstractManager {
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
                 reboot();
             }
-        } else if (action.equals(SiteInfo.UPDATE_DATA_REVISION)) {
-            // TODO: synchronize between nodes to reboot at the same time
-            log.info("Step2: Setting vdc properties and update data revision");
-            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-
-            // Update the data revision tag to local cache
-            PropertyInfoExt targetProps = coordinator.getTargetProperties();
-            localRepository.setOverrideProperties(targetProps);
-
-            // reboot without acquiring the lock
-            reboot();
         } else {
-            log.info("Step2: Setting vdc properties not rebooting for single VDC change");
+            log.info("Step3: Setting vdc properties not rebooting for single VDC change");
 
             if (action.equals(SiteInfo.RECONFIG_RESTART)) {
                 PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
@@ -345,10 +334,10 @@ public class VdcSiteManager extends AbstractManager {
                 localRepository.restart("coordinatorsvc");
 
                 localRepository.reconfigProperties("db");
-                localRepository.restart("dbsvc");
+                //localRepository.restart("dbsvc");
 
                 localRepository.reconfigProperties("geodb");
-                localRepository.restart("geodbsvc");
+                //localRepository.restart("geodbsvc");
 
                 localRepository.reconfigProperties("firewall");
                 localRepository.reload("firewall");
@@ -441,7 +430,7 @@ public class VdcSiteManager extends AbstractManager {
             }
         }
     }    
-
+   
     public void poweroffCluster() {
         log.info("powering off the cluster!");
         final String[] cmd = { POWEROFFTOOL_COMMAND };

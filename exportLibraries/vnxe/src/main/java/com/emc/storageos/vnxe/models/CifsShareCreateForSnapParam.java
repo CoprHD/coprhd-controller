@@ -14,11 +14,11 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 public class CifsShareCreateForSnapParam extends ParamBase {
     private String path;
     private VNXeBase filesystemSnap;
+    private VNXeBase snap;
     private String description;
     private Boolean isReadOnly;
     private Boolean isContinuousAvailabilityEnabled;
     private Boolean isEncryptionEnabled;
-    private VNXeBase snap;
 
     public String getPath() {
         return path;

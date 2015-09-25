@@ -13,7 +13,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 public class NfsShareCreateForSnapParam extends ParamBase {
     private String path;
     private VNXeBase filesystemSnap;
-    private VNXeBase snap;
+    private VNXeBase snap; // argument name changed in latest firmware
     private String description;
     private Boolean isReadOnly;
     private int defaultAccess;

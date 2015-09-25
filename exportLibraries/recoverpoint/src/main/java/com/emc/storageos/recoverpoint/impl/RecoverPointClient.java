@@ -1073,7 +1073,7 @@ public class RecoverPointClient {
 
                         if (rescanTries <= 0) {
                             for (RPSite rpSite : allSites) {
-                                logger.error(String.format("Could not find voume %s on any RP site", volumeParam.getWwn()));
+                                logger.error(String.format("Could not find volume %s on any RP site", volumeParam.getWwn()));
                                 ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                                     logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(),

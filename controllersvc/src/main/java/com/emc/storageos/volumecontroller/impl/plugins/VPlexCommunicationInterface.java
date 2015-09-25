@@ -19,7 +19,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.TreeMap;
 
 import org.slf4j.Logger;
@@ -85,6 +84,7 @@ import com.emc.storageos.vplex.api.VPlexPortInfo.SpeedUnits;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexTargetInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
@@ -549,6 +549,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             Map<String, String> clusterIdToNameMap = client.getClusterIdToNameMap();
             Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
+            Map<String, String> distributedDevicePathToClusterMap = 
+                    VPlexControllerUtils.getDistributedDevicePathToClusterMap(vplexUri, _dbClient);
 
             if (null != allVirtualVolumes) {
                 for (String name : allVirtualVolumes.keySet()) {
@@ -610,13 +612,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             // just refresh / update the existing unmanaged volume
                             s_logger.info("Unmanaged Volume {} is already known to ViPR", name);
 
-                            updateUnmanagedVolume(info, vplex, unmanagedVolume, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
+                            updateUnmanagedVolume(info, vplex, unmanagedVolume, volumesToCgs, 
+                                    clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap);
                             knownUnmanagedVolumes.add(unmanagedVolume);
                         } else {
                             // set up new unmanaged vplex volume
                             s_logger.info("Unmanaged Volume {} is not known to ViPR", name);
 
-                            unmanagedVolume = createUnmanagedVolume(info, vplex, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
+                            unmanagedVolume = createUnmanagedVolume(info, vplex, volumesToCgs, 
+                                    clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap);
                             newUnmanagedVolumes.add(unmanagedVolume);
                         }
 
@@ -751,7 +755,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             StorageSystem vplex, UnManagedVolume volume,
             Map<String, String> volumesToCgs,
             Map<String, String> clusterIdToNameMap,
-            Map<String, String> varrayToClusterIdMap) {
+            Map<String, String> varrayToClusterIdMap,
+            Map<String, String> distributedDevicePathToClusterMap) {
 
         s_logger.info("Updating UnManagedVolume {} with latest from VPLEX volume {}",
                 volume.getLabel(), info.getName());
@@ -806,10 +811,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             unManagedVolumeCharacteristics.put(
                     SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), FALSE);
         }
-
-        // set an is-ingestable flag, used later by the ingest process
-        unManagedVolumeCharacteristics.put(
-                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);
 
         // set system type
         StringSet systemTypes = new StringSet();
@@ -895,7 +896,41 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         }
 
-        if (null == matchedVPools || matchedVPools.isEmpty()) {
+        // add this info to the unmanaged volume object
+        volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
+        volume.addVolumeInformation(unManagedVolumeInformation);
+
+        // discover backend volume data
+        boolean isRecoverPointEnabled = false;
+        String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
+                _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
+        if (!VplexBackendIngestionContext.DISCOVERY_MODE_INGESTION_ONLY.equals(discoveryMode)) {
+            try {
+                VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
+                context.setDistributedDevicePathToClusterMap(distributedDevicePathToClusterMap);
+                context.discover();
+                
+                for (UnManagedVolume bvol : context.getUnmanagedBackendVolumes()) {
+                    StringMap bvolUnManagedVolumeCharacteristics = bvol.getVolumeCharacterstics();
+                    String rpEnabled = bvolUnManagedVolumeCharacteristics
+                            .get(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
+                    isRecoverPointEnabled = (null != rpEnabled && Boolean.parseBoolean(rpEnabled));
+                }
+                
+                s_logger.info(context.getPerformanceReport());
+            } catch (Exception ex) {
+                s_logger.warn("error discovering backend structure for {}: ",
+                        volume.getNativeGuid(), ex);
+                // no need to throw further
+            }
+        }
+
+        // set an is-ingestable flag, used later by the ingest process
+        String ingestable = isRecoverPointEnabled ? FALSE : TRUE;
+        unManagedVolumeCharacteristics.put(
+                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), ingestable);
+
+        if (null == matchedVPools || matchedVPools.isEmpty() || isRecoverPointEnabled) {
             // clean all supported vpools.
             volume.getSupportedVpoolUris().clear();
             s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
@@ -903,24 +938,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             // replace with new StringSet
             volume.getSupportedVpoolUris().replace(matchedVPools);
             s_logger.info("Replaced Pools : {}", volume.getSupportedVpoolUris());
-        }
-
-        // add this info to the unmanaged volume object
-        volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
-        volume.addVolumeInformation(unManagedVolumeInformation);
-
-        String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
-                _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
-        if (!VplexBackendIngestionContext.DISCOVERY_MODE_INGESTION_ONLY.equals(discoveryMode)) {
-            try {
-                VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
-                context.discover();
-                s_logger.info(context.getPerformanceReport());
-            } catch (Exception ex) {
-                s_logger.warn("error discovering backend structure for {}: ",
-                        volume.getNativeGuid(), ex);
-                // no need to throw further
-            }
         }
     }
 
@@ -934,7 +951,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     private UnManagedVolume createUnmanagedVolume(VPlexVirtualVolumeInfo info,
             StorageSystem vplex, Map<String, String> volumesToCgs, Map<String, String> clusterIdToNameMap,
-            Map<String, String> varrayToClusterIdMap) {
+            Map<String, String> varrayToClusterIdMap, Map<String, String> distributedDevicePathToClusterMap) {
 
         s_logger.info("Creating new UnManagedVolume from VPLEX volume {}",
                 info.getName());
@@ -942,7 +959,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         UnManagedVolume volume = new UnManagedVolume();
         volume.setId(URIUtil.createId(UnManagedVolume.class));
 
-        updateUnmanagedVolume(info, vplex, volume, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
+        updateUnmanagedVolume(info, vplex, volume, volumesToCgs, 
+                clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap);
 
         return volume;
     }

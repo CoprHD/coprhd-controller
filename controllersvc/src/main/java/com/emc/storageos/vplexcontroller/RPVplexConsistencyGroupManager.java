@@ -161,7 +161,7 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
 
             // acquire a lock to serialize create cg requests to the VPLEX
             List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(cgURI, vplexURI));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(dbClient, cgURI, vplexURI));
             workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.RP_VPLEX_CG));
 
             // Get the consistency group

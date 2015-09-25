@@ -49,6 +49,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotCreateSnapshotOfVplexCG();
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotCreateSnapshotOfRPCG();
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotCreateVolumeAsConsistencyGroupHasSnapshots(String label, URI id);
 
@@ -2189,7 +2192,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeForVarrayChangeHasMirrors(final String volumeId, final String volumeLabel);
 
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    @DeclareServiceCode(ServiceCode.API_TASK_EXECUTION_IN_PROGRESS)
     public BadRequestException cannotExecuteOperationWhilePendingTask(final String pendingVolumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2415,6 +2418,9 @@ public interface BadRequestExceptions {
     public BadRequestException failedToAssignVNasToProject(final String assignVnasError);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException failedToDeleteVNasAssignedProject();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noVNasServersAssociatedToProject(final String project);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2446,18 +2452,22 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantAddMixVolumesToIngestedCG(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllVolumesAddedToIngestedCG(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException fullCopyNotAllowedForIngestedCG(final String uri);
-
+    
+    @DeclareServiceCode(ServiceCode.API_DELETION_IN_PROGRESS)
+    public BadRequestException deletionInProgress(final String dataObjectType, final String dataObjectName);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException imageNotPresentOnComputeImageServer(final String computeImage, final String computeImageServer);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException clientIpNotExist();
+
     public BadRequestException cannotShareVcenterWithMultipleTenants(final String vcenterName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2465,4 +2475,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotUpdateACL(final String vcenterName, final long refreshInterval);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cgReferencesInvalidProtectionSystem(final URI cgUri, final URI protectionSystemUri);
 }

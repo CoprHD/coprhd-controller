@@ -237,9 +237,14 @@ public class Models extends Controller {
     }
 
     private static String validateSessionTenant(String sessionTenant) {
-        if (TenantUtils.getNoTenantSelector().equalsIgnoreCase(sessionTenant) ||
-                TenantUtils.getTenantSelectorForUnassigned().equalsIgnoreCase(sessionTenant) ||
-                getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
+        try {
+            if (TenantUtils.getNoTenantSelector().equalsIgnoreCase(sessionTenant) ||
+                    TenantUtils.getTenantSelectorForUnassigned().equalsIgnoreCase(sessionTenant) ||
+                    getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
+                Models.resetAdminTenantId();
+                sessionTenant = Models.currentAdminTenantForVcenter();
+            }
+        } catch (ServiceErrorException tenantNotFound) {
             Models.resetAdminTenantId();
             sessionTenant = Models.currentAdminTenantForVcenter();
         }

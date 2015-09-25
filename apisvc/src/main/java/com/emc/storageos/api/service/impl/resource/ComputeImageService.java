@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
 import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,9 +60,8 @@ import com.google.common.base.Function;
  * Compute image service handles create, update, and remove of compute images.
  */
 @Path("/compute/images")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        readAcls = { ACL.USE },
-        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, readAcls = { ACL.USE }, writeRoles = { Role.SYSTEM_ADMIN,
+        Role.RESTRICTED_SYSTEM_ADMIN })
 public class ComputeImageService extends TaskResourceService {
 
     private static final Logger log = LoggerFactory.getLogger(ComputeImageService.class);
@@ -82,7 +82,10 @@ public class ComputeImageService extends TaskResourceService {
     public ComputeImageRestRep getComputeImage(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, ComputeImage.class, "id");
         ComputeImage ci = queryResource(id);
-        return ComputeMapper.map(ci);
+        List<ComputeImageServer> successfulServers = new ArrayList<ComputeImageServer>();
+        List<ComputeImageServer> failedServers = new ArrayList<ComputeImageServer>();
+        getImageImportStatus(ci, successfulServers, failedServers);
+        return ComputeMapper.map(ci, successfulServers, failedServers);
     }
 
     /**
@@ -113,6 +116,24 @@ public class ComputeImageService extends TaskResourceService {
             }
         }
         return list;
+    }
+
+    public void getImageImportStatus(ComputeImage image, List<ComputeImageServer> successfulServers,
+            List<ComputeImageServer> failedServers) {
+
+        List<URI> ids = _dbClient.queryByType(ComputeImageServer.class,
+                true);
+        for (URI imageServerId : ids) {
+            ComputeImageServer imageServer = _dbClient.queryObject(
+                    ComputeImageServer.class, imageServerId);
+            if (imageServer.getComputeImages() != null
+                    && imageServer.getComputeImages().contains(
+                            image.getId().toString())) {
+                successfulServers.add(imageServer);
+            } else {
+                failedServers.add(imageServer);
+            }
+        }
     }
 
     /**
@@ -151,7 +172,7 @@ public class ComputeImageService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_COMPUTE_IMAGE, true, AuditLogManager.AUDITOP_BEGIN, ci.getId().toString(),
                 ci.getImageUrl(), ci.getComputeImageStatus());
         try {
-        	
+
             return doImportImage(ci);
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
@@ -182,7 +203,7 @@ public class ComputeImageService extends TaskResourceService {
         log.info("doImportImage");
         ImageServerController controller = getController(ImageServerController.class, null);
         AsyncTask task = new AsyncTask(ComputeImage.class, ci.getId(), UUID.randomUUID().toString());
-     
+
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.IMPORT_IMAGE);
         _dbClient.createTaskOpStatus(ComputeImage.class, ci.getId(), task._opId, op);
@@ -210,9 +231,6 @@ public class ComputeImageService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, ComputeImage.class, "id");
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
 
-        // Adding URL validation CTRL-9518
-        ArgValidator.checkUrl(param.getImageUrl(), "image_url");
-
         ComputeImage ci = _dbClient.queryObject(ComputeImage.class, id);
         ArgValidator.checkEntity(ci, id, isIdEmbeddedInURL(id));
 
@@ -225,6 +243,8 @@ public class ComputeImageService extends TaskResourceService {
 
         // see if image URL needs updating
         if (!StringUtils.isBlank(param.getImageUrl()) && !param.getImageUrl().equals(ci.getImageUrl())) {
+            ArgValidator.checkUrl(param.getImageUrl(), "image_url");
+
             // URL can only be update if image not successfully loaded
             if (ci.getComputeImageStatus().equals(ComputeImageStatus.NOT_AVAILABLE.name())) {
                 ci.setImageUrl(param.getImageUrl());
@@ -240,8 +260,8 @@ public class ComputeImageService extends TaskResourceService {
         auditOp(OperationTypeEnum.UPDATE_COMPUTE_IMAGE, true, null,
                 ci.getId().toString(), ci.getImageUrl());
 
-       return createUpdateTasks(ci, reImport);
-        
+        return createUpdateTasks(ci, reImport);
+
     }
 
     /**
@@ -273,7 +293,8 @@ public class ComputeImageService extends TaskResourceService {
                 _dbClient.queryByConstraint(
                         ContainmentConstraint.Factory
                                 .getComputeImageJobsByComputeImageConstraint(ci
-                                        .getId()), ceUriList);
+                                        .getId()),
+                        ceUriList);
                 Iterator<URI> iterator = ceUriList.iterator();
                 while (iterator.hasNext()) {
                     ComputeImageJob job = _dbClient.queryObject(
@@ -355,8 +376,7 @@ public class ComputeImageService extends TaskResourceService {
     @Override
     public ComputeImageBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<ComputeImage> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<ComputeImage> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new ComputeImageBulkRep(BulkList.wrapping(_dbIterator, COMPUTE_IMAGE_MAPPER));
     }
 

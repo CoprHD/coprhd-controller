@@ -36,13 +36,15 @@ public class XtremioStorageSystemToStorageProviderMigration
             List<StorageSystem> storageSystemsList = dbClient.queryObject(StorageSystem.class, storageSystemURIList);
             Iterator<StorageSystem> systemItr = storageSystemsList.iterator();
             List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
+            List<StorageProvider> storageProvidersToCreate = new ArrayList<StorageProvider>();
             while (systemItr.hasNext()) {
                 StorageSystem storageSystem = systemItr.next();
                 // perform storagesystem upgrade only for XtremIO storagesystems.
                 if (DiscoveredDataObject.Type.xtremio.name().equalsIgnoreCase(storageSystem.getSystemType())) {
-                    createNewStorageProviderInstance(storageSystem);
+                    storageProvidersToCreate.add(createNewStorageProviderInstance(storageSystem));
                 }
             }
+            dbClient.createObject(storageProvidersToCreate);
             // persist all systems here.
             dbClient.persistObject(systemsToUpdate);
         } catch (Exception e) {

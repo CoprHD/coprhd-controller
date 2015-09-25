@@ -5,6 +5,7 @@
 package com.emc.storageos.coordinator.client.model;
 
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+
 import org.apache.commons.lang.builder.HashCodeBuilder;
 
 import com.emc.storageos.coordinator.exceptions.DecodingException;
@@ -22,41 +23,60 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String UPDATE_DATA_REVISION = "update_data_revision";
     public static final String RECONFIG_RESTART = "reconfig_restart";
     public static final String NONE = "none";
+    
+    public static final String DEFAULT_TARGET_VERSION="0"; // No target data revision set
 
     private static final String ENCODING_SEPARATOR = "\0";
 
-    private final long version;
+    private final long vdcConfigVersion;
     private final String actionRequired;
+    private final String targetDataRevision;
 
     public SiteInfo() {
-        version = 0;
+        vdcConfigVersion = 0;
         actionRequired = NONE;
+        targetDataRevision = DEFAULT_TARGET_VERSION;
     }
 
     public SiteInfo(final long version, final String actionRequired) {
-        this.version = version;
-        this.actionRequired = actionRequired;
+        this(version, actionRequired, DEFAULT_TARGET_VERSION);
     }
 
-    public long getVersion() {
-        return version;
+    public SiteInfo(final long version, final String actionRequired, final String targetDataRevision) {
+        this.vdcConfigVersion = version;
+        this.actionRequired = actionRequired;
+        this.targetDataRevision = targetDataRevision;
+    }
+
+    public long getVdcConfigVersion() {
+        return vdcConfigVersion;
     }
 
     public String getActionRequired() {
         return actionRequired;
     }
+    
+    public String getTargetDataRevision() {
+        return targetDataRevision;
+    }
+    
+    public boolean isNullTargetDataRevision() {
+        return SiteInfo.DEFAULT_TARGET_VERSION.equals(targetDataRevision);
+    }
 
     @Override
     public String toString() {
-        return "config version=" + Strings.repr(version) + ", action=" + actionRequired;
+        return "vdc config version=" + Strings.repr(vdcConfigVersion) + ", action=" + actionRequired + ", target data revision=" + targetDataRevision;
     }
 
     @Override
     public String encodeAsString() {
         StringBuilder sb = new StringBuilder();
-        sb.append(version);
+        sb.append(vdcConfigVersion);
         sb.append(ENCODING_SEPARATOR);
         sb.append(actionRequired);
+        sb.append(ENCODING_SEPARATOR);
+        sb.append(targetDataRevision);
         return sb.toString();
     }
 
@@ -67,12 +87,12 @@ public class SiteInfo implements CoordinatorSerializable {
         }
 
         final String[] strings = infoStr.split(ENCODING_SEPARATOR);
-        if (strings.length != 2) {
+        if (strings.length != 3) {
             throw CoordinatorException.fatals.decodingError("invalid site info");
         }
 
         Long hash = Long.valueOf(strings[0]);
-        return new SiteInfo(hash, strings[1]);
+        return new SiteInfo(hash, strings[1], strings[2]);
     }
 
     @Override

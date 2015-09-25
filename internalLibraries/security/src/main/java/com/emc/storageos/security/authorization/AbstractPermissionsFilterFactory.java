@@ -97,13 +97,13 @@ public abstract class AbstractPermissionsFilterFactory implements com.sun.jersey
 
         // Adding license filter for all operations that should be forbidden without it.
         if (!isLicenseCheckDisabled()) {
-            // add license check for all non GET methods that are not annotated with ExcludeLicenseCheck
+            // add it for all non GET methods that are not annotated with ExcludeLicenseCheck
             // except for POST requests on '/bulk' api
             if (am.getAnnotation(GET.class) == null && am.getAnnotation(ExcludeLicenseCheck.class) == null) {
                 Path p = am.getAnnotation(Path.class);
-                if (!(p != null && am.getAnnotation(POST.class) != null && p.value().endsWith("/bulk")) ) {
+                if (!(p != null && am.getAnnotation(POST.class) != null && p.value().endsWith("/bulk"))) {
                     filters.add(getLicenseFilter());
-                } 
+                }
             }
         }
 

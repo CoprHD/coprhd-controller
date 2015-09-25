@@ -210,8 +210,6 @@
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="nodeCount" ref="nodeCount" />
-        <property name="powerOffStateChangeTimeout" value="120000" />
-        <property name="powerOffStateProbeInterval" value="3000" />
         <property name="loopInterval"  value="600000" />
         <property name="retryInterval"  value="4000" />
     </bean>

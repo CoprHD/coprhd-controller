@@ -17,15 +17,16 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.DataRevision;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.coordinator.client.service.PropertyInfoUtil;
 
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 
@@ -444,12 +445,16 @@ public class LocalRepository {
      * @param state
      * @throws LocalRepositoryException
      */
-    public void setDataRevision(DataRevision revisionTag) throws LocalRepositoryException {
+    public void setDataRevision(String revisionTag) throws LocalRepositoryException {
         final String prefix = "setDataRevisionTag(): to=" + revisionTag;
         _log.debug(prefix);
 
         final Path tmpFilePath = FileSystems.getDefault().getPath(DATA_REVISION_TMP);
-        createTmpFile(tmpFilePath, revisionTag.encodeAsString(), prefix);
+        StringBuilder s = new StringBuilder();
+        s.append(KEY_DATA_REVISION);
+        s.append(PropertyInfoExt.ENCODING_EQUAL);
+        s.append(revisionTag);
+        createTmpFile(tmpFilePath, s.toString(), prefix);
 
         try {
             final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_DATA_REVISION, DATA_REVISION_TMP };
@@ -465,7 +470,7 @@ public class LocalRepository {
      * 
      * @return DataRevisonTag
      */
-    public DataRevision getDataRevision() throws LocalRepositoryException {
+    public String getDataRevision() throws LocalRepositoryException {
         final String prefix = "getDataRevision(): ";
         _log.debug(prefix);
 
@@ -473,7 +478,8 @@ public class LocalRepository {
         String[] props = exec(prefix, cmd1);
 
         _log.debug(prefix + "properties={}", Strings.repr(props));
-        return new DataRevision().decodeFromString(props[0]);
+        Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
+        return map.get(KEY_DATA_REVISION);
     }
 
     /**

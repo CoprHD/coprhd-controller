@@ -60,13 +60,13 @@ import com.emc.storageos.coordinator.client.model.ConfigVersion;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.CoordinatorClassInfo;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
-import com.emc.storageos.coordinator.client.model.DataRevision;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
@@ -593,9 +593,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isSiteSpecific(String kind) {
-
-        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equals(DataRevision.CONFIG_KIND)
-                || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND)) {
+        
+        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equals(SiteInfo.CONFIG_KIND) || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND)) {
             return true;
         }
         return false;
@@ -1050,7 +1049,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * @param info
      * @throws CoordinatorException
      */
-    public void setTargetInfo(final CoordinatorSerializable info, String id, String kind) throws CoordinatorException {
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
+        final CoordinatorClassInfo coordinatorInfo = info.getCoordinatorClassInfo();
+        String id = coordinatorInfo.id;
+        String kind = coordinatorInfo.kind;
+        
         ConfigurationImpl cfg = new ConfigurationImpl();
         cfg.setId(id);
         cfg.setKind(kind);

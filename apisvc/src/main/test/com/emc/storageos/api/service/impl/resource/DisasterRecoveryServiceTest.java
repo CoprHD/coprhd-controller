@@ -15,10 +15,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import java.lang.reflect.Constructor;
-import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
-import java.util.List;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -41,7 +39,6 @@ import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
-import com.emc.storageos.model.dr.SiteSyncParam;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.services.util.SysUtils;
@@ -55,17 +52,12 @@ public class DisasterRecoveryServiceTest {
     private Site standbySite2;
     private Site standbySite3;
     private Site standbyConfig;
-    private SiteSyncParam primarySiteParam;
-    private List<URI> uriList;
-    private List<Site> standbySites;
     private SiteConfigRestRep standby;
     private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
 
     @Before
     public void setUp() throws Exception {
-        uriList = new LinkedList<URI>();
-        standbySites = new LinkedList<Site>();
         
         Constructor constructor = ProductName.class.getDeclaredConstructors()[0];
         constructor.setAccessible(true);
@@ -98,13 +90,6 @@ public class DisasterRecoveryServiceTest {
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
-
-        primarySiteParam = new SiteSyncParam();
-        /*primarySiteParam.setUuid("primary-site-uuid");
-        primarySiteParam.setVip("127.0.0.1");
-        primarySiteParam.setSecretKey("secret-key");
-        primarySiteParam.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
-        primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());*/
         
         localVDC.setApiEndpoint("127.0.0.2");
         localVDC.setHostIPv4AddressesMap(new StringMap(standbySite1.getHostIPv4AddressMap()));

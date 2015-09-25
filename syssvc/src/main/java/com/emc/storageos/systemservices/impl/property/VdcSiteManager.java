@@ -11,7 +11,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.DataRevision;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
@@ -35,7 +34,6 @@ public class VdcSiteManager extends AbstractManager {
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
     private PropertyInfoExt targetVdcPropInfo;
-    private DataRevision targetDataRevision;
     private PowerOffState targetPowerOffState;
     
     private static final String POWEROFFTOOL_COMMAND = "/etc/powerofftool";
@@ -72,7 +70,7 @@ public class VdcSiteManager extends AbstractManager {
      */
     class SiteInfoListener implements NodeListener {
         public String getPath() {
-            return String.format("/config/%s/%s", SiteInfo.CONFIG_KIND, SiteInfo.CONFIG_ID);
+            return String.format("/sites/%s/config/%s/%s", coordinator.getCoordinatorClient().getSiteId(), SiteInfo.CONFIG_KIND, SiteInfo.CONFIG_ID);
         }
 
         /**
@@ -97,55 +95,12 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
 
-    /**
-     * Register site info listener to monitor data revision
-     */
-    private void addDataRevisionListener() {
-        try {
-            coordinator.getCoordinatorClient().addNodeListener(new DataRevisionListener());
-        } catch (Exception e) {
-            log.error("Fail to add node listener for data revision target znode", e);
-            throw APIException.internalServerErrors.addListenerFailed();
-        }
-        log.info("Successfully added node listener for data revision target znode");
-    }
-
-    /**
-     * the listener class to listen on data revision change.
-     */
-    class DataRevisionListener implements NodeListener {
-        public String getPath() {
-            return String.format("/sites/%s/config/%s/%s", coordinator.getCoordinatorClient().getSiteId(), DataRevision.CONFIG_KIND, DataRevision.CONFIG_ID);
-        }
-
-        /**
-         * called when user update the site
-         */
-        @Override
-        public void nodeChanged() {
-            log.info("Data revision changed. Waking up the vdc manager...");
-            wakeup();
-        }
-
-        /**
-         * called when connection state changed.
-         */
-        @Override
-        public void connectionStateChanged(State state) {
-            log.info("Data revision connection state changed to {}", state);
-            if (state.equals(State.CONNECTED)) {
-                log.info("Curator (re)connected. Waking up the vdc manager...");
-                wakeup();
-            }
-        }
-    }
-
+    
     @Override
     protected void innerRun() {
         final String svcId = coordinator.getMySvcId();
 
         addSiteInfoListener();
-        addDataRevisionListener();
 
         while (doRun) {
             log.debug("Main loop: Start");
@@ -208,7 +163,7 @@ public class VdcSiteManager extends AbstractManager {
             }
 
             // Step3: change data revision
-            log.info("Step3: check if target data revision is changed - {}", targetDataRevision);
+            log.info("Step3: check if target data revision is changed - {}", targetSiteInfo.getTargetDataRevision());
             try {
                 updateDataRevision();
             } catch (Exception e) {
@@ -236,11 +191,10 @@ public class VdcSiteManager extends AbstractManager {
         // Initialize vdc prop info
         localVdcPropInfo = localRepository.getVdcPropertyInfo();
         targetVdcPropInfo = loadVdcConfigFromDatabase();
-        targetDataRevision = coordinator.getTargetInfo(DataRevision.class);
         if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null) {
             localVdcPropInfo = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
             localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
-                    String.valueOf(targetSiteInfo.getVersion()));
+                    String.valueOf(targetSiteInfo.getVdcConfigVersion()));
             localRepository.setVdcPropertyInfo(localVdcPropInfo);
 
             String vdc_ids = targetVdcPropInfo.getProperty(VDC_IDS_KEY);
@@ -288,7 +242,7 @@ public class VdcSiteManager extends AbstractManager {
     private boolean vdcPropertiesChanged() {
         long localVdcConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null ? 0 :
                 Long.parseLong(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
-        long targetVdcConfigVersion = targetSiteInfo.getVersion();
+        long targetVdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
 
         return localVdcConfigVersion != targetVdcConfigVersion;
     }
@@ -343,7 +297,7 @@ public class VdcSiteManager extends AbstractManager {
                 localRepository.reload("firewall");
 
                 log.info("Step2: Updating the hash code for local vdc properties");
-                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVersion()));
+                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
                 localRepository.setVdcPropertyInfo(vdcProperty);
             } else {
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
@@ -413,9 +367,10 @@ public class VdcSiteManager extends AbstractManager {
      * @throws Exception
      */
     private void updateDataRevision() throws Exception {
-        DataRevision localRevision = localRepository.getDataRevision();
+        String targetDataRevision = targetSiteInfo.getTargetDataRevision();
+        String localRevision = localRepository.getDataRevision();
         log.info("Step3: local data revision is {}", localRevision);
-        if (targetDataRevision != null && !targetDataRevision.equals(localRevision)) {
+        if (!targetSiteInfo.isNullTargetDataRevision() && !targetDataRevision.equals(localRevision)) {
             localRepository.setDataRevision(targetDataRevision);
             log.info("Step3: Trying to reach agreement with timeout on cluster poweroff");
             if (checkAllNodesAgreeToPowerOff(false) && initiatePoweroff(false)) {

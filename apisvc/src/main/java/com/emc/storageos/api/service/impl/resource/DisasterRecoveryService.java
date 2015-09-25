@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.SiteMapper;
-import com.emc.storageos.coordinator.client.model.DataRevision;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
@@ -113,7 +112,7 @@ public class DisasterRecoveryService {
             _coordinator.addSite(standbyConfig.getUuid());
             
             log.info("Persist standby site to ZK");
-            _coordinator.setTargetInfo(standbySite, standbySite.getCoordinatorClassInfo().id, standbySite.getCoordinatorClassInfo().kind);
+            _coordinator.setTargetInfo(standbySite);
             
             updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
     
@@ -178,14 +177,12 @@ public class DisasterRecoveryService {
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(vdc.getHostIPv4AddressesMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(vdc.getHostIPv6AddressesMap()));
             standbySite.setSecretKey(vdc.getSecretKey());
-            
-            updateVdcTargetVersion(SiteInfo.UPDATE_DATA_REVISION);
         
             _coordinator.addSite(param.getUuid());
-            _coordinator.setTargetInfo(standbySite, standbySite.getCoordinatorClassInfo().id, standbySite.getCoordinatorClassInfo().kind);
+            _coordinator.setTargetInfo(standbySite);
             _coordinator.setPrimarySite(param.getUuid());
 
-            updateDataRevision();
+            updateVdcTargetVersionAndDataRevision(SiteInfo.UPDATE_DATA_REVISION);
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
@@ -300,23 +297,27 @@ public class DisasterRecoveryService {
         return siteConfigRestRep;
     }
     
-    private void updateDataRevision() throws Exception {
-        int ver = 1;
-        DataRevision currentRevision = _coordinator.getTargetInfo(DataRevision.class);
-        if (currentRevision != null) {
-            ver = Integer.valueOf(currentRevision.getTargetRevision());
-        }
-        DataRevision newRevision = new DataRevision(String.valueOf(++ver));
-        _coordinator.setTargetInfo(newRevision, newRevision.CONFIG_ID, newRevision.CONFIG_KIND);
-        log.info("Updating data revision to {} in site target", newRevision);
-        
-    }
-
     // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc
     private void updateVdcTargetVersion(String action) {
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action);
-        _coordinator.setTargetInfo(siteInfo, SiteInfo.CONFIG_ID, SiteInfo.CONFIG_KIND);
-        log.info("VDC target version updated to {}, action required: {}", siteInfo.getVersion(), action);
+        _coordinator.setTargetInfo(siteInfo);
+        log.info("VDC target version updated to {}, action required: {}", siteInfo.getVdcConfigVersion(), action);
+    }
+    
+    private void updateVdcTargetVersionAndDataRevision(String action) throws Exception {
+        int ver = 1;
+        SiteInfo siteInfo = _coordinator.getTargetInfo(SiteInfo.class);
+        if (siteInfo != null) {
+            if (!siteInfo.isNullTargetDataRevision()) {
+                String currentDataRevision = siteInfo.getTargetDataRevision();
+                ver = Integer.valueOf(currentDataRevision);
+            }
+        }
+        String targetDataRevision = String.valueOf(++ver);
+        siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
+        _coordinator.setTargetInfo(siteInfo);
+        log.info("VDC target version updated to {}, revision {}", 
+                siteInfo.getVdcConfigVersion(),  targetDataRevision);
     }
     
     @POST

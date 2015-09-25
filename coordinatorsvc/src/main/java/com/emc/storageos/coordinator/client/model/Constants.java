@@ -33,7 +33,8 @@ public interface Constants {
     public static final String TMP_CONFIG_USER_CHANGED_PROPS_PATH = "/tmp/config-override.properties";
     public static final String TMP_CONFIG_CONTROLLER_OVF_PROPS_PATH = "/tmp/controller-ovf.properties";
     public static final String DATA_REVISION_TMP = "/tmp/datarevisionconfig.properties.new";
-
+    public static final String KEY_DATA_REVISION = "target_data_revision";
+            
     // upload image
     public static final long MAX_UPLOAD_SIZE = 800000000L;
     public static final String UPLOAD_DIR = "/tmp/uploads";

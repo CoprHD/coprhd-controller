@@ -320,12 +320,14 @@ public class ComputeImageService extends TaskResourceService {
                 throw APIException.badRequests.resourceCannotBeDeleted(ci
                         .getLabel());
             } else { // delete is forced
+                deleteImageFromImageServers(ci);
                 _dbClient.markForDeletion(ci);
                 auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci
                         .getId().toString(), ci.getImageUrl());
                 return getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE);
             }
         } else { // NOT_AVAILABLE
+            deleteImageFromImageServers(ci);
             _dbClient.markForDeletion(ci);
             auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci
                     .getId().toString(), ci.getImageUrl());
@@ -457,6 +459,26 @@ public class ComputeImageService extends TaskResourceService {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
             _dbClient.persistObject(ci);
             throw e;
+        }
+    }
+
+    /**
+     * Delete any image references or associations from all existing ImageServers.
+     * @param ci {@link ComputeImage}
+     */
+    private void deleteImageFromImageServers(ComputeImage ci) {
+        List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
+        for (URI imageServerId : ids) {
+            ComputeImageServer imageServer = _dbClient.queryObject(
+                    ComputeImageServer.class, imageServerId);
+
+            if (imageServer.getFailedComputeImages() != null
+                    && imageServer.getFailedComputeImages().contains(
+                            ci.getId().toString())) {
+                imageServer.getFailedComputeImages().remove(
+                        ci.getId().toString());
+                _dbClient.persistObject(imageServer);
+            }
         }
     }
 }

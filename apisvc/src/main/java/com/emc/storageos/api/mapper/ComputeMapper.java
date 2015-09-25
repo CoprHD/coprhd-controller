@@ -162,13 +162,10 @@ public class ComputeMapper {
      *            {@link DbClient} instance
      * @param from
      *            {@link ComputeImageServer} instance that has to be mapped.
-     * @param failedImages
-     *            {@link List} of {@link ComputeImage} instances that failed
-     *            import on the imageServer
-     * @return
+     * @return {@link ComputeImageServerRestRep}
      */
     public static ComputeImageServerRestRep map(DbClient dbclient,
-            ComputeImageServer from, List<ComputeImage> failedImages) {
+            ComputeImageServer from) {
         if (from == null) {
             return null;
         }
@@ -200,8 +197,10 @@ public class ComputeMapper {
                                 image.getLabel()));
             }
         }
-        if (failedImages != null) {
-            for (ComputeImage failedImage : failedImages) {
+        if (from.getFailedComputeImages() != null) {
+            for (String failedImageID : from.getFailedComputeImages()) {
+                ComputeImage failedImage = dbclient.queryObject(ComputeImage.class,
+                        URIUtil.uri(failedImageID));
                 to.getFailedImages().add(
                         DbObjectMapper.toNamedRelatedResource(
                                 ResourceTypeEnum.COMPUTE_IMAGE,

@@ -39,7 +39,6 @@ import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.model.BulkIdParam;
@@ -80,6 +79,7 @@ public class ComputeImageServerService extends TaskResourceService {
     private static final String IMAGESERVER_PASSWORD = "imageServerPassword";
     private static final String IMAGESERVER_USER = "imageServerUser";
     private static final String OS_INSTALL_TIMEOUT_MS = "osInstallTimeoutMs";
+    private static final String IMAGE_SERVER_IMAGEDIR = "image_server_image_directory";
 
     @Override
     protected ComputeImageServer queryResource(URI id) {
@@ -214,6 +214,7 @@ public class ComputeImageServerService extends TaskResourceService {
         imageServer.setImageServerPassword(password);
         imageServer.setOsInstallTimeoutMs((int) installTimeout);
         imageServer.setImageServerSecondIp(osInstallAddress);
+        imageServer.setImageDir(_coordinator.getPropertyInfo().getProperty(IMAGE_SERVER_IMAGEDIR));
 
         auditOp(OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES, true, null,
                 imageServer.getId().toString(), imageServer.getImageServerIp());
@@ -251,7 +252,7 @@ public class ComputeImageServerService extends TaskResourceService {
             @PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, ComputeImageServer.class, "id");
         ComputeImageServer imageServer = queryResource(id);
-        return map(_dbClient, imageServer, getFailedImportImages(imageServer));
+        return map(_dbClient, imageServer);
     }
 
     /**
@@ -345,7 +346,7 @@ public class ComputeImageServerService extends TaskResourceService {
             controller.verifyImageServerAndImportExistingImages(task,
                     op.getName());
         }
-        return map(_dbClient, imageServer, getFailedImportImages(imageServer));
+        return map(_dbClient, imageServer);
     }
 
     /**
@@ -382,7 +383,7 @@ public class ComputeImageServerService extends TaskResourceService {
         @Override
         public ComputeImageServerRestRep apply(
                 final ComputeImageServer imageserver) {
-            return ComputeMapper.map(_dbClient, imageserver, null);
+            return ComputeMapper.map(_dbClient, imageserver);
         }
     }
 
@@ -424,32 +425,6 @@ public class ComputeImageServerService extends TaskResourceService {
                         .cannotDeleteOrUpdateImageServerWhileInUse();
             }
         }
-    }
-
-    /**
-     * Fetch the list of images that failed the image import.
-     * @param imageServer {@link ComputeImageServer} instance
-     * @return
-     */
-    private List<ComputeImage> getFailedImportImages(
-            ComputeImageServer imageServer) {
-        List<URI> imagesURIList = _dbClient.queryByType(ComputeImage.class,
-                true);
-        Iterator<ComputeImage> iter = _dbClient.queryIterativeObjects(
-                ComputeImage.class, imagesURIList);
-        StringSet successImages = imageServer.getComputeImages();
-        List<ComputeImage> failedImages = new ArrayList<ComputeImage>();
-        if (successImages == null) {
-            failedImages = Lists.newArrayList(iter);
-        } else {
-            while (iter.hasNext()) {
-                ComputeImage image = iter.next();
-                if (!successImages.contains(image.getId().toString())) {
-                    failedImages.add(image);
-                }
-            }
-        }
-        return failedImages;
     }
 
     /**

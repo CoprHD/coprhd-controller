@@ -193,8 +193,8 @@ public class BlockService extends TaskResourceService {
         CHANGE_COPY_MODE("change-copy-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE),
         UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
-        private String op;
-        private ResourceOperationTypeEnum resourceType;
+        private final String op;
+        private final ResourceOperationTypeEnum resourceType;
 
         ProtectionOp(String op, ResourceOperationTypeEnum resourceType) {
             this.op = op;
@@ -562,10 +562,10 @@ public class BlockService extends TaskResourceService {
      * This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id
      * 
      * @prereq Create full copy as inactive
-     *
+     * 
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
-     *
+     * 
      * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy
      *        URI id
      * 
@@ -588,10 +588,10 @@ public class BlockService extends TaskResourceService {
      * This method is deprecated. Use /block/full-copies/{id}/check-progress instead with {id} representing full copy URI id
      * 
      * @prereq none
-     *
+     * 
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
-     *
+     * 
      * @brief Show full copy synchronization progress
      * 
      * @return VolumeRestRep
@@ -614,10 +614,10 @@ public class BlockService extends TaskResourceService {
      * 
      * @prereq Create full copy as inactive
      * @prereq Activate full copy
-     *
+     * 
      * @param id the URN of a ViPR Source volume
      * @param id the URN of Full copy volume
-     *
+     * 
      * @brief Detach full copy
      * 
      * @return TaskResourceRep
@@ -868,7 +868,7 @@ public class BlockService extends TaskResourceService {
                             if ((!VirtualPool.vPoolSpecifiesMetroPoint(requestedVpool) &&
                                     VirtualPool.vPoolSpecifiesMetroPoint(existingVpool)) ||
                                     (VirtualPool.vPoolSpecifiesMetroPoint(requestedVpool) &&
-                                            !VirtualPool.vPoolSpecifiesMetroPoint(existingVpool))) {
+                                    !VirtualPool.vPoolSpecifiesMetroPoint(existingVpool))) {
                                 throw APIException.badRequests.cannotMixMetroPointAndNonMetroPointVolumes(consistencyGroup.getLabel());
                             }
                         }
@@ -1418,7 +1418,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Request to cancel a prior test failover of the protection link associated with the param.copyID.
-     *
+     * 
      * NOTE: This is an asynchronous operation.
      * 
      * If volume is srdf protected, then its a no-op
@@ -1794,7 +1794,7 @@ public class BlockService extends TaskResourceService {
     public TaskResourceRep deleteVolume(@PathParam("id") URI id,
             @DefaultValue("false") @QueryParam("force") boolean force,
             @DefaultValue("FULL") @QueryParam("type") String type)
-                    throws InternalException {
+            throws InternalException {
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         Volume volume = queryVolumeResource(id);
 
@@ -1808,7 +1808,7 @@ public class BlockService extends TaskResourceService {
         }
 
         BlockServiceApi blockServiceApi = getBlockServiceImpl(volume);
-        
+
         /**
          * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
          * Hence we don't require reference check for vmax.
@@ -2066,7 +2066,7 @@ public class BlockService extends TaskResourceService {
                     volumeTask.setMessage(e.getMessage());
                     _dbClient.updateTaskOpStatus(Volume.class, volumeTask
                             .getResource().getId(), task, new Operation(
-                                    Operation.Status.error.name(), e.getMessage()));
+                            Operation.Status.error.name(), e.getMessage()));
                 }
             }
         }
@@ -3210,7 +3210,7 @@ public class BlockService extends TaskResourceService {
                 volumeTask.setMessage(errorMsg);
                 _dbClient.updateTaskOpStatus(Volume.class, volumeTask
                         .getResource().getId(), taskId, new Operation(
-                                Operation.Status.error.name(), errorMsg));
+                        Operation.Status.error.name(), errorMsg));
             }
             throw e;
         }
@@ -3842,6 +3842,10 @@ public class BlockService extends TaskResourceService {
                         _log.info("VPlex volume VirtualPool change not supported {}", notSuppReasonBuff.toString());
                         throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                                 notSuppReasonBuff.toString());
+                    } else if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, volume)) {
+                        // We will not allow virtual pool change for a VPLEX volume that was
+                        // created using the target volume of a block snapshot.
+                        throw APIException.badRequests.vpoolChangeNotAllowedForVPLEXVolumeBuiltOnSnapshot(volume.getId().toString());
                     } else if (vplexVpoolChangeOperation == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION) {
                         // Determine if source side will be migrated.
                         boolean migrateSourceVolume = VirtualPoolChangeAnalyzer
@@ -4582,14 +4586,14 @@ public class BlockService extends TaskResourceService {
                 VplexMirror mirror = _dbClient.queryObject(VplexMirror.class, URI.create(mirrorURI));
                 if (!mirror.getInactive() &&
                         ((count > 1 && mirror.getLabel().matches("^" + name + "\\-\\d+$")) ||
-                                (count == 1 && name.equals(mirror.getLabel())))) {
+                        (count == 1 && name.equals(mirror.getLabel())))) {
                     dupList.add(mirror.getLabel());
                 }
             } else {
                 BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(mirrorURI));
                 if (null != mirror && !mirror.getInactive() &&
                         ((count > 1 && mirror.getLabel().matches("^" + name + "\\-\\d+$")) ||
-                                (count == 1 && name.equals(mirror.getLabel())))) {
+                        (count == 1 && name.equals(mirror.getLabel())))) {
                     dupList.add(mirror.getLabel());
                 }
             }
@@ -5043,9 +5047,9 @@ public class BlockService extends TaskResourceService {
      * This is because, BlockService implements Volume and
      * Mirror (BlockMirror and VplexMirror) resources. To query the
      * respective objects from DB, we should use the right class type.
-     *
+     * 
      * @param uriStr the uri to determine the right resource class type.
-     *
+     * 
      * @return returns the correct resource type of the resource.
      */
     public static Class<? extends DataObject> getBlockServiceResourceClass(String uriStr) {

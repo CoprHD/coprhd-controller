@@ -1890,6 +1890,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public void verifyVarrayChangeSupportedForVolumeAndVarray(Volume volume,
             VirtualArray newVarray) throws APIException {
 
+        // We will not allow virtual array change for a VPLEX volume that was
+        // created using the target volume of a block snapshot.
+        if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, volume)) {
+            throw APIException.badRequests.varrayChangeNotAllowedForVPLEXVolumeBuiltOnSnapshot(volume.getId().toString());
+        }
+
         // The volume virtual pool must specify vplex local high availability.
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         String highAvailability = vpool.getHighAvailability();
@@ -2084,7 +2090,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // backend volumes. However, if native expansion is not supported
         // for the backend volumes, we can always try to expand the VPlex
         // volume by migrating the the backend volumes to new target volumes
-        // of the expanded size.
+        // of the expanded size. However, we will not allow expansion of a
+        // VPLEX volume that was created using the target volume of a
+        // block snapshot.
+        if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, vplexVolume)) {
+            throw APIException.badRequests.expansionNotAllowedForVPLEXVolumeBuiltOnSnapshot(vplexVolume.getId().toString());
+        }
     }
 
     /**
@@ -2249,13 +2260,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             NativeContinuousCopyCreate param, String taskId)
             throws ControllerException {
 
+        // We will not allow continuous copies for a VPLEX volume that was created
+        // using the target volume of a block snapshot.
+        if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, vplexVolume)) {
+            throw APIException.badRequests.mirrorNotAllowedForVPLEXVolumeBuiltOnSnapshot(vplexVolume.getId().toString());
+        }
+
         validateNotAConsistencyGroupVolume(vplexVolume, sourceVirtualPool);
 
         TaskList taskList = new TaskList();
-        // Currently, For Vplex Local Volume this will create a single mirror and add it to the vplex volume
-        // For Vplex Distributed Volume this will create single mirror on source and/or HA side and add it to the vplex volume
-        // Two steps: first place the mirror and then prepare the mirror.
 
+        // Currently, For Vplex Local Volume this will create a single mirror and add it
+        // to the vplex volume. For Vplex Distributed Volume this will create single mirror
+        // on source and/or HA side and add it to the vplex volume. Two steps: first place
+        // the mirror and then prepare the mirror.
         URI vplexStorageSystemURI = vplexVolume.getStorageController();
 
         // For VPLEX Local volume there will be only one associated volume entry in this set.
@@ -3181,6 +3199,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<Volume> cgVolumes, StorageSystem cgStorageSystem) {
         super.verifyAddVolumeToCG(volume, cg, cgVolumes, cgStorageSystem);
 
+        // We will not allow a VPLEX volume that was created using the target
+        // volume of a block snapshot to be added to a consistency group.
+        if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, volume)) {
+            throw APIException.badRequests.cgNotAllowedForVPLEXVolumeBuiltOnSnapshot(volume.getId().toString());
+        }
+
         // Don't allow ingested VPLEX volumes to be added to a consistency group.
         // They must first be migrated to known, supported backend storage.
         VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(volume,
@@ -3208,6 +3232,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
             String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
         super.validateCreateSnapshot(reqVolume, volumesToSnap, snapshotType, snapshotName, fcManager);
+
+        // If the volume is a VPLEX volume created on a block snapshot,
+        // we don't support creation of a snapshot. In this case the
+        // requested volume will not be in a CG, so volumes to snaps will
+        // just be the requested volume.
+        if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, reqVolume)) {
+            throw APIException.badRequests.snapshotNotAllowedForVPLEXVolumeBuiltOnSnapshot(reqVolume.getId().toString());
+        }
+
         // If there are more than one volume in the consistency group, and they are on different backend storage system, return error.
         if (volumesToSnap.size() > 1 && !VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumesToSnap, _dbClient)) {
             throw APIException.badRequests.snapshotNotAllowedWhenCGAcrossMultipleSystems();

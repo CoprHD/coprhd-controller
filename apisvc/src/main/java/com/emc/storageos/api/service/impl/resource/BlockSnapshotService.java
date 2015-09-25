@@ -742,10 +742,6 @@ public class BlockSnapshotService extends TaskResourceService {
         return new ProjOwnedSnapResRepFilter(user, permissionsHelper, BlockSnapshot.class);
     }
 
-    // What to do about vpools and storage pools
-    // Only allow the virtual volume so created to be exported.
-    // Consider VPLEX+RP
-
     /**
      * Creates a VPLEX volume using the target volume associated with
      * BlockSnapshot instance with the passed id as the source side
@@ -901,7 +897,10 @@ public class BlockSnapshotService extends TaskResourceService {
         volume.setVirtualPool(sourceVolume.getVirtualPool());
 
         // This is not likely accurate, but we need to specify a storage
-        // pool for the volume.
+        // pool for the volume ( I got a failure on export for vmax when not
+        // set to something). We could alternatively try and set the
+        // storage pool in the block snapshot instance so we have the actual
+        // storage pool.
         volume.setPool(sourceVolume.getPool());
 
         // Create the instance in the database.

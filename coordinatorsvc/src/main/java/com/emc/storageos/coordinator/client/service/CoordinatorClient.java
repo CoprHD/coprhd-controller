@@ -16,6 +16,7 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.ClusterInfo;
+
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -349,6 +350,16 @@ public interface CoordinatorClient {
      */
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception;
 
+    /**
+     * Set Target info
+     * 
+     * @param info
+     * @param id
+     * @param kind
+     * @throws CoordinatorException
+     */
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException;
+    
     /**
      * Get control nodes' state
      */

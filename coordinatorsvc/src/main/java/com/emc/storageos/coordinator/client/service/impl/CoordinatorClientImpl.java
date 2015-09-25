@@ -22,6 +22,7 @@ import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.sys.ClusterInfo;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
@@ -50,8 +51,8 @@ import java.util.concurrent.*;
 import java.util.regex.Pattern;
 
 import static com.emc.storageos.coordinator.client.model.Constants.*;
-import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_INFO;
-import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.*;
+import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY;
+import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY_ID;
 import static com.emc.storageos.coordinator.mapper.PropertyInfoMapper.decodeFromString;
 
 /**
@@ -550,7 +551,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isSiteSpecific(String kind) {
-        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG)) {
+
+        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equals(SiteInfo.CONFIG_KIND) || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND)) {
             return true;
         }
         return false;
@@ -999,6 +1001,25 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return null;
     }
 
+    /**
+     * Update target info to ZK
+     * 
+     * @param info
+     * @throws CoordinatorException
+     */
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
+        final CoordinatorClassInfo coordinatorInfo = info.getCoordinatorClassInfo();
+        String id = coordinatorInfo.id;
+        String kind = coordinatorInfo.kind;
+        
+        ConfigurationImpl cfg = new ConfigurationImpl();
+        cfg.setId(id);
+        cfg.setKind(kind);
+        cfg.setConfig(TARGET_INFO, info.encodeAsString());
+        persistServiceConfiguration(cfg);
+        log.info("Target info set: {}", info);
+    }
+    
     /**
      * Get node info from session scope.
      * 

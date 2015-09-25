@@ -13,10 +13,13 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
@@ -31,6 +34,13 @@ public class VdcSiteManager extends AbstractManager {
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
     private PropertyInfoExt targetVdcPropInfo;
+    private PowerOffState targetPowerOffState;
+    
+    private static final String POWEROFFTOOL_COMMAND = "/etc/powerofftool";
+
+    // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
+    private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
+    
     private SiteInfo targetSiteInfo;
 
     public void setDbClient(DbClient dbClient) {
@@ -60,7 +70,7 @@ public class VdcSiteManager extends AbstractManager {
      */
     class SiteInfoListener implements NodeListener {
         public String getPath() {
-            return String.format("/config/%s/%s", SiteInfo.CONFIG_KIND, SiteInfo.CONFIG_ID);
+            return String.format("/sites/%s/config/%s/%s", coordinator.getCoordinatorClient().getSiteId(), SiteInfo.CONFIG_KIND, SiteInfo.CONFIG_ID);
         }
 
         /**
@@ -85,6 +95,7 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
 
+    
     @Override
     protected void innerRun() {
         final String svcId = coordinator.getMySvcId();
@@ -126,10 +137,18 @@ public class VdcSiteManager extends AbstractManager {
                 retrySleep();
                 continue;
             }
-
-            log.info("Step2: If VDC configuration is changed update");
+            
+            // Step2: power off if all nodes agree.
+            log.info("Step2: Power off if poweroff state != NONE. {}", targetPowerOffState);
+            try {
+                gracefulPoweroffCluster();
+            } catch (Exception e) {
+                log.error("Step2: Failed to poweroff. {}", e);
+            }
+            
+            log.info("Step3: If VDC configuration is changed update");
             if (vdcPropertiesChanged()) {
-                log.info("Step2: Current vdc properties are not same as target vdc properties. Updating.");
+                log.info("Step3: Current vdc properties are not same as target vdc properties. Updating.");
                 log.debug("Current local vdc properties: " + localVdcPropInfo);
                 log.debug("Target vdc properties: " + targetVdcPropInfo);
 
@@ -143,8 +162,16 @@ public class VdcSiteManager extends AbstractManager {
                 continue;
             }
 
-            // Step3: sleep
-            log.info("Step3: sleep");
+            // Step3: change data revision
+            log.info("Step3: check if target data revision is changed - {}", targetSiteInfo.getTargetDataRevision());
+            try {
+                updateDataRevision();
+            } catch (Exception e) {
+                log.error("Step3: Failed to update data revision. {}", e);
+            }
+            
+            // Step4: sleep
+            log.info("Step4: sleep");
             longSleep();
         }
     }
@@ -167,7 +194,7 @@ public class VdcSiteManager extends AbstractManager {
         if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null) {
             localVdcPropInfo = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
             localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
-                    String.valueOf(targetSiteInfo.getVersion()));
+                    String.valueOf(targetSiteInfo.getVdcConfigVersion()));
             localRepository.setVdcPropertyInfo(localVdcPropInfo);
 
             String vdc_ids = targetVdcPropInfo.getProperty(VDC_IDS_KEY);
@@ -177,6 +204,22 @@ public class VdcSiteManager extends AbstractManager {
                 reboot();
             }
         }
+        
+        targetPowerOffState = coordinator.getTargetInfo(PowerOffState.class);
+        if (targetPowerOffState == null) {
+            // only control node can set target
+            try {
+                // Set the updated propperty info in coordinator
+                coordinator.setTargetInfo(new PowerOffState(PowerOffState.State.NONE));
+                targetPowerOffState = coordinator.getTargetInfo(PowerOffState.class);
+                log.info("Step1b: Target poweroff state set to: {}", PowerOffState.State.NONE);
+            } catch (CoordinatorClientException e) {
+                log.info("Step1b: Wait another control node to set target");
+                retrySleep();
+                throw e;
+            }
+        }
+
     }
 
     /**
@@ -199,7 +242,7 @@ public class VdcSiteManager extends AbstractManager {
     private boolean vdcPropertiesChanged() {
         long localVdcConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null ? 0 :
                 Long.parseLong(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
-        long targetVdcConfigVersion = targetSiteInfo.getVersion();
+        long targetVdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
 
         return localVdcConfigVersion != targetVdcConfigVersion;
     }
@@ -217,7 +260,7 @@ public class VdcSiteManager extends AbstractManager {
         String action = targetSiteInfo.getActionRequired();
         if (targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
                 || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")) {
-            log.info("Step2: Acquiring vdc lock for vdc properties change.");
+            log.info("Step3: Acquiring vdc lock for vdc properties change.");
             if (!getVdcLock(svcId)) {
                 retrySleep();
             } else if (!isQuorumMaintained()) {
@@ -232,19 +275,8 @@ public class VdcSiteManager extends AbstractManager {
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
                 reboot();
             }
-        } else if (action.equals(SiteInfo.UPDATE_DATA_REVISION)) {
-            // TODO: synchronize between nodes to reboot at the same time
-            log.info("Step2: Setting vdc properties and update data revision");
-            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-
-            // Update the data revision tag to local cache
-            PropertyInfoExt targetProps = coordinator.getTargetProperties();
-            localRepository.setOverrideProperties(targetProps);
-
-            // reboot without acquiring the lock
-            reboot();
         } else {
-            log.info("Step2: Setting vdc properties not rebooting for single VDC change");
+            log.info("Step3: Setting vdc properties not rebooting for single VDC change");
 
             if (action.equals(SiteInfo.RECONFIG_RESTART)) {
                 PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
@@ -256,16 +288,16 @@ public class VdcSiteManager extends AbstractManager {
                 localRepository.restart("coordinatorsvc");
 
                 localRepository.reconfigProperties("db");
-                localRepository.restart("dbsvc");
+                //localRepository.restart("dbsvc");
 
                 localRepository.reconfigProperties("geodb");
-                localRepository.restart("geodbsvc");
+                //localRepository.restart("geodbsvc");
 
                 localRepository.reconfigProperties("firewall");
                 localRepository.reload("firewall");
 
                 log.info("Step2: Updating the hash code for local vdc properties");
-                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVersion()));
+                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
                 localRepository.setVdcPropertyInfo(vdcProperty);
             } else {
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
@@ -300,4 +332,64 @@ public class VdcSiteManager extends AbstractManager {
         log.info("Successfully acquired the vdc lock.");
         return true;
     }
+
+    /**
+     * If target poweroff state is not NONE, that means user has set it to STARTED.
+     * in the checkAllNodesAgreeToPowerOff, all nodes, including control nodes and data nodes
+     * will start to publish their poweroff state in the order of [NOTICED, ACKNOWLEDGED, POWEROFF].
+     * Every node can publish the next state only if it sees the previous state are found on every other nodes.
+     * By doing this, we can gaurantee that all nodes receive the acknowledgement of powering among each other,
+     * we can then safely poweroff.
+     * No matter the poweroff failed or not, at the end, we reset the target poweroff state back to NONE.
+     * CTRL-11690: the new behavior is if an agreement cannot be reached, a best-effort attempt to poweroff the
+     * remaining nodes will be made, as if the force parameter is provided.
+     */
+    private void gracefulPoweroffCluster() {
+        if (targetPowerOffState != null && targetPowerOffState.getPowerOffState() != PowerOffState.State.NONE) {
+            boolean forceSet = targetPowerOffState.getPowerOffState() == PowerOffState.State.FORCESTART;
+            log.info("Step2: Trying to reach agreement with timeout on cluster poweroff");
+            if (checkAllNodesAgreeToPowerOff(forceSet) && initiatePoweroff(forceSet)) {
+                resetTargetPowerOffState();
+                poweroffCluster();
+            } else {
+                log.warn("Step2: Failed to reach agreement among all the nodes. Proceed with best-effort poweroff");
+                initiatePoweroff(true);
+                resetTargetPowerOffState();
+                poweroffCluster();
+            }
+        }
+    }
+    
+    /**
+     * Check if data revision is same as local one. If not, switch to target revision and reboot the whole cluster
+     * simultaneously.
+     * 
+     * @throws Exception
+     */
+    private void updateDataRevision() throws Exception {
+        String targetDataRevision = targetSiteInfo.getTargetDataRevision();
+        String localRevision = localRepository.getDataRevision();
+        log.info("Step3: local data revision is {}", localRevision);
+        if (!targetSiteInfo.isNullTargetDataRevision() && !targetDataRevision.equals(localRevision)) {
+            localRepository.setDataRevision(targetDataRevision);
+            log.info("Step3: Trying to reach agreement with timeout on cluster poweroff");
+            if (checkAllNodesAgreeToPowerOff(false) && initiatePoweroff(false)) {
+                log.info("Step3: Reach agreement on cluster poweroff");
+                resetTargetPowerOffState();
+                reboot();
+            } else {
+                log.warn("Step3: Failed to reach agreement among all the nodes. Delay data revision change until next run");
+                publishNodePowerOffState(PowerOffState.State.NONE);
+                resetTargetPowerOffState();
+                localRepository.setDataRevision(localRevision);
+            }
+        }
+    }    
+   
+    public void poweroffCluster() {
+        log.info("powering off the cluster!");
+        final String[] cmd = { POWEROFFTOOL_COMMAND };
+        Exec.sudo(SHUTDOWN_TIMEOUT_MILLIS, cmd);
+    }
+
 }

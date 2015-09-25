@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.*;
+
 import javax.crypto.SecretKey;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -15,9 +16,7 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -29,8 +28,6 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.property.PropertiesMetadata;
-import com.emc.storageos.model.property.PropertyMetadata;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
@@ -47,7 +44,6 @@ import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.client.ViPRCoreClient;
 
-import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
@@ -56,13 +52,11 @@ import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIN
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class DisasterRecoveryService extends TaggedResource {
-
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
+    
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
     private SysUtils sysUtils;
-    @Autowired
-    private PropertiesMetadata propertyMetadata;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -79,51 +73,50 @@ public class DisasterRecoveryService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteRestRep addStandby(SiteAddParam param) {
         log.info("Retrieving standby site config from: {}", param.getVip());
-        ViPRCoreClient viprClient = new ViPRCoreClient(param.getVip(), true).withLogin(param.getUsername(),
-                param.getPassword());
-        SiteConfigRestRep standbyConfig = viprClient.site().getStandbyConfig();
-
-        precheckForStandbyAttach(standbyConfig);
-
-        VirtualDataCenter vdc = queryLocalVDC();
-
-        Site standbySite = new Site(URIUtil.createId(Site.class));
-        standbySite.setName(param.getName());
-        standbySite.setVip(param.getVip());
-        standbySite.setVdc(vdc.getId());
-        standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
-        standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
-        standbySite.setSecretKey(standbyConfig.getSecretKey());
-        standbySite.setUuid(standbyConfig.getUuid());
-
-        if (log.isDebugEnabled()) {
-            log.debug(standbySite.toString());
-        }
-
-        log.info("Persist standby site to DB");
-        _dbClient.createObject(standbySite);
-
         try {
+            ViPRCoreClient viprClient = new ViPRCoreClient(param.getVip(), true).withLogin(param.getUsername(),
+                    param.getPassword());
+            SiteConfigRestRep standbyConfig = viprClient.site().getStandbyConfig();
+    
+            precheckForStandbyAttach(standbyConfig);
+    
+            VirtualDataCenter vdc = queryLocalVDC();
+    
+            Site standbySite = new Site(URIUtil.createId(Site.class));
+            standbySite.setName(param.getName());
+            standbySite.setVip(param.getVip());
+            standbySite.setVdc(vdc.getId());
+            standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
+            standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
+            standbySite.setSecretKey(standbyConfig.getSecretKey());
+            standbySite.setUuid(standbyConfig.getUuid());
+    
+            if (log.isDebugEnabled()) {
+                log.debug(standbySite.toString());
+            }
+    
+            log.info("Persist standby site to DB");
+            _dbClient.createObject(standbySite);
+            
             _coordinator.addSite(standbyConfig.getUuid());
+            updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
+    
+            log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());
+            SiteSyncParam primarySite = new SiteSyncParam();
+            primarySite.setHostIPv4AddressMap(new StringMap(vdc.getHostIPv4AddressesMap()));
+            primarySite.setHostIPv6AddressMap(new StringMap(vdc.getHostIPv6AddressesMap()));
+            primarySite.setName(param.getName()); // this is the name for the standby site
+            primarySite.setSecretKey(vdc.getSecretKey());
+            primarySite.setUuid(_coordinator.getSiteId());
+            primarySite.setVip(vdc.getApiEndpoint());
+    
+            viprClient.site().syncSite(primarySite);
+            return siteMapper.map(standbySite);
         } catch (Exception e) {
-            //FIXME: throw custom API exception here
-            throw new IllegalStateException(e);
+            log.error("Internal error for updating coordinator on standby", e);
+            throw APIException.internalServerErrors.addStandbyFailed(e.getMessage());
         }
-
-        updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
-
-        log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());
-        SiteSyncParam primarySite = new SiteSyncParam();
-        primarySite.setHostIPv4AddressMap(new StringMap(vdc.getHostIPv4AddressesMap()));
-        primarySite.setHostIPv6AddressMap(new StringMap(vdc.getHostIPv6AddressesMap()));
-        primarySite.setName(param.getName()); // this is the name for the standby site
-        primarySite.setSecretKey(vdc.getSecretKey());
-        primarySite.setUuid(_coordinator.getSiteId());
-        primarySite.setVip(vdc.getApiEndpoint());
-
-        viprClient.site().syncSite(primarySite);
-
-        return siteMapper.map(standbySite);
+        
     }
 
     /**
@@ -135,50 +128,53 @@ public class DisasterRecoveryService extends TaggedResource {
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response SyncSites(SiteSyncParam param) {
-        VirtualDataCenter vdc = queryLocalVDC();
-
-        // this is the new standby site demoted from the current site
-        Site standbySite = new Site(URIUtil.createId(Site.class));
-        standbySite.setUuid(_coordinator.getSiteId());
-        standbySite.setName(param.getName());
-        standbySite.setVip(vdc.getApiEndpoint());
-        standbySite.setVdc(vdc.getId());
-        standbySite.getHostIPv4AddressMap().putAll(new StringMap(vdc.getHostIPv4AddressesMap()));
-        standbySite.getHostIPv6AddressMap().putAll(new StringMap(vdc.getHostIPv6AddressesMap()));
-        standbySite.setSecretKey(vdc.getSecretKey());
-
-        log.info("Persist standby site to DB");
-        _dbClient.createObject(standbySite);
-
-        // update the primary site
-        vdc.setApiEndpoint(param.getVip());
-        vdc.getHostIPv4AddressesMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
-        vdc.getHostIPv6AddressesMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
-        vdc.setSecretKey(param.getSecretKey());
-
-        int hostCount = param.getHostIPv4AddressMap().size();
-        if (param.getHostIPv6AddressMap().size() > hostCount) {
-            hostCount = param.getHostIPv6AddressMap().size();
-        }
-        vdc.setHostCount(hostCount);
-
-        log.info("Persist primary site to DB");
-        _dbClient.updateAndReindexObject(vdc);
-
+    @ExcludeLicenseCheck
+    public Response syncSites(SiteSyncParam param) {
         try {
+            // Recreate the primary site
+            VirtualDataCenter vdc = queryLocalVDC();
+            String currentShortId = vdc.getShortId();
+            _dbClient.markForDeletion(vdc);
+            
+            URI vdcId = URIUtil.createId(VirtualDataCenter.class);
+            vdc = new VirtualDataCenter();
+            vdc.setId(vdcId);
+            vdc.setApiEndpoint(param.getVip());
+            vdc.getHostIPv4AddressesMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
+            vdc.getHostIPv6AddressesMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+            vdc.setSecretKey(param.getSecretKey());
+            vdc.setLocal(true);
+            vdc.setShortId(currentShortId);
+            int hostCount = param.getHostIPv4AddressMap().size();
+            if (param.getHostIPv6AddressMap().size() > hostCount) {
+                hostCount = param.getHostIPv6AddressMap().size();
+            }
+            vdc.setHostCount(hostCount);
+            log.info("Persist primary site to DB");
+            _dbClient.createObject(vdc);
+            
+            // this is the new standby site demoted from the current site
+            Site standbySite = new Site(URIUtil.createId(Site.class));
+            standbySite.setUuid(_coordinator.getSiteId());
+            standbySite.setName(param.getName());
+            standbySite.setVip(vdc.getApiEndpoint());
+            standbySite.setVdc(vdcId);
+            standbySite.getHostIPv4AddressMap().putAll(new StringMap(vdc.getHostIPv4AddressesMap()));
+            standbySite.getHostIPv6AddressMap().putAll(new StringMap(vdc.getHostIPv6AddressesMap()));
+            standbySite.setSecretKey(vdc.getSecretKey());
+    
+            log.info("Persist standby site to DB");
+            _dbClient.createObject(standbySite);
+        
             _coordinator.addSite(param.getUuid());
             _coordinator.setPrimarySite(param.getUuid());
 
-            updateDataRevision();
+            updateVdcTargetVersionAndDataRevision(SiteInfo.UPDATE_DATA_REVISION);
+            return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
-            //FIXME: throw custom API exception here
-            throw new IllegalStateException(e);
+            log.error("Internal error for updating coordinator on standby", e);
+            throw APIException.internalServerErrors.configStandbyFailed(e.getMessage());
         }
-
-        updateVdcTargetVersion(SiteInfo.UPDATE_DATA_REVISION);
-        
-        return Response.ok().build();
     }
 
     /**
@@ -287,44 +283,27 @@ public class DisasterRecoveryService extends TaggedResource {
         return siteConfigRestRep;
     }
     
-    private void updateDataRevision() throws Exception {
-        PropertyInfoExt currentProps = _coordinator.getTargetInfo(PropertyInfoExt.class);
-        Map<String, PropertyMetadata> propsMetadata = PropertiesMetadata.getGlobalMetadata();
-        // split properties as global, or site specific
-        HashMap<String, String> siteProps = new HashMap<>();
-        for (Map.Entry<String, String> prop : currentProps.getAllProperties().entrySet()) {
-            String key = prop.getKey();
-            PropertyMetadata metadata = propsMetadata.get(key);
-            if (metadata.getSiteSpecific()) {
-                siteProps.put(key, prop.getValue());
-            }
-        }
-
-        int dataRevision = 1;
-        if (siteProps.containsKey("target_data_revision_tag")) {
-            dataRevision = Integer.valueOf(siteProps.get("target_data_revision_tag"));
-        }
-        dataRevision ++;
-        siteProps.put("target_data_revision_tag", String.valueOf(dataRevision));
-
-        PropertyInfoExt siteScopeInfo = new PropertyInfoExt(siteProps);
-        ConfigurationImpl siteCfg = new ConfigurationImpl();
-        siteCfg.setId(_coordinator.getSiteId());
-        siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
-        siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
-        log.info("Updating data revision to {} in site target", dataRevision);
-        _coordinator.persistServiceConfiguration(siteCfg);
-    }
-
     // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc
     private void updateVdcTargetVersion(String action) {
         SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), action);
-        ConfigurationImpl cfg = new ConfigurationImpl();
-        cfg.setId(SiteInfo.CONFIG_ID);
-        cfg.setKind(SiteInfo.CONFIG_KIND);
-        cfg.setConfig(TARGET_INFO, siteInfo.encodeAsString());
-        _coordinator.persistServiceConfiguration(cfg);
-        log.info("VDC target version updated to {}, action required: {}", siteInfo.getVersion(), action);
+        _coordinator.setTargetInfo(siteInfo);
+        log.info("VDC target version updated to {}, action required: {}", siteInfo.getVdcConfigVersion(), action);
+    }
+    
+    private void updateVdcTargetVersionAndDataRevision(String action) throws Exception {
+        int ver = 1;
+        SiteInfo siteInfo = _coordinator.getTargetInfo(SiteInfo.class);
+        if (siteInfo != null) {
+            if (!siteInfo.isNullTargetDataRevision()) {
+                String currentDataRevision = siteInfo.getTargetDataRevision();
+                ver = Integer.valueOf(currentDataRevision);
+            }
+        }
+        String targetDataRevision = String.valueOf(++ver);
+        siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
+        _coordinator.setTargetInfo(siteInfo);
+        log.info("VDC target version updated to {}, revision {}", 
+                siteInfo.getVdcConfigVersion(),  targetDataRevision);
     }
     
     @POST
@@ -368,18 +347,6 @@ public class DisasterRecoveryService extends TaggedResource {
     @Override
     protected URI getTenantOwner(URI id) {
         return null;
-    }
-
-    private Set<String> getStandbyIds(Set<String> siteUUIds) {
-        Set<String> standbyIds = new HashSet<String>();
-        String primarySiteId = _coordinator.getPrimarySiteId();
-
-        for (String siteId : siteUUIds){
-            if (siteId != null && !siteId.equals(primarySiteId)) {
-                standbyIds.add(siteId);
-            }
-        }
-        return standbyIds;
     }
 
     @Override

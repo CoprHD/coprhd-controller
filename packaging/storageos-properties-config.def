@@ -2517,20 +2517,4 @@
      controlNodeOnly : true,
      siteSpecific : true,
     },
-    {
-     key : "target_data_revision_tag",
-     label : "Data Revision Tag",
-     description : "Target data revision tag",
-     type : "string",
-     tag : "Data Versioning",
-     maxLen : 255,
-     userMutable : true,
-     userConfigurable : true,
-     reconfigRequired : false,
-     rebootRequired : false,
-     value : "",
-     controlNodeOnly : true,
-     siteSpecific : true
-    }
-
 ]

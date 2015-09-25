@@ -327,7 +327,7 @@ _genconfig_exec_scripts() {
 # specified data versioning tag. All of them should switch as a whole to avoid
 # data inconsistency.
 _genconfig_data_versioning() {
-   local tgt_dataver=${_GENCONFIG_target_data_revision_tag}
+   local tgt_dataver=${_GENCONFIG_target_data_revision}
    if [ -n "${tgt_dataver}" ]; then
        _genconfig_setup_versioning_dir "/data/db" "1" ${tgt_dataver}
        _genconfig_setup_versioning_dir "/data/geodb" "1" ${tgt_dataver}

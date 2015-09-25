@@ -259,22 +259,13 @@ public class CoordinatorClientExt {
             return;
         }
 
-        final CoordinatorClassInfo coordinatorInfo = info.getCoordinatorClassInfo();
-        String id = coordinatorInfo.id;
-        String kind = coordinatorInfo.kind;
-
         if (getTargetInfoLock()) {
             try {
                 // check we are in stable state if checkState = true specified
                 if (checkClusterUpgradable && !isClusterUpgradable()) {
                     throw APIException.serviceUnavailable.clusterStateNotStable();
                 }
-                ConfigurationImpl cfg = new ConfigurationImpl();
-                cfg.setId(id);
-                cfg.setKind(kind);
-                cfg.setConfig(TARGET_INFO, info.encodeAsString());
-                _coordinator.persistServiceConfiguration(cfg);
-                _log.info("Target info set: {}", info);
+                _coordinator.setTargetInfo(info);
             } catch (Exception e) {
                 throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target state. " + e.getMessage());
             } finally {
@@ -307,7 +298,6 @@ public class CoordinatorClientExt {
                 cfg.setKind(kind);
                 cfg.setConfig(TARGET_INFO, info.encodeAsString());
                 _coordinator.persistServiceConfiguration(cfg);
-                _log.info("Target info set: {}", info);
             } catch (Exception e) {
                 throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target state. " + e.getMessage());
             } finally {
@@ -568,7 +558,7 @@ public class CoordinatorClientExt {
     public PropertyInfoExt getConfigFromCoordinator(String kind, String id) {
         Configuration config = _coordinator.queryConfiguration(kind, id);
         if (config != null) {
-            String str = config.getConfig(PropertyInfoExt.TARGET_INFO);
+            String str = config.getConfig(TARGET_INFO);
             return new PropertyInfoExt(new PropertyInfoExt().decodeFromString(str).getAllProperties());
         }
 

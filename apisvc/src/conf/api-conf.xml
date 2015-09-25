@@ -30,7 +30,6 @@
     <import resource="classpath:geoclient-conf.xml"/>
     <import resource="classpath:dbcommon-var.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
-    <import resource="classpath:sys-metadata-var.xml" />
     
     <bean id="modelClient" class="com.emc.storageos.db.client.impl.ModelClientImpl">
         <property name="dbClient" ref="dbclient"/>

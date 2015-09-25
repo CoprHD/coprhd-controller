@@ -2111,9 +2111,9 @@ public class VolumeIngestionUtil {
      * Creates relationships between the parent virtual volumes of
      * linked backend volume clones.
      * 
-     * @param clone
-     * @param parent
-     * @param dbClient
+     * @param clone the backend clone
+     * @param parent the backend clone's parent/source volume
+     * @param dbClient a reference to the database client
      */
     private static void setupVplexCloneRelations(BlockObject clone, BlockObject parent, DbClient dbClient) {
         Volume parentVvolSource = checkForVplexVirtualVolumeParent(parent, dbClient);

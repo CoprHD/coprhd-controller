@@ -2141,9 +2141,11 @@ public class VolumeIngestionUtil {
                     for (ExportGroup exportGroup : exportGroups) {
                         _logger.info("Processing exportGroup {} to add block object", exportGroup.getId());
                         // only add to those export groups whose project and varray matches the block object
+                        boolean exportGroupTypeMatches = (null != exportGroupType) 
+                                && exportGroupType.equalsIgnoreCase(exportGroup.getType());
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
                                 exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
-                                (null != exportGroupType && exportGroupType.equalsIgnoreCase(exportGroup.getType()))) {
+                                (exportGroupTypeMatches || VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume))) {
                             _logger.info("Adding block object {} to export group {}", blockObject.getNativeGuid(), exportGroup.getLabel());
                             exportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
                         }

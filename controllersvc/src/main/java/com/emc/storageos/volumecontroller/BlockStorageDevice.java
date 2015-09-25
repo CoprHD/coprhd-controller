@@ -852,4 +852,14 @@ public interface BlockStorageDevice {
      */
     public void doResyncGroupClone(StorageSystem storageDevice, List<URI> clone,
             TaskCompleter completer) throws Exception;
+
+    /**
+     * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs
+     *
+     * @param storage the storage system
+     * @param exportMask the ExportMask that represents the masking component of the array
+     *
+     * @return The BlockObject URI to HLU mapping for the ExportMask
+     */
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
 }

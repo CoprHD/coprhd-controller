@@ -384,7 +384,7 @@ public class TestCoordinator implements CoordinatorClient {
     }
 
     @Override
-    public void setTargetInfo(final CoordinatorSerializable info, String id, String kind) throws CoordinatorException {
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
         
     }
     

@@ -358,7 +358,7 @@ public interface CoordinatorClient {
      * @param kind
      * @throws CoordinatorException
      */
-    public void setTargetInfo(final CoordinatorSerializable info, String id, String kind) throws CoordinatorException;
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException;
     
     /**
      * Get control nodes' state

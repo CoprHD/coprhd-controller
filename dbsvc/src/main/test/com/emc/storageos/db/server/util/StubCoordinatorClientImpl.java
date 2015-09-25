@@ -311,8 +311,8 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public void setTargetInfo(final CoordinatorSerializable info, String id, String kind) throws CoordinatorException {
-        
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
+        throw new UnsupportedOperationException();
     }
     
     @Override

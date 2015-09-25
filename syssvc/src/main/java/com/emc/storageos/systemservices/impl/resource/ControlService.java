@@ -345,7 +345,7 @@ public class ControlService {
         // set target poweroff state to START or FORCESTART
         try {
             _coordinator.setTargetInfo(poweroffState, false);
-            propertyManager.wakeupOtherNodes();
+            vdcManager.wakeupOtherNodes();
             _alertsLog.warn("power off start");
         } catch (ClientHandlerException e) {
             if (!FORCE.equals(forceSet)) {
@@ -362,7 +362,7 @@ public class ControlService {
         try {
             return Response.status(Response.Status.ACCEPTED).build();
         } finally {
-            propertyManager.wakeup();
+            vdcManager.wakeup();
         }
     }
 

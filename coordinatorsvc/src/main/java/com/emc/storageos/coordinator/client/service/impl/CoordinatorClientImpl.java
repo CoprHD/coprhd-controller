@@ -552,7 +552,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private boolean isSiteSpecific(String kind) {
 
-        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equals(DataRevision.CONFIG_KIND) || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND)) {
+        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equals(SiteInfo.CONFIG_KIND) || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND)) {
             return true;
         }
         return false;
@@ -1007,7 +1007,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * @param info
      * @throws CoordinatorException
      */
-    public void setTargetInfo(final CoordinatorSerializable info, String id, String kind) throws CoordinatorException {
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
+        final CoordinatorClassInfo coordinatorInfo = info.getCoordinatorClassInfo();
+        String id = coordinatorInfo.id;
+        String kind = coordinatorInfo.kind;
+        
         ConfigurationImpl cfg = new ConfigurationImpl();
         cfg.setId(id);
         cfg.setKind(kind);

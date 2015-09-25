@@ -70,7 +70,7 @@ public class VdcSiteManager extends AbstractManager {
      */
     class SiteInfoListener implements NodeListener {
         public String getPath() {
-            return String.format("/config/%s/%s", SiteInfo.CONFIG_KIND, SiteInfo.CONFIG_ID);
+            return String.format("/sites/%s/config/%s/%s", coordinator.getCoordinatorClient().getSiteId(), SiteInfo.CONFIG_KIND, SiteInfo.CONFIG_ID);
         }
 
         /**

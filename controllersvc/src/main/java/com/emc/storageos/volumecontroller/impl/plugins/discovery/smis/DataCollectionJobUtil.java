@@ -41,7 +41,6 @@ import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;

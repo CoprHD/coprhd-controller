@@ -56,7 +56,7 @@ public class ObjectStorageUtils {
 
     public static void editBucketResource(URI bucketResourceId, Double softQuota, Double hardQuota, String retention) {
         String softQuotaSize = gbToQuotaSize(softQuota);
-        String hardQuotaSize = gbToQuotaSize(softQuota);
+        String hardQuotaSize = gbToQuotaSize(hardQuota);
         Task<BucketRestRep> task = execute(new UpdateBucket(bucketResourceId, softQuotaSize, hardQuotaSize, retention));
         addAffectedResource(task);
     }

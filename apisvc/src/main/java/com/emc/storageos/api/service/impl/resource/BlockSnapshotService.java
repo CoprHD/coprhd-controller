@@ -901,7 +901,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // set to something). We could alternatively try and set the
         // storage pool in the block snapshot instance so we have the actual
         // storage pool.
-        volume.setPool(sourceVolume.getPool());
+        // volume.setPool(sourceVolume.getPool());
 
         // Create the instance in the database.
         _dbClient.createObject(volume);

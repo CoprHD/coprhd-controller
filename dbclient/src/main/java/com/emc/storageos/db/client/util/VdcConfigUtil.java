@@ -7,11 +7,12 @@ package com.emc.storageos.db.client.util;
 import java.net.*;
 import java.util.*;
 
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,13 +164,18 @@ public class VdcConfigUtil {
         String address;
         int standbyNodeCnt = 0;
         String shortId = vdc.getShortId();
-        URIQueryResultList standbySiteIds = new URIQueryResultList();
-        dbclient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
-                standbySiteIds);
-        for (URI siteId : standbySiteIds) {
-            Site site = dbclient.queryObject(Site.class, siteId);
-            StringMap standbyIPv4Addrs = site.getHostIPv4AddressMap();
-            StringMap standbyIPv6Addrs = site.getHostIPv6AddressMap();
+        
+        for (String siteUUID : vdc.getSiteUUIDs()) {
+            Site site = null;
+            try {
+                site = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_KIND);
+            } catch (Exception e) {
+                //TODO should continue to next or throw exception?
+                log.error("Can't get Site from ZK {}", e);
+                continue;
+            }
+            Map<String, String> standbyIPv4Addrs = site.getHostIPv4AddressMap();
+            Map<String, String> standbyIPv6Addrs = site.getHostIPv6AddressMap();
             List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
 
             for (String hostName : standbyHosts) {
@@ -192,7 +198,7 @@ public class VdcConfigUtil {
         vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
     }
 
-    private List<String> getHostsFromIPAddrMap(StringMap IPv4Addresses, StringMap IPv6Addresses) {
+    private List<String> getHostsFromIPAddrMap(Map<String, String> IPv4Addresses, Map<String, String> IPv6Addresses) {
         List<String> hostNameListV4 = new ArrayList<>(IPv4Addresses.keySet());
         List<String> hostNameListV6 = new ArrayList<>(IPv6Addresses.keySet());
         List<String> hostNameList = hostNameListV4;

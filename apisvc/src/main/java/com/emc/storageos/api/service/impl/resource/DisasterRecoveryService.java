@@ -4,31 +4,44 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
+import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
+import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
+
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.util.*;
 
 import javax.crypto.SecretKey;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.coordinator.client.model.*;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.coordinator.client.model.DataRevision;
+import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
-import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
@@ -45,19 +58,17 @@ import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.client.ViPRCoreClient;
 
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
-
 @Path("/site")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-public class DisasterRecoveryService extends TaggedResource {
+public class DisasterRecoveryService {
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
     private SysUtils sysUtils;
+    private CoordinatorClient _coordinator;
+    private DbClient _dbClient;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -83,10 +94,9 @@ public class DisasterRecoveryService extends TaggedResource {
     
             VirtualDataCenter vdc = queryLocalVDC();
     
-            Site standbySite = new Site(URIUtil.createId(Site.class));
+            Site standbySite = new Site();
             standbySite.setName(param.getName());
             standbySite.setVip(param.getVip());
-            standbySite.setVdc(vdc.getId());
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
             standbySite.setSecretKey(standbyConfig.getSecretKey());
@@ -95,11 +105,15 @@ public class DisasterRecoveryService extends TaggedResource {
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }
-    
-            log.info("Persist standby site to DB");
-            _dbClient.createObject(standbySite);
             
+            vdc.getSiteUUIDs().add(standbySite.getUuid());
+            _dbClient.persistObject(vdc);
+    
             _coordinator.addSite(standbyConfig.getUuid());
+            
+            log.info("Persist standby site to ZK");
+            _coordinator.setTargetInfo(standbySite, standbySite.getCoordinatorClassInfo().id, standbySite.getCoordinatorClassInfo().kind);
+            
             updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
     
             log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());
@@ -155,21 +169,18 @@ public class DisasterRecoveryService extends TaggedResource {
             _dbClient.createObject(vdc);
             
             // this is the new standby site demoted from the current site
-            Site standbySite = new Site(URIUtil.createId(Site.class));
+            Site standbySite = new Site();
             standbySite.setUuid(_coordinator.getSiteId());
             standbySite.setName(param.getName());
             standbySite.setVip(vdc.getApiEndpoint());
-            standbySite.setVdc(vdcId);
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(vdc.getHostIPv4AddressesMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(vdc.getHostIPv6AddressesMap()));
             standbySite.setSecretKey(vdc.getSecretKey());
-    
-            log.info("Persist standby site to DB");
-            _dbClient.createObject(standbySite);
             
             updateVdcTargetVersion(SiteInfo.UPDATE_DATA_REVISION);
         
             _coordinator.addSite(param.getUuid());
+            _coordinator.setTargetInfo(standbySite, standbySite.getCoordinatorClassInfo().id, standbySite.getCoordinatorClassInfo().kind);
             _coordinator.setPrimarySite(param.getUuid());
 
             updateDataRevision();
@@ -191,13 +202,13 @@ public class DisasterRecoveryService extends TaggedResource {
         SiteList standbyList = new SiteList();
 
         VirtualDataCenter vdc = queryLocalVDC();
-        URIQueryResultList standbySiteIds = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
-                standbySiteIds);
-
-        for (URI siteId : standbySiteIds) {
-            Site standby = _dbClient.queryObject(Site.class, siteId);
-            standbyList.getSites().add(siteMapper.map(standby));
+        for (String uuid : vdc.getSiteUUIDs()) {
+            try {
+                Site standby = _coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
+                standbyList.getSites().add(siteMapper.map(standby));
+            } catch (Exception e) {
+                log.error("Find find site from ZK for UUID {}, {}", uuid, e);
+            }
         }
         
         return standbyList;
@@ -214,14 +225,11 @@ public class DisasterRecoveryService extends TaggedResource {
     public SiteRestRep getStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to get standby site by uuid {}", uuid);
         
-        List<URI> ids = _dbClient.queryByType(Site.class, true);
-
-        Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
-        while (sites.hasNext()) {
-            Site standby = sites.next();
-            if (standby.getUuid().equals(uuid)) {
-                return siteMapper.map(standby);
-            }
+        try {
+            Site standby = _coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
+            return siteMapper.map(standby);
+        } catch (Exception e) {
+            log.error("Find find site from ZK for UUID {}, {}", uuid, e);
         }
         
         log.info("Can't find site with specified site ID {}", uuid);
@@ -234,18 +242,22 @@ public class DisasterRecoveryService extends TaggedResource {
     public SiteRestRep removeStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to remove standby site from local vdc by uuid: {}", uuid);
         
-        List<URI> ids = _dbClient.queryByType(Site.class, true);
-
-        Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
-        while (sites.hasNext()) {
-            Site standby = sites.next();
-            if (standby.getUuid().equals(uuid)) {
+        try {
+            Site standby = _coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
+            if (standby != null) {
                 log.info("Find standby site in local VDC and remove it");
-                _dbClient.markForDeletion(standby);
+                
+                VirtualDataCenter vdc = queryLocalVDC();
+                vdc.getSiteUUIDs().remove(uuid);
+                _dbClient.persistObject(vdc);
+                
                 updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
                 return siteMapper.map(standby);
             }
+        } catch (Exception e) {
+            log.error("Find find site from ZK for UUID {}, {}", uuid, e);
         }
+
         
         return null;
     }
@@ -335,24 +347,6 @@ public class DisasterRecoveryService extends TaggedResource {
         return resp;
     }
     
-    @Override
-    protected Site queryResource(URI id) {
-        ArgValidator.checkUri(id);
-        Site standby = _dbClient.queryObject(Site.class, id);
-        ArgValidator.checkEntityNotNull(standby, id, isIdEmbeddedInURL(id));
-        return standby;
-    }
-
-    @Override
-    protected URI getTenantOwner(URI id) {
-        return null;
-    }
-
-    @Override
-    protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.SITE;
-    }
-    
     /*
      * Internal method to check whether standby can be attached to current primary site
      */
@@ -437,5 +431,13 @@ public class DisasterRecoveryService extends TaggedResource {
 
     public void setSysUtils(SysUtils sysUtils) {
         this.sysUtils = sysUtils;
+    }
+    
+    public void setDbClient(DbClient dbClient) {
+        _dbClient = dbClient;
+    }
+
+    public void setCoordinator(CoordinatorClient locator) {
+        _coordinator = locator;
     }
 }

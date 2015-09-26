@@ -11,6 +11,7 @@ import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.*;
 import com.emc.storageos.coordinator.client.service.WorkPool.WorkAssignmentListener;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -37,7 +38,7 @@ import java.util.regex.Pattern;
 /**
  * Stub coordinator class for use with unit tests
  */
-public class TestCoordinator implements CoordinatorClient {
+public class TestCoordinator extends CoordinatorClientImpl {
 
     private ConcurrentHashMap<String, HashMap<String, Configuration>> configurations =
             new ConcurrentHashMap<String, HashMap<String, Configuration>>();
@@ -225,6 +226,7 @@ public class TestCoordinator implements CoordinatorClient {
         Properties _properties = new Properties();
         private String _kind = null;
         private String _id = null;
+        private String _siteId = null;
 
         @Override
         public String getKind() {
@@ -244,6 +246,16 @@ public class TestCoordinator implements CoordinatorClient {
 
         public void setId(String id) {
             _id = id;
+        }
+
+        @Override
+        public String getSiteId() {
+            // TODO Auto-generated method stub
+            return _siteId;
+        }
+
+        public void setSiteId(String siteId) {
+            _siteId = siteId;
         }
 
         @Override
@@ -389,8 +401,8 @@ public class TestCoordinator implements CoordinatorClient {
     }
     
     @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
-            throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String siteId,
+                                                               String id, String kind) throws Exception {
         return null;
     }
 

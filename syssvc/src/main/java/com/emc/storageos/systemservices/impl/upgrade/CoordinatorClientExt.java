@@ -404,7 +404,8 @@ public class CoordinatorClientExt {
      * @throws Exception
      */
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception {
-        return _coordinator.getTargetInfo(clazz,id,kind);
+        String siteId = _coordinator.getSiteId();
+        return _coordinator.getTargetInfo(clazz, siteId, id,kind);
     }
 
     /**
@@ -415,7 +416,8 @@ public class CoordinatorClientExt {
      */
     public PropertyInfoExt getTargetProperties() throws Exception {
         PropertyInfoExt targetPropInfo = _coordinator.getTargetInfo(PropertyInfoExt.class);
-        PropertyInfoExt siteScopePropInfo = _coordinator.getTargetInfo(PropertyInfoExt.class, _coordinator.getSiteId(), PropertyInfoExt.TARGET_PROPERTY);
+        PropertyInfoExt siteScopePropInfo = _coordinator.getTargetInfo(PropertyInfoExt.class, _coordinator.getSiteId(),
+                PropertyInfoExt.TARGET_PROPERTY_ID, PropertyInfoExt.TARGET_PROPERTY);
         if (targetPropInfo != null && siteScopePropInfo != null) {
             PropertyInfoExt combinedProps = new PropertyInfoExt();
             for (Entry<String, String> entry : targetPropInfo.getAllProperties().entrySet()) {
@@ -477,7 +479,7 @@ public class CoordinatorClientExt {
                     ConfigurationImpl siteCfg = new ConfigurationImpl();
                     siteCfg.setId(PropertyInfoExt.TARGET_PROPERTY_ID);
                     siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
-                    siteCfg.setSite(_coordinator.getSiteId());
+                    siteCfg.setSiteId(_coordinator.getSiteId());
                     siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
                     _coordinator.persistServiceConfiguration(siteCfg);
                     _log.info("site scope target properties changed successfully. target properties {}", siteScopeInfo.toString());
@@ -1287,7 +1289,8 @@ public class CoordinatorClientExt {
         }
         String dbSvcId = "db" + this.mySvcId.substring(this.mySvcId.lastIndexOf("-"));
 
-        Configuration config = this._coordinator.queryConfiguration(Constants.DB_CONFIG, dbSvcId);
+        Configuration config = this._coordinator.queryConfiguration(_coordinator.getSiteId(),
+                Constants.DB_CONFIG, dbSvcId);
 
         String numToken = config.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
         if (numToken == null) {

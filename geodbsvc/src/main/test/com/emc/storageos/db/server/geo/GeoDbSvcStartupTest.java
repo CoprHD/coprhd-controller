@@ -75,7 +75,7 @@ public class GeoDbSvcStartupTest {
 
         // Check dbconfig
         String kind = coordinator.getDbConfigPath(Constants.GEODBSVC_NAME);
-        Configuration config = coordinator.queryConfiguration(kind,
+        Configuration config = coordinator.queryConfiguration(coordinator.getSiteId(), kind,
                 DbSvcRunner.GEOSVC_ID);
         Assert.assertNotNull("No dbconfig found", config);
         String value = config.getConfig(DbConfigConstants.JOINED);
@@ -92,7 +92,7 @@ public class GeoDbSvcStartupTest {
         // Check versioned dbconfig
         kind = coordinator.getVersionedDbConfigPath(Constants.GEODBSVC_NAME,
                 DbSvcRunner.SVC_VERSION);
-        config = coordinator.queryConfiguration(kind, DbSvcRunner.GEOSVC_ID);
+        config = coordinator.queryConfiguration(coordinator.getSiteId(), kind, DbSvcRunner.GEOSVC_ID);
         Assert.assertNotNull("No versioned dbconfig found", config);
         value = config.getConfig(DbConfigConstants.INIT_DONE);
         Assert.assertTrue("Unexpected versioned dbconfig initdone",
@@ -180,12 +180,13 @@ public class GeoDbSvcStartupTest {
     }
 
     private static void setLocalDbCurrentVersion(CoordinatorClient coordinator) throws Exception {
-        Configuration config = coordinator.queryConfiguration(Constants.DB_CONFIG,
+        Configuration config = coordinator.queryConfiguration(coordinator.getSiteId(), Constants.DB_CONFIG,
                 Constants.GLOBAL_ID);
         if (config == null) {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(Constants.GLOBAL_ID);
             cfg.setKind(Constants.DB_CONFIG);
+            cfg.setSiteId(coordinator.getSiteId());
             config = cfg;
         }
         config.setConfig(Constants.SCHEMA_VERSION, DbSvcRunner.SVC_VERSION);

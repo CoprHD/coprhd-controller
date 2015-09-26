@@ -611,7 +611,7 @@ public class VdcConfigHelper {
     public void updateDbSvcConfig(String svcName, String key, String value) {
         String kind = coordinator.getDbConfigPath(svcName);
         try {
-            List<Configuration> configs = coordinator.queryAllConfiguration(kind);
+            List<Configuration> configs = coordinator.queryAllConfiguration(coordinator.getSiteId(), kind);
             if (configs == null) {
                 String errMsg = "No " + svcName + " config found in the current vdc";
                 log.error(errMsg);

@@ -337,7 +337,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
      * Checks and registers db configuration information
      */
     private void setDbConfig(String name) {
-        Configuration config = coordinator.queryConfiguration(
+        Configuration config = coordinator.queryConfiguration(coordinator.getSiteId(),
                 coordinator.getVersionedDbConfigPath(service.getName(), service.getVersion()), service.getId());
         if (config != null) {
             if (config.getConfig(name) == null) {

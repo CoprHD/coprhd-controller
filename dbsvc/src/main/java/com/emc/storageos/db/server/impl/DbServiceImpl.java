@@ -204,7 +204,7 @@ public class DbServiceImpl implements DbService {
 
     public String getConfigValue(String key) {
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind,
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind,
                 _serviceInfo.getId());
         if (config != null) {
             return config.getConfig(key);
@@ -214,7 +214,7 @@ public class DbServiceImpl implements DbService {
 
     public void setConfigValue(String key, String value) {
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind,
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind,
                 _serviceInfo.getId());
         if (config != null) {
             config.setConfig(key, value);
@@ -228,7 +228,7 @@ public class DbServiceImpl implements DbService {
      */
     private Configuration checkConfiguration() {
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind,
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind,
                 _serviceInfo.getId());
         if (config == null) {
             // this is a new node
@@ -278,7 +278,7 @@ public class DbServiceImpl implements DbService {
 
     private void removeStaleVersionedDbConfiguration() {
         String configKind = _coordinator.getVersionedDbConfigPath(_serviceInfo.getName(), _serviceInfo.getVersion());
-        List<Configuration> configs = _coordinator.queryAllConfiguration(configKind);
+        List<Configuration> configs = _coordinator.queryAllConfiguration(_coordinator.getSiteId(), configKind);
         for (Configuration config : configs) {
             if (isStaleConfiguration(config)) {
                 _coordinator.removeServiceConfiguration(config);
@@ -289,7 +289,7 @@ public class DbServiceImpl implements DbService {
 
     private void removeStaleServiceConfiguration() {
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
-        List<Configuration> configs = _coordinator.queryAllConfiguration(configKind);
+        List<Configuration> configs = _coordinator.queryAllConfiguration(_coordinator.getSiteId(), configKind);
         for (Configuration config : configs) {
             if (isStaleConfiguration(config)) {
                 _coordinator.removeServiceConfiguration(config);
@@ -326,7 +326,8 @@ public class DbServiceImpl implements DbService {
     // check and initialize global configuration
     private Configuration checkGlobalConfiguration() {
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind, Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(),
+                configKind, Constants.GLOBAL_ID);
         if (config == null) {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(Constants.GLOBAL_ID);
@@ -351,7 +352,7 @@ public class DbServiceImpl implements DbService {
         }
 
         String kind = _coordinator.getVersionedDbConfigPath(_serviceInfo.getName(), _serviceInfo.getVersion());
-        Configuration config = _coordinator.queryConfiguration(kind,
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), kind,
                 _serviceInfo.getId());
         if (config == null) {
             ConfigurationImpl cfg = new ConfigurationImpl();
@@ -370,7 +371,7 @@ public class DbServiceImpl implements DbService {
      */
     private void setDbConfigInitDone() {
         String configKind = _coordinator.getVersionedDbConfigPath(_serviceInfo.getName(), _serviceInfo.getVersion());
-        Configuration config = _coordinator.queryConfiguration(configKind,
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind,
                 _serviceInfo.getId());
         if (config != null) {
             if (config.getConfig(DbConfigConstants.INIT_DONE) == null) {

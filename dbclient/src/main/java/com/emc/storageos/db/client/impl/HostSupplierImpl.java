@@ -104,7 +104,8 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
 
     private boolean isDbReinitializing(Service serviceInfo) {
         String configKind = _coordinator.getDbConfigPath(serviceInfo.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind, serviceInfo.getId());
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(),
+                configKind, serviceInfo.getId());
         String value = config.getConfig(Constants.REINIT_DB);
         return (value != null && Boolean.parseBoolean(value));
     }

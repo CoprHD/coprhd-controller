@@ -78,7 +78,7 @@ public class DbServiceStatusChecker {
      * Checks to see if any node in the cluster has entered a certain state
      */
     private boolean isAnyNodeInState(String state, boolean isVersioned) throws Exception {
-        List<Configuration> configs = coordinator.queryAllConfiguration(
+        List<Configuration> configs = coordinator.queryAllConfiguration(coordinator.getSiteId(),
                 coordinator.getVersionedDbConfigPath(serviceName, getDbsvcVersion(isVersioned)));
         for (int i = 0; i < configs.size(); i++) {
             Configuration config = configs.get(i);
@@ -98,7 +98,7 @@ public class DbServiceStatusChecker {
             throw new IllegalStateException("node count not set");
         }
 
-        List<Configuration> configs = coordinator.queryAllConfiguration(
+        List<Configuration> configs = coordinator.queryAllConfiguration(coordinator.getSiteId(),
                 coordinator.getVersionedDbConfigPath(svcName, getDbsvcVersion(isVersioned)));
         int count = 0;
         for (int i = 0; i < configs.size(); i++) {
@@ -181,7 +181,8 @@ public class DbServiceStatusChecker {
                 return;
             }
 
-            List<Configuration> cfgs = this.coordinator.queryAllConfiguration(this.coordinator.getDbConfigPath(this.serviceName));
+            List<Configuration> cfgs = this.coordinator.queryAllConfiguration(coordinator.getSiteId(),
+                    this.coordinator.getDbConfigPath(this.serviceName));
             int adjustedCount = 0;
             for (Configuration cfg : cfgs) {
                 // Bypasses item of "global" and folders of "version", just check db configurations.

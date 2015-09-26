@@ -110,7 +110,7 @@ public class SeedProviderImpl implements SeedProvider {
     public List<InetAddress> getSeeds() {
         try {
             CoordinatorClientInetAddressMap nodeMap = _client.getInetAddessLookupMap();
-            List<Configuration> configs = _client.queryAllConfiguration(Constants.DB_CONFIG);
+            List<Configuration> configs = _client.queryAllConfiguration(_client.getSiteId(), Constants.DB_CONFIG);
             List<InetAddress> seeds = new ArrayList<>();
 
             // Add extra seeds

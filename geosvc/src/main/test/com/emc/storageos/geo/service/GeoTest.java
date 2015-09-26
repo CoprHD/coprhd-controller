@@ -469,7 +469,7 @@ public class GeoTest extends ApiTestBase {
     private void checkCleanDbFlag(String svcName) throws Exception {
         String kind = coordinatorClient.getDbConfigPath(svcName);
         String id = svcName.equals(Constants.DBSVC_NAME) ? "db-standalone" : "geodb-standalone";
-        Configuration config = coordinatorClient.queryConfiguration(kind, id);
+        Configuration config = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(), kind, id);
         // Assert.assertEquals(config.getConfig(Constants.RESET_DB),
         // String.valueOf(true));
     }

@@ -116,7 +116,8 @@ public class LazyLoadTests extends DbsvcTestBase {
 
     private static void setMigrationStatus(MigrationStatus status) {
         String dbConfigPath = _coordinator.getVersionedDbConfigPath("dbsvc", "1.1");
-        Configuration config = _coordinator.queryConfiguration(dbConfigPath, Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(),
+                dbConfigPath, Constants.GLOBAL_ID);
         if (config == null) {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setKind(dbConfigPath);

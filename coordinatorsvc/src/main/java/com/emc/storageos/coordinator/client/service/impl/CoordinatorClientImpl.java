@@ -1252,7 +1252,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     @Override
     public String getCurrentDbSchemaVersion() {
-        Configuration config = queryConfiguration(DB_CONFIG, GLOBAL_ID);
+        Configuration config = queryConfiguration(getSiteId(), DB_CONFIG, GLOBAL_ID);
         if (config == null) {
             return null;
         }
@@ -1271,8 +1271,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public MigrationStatus getMigrationStatus() {
         log.debug("getMigrationStatus: target version: \"{}\"", getTargetDbSchemaVersion());
         // TODO support geodbsvc
-        Configuration config = queryConfiguration(getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()),
-                GLOBAL_ID);
+        Configuration config = queryConfiguration(getSiteId(),
+                getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()), GLOBAL_ID);
         if (config == null || config.getConfig(MIGRATION_STATUS) == null) {
             log.debug("config is null");
             return null;

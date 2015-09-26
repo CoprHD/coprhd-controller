@@ -30,7 +30,8 @@ public class LocalToGeoMigrationDoneCleanup extends BaseCustomMigrationCallback 
     }
 
     private void processZKFlagCleanup() {
-        Configuration config = coordinatorClient.queryConfiguration(DB_CONFIG, GLOBAL_ID);
+        Configuration config = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
+                DB_CONFIG, GLOBAL_ID);
         if (config.getConfig(LOCAL_TO_GEO_DONE) != null) {
             log.info("Flag {} found in ZooKeeper. Removing...", LOCAL_TO_GEO_DONE);
             config.removeConfig(LOCAL_TO_GEO_DONE);

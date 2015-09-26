@@ -30,7 +30,7 @@ public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase {
 
     private String getCheckpoint(String version) {
         CoordinatorClient coordinator = getCoordinator();
-        Configuration config = coordinator.queryConfiguration(
+        Configuration config = coordinator.queryConfiguration(coordinator.getSiteId(),
                 coordinator.getVersionedDbConfigPath(Constants.DBSVC_NAME, version), Constants.GLOBAL_ID);
         Assert.assertNotNull(config);
         return config.getConfig(DbConfigConstants.MIGRATION_CHECKPOINT);
@@ -43,7 +43,7 @@ public class DbMigrationCheckpointTest extends DbStepSkipUpgradeTestBase {
      */
     private void resetMigrationStatus(String version) {
         CoordinatorClient coordinator = getCoordinator();
-        Configuration config = coordinator.queryConfiguration(
+        Configuration config = coordinator.queryConfiguration(coordinator.getSiteId(),
                 coordinator.getVersionedDbConfigPath(Constants.DBSVC_NAME, version), Constants.GLOBAL_ID);
         Assert.assertNotNull(config);
         log.info("setMigrationStatus: target version \"{}\" status {}",

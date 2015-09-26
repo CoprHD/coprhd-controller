@@ -10,6 +10,7 @@ import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.*;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -38,7 +39,7 @@ import static com.emc.storageos.coordinator.client.model.Constants.*;
 /**
  * Dummy coordinator client for use with dbsvc unit tests
  */
-public class StubCoordinatorClientImpl implements CoordinatorClient {
+public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     private final Service _dbinfo;
     private DbVersionInfo dbVersionInfo;
     private CoordinatorClientInetAddressMap inetAddessLookupMap;
@@ -316,7 +317,8 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
     
     @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String siteId,
+                                                               String id, String kind)
             throws Exception {
         throw new UnsupportedOperationException();
     }
@@ -333,7 +335,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public String getCurrentDbSchemaVersion() {
-        Configuration config = queryConfiguration(DB_CONFIG, GLOBAL_ID);
+        Configuration config = queryConfiguration(getSiteId(), DB_CONFIG, GLOBAL_ID);
         if (config == null) {
             return null;
         }
@@ -348,7 +350,8 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public MigrationStatus getMigrationStatus() {
-        Configuration config = queryConfiguration(getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()), GLOBAL_ID);
+        Configuration config = queryConfiguration(getSiteId(),
+                getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()), GLOBAL_ID);
         if (config == null || config.getConfig(MIGRATION_STATUS) == null) {
             return null;
         }

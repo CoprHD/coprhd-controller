@@ -515,7 +515,8 @@ public class SchemaUtil {
 
     void setCurrentVersion(String currentVersion) {
         String configKind = _coordinator.getDbConfigPath(_service.getName());
-        Configuration config = _coordinator.queryConfiguration(configKind, Constants.GLOBAL_ID);
+        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(),
+                configKind, Constants.GLOBAL_ID);
         if (config != null) {
             config.setConfig(Constants.SCHEMA_VERSION, currentVersion);
             _coordinator.persistServiceConfiguration(config);

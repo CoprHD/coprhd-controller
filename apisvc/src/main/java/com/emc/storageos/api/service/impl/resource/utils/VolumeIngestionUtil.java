@@ -708,15 +708,15 @@ public class VolumeIngestionUtil {
     }
     
     /**
-     * Returns the root parent virtual Volume object if the given blockObject is a
-     * VPLEX backend volume.  Or null if the blockObject is not a VPLEX
-     * backend volume.
+     * Returns the given BlockObject's parent virtual Volume object 
+     * if the BlockObject is a VPLEX backend volume.  Or return null if the 
+     * BlockObject is not a VPLEX backend volume.
      * 
      * @param blockObject the block object to check
      * @param dbClient a reference to the database client
      * @return a VPLEX virtual Volume parent object
      */
-    public static Volume checkForVplexVirtualVolumeParent(BlockObject blockObject, DbClient dbClient) {
+    public static Volume getVolumeIfParentIsVplex(BlockObject blockObject, DbClient dbClient) {
         UnManagedVolume unManagedVolume = getUnManagedVolumeIfVplexBackend(blockObject, dbClient);
         Volume parentVirtualVolume = null;
 
@@ -2116,8 +2116,8 @@ public class VolumeIngestionUtil {
      * @param dbClient a reference to the database client
      */
     private static void setupVplexVirtualVolumeCloneRelations(BlockObject clone, BlockObject parent, DbClient dbClient) {
-        Volume parentVvolSource = checkForVplexVirtualVolumeParent(parent, dbClient);
-        Volume parentVvolClone = checkForVplexVirtualVolumeParent(clone, dbClient);
+        Volume parentVvolSource = getVolumeIfParentIsVplex(parent, dbClient);
+        Volume parentVvolClone = getVolumeIfParentIsVplex(clone, dbClient);
         
         if (null == parentVvolSource || null == parentVvolClone) {
             return;

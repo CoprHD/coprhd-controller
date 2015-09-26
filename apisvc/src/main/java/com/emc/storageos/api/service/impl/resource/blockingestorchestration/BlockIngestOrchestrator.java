@@ -728,6 +728,7 @@ public abstract class BlockIngestOrchestrator {
             Map<BlockObject, List<BlockObject>> parentReplicaMap, List<UnManagedVolume> unManagedVolumes,
             Map<String, BlockObject> createdObjects, Map<String, List<DataObject>> updatedObjects,
             List<UnManagedVolume> processedUnManagedVolumes) {
+        _logger.info("parentReplicaMap is " + parentReplicaMap);
         List<DataObject> updateObjects = updatedObjects.get(currentUnmanagedVolume.getNativeGuid());
         if (updateObjects == null) {
             updateObjects = new ArrayList<DataObject>();
@@ -740,8 +741,7 @@ public abstract class BlockIngestOrchestrator {
                 } else if (replica instanceof Volume && isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
                     VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
                 } else if (replica instanceof Volume) {
-                    if (VolumeIngestionUtil.isVplexVolume(currentUnmanagedVolume) 
-                            || (null != VolumeIngestionUtil.checkForVplexVirtualVolumeParent(replica, _dbClient))) {
+                    if (null != VolumeIngestionUtil.getUnManagedVolumeIfVplexBackend(replica, _dbClient)) {
                         VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);
                     } else {
                         VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);

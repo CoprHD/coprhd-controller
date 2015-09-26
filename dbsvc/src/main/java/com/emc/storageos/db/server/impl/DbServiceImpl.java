@@ -239,6 +239,7 @@ public class DbServiceImpl implements DbService {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(_serviceInfo.getId());
             cfg.setKind(configKind);
+            cfg.setSiteId(_coordinator.getSiteId());
             cfg.setConfig(DbConfigConstants.NODE_ID, _coordinator.getInetAddessLookupMap().getNodeId());
             cfg.setConfig(DbConfigConstants.AUTOBOOT, Boolean.TRUE.toString());
 
@@ -255,7 +256,7 @@ public class DbServiceImpl implements DbService {
                 cfg.setConfig(DbConfigConstants.NUM_TOKENS_KEY, DbConfigConstants.DEFUALT_NUM_TOKENS.toString());
             }
             // check other existing db nodes
-            List<Configuration> configs = _coordinator.queryAllConfiguration(configKind);
+            List<Configuration> configs = _coordinator.queryAllConfiguration(_coordinator.getSiteId(), configKind);
             if (configs.isEmpty()) {
                 // we are the first node - turn off autobootstrap
                 cfg.setConfig(DbConfigConstants.AUTOBOOT, Boolean.FALSE.toString());
@@ -332,6 +333,7 @@ public class DbServiceImpl implements DbService {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(Constants.GLOBAL_ID);
             cfg.setKind(configKind);
+            cfg.setSiteId(_coordinator.getSiteId());
 
             // persist configuration
             _coordinator.persistServiceConfiguration(cfg);
@@ -358,6 +360,7 @@ public class DbServiceImpl implements DbService {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(_serviceInfo.getId());
             cfg.setKind(kind);
+            cfg.setSiteId(_coordinator.getSiteId());
             // persist configuration
             _coordinator.persistServiceConfiguration(cfg);
             config = cfg;

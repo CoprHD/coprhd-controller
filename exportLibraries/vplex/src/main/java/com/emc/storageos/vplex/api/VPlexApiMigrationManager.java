@@ -875,13 +875,19 @@ public class VPlexApiMigrationManager {
         // Get the extent name from the local device name and find the extent.
         // This is the source extent for the migration.
         String localDeviceName = virtualVolumeInfo.getSupportingDevice();
-        StringBuilder extentNameBuilder = new StringBuilder();
-        extentNameBuilder.append(VPlexApiConstants.EXTENT_PREFIX);
-        extentNameBuilder.append(localDeviceName.substring(VPlexApiConstants.DEVICE_PREFIX.length()));
-        extentNameBuilder.append(VPlexApiConstants.EXTENT_SUFFIX);
-        String extentName = extentNameBuilder.toString();
-        s_logger.info("Finding extent with name {}", extentName);
+        s_logger.info("Finding local device with name {}", localDeviceName);
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        VPlexDeviceInfo deviceInfo = discoveryMgr.findLocalDevice(localDeviceName);
+        if (null == deviceInfo) {
+            throw VPlexApiException.exceptions.cantFindLocalDevice(localDeviceName);
+        }
+        discoveryMgr.setSupportingComponentsForLocalDevice(deviceInfo);
+        List<VPlexExtentInfo> extentInfoList = deviceInfo.getExtentInfo();
+        if (null == extentInfoList || extentInfoList.isEmpty()) {
+            throw VPlexApiException.exceptions.cantFindExtentForLocalDevice(localDeviceName);
+        }
+        String extentName = extentInfoList.get(0).getName();
+        s_logger.info("Finding extent with name {}", extentName);
         VPlexExtentInfo srcExtentInfo = discoveryMgr.findExtent(extentName);
         s_logger.info("Found source extent");
 
@@ -1143,6 +1149,7 @@ public class VPlexApiMigrationManager {
                         break;
                     }
                 }
+                
                 migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
             } else if (rename) {
                 // Strip the extent prefix and suffix from the

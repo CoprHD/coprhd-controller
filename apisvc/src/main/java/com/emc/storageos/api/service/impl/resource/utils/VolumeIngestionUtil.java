@@ -651,6 +651,17 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Returns true if the BlockObject represents a VPLEX virtual volume.
+     * 
+     * @param blockObject the BlockObject to check
+     * @return true if the block object is a VPLEX virtual volume
+     */
+    public static boolean isVplexVolume(BlockObject blockObject, DbClient dbClient) {
+        UnManagedVolume volume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
+        return isVplexVolume(volume);
+    }
+
+    /**
      * Returns true if the UnManagedVolume represents a VPLEX virtual volume.
      * 
      * @param volume the UnManagedVolume in question
@@ -666,7 +677,17 @@ public class VolumeIngestionUtil {
         return TRUE.equals(status);
     }
 
-    
+    /**
+     * Returns true if the BlockObject represents a VPLEX backend volume.
+     * 
+     * @param blockObject the BlockObject to check
+     * @return true if the block object is a VPLEX backend volume
+     */
+    public static boolean isVplexBackendVolume(BlockObject blockObject, DbClient dbClient) {
+        UnManagedVolume volume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
+        return isVplexBackendVolume(volume);
+    }
+
     /**
      * Returns true if the UnManagedVolume represents a VPLEX backend volume.
      * 
@@ -682,16 +703,16 @@ public class VolumeIngestionUtil {
                 .get(SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString());
         return TRUE.equals(status);
     }
-    
+
     /**
-     * Returns an UnManagedVolume object if the blockObject is a VPLEX backend volume.
+     * Returns an UnManagedVolume object if the blockObject has an UnManagedVolume.
      * Otherwise, returns null;
      * 
      * @param blockObject the block object to check
      * @param dbClient a reference to the database client
      * @return a UnManagedVolume object
      */
-    public static UnManagedVolume getUnManagedVolumeIfVplexBackend(BlockObject blockObject, DbClient dbClient) {
+    public static UnManagedVolume getUnManagedVolumeForBlockObject(BlockObject blockObject, DbClient dbClient) {
         String unmanagedVolumeGUID = blockObject.getNativeGuid().replace(VOLUME, UNMANAGEDVOLUME);
         @SuppressWarnings("deprecation")
         List<URI> unmanagedVolumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -699,40 +720,10 @@ public class VolumeIngestionUtil {
         List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(UnManagedVolume.class, unmanagedVolumeUris);
         if (unManagedVolumes != null && !unManagedVolumes.isEmpty()) {
             UnManagedVolume unManagedVolume = unManagedVolumes.get(0);
-            if (isVplexBackendVolume(unManagedVolume)) {
-                _logger.info("block object {} is a VPLEX backend volume", blockObject.getLabel());
-                return unManagedVolume;
-            }
+            _logger.info("block object {} is UnManagedVolume {}", blockObject.getLabel(), unManagedVolume);
+            return unManagedVolume;
         }
         return null;
-    }
-    
-    /**
-     * Returns the given BlockObject's parent virtual Volume object 
-     * if the BlockObject is a VPLEX backend volume.  Or return null if the 
-     * BlockObject is not a VPLEX backend volume.
-     * 
-     * @param blockObject the block object to check
-     * @param dbClient a reference to the database client
-     * @return a VPLEX virtual Volume parent object
-     */
-    public static Volume getVolumeIfParentIsVplex(BlockObject blockObject, DbClient dbClient) {
-        UnManagedVolume unManagedVolume = getUnManagedVolumeIfVplexBackend(blockObject, dbClient);
-        Volume parentVirtualVolume = null;
-
-        if (null != unManagedVolume) {
-            // this blockObject is a VPLEX backend volume
-            String vvolNativeGuid = PropertySetterUtil.extractValueFromStringSet(
-                    SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(),
-                    unManagedVolume.getVolumeInformation());
-            parentVirtualVolume = checkIfVolumeExistsInDB(vvolNativeGuid, dbClient);
-            if (null != parentVirtualVolume) {
-                _logger.info("returning vplex parent virtual volume {} for backend volume {}", 
-                        parentVirtualVolume.getLabel(), blockObject.getLabel());
-            }
-        }
-
-        return parentVirtualVolume;
     }
 
     public static boolean isSnapshot(UnManagedVolume volume) {
@@ -2104,39 +2095,6 @@ public class VolumeIngestionUtil {
             }
             associatedFullCopies.add(clone.getId().toString());
         }
-        setupVplexVirtualVolumeCloneRelations(clone, parent, dbClient);
-    }
-
-    /**
-     * Creates relationships between the parent virtual volumes of
-     * linked VPLEX backend volume clones.
-     * 
-     * @param clone the backend clone
-     * @param parent the backend clone's parent/source volume
-     * @param dbClient a reference to the database client
-     */
-    private static void setupVplexVirtualVolumeCloneRelations(BlockObject clone, BlockObject parent, DbClient dbClient) {
-        Volume parentVvolSource = getVolumeIfParentIsVplex(parent, dbClient);
-        Volume parentVvolClone = getVolumeIfParentIsVplex(clone, dbClient);
-        
-        if (null == parentVvolSource || null == parentVvolClone) {
-            return;
-        }
-        
-        _logger.info("Setting up relationship between VPLEX virtual volume clone {} and parent {}", 
-                parentVvolClone.getLabel(), parentVvolSource.getLabel());
-        parentVvolClone.setAssociatedSourceVolume(parentVvolSource.getId());
-        parentVvolClone.setReplicaState(ReplicationState.SYNCHRONIZED.name());
-        parentVvolClone.setSyncActive(true);
-        parentVvolSource.setSyncActive(true);
-        StringSet associatedFullCopies = parentVvolSource.getFullCopies();
-        if (associatedFullCopies == null) {
-            associatedFullCopies = new StringSet();
-            parentVvolSource.setFullCopies(associatedFullCopies);
-        }
-        associatedFullCopies.add(parentVvolClone.getId().toString());
-        dbClient.updateAndReindexObject(parentVvolSource);
-        dbClient.updateAndReindexObject(parentVvolClone);
     }
 
     public static void setupVplexParentRelations(BlockObject child, BlockObject parent, DbClient dbClient) {

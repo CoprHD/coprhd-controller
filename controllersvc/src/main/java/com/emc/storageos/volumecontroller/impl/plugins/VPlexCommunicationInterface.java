@@ -674,7 +674,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 s_logger.warn("No virtual volumes were found on VPLEX.");
             }
 
-            // TODO maybe sort out clones here
             List<UnManagedVolume> allVols = new ArrayList<UnManagedVolume>();
             allVols.addAll(newUnmanagedVolumes);
             allVols.addAll(knownUnmanagedVolumes);

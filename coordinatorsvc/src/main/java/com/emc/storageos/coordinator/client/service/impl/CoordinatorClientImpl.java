@@ -514,9 +514,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         } catch (Exception e) {
             throw CoordinatorException.fatals.unableToListAllConfigurationForKind(kind, e);
         }
-        List<Configuration> configs = new ArrayList<Configuration>(configPaths.size());
+        List<Configuration> configs = new ArrayList<>(configPaths.size());
         for (String configPath : configPaths) {
-            Configuration config = queryConfiguration(kind, configPath);
+            Configuration config = queryConfiguration(siteId, kind, configPath);
             if (config != null) {
                 configs.add(config);
             }

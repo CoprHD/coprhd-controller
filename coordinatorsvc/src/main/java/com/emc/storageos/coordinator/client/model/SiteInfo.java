@@ -97,6 +97,7 @@ public class SiteInfo implements CoordinatorSerializable {
 
     @Override
     public CoordinatorClassInfo getCoordinatorClassInfo() {
-        return new CoordinatorClassInfo(CONFIG_ID, CONFIG_KIND, "siteInfo");
+        // site specific target
+        return new CoordinatorClassInfo(CONFIG_ID, CONFIG_KIND, "siteInfo", true);
     }
 }

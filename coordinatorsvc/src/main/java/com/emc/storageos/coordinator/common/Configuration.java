@@ -27,6 +27,13 @@ public interface Configuration {
     public String getId();
 
     /**
+     * UUID of the site if it's a site-specific configuration
+     *
+     * @return site UUID, null if it's not site-specific
+     */
+    public String getSiteId();
+
+    /**
      * Retrieve configuration field
      * 
      * @param key configuration key

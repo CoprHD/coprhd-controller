@@ -460,7 +460,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public void persistServiceConfiguration(Configuration... configs) throws CoordinatorException {
         try {
             for (Configuration config : configs) {
-                String configParentPath = getKindPath(config.getKind());
+                String configParentPath = getKindPath(config.getSiteId(), config.getKind());
 
                 EnsurePath path = new EnsurePath(configParentPath);
                 path.ensure(_zkConnection.curator().getZookeeperClient());
@@ -483,7 +483,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public void removeServiceConfiguration(Configuration... configs) throws CoordinatorException {
         for (int i = 0; i < configs.length; i++) {
             Configuration config = configs[i];
-            String servicePath = String.format("%1$s/%2$s/%3$s", ZkPath.CONFIG, config.getKind(),
+            String servicePath = String.format("%1$s/%2$s", getKindPath(config.getSiteId(), config.getKind()),
                     config.getId());
             try {
                 _zkConnection.curator().delete().forPath(servicePath);
@@ -498,7 +498,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public List<Configuration> queryAllConfiguration(String kind) throws CoordinatorException {
-        String serviceParentPath = getKindPath(kind);
+        return queryAllConfiguration(null, kind);
+    }
+
+    @Override
+    public List<Configuration> queryAllConfiguration(String siteId, String kind) throws CoordinatorException {
+        String serviceParentPath = getKindPath(siteId, kind);
         List<String> configPaths;
         try {
             configPaths = _zkConnection.curator().getChildren().forPath(serviceParentPath);
@@ -537,10 +542,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return builder.toString();
     }
 
-    private String getKindPath(String kind) {
+    private String getKindPath(String site, String kind) {
         StringBuilder builder = new StringBuilder();
-        if (isSiteSpecific(kind)) {
-            String sitePrefix = getSitePrefix();
+        if (site != null) {
+            String sitePrefix = getSitePrefix(site);
             builder.append(sitePrefix);
         }
         builder.append(ZkPath.CONFIG);
@@ -550,17 +555,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return builder.toString();
     }
 
-    private boolean isSiteSpecific(String kind) {
-
-        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equals(SiteInfo.CONFIG_KIND) || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND)) {
-            return true;
-        }
-        return false;
+    @Override
+    public Configuration queryConfiguration(String kind, String id) throws CoordinatorException {
+        return queryConfiguration(null, kind, id);
     }
 
     @Override
-    public Configuration queryConfiguration(String kind, String id) throws CoordinatorException {
-        String servicePath = String.format("%s/%s", getKindPath(kind), id);
+    public Configuration queryConfiguration(String siteId, String kind, String id) throws CoordinatorException {
+        String servicePath = String.format("%s/%s", getKindPath(siteId, kind), id);
         try {
             byte[] data = _zkConnection.curator().getData().forPath(servicePath);
             return ConfigurationImpl.parse(data);
@@ -972,8 +974,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         final CoordinatorClassInfo coordinatorInfo = info.getCoordinatorClassInfo();
         String id = coordinatorInfo.id;
         String kind = coordinatorInfo.kind;
+        String siteId = coordinatorInfo.siteSpecific ? getSiteId() : null;
 
-        return getTargetInfo(clazz, id, kind);
+        return getTargetInfo(clazz, siteId, id, kind);
     }
 
     /**
@@ -985,10 +988,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id,
+    @Override
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String siteId, String id,
             String kind) throws Exception {
         final T info = clazz.newInstance();
-        final Configuration config = queryConfiguration(kind, id);
+        final Configuration config = queryConfiguration(siteId, kind, id);
         if (config != null && config.getConfig(TARGET_INFO) != null) {
             final String infoStr = config.getConfig(TARGET_INFO);
             log.debug("getTargetInfo({}): info={}", clazz.getName(), Strings.repr(infoStr));
@@ -1015,6 +1019,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         ConfigurationImpl cfg = new ConfigurationImpl();
         cfg.setId(id);
         cfg.setKind(kind);
+        if (coordinatorInfo.siteSpecific) {
+            cfg.setSiteId(getSiteId());
+        }
         cfg.setConfig(TARGET_INFO, info.encodeAsString());
         persistServiceConfiguration(cfg);
         log.info("Target info set: {}", info);

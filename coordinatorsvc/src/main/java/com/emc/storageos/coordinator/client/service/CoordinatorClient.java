@@ -257,6 +257,26 @@ public interface CoordinatorClient {
     public Configuration queryConfiguration(String kind, String id) throws CoordinatorException;
 
     /**
+     * Queries all site-specific configuration with given kind and site id
+     *
+     * @param siteId
+     * @param kind
+     * @return
+     */
+    public List<Configuration> queryAllConfiguration(String siteId, String kind) throws CoordinatorException;
+
+    /**
+     * Queries all site-specific configuration with given site id, kind and id
+     *
+     * @param siteId
+     * @param kind
+     * @param id
+     * @return
+     * @throws CoordinatorException
+     */
+    public Configuration queryConfiguration(String siteId, String kind, String id) throws CoordinatorException;
+
+    /**
      * Registers a connection listener
      * 
      * @param listener
@@ -343,12 +363,14 @@ public interface CoordinatorClient {
      * Get target info
      * 
      * @param clazz
+     * @param siteId
      * @param id
      * @param kind
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception;
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String siteId, String id,
+                                                               String kind) throws Exception;
 
     /**
      * Set Target info

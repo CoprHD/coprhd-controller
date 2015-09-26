@@ -18,10 +18,16 @@ public final class CoordinatorClassInfo {
     public final String id;
     public final String kind;
     public final String attribute;
+    public final boolean siteSpecific;
 
     public CoordinatorClassInfo(String id, String kind, String attribute) {
+        this(id, kind, attribute, false);
+    }
+
+    public CoordinatorClassInfo(String id, String kind, String attribute, boolean siteSpecific) {
         this.id = id;
         this.kind = kind;
         this.attribute = attribute;
+        this.siteSpecific = siteSpecific;
     }
 }

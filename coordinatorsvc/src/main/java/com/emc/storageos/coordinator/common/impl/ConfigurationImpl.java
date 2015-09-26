@@ -24,6 +24,7 @@ public class ConfigurationImpl implements Configuration {
     private static final char RESERVED_CHAR = '_';
     private static final String KIND_KEY = "_kind";
     private static final String ID_KEY = "_id";
+    private static final String SITE_KEY = "_site";
 
     private Properties _map = new Properties();
 
@@ -43,6 +44,17 @@ public class ConfigurationImpl implements Configuration {
 
     public void setId(String id) {
         _map.setProperty(ID_KEY, id);
+    }
+
+    @Override
+    public String getSiteId() {
+        return _map.getProperty(SITE_KEY);
+    }
+
+    public void setSiteId(String siteId) {
+        if (siteId != null) {
+            _map.setProperty(SITE_KEY, siteId);
+        }
     }
 
     @Override

@@ -475,10 +475,11 @@ public class CoordinatorClientExt {
                 if (siteProps.size() > 0) {
                     PropertyInfoExt siteScopeInfo = new PropertyInfoExt(siteProps);
                     ConfigurationImpl siteCfg = new ConfigurationImpl();
-                    siteCfg.setId(_coordinator.getSiteId());
+                    siteCfg.setId(PropertyInfoExt.TARGET_PROPERTY_ID);
                     siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+                    siteCfg.setSite(_coordinator.getSiteId());
                     siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
-                    _coordinator.persistServiceConfiguration( siteCfg);
+                    _coordinator.persistServiceConfiguration(siteCfg);
                     _log.info("site scope target properties changed successfully. target properties {}", siteScopeInfo.toString());
                 }
             } catch (Exception e) {

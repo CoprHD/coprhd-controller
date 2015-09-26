@@ -388,6 +388,15 @@ public interface CoordinatorClient {
     public ClusterInfo.ClusterState getControlNodesState();
 
     /**
+     * Get control nodes state for specified site
+     * 
+     * @param siteId
+     * @param nodeCount
+     * @return
+     */
+    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount);
+    
+    /**
      * Get target info
      * 
      * @param clazz

@@ -101,6 +101,7 @@ public class SchemaUtil {
     private PasswordUtils _passwordUtils;
     private DbClientContext clientContext;
     private boolean onStandby = false;
+    private String _standbyId;
 
     public void setClientContext(DbClientContext clientContext) {
         this.clientContext = clientContext;
@@ -169,6 +170,10 @@ public class SchemaUtil {
         _vdcShortId = vdcId;
     }
 
+    public void setStandbyId(String standbyId) {
+        _standbyId = standbyId;
+    }
+    
     /**
      * Set true for standby site
      * 
@@ -320,6 +325,17 @@ public class SchemaUtil {
     }
 
     /**
+     * Generate Cassandra data center id. 
+     * Primary site - we use vdc short id
+     * Standby site - we use vdc short id + standby short id
+     * 
+     * @return
+     */
+    private String generateCassandraDataCenterId() {
+        return onStandby ? String.format("%s-%s",_vdcShortId,_standbyId) : _vdcShortId;
+    }
+    
+    /**
      * Set keyspace strategy class and options for a keyspace whose name specified by
      * _keyspaceName. New keyspace is created if it does exist.
      * 
@@ -333,7 +349,7 @@ public class SchemaUtil {
         // Get existing strategy options if the keyspace exists
         Map<String, String> strategyOptions = keyspace.getStrategyOptions();
         if (isGeoDbsvc() || onStandby) {
-            String vdcShortId = onStandby ? _vdcShortId + "-standby" : _vdcShortId;
+            String vdcShortId = generateCassandraDataCenterId();
             _log.info("vdcList={} strategyOptions={}", _vdcList, strategyOptions);
             if (!onStandby && _vdcList.size() == 1) {
                 // the current vdc is removed
@@ -387,8 +403,9 @@ public class SchemaUtil {
         // Update keyspace strategy option
         Map<String, String> options = kd.getStrategyOptions();
 
-        if (isGeoDbsvc() && !options.containsKey(_vdcShortId)
-                || onStandby && !options.containsKey(_vdcShortId + "-standby")) {
+        String dcId = generateCassandraDataCenterId();
+        if (isGeoDbsvc() && !options.containsKey(dcId)
+                || onStandby && !options.containsKey(dcId)) {
             KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
             update.setStrategyOptions(options);
 
@@ -615,7 +632,7 @@ public class SchemaUtil {
         }
     }
 
-    private boolean isVdcInfoExist(DbClient dbClient) {
+    private VirtualDataCenter queryLocalVdc(DbClient dbClient) {
         // all vdc info stored in local db
         try {
             _log.debug("my vdcid: " + _vdcShortId);
@@ -625,15 +642,10 @@ public class SchemaUtil {
             if (list.iterator().hasNext()) {
                 URI vdcId = list.iterator().next();
                 VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcId);
-                if (vdc.getLocal()) {
-                    checkIPChanged(vdc, dbClient);
-                } else {
-                    _log.warn("vdc {} is not local vdc. ignore ip check", vdc.getId().toString());
-                }
-                return true;
+                return vdc;
             } else {
                 _log.info("vdc resource query returned no results");
-                return false;
+                return null;
             }
 
         } catch (DatabaseException ex) {
@@ -644,6 +656,10 @@ public class SchemaUtil {
             // throw IllegalStateExcpetion and stop
             throw new IllegalStateException("vdc resource query failed");
         }
+    }
+    
+    private boolean isVdcInfoExist(DbClient dbClient) {
+        return queryLocalVdc(dbClient) != null;
     }
 
     /**
@@ -769,7 +785,13 @@ public class SchemaUtil {
             return;
         }
 
-        if (isVdcInfoExist(dbClient)) {
+        VirtualDataCenter localVdc = queryLocalVdc(dbClient);
+        if (localVdc != null) {
+            if (localVdc.getLocal()) {
+                checkIPChanged(localVdc, dbClient);
+            } else {
+                _log.warn("Vdc record is not local for {}", _vdcShortId);
+            }
             return;
         }
 

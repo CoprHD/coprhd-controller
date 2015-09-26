@@ -12,11 +12,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "site_sync")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-//TODO: potentially this should be a list of sites
-public class SiteSyncParam {
+public class SiteParam {
     private String uuid;
     private String name;
     private String vip;
+    private String shortId;
     private Map<String, String> hostIPv4AddressMap;
     private Map<String, String> hostIPv6AddressMap;
     private String softwareVersion;
@@ -103,6 +103,15 @@ public class SiteSyncParam {
 
     public void setFreshInstallation(boolean freshInstallation) {
         this.freshInstallation = freshInstallation;
+    }
+
+    @XmlElement(name = "shortId")
+    public String getShortId() {
+        return shortId;
+    }
+
+    public void setShortId(String shortId) {
+        this.shortId = shortId;
     }
 
     @Override

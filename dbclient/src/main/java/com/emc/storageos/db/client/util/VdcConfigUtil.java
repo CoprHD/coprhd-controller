@@ -35,14 +35,13 @@ public class VdcConfigUtil {
     public static final String VDC_NODE_COUNT_PTN = "vdc_%s_node_count";
     public static final String VDC_IPADDR_PTN = "vdc_%s_network_%d_ipaddr";
     public static final String VDC_IPADDR6_PTN = "vdc_%s_network_%d_ipaddr6";
-    public static final String VDC_STANDBY_NODE_COUNT_PTN = "vdc_%s_standby%d_node_count";
-    public static final String VDC_STANDBY_IPADDR6_PTN = "vdc_%s_standby%d_network_%d_ipaddr6";
-    public static final String VDC_STANDBY_IPADDR_PTN = "vdc_%s_standby%d_network_%d_ipaddr";
+    public static final String VDC_STANDBY_NODE_COUNT_PTN = "vdc_%s_%s_node_count";
+    public static final String VDC_STANDBY_IPADDR6_PTN = "vdc_%s_%s_network_%d_ipaddr6";
+    public static final String VDC_STANDBY_IPADDR_PTN = "vdc_%s_%s_network_%d_ipaddr";
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
     public static final String VDC_VIP6_PTN = "vdc_%s_network_vip6";
     public static final String SITE_IS_STANDBY="site_is_standby";
     public static final String SITE_MYID="site_myid";
-    public static final String SITE_STANDBY_ID="standby%d";
     public static final String SITE_IDS="site_ids";
 
     private DbClient dbclient;
@@ -166,47 +165,56 @@ public class VdcConfigUtil {
         String address;
 
         String shortId = vdc.getShortId();
+        String primarySiteId = coordinator.getPrimarySiteId();
+        
+        // Sort the sites by creation time - ascending order
         URIQueryResultList standbySiteIds = new URIQueryResultList();
         dbclient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
                 standbySiteIds);
-        List<URI> sortedIds = new ArrayList<URI>();
+        List<Site> siteList = new ArrayList<Site>();
         for (URI siteId : standbySiteIds) {
-            sortedIds.add(siteId);
-        }
-        Collections.sort(sortedIds);
-
-        StringBuilder standbyIds = new StringBuilder();
-        int index = 1;
-        for (URI siteId : sortedIds) {
-            int standbyNodeCnt = 0;
             Site site = dbclient.queryObject(Site.class, siteId);
+            siteList.add(site);
+        }
+        Collections.sort(siteList, new Comparator<Site>() {
+            @Override
+            public int compare(Site a, Site b) {
+                return (int)(a.getCreationTime().getTime().getTime() - b.getCreationTime().getTime().getTime());
+            }
+        });
+        
+        List<String> shortIds = new ArrayList<String>();
+        for (Site site : siteList) {
+            if (site.getUuid().equals(primarySiteId)) {
+                continue; // ignore primary site 
+            }
+            
+            int standbyNodeCnt = 0;
             StringMap standbyIPv4Addrs = site.getHostIPv4AddressMap();
             StringMap standbyIPv6Addrs = site.getHostIPv6AddressMap();
             List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
-
+            String standbyShortId = site.getStandbyShortId();
+            
             for (String hostName : standbyHosts) {
                 standbyNodeCnt++;
                 address = standbyIPv4Addrs.get(hostName);
-                vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, shortId, index, standbyNodeCnt),
+                vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, shortId, standbyShortId, standbyNodeCnt),
                         address == null ? "" : address);
 
                 address = standbyIPv6Addrs.get(hostName);
-                vdcConfig.put(String.format(VDC_STANDBY_IPADDR6_PTN, shortId, index, standbyNodeCnt),
+                vdcConfig.put(String.format(VDC_STANDBY_IPADDR6_PTN, shortId, standbyShortId, standbyNodeCnt),
                         address == null ? "" : address);
             }
-            vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, shortId, index), String.valueOf(standbyNodeCnt));
+            vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, shortId, standbyShortId), String.valueOf(standbyNodeCnt));
             if (coordinator.getSiteId().equals(site.getUuid())) {
-                vdcConfig.put(SITE_MYID, String.format(SITE_STANDBY_ID, index));
+                vdcConfig.put(SITE_MYID, standbyShortId);
             }
-            if (index > 1) {
-                standbyIds.append(",");
-            }
-            standbyIds.append(String.format(SITE_STANDBY_ID, index));
-            vdcConfig.put(SITE_IDS, standbyIds.toString());
-            index ++;
+            
+            shortIds.add(standbyShortId);
         }
-
-        String primarySiteId = coordinator.getPrimarySiteId();
+        Collections.sort(shortIds);
+        vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
+        
         String currentSiteId = coordinator.getSiteId();
         boolean isStandby = !currentSiteId.equals(primarySiteId);
         vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));

@@ -101,6 +101,7 @@ public class SchemaUtil {
     private PasswordUtils _passwordUtils;
     private DbClientContext clientContext;
     private boolean onStandby = false;
+    private String _standbyId;
 
     public void setClientContext(DbClientContext clientContext) {
         this.clientContext = clientContext;
@@ -169,6 +170,10 @@ public class SchemaUtil {
         _vdcShortId = vdcId;
     }
 
+    public void setStandbyId(String standbyId) {
+        _standbyId = standbyId;
+    }
+    
     /**
      * Set true for standby site
      * 
@@ -320,6 +325,17 @@ public class SchemaUtil {
     }
 
     /**
+     * Generate Cassandra data center id. 
+     * Primary site - we use vdc short id
+     * Standby site - we use vdc short id + standby short id
+     * 
+     * @return
+     */
+    private String generateCassandraDataCenterId() {
+        return onStandby ? String.format("%s-%s",_vdcShortId,_standbyId) : _vdcShortId;
+    }
+    
+    /**
      * Set keyspace strategy class and options for a keyspace whose name specified by
      * _keyspaceName. New keyspace is created if it does exist.
      * 
@@ -333,7 +349,7 @@ public class SchemaUtil {
         // Get existing strategy options if the keyspace exists
         Map<String, String> strategyOptions = keyspace.getStrategyOptions();
         if (isGeoDbsvc() || onStandby) {
-            String vdcShortId = onStandby ? _vdcShortId + "-standby" : _vdcShortId;
+            String vdcShortId = generateCassandraDataCenterId();
             _log.info("vdcList={} strategyOptions={}", _vdcList, strategyOptions);
             if (!onStandby && _vdcList.size() == 1) {
                 // the current vdc is removed
@@ -387,8 +403,9 @@ public class SchemaUtil {
         // Update keyspace strategy option
         Map<String, String> options = kd.getStrategyOptions();
 
-        if (isGeoDbsvc() && !options.containsKey(_vdcShortId)
-                || onStandby && !options.containsKey(_vdcShortId + "-standby")) {
+        String dcId = generateCassandraDataCenterId();
+        if (isGeoDbsvc() && !options.containsKey(dcId)
+                || onStandby && !options.containsKey(dcId)) {
             KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
             update.setStrategyOptions(options);
 

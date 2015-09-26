@@ -46,7 +46,7 @@ import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
-import com.emc.storageos.model.dr.SiteSyncParam;
+import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.services.util.SysUtils;
@@ -60,7 +60,7 @@ public class DisasterRecoveryServiceTest {
     private Site standbySite2;
     private Site standbySite3;
     private Site standbyConfig;
-    private SiteSyncParam primarySiteParam;
+    private SiteParam primarySiteParam;
     private List<URI> uriList;
     private List<Site> standbySites;
     private SiteConfigRestRep standby;
@@ -110,7 +110,7 @@ public class DisasterRecoveryServiceTest {
         standbySite3.setUuid("site-uuid-3");
         standbySite3.setVdc(new URI("fake-vdc-id"));
 
-        primarySiteParam = new SiteSyncParam();
+        primarySiteParam = new SiteParam();
         /*primarySiteParam.setUuid("primary-site-uuid");
         primarySiteParam.setVip("127.0.0.1");
         primarySiteParam.setSecretKey("secret-key");

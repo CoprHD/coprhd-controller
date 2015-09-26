@@ -18,8 +18,10 @@ public class Site extends DataObject {
     private String name;
     private String vip;
     private String secretKey;
+    private String description;
     private StringMap hostIPv4AddressMap = new StringMap();
     private StringMap hostIPv6AddressMap = new StringMap();
+    private String standbyShortId;
     
     public Site() {
         
@@ -101,6 +103,26 @@ public class Site extends DataObject {
         setChanged("hostIPv6AddressMap");
     }
     
+    @Name("shortId")
+    public String getStandbyShortId() {
+        return standbyShortId;
+    }
+
+    public void setStandbyShortId(String standbyShortId) {
+        this.standbyShortId = standbyShortId;
+        setChanged("shortId");
+    }
+
+    @Name("description")
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+        setChanged("description");
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

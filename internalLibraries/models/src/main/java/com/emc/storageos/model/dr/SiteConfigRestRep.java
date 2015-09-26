@@ -17,6 +17,7 @@ public class SiteConfigRestRep extends SiteRestRep {
     private String softwareVersion;
     private String dbSchemaVersion;
     private boolean freshInstallation;
+    private boolean isClusterStable;
     
     private String secretKey;
     private Map<String, String> hostIPv4AddressMap;
@@ -77,6 +78,16 @@ public class SiteConfigRestRep extends SiteRestRep {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
     }
     
+    
+    @XmlElement(name = "isClusterStable")
+    public boolean isClusterStable() {
+        return isClusterStable;
+    }
+
+    public void setClusterStable(boolean isClusterStable) {
+        this.isClusterStable = isClusterStable;
+    }
+
     @XmlElement(name = "extraProperties")
     public Map<String, Object> getExtraProperties() {
         return extraProperties;

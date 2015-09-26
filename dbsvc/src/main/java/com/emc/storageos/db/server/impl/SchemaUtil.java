@@ -631,7 +631,7 @@ public class SchemaUtil {
         }
     }
 
-    private boolean isVdcInfoExist(DbClient dbClient) {
+    private VirtualDataCenter queryLocalVdc(DbClient dbClient) {
         // all vdc info stored in local db
         try {
             _log.debug("my vdcid: " + _vdcShortId);
@@ -641,15 +641,10 @@ public class SchemaUtil {
             if (list.iterator().hasNext()) {
                 URI vdcId = list.iterator().next();
                 VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcId);
-                if (vdc.getLocal()) {
-                    checkIPChanged(vdc, dbClient);
-                } else {
-                    _log.warn("vdc {} is not local vdc. ignore ip check", vdc.getId().toString());
-                }
-                return true;
+                return vdc;
             } else {
                 _log.info("vdc resource query returned no results");
-                return false;
+                return null;
             }
 
         } catch (DatabaseException ex) {
@@ -660,6 +655,10 @@ public class SchemaUtil {
             // throw IllegalStateExcpetion and stop
             throw new IllegalStateException("vdc resource query failed");
         }
+    }
+    
+    private boolean isVdcInfoExist(DbClient dbClient) {
+        return queryLocalVdc(dbClient) != null;
     }
 
     /**
@@ -785,7 +784,13 @@ public class SchemaUtil {
             return;
         }
 
-        if (isVdcInfoExist(dbClient)) {
+        VirtualDataCenter localVdc = queryLocalVdc(dbClient);
+        if (localVdc != null) {
+            if (localVdc.getLocal()) {
+                checkIPChanged(localVdc, dbClient);
+            } else {
+                _log.warn("Vdc record is not local for {}", _vdcShortId);
+            }
             return;
         }
 

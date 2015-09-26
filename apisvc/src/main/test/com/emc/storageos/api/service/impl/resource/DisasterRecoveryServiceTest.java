@@ -190,7 +190,7 @@ public class DisasterRecoveryServiceTest {
 
         }).when(dbClientMock).queryByConstraint(any(ContainmentConstraint.class), any(URIQueryResultList.class));
         
-        SiteList responseList = drService.getAllStandby();
+        SiteList responseList = drService.getSites();
 
         assertNotNull(responseList.getSites());
         assertEquals(2, responseList.getSites().size());
@@ -207,7 +207,7 @@ public class DisasterRecoveryServiceTest {
         standbySites.add(standbySite2);
         doReturn(standbySites.iterator()).when(dbClientMock).queryIterativeObjects(Site.class, uriList);
 
-        SiteRestRep response = drService.getStandby("site-uuid-1");
+        SiteRestRep response = drService.getSite("site-uuid-1");
         //compareSiteResponse(response, standbySite1);
     }
 
@@ -220,7 +220,7 @@ public class DisasterRecoveryServiceTest {
         standbySites.add(standbySite3);
         doReturn(standbySites.iterator()).when(dbClientMock).queryIterativeObjects(Site.class, uriList);
 
-        SiteRestRep response = drService.getStandby("site-uuid-not-exist");
+        SiteRestRep response = drService.getSite("site-uuid-not-exist");
         assertNull(response);
     }
     

@@ -728,7 +728,6 @@ public abstract class BlockIngestOrchestrator {
             Map<BlockObject, List<BlockObject>> parentReplicaMap, List<UnManagedVolume> unManagedVolumes,
             Map<String, BlockObject> createdObjects, Map<String, List<DataObject>> updatedObjects,
             List<UnManagedVolume> processedUnManagedVolumes) {
-        _logger.info("parentReplicaMap: " + parentReplicaMap.toString());
         List<DataObject> updateObjects = updatedObjects.get(currentUnmanagedVolume.getNativeGuid());
         if (updateObjects == null) {
             updateObjects = new ArrayList<DataObject>();

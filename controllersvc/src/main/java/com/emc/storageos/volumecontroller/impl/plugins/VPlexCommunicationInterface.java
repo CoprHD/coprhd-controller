@@ -705,9 +705,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     }
 
     /**
-     * This method looks at the values of 
-     * @param allUnmanagedVolumes
-     * @param backendVolumeGuidToVvolGuidMap
+     * This method iterates through all the front-end virtual volumes
+     * checking for the presence of HAS_REPLICAS or IS_FULL_COPY which were
+     * found earlier in discovery.  If found, it will swap the backend 
+     * volume GUID with the front-end volume GUID using the 
+     * backendVolumeGuidToVvolGuidMap.
+     * 
+     * @param allUnmanagedVolumes all the volumes discovered
+     * @param backendVolumeGuidToVvolGuidMap a map of backend volume GUIDs
+     *              to the GUID of the front volume containing it
      */
     private void processBackendClones(List<UnManagedVolume> allUnmanagedVolumes, 
             Map<String, String> backendVolumeGuidToVvolGuidMap) {
@@ -727,7 +733,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     // we're going to swap the backend volume guid for the 
                     // front-end virtual volume guid
                     fullCopySource = backendVolumeGuidToVvolGuidMap.get(fullCopySource);
-                    s_logger.info("!!! setting fullCopySource {} on {}", fullCopySource, unManagedVolume.getLabel());
                     StringSet set = new StringSet();
                     set.add(fullCopySource);
                     unManagedVolume.putVolumeInfo(
@@ -755,13 +760,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     // front-end virtual volume guid
                     set.remove(fullCopyTarget);
                     fullCopyTarget = backendVolumeGuidToVvolGuidMap.get(fullCopyTarget);
-                    s_logger.info("!!! setting fullCopyTarget {} on {}", fullCopyTarget, unManagedVolume.getLabel());
                     set.add(fullCopyTarget);
                     unManagedVolume.putVolumeInfo(
                             SupportedVolumeInformation.FULL_COPIES.name(), set);
                 }
             }
-
         }
     }
 
@@ -983,12 +986,18 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 context.discover();
                 
                 for (UnManagedVolume bvol : context.getUnmanagedBackendVolumes()) {
+                    
+                    // map this backend volume's GUID to its parent front-end volume GUID
                     backendVolumeGuidToVvolGuidMap.put(bvol.getNativeGuid(), volume.getNativeGuid());
+                    
+                    // check for recoverpoint enabled status
                     String rpEnabled = bvol.getVolumeCharacterstics()
                             .get(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
                     isRecoverPointEnabled = (null != rpEnabled && Boolean.parseBoolean(rpEnabled));
                     
-                    // check for clones
+                    // check if this backend volume is a full copy (and is target of clone)
+                    // if so, write this volume's GUID to the parent vvol's LOCAL_REPLICA_SOURCE_VOLUME
+                    // so that we can swap it out for the backend parent vvol's GUID 
                     String isFullCopyStr = bvol.getVolumeCharacterstics()
                             .get(SupportedVolumeCharacterstics.IS_FULL_COPY.toString());
                     boolean isFullCopy = (null != isFullCopyStr && Boolean.parseBoolean(isFullCopyStr));
@@ -1000,7 +1009,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                         bvol.getVolumeInformation());
                         
                         if (fullCopySourceBvol != null & !fullCopySourceBvol.isEmpty()) {
-                            s_logger.info("!!! setting fullCopySourceBvol {} on {}", fullCopySourceBvol, volume.getLabel());
                             StringSet set = new StringSet();
                             set.add(fullCopySourceBvol);
                             volume.putVolumeInfo(
@@ -1011,6 +1019,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         }
                     }
                     
+                    // check if this backend volume has a replica (and is source of clone)
+                    // if so, write this volume's GUID to the parent vvol's FULL_COPIES
+                    // so that we can swap it out for the backend parent vvol's GUID 
                     String hasReplicasStr = bvol.getVolumeCharacterstics()
                             .get(SupportedVolumeCharacterstics.HAS_REPLICAS.toString());
                     boolean hasReplicas = (null != hasReplicasStr && Boolean.parseBoolean(hasReplicasStr));
@@ -1022,7 +1033,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                         bvol.getVolumeInformation());
                         
                         if (fullCopyTargetBvol != null & !fullCopyTargetBvol.isEmpty()) {
-                            s_logger.info("!!! setting fullCopyTargetBvol {} on {}", fullCopyTargetBvol, volume.getLabel());
                             StringSet set = volume.getVolumeInformation()
                                     .get(SupportedVolumeInformation.FULL_COPIES.name());
                             if (set == null) {

@@ -107,8 +107,6 @@ public class VplexBackendIngestionContext {
     public void discover() {
         this.setDiscoveryInProgress(true);
         this.getUnmanagedBackendVolumes();
-        // disabled for COP-16754
-        // this.getUnmanagedFullClones();
         this.getUnmanagedVplexMirrors();
     }
 
@@ -733,15 +731,10 @@ public class VplexBackendIngestionContext {
                         unmanagedMirrors.put(associatedVolumeMirror, slotToDeviceMap.get("1").getPath());
                         
                         // 3. update the source volume with the target mirror information
-                        StringSet set = extractValuesFromStringSet(SupportedVolumeInformation.MIRRORS.toString(), 
-                                associatedVolumeSource.getVolumeInformation());
-                        if (null == set) {
-                            set = new StringSet();
-                        }
+                        StringSet set = new StringSet();
                         set.add(associatedVolumeMirror.getNativeGuid());
                         _logger.info("adding mirror set {} to source unmanaged volume {}", 
                                 set, associatedVolumeSource);
-                        associatedVolumeSource.putVolumeInfo(SupportedVolumeInformation.MIRRORS.toString(), set);
                         associatedVolumeSource.putVolumeInfo(
                                 SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_TARGET_VOLUME.toString(), set);
                         

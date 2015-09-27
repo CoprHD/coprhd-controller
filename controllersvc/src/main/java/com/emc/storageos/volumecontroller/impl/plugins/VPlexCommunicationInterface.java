@@ -729,7 +729,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.name(),
                                 unManagedVolume.getVolumeInformation());
                 
-                if (fullCopySource != null & !fullCopySource.isEmpty()) {
+                if (fullCopySource != null && !fullCopySource.isEmpty()) {
                     // we're going to swap the backend volume guid for the 
                     // front-end virtual volume guid
                     fullCopySource = backendVolumeGuidToVvolGuidMap.get(fullCopySource);
@@ -750,7 +750,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 SupportedVolumeInformation.FULL_COPIES.name(),
                                 unManagedVolume.getVolumeInformation());
                 
-                if (fullCopyTarget != null & !fullCopyTarget.isEmpty()) {
+                if (fullCopyTarget != null && !fullCopyTarget.isEmpty()) {
                     StringSet set = unManagedVolume.getVolumeInformation()
                             .get(SupportedVolumeInformation.FULL_COPIES.name());
                     if (set == null) {
@@ -1008,7 +1008,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                         SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.name(),
                                         bvol.getVolumeInformation());
                         
-                        if (fullCopySourceBvol != null & !fullCopySourceBvol.isEmpty()) {
+                        if (fullCopySourceBvol != null && !fullCopySourceBvol.isEmpty()) {
                             StringSet set = new StringSet();
                             set.add(fullCopySourceBvol);
                             volume.putVolumeInfo(
@@ -1032,7 +1032,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                         SupportedVolumeInformation.FULL_COPIES.name(),
                                         bvol.getVolumeInformation());
                         
-                        if (fullCopyTargetBvol != null & !fullCopyTargetBvol.isEmpty()) {
+                        if (fullCopyTargetBvol != null && !fullCopyTargetBvol.isEmpty()) {
                             StringSet set = volume.getVolumeInformation()
                                     .get(SupportedVolumeInformation.FULL_COPIES.name());
                             if (set == null) {

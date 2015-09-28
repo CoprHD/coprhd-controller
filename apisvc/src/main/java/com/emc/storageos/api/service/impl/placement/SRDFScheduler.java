@@ -1153,16 +1153,19 @@ public class SRDFScheduler implements Scheduler {
     }
 
     /**
-     * Returns false if the label doesn't available in the the grpNames
-     * // Primary name check, "V-<projectname>" or "<projectname>"
+     * Returns false if the label doesn't available in the grpNames
+     * Primary name check, "V-<projectname>" or "<projectname>"
      * 
      * @param grpNames list of potential names to match
      * @param label label desired from project
      * @return
      */
-    private boolean containsRaGroupName(StringSet grpNames, String label) {
-        if (grpNames != null) {
-            return grpNames.contains(label);
+    public static boolean containsRaGroupName(StringSet grpNames, String label) {
+        // check on each name instead of .contains() as we need to ignore case difference.
+        for (String name : grpNames) {
+            if (name.equalsIgnoreCase(label)) {
+                return true;
+            }
         }
         return false;
     }

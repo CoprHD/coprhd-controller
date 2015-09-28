@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
 import com.emc.storageos.util.NetworkLite;
@@ -2428,7 +2429,7 @@ public class RecoverPointScheduler implements Scheduler {
                     storageSystemURI, storageSystem.getSystemType(), ps);
         } else {
             // Couldnt find a journal recommendation, handle appropriately.
-            return null;
+        	throw APIException.badRequests.unableToFindJournalRecommendation();
         }
     }
 

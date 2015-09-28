@@ -6,14 +6,24 @@
 package com.emc.storageos.systemservices.impl.property;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.Stat;
+
+
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
@@ -284,17 +294,25 @@ public class VdcSiteManager extends AbstractManager {
                 vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
                 localRepository.setVdcPropertyInfo(vdcProperty);
 
-                localRepository.reconfigProperties("coordinator");
-                localRepository.restart("coordinatorsvc");
+                localRepository.reconfigProperties("firewall");
+                localRepository.reload("firewall");
+
+                // Reconfigure ZK
+                // TODO: support remove a standby site and failover
+                List<String> joiningNodes = getJoiningZKNodes();
+                log.info("Joining nodes={}", joiningNodes);
+
+                CoordinatorClientImpl coordinatorClient = (CoordinatorClientImpl)coordinator.getCoordinatorClient();
+                ZooKeeper zooKeeper = coordinatorClient.getZkConnection().curator().getZookeeperClient().getZooKeeper();
+                zooKeeper.reconfig(joiningNodes, null, null, -1, new Stat());
+
+                log.info("The ZK dynamic reconfig success");
 
                 localRepository.reconfigProperties("db");
                 //localRepository.restart("dbsvc");
 
                 localRepository.reconfigProperties("geodb");
                 //localRepository.restart("geodbsvc");
-
-                localRepository.reconfigProperties("firewall");
-                localRepository.reload("firewall");
 
                 log.info("Step2: Updating the hash code for local vdc properties");
                 vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
@@ -303,6 +321,83 @@ public class VdcSiteManager extends AbstractManager {
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
             }
         }
+    }
+
+    private List<String> getJoiningZKNodes() {
+        return getStandbyNodeIPAddresses(targetVdcPropInfo);
+    }
+
+    private List<String> getStandbyNodeIPAddresses (PropertyInfoExt propertyInfo) {
+        Set<Map.Entry<String, String>> properties = propertyInfo.getAllProperties().entrySet();
+
+        // key=server ID e.g. 1, 2 ..
+        // value = IPv4 address | [ IPv6 address]
+        Map<Integer, String> ipaddresses = new HashMap();
+
+        String myVdcId = propertyInfo.getProperty(Constants.MY_VDC_ID_KEY);
+        String nodeCountProperty=String.format(Constants.VDC_NODECOUNT_KEY_TEMPLATE, myVdcId);
+
+        int startCount = Integer.valueOf(propertyInfo.getProperty(nodeCountProperty));
+
+        for (Map.Entry<String, String> property: properties) {
+            String key = property.getKey();
+
+            // we are only interested IPv4/IPv6 address of standby node
+            if (isStandByIPAddressKey(key)) {
+                String ipAddr = formalizeIPAddress(property.getValue());
+                int serverId = getStandbyServerId(key);
+
+                if (isIPv6Address(ipAddr) && ipaddresses.get(serverId) != null) {
+                    // IPv4 address has already been found
+                    // ignore the IPv6 address
+                    continue;
+                }
+
+                if (ipAddr != null && !ipAddr.isEmpty()) {
+                    ipaddresses.put(serverId, ipAddr);
+                }
+            }
+        }
+
+        List<String> servers = new ArrayList(ipaddresses.size());
+
+        for (Map.Entry<Integer, String> entry : ipaddresses.entrySet()) {
+            int serverId = startCount+entry.getKey();
+            StringBuilder builder = new StringBuilder(Constants.ZK_SERVER_CONFIG_PREFIX);
+            builder.append(serverId);
+            builder.append("=");
+            builder.append(entry.getValue()); // IP address
+            builder.append(Constants.ZK_OBSERVER_CONFIG_SUFFIX);
+            servers.add(builder.toString());
+        }
+
+        return servers;
+    }
+
+    private boolean isStandByIPAddressKey(String key) {
+        String myVdcId = targetVdcPropInfo.getProperty(Constants.MY_VDC_ID_KEY);
+        return key.contains(myVdcId) && key.contains("standby_network") && (key.endsWith("ipaddr") || key.endsWith("ipaddr6"));
+    }
+
+    private boolean isIPv6Address(String addr) {
+        return (addr != null) && addr.contains(":");
+    }
+
+    // enclose IPv6 address with '[' and ']'
+    private String formalizeIPAddress(String ipAddress) {
+        if (isIPv6Address(ipAddress)) {
+            return "["+ipAddress+"]"; //IPv6 address
+        }
+
+        return ipAddress; //IPv4 address
+    }
+
+    // the property name is like vdc_${vdcId}_standby_network_${serverId}_ipaddr[6]
+    // if we split it by '_', the [4] element is the server id
+    private int getStandbyServerId(String ipaddrPropertyName) {
+        String[] subStrs = ipaddrPropertyName.split("_");
+
+        return Integer.valueOf(subStrs[4]);
     }
 
     /**

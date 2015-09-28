@@ -31,7 +31,6 @@ import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor.Type;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
@@ -81,7 +80,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
-import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopyType;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
 import com.emc.storageos.recoverpoint.objectmodel.RPConsistencyGroup;
 import com.emc.storageos.recoverpoint.objectmodel.RPSite;
@@ -1894,7 +1892,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
 
-            if (RPHelper.containsAllRPSourceVolumes(_dbClient, protectionSet, volumeIDs)) {
+            if (RPHelper.canPerfromFullConsistencyGroupOperation(_dbClient, protectionSet, volumeIDs)) {
                 // There are no more volumes in the protection set so delete the CG
                 rp.deleteCG(volumeProtectionInfo);
 
@@ -1923,31 +1921,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 setProtectionSetStatus(volumeProtectionInfo, ProtectionStatus.DISABLED.toString(), system);
             } else {
+                List<RecoverPointVolumeProtectionInfo> replicationSetsToRemove = new ArrayList<RecoverPointVolumeProtectionInfo>();
+                List<String> removeVolumeIDs = new ArrayList<String>();
                 for (Volume volume : volumes) {
                     // Delete the replication set if there are more volumes (other replication sets).
                     // If there are no other replications sets we will simply delete the CG instead.
                     volumeProtectionInfo = rp.getProtectionInfoForVolume(volume.getWWN());
-                    rp.deleteReplicationSet(volumeProtectionInfo, volume.getWWN());
-
-                    // Now cleanup the ProtectionSet reference and the volumes reference to the CG.
-
-                    // Find all replication set volumes (except journals) that corresponding to the
-                    // current volume. We need to remove these from the ProtectionSet.
-                    List<String> removeVolumeIDs = new ArrayList<String>();
-                    for (String protectionVolumeID : protectionSet.getVolumes()) {
-                        URI uri = new URI(protectionVolumeID);
-                        Volume protectionVolume = _dbClient.queryObject(Volume.class, uri);
-                        if (protectionVolume != null
-                                && !protectionVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString()) &&
-                                NullColumnValueGetter.isNotNullValue(protectionVolume.getRSetName()) &&
-                                protectionVolume.getRSetName().equals(volume.getRSetName())) {
-                            removeVolumeIDs.add(protectionVolumeID);
-                        }
+                    replicationSetsToRemove.add(volumeProtectionInfo);    
+                    if (!volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString())) { 
+                        removeVolumeIDs.add(volume.getId().toString());                    
                     }
-
-                    // Cleanup the ProtectionSet.
-                    cleanupProtectionSetVolumes(protectionSet, removeVolumeIDs, false);
                 }
+                // Remove the Replication Sets from RP                
+                rp.deleteReplicationSets(replicationSetsToRemove);
+                
+                // Cleanup the ViPR Protection Set
+                cleanupProtectionSetVolumes(protectionSet, removeVolumeIDs, false);
             }
             WorkflowStepCompleter.stepSucceded(token);
             _log.info("cgDeleteStep is complete");
@@ -2051,7 +2040,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     volumeList);
 
             // Make all of the steps in removing this CG (or replication sets from this CG) sequential.
-            psetWaitFor = workflow.createStep(STEP_DV_REMOVE_CG, "Remove consistency group subtask (if no more volumes) for RP CG: "
+            psetWaitFor = workflow.createStep(STEP_DV_REMOVE_CG, "Remove replication set(s) and/or consistency group subtask (if no more volumes) for RP CG: "
                     + protectionSet.getLabel(),
                     psetWaitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
                     cgRemovalExecuteMethod, null, stepId);

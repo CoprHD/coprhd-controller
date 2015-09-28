@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -113,8 +114,9 @@ public class ObjectDeviceController implements ObjectController {
     public void deleteBucket(URI storage, URI bucket, String task) throws ControllerException {
         _log.info("ObjectDeviceController:deleteBucket Bucket URI : {} ", bucket);
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
+        Project project = _dbClient.queryObject(Project.class, bucketObj.getProject());
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj, task);
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, project, bucketObj, task);
 
         if (result.getCommandPending()) {
             return;
@@ -128,8 +130,10 @@ public class ObjectDeviceController implements ObjectController {
         _log.info("ObjectDeviceController:updateBucket Bucket URI : {} ", bucket);
 
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
+        Project project = _dbClient.queryObject(Project.class, bucketObj.getProject());
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucket(storageObj, bucketObj, softQuota, hardQuota,
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucket(storageObj, project, bucketObj, softQuota,
+                hardQuota,
                 retention, task);
 
         if (result.getCommandPending()) {

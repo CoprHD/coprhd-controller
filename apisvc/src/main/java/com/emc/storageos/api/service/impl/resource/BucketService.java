@@ -165,21 +165,20 @@ public class BucketService extends TaskResourceService {
         if (null == namespace || namespace.isEmpty()) {
             throw APIException.badRequests.objNoNamespaceForTenant(tenant.getId());
         }
-        StringBuilder bucketName = new StringBuilder();
+
         StringBuilder bucketPath = new StringBuilder();
-        bucketName.append(namespace).append(UNDER_SCORE).append(project.getLabel()).append(UNDER_SCORE).append(param.getLabel());
         bucketPath.append(namespace).append(SLASH).append(project.getLabel()).append(SLASH).append(param.getLabel());
 
         // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
         // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
-        final String convertedName = bucketName.toString().replaceAll("[^\\dA-Za-z\\_]", "");
-        _log.info("Original name {} and converted name {}", bucketName, convertedName);
+        final String convertedName = param.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
+        _log.info("Original name {} and converted name {}", param.getLabel(), convertedName);
         // There could be bucket with same name created with different projects/namespaces. Updating name to match this scenario.
         param.setLabel(convertedName);
         param.setPath(bucketPath.toString());
 
-        // Check if there already exist a bucket with same name.
-        checkForDuplicateName(param.getLabel(), Bucket.class, null, null, _dbClient);
+        // Check if there already exist a bucket with same name in a Project.
+        checkForDuplicateName(param.getLabel(), Bucket.class, id, "project", _dbClient);
 
         return initiateBucketCreation(param, project, tenant, null);
     }
@@ -239,11 +238,14 @@ public class BucketService extends TaskResourceService {
                 task, ResourceOperationTypeEnum.CREATE_BUCKET);
         op.setDescription("Bucket Create");
 
+        // Bucket name @ Storage System
+        String bucketName = project.getLabel() + UNDER_SCORE + bucket.getLabel();
+
         // Controller invocation
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
         controller.createBucket(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), bucket.getId(),
-                bucket.getLabel(), bucket.getNamespace(), bucket.getRetention(), bucket.getHardQuota(),
+                bucketName, bucket.getNamespace(), bucket.getRetention(), bucket.getHardQuota(),
                 bucket.getSoftQuota(), bucket.getOwner(), task);
 
         auditOp(OperationTypeEnum.CREATE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
@@ -366,7 +368,7 @@ public class BucketService extends TaskResourceService {
         bucket.setHardQuota(SizeUtil.translateSize(param.getHardQuota()));
         bucket.setSoftQuota(SizeUtil.translateSize(param.getSoftQuota()));
         bucket.setRetention(Integer.valueOf(param.getRetention()));
-        bucket.setOwner(param.getOwner());
+        bucket.setOwner(getOwner(param.getOwner()));
         bucket.setNamespace(tenantOrg.getNamespace());
         bucket.setVirtualPool(param.getVpool());
         if (project != null) {
@@ -486,6 +488,15 @@ public class BucketService extends TaskResourceService {
                 resRepList);
         return resRepList;
     }
+    
+    private String getOwner(String orgOwner){
+        String owner = orgOwner;
+        if(null==orgOwner || orgOwner.isEmpty()){
+            StorageOSUser user = getUserFromContext();
+            owner = user.getName();
+        }
+        return owner;
+    }
 
     /**
      * Get object specific permissions filter
@@ -496,7 +507,7 @@ public class BucketService extends TaskResourceService {
             PermissionsHelper permissionsHelper) {
         return new ProjOwnedResRepFilter(user, permissionsHelper, Bucket.class);
     }
-    
+
     /**
      * Hard Quota should be more than SoftQuota
      * 

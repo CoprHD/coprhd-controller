@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Bucket;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
@@ -26,6 +27,7 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
  * ECS specific object controller implementation.
  */
 public class ECSObjectStorageDevice implements ObjectStorageDevice {
+    private static final String UNDER_SCORE = "_";
     private Logger _log = LoggerFactory.getLogger(ECSObjectStorageDevice.class);
     private ECSApiFactory ecsApiFactory;
     private DbClient _dbClient;
@@ -87,12 +89,13 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota, Integer retention,
+    public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Project project, Bucket bucket, Long softQuota, Long hardQuota,
+            Integer retention,
             String taskId) {
         // Update Quota
         ECSApi objectAPI = getAPI(storageObj);
         try {
-            objectAPI.updateBucketQuota(bucket.getLabel(), bucket.getNamespace(), softQuota, hardQuota);
+            objectAPI.updateBucketQuota(project.getLabel() + UNDER_SCORE + bucket.getLabel(), bucket.getNamespace(), softQuota, hardQuota);
             bucket.setHardQuota(hardQuota);
             bucket.setSoftQuota(softQuota);
         } catch (ECSException e) {
@@ -103,7 +106,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
         // Update Retention
         try {
-            objectAPI.updateBucketRetention(bucket.getLabel(), bucket.getNamespace(), retention);
+            objectAPI.updateBucketRetention(project.getLabel() + UNDER_SCORE + bucket.getLabel(), bucket.getNamespace(), retention);
             bucket.setRetention(retention);
         } catch (ECSException e) {
             _log.error("Retention Update for Bucket : {} failed.", bucket.getLabel(), e);
@@ -117,11 +120,11 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket, final String taskId) {
+    public BiosCommandResult doDeleteBucket(StorageSystem storageObj, Project project, Bucket bucket, final String taskId) {
         BiosCommandResult result;
         try {
             ECSApi objectAPI = getAPI(storageObj);
-            objectAPI.deleteBucket(bucket.getLabel(), bucket.getNamespace());
+            objectAPI.deleteBucket(project.getLabel() + UNDER_SCORE + bucket.getLabel(), bucket.getNamespace());
             bucket.setInactive(true);
             _dbClient.persistObject(bucket);
             result = BiosCommandResult.createSuccessfulResult();

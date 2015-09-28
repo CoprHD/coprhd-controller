@@ -1421,6 +1421,8 @@ class Volume(object):
             'replicaState' in vol['protection']['full_copies']):
             if(vol['protection']['full_copies']['replicaState'] == 'SYNCHRONIZED'):
                 return True
+			else:
+                return False	
         else:
             return False
         

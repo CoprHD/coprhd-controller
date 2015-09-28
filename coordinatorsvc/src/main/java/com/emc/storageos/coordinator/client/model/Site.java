@@ -19,6 +19,7 @@ import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
  */
 public class Site implements CoordinatorSerializable {
 
+    public static final String CONFIG_ID = "global";
     public static final String CONFIG_KIND = "siteInfo";
 
     private static final String ENCODING_SEPERATOR = ",";
@@ -187,7 +188,7 @@ public class Site implements CoordinatorSerializable {
 
     @Override
     public CoordinatorClassInfo getCoordinatorClassInfo() {
-        return new CoordinatorClassInfo(this.uuid, CONFIG_KIND, "site");
+        return new CoordinatorClassInfo(CONFIG_ID, CONFIG_KIND, "site", true);
     }
 
     @Override

@@ -104,7 +104,7 @@ public class DisasterRecoveryService {
             VirtualDataCenter vdc = queryLocalVDC();
             List<Site> existingSites = new ArrayList<Site>();
             for (String siteUUID : vdc.getSiteUUIDs()) {
-                Site site = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_KIND);
+                Site site = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_ID, Site.CONFIG_KIND);
                 existingSites.add(site);
             }
             
@@ -154,9 +154,9 @@ public class DisasterRecoveryService {
             primarySite.setVip(vdc.getApiEndpoint());
             configParam.setPrimarySite(primarySite);
             
-            List<SiteParam> standbySites = new ArrayList<SiteParam>();
+            List<SiteParam> standbySites = new ArrayList<>();
             for (String siteUUID : vdc.getSiteUUIDs()) {
-                Site standby = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_KIND);
+                Site standby = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_ID, Site.CONFIG_KIND);
                 SiteParam standbyParam = new SiteParam();
                 siteMapper.map(standby, standbyParam);
                 standbySites.add(standbyParam);
@@ -174,7 +174,7 @@ public class DisasterRecoveryService {
     /**
      * Sync all the site information from the primary site to the new standby
      * The current site will be demoted from primary to standby during the process
-     * @param param
+     * @param configParam
      * @return
      */
     @PUT
@@ -240,7 +240,7 @@ public class DisasterRecoveryService {
         VirtualDataCenter vdc = queryLocalVDC();
         for (String uuid : vdc.getSiteUUIDs()) {
             try {
-                Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
+                Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_ID, Site.CONFIG_KIND);
                 standbyList.getSites().add(siteMapper.map(standby));
             } catch (Exception e) {
                 log.error("Find find site from ZK for UUID {}, {}", uuid, e);
@@ -262,7 +262,7 @@ public class DisasterRecoveryService {
         log.info("Begin to get standby site by uuid {}", uuid);
         
         try {
-            Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
+            Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_ID, Site.CONFIG_KIND);
             return siteMapper.map(standby);
         } catch (Exception e) {
             log.error("Find find site from ZK for UUID {}, {}", uuid, e);
@@ -279,7 +279,7 @@ public class DisasterRecoveryService {
         log.info("Begin to remove standby site from local vdc by uuid: {}", uuid);
         
         try {
-            Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
+            Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_ID, Site.CONFIG_KIND);
             if (standby != null) {
                 log.info("Find standby site in local VDC and remove it");
                 

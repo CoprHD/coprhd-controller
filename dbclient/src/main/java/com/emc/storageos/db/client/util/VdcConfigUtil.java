@@ -176,7 +176,7 @@ public class VdcConfigUtil {
         List<Site> siteList = new ArrayList<Site>();
         for (String siteUUID : vdc.getSiteUUIDs()) {
             Site site = null;
-            site = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_KIND);
+            site = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_ID, Site.CONFIG_KIND);
             siteList.add(site);
         }
         Collections.sort(siteList, new Comparator<Site>() {

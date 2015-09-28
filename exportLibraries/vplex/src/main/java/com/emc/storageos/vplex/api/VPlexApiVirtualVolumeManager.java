@@ -169,7 +169,6 @@ public class VPlexApiVirtualVolumeManager {
             if (findVirtualVolume) {
                 // For bulk volume creation we shouldn't use findVirtualVolume as true, rather findVirtualVolumes should be called
                 // separately after createVirtualVolumes.
-                // Find virtual volume which would have nativeId and nativeGuid set.
                 virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterId, volumeNameBuilder.toString(), true, true);
             } else {
                 virtualVolumeInfo.setName(volumeNameBuilder.toString());

@@ -251,8 +251,6 @@ public class RecoverPointClient {
             // Create the connection
             FunctionalAPIImpl impl = new RecoverPointConnection().connect(this.getEndpoint(), this.getUsername(), this.getPassword());
 
-            logger.info("New RecoverPointClient connection created to: " + this.getEndpoint().toString());
-
             // Add the new FAPI instance to the RecoverPointClient
             this.setFunctionalAPI(impl);
 
@@ -262,7 +260,7 @@ public class RecoverPointClient {
             
             logger.info("Connection refreshed.");
         } catch (Exception e) {
-            logger.error("Received " + e.toString() + ". Failed to create new RP connection: " + this.getEndpoint().toString() +
+            logger.error("Received " + e.toString() + ". Failed to refresh RP connection: " + this.getEndpoint().toString() +
                     ", Cause: " + RecoverPointClient.getCause(e));           
             throw RecoverPointException.exceptions.failedToPingMgmtIP(this.getEndpoint().toString(), RecoverPointClient.getCause(e));            
         }
@@ -1059,6 +1057,13 @@ public class RecoverPointClient {
             if ((MAX_SCAN_WAIT_TOTAL_TRIES - rescanTries) != 1) {
                 logger.info("RecoverPointClient: Briefly sleeping to accommodate export group latencies (Attempt #{} / {})",
                         MAX_SCAN_WAIT_TOTAL_TRIES - rescanTries, MAX_SCAN_WAIT_TOTAL_TRIES);
+                
+                // If we've tried over half the total retry times, attempt a reconnect
+                // operation to the RecoverPoint appliance.
+                if ((MAX_SCAN_WAIT_TOTAL_TRIES - rescanTries) == (MAX_SCAN_WAIT_TOTAL_TRIES / 2)) {
+                    this.reconnect();
+                }
+                
                 try {
                     Thread.sleep(MAX_SCAN_WAIT_RETRY_MILLISECONDS);
                 } catch (InterruptedException e1) {
@@ -2372,9 +2377,9 @@ public class RecoverPointClient {
             }
             // First disable the CG before removing it, this buys RP a bit of time
             // to clean it up.
-            // TESTING ONLY - disableConsistencyGroup(cgCopyUID.getGroupUID());
+            disableConsistencyGroup(cgCopyUID.getGroupUID());
             // Delete the CG, async call to RP
-            // TESTING ONLY - functionalAPI.removeConsistencyGroup(cgCopyUID.getGroupUID());
+            functionalAPI.removeConsistencyGroup(cgCopyUID.getGroupUID());
             // Verify the CG has been removed
             validateCGRemoved(cgCopyUID.getGroupUID(), cgName);            
             logger.info("Deleted consistency group " + cgName);
@@ -2402,35 +2407,44 @@ public class RecoverPointClient {
     private void validateCGRemoved(ConsistencyGroupUID cgToValidate, String cgName) 
             throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, RecoverPointException {        
         try {
-            logger.info(String.format("Validating that RP CG [%s] has been removed.", cgName));
+            logger.info(String.format("Validating that RP CG [%s] (%d) has been removed.", cgName, cgToValidate.getId()));
             int cgDeleteAttempt = 0;
             while (cgDeleteAttempt < MAX_WAIT_FOR_RP_DELETE_ATTEMPTS) {
+                boolean cgDeleted = true;
+                logger.info(String.format("Validation attempt %d of %d", cgDeleteAttempt + 1, MAX_WAIT_FOR_RP_DELETE_ATTEMPTS));
                 // Get all the CGs from RecoverPoint
                 List<ConsistencyGroupUID> allCGs = functionalAPI.getAllConsistencyGroups();
                 // Check to see that the CG we're looking to remove is gone.
                 // If not, wait and check again.
                 for (ConsistencyGroupUID cgUID : allCGs) {
-                    if (cgToValidate.equals(cgUID)) {
-                        logger.info(String.format("RP CG [%s] has not been removed yet. Will wait and check again...", cgName));
+                    if (cgToValidate.getId() == cgUID.getId()) {
+                        logger.info(String.format("RP CG [%s] (%d) has not been removed yet. Will wait and check again...", 
+                                cgName, cgToValidate.getId()));
                         waitForRpOperation();
                         cgDeleteAttempt++;
+                        cgDeleted = false;
+                        
                         // If we've reached 1/2 the attempts, let's try refreshing the connection
                         // to RecoverPoint to ensure we do not have a stale connection.
                         if (cgDeleteAttempt == (MAX_WAIT_FOR_RP_DELETE_ATTEMPTS / 2)) {
                             this.reconnect();
                         }
-                        continue;
+                        
+                        break;
                     }
-                }                
+                }       
+                if (cgDeleted) {
+                    // RP CG appears to have been removed from RP
+                    logger.info(String.format("RP CG [%s] (%d) has been removed.", cgName, cgToValidate.getId()));
+                    break;
+                }
             }
-            // If we reached max attempts, it means that we can't wait forever, throw an exception.
-            if (cgDeleteAttempt >= 10) {
-                logger.error(String.format("Max attempts reached waiting for RP CG [%s] to be removed. Please check RP System.", cgName));
-                throw RecoverPointException.exceptions.failedToDeleteConsistencyGroup(cgName, 
-                        new FunctionalAPIActionFailedException_Exception("CG [" + cgName + "] was not be deleted", 
-                                new FunctionalAPIActionFailedException()));                
-            } else {
-                logger.info(String.format("RP CG [%s] has been removed.", cgName));
+            // If we reached max attempts alert the user and continue on with delete operation.
+            if (cgDeleteAttempt >= MAX_WAIT_FOR_RP_DELETE_ATTEMPTS) {
+                // Allow the cleanup to continue in ViPR but warn the user
+                logger.warn(String.format("Max attempts reached waiting for RP CG [%s] (%d) to be removed from RP. "
+                        + "Please check RP System. Delete operation will continue...", 
+                        cgName, cgToValidate.getId()));                
             }
         } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception e) {
             logger.error(String.format("Exception hit while waiting for RP CG [%s] to be removed.", cgName));
@@ -2757,7 +2771,8 @@ public class RecoverPointClient {
     public void deleteReplicationSets(List<RecoverPointVolumeProtectionInfo> volumeInfoList) throws RecoverPointException {
         // Used to capture the volume WWNs associated with each replication set to remove.
         List<String> volumeWWNs = new ArrayList<String>();
-        List<String> rsetNames = new ArrayList<String>();
+        Map<Long, String> rsetNames = new HashMap<Long, String>();
+        List<Long> resetIDsToValidate = new ArrayList<Long>();
 
         try {
             ConsistencyGroupUID cgID = new ConsistencyGroupUID();
@@ -2768,13 +2783,13 @@ public class RecoverPointClient {
 
             ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgID);
             List<ReplicationSetSettings> replicationSetSettings = groupSettings.getReplicationSetsSettings();
-
+            
             for (RecoverPointVolumeProtectionInfo volumeInfo : volumeInfoList) {
                 boolean found = false;
                 // Validate that the requested replication sets to delete actually exist.
                 for (ReplicationSetSettings replicationSet : replicationSetSettings) {
                     if (replicationSet.getReplicationSetUID().getId() == volumeInfo.getRpVolumeRSetID()) {
-                        rsetNames.add(replicationSet.getReplicationSetName());
+                        rsetNames.put(volumeInfo.getRpVolumeRSetID(), replicationSet.getReplicationSetName());
                         found = true;                        
                         break;
                     }
@@ -2793,9 +2808,11 @@ public class RecoverPointClient {
 
                 cgSettingsParam.getRemovedReplicationSets().add(repSetUID);
                 volumeWWNs.add(volumeInfo.getRpVolumeWWN());
+                resetIDsToValidate.add(volumeInfo.getRpVolumeRSetID());
                 
-                logger.info(String.format("Adding replication set [%s] to be removed from RP CG [%s]", 
-                        volumeInfo.getRpVolumeRSetID(), cgID.toString()));
+                logger.info(String.format("Adding replication set [%s] (%d) to be removed from RP CG [%s] (%d)", 
+                        rsetNames.get(volumeInfo.getRpVolumeRSetID()), volumeInfo.getRpVolumeRSetID(), 
+                        groupSettings.getName(), cgID.getId()));
             }
 
             // Only execute the remove replication sets operation if there are replication sets
@@ -2808,13 +2825,14 @@ public class RecoverPointClient {
                     disableConsistencyGroup(cgID);
                 }
                 // Remove the replication sets
-                // TESTING ONLY - functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
+                functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
                 // Validate that the RSets have been removed
-                validateRSetsRemoved(cgSettingsParam.getRemovedReplicationSets(), cgID);                
+                validateRSetsRemoved(resetIDsToValidate, cgID);                
                 logger.info("Request to delete replication sets " + rsetNames.toString() + " from RP CG "
-                        + cgID.toString() + " completed.");
+                        + groupSettings.getName() + " completed.");
             } else {
-                logger.warn(String.format("No replication sets found to be deleted from RP CG [%s]", cgID.toString()));
+                logger.warn(String.format("No replication sets found to be deleted from RP CG [%s] (%d)", 
+                        groupSettings.getName(), cgID.getId()));
             }
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToDeleteReplicationSet(
@@ -2834,50 +2852,57 @@ public class RecoverPointClient {
      * 
      * If we still see the RSet(s) being returned, wait and try again until max attempts is
      * reached.
-     * @param rsetUIDs 
+     * @param resetIDsToValidate The RSet IDs to check that they have been removed from RP
      * @param cgToValidate The CG UID to check
      * @throws FunctionalAPIActionFailedException_Exception RP Exception to throw if we hit it
      * @throws FunctionalAPIInternalError_Exception RP Exception to throw if we hit it
      */
-    private void validateRSetsRemoved(List<ReplicationSetUID> rsetUIDs, ConsistencyGroupUID cgToValidate) 
+    private void validateRSetsRemoved(List<Long> resetIDsToValidate, ConsistencyGroupUID cgToValidate) 
             throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, RecoverPointException {        
         try {            
-            logger.info(String.format("Validating these RSets are been removed from RP CG[%s]: [%s]", cgToValidate, rsetUIDs));
+            logger.info(String.format("Validating that all requested RSets have been removed from RP CG [%d]", cgToValidate.getId()));
             int rsetDeleteAttempt = 0;
             while (rsetDeleteAttempt < MAX_WAIT_FOR_RP_DELETE_ATTEMPTS) {
+                boolean allRSetsDeleted = true;
+                logger.info(String.format("Validation attempt %d of %d", rsetDeleteAttempt + 1, MAX_WAIT_FOR_RP_DELETE_ATTEMPTS));
                 // Get the current RSets from the CG
                 ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgToValidate);
                 List<ReplicationSetSettings> replicationSetSettings = groupSettings.getReplicationSetsSettings();
                 // Check to see that all RSets in the request have been removed from the CG.
                 // If any are still present, wait and check again.
                 for (ReplicationSetSettings rset : replicationSetSettings) {                    
-                    if (rsetUIDs.contains(rset.getReplicationSetUID())) {
-                        logger.info(String.format("RSet [%s] has not been removed yet. Will wait and check again...", rset.getReplicationSetUID()));
+                    if (resetIDsToValidate.contains(rset.getReplicationSetUID().getId())) {
+                        logger.info(String.format("RSet [%d] has not been removed yet. Will wait and check again...", rset.getReplicationSetUID().getId()));
                         waitForRpOperation();
                         rsetDeleteAttempt++;
+                        allRSetsDeleted = false;
+                        
                         // If we've reached 1/2 the attempts, let's try refreshing the connection
                         // to RecoverPoint to ensure we do not have a stale connection.
                         if (rsetDeleteAttempt == (MAX_WAIT_FOR_RP_DELETE_ATTEMPTS / 2)) {
                             this.reconnect();
-                        }
-                        continue;
+                        }        
+                        
+                        break;
                     }
-                }                
+                }
+                if (allRSetsDeleted) {
+                    // RSets appear to have been removed from RP
+                    logger.info(String.format("All requested RSets have been removed."));
+                    break;
+                }
             }
-            // If we reached max attempts, it means that we can't wait forever, throw an exception.
-            if (rsetDeleteAttempt >= 10) {
-                logger.error(String.format("Max attempts reached waiting for RSets [%s] to be removed. Please check RP System.", Joiner.on(",").join(rsetUIDs)));
-                throw RecoverPointException.exceptions.failedToDeleteReplicationSet("Max attempts reached waiting for RSets [%s] to be removed.", 
-                        new FunctionalAPIActionFailedException_Exception("RSets were not removed.", 
-                                new FunctionalAPIActionFailedException()));                
-            } else {
-                logger.info(String.format("RSets [%s] have been removed.", Joiner.on(",").join(rsetUIDs)));
-            }
+            // If we reached max attempts alert the user and continue on with delete operation.
+            if (rsetDeleteAttempt >= MAX_WAIT_FOR_RP_DELETE_ATTEMPTS) {
+                // Allow the cleanup to continue in ViPR but warn the user
+                logger.warn(String.format("Max attempts reached waiting for requested RSets to be removed from RP. "
+                        + "Please check RP System. Delete operation will continue..."));                               
+            } 
         } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception e) {
-            logger.error(String.format("Exception hit while waiting for RSets [%s] to be removed.", Joiner.on(",").join(rsetUIDs)));
+            logger.error(String.format("Exception hit while waiting for all requested RSets to be removed."));
             throw e;
         } catch (Exception e) {
-            logger.error(String.format("Exception hit while waiting for RP CG [%s] to be removed.", Joiner.on(",").join(rsetUIDs)));
+            logger.error(String.format("Exception hit while waiting for all requested RSets to be removed."));
             throw e;
         }
     }

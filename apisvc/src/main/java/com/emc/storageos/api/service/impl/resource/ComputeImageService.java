@@ -231,9 +231,6 @@ public class ComputeImageService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, ComputeImage.class, "id");
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
 
-        // Adding URL validation CTRL-9518
-        ArgValidator.checkUrl(param.getImageUrl(), "image_url");
-
         ComputeImage ci = _dbClient.queryObject(ComputeImage.class, id);
         ArgValidator.checkEntity(ci, id, isIdEmbeddedInURL(id));
 
@@ -246,6 +243,8 @@ public class ComputeImageService extends TaskResourceService {
 
         // see if image URL needs updating
         if (!StringUtils.isBlank(param.getImageUrl()) && !param.getImageUrl().equals(ci.getImageUrl())) {
+            ArgValidator.checkUrl(param.getImageUrl(), "image_url");
+
             // URL can only be update if image not successfully loaded
             if (ci.getComputeImageStatus().equals(ComputeImageStatus.NOT_AVAILABLE.name())) {
                 ci.setImageUrl(param.getImageUrl());

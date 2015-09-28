@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 
 public class XtremioStorageSystemToStorageProviderMigration
@@ -66,7 +67,8 @@ public class XtremioStorageSystemToStorageProviderMigration
         storageProvider.setId(URIUtil.createId(StorageProvider.class));
 
         storageProvider.setCompatibilityStatus(xioSystem.getCompatibilityStatus());
-        storageProvider.setConnectionStatus(xioSystem.getSmisConnectionStatus());
+        // Set connectionStatus as Connected always, Let scan validate the connection later.
+        storageProvider.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED.name());
         storageProvider.setCreationTime(xioSystem.getCreationTime());
         storageProvider.setInterfaceType(StorageProvider.InterfaceType.xtremio.name());
         storageProvider.setIPAddress(xioSystem.getIpAddress());
@@ -83,8 +85,18 @@ public class XtremioStorageSystemToStorageProviderMigration
         storageProvider.setUserName(xioSystem.getUsername());
         storageProvider.setVersionString(xioSystem.getFirmwareVersion());
         log.info("Adding the storage system to the storage provider");
-        storageProvider.addStorageSystem(dbClient, xioSystem, true);
+        if (storageProvider.getStorageSystems() == null) {
+            storageProvider.setStorageSystems(new StringSet());
+        }
+        storageProvider.getStorageSystems().add(xioSystem.getId().toString());
 
+        xioSystem.setActiveProviderURI(storageProvider.getId());
+
+        if (null == xioSystem.getProviders()) {
+            xioSystem.setProviders(new StringSet());
+        }
+
+        xioSystem.getProviders().add(storageProvider.getId().toString());
         return storageProvider;
     }
 

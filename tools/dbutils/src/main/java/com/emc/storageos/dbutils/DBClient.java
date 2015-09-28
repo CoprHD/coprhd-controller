@@ -75,7 +75,7 @@ public class DBClient {
     private boolean turnOnLimit = false;
     private boolean activeOnly = true;
     
-    private Set<Class> scannedType;
+    private Set<Class> scannedType = new HashSet<>();
 
     private static final String PRINT_COUNT_RESULT = "Column Family %s's row count is: %s";
     private static final String REGEN_RECOVER_FILE_MSG = "Please regenerate the recovery " +
@@ -588,15 +588,20 @@ public class DBClient {
      */
     private <T extends DataObject> boolean queryAndDeleteObject(URI id, Class<T> clazz, boolean force)
             throws Exception {
+        DependencyTracker dependencyTracker = null;
         if (_dependencyChecker == null) {
             DataObjectScanner dataObjectscanner = (DataObjectScanner) ctx.getBean("dataObjectScanner");
-            DependencyTracker dependencyTracker = dataObjectscanner.getDependencyTracker();
+            dependencyTracker = dataObjectscanner.getDependencyTracker();
             _dependencyChecker = new DependencyChecker(_dbClient, dependencyTracker);
         }
 
-        if (_dependencyChecker.checkDependencies(id, clazz, false) != null) {
+        String reference = _dependencyChecker.checkDependencies(id, clazz, false);
+        if (reference != null) {
             if (!force) {
-                System.err.println(String.format("Failed to delete the object %s: there are active dependencies", id));
+                System.err.println(String.format("Failed to delete the object %s: active reference of type %s found",
+                                        id, reference));
+                System.err.println(String.format("\nThe dependencies of %s are as following:", clazz.getSimpleName()));
+                printDependencies(clazz, true, "", clazz.toString(), dependencyTracker);
                 return false;
             }
             log.info("Force to delete object {} that has active dependencies", id);
@@ -1134,7 +1139,6 @@ public class DBClient {
                 .getBean("dataObjectScanner");
         DependencyTracker dependencyTracker = dataObjectscanner.getDependencyTracker();
 
-        scannedType = new HashSet<>();
         printDependencies(type, true, "", type.toString(), dependencyTracker);
     };
 

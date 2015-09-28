@@ -352,7 +352,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 Project project = context.getUnmanagedBackendVolumes().contains(associatedVolume) ? context.getBackendProject()
                         : context.getFrontendProject();
 
-                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume);
+                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume, false);
 
                 @SuppressWarnings("unchecked")
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache,

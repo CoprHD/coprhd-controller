@@ -265,7 +265,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                         systemCache.put(storageSystemUri.toString(), system);
                     }
 
-                    IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume);
+                    IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, false);
                     // TODO try to find put ways to reduce parameters.
                     @SuppressWarnings("unchecked")
                     BlockObject blockObject = ingestStrategy.ingestBlockObjects(full_systems, full_pools, system, unManagedVolume, vpool,
@@ -400,7 +400,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                     systemMap.put(storageSystemUri.toString(), system);
                 }
                 // Build the Strategy , which contains reference to Block object & export orchestrators
-                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume);
+                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, false);
 
                 // TODO try to find ways to reduce parameters
                 @SuppressWarnings("unchecked")

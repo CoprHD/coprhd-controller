@@ -74,13 +74,21 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockRecoverPointIngestOrchestrator.class);
 
+    // the ingest strategy factory, used for ingesting the backend volume
+    private IngestStrategyFactory ingestStrategyFactory;
+
+    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
+        this.ingestStrategyFactory = ingestStrategyFactory;
+    }
+
     @Override
     protected void checkUnmanagedVolumeReplicas(UnManagedVolume unmanagedVolume) {
         return;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache,StorageSystem system, UnManagedVolume unManagedVolume, 
+    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system, UnManagedVolume unManagedVolume, 
             VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant, List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed, 
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, Class<T> clazz, 
             Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
@@ -103,15 +111,15 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
         }
 
         if (null == blockObject) {
-        	// Perhaps here we need to start from scratch (with the factory).  Figure out the strategy as if RP wasn't involved, then
-        	// push it through the export ingest orchestration?  Validate with Stalin.
-            blockObject = super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
-                    unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, true /* force true exported field */, clazz,
-                    taskStatusMap, null);
-        
+            // We need to ingest the volume w/o the context of RP.  (So, ingest a VMAX if it's VMAX, VPLEX if it's VPLEX, etc)
+            IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, true);
+            blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray,
+                    project, tenant, unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, true /* force true exported field */,
+                    VolumeIngestionUtil.getBlockObjectClass(unManagedVolume), taskStatusMap, vplexIngestionMethod);
+            _logger.info("Ingestion ended for unmanagedvolume {}", unManagedVolume.getNativeGuid());
             if (null == blockObject) {
-                _logger.warn("RP Volume ingestion failed for unmanagedVolume {}", unManagedVolume.getNativeGuid());
-                throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(unManagedVolume.getNativeGuid());
+                throw IngestionException.exceptions.generalVolumeException(
+                        unManagedVolume.getLabel(), "check the logs for more details");
             }
         } else {
             // blockObject already ingested, now just update internalflags &

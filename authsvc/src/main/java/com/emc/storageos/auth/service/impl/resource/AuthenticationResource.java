@@ -29,6 +29,7 @@ import com.emc.storageos.security.password.Password;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
 import com.emc.storageos.security.password.ValidatorFactory;
+import com.emc.storageos.services.util.SecurityUtils;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
@@ -1151,6 +1152,8 @@ public class AuthenticationResource {
             throws UnsupportedEncodingException, URISyntaxException {
         String serviceDecoded = URLDecoder.decode(service, UTF8_ENCODING);
         _log.debug("Original service = " + serviceDecoded);
+        serviceDecoded = SecurityUtils.stripXSS(serviceDecoded);
+
         String newService = "";
         URI uriObject = new URI(serviceDecoded);
         String scheme = uriObject.getScheme();

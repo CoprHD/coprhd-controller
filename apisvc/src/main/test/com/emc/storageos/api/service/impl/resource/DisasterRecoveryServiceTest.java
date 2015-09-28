@@ -15,8 +15,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import java.lang.reflect.Constructor;
+import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
+import java.util.List;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -38,6 +40,7 @@ import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
+import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
@@ -52,6 +55,9 @@ public class DisasterRecoveryServiceTest {
     private Site standbySite2;
     private Site standbySite3;
     private Site standbyConfig;
+    private SiteParam primarySiteParam;
+    private List<URI> uriList;
+    private List<Site> standbySites;
     private SiteConfigRestRep standby;
     private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
@@ -90,6 +96,14 @@ public class DisasterRecoveryServiceTest {
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
+        standbySite3.setVdc(new URI("fake-vdc-id"));
+
+        primarySiteParam = new SiteParam();
+        /*primarySiteParam.setUuid("primary-site-uuid");
+        primarySiteParam.setVip("127.0.0.1");
+        primarySiteParam.setSecretKey("secret-key");
+        primarySiteParam.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
+        primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());*/
         
         localVDC.setApiEndpoint("127.0.0.2");
         localVDC.setHostIPv4AddressesMap(new StringMap(standbySite1.getHostIPv4AddressMap()));
@@ -151,7 +165,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(standbySite1).when(coordinator).getTargetInfo(Site.class, standbySite1.getUuid(), Site.CONFIG_KIND);
         doReturn(standbySite2).when(coordinator).getTargetInfo(Site.class, standbySite2.getUuid(), Site.CONFIG_KIND);
         
-        SiteList responseList = drService.getAllStandby();
+        SiteList responseList = drService.getSites();
 
         assertNotNull(responseList.getSites());
         assertEquals(2, responseList.getSites().size());
@@ -164,7 +178,7 @@ public class DisasterRecoveryServiceTest {
     public void testGetStandby() throws Exception {
         doReturn(standbySite1).when(coordinator).getTargetInfo(Site.class, standbySite1.getUuid(), Site.CONFIG_KIND);
 
-        SiteRestRep response = drService.getStandby("site-uuid-1");
+        SiteRestRep response = drService.getSite("site-uuid-1");
         compareSiteResponse(response, standbySite1);
     }
 
@@ -172,7 +186,7 @@ public class DisasterRecoveryServiceTest {
     public void testGetStandby_NotBelongLocalVDC() throws Exception {
         doReturn(null).when(coordinator).getTargetInfo(eq(Site.class), anyString(), anyString());
 
-        SiteRestRep response = drService.getStandby("site-uuid-1");
+        SiteRestRep response = drService.getSite("site-uuid-not-exist");
         assertNull(response);
     }
     

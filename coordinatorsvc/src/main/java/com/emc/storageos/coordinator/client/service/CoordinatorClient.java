@@ -348,7 +348,7 @@ public interface CoordinatorClient {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception;
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws CoordinatorException;
 
     /**
      * Set Target info
@@ -366,6 +366,15 @@ public interface CoordinatorClient {
     public ClusterInfo.ClusterState getControlNodesState();
 
     /**
+     * Get control nodes state for specified site
+     * 
+     * @param siteId
+     * @param nodeCount
+     * @return
+     */
+    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount);
+    
+    /**
      * Get target info
      * 
      * @param clazz
@@ -373,7 +382,7 @@ public interface CoordinatorClient {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception;
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException;
 
     /**
      * Get all Node Infos.

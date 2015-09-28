@@ -284,6 +284,11 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
+        return null;
+    }
+
+    @Override
     public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception {
         throw new UnsupportedOperationException();
@@ -306,7 +311,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
@@ -317,7 +322,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     
     @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
-            throws Exception {
+            throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 

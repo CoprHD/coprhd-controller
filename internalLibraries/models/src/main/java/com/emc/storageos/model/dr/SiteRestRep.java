@@ -23,7 +23,7 @@ public class SiteRestRep extends DataObjectRestRep {
     private String description;
     private String vip;
     private String state;
-
+    
     @XmlElement(name = "uuid")
     public String getUuid() {
         return uuid;

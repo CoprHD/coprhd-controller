@@ -5,6 +5,16 @@
 
 package com.emc.storageos.systemservices.impl.resource;
 
+import static com.emc.storageos.security.password.Constants.PASSWORD_CHANGED_NUMBER;
+import static com.emc.storageos.security.password.Constants.PASSWORD_CHANGE_INTERVAL;
+import static com.emc.storageos.security.password.Constants.PASSWORD_LOWERCASE_NUMBER;
+import static com.emc.storageos.security.password.Constants.PASSWORD_MIN_LENGTH;
+import static com.emc.storageos.security.password.Constants.PASSWORD_NUMERIC_NUMBER;
+import static com.emc.storageos.security.password.Constants.PASSWORD_PREVENT_DICTIONARY;
+import static com.emc.storageos.security.password.Constants.PASSWORD_REPEATING_NUMBER;
+import static com.emc.storageos.security.password.Constants.PASSWORD_REUSE_NUMBER;
+import static com.emc.storageos.security.password.Constants.PASSWORD_UPPERCASE_NUMBER;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.Principal;
@@ -19,41 +29,36 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.storageos.security.password.Constants;
-import com.emc.storageos.security.password.PasswordUtils;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
-import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
-
-import com.emc.storageos.util.DummyDbClient;
-
-import com.emc.storageos.security.authentication.StorageOSUser;
-import com.emc.storageos.svcs.errorhandling.resources.ForbiddenException;
-import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
-import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.model.password.PasswordResetParam;
 import com.emc.storageos.model.password.PasswordUpdateParam;
 import com.emc.storageos.model.property.PropertiesMetadata;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.model.property.PropertyInfoUpdate;
 import com.emc.storageos.model.property.PropertyMetadata;
-import com.emc.storageos.systemservices.impl.util.LocalPasswordHandler;
-
-import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.audit.RecordableAuditLog;
-
-import static com.emc.storageos.security.password.Constants.*;
+import com.emc.storageos.security.authentication.StorageOSUser;
+import com.emc.storageos.security.password.Constants;
+import com.emc.storageos.security.password.PasswordUtils;
+import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
+import com.emc.storageos.svcs.errorhandling.resources.ForbiddenException;
+import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
+import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
+import com.emc.storageos.systemservices.impl.util.LocalPasswordHandler;
+import com.emc.storageos.util.DummyDbClient;
 
 public class PasswordServiceTest {
     private static final Logger log = LoggerFactory.getLogger(PasswordServiceTest.class);
@@ -607,7 +612,7 @@ public class PasswordServiceTest {
             setOvfProperties(ovfProps);
         }
 
-        public PropertyInfoExt getTargetInfo(final Class clazz) throws Exception {
+        public PropertyInfoExt getTargetInfo(final Class clazz) throws CoordinatorException {
             return _passwordProps;
         }
 

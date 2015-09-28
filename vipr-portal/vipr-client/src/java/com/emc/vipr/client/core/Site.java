@@ -29,7 +29,7 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.delete(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid);
     }
 
-    public ClientResponse syncSite(SiteSyncParam input) {
+    public ClientResponse syncSite(SiteConfigParam input) {
         return client.put(ClientResponse.class, input, PathConstants.SITE_URL);
     }
     

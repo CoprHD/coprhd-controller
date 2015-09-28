@@ -5,6 +5,7 @@
 package com.emc.storageos.coordinator.client.model;
 
 import java.net.URI;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,9 +32,12 @@ public class Site implements CoordinatorSerializable {
     private String name;
     private String vip;
     private String secretKey;
+    private String description;
     private Map<String, String> hostIPv4AddressMap = new HashMap<String, String>();
     private Map<String, String> hostIPv6AddressMap = new HashMap<String, String>();
-
+    private String standbyShortId;
+    private long creationTime;
+    
     public String getUuid() {
         return uuid;
     }
@@ -90,6 +94,30 @@ public class Site implements CoordinatorSerializable {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getStandbyShortId() {
+        return standbyShortId;
+    }
+
+    public void setStandbyShortId(String standbyShortId) {
+        this.standbyShortId = standbyShortId;
+    }
+    
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    public void setCreationTime(long creationTime) {
+        this.creationTime = creationTime;
+    }
+
     @Override
     public String encodeAsString() {
         StringBuilder buffer = new StringBuilder();
@@ -98,6 +126,9 @@ public class Site implements CoordinatorSerializable {
         buffer.append(name).append(ENCODING_SEPERATOR);
         buffer.append(vip).append(ENCODING_SEPERATOR);
         buffer.append(secretKey).append(ENCODING_SEPERATOR);
+        buffer.append(description).append(ENCODING_SEPERATOR);
+        buffer.append(standbyShortId).append(ENCODING_SEPERATOR);
+        buffer.append(creationTime).append(ENCODING_SEPERATOR);
 
         for (String key : hostIPv4AddressMap.keySet()) {
             buffer.append(key).append(ENCODING_MAP_KEYVALUE_SEPERATOR).append(hostIPv4AddressMap.get(key))
@@ -131,6 +162,9 @@ public class Site implements CoordinatorSerializable {
             site.setName(array[index++]);
             site.setVip(array[index++]);
             site.setSecretKey(array[index++]);
+            site.setDescription(array[index++]);
+            site.setStandbyShortId(array[index++]);
+            site.setCreationTime(Long.parseLong(array[index++]));
 
             if (index < array.length) {
                 convertString2Map(array[index++], site.getHostIPv4AddressMap());
@@ -197,10 +231,16 @@ public class Site implements CoordinatorSerializable {
         builder.append(name);
         builder.append(", vip=");
         builder.append(vip);
+        builder.append(", description=");
+        builder.append(description);
         builder.append(", hostIPv4AddressMap=");
         builder.append(hostIPv4AddressMap);
         builder.append(", hostIPv6AddressMap=");
         builder.append(hostIPv6AddressMap);
+        builder.append(", standbyShortId=");
+        builder.append(standbyShortId);
+        builder.append(", creationTime=");
+        builder.append(creationTime);
         builder.append("]");
         return builder.toString();
     }

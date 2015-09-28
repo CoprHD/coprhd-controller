@@ -4,20 +4,24 @@
  */
 package com.emc.storageos.db.client.util;
 
-import java.net.*;
-import java.util.*;
-
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
@@ -36,12 +40,14 @@ public class VdcConfigUtil {
     public static final String VDC_NODE_COUNT_PTN = "vdc_%s_node_count";
     public static final String VDC_IPADDR_PTN = "vdc_%s_network_%d_ipaddr";
     public static final String VDC_IPADDR6_PTN = "vdc_%s_network_%d_ipaddr6";
-    public static final String VDC_STANDBY_NODE_COUNT_PTN = "vdc_%s_standby_node_count";
-    public static final String VDC_STANDBY_IPADDR6_PTN = "vdc_%s_standby_network_%d_ipaddr6";
-    public static final String VDC_STANDBY_IPADDR_PTN = "vdc_%s_standby_network_%d_ipaddr";
+    public static final String VDC_STANDBY_NODE_COUNT_PTN = "vdc_%s_%s_node_count";
+    public static final String VDC_STANDBY_IPADDR6_PTN = "vdc_%s_%s_network_%d_ipaddr6";
+    public static final String VDC_STANDBY_IPADDR_PTN = "vdc_%s_%s_network_%d_ipaddr";
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
     public static final String VDC_VIP6_PTN = "vdc_%s_network_vip6";
     public static final String SITE_IS_STANDBY="site_is_standby";
+    public static final String SITE_MYID="site_myid";
+    public static final String SITE_IDS="site_ids";
 
     private DbClient dbclient;
     private CoordinatorClient coordinator;
@@ -162,37 +168,57 @@ public class VdcConfigUtil {
 
     private void genSiteProperties(Map<String, String> vdcConfig, VirtualDataCenter vdc) {
         String address;
-        int standbyNodeCnt = 0;
+
         String shortId = vdc.getShortId();
+        String primarySiteId = coordinator.getPrimarySiteId();
         
+        // Sort the sites by creation time - ascending order
+        List<Site> siteList = new ArrayList<Site>();
         for (String siteUUID : vdc.getSiteUUIDs()) {
             Site site = null;
-            try {
-                site = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_KIND);
-            } catch (Exception e) {
-                //TODO should continue to next or throw exception?
-                log.error("Can't get Site from ZK {}", e);
-                continue;
+            site = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_KIND);
+            siteList.add(site);
+        }
+        Collections.sort(siteList, new Comparator<Site>() {
+            @Override
+            public int compare(Site a, Site b) {
+                return (int)(a.getCreationTime() - b.getCreationTime());
             }
+        });
+        
+        List<String> shortIds = new ArrayList<String>();
+        for (Site site : siteList) {
+            if (site.getUuid().equals(primarySiteId)) {
+                continue; // ignore primary site 
+            }
+            
+            int standbyNodeCnt = 0;
             Map<String, String> standbyIPv4Addrs = site.getHostIPv4AddressMap();
             Map<String, String> standbyIPv6Addrs = site.getHostIPv6AddressMap();
-            List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
 
+            List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
+            String standbyShortId = site.getStandbyShortId();
+            
             for (String hostName : standbyHosts) {
                 standbyNodeCnt++;
                 address = standbyIPv4Addrs.get(hostName);
-                vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, shortId, standbyNodeCnt),
+                vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, shortId, standbyShortId, standbyNodeCnt),
                         address == null ? "" : address);
 
                 address = standbyIPv6Addrs.get(hostName);
-                vdcConfig.put(String.format(VDC_STANDBY_IPADDR6_PTN, shortId, standbyNodeCnt),
+                vdcConfig.put(String.format(VDC_STANDBY_IPADDR6_PTN, shortId, standbyShortId, standbyNodeCnt),
                         address == null ? "" : address);
             }
+            vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, shortId, standbyShortId), String.valueOf(standbyNodeCnt));
+            if (coordinator.getSiteId().equals(site.getUuid())) {
+                vdcConfig.put(SITE_MYID, standbyShortId);
+            }
+            
+            shortIds.add(standbyShortId);
         }
-
-        vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, shortId), String.valueOf(standbyNodeCnt));
- 
-        String primarySiteId = coordinator.getPrimarySiteId();
+        Collections.sort(shortIds);
+        vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
+        
         String currentSiteId = coordinator.getSiteId();
         boolean isStandby = !currentSiteId.equals(primarySiteId);
         vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));

@@ -1378,4 +1378,85 @@ public class ExportUtils {
             }
         }
     }
+
+    /**
+     * This routine will examine the ExportGroup and ExportMask and attempt to reconcile its HLUs.
+     * This would include volumes in 'volumeMap' and any that appear to not have their HLUs filled in.
+     * For this routine we only care about ExportMasks that were created by the system.
+     *
+     * NOTE: ExportGroup is not persisted here.
+     *
+     * @param dbClient [IN] - DbClient for DB access
+     * @param exportGroup [IN] - ExportGroup to update with HLUs
+     * @param exportMask [IN] - ExportMask that we updated for this add volumes request
+     */
+    public static void reconcileHLUs(DbClient dbClient, ExportGroup exportGroup, ExportMask exportMask, Map<URI, Integer> volumeMap) {
+        // We should only care to do this when there are system created ExportMasks that have volumes
+        if (exportMask.getCreatedBySystem() && exportMask.getVolumes() != null) {
+            // CTRL-11544: Set the hlu in the export group too
+            for (URI boURI : volumeMap.keySet()) {
+                String hlu = exportMask.returnVolumeHLU(boURI);
+                _log.info(String.format("ExportGroup %s (%s) update volume HLU: %s -> %s", exportGroup.getLabel(), exportGroup.getId(),
+                        boURI, hlu));
+                exportGroup.addVolume(boURI, Integer.parseInt(hlu));
+            }
+            reconcileExportGroupsHLUs(dbClient, exportGroup);
+        }
+    }
+
+    /**
+     * Examine ExportGroup's volumes to find any that do not have their HLU filled in. In case it is not filled, the ExportMasks
+     * will be searched to find an HLU to assign for the volume.
+     *
+     * NOTE: ExportGroup is not persisted here.
+     *
+     * @param dbClient [IN] - DbClient for DB access
+     * @param exportGroup [IN] - ExportGroup to examine volumes
+     */
+    public static void reconcileExportGroupsHLUs(DbClient dbClient, ExportGroup exportGroup) {
+        // Find the volumes that don't have their HLU filled in ...
+        List<String> egVolumesWithoutHLUs = findVolumesWithoutHLUs(exportGroup);
+        if (!egVolumesWithoutHLUs.isEmpty()) {
+            // There are volumes in the ExportGroup that don't have their HLUs filled in.
+            // Search through each ExportMask associated with the ExportGroup ...
+            for (ExportMask thisMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) {
+                Iterator<String> volumeIter = egVolumesWithoutHLUs.iterator();
+                while (volumeIter.hasNext()) {
+                    URI volumeURI = URI.create(volumeIter.next());
+                    if (thisMask.hasVolume(volumeURI)) {
+                        // This ExportMask has the volume we're interested in.
+                        String hlu = thisMask.returnVolumeHLU(volumeURI);
+                        // Let's apply its HLU if it's not the 'Unassigned' value ...
+                        if (hlu != ExportGroup.LUN_UNASSIGNED_DECIMAL_STR) {
+                            _log.info(String.format("ExportGroup %s (%s) update volume HLU: %s -> %s", exportGroup.getLabel(),
+                                    exportGroup.getId(), volumeURI, hlu));
+                            exportGroup.addVolume(volumeURI, Integer.valueOf(hlu));
+                            // Now that we've found an HLU for this volume, there's no need to search for it in other ExportMasks.
+                            // Let's remove it from the array list.
+                            volumeIter.remove();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Return a list of Volume URI Strings that have ExportGroup.LUN_UNASSIGNED_DECIMAL_STR as their HLU
+     *
+     * @param exportGroup [IN] - ExportGroup to check
+     *
+     * @return List or Volume URI Strings
+     */
+    public static List<String> findVolumesWithoutHLUs(ExportGroup exportGroup) {
+        List<String> result = new ArrayList<>();
+        for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+            String volumeURIStr = entry.getKey();
+            String hlu = entry.getValue();
+            if (hlu.equals(ExportGroup.LUN_UNASSIGNED_DECIMAL_STR)) {
+                result.add(volumeURIStr);
+            }
+        }
+        return result;
+    }
 }

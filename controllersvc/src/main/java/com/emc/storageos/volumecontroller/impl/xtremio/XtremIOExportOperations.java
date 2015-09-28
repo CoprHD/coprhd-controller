@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller.impl.xtremio;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -695,5 +696,10 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             TaskCompleter taskCompleter) throws Exception {
         // TODO Auto-generated method stub
 
+    }
+
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return Collections.emptyMap();
     }
 }

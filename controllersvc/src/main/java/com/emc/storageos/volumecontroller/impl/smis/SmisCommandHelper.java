@@ -37,6 +37,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
+import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -5366,8 +5367,11 @@ public class SmisCommandHelper implements SmisConstants {
         try {
             CIMObjectPath maskingViewPath = _cimPath.getMaskingViewPath(storage, exportMask.getMaskName());
             CIMInstance maskingViewInstance = checkExists(storage, maskingViewPath, false, false);
-            int maxVolumesAllowed = Integer.valueOf(CIMPropertyFactory.getPropertyValue(maskingViewInstance, CP_MAX_UNITS_CONTROLLED));
-            policy.setMaxVolumesAllowed(maxVolumesAllowed);
+            String maxUnitsControlled = CIMPropertyFactory.getPropertyValue(maskingViewInstance, CP_MAX_UNITS_CONTROLLED);
+            if (!Strings.isNullOrEmpty(maxUnitsControlled)) {
+                int maxVolumesAllowed = Integer.valueOf(maxUnitsControlled);
+                policy.setMaxVolumesAllowed(maxVolumesAllowed);
+            }
 
             storageGroupName = getStorageGroupForGivenMaskingView(maskingViewInstance,
                     exportMask.getMaskName(), storage);

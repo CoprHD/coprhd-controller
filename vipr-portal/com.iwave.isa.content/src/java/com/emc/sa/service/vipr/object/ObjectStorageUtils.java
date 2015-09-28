@@ -16,6 +16,7 @@ import com.emc.sa.service.vipr.object.tasks.CreateBucket;
 import com.emc.sa.service.vipr.object.tasks.DeactivateBucket;
 import com.emc.sa.service.vipr.object.tasks.GetBucketResource;
 import com.emc.sa.service.vipr.object.tasks.UpdateBucket;
+import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.vipr.client.Task;
@@ -23,11 +24,12 @@ import com.google.common.collect.Lists;
 
 public class ObjectStorageUtils {
 
-    public static URI createBucket(String bucketName, URI virtualArray, URI virtualPoolId, URI projectId, String softQuota,
-            String hardQuota, String retention, String owner) {
-        Task<BucketRestRep> task = execute(new CreateBucket(bucketName, virtualArray, virtualPoolId, projectId, softQuota, hardQuota,
-                retention,
-                owner));
+    public static URI createBucket(String bucketName, URI virtualArray, URI virtualPoolId, URI projectId, Double softQuota,
+            Double hardQuota, String retention, String owner) {
+        String softQuotaSize = gbToQuotaSize(softQuota);
+        String hardQuotaSize = gbToQuotaSize(hardQuota);
+        Task<BucketRestRep> task = execute(new CreateBucket(bucketName, virtualArray, virtualPoolId, projectId, softQuotaSize, 
+                hardQuotaSize, retention, owner));
         addAffectedResource(task);
         URI bucketId = task.getResourceId();
         addRollback(new DeactivateBucket(bucketId));
@@ -52,8 +54,14 @@ public class ObjectStorageUtils {
         addAffectedResource(task);
     }
 
-    public static void editBucketResource(URI bucketResourceId, String softQuota, String hardQuota, String retention) {
-        Task<BucketRestRep> task = execute(new UpdateBucket(bucketResourceId, softQuota, hardQuota, retention));
+    public static void editBucketResource(URI bucketResourceId, Double softQuota, Double hardQuota, String retention) {
+        String softQuotaSize = gbToQuotaSize(softQuota);
+        String hardQuotaSize = gbToQuotaSize(hardQuota);
+        Task<BucketRestRep> task = execute(new UpdateBucket(bucketResourceId, softQuotaSize, hardQuotaSize, retention));
         addAffectedResource(task);
+    }
+    
+    public static String gbToQuotaSize(double sizeInGB) {
+        return String.valueOf(DiskSizeConversionUtils.gbToBytes(sizeInGB));
     }
 }

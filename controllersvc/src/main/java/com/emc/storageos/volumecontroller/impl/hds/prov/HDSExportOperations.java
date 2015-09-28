@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -58,10 +59,10 @@ import com.emc.storageos.hds.model.LDEV;
 import com.emc.storageos.hds.model.LogicalUnit;
 import com.emc.storageos.hds.model.Path;
 import com.emc.storageos.hds.model.WorldWideName;
-import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -192,12 +193,9 @@ public class HDSExportOperations implements ExportMaskOperations {
             // Check whether host is already registered or not. If host is not
             // registered, add the host.
             registerHostsWithInitiators(initiatorList, hdsApiClient);
-            List<String> fcInitiators = getInitiatorsByProtocol(initiatorList, HostInterface.Protocol.FC.name());
-            List<String> iSCSIInitiators = getInitiatorsByProtocol(initiatorList, HostInterface.Protocol.iSCSI.name());
-            log.info("fcInitiators count: {}", fcInitiators);
-            log.info("iSCSIInitiators count: {}", iSCSIInitiators);
 
-            if (checkIfMixedTargetPortTypeSelected(targetURIList)) {
+            List<StoragePort> storagePorts = dbClient.queryObject(StoragePort.class, targetURIList, true);
+            if (checkIfMixedTargetPortTypeSelected(storagePorts)) {
                 log.error("Unsupported Host as it has both FC & iSCSI Initiators");
                 throw HDSException.exceptions.unsupportedConfigurationFoundInHost();
             }
@@ -225,7 +223,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 }
                 // Step 2: Add initiators to all HSD's.
                 hsdsWithInitiators = executeBatchHSDAddInitiatorsCommand(hdsApiClient,
-                        systemObjectID, hsdResponseList, fcInitiators, iSCSIInitiators);
+                        systemObjectID, hsdResponseList, storagePorts, initiatorList);
 
                 // Step 3: Add volumes to all HSD's.
                 List<Path> allHSDPaths = executeBatchHSDAddVolumesCommand(hdsApiClient,
@@ -366,15 +364,13 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @param hdsApiClient
      * @param systemObjectID
      * @param createHsdsResponseList
-     * @param fcInitiators
-     * @param iSCSIInitiators
+     * @param storagePorts
+     * @param initiators
      * @return
      * @throws Exception
      */
-    private List<HostStorageDomain> executeBatchHSDAddInitiatorsCommand(
-            HDSApiClient hdsApiClient, String systemObjectID,
-            List<HostStorageDomain> createHsdsResponseList, List<String> fcInitiators,
-            List<String> iSCSIInitiators) throws Exception {
+    private List<HostStorageDomain> executeBatchHSDAddInitiatorsCommand(HDSApiClient hdsApiClient, String systemObjectID,
+            List<HostStorageDomain> createHsdsResponseList, List<StoragePort> storagePorts, List<Initiator> initiators) throws Exception {
 
         List<HostStorageDomain> fcHsdsToAddInitiators = new ArrayList<HostStorageDomain>();
         List<HostStorageDomain> iSCSIHsdsToAddInitiators = new ArrayList<HostStorageDomain>();
@@ -382,16 +378,17 @@ public class HDSExportOperations implements ExportMaskOperations {
         // Step 2: Add initiators to all HSD's using batch operation
         for (HostStorageDomain hsd : createHsdsResponseList) {
             HostStorageDomain hsdToAddInitiators = new HostStorageDomain(hsd);
+            List<String> initiatorsInSameNetwork = findInitiatorsPartOfSameNetwork(hsd, storagePorts, initiators);
             if (hsd.getDomainType().equalsIgnoreCase(HDSConstants.HOST_GROUP_DOMAIN_TYPE)) {
                 List<WorldWideName> wwnList = new ArrayList(Collections2.transform(
-                        fcInitiators, HDSUtils.fctnPortWWNToWorldWideName()));
+                        initiatorsInSameNetwork, HDSUtils.fctnPortWWNToWorldWideName()));
                 hsdToAddInitiators.setWwnList(wwnList);
                 fcHsdsToAddInitiators.add(hsdToAddInitiators);
             }
             if (hsd.getDomainType().equalsIgnoreCase(
                     HDSConstants.ISCSI_TARGET_DOMAIN_TYPE)) {
                 List<ISCSIName> iscsiNameList = new ArrayList(Collections2.transform(
-                        iSCSIInitiators, HDSUtils.fctnPortNameToISCSIName()));
+                        initiatorsInSameNetwork, HDSUtils.fctnPortNameToISCSIName()));
                 hsdToAddInitiators.setIscsiList(iscsiNameList);
                 iSCSIHsdsToAddInitiators.add(hsdToAddInitiators);
             }
@@ -414,6 +411,55 @@ public class HDSExportOperations implements ExportMaskOperations {
         }
 
         return hsdsWithAddIniResponseList;
+    }
+
+    /**
+     * Finds the list of Initiators connected to the same network of the storageport.
+     * 
+     * @param hsd
+     * @param storagePorts
+     * @param initiators
+     * @return
+     */
+    private List<String> findInitiatorsPartOfSameNetwork(HostStorageDomain hsd, List<StoragePort> storagePorts,
+            List<Initiator> initiators) {
+        StoragePort portToVerify = findStoragePortOfHSD(hsd, storagePorts);
+        List<String> initiatorsInSameNetwork = new ArrayList<String>();
+        for (Initiator initiator : initiators) {
+            log.debug("Verifying initiator {} part of same network", initiator.getInitiatorPort());
+            if (ConnectivityUtil.isInitiatorAndTargetPortInSameNetwork(initiator, portToVerify, dbClient)) {
+                String formattedInitiatorName = initiator.getInitiatorPort();
+                if (HostInterface.Protocol.FC.name().equals(initiator.getProtocol())) {
+                    formattedInitiatorName = formattedInitiatorName.replace(
+                            HDSConstants.COLON, HDSConstants.DOT_OPERATOR);
+                }
+                initiatorsInSameNetwork.add(formattedInitiatorName);
+            } else {
+                log.debug("Initiator & storage port not in same network: ({}, {})", initiator.getInitiatorPort(),
+                        portToVerify.getNativeGuid());
+            }
+        }
+        log.info("Found initiators & storagePort in same network ({}, {})", initiatorsInSameNetwork, portToVerify.getNativeGuid());
+        return initiatorsInSameNetwork;
+    }
+
+    /**
+     * Find the storagePort in which the HSD is created.
+     * 
+     * @param hsd
+     * @param storagePorts
+     * @return
+     */
+    private StoragePort findStoragePortOfHSD(HostStorageDomain hsd, List<StoragePort> storagePorts) {
+        for (StoragePort port : storagePorts) {
+            if (HDSUtils.getPortID(port).equalsIgnoreCase(hsd.getPortID())) {
+                log.info("Found matching port for the HSD: {} {}", port.getNativeGuid(), hsd.getObjectID());
+                return port;
+            }
+        }
+        // This shouldn't be the case. otherwise throw exception
+        log.error("No storagePort found with matching hsd: {}", hsd.getObjectID());
+        throw HDSException.exceptions.noMatchingStoragePortForHostGroup(hsd.getObjectID());
     }
 
     /**
@@ -480,8 +526,7 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @param portURIList
      * @return
      */
-    private boolean checkIfMixedTargetPortTypeSelected(List<URI> portURIList) {
-        List<StoragePort> ports = dbClient.queryObject(StoragePort.class, portURIList);
+    private boolean checkIfMixedTargetPortTypeSelected(List<StoragePort> ports) {
         boolean isFC = false;
         boolean isIP = false;
         for (StoragePort port : ports) {
@@ -551,34 +596,6 @@ public class HDSExportOperations implements ExportMaskOperations {
                 hostType.equalsIgnoreCase(Host.HostType.AIX.name()) ||
                 hostType.equalsIgnoreCase(Host.HostType.Esx.name()) ||
                 hostType.equalsIgnoreCase(Host.HostType.HPUX.name());
-    }
-
-    /**
-     * Return initiators by its supported protocol.
-     * 
-     * @param initiatorList
-     * @param protocolType
-     * @return
-     */
-    private List<String> getInitiatorsByProtocol(List<Initiator> initiatorList,
-            String protocolType) {
-        List<String> initiators = new ArrayList<String>();
-        if (null != initiatorList && !initiatorList.isEmpty()) {
-            for (Initiator initiator : initiatorList) {
-                String initiatorName = null;
-                if (protocolType.equals(initiator.getProtocol())
-                        && HostInterface.Protocol.FC.name().equalsIgnoreCase(protocolType)) {
-                    initiatorName = initiator.getInitiatorPort().replace(
-                            HDSConstants.COLON, HDSConstants.DOT_OPERATOR);
-                    initiators.add(initiatorName);
-                } else if (protocolType.equals(initiator.getProtocol())) {
-                    initiatorName = initiator.getInitiatorPort();
-                    initiators.add(initiatorName);
-                }
-
-            }
-        }
-        return initiators;
     }
 
     /**
@@ -996,20 +1013,14 @@ public class HDSExportOperations implements ExportMaskOperations {
                     storage.getSmisPassword());
             systemObjectID = HDSUtils.getSystemObjectID(storage);
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-            if (checkIfMixedTargetPortTypeSelected(targetURIList)) {
+
+            List<StoragePort> ports = dbClient.queryObject(StoragePort.class, targetURIList, true);
+            if (checkIfMixedTargetPortTypeSelected(ports)) {
                 log.error("Unsupported Host as it has both FC & iSCSI Initiators");
                 throw HDSException.exceptions.unsupportedConfigurationFoundInHost();
             }
             // @TODO register new initiators by adding them to host on HiCommand DM.
             // Currently, HiCommand is not supporting this. Need to see how we can handle.
-
-            /*
-             * There are two cases which we should handle here.
-             * 1. When new initiator's are added and user increased pathsPerInitiator & maximum paths.
-             * 2. New initiator's should be added to the existing HSD's to access the volumes which are already part of the export mask.
-             */
-            List<String> fcInitiators = getInitiatorsByProtocol(initiators, HostInterface.Protocol.FC.name());
-            List<String> iSCSIInitiators = getInitiatorsByProtocol(initiators, HostInterface.Protocol.iSCSI.name());
 
             String hostName = getHostNameForInitiators(initiators);
             String hostMode = null, hostModeOption = null;
@@ -1040,7 +1051,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                     }
                     // Step 2: Add initiators to all HSD's.
                     hsdsWithInitiators = executeBatchHSDAddInitiatorsCommand(hdsApiClient,
-                            systemObjectID, hsdResponseList, fcInitiators, iSCSIInitiators);
+                            systemObjectID, hsdResponseList, ports, initiators);
 
                     // Step 3: Add volumes to all HSD's.
                     List<Path> allHSDPaths = executeBatchHSDAddVolumesCommand(hdsApiClient,

@@ -22,10 +22,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
@@ -444,7 +444,7 @@ public class ConnectivityUtil {
                 storagePortURIs);
         Iterator<URI> storagePortsIter = storagePortURIs.iterator();
         while (storagePortsIter.hasNext()) {
-            URI portURI = (URI) storagePortsIter.next();
+            URI portURI = storagePortsIter.next();
             StoragePort port = dbClient.queryObject(StoragePort.class, portURI);
             if (port == null || port.getInactive() == true) {
                 continue;
@@ -951,6 +951,49 @@ public class ConnectivityUtil {
         _log.info(String
                 .format("isInitiatorConnectedToStorageSystem(%s, %s) -- Could not find any ports in the same networks as the initiator. Returning false.",
                         initiator.getInitiatorPort(), storageSystem.getNativeGuid()));
+        return false;
+    }
+
+    /**
+     * Verifies whether initiator & storagePort belongs to the same network or not.
+     * This method doesn't validate the array connectivity.
+     * 
+     * @param initiator
+     * @param storagePort
+     * @param dbClient
+     * @return
+     */
+    public static boolean isInitiatorAndTargetPortInSameNetwork(Initiator initiator, StoragePort storagePort, DbClient dbClient) {
+
+        if (null == initiator || null == storagePort || null == dbClient) {
+            _log.info(String.format("isInitiatorAndTargetPortInSameNetwork - Invalid parameters"));
+            return false;
+        }
+        _log.info(String.format("isInitiatorAndTargetPortInSameNetwork(%s, %s) -- Entered",
+                initiator.getInitiatorPort(), storagePort.getNativeGuid()));
+        NetworkLite networkLite = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
+        if (networkLite == null) {
+            _log.info(String.format("isInitiatorAndTargetPortInSameNetwork(%s) -- Initiator is not associated with any network",
+                    initiator.getInitiatorPort()));
+            return false;
+        }
+        URI networkUri = networkLite.getId();
+        List<StoragePort> ports = NetworkAssociationHelper.
+                getNetworkConnectedStoragePorts(networkUri.toString(), dbClient);
+        _log.info(String.format("isInitiatorConnectedToStorageSystem(%s) -- Checking for port connections on %s network",
+                initiator.getInitiatorPort(), networkLite.getLabel()));
+        for (StoragePort port : ports) {
+            if (port.getId().equals(storagePort.getId())) {
+                _log.info(String
+                        .format("isInitiatorAndTargetPortInSameNetwork(%s, %s) -- Found port in the same network as initiator, %s (%s). Returning true.",
+                                initiator.getInitiatorPort(), storagePort.getNativeGuid(), port.getNativeGuid(),
+                                port.getId()));
+                return true;
+            }
+        }
+        _log.info(String
+                .format("isInitiatorAndTargetPortInSameNetwork(%s, %s) -- Could not find any ports in the same networks as the initiator. Returning false.",
+                        initiator.getInitiatorPort(), storagePort.getNativeGuid()));
         return false;
     }
 

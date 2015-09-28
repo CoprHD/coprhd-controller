@@ -149,4 +149,7 @@ public interface HDSExceptions {
 
     @DeclareServiceCode(ServiceCode.HDS_EXPORT_GROUP_UPDATE_FAILURE)
     public HDSException notAbleToFindHostStorageDomain(final String hsdId);
+
+    @DeclareServiceCode(ServiceCode.HDS_COMMAND_ERROR)
+    public HDSException noMatchingStoragePortForHostGroup(final String hsdId);
 }

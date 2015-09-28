@@ -39,7 +39,7 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             create.setConsistencyGroup(param.getConsistencyGroup());
 
             if (tasks == null) {
-                getClient().blockVolumes().create(create);
+                tasks = getClient().blockVolumes().create(create);
             } else {
                 tasks.getTasks().addAll(getClient().blockVolumes().create(create).getTasks());
             }

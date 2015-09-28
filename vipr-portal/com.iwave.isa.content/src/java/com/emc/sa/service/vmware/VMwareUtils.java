@@ -249,19 +249,17 @@ public class VMwareUtils {
 
     public static class VolumeParams {
         @Param(VIRTUAL_POOL)
-        protected URI virtualPool;
+        public URI virtualPool;
         @Param(VIRTUAL_ARRAY)
-        protected URI virtualArray;
+        public URI virtualArray;
         @Param(PROJECT)
-        protected URI project;
+        public URI project;
         @Param(HOST)
-        protected URI hostId;
+        public URI hostId;
         @Param(value = CONSISTENCY_GROUP, required = false)
-        protected URI consistencyGroup;
-        @Param(value = NUMBER_OF_VOLUMES, required = false)
-        protected int count;
+        public URI consistencyGroup;
         @Param(value = HLU, required = false)
-        protected Integer hlu;
+        public Integer hlu;
 
         @Override
         public String toString() {
@@ -277,7 +275,6 @@ public class VMwareUtils {
             map.put(PROJECT, project);
             map.put(HOST, hostId);
             map.put(CONSISTENCY_GROUP, consistencyGroup);
-            map.put(NUMBER_OF_VOLUMES, count);
             map.put(HLU, hlu);
             return map;
         }
@@ -400,5 +397,4 @@ public class VMwareUtils {
 
         return true;
     }
-
 }

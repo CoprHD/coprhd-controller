@@ -121,7 +121,31 @@ public class CreateBlockVolumeHelper {
         return exportVolumes(volumeIds);
     }
 
+    public String getName() {
+        return this.nameParam;
+    }
+
+    public URI getProject() {
+        return this.project;
+    }
+
+    public URI getVirtualArray() {
+        return this.virtualArray;
+    }
+
+    public URI getVirtualPool() {
+        return this.virtualPool;
+    }
+
     public Double getSizeInGb() {
         return this.sizeInGb;
+    }
+
+    public URI getConsistencyGroup() {
+        return this.consistencyGroup;
+    }
+
+    public Integer getCount() {
+        return this.count;
     }
 }

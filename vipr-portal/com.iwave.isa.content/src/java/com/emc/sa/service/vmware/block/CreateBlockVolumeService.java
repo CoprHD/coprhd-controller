@@ -11,6 +11,7 @@ import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
 import com.emc.sa.service.vmware.VMwareUtils;
 import com.emc.sa.service.vmware.VMwareUtils.VolumeParams;
@@ -54,9 +55,7 @@ public class CreateBlockVolumeService extends ViPRService {
     public void execute() throws Exception {
         if (!createBlockVolumeHelpers.isEmpty()) {
             List<URI> volumeIds = Lists.newArrayList();
-            for (CreateBlockVolumeHelper helper : createBlockVolumeHelpers) {
-                volumeIds.addAll(helper.createVolumes());
-            }
+            volumeIds.addAll(BlockStorageUtils.createMultipleVolumes(createBlockVolumeHelpers));
             createBlockVolumeHelpers.get(0).exportVolumes(volumeIds);
         }
     }

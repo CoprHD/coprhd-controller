@@ -33,6 +33,7 @@ import com.emc.sa.service.vipr.block.tasks.CreateContinuousCopy;
 import com.emc.sa.service.vipr.block.tasks.CreateExport;
 import com.emc.sa.service.vipr.block.tasks.CreateExportNoWait;
 import com.emc.sa.service.vipr.block.tasks.CreateFullCopy;
+import com.emc.sa.service.vipr.block.tasks.CreateMultipleBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.CreateSnapshotFullCopy;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockExport;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
@@ -220,6 +221,18 @@ public class BlockStorageUtils {
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();
+            addAffectedResource(volumeId);
+            volumeIds.add(volumeId);
+        }
+        return volumeIds;
+    }
+
+    public static List<URI> createMultipleVolumes(List<CreateBlockVolumeHelper> helpers) {
+        Tasks<VolumeRestRep> tasks = execute(new CreateMultipleBlockVolumes(helpers));
+        List<URI> volumeIds = Lists.newArrayList();
+        for (Task<VolumeRestRep> task : tasks.getTasks()) {
+            URI volumeId = task.getResourceId();
+            addRollback(new DeactivateVolume(volumeId, VolumeDeleteTypeEnum.FULL));
             addAffectedResource(volumeId);
             volumeIds.add(volumeId);
         }

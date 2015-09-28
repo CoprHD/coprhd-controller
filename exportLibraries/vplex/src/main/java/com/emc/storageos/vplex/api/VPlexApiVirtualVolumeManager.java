@@ -69,6 +69,7 @@ public class VPlexApiVirtualVolumeManager {
      * @param winningClusterId Used to set detach rules for distributed volumes.
      * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
      *            clusters.
+     * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
      * 
      * @return The information for the created virtual volume.
      * 

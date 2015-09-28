@@ -142,7 +142,6 @@ public class ConfigProperties extends Controller {
         }
         addPage(pages, new ControllerPropertyPage(properties));
         addPage(pages, new DiscoveryPropertyPage(properties));
-        addPage(pages, new ImageServerPropertyPage(properties));
         if (!SetupUtils.isOssBuild()) {
             addPage(pages, new SupportPropertyPage(properties));
         }
@@ -175,6 +174,13 @@ public class ConfigProperties extends Controller {
         Map<String, Property> properties = Maps.newLinkedHashMap();
         for (Map.Entry<String, PropertyMetadata> entry : ConfigPropertyUtils.getPropertiesMetadata().getMetadata()
                 .entrySet()) {
+            /*
+             * image server configuration has been moved to Physical assets but, image server properties meta data
+             * needs to remain for migration
+             */
+            if (entry.getKey().contains("image_server")) {
+                continue;
+            }
             PropertyMetadata metadata = entry.getValue();
             if ((metadata.getUserMutable() != null && metadata.getUserMutable())
                     && (metadata.getHidden() == null || !metadata.getHidden())) {

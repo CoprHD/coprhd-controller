@@ -497,9 +497,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public void persistServiceConfiguration(Configuration... configs) throws CoordinatorException {
+        persistServiceConfiguration(getSiteId(), configs);
+    }
+    
+    @Override
+    public void persistServiceConfiguration(String siteId, Configuration... configs) throws CoordinatorException {
         try {
             for (Configuration config : configs) {
-                String configParentPath = getKindPath(config.getKind());
+                String configParentPath = getKindPath(siteId, config.getKind());
 
                 EnsurePath path = new EnsurePath(configParentPath);
                 path.ensure(_zkConnection.curator().getZookeeperClient());
@@ -582,12 +587,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private String getKindPath(String kind) {
+        return getKindPath(this.getSiteId(), kind);
+    }
+
+    private String getKindPath(String siteId, String kind) {
         if (kind.equals(Site.CONFIG_KIND))
             return ZkPath.SITES.toString();
         
         StringBuilder builder = new StringBuilder();
         if (isSiteSpecific(kind)) {
-            String sitePrefix = getSitePrefix();
+            String sitePrefix = getSitePrefix(siteId);
             builder.append(sitePrefix);
         }
         builder.append(ZkPath.CONFIG);
@@ -596,9 +605,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
         return builder.toString();
     }
-
+    
     private boolean isSiteSpecific(String kind) {
-        
         if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equals(SiteInfo.CONFIG_KIND) || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND)) {
             return true;
         }
@@ -607,7 +615,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public Configuration queryConfiguration(String kind, String id) throws CoordinatorException {
-        String servicePath = String.format("%s/%s", getKindPath(kind), id);
+        return queryConfiguration(getSiteId(), kind, id);
+    }
+    
+    @Override
+    public Configuration queryConfiguration(String siteId, String kind, String id) throws CoordinatorException {
+        String servicePath = String.format("%s/%s", getKindPath(siteId, kind), id);
         try {
             byte[] data = _zkConnection.curator().getData().forPath(servicePath);
             return ConfigurationImpl.parse(data);
@@ -619,6 +632,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             throw CoordinatorException.fatals.unableToFindConfigurationForKind(kind, id, e);
         }
     }
+
 
     @Override
     public void setConnectionListener(ConnectionStateListener listener) {
@@ -1014,6 +1028,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return new LeaderSelector(_zkConnection.curator(), leaderFullPath.toString(), listener);
     }
 
+    @Override
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz)
+            throws CoordinatorException {
+        return getTargetInfo(getSiteId(), clazz);
+    }
+    
     /**
      * Get target info
      * 
@@ -1023,7 +1043,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * @throws Exception
      */
     @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz)
+    public <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz)
             throws CoordinatorException {
         T info;
         try {
@@ -1036,9 +1056,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         String id = coordinatorInfo.id;
         String kind = coordinatorInfo.kind;
 
-        return getTargetInfo(clazz, id, kind);
+        return getTargetInfo(siteId, clazz, id, kind);
     }
-
+    
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id,
+            String kind) throws CoordinatorException {
+        
+        return getTargetInfo(getSiteId(), clazz, id, kind);
+    }
     /**
      * Get target info
      * 
@@ -1048,7 +1073,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id,
+    public <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz, String id,
             String kind) throws CoordinatorException {
         T info;
         try {
@@ -1057,7 +1082,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             log.error("Failed to create instance according class {}, {}", clazz, e);
             throw CoordinatorException.fatals.unableToCreateInstanceOfTargetInfo(clazz.getName(), e);
         }
-        final Configuration config = queryConfiguration(kind, id);
+        final Configuration config = queryConfiguration(siteId, kind, id);
         if (config != null && config.getConfig(TARGET_INFO) != null) {
             final String infoStr = config.getConfig(TARGET_INFO);
             log.debug("getTargetInfo({}): info={}", clazz.getName(), Strings.repr(infoStr));
@@ -1077,6 +1102,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * @throws CoordinatorException
      */
     public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
+        setTargetInfo(this.getSiteId(), info);
+    }
+    
+    /**
+     * Update target info(for specific site) to ZK
+     * 
+     * @param info
+     * @throws CoordinatorException
+     */
+    public void setTargetInfo(String siteId, final CoordinatorSerializable info) throws CoordinatorException {
         final CoordinatorClassInfo coordinatorInfo = info.getCoordinatorClassInfo();
         String id = coordinatorInfo.id;
         String kind = coordinatorInfo.kind;
@@ -1085,9 +1120,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         cfg.setId(id);
         cfg.setKind(kind);
         cfg.setConfig(TARGET_INFO, info.encodeAsString());
-        persistServiceConfiguration(cfg);
-        log.info("Target info set: {}", info);
+        persistServiceConfiguration(siteId, cfg);
+        log.info("Target info set: {} for site {}", info, siteId);
     }
+    
     
     /**
      * Get node info from session scope.

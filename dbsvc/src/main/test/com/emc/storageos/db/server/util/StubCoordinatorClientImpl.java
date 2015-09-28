@@ -10,6 +10,7 @@ import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.*;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -38,7 +39,7 @@ import static com.emc.storageos.coordinator.client.model.Constants.*;
 /**
  * Dummy coordinator client for use with dbsvc unit tests
  */
-public class StubCoordinatorClientImpl implements CoordinatorClient {
+public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     private final Service _dbinfo;
     private DbVersionInfo dbVersionInfo;
     private CoordinatorClientInetAddressMap inetAddessLookupMap;
@@ -433,4 +434,5 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     public void setPrimarySite(String siteId) {
         throw new UnsupportedOperationException();
     }
+    
 }

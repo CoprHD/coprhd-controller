@@ -107,9 +107,9 @@ public class DisasterRecoveryService {
                 Site site = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_KIND);
                 existingSites.add(site);
             }
-            
-            validateAddParam(param, existingSites);
 
+            // parameter validation and precheck
+            validateAddParam(param, existingSites);
             ViPRCoreClient viprClient = new ViPRCoreClient(param.getVip(), true).withLogin(param.getUsername(),
                     param.getPassword());
 
@@ -141,8 +141,16 @@ public class DisasterRecoveryService {
             log.info("Persist standby site to ZK {}", shortId);
             coordinator.setTargetInfo(standbySite);
             
-            updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
-    
+            // wake up syssvc to regenerate configurations
+            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+            for (String siteUUID : vdc.getSiteUUIDs()) {
+                if (siteUUID.equals(standbySite.getUuid())) {
+                    continue; // ignore
+                }
+                updateVdcTargetVersion(siteUUID, SiteInfo.RECONFIG_RESTART);
+            }
+
+            // reconfig standby site
             log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());
             SiteConfigParam configParam = new SiteConfigParam();
             SiteParam primarySite = new SiteParam();
@@ -203,8 +211,7 @@ public class DisasterRecoveryService {
                 hostCount = primary.getHostIPv6AddressMap().size();
             }
             vdc.setHostCount(hostCount);
-            log.info("Persist primary site to DB");
-            dbClient.createObject(vdc);
+            
             coordinator.addSite(primary.getUuid());
             coordinator.setPrimarySite(primary.getUuid());
             
@@ -214,10 +221,14 @@ public class DisasterRecoveryService {
                 site.setCreationTime((new Date()).getTime());
                 siteMapper.map(standby, site);
                 site.setVdc(vdcId);
+                vdc.getSiteUUIDs().add(standby.getUuid());
                 coordinator.setTargetInfo(site);
                 coordinator.addSite(standby.getUuid());
-                log.info("Persist standby site {} to DB", standby.getVip());
+                log.info("Persist standby site {} to ZK", standby.getVip());
             }
+            
+            log.info("Persist primary site to DB");
+            dbClient.createObject(vdc);
             
             updateVdcTargetVersionAndDataRevision(SiteInfo.UPDATE_DATA_REVISION);
             return Response.status(Response.Status.ACCEPTED).build();
@@ -287,7 +298,10 @@ public class DisasterRecoveryService {
                 vdc.getSiteUUIDs().remove(uuid);
                 dbClient.persistObject(vdc);
                 
-                updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
+                updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+                for (String standbyUuid : vdc.getSiteUUIDs()) {
+                    updateVdcTargetVersion(standbyUuid, SiteInfo.RECONFIG_RESTART);
+                }
                 return siteMapper.map(standby);
             }
         } catch (Exception e) {
@@ -334,18 +348,16 @@ public class DisasterRecoveryService {
         return siteConfigRestRep;
     }
     
-    // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc
-    private void updateVdcTargetVersion(String action) throws Exception {
+    private void updateVdcTargetVersion(String siteId, String action) throws Exception {
         SiteInfo siteInfo;
-        SiteInfo currentSiteInfo = coordinator.getTargetInfo(SiteInfo.class);
+        SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
         if (currentSiteInfo != null) {
             siteInfo = new SiteInfo(System.currentTimeMillis(), action, currentSiteInfo.getTargetDataRevision());
         } else {
             siteInfo = new SiteInfo(System.currentTimeMillis(), action);
         }
-        coordinator.setTargetInfo(siteInfo);
-        log.info("VDC target version updated to {}, action required: {}", siteInfo.getVdcConfigVersion(), action);
-        //TODO update SiteInfo for all other standby sites
+        coordinator.setTargetInfo(siteId, siteInfo);
+        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
     
     private void updateVdcTargetVersionAndDataRevision(String action) throws Exception {

@@ -11,6 +11,7 @@ import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.*;
 import com.emc.storageos.coordinator.client.service.WorkPool.WorkAssignmentListener;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -37,7 +38,7 @@ import java.util.regex.Pattern;
 /**
  * Stub coordinator class for use with unit tests
  */
-public class TestCoordinator implements CoordinatorClient {
+public class TestCoordinator extends CoordinatorClientImpl {
 
     private ConcurrentHashMap<String, HashMap<String, Configuration>> configurations =
             new ConcurrentHashMap<String, HashMap<String, Configuration>>();

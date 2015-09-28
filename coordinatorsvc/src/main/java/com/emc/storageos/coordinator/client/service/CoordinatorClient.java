@@ -230,6 +230,15 @@ public interface CoordinatorClient {
      * @param config
      */
     public void persistServiceConfiguration(Configuration... config) throws CoordinatorException;
+    
+    /**
+     * Persist service configuration for given site
+     * 
+     * @param siteId
+     * @param config
+     * @throws CoordinatorException
+     */
+    public void persistServiceConfiguration(String siteId, Configuration... config) throws CoordinatorException;
 
     /**
      * Removes configured service information. See above notes about when this feature may be used.
@@ -256,6 +265,17 @@ public interface CoordinatorClient {
      */
     public Configuration queryConfiguration(String kind, String id) throws CoordinatorException;
 
+    /**
+     * Query configuration for specific site
+     * 
+     * @param siteId
+     * @param kind
+     * @param id
+     * @return
+     * @throws CoordinatorException
+     */
+    public Configuration queryConfiguration(String siteId, String kind, String id) throws CoordinatorException;
+    
     /**
      * Registers a connection listener
      * 
@@ -361,6 +381,15 @@ public interface CoordinatorClient {
     public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException;
     
     /**
+     * Set target info for specific site
+     * 
+     * @param siteId
+     * @param info
+     * @throws CoordinatorException
+     */
+    public void setTargetInfo(String siteId, final CoordinatorSerializable info) throws CoordinatorException;
+    
+    /**
      * Get control nodes' state
      */
     public ClusterInfo.ClusterState getControlNodesState();
@@ -383,6 +412,8 @@ public interface CoordinatorClient {
      * @throws Exception
      */
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException;
+    
+    public <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz) throws CoordinatorException;
 
     /**
      * Get all Node Infos.

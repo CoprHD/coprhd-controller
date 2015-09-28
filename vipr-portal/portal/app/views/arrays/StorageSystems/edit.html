@@ -176,6 +176,9 @@
         } else if ( resourceType == "block") {
             $('#storageArray_resourceLimitControlGroup label[for="storageArray_resourceLimit"]').text("${messages.get('storageArray.blockResourceLimit')}"+":");
             $('#storageArray_resourceLimitControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.blockResourceLimit.help')}");            
+        } else if ( resourceType == "object") {
+			$('#storageArray_resourceLimitControlGroup label[for="storageArray_resourceLimit"]').text("${messages.get('storageArray.objectResourceLimit')}"+":");
+			$('#storageArray_resourceLimitControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.objectResourceLimit.help')}");
         }
         
     });

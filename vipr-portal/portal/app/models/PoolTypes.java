@@ -24,6 +24,9 @@ public class PoolTypes {
         else if (StorageSystemTypes.isFileStorageSystem(type)) {
             return FILE;
         }
+        else if (StorageSystemTypes.isObjectStorageSystem(type)) {
+            return OBJECT;
+        }
         else {
             return BLOCK;
         }

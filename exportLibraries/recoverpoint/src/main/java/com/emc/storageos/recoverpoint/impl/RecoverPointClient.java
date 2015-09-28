@@ -2517,33 +2517,6 @@ public class RecoverPointClient {
         List<RecoverPointVolumeProtectionInfo> wrapper = new ArrayList<RecoverPointVolumeProtectionInfo>();
         wrapper.add(volume);
         deleteReplicationSets(wrapper);
-//        boolean rsetRemoved = false;
-//        try {
-//            ConsistencyGroupUID cgID = new ConsistencyGroupUID();
-//            cgID.setId(volume.getRpVolumeGroupID());
-//            ReplicationSetUID repSetUID = new ReplicationSetUID();
-//            repSetUID.setId(volume.getRpVolumeRSetID());
-//
-//            ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgID);
-//            for (ReplicationSetSettings replicationSet : groupSettings.getReplicationSetsSettings()) {
-//                if (replicationSet.getReplicationSetUID().getId() == repSetUID.getId()) {
-//                    functionalAPI.removeReplicationSet(cgID, replicationSet.getReplicationSetUID());
-//                    logger.info("Request to delete replication set" + replicationSet.getReplicationSetName() + " from consistency group "
-//                            + cgID);
-//                    rsetRemoved = true;
-//                }
-//            }
-//
-//            if (!rsetRemoved) {
-//                throw RecoverPointException.exceptions.cannotFindReplicationSet(volumeWWNToDelete);
-//            }
-//        } catch (FunctionalAPIActionFailedException_Exception e) {
-//            throw RecoverPointException.exceptions.failedToDeleteReplicationSet(volumeWWNToDelete,
-//                    e);
-//        } catch (FunctionalAPIInternalError_Exception e) {
-//            throw RecoverPointException.exceptions.failedToDeleteReplicationSet(volumeWWNToDelete,
-//                    e);
-//        }
     }
 
     /**

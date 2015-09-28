@@ -18,6 +18,7 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
 
     public CreateMultipleBlockVolumes(List<CreateBlockVolumeHelper> helpers) {
         this.helpers = helpers;
+        provideDetailArgs(getDetails(helpers));
     }
 
     @Override
@@ -45,5 +46,13 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             }
         }
         return tasks;
+    }
+
+    private String getDetails(List<CreateBlockVolumeHelper> helpers) {
+        String result = "";
+        for (CreateBlockVolumeHelper helper : helpers) {
+            result += String.format("Name: %s, Size: %s, Count: %s", helper.getName(), helper.getSizeInGb(), helper.getCount());
+        }
+        return result;
     }
 }

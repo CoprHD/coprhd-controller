@@ -60,6 +60,21 @@ public abstract class CommandHandler {
 
         return 0;
     }
+    
+    public static class DependencyHandler extends CommandHandler {
+        public DependencyHandler(String args[]) {
+            if (args.length < 2) {
+                throw new IllegalArgumentException("Invalid command:need at least 2 arguments");
+            }
+            cfName = args[1];
+        }
+
+        @Override
+        public void process(DBClient _client) throws Exception {
+            _client.printDependencies(cfName);
+        }
+
+    }
 
     public static class CountHandler extends CommandHandler {
         private boolean isActiveOnly = true;

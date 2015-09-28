@@ -18,6 +18,7 @@ import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.common.DbSchemaChecker;
 import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.db.common.DependencyTracker;
+import com.emc.storageos.db.common.DependencyTracker.Dependency;
 import com.emc.storageos.db.common.schema.DbSchemas;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.geo.service.impl.util.VdcConfigHelper;
@@ -73,6 +74,8 @@ public class DBClient {
     private int listLimit = 100;
     private boolean turnOnLimit = false;
     private boolean activeOnly = true;
+    
+    private Set<Class> scannedType;
 
     private static final String PRINT_COUNT_RESULT = "Column Family %s's row count is: %s";
     private static final String REGEN_RECOVER_FILE_MSG = "Please regenerate the recovery " +
@@ -1118,5 +1121,62 @@ public class DBClient {
                     + "Please see the log for more information.");
         }
 
+    }
+    
+    public void printDependencies(String cfName) {
+        final Class type = _cfMap.get(cfName);
+        if (type == null) {
+            System.err.println("Unknown Column Family: " + cfName);
+            return;
+        }
+
+        DataObjectScanner dataObjectscanner = (DataObjectScanner) ctx
+                .getBean("dataObjectScanner");
+        DependencyTracker dependencyTracker = dataObjectscanner.getDependencyTracker();
+
+        scannedType = new HashSet<>();
+        printDependencies(type, true, "", type.toString(), dependencyTracker);
+    };
+
+    private void printDependencies(final Class type, boolean last, String prefix,
+            String output, DependencyTracker tracker) {
+        String selfPrefix = prefix;
+        if (last) {
+            selfPrefix += "+-";
+        } else {
+            selfPrefix += "|-";
+        }
+
+        selfPrefix += output;
+
+        System.out.println(selfPrefix);
+
+        if (scannedType.contains(type)) {
+            return;
+        }
+        
+        List<Dependency> dependencies = tracker.getDependencies(type);
+        scannedType.add(type);
+        for (int i = 0; i < dependencies.size(); i++) {
+            Dependency dependency = dependencies.get(i);
+            Class childType = dependency.getType();
+            String childPrefix = prefix;
+
+            boolean lastChild = false;
+            if (i == (dependencies.size() - 1)) {
+                lastChild = true;
+            }
+
+            if (last) {
+                childPrefix += "    ";
+            } else {
+                childPrefix += "|   ";
+            }
+            
+            String childOutput = String.format("%s(Index:%s, CF:%s)", childType,
+                    dependency.getColumnField().getIndex().getClass().getSimpleName(), dependency.getColumnField()
+                            .getIndexCF().getName());
+            printDependencies(childType, lastChild, childPrefix, childOutput, tracker);
+        }
     }
 }

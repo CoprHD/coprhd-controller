@@ -1763,6 +1763,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkEntity(consistencyGroup, consistencyGroupId, true);
         ArgValidator.checkEntity(targetVirtualArray, targetVarrayId, true);
 
+        // The consistency group needs to be associated with SRDF in order to perform the operation.
+        if (!consistencyGroup.checkForType(Types.SRDF)) {
+            // Attempting to perform an SRDF operation on a non-SRDF consistency group
+            throw APIException.badRequests.consistencyGroupMustBeSRDFProtected(consistencyGroupId);
+        }
+
         // Verify that the supplied target Virtual Array is being referenced by at least one target volume in the CG.
         List<Volume> targetVolumes = getTargetVolumes(consistencyGroup, targetVarrayId);
 

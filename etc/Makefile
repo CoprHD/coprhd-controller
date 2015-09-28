@@ -187,6 +187,7 @@ ETCFILES_APPLIANCE = diskresizetool \
     nginx/vasasvc-server-IPv6-template.conf \
     nginx/storageos-vasasvc.conf \
     storageos/boot-ovfenv \
+    systemd/system/auditd.service \
     systool
 
 # The files that should be added into the rpm for oss builds only

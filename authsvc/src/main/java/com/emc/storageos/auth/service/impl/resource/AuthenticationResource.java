@@ -1137,9 +1137,14 @@ public class AuthenticationResource {
     }
 
     /**
-     * Adds a special key in the end to identify as the request is redirected back from authsvc
-     * @param service
-     * @return
+     * Returns the Service URL to be redirected upon the successful login of
+     * the user. The service URL is built using the service queryParam and
+     * the host header of the http request.
+     *
+     * @param service the requested service url.
+     * @param serverName the server name from the host header of the http request.
+     *
+     * @return returns the service url built from the server name.
      * @throws URISyntaxException
      */
     private URI getServiceURL(String service, String serverName)

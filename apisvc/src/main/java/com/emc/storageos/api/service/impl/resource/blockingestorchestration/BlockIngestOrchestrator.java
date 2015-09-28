@@ -737,10 +737,11 @@ public abstract class BlockIngestOrchestrator {
             for (BlockObject replica : parentReplicaMap.get(parent)) {
                 if (replica instanceof BlockMirror) {
                     VolumeIngestionUtil.setupMirrorParentRelations(replica, parent, _dbClient);
-                } else if (replica instanceof Volume && isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
-                    VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
                 } else if (replica instanceof Volume) {
-                    if (VolumeIngestionUtil.isVplexVolume(currentUnmanagedVolume)) {
+                    if (isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
+                        VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
+                    } else if (VolumeIngestionUtil.isVplexVolume(parent, _dbClient)
+                            && VolumeIngestionUtil.isVplexBackendVolume(replica, _dbClient)) {
                         VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);
                     } else {
                         VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);

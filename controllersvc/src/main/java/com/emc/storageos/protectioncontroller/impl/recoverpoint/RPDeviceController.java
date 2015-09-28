@@ -2946,6 +2946,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             for (CreateVolumeParams volume : copy.getJournals()) {
                 Volume dbVolume = _dbClient.queryObject(Volume.class, volume.getVolumeURI());
                 volume.setWwn(dbVolume.getWWN());
+                volume.setNativeGuid(dbVolume.getNativeGuid());
             }
         }
 
@@ -2954,6 +2955,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             for (CreateVolumeParams volume : rset.getVolumes()) {
                 Volume dbVolume = _dbClient.queryObject(Volume.class, volume.getVolumeURI());
                 volume.setWwn(dbVolume.getWWN());
+                volume.setNativeGuid(dbVolume.getNativeGuid());
             }
         }
     }

@@ -1149,7 +1149,24 @@ public class VPlexApiMigrationManager {
                         break;
                     }
                 }
-                
+                if (migrationTgtName.equals(virtualVolumeInfo.getName())) {
+                    // If we are here then VPLEX didn't rename the volume name, make a call to rename volume name
+                    // Build the name for volume so as to rename the vplex volume that is created
+                    // with the same name as the device name to follow the name pattern _vol
+                    // as the suffix for the vplex volumes
+                    String volumeNameAfterMigration = virtualVolumeInfo.getName();
+                    String volumePathAfterMigration = virtualVolumeInfo.getPath();
+                    StringBuilder volumeNameBuilder = new StringBuilder();
+                    volumeNameBuilder.append(volumeNameAfterMigration);
+                    volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+
+                    // Rename the VPLEX volume name
+                    virtualVolumeInfo = _vplexApiClient.renameResource(virtualVolumeInfo, volumeNameBuilder.toString());
+
+                    s_logger.info(String.format("Renamed virtual volume name after migration from %s path: %s to %s path: %s",
+                            volumeNameAfterMigration, volumePathAfterMigration, virtualVolumeInfo.getName(), virtualVolumeInfo.getPath()));
+
+                }
                 migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
             } else if (rename) {
                 // Strip the extent prefix and suffix from the

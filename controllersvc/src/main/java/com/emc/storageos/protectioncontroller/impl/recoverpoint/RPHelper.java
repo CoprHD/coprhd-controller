@@ -1555,7 +1555,7 @@ public class RPHelper {
                     && !volume.getAssociatedVolumes().isEmpty()) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                    if (!associatedVolume.getInactive()) {
+                    if (associatedVolume != null && !associatedVolume.getInactive()) {
                         _log.info(String.format("Rollback volume [%s]...", associatedVolume.getLabel()));
                         associatedVolume.setInactive(true);
                         associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());

@@ -284,6 +284,11 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
+        return null;
+    }
+
+    @Override
     public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception {
         throw new UnsupportedOperationException();

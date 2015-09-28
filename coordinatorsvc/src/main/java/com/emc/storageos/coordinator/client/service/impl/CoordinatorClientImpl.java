@@ -520,7 +520,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private String getSitePrefix() {
-        return getSitePrefix(siteId);
+        return getSitePrefix(this.siteId);
     }
 
     private String getSitePrefix(String siteId) {
@@ -530,11 +530,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return builder.toString();
     }
 
-    private String getServicePath() {
-        String sitePrefix= getSitePrefix();
+    
+    private String getServicePath(String siteId) {
+        String sitePrefix= getSitePrefix(siteId);
         StringBuilder builder = new StringBuilder(sitePrefix);
         builder.append(ZkPath.SERVICE.toString());
         return builder.toString();
+    }
+
+    private String getServicePath() {
+        return getServicePath(this.siteId);
     }
 
     private String getKindPath(String kind) {
@@ -618,18 +623,24 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return clazz.cast(proxy);
     }
 
+
+    private List<String> lookupServicePath(String serviceRoot) throws CoordinatorException {
+        return lookupServicePath(siteId, serviceRoot);
+    }
+    
     /**
      * Helper to retrieve zk service node children
      * Note that it could return an empty list if there's no ZNode under the specified path
      * 
+     * @param siteId 
      * @param serviceRoot
      *            path under /service
      * @return child node ids under /service/<serviceRoot>
      * @throws CoordinatorException
      */
-    private List<String> lookupServicePath(String serviceRoot) throws CoordinatorException {
+    private List<String> lookupServicePath(String siteId, String serviceRoot) throws CoordinatorException {
         List<String> services = null;
-        String fullPath = String.format("%1$s/%2$s", getServicePath(), serviceRoot);
+        String fullPath = String.format("%1$s/%2$s", getServicePath(siteId), serviceRoot);
         try {
             services = _zkConnection.curator().getChildren().forPath(fullPath);
         } catch (KeeperException.NoNodeException e) {
@@ -644,7 +655,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
         return services;
     }
-
+    
     /**
      * Convenience method for retrieving zk node data for a given service matching id at
      * /service/<serviceRoot>/<id>
@@ -655,14 +666,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      *            service UUID
      * @return zk node content if node exists. null if no node with given id / path exists
      */
-    private byte[] getServiceData(String serviceRoot, String id) {
+    private byte[] getServiceData(String siteId, String serviceRoot, String id) {
         byte[] data = null;
-        String sitePrefix = getSitePrefix();
         try {
             data = _zkConnection
                     .curator()
                     .getData()
-                    .forPath(String.format("%1$s/%2$s/%3$s", getServicePath(), serviceRoot, id));
+                    .forPath(String.format("%1$s/%2$s/%3$s", getServicePath(siteId), serviceRoot, id));
             return data;
         } catch (Exception e) {
             log.warn("e=", e);
@@ -670,11 +680,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return data;
     }
 
-    @Override
-    public List<Service> locateAllServices(String name, String version, String tag,
+    protected List<Service> locateAllServices(String siteId, String name, String version, String tag,
             String endpointKey) throws CoordinatorException {
         String serviceRoot = String.format("%1$s/%2$s", name, version);
-        List<String> servicePaths = lookupServicePath(serviceRoot);
+        List<String> servicePaths = lookupServicePath(siteId, serviceRoot);
 
         if (servicePaths.isEmpty()) {
             throw CoordinatorException.retryables.cannotLocateService(String.format("%1$s/%2$s",
@@ -686,7 +695,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         List<Service> filtered = new ArrayList<Service>(servicePaths.size());
         for (int i = 0; i < servicePaths.size(); i++) {
             String spath = servicePaths.get(i);
-            byte[] data = getServiceData(serviceRoot, spath);
+            byte[] data = getServiceData(siteId, serviceRoot, spath);
             if (data == null) {
                 continue;
             }
@@ -714,6 +723,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public List<Service> locateAllServices(String name, String version, String tag,
+            String endpointKey) throws CoordinatorException {
+        return locateAllServices(siteId, name, version, tag, endpointKey);
+    }
+    
+    @Override
     public List<Service> locateAllSvcsAllVers(String name) throws CoordinatorException {
         List<String> svcVerPaths = lookupServicePath(name);
         List<Service> allActiveSvcs = new ArrayList<>();
@@ -723,7 +738,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             List<String> servicePaths = lookupServicePath(serviceRoot);
 
             for (String spath : servicePaths) {
-                byte[] data = getServiceData(serviceRoot, spath);
+                byte[] data = getServiceData(this.siteId, serviceRoot, spath);
                 if (data == null) {
                     continue;
                 }
@@ -1125,6 +1140,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     @Override
     public ClusterInfo.ClusterState getControlNodesState() {
+        return getControlNodesState(this.siteId, getNodeCount());
+    }
+
+    @Override
+    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
         try {
             // get target repository and configVersion
             final RepositoryInfo targetRepository = getTargetInfo(RepositoryInfo.class);
@@ -1133,18 +1153,18 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
             // get control nodes' repository and configVersion info
             final Map<Service, RepositoryInfo> controlNodesInfo = getAllNodeInfos(
-                    RepositoryInfo.class, CONTROL_NODE_SYSSVC_ID_PATTERN);
+                    RepositoryInfo.class, CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             final Map<Service, ConfigVersion> controlNodesConfigVersions = getAllNodeInfos(
-                    ConfigVersion.class, CONTROL_NODE_SYSSVC_ID_PATTERN);
+                    ConfigVersion.class, CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
 
             return getControlNodesState(targetRepository, controlNodesInfo, targetProperty,
-                    controlNodesConfigVersions, targetPowerOffState);
+                    controlNodesConfigVersions, targetPowerOffState, nodeCount);
         } catch (Exception e) {
             log.info("Fail to get the control node information ", e);
             return null;
         }
     }
-
+    
     /**
      * Get all control nodes' state
      * 
@@ -1164,14 +1184,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             final Map<Service, RepositoryInfo> infos,
             final PropertyInfoRestRep targetPropertiesGiven,
             final Map<Service, ConfigVersion> configVersions,
-            final PowerOffState targetPowerOffState) {
+            final PowerOffState targetPowerOffState, 
+            int nodeCount) {
         if (targetGiven == null || targetPropertiesGiven == null || targetPowerOffState == null) {
             // only for first time target initializing
             return ClusterInfo.ClusterState.INITIALIZING;
         }
 
-        if (infos == null || infos.size() != getNodeCount() || configVersions == null
-                || configVersions.size() != getNodeCount()) {
+        if (infos == null || infos.size() != nodeCount || configVersions == null
+                || configVersions.size() != nodeCount) {
             return ClusterInfo.ClusterState.DEGRADED;
         }
 
@@ -1303,8 +1324,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     public <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
             Pattern nodeIdFilter) throws Exception {
+        return getAllNodeInfos(clazz, nodeIdFilter, this.siteId);
+    }
+    
+    private <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
+            Pattern nodeIdFilter, String siteId) throws Exception {
         final Map<Service, T> infos = new HashMap<Service, T>();
-        List<Service> allSysSvcs = locateAllServices(sysSvcName, sysSvcVersion, (String) null, null);
+        List<Service> allSysSvcs = locateAllServices(siteId, sysSvcName, sysSvcVersion, (String) null, null);
         for (Service svc : allSysSvcs) {
             if (nodeIdFilter.matcher(svc.getId()).matches()) {
                 try {
@@ -1320,7 +1346,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
         return infos;
     }
-
+    
     /**
      * Common method to compare current version with target's current version
      * 

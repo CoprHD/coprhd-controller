@@ -8,9 +8,11 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.placement.SRDFScheduler;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -161,12 +163,14 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
             throw IngestionException.exceptions.unmanagedVolumeRDFGroupMissing(unManagedVolume.getNativeGuid());
         }
         RemoteDirectorGroup rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, rdfGroupId);
+        // name check, "V-<projectname>" or "<projectname>"
+        StringSet grpNames = SRDFScheduler.getQualifyingRDFGroupNames(project);
         // Validate the project Name with the unmanaged volume rdfGroup name.
-        if (null == rdfGroup.getLabel() || !rdfGroup.getLabel().equalsIgnoreCase(project.getLabel())) {
-            _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {} due to mismatch in rdfgroup name",
+        if (null == rdfGroup.getLabel() || !grpNames.contains(rdfGroup.getLabel())) {
+            _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {} due to mismatch in RDF group name",
                     unManagedVolume.getNativeGuid());
             throw IngestionException.exceptions.unmanagedVolumeRDFGroupMismatch(unManagedVolume.getNativeGuid(),
-                    rdfGroup.getLabel(), project.getLabel());
+                    rdfGroup.getLabel(), project.getLabel(), StringUtils.join(grpNames, ","));
         }
 
         String type = PropertySetterUtil.extractValueFromStringSet(

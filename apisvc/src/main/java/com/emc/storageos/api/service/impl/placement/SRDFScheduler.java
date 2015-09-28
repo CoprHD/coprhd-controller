@@ -5,6 +5,22 @@
 
 package com.emc.storageos.api.service.impl.placement;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -27,21 +43,6 @@ import com.emc.storageos.volumecontroller.SRDFRecommendation.Target;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * Advanced SRDF based scheduling function for block storage. StorageScheduler is done based on
@@ -965,7 +966,7 @@ public class SRDFScheduler implements Scheduler {
      *            project requested
      * @return string of a qualifying name
      */
-    private StringSet getQualifyingRDFGroupNames(final Project project) {
+    public static StringSet getQualifyingRDFGroupNames(final Project project) {
         StringSet names = new StringSet();
         String grpName1 = "V-"
                 + project.getLabel().replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER);

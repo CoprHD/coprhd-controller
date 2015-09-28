@@ -43,6 +43,7 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CifsShareUtility;
 import com.emc.storageos.api.service.impl.resource.utils.ExportVerificationUtility;
+import com.emc.storageos.api.service.impl.resource.utils.NfsACLUtility;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
@@ -106,6 +107,8 @@ import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemSnapshotParam;
+import com.emc.storageos.model.file.NfsACL;
+import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
 import com.emc.storageos.model.file.QuotaDirectoryList;
 import com.emc.storageos.model.file.ShareACL;
@@ -1991,6 +1994,33 @@ public class FileService extends TaskResourceService {
                 fs.getId().toString(), device.getId().toString(), shareName);
 
         return toTask(fs, taskId, op);
+    }
+
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/acl")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public NfsACLs getFileSahreACLs(@PathParam("id") URI id,
+            @PathParam("shareName") String shareName) {
+
+        _log.info("Request recieved to get ACLs with Id: {}  shareName: {}",
+                id, shareName);
+
+        // Validate the FS id
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        ArgValidator.checkFieldNotNull(shareName, "shareName");
+        FileShare fs = queryResource(id);
+
+        NfsACLs acls = new NfsACLs();
+        NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, shareName);
+        List<NfsACL> shareAclList = util.queryExistingNfsACLs();
+
+        _log.info("Number of existing ACLs found : {} ", shareAclList.size());
+        if (!shareAclList.isEmpty()) {
+            acls.setNfsACLs(shareAclList);
+        }
+        return acls;
+
     }
 
     private void copyPropertiesToSave(FileExportRule orig, ExportRule dest, FileShare fs) {

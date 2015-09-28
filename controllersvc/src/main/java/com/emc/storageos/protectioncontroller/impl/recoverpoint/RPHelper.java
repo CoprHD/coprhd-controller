@@ -208,7 +208,9 @@ public class RPHelper {
             List<Volume> allVolsInRSet = getVolumesInRSet(volume);
             for (Volume vol : allVolsInRSet) {
                 volumeIDs.add(vol.getId());
-                protectionSetIds.add(vol.getProtectionSet().getURI());
+                if (vol.getProtectionSet() != null && !NullColumnValueGetter.isNullURI(vol.getProtectionSet().getURI())) {
+                    protectionSetIds.add(vol.getProtectionSet().getURI());
+                }
             }
         }
 
@@ -1517,6 +1519,11 @@ public class RPHelper {
                         protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
                         dbClient.persistObject(protectionSet);
                     }
+                }
+
+                // remove consistency group from volume
+                if (volume.getConsistencyGroup() != null) {
+                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                 }
             }
 

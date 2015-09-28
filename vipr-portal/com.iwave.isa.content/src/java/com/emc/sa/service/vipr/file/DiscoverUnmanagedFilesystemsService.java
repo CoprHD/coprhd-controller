@@ -15,7 +15,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.file.tasks.DiscoverUnmanagedFilesystems;
 import com.emc.sa.service.vipr.file.tasks.GetUnmanagedFilesystemsForStorageSystem;
 import com.emc.sa.service.vipr.tasks.GetStorageSystems;
-import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 
 @Service("DiscoverUnmanagedFilesystems")
@@ -47,7 +47,7 @@ public class DiscoverUnmanagedFilesystemsService extends ViPRService {
     private int countUnmanagedFileSystems(String storageSystem) {
         int total = 0;
 
-        List<NamedRelatedResourceRep> unmanaged =
+        List<RelatedResourceRep> unmanaged =
                 execute(new GetUnmanagedFilesystemsForStorageSystem(storageSystem));
         if (unmanaged != null) {
             total = unmanaged.size();

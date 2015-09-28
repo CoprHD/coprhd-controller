@@ -107,9 +107,8 @@ public class VplexBackendIngestionContext {
     public void discover() {
         this.setDiscoveryInProgress(true);
         this.getUnmanagedBackendVolumes();
-        // disabled for COP-16754
-        // this.getUnmanagedFullClones();
         this.getUnmanagedVplexMirrors();
+        this.getUnmanagedVplexClones();
     }
 
     /**
@@ -176,8 +175,7 @@ public class VplexBackendIngestionContext {
                     }
                 }
                 if (!umvUris.isEmpty()) {
-                    boolean isLocal = isLocal();
-                    if ((isLocal && umvUris.size() == 1) || (!isLocal && umvUris.size() == 2)) {
+                    if ((isLocal() && umvUris.size() == 1) || (isDistributed() && umvUris.size() == 2)) {
                         // only return vols from the database if we have the correct number
                         // of backend volumes for this type of unmanaged vplex virtual volume
                         unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, umvUris, true);
@@ -252,7 +250,7 @@ public class VplexBackendIngestionContext {
                 parentVol.add(_unmanagedVirtualVolume.getNativeGuid());
                 backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), parentVol);
                 
-                if (!isLocal()) {
+                if (isDistributed()) {
                     // determine cluster location of distributed component storage volume leg
                     VPlexStorageVolumeInfo storageVolume = 
                             getBackendVolumeWwnToInfoMap().get(backendVol.getWwn());
@@ -508,15 +506,6 @@ public class VplexBackendIngestionContext {
                 }
                 if (null != unmanagedFullClones && !unmanagedFullClones.isEmpty()) {
                     _logger.info("found full clones: " + unmanagedFullClones);
-                    
-                    // TODO: this is temporary until we can support
-                    // clones on both legs of distributed volumes
-                    // still want to collect the data for testing, though
-                    if (!this.isLocal()) {
-                        throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(
-                                "currently can't ingest clones on distributed volumes, sorry");
-                    }
-                    
                     return unmanagedFullClones;
                 }
             }
@@ -594,15 +583,6 @@ public class VplexBackendIngestionContext {
         _logger.info("unmanaged full clones found: " + unmanagedFullClones);
         _tracker.fetchFullClones = System.currentTimeMillis() - start;
         if (!unmanagedFullClones.isEmpty()) {
-            
-            // TODO: this is temporary until we can support
-            // clones on both legs of distributed volumes
-            // still want to collect the data for testing, though
-            if (!this.isLocal()) {
-                throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(
-                        "currently can't ingest clones on distributed volumes, sorry");
-            }
-            
             StringSet cloneEntries = new StringSet();
             for (Entry<UnManagedVolume, UnManagedVolume> cloneEntry : unmanagedFullClones.entrySet()) {
                 cloneEntries.add(cloneEntry.getKey().getNativeGuid() + "=" + cloneEntry.getValue().getNativeGuid());
@@ -734,15 +714,10 @@ public class VplexBackendIngestionContext {
                         unmanagedMirrors.put(associatedVolumeMirror, slotToDeviceMap.get("1").getPath());
                         
                         // 3. update the source volume with the target mirror information
-                        StringSet set = extractValuesFromStringSet(SupportedVolumeInformation.MIRRORS.toString(), 
-                                associatedVolumeSource.getVolumeInformation());
-                        if (null == set) {
-                            set = new StringSet();
-                        }
+                        StringSet set = new StringSet();
                         set.add(associatedVolumeMirror.getNativeGuid());
                         _logger.info("adding mirror set {} to source unmanaged volume {}", 
                                 set, associatedVolumeSource);
-                        associatedVolumeSource.putVolumeInfo(SupportedVolumeInformation.MIRRORS.toString(), set);
                         associatedVolumeSource.putVolumeInfo(
                                 SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_TARGET_VOLUME.toString(), set);
                         
@@ -975,6 +950,15 @@ public class VplexBackendIngestionContext {
      */
     public boolean isLocal() {
         return VPlexApiConstants.LOCAL_VIRTUAL_VOLUME.equals(getLocality());
+    }
+
+    /**
+     * Returns true if the virtual volume is a distributed volume.
+     * 
+     * @return true if the virtual volume is a distributed volume
+     */
+    public boolean isDistributed() {
+        return !isLocal();
     }
 
     /**

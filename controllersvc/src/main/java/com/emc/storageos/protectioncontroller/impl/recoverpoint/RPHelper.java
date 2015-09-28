@@ -1466,7 +1466,7 @@ public class RPHelper {
                         protectionSetVolumeIdsToRemove.add(rpTargetId);
                         Volume targetVol = rollbackVolume(URI.create(rpTargetId), dbClient);
                         // Rollback any target journal volumes that were created
-                        if (!NullColumnValueGetter.isNullURI(targetVol.getRpJournalVolume())) {
+                        if (targetVol != null && !NullColumnValueGetter.isNullURI(targetVol.getRpJournalVolume())) {
                             if (lastSourceVolumeInCG) {
                                 protectionSetVolumeIdsToRemove.add(targetVol.getRpJournalVolume().toString());
                                 rollbackVolume(targetVol.getRpJournalVolume(), dbClient);
@@ -1543,7 +1543,7 @@ public class RPHelper {
      */
     public static Volume rollbackVolume(URI volumeURI, DbClient dbClient) {
         Volume volume = dbClient.queryObject(Volume.class, volumeURI);
-        if (!volume.getInactive()) {
+        if (volume != null && !volume.getInactive()) {
             _log.info(String.format("Rollback volume [%s]...", volume.getLabel()));
             volume.setInactive(true);
             volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());

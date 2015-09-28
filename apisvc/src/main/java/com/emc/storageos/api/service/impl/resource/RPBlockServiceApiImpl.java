@@ -1593,6 +1593,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean isChangeVpool = (rpProtectionRec.getVpoolChangeVolume() != null);
         boolean isChangeVpoolForProtectedVolume = rpProtectionRec.isVpoolChangeProtectionAlreadyExists();
 
+        // for change vpool, save off the original source volume in case we need to roll back
+        URI oldVpoolId = null;
+        if (isChangeVpool || isChangeVpoolForProtectedVolume) {
+            Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, rpProtectionRec.getVpoolChangeVolume());
+            oldVpoolId = changeVpoolVolume.getVirtualPool();
+        }
+
         try {
             // Prepare the volumes
             prepareRecommendedVolumes(param, task, taskList, project,
@@ -1640,7 +1647,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // We want to return the volume back to it's original state.
             if (isChangeVpool || isChangeVpoolForProtectedVolume) {
                 Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, rpProtectionRec.getVpoolChangeVolume());
-                VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, changeVpoolVolume.getVirtualPool());
+                VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolId);
                 RPHelper.rollbackProtectionOnVolume(changeVpoolVolume, oldVpool, _dbClient);
             }
 
@@ -1864,8 +1871,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, vpoolChangeParam.getConsistencyGroup());
 
+        // Now that we have a handle on the current vpool, let's set the new vpool on the volume.
+        // The volume will not be persisted just yet but we need to have the new vpool to
+        // properly make placement decisions and to add reference to the new vpool to the
+        // recommendation objects that will be created.
+        URI currentVpool = volume.getVirtualPool();
+        volume.setVirtualPool(newVpool.getId());
         List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(volume, newVpool, vpoolChangeParam,
                 capabilities);
+        volume.setVirtualPool(currentVpool);
 
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolume();
@@ -1909,14 +1923,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         if ((DiscoveredDataObject.Type.vplex.name().equals(systemType))
                 || (DiscoveredDataObject.Type.vmax.name().equals(systemType))
                 || (DiscoveredDataObject.Type.vnxblock.name().equals(systemType))) {
+
             // Get the current vpool
             VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-
-            // Now that we have a handle on the current vpool, let's set the new vpool on the volume.
-            // The volume will not be persisted just yet but we need to have the new vpool to
-            // properly make placement decisions and to add reference to the new vpool to the
-            // recommendation objects that will be created.
-            volume.setVirtualPool(newVpool.getId());
 
             if (volume.checkForRp()
                     && !VirtualPool.vPoolSpecifiesMetroPoint(currentVpool)
@@ -2973,7 +2982,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         Project project = _dbClient.queryObject(Project.class, volume.getProject());
 
+        // Now that we have a handle on the current vpool, let's set the new vpool on the volume.
+        // The volume will not be persisted just yet but we need to have the new vpool to
+        // properly make placement decisions and to add reference to the new vpool to the
+        // recommendation objects that will be created.
+        URI currentVpool = volume.getVirtualPool();
+        volume.setVirtualPool(newVpool.getId());
         List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(volume, newVpool, vpoolChangeParam, null);
+        volume.setVirtualPool(currentVpool);
 
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolume();

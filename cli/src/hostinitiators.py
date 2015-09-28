@@ -78,7 +78,7 @@ class HostInitiator(object):
 
         hostUri = self.get_host_uri(hostName)
         initiatorList = self.get_host_object().list_initiators(hostUri)
-
+       
         # Match the name and return uri
         for initiator in initiatorList:
             initiatorDetails = self.show_by_uri(initiator['id'])
@@ -100,7 +100,6 @@ class HostInitiator(object):
     def create(self, sync, hostlabel, protocol, initiatorwwn, portwwn, initname):
 
         hostUri = self.get_host_uri(hostlabel)
-
         request = {'protocol': protocol,
                    'initiator_port': portwwn,
                    'name': initname
@@ -110,13 +109,18 @@ class HostInitiator(object):
             request['initiator_node'] = initiatorwwn
 
         body = json.dumps(request)
+      
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
             HostInitiator.URI_HOST_LIST_INITIATORS.format(hostUri),
             body)
         o = common.json_decode(s)
-        return self.check_for_sync(o, sync)
+         
+        
+        obj = self.check_for_sync(o, sync)
+        return obj
+        
 
     """
     Initiator update operation
@@ -353,14 +357,18 @@ class HostInitiator(object):
     def list_tasks(self, host_name, initiatorportwwn, task_id=None):
 
         uri = self.query_by_portwwn(initiatorportwwn, host_name)
+        
+      
 
         hostinitiator = self.show_by_uri(uri)
         if(hostinitiator['initiator_port'] == initiatorportwwn):
             if(not task_id):
+                
                 return common.get_tasks_by_resourceuri(
                     "initiator", uri, self.__ipAddr, self.__port)
 
             else:
+                
                 res = common.get_task_by_resourceuri_and_taskId(
                     "initiator", uri, task_id,
                     self.__ipAddr, self.__port)
@@ -376,12 +384,16 @@ class HostInitiator(object):
         if(sync):
             if(len(result["resource"]) > 0):
                 resource = result["resource"]
+                
                 return (
                     common.block_until_complete("initiator", resource["id"],
                                                 result["id"], self.__ipAddr,
                                                 self.__port)
+                                                
+                                    
                 )
             else:
+                
                 raise SOSError(
                     SOSError.SOS_FAILURE_ERR,
                     "error: task list is empty, no task response found")
@@ -818,7 +830,9 @@ def host_initiator_list_tasks(args):
             if(res):
                 return common.format_json_object(res)
         elif(args.hostlabel):
+           
             res = obj.list_tasks(args.hostlabel, args.initiatorportwwn)
+           
             if(res and len(res) > 0):
                 if(args.verbose):
                     return common.format_json_object(res)

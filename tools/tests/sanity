@@ -2562,6 +2562,17 @@ recoverpoint_vpool_change_test()
     run volume change_cos ${PROJECT}/${base_volume}-1 ${rp_vpool}
 }
 
+recoverpoint_add_journal_volume()
+{
+   copy_name=${1}
+   journ_varray=${2} 
+   journ_vpool=${3}     
+   rp_cg=${4}
+
+   echo '*** RP add journal volume ***'
+   run volume add_journal ${copy_name} $PROJECT ${journ_varray} ${journ_vpool} 10GB --consistencyGroup ${rp_cg} --count=1  
+}
+
 # Simulator setup
 recoverpoint_simulator_setup()
 {
@@ -2840,6 +2851,9 @@ recoverpoint_tests()
         if [ "$RP_RUN_VOLUME_CREATE_ONLY" = "0" ]; then
             if [ "$RP_TESTS" = "1" ]; then
                 echo 'RP tests...'
+		# Add Journal Test
+		recoverpoint_add_journal_volume ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
+		
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier} ${rp_src_varray}
 
@@ -2853,7 +2867,10 @@ recoverpoint_tests()
             # RP+VPLEX test cases
             if [ "$RPVPLEX_TESTS" = "1" ]; then
                 echo 'RP+VPLEX tests...'
-                # Snapshot/Bookmark Test
+                # Add Journal Test
+		recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+		
+		# Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier} ${rpvplex_src_varray}
 
                 # Failover Test
@@ -2866,6 +2883,9 @@ recoverpoint_tests()
             # MP test cases
             if [ "$MP_TESTS" = "1" ]; then
                 echo 'MetroPoint tests...'
+		# Add Journal Test
+		recoverpoint_add_journal_volume ${mp_active_tgt_varray} ${mp_active_tgt_varray} ${mp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+		
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier} ${mp_src_varray}
 

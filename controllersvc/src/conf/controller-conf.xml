@@ -726,6 +726,11 @@
         </property>
     </bean>
 
+    <bean id="replicaDeviceController" class="com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController">
+        <property name="dbClient" ref="dbclient" />
+        <property name="blockDeviceController" ref="blockDeviceController" />
+    </bean>
+
     <bean id="fileDeviceController" class="com.emc.storageos.volumecontroller.impl.FileDeviceController">
         <property name="devices">
             <map>
@@ -848,6 +853,7 @@
                 <ref bean="exportWorkflowEntryPoints"/>
                 <ref bean="blockOrchestrationDeviceController"/>
                 <ref bean="srdfDeviceController" />
+                <ref bean="replicaDeviceController" />
                 <ref bean="snapshotWorkflowEntryPoints"/>
                 <ref bean="vplexConsistencyGroupManager"/>
                 <ref bean="rpVplexConsistencyGroupManager"/>
@@ -1322,6 +1328,7 @@
         <property name="vplexDeviceController" ref="vplexDeviceController" />
         <property name="rpDeviceController" ref="rpProtection" />
         <property name="srdfDeviceController" ref="srdfDeviceController" />
+        <property name="replicaDeviceController" ref="replicaDeviceController" />
         <property name="locker" ref="locker"/>
     </bean>
 

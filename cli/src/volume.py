@@ -765,7 +765,7 @@ class Volume(object):
         return o
 
     def unmanaged_volume_ingest(self, tenant, project,
-                                varray, vpool, volumes):
+                                varray, vpool, volumes, ingestmethod):
         '''
         This function is to ingest given unmanaged volumes
         into ViPR.
@@ -781,15 +781,20 @@ class Volume(object):
         from virtualarray import VirtualArray
         varray_obj = VirtualArray(self.__ipAddr, self.__port)
         varray_uri = varray_obj.varray_query(varray)
+        
+        if(ingestmethod is None):
+            ingestmethod = "Full"
 
         request = {
             'vpool': vpool_uri,
             'varray': varray_uri,
+            'vplexIngestionMethod': ingestmethod,
             'project': project_uri,
             'unmanaged_volume_list': volumes
         }
 
         body = json.dumps(request)
+        
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
@@ -799,7 +804,7 @@ class Volume(object):
         return o
 
     def unmanaged_exported_volume_ingest(self, tenant, project,
-                                varray, vpool, volumes, host, cluster):
+                                varray, vpool, volumes, host, cluster, ingestmethod):
         '''
         This function is to ingest given unmanaged volumes
         into ViPR.
@@ -815,9 +820,13 @@ class Volume(object):
         from virtualarray import VirtualArray
         varray_obj = VirtualArray(self.__ipAddr, self.__port)
         varray_uri = varray_obj.varray_query(varray)
+        
+        if(ingestmethod is None):
+            ingestmethod = "Full"
 
         request = {
             'vpool': vpool_uri,
+            'vplexIngestionMethod': ingestmethod, 
             'varray': varray_uri,
             'project': project_uri,
             'unmanaged_volume_list': volumes
@@ -1479,6 +1488,24 @@ class Volume(object):
             return self.check_for_sync(task,sync)
         else:
             return o    
+
+			
+    #To check whether a cloned volume is in detachable state or not
+    def is_volume_detachable(self, name):
+        
+        volumeUri = self.volume_query(name)
+        vol = self.show_by_uri(volumeUri)
+		#Filtering based on "replicaState" attribute value of Cloned volume.
+		#If "replicaState" value is "SYNCHRONIZED" then only Cloned volume would be in detachable state.
+        if(vol and 'protection' in vol and
+            'full_copies' in vol['protection'] and
+            'replicaState' in vol['protection']['full_copies']):
+            if(vol['protection']['full_copies']['replicaState'] == 'SYNCHRONIZED'):
+                return True
+			else:
+                return False	
+        else:
+            return False
         
         
     def volume_clone_deactivate(self, resourceUri, name, sync):
@@ -2670,6 +2697,12 @@ def unmanaged_parser(subcommand_parsers, common_parser):
                                 metavar='<cluster name>',
                                 dest='cluster',
                                 help='Name of cluster')
+    ingest_parser.add_argument('-ingestmethod', '-inmd',
+                                metavar='<ingest method>',
+                                dest='ingestmethod',
+                                choices = ["Full" ,"VirtualVolumesOnly"],
+                                default = "Full" ,
+                                help='Ingest Method')
 
     # show unmanaged volume
     umshow_parser = subcommand_parsers.add_parser('show',
@@ -2705,11 +2738,11 @@ def unmanaged_volume_ingest(args):
                 obj.unmanaged_exported_volume_ingest(args.tenant, args.project,
                                           args.varray, args.vpool,
                                           args.volumes, args.host,
-                                          args.cluster)
+                                          args.cluster ,args.ingestmethod)
             else:
                 obj.unmanaged_volume_ingest(args.tenant, args.project,
                                           args.varray, args.vpool,
-                                          args.volumes)
+                                          args.volumes,args.ingestmethod)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "ingest",

@@ -2428,10 +2428,10 @@ public class RecoverPointScheduler implements Scheduler {
             return buildRpRecommendation(storageSystem.getLabel(), journalVarray, journalVpool, journalStoragePool, newCapabilities,
                     newCapabilities.getResourceCount(), internalSiteName,
                     storageSystemURI, storageSystem.getSystemType(), ps);
-        } else {
-            // Couldnt find a journal recommendation, handle appropriately.
-        	throw APIException.badRequests.unableToFindJournalRecommendation();
-        }
+        } 
+       
+        // Couldnt find a journal recommendation, throw an exception
+    	throw APIException.badRequests.unableToFindJournalRecommendation(internalSiteName);       
     }
 
     /**
@@ -2807,7 +2807,7 @@ public class RecoverPointScheduler implements Scheduler {
         for (Recommendation rec : recs) {
             StoragePool existingTargetPool = dbClient.queryObject(StoragePool.class, rec.getSourceStoragePool());
             int count = Math.abs((int) (existingTargetPool.getFreeCapacity() / (sizeInKB)));
-           buff.append(String.format("%nRP Placement (Already placed) : # of resources of size %sGB that pool %s can accomodate: %s",
+           buff.append(String.format("%nRP Placement (Already placed) : # of resources of size %sGB that pool %s can accomodate: %d",
                     SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB).toString(), existingTargetPool.getLabel(), count));
             if (count >= requestedCount + rec.getResourceCount()) {
                 recommendations.add(rec);

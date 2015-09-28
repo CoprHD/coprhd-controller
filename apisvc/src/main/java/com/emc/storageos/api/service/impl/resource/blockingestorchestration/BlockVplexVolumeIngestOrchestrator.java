@@ -266,7 +266,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
         // validate that there are no array-based backend-only volume clones.
         // that is, if there's a clone, it should have a virtual volume in 
-        // front of it, otherwise, we can ingest it.
+        // front of it, otherwise, we can't ingest it.
         if (context.getUnmanagedBackendOnlyClones().size() > 0) {
             List<String> cloneInfo = new ArrayList<String>();
             for (Entry<UnManagedVolume, Set<UnManagedVolume>> cloneEntry : context.getUnmanagedBackendOnlyClones().entrySet()) {

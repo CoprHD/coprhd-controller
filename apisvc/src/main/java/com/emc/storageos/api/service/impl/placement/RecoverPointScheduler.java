@@ -2678,8 +2678,8 @@ public class RecoverPointScheduler implements Scheduler {
             // pool should be capable of satisfying atleast one resource of the specified size.
             if (count >= 1) {
                 if (recommendedPool == null) {
-                	buff.append(String.format("%nRP Placement : # of resources of size %sGB that pool %s can accomodate: %s",
-                            SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB).toString(), storagePool.getLabel(), count));
+                	buff.append(String.format("%nRP Placement : # of resources of size %dGB that pool %s can accomodate: %s",
+                            SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB), storagePool.getLabel(), count));
                     // Pool not in any recommendation thus far, create a new recommendation
                     Recommendation recommendation = new Recommendation();
                     recommendation.setSourceStoragePool(storagePool.getId());
@@ -2751,8 +2751,8 @@ public class RecoverPointScheduler implements Scheduler {
                 if (journalRec.getInternalSiteName().equals(internalSiteName)) {
                     StoragePool existingTargetPool = dbClient.queryObject(StoragePool.class, journalRec.getSourceStoragePool());
                     int count = Math.abs((int) (existingTargetPool.getFreeCapacity() / (sizeInKB)));
-                    _log.info(String.format("%nRP Placement : # of resources of size %sGB that pool %s can accomodate: %s%n",
-                            SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB).toString(), existingTargetPool.getLabel(), count));
+                    _log.info(String.format("%nRP Placement : # of resources of size %dGB that pool %s can accomodate: %s%n",
+                            SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB), existingTargetPool.getLabel(), count));
                     if (count >= requestedCount + journalRec.getResourceCount()) {
                         recommendations.add(journalRec);
                     }

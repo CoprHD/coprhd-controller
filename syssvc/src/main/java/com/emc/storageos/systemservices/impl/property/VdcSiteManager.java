@@ -376,7 +376,7 @@ public class VdcSiteManager extends AbstractManager {
 
     private boolean isStandByIPAddressKey(String key) {
         String myVdcId = targetVdcPropInfo.getProperty(Constants.MY_VDC_ID_KEY);
-        return key.contains(myVdcId) && key.contains("standby_network") && (key.endsWith("ipaddr") || key.endsWith("ipaddr6"));
+        return key.contains(myVdcId) && key.matches(Constants.STANDBY_PROPERTY_REGEX);
     }
 
     private boolean isIPv6Address(String addr) {

@@ -160,7 +160,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         try {
             String hostName = null;
             String clusterName = null;
-            client = getXtremIOClient(storage);
+            client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             Iterator<Initiator> iniItr = initiators.iterator();
@@ -235,7 +235,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         try {
             _log.info("Refreshing Initiator labels in ViPR.. ");
-            XtremIOClient client = getXtremIOClient(storage);
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo(xioClusterName);
             List<Initiator> initiatorObjs = new ArrayList<Initiator>();
@@ -279,7 +279,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         try {
             String hostName = null;
             String clusterName = null;
-            client = getXtremIOClient(storage);
+            client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             for (Initiator initiator : initiators) {
@@ -520,7 +520,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         try {
             String hostName = null;
             String clusterName = null;
-            client = getXtremIOClient(storage);
+            client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             _log.info("Finding re-usable IGs available on Array {}", storage.getNativeGuid());

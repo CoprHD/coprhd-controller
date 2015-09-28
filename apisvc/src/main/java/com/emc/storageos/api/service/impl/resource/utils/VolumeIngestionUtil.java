@@ -9,13 +9,11 @@ import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -41,6 +39,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -51,7 +50,6 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -77,7 +75,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.volumecontroller.impl.plugins.VPlexCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -683,6 +680,58 @@ public class VolumeIngestionUtil {
         String status = volume.getVolumeCharacterstics()
                 .get(SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString());
         return TRUE.equals(status);
+    }
+    
+    /**
+     * Returns an UnManagedVolume object if the blockObject is a VPLEX backend volume.
+     * Otherwise, returns null;
+     * 
+     * @param blockObject the block object to check
+     * @param dbClient a reference to the database client
+     * @return a UnManagedVolume object
+     */
+    public static UnManagedVolume getUnManagedVolumeIfVplexBackend(BlockObject blockObject, DbClient dbClient) {
+        String unmanagedVolumeGUID = blockObject.getNativeGuid().replace(VOLUME, UNMANAGEDVOLUME);
+        @SuppressWarnings("deprecation")
+        List<URI> unmanagedVolumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getVolumeInfoNativeIdConstraint(unmanagedVolumeGUID));
+        List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(UnManagedVolume.class, unmanagedVolumeUris);
+        if (unManagedVolumes != null && !unManagedVolumes.isEmpty()) {
+            UnManagedVolume unManagedVolume = unManagedVolumes.get(0);
+            if (isVplexBackendVolume(unManagedVolume)) {
+                _logger.info("block object {} is a VPLEX backend volume", blockObject.getLabel());
+                return unManagedVolume;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Returns the root parent virtual Volume object if the given blockObject is a
+     * VPLEX backend volume.  Or null if the blockObject is not a VPLEX
+     * backend volume.
+     * 
+     * @param blockObject the block object to check
+     * @param dbClient a reference to the database client
+     * @return a VPLEX virtual Volume parent object
+     */
+    public static Volume checkForVplexVirtualVolumeParent(BlockObject blockObject, DbClient dbClient) {
+        UnManagedVolume unManagedVolume = getUnManagedVolumeIfVplexBackend(blockObject, dbClient);
+        Volume parentVirtualVolume = null;
+
+        if (null != unManagedVolume) {
+            // this blockObject is a VPLEX backend volume
+            String vvolNativeGuid = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(),
+                    unManagedVolume.getVolumeInformation());
+            parentVirtualVolume = checkIfVolumeExistsInDB(vvolNativeGuid, dbClient);
+            if (null != parentVirtualVolume) {
+                _logger.info("returning vplex parent virtual volume {} for backend volume {}", 
+                        parentVirtualVolume.getLabel(), blockObject.getLabel());
+            }
+        }
+
+        return parentVirtualVolume;
     }
 
     public static boolean isSnapshot(UnManagedVolume volume) {
@@ -2092,8 +2141,13 @@ public class VolumeIngestionUtil {
         List<URI> unmanagedVolumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVolumeInfoNativeIdConstraint(unmanagedVolumeGUID));
         List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(UnManagedVolume.class, unmanagedVolumeUris);
+        boolean isVplexBackendVolume = false;
         if (unManagedVolumes != null && !unManagedVolumes.isEmpty()) {
             UnManagedVolume unManagedVolume = unManagedVolumes.get(0);
+            
+            // Check if this is a VPLEX backend volume, which we need to treat a little differently
+            isVplexBackendVolume = VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume);
+            
             // Get the exportGroupType from the unManagedVolume
             String exportGroupType = unManagedVolume.getVolumeCharacterstics().get(
                     SupportedVolumeCharacterstics.EXPORTGROUP_TYPE.toString());
@@ -2144,9 +2198,11 @@ public class VolumeIngestionUtil {
                     for (ExportGroup exportGroup : exportGroups) {
                         _logger.info("Processing exportGroup {} to add block object", exportGroup.getId());
                         // only add to those export groups whose project and varray matches the block object
+                        boolean exportGroupTypeMatches = (null != exportGroupType) 
+                                && exportGroupType.equalsIgnoreCase(exportGroup.getType());
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
                                 exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
-                                (null != exportGroupType && exportGroupType.equalsIgnoreCase(exportGroup.getType()))) {
+                                (exportGroupTypeMatches || isVplexBackendVolume)) {
                             _logger.info("Adding block object {} to export group {}", blockObject.getNativeGuid(), exportGroup.getLabel());
                             exportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
                         }
@@ -2172,6 +2228,11 @@ public class VolumeIngestionUtil {
         }
 
         blockObject.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+
+        if (isVplexBackendVolume) {
+            // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
+            blockObject.addInternalFlags(Flag.INTERNAL_OBJECT);
+        }
     }
 
     public static BlockObject getBlockObject(String nativeGUID, DbClient dbClient) {

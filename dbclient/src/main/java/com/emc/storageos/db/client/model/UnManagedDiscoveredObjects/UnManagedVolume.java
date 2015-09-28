@@ -115,6 +115,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         VPLEX_CLUSTER_IDS("vplexClusters", "vplexClusters"),
         // unmanaged volume native GUIDs for the vplex backend volumes
         VPLEX_BACKEND_VOLUMES("vplexBackendVolumes", "vplexBackendVolumes"),
+        // vplex cluster id for a vplex backend volume
+        VPLEX_BACKEND_CLUSTER_ID("vplexBackendClusterId", "vplexBackendClusterId"),
         // native GUID of the VPLEX virtual volume containing this volume
         VPLEX_PARENT_VOLUME("vplexParentVolume", "vplexParentVolume"),
         // map of backend clone volume GUID to virtual volume GUID 

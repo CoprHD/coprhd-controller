@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2008-2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
 
-import com.emc.storageos.db.client.model.Site;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteParam;
+import com.emc.storageos.model.dr.SiteRestRep;
 
 public class SiteMapper {
     public SiteRestRep map(Site from) {
@@ -24,7 +24,6 @@ public class SiteMapper {
             return;
         }
         
-        mapDataObjectFields(from, to);
         to.setUuid(from.getUuid());
         to.setVdcId(from.getVdc());
         to.setName(from.getName());
@@ -50,7 +49,4 @@ public class SiteMapper {
         to.setStandbyShortId(from.getShortId());
     }
 
-    protected void mapDataObjectFields(Site from, SiteRestRep to) {
-        DbObjectMapper.mapDataObjectFields(from, to);
-    }
 }

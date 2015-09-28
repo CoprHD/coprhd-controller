@@ -61,7 +61,6 @@ public class ResourceTypeMapping {
         classMapping.put(INITIATOR, Initiator.class);
         classMapping.put(IPINTERFACE, IpInterface.class);
         classMapping.put(VCENTERDATACENTER, VcenterDataCenter.class);
-        classMapping.put(SITE, Site.class);
         classMapping.put(AUTO_TIERING_POLICY, AutoTieringPolicy.class);
         classMapping.put(MIGRATION, Migration.class);
         classMapping.put(UNMANAGED_VOLUMES, UnManagedVolume.class);

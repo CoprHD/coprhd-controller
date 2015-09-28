@@ -4,19 +4,24 @@
  */
 package com.emc.storageos.db.client.util;
 
-import java.net.*;
-import java.util.*;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.model.Site;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
@@ -168,18 +173,16 @@ public class VdcConfigUtil {
         String primarySiteId = coordinator.getPrimarySiteId();
         
         // Sort the sites by creation time - ascending order
-        URIQueryResultList standbySiteIds = new URIQueryResultList();
-        dbclient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
-                standbySiteIds);
         List<Site> siteList = new ArrayList<Site>();
-        for (URI siteId : standbySiteIds) {
-            Site site = dbclient.queryObject(Site.class, siteId);
+        for (String siteUUID : vdc.getSiteUUIDs()) {
+            Site site = null;
+            site = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_KIND);
             siteList.add(site);
         }
         Collections.sort(siteList, new Comparator<Site>() {
             @Override
             public int compare(Site a, Site b) {
-                return (int)(a.getCreationTime().getTime().getTime() - b.getCreationTime().getTime().getTime());
+                return (int)(a.getCreationTime() - b.getCreationTime());
             }
         });
         
@@ -190,8 +193,9 @@ public class VdcConfigUtil {
             }
             
             int standbyNodeCnt = 0;
-            StringMap standbyIPv4Addrs = site.getHostIPv4AddressMap();
-            StringMap standbyIPv6Addrs = site.getHostIPv6AddressMap();
+            Map<String, String> standbyIPv4Addrs = site.getHostIPv4AddressMap();
+            Map<String, String> standbyIPv6Addrs = site.getHostIPv6AddressMap();
+
             List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
             String standbyShortId = site.getStandbyShortId();
             
@@ -220,7 +224,7 @@ public class VdcConfigUtil {
         vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
     }
 
-    private List<String> getHostsFromIPAddrMap(StringMap IPv4Addresses, StringMap IPv6Addresses) {
+    private List<String> getHostsFromIPAddrMap(Map<String, String> IPv4Addresses, Map<String, String> IPv6Addresses) {
         List<String> hostNameListV4 = new ArrayList<>(IPv4Addresses.keySet());
         List<String> hostNameListV6 = new ArrayList<>(IPv6Addresses.keySet());
         List<String> hostNameList = hostNameListV4;

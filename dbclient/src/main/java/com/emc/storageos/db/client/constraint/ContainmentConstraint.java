@@ -7,6 +7,8 @@ package com.emc.storageos.db.client.constraint;
 
 import java.net.URI;
 import java.util.Date;
+
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.TimedContainmentConstraintImpl;
 import com.emc.storageos.db.client.impl.ColumnField;
@@ -14,10 +16,6 @@ import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.*;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.WorkflowStep;
@@ -594,12 +592,6 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             ColumnField field = doType.getColumnField("associatedSourceVolume");
             return new ContainmentConstraintImpl(sourceURI, Volume.class, field);
-        }
-
-        public static ContainmentConstraint getVirtualDataCenterSiteConstraint(URI vdcId) {
-            DataObjectType doType = TypeMap.getDoType(Site.class);
-            ColumnField field = doType.getColumnField("vdc");
-            return new ContainmentConstraintImpl(vdcId, Site.class, field);
         }
     }
 }

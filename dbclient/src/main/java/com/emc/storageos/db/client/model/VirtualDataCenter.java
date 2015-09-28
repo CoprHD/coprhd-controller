@@ -132,6 +132,11 @@ public class VirtualDataCenter extends DataObject {
      * Last time this vdc can be seen
      */
     private Long lastSeenTimeInMillis;
+    
+    /**
+     * id list of all sites
+     */
+    private StringSet siteUUIDs = new StringSet();
 
     @Name("apiEndpoint")
     public String getApiEndpoint() {
@@ -342,6 +347,15 @@ public class VirtualDataCenter extends DataObject {
     public void setLastSeenTimeInMillis(Long lastSeenTimeInMillis) {
         this.lastSeenTimeInMillis = lastSeenTimeInMillis;
         setChanged("lastSeenTimeInMillis");
+    }
+    
+    @Name("siteUUIDs")
+    public StringSet getSiteUUIDs() {
+        return siteUUIDs;
+    }
+
+    public void setSiteUUIDs(StringSet siteUUIDs) {
+        this.siteUUIDs = siteUUIDs;
     }
 
     @Override

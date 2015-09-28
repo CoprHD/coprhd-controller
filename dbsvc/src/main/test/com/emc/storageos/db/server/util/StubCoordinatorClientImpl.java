@@ -312,7 +312,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     }
 
     @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
@@ -323,8 +323,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     
     @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String siteId,
-                                                               String id, String kind)
-            throws Exception {
+                                                               String id, String kind) throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 

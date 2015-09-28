@@ -1,15 +1,31 @@
 /*
- * Copyright (c) 2008-2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
+import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
+import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
+
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import javax.crypto.SecretKey;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -17,25 +33,27 @@ import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.*;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
-import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
-import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteParam;
+import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -46,10 +64,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.sys.ClusterInfo;
 
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
-
 /**
  * APIs implementation to standby sites lifecycle management such as add-standby, remove-standby, failover, pause
  * resume replication etc. 
@@ -58,7 +72,7 @@ import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIN
 @Path("/site")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-public class DisasterRecoveryService extends TaggedResource {
+public class DisasterRecoveryService {
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     
     private static final String SHORTID_FMT="standby%d";
@@ -67,7 +81,9 @@ public class DisasterRecoveryService extends TaggedResource {
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
     private SysUtils sysUtils;
-
+    private CoordinatorClient coordinator;
+    private DbClient dbClient;
+    
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
     }
@@ -86,14 +102,12 @@ public class DisasterRecoveryService extends TaggedResource {
         log.info("Retrieving standby site config from: {}", param.getVip());
         try {
             VirtualDataCenter vdc = queryLocalVDC();
-            URIQueryResultList standbySiteIds = new URIQueryResultList();
             List<Site> existingSites = new ArrayList<Site>();
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
-                    standbySiteIds);
-            for (URI siteId : standbySiteIds) {
-                Site site = _dbClient.queryObject(Site.class, siteId);
+            for (String siteUUID : vdc.getSiteUUIDs()) {
+                Site site = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_KIND);
                 existingSites.add(site);
             }
+            
             validateAddParam(param, existingSites);
 
             ViPRCoreClient viprClient = new ViPRCoreClient(param.getVip(), true).withLogin(param.getUsername(),
@@ -102,10 +116,11 @@ public class DisasterRecoveryService extends TaggedResource {
             SiteConfigRestRep standbyConfig = viprClient.site().getStandbyConfig();
             precheckForStandbyAttach(standbyConfig);
     
-            Site standbySite = new Site(URIUtil.createId(Site.class));
+            Site standbySite = new Site();
+            standbySite.setCreationTime((new Date()).getTime());
             standbySite.setName(param.getName());
-            standbySite.setVip(param.getVip());
             standbySite.setVdc(vdc.getId());
+            standbySite.setVip(param.getVip());
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
             standbySite.setSecretKey(standbyConfig.getSecretKey());
@@ -117,10 +132,15 @@ public class DisasterRecoveryService extends TaggedResource {
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }
-            log.info("Persist standby site to DB {}", shortId);
-            _dbClient.createObject(standbySite);
             
-            _coordinator.addSite(standbyConfig.getUuid());
+            vdc.getSiteUUIDs().add(standbySite.getUuid());
+            dbClient.persistObject(vdc);
+    
+            coordinator.addSite(standbyConfig.getUuid());
+            
+            log.info("Persist standby site to ZK {}", shortId);
+            coordinator.setTargetInfo(standbySite);
+            
             updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
     
             log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());
@@ -130,15 +150,13 @@ public class DisasterRecoveryService extends TaggedResource {
             primarySite.setHostIPv6AddressMap(new StringMap(vdc.getHostIPv6AddressesMap()));
             primarySite.setName(param.getName()); // this is the name for the standby site
             primarySite.setSecretKey(vdc.getSecretKey());
-            primarySite.setUuid(_coordinator.getSiteId());
+            primarySite.setUuid(coordinator.getSiteId());
             primarySite.setVip(vdc.getApiEndpoint());
             configParam.setPrimarySite(primarySite);
             
             List<SiteParam> standbySites = new ArrayList<SiteParam>();
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
-                    standbySiteIds);
-            for (URI siteId : standbySiteIds) {
-                Site standby = _dbClient.queryObject(Site.class, siteId);
+            for (String siteUUID : vdc.getSiteUUIDs()) {
+                Site standby = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_KIND);
                 SiteParam standbyParam = new SiteParam();
                 siteMapper.map(standby, standbyParam);
                 standbySites.add(standbyParam);
@@ -168,7 +186,7 @@ public class DisasterRecoveryService extends TaggedResource {
             // Recreate the primary site
             VirtualDataCenter exisingVdc = queryLocalVDC();
             String currentShortId = exisingVdc.getShortId();
-            _dbClient.markForDeletion(exisingVdc);
+            dbClient.markForDeletion(exisingVdc);
             
             SiteParam primary = configParam.getPrimarySite();
             URI vdcId = URIUtil.createId(VirtualDataCenter.class);
@@ -186,17 +204,18 @@ public class DisasterRecoveryService extends TaggedResource {
             }
             vdc.setHostCount(hostCount);
             log.info("Persist primary site to DB");
-            _dbClient.createObject(vdc);
-            _coordinator.addSite(primary.getUuid());
-            _coordinator.setPrimarySite(primary.getUuid());
+            dbClient.createObject(vdc);
+            coordinator.addSite(primary.getUuid());
+            coordinator.setPrimarySite(primary.getUuid());
             
             // Add other standby sites
             for (SiteParam standby : configParam.getStandbySites()) {
-                Site site = new Site(URIUtil.createId(Site.class));
+                Site site = new Site();
+                site.setCreationTime((new Date()).getTime());
                 siteMapper.map(standby, site);
                 site.setVdc(vdcId);
-                _dbClient.createObject(site);
-                _coordinator.addSite(standby.getUuid());
+                coordinator.setTargetInfo(site);
+                coordinator.addSite(standby.getUuid());
                 log.info("Persist standby site {} to DB", standby.getVip());
             }
             
@@ -219,13 +238,13 @@ public class DisasterRecoveryService extends TaggedResource {
         SiteList standbyList = new SiteList();
 
         VirtualDataCenter vdc = queryLocalVDC();
-        URIQueryResultList standbySiteIds = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
-                standbySiteIds);
-
-        for (URI siteId : standbySiteIds) {
-            Site standby = _dbClient.queryObject(Site.class, siteId);
-            standbyList.getSites().add(siteMapper.map(standby));
+        for (String uuid : vdc.getSiteUUIDs()) {
+            try {
+                Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
+                standbyList.getSites().add(siteMapper.map(standby));
+            } catch (Exception e) {
+                log.error("Find find site from ZK for UUID {}, {}", uuid, e);
+            }
         }
         
         return standbyList;
@@ -242,14 +261,11 @@ public class DisasterRecoveryService extends TaggedResource {
     public SiteRestRep getSite(@PathParam("uuid") String uuid) {
         log.info("Begin to get standby site by uuid {}", uuid);
         
-        List<URI> ids = _dbClient.queryByType(Site.class, true);
-
-        Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
-        while (sites.hasNext()) {
-            Site standby = sites.next();
-            if (standby.getUuid().equals(uuid)) {
-                return siteMapper.map(standby);
-            }
+        try {
+            Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
+            return siteMapper.map(standby);
+        } catch (Exception e) {
+            log.error("Find find site from ZK for UUID {}, {}", uuid, e);
         }
         
         log.info("Can't find site with specified site ID {}", uuid);
@@ -261,22 +277,23 @@ public class DisasterRecoveryService extends TaggedResource {
     @Path("/{uuid}")
     public SiteRestRep removeStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to remove standby site from local vdc by uuid: {}", uuid);
+        
         try {
-            List<URI> ids = _dbClient.queryByType(Site.class, true);
-    
-            Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
-            while (sites.hasNext()) {
-                Site standby = sites.next();
-                if (standby.getUuid().equals(uuid)) {
-                    log.info("Find standby site in local VDC and remove it");
-                    _dbClient.markForDeletion(standby);
-                    updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
-                    return siteMapper.map(standby);
-                }
+            Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
+            if (standby != null) {
+                log.info("Find standby site in local VDC and remove it");
+                
+                VirtualDataCenter vdc = queryLocalVDC();
+                vdc.getSiteUUIDs().remove(uuid);
+                dbClient.persistObject(vdc);
+                
+                updateVdcTargetVersion(SiteInfo.RECONFIG_RESTART);
+                return siteMapper.map(standby);
             }
-        } catch (Exception ex) {
-            log.error("Fail to remove site {}", ex);
+        } catch (Exception e) {
+            log.error("Find find site from ZK for UUID {}, {}", uuid, e);
         }
+        
         return null;
     }
     
@@ -291,8 +308,8 @@ public class DisasterRecoveryService extends TaggedResource {
     @Path("/standby/config")
     public SiteConfigRestRep getStandbyConfig() {
         log.info("Begin to get standby config");
-        String siteId = _coordinator.getSiteId();
-        SiteState siteState = _coordinator.getSiteState();
+        String siteId = coordinator.getSiteId();
+        SiteState siteState = coordinator.getSiteState();
         VirtualDataCenter vdc = queryLocalVDC();
         SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
         
@@ -302,13 +319,13 @@ public class DisasterRecoveryService extends TaggedResource {
         siteConfigRestRep.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
         siteConfigRestRep.setHostIPv4AddressMap(vdc.getHostIPv4AddressesMap());
         siteConfigRestRep.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
-        siteConfigRestRep.setDbSchemaVersion(_coordinator.getCurrentDbSchemaVersion());
+        siteConfigRestRep.setDbSchemaVersion(coordinator.getCurrentDbSchemaVersion());
         siteConfigRestRep.setFreshInstallation(isFreshInstallation());
         siteConfigRestRep.setState(siteState.name());
         siteConfigRestRep.setClusterStable(isClusterStable());
         
         try {
-            siteConfigRestRep.setSoftwareVersion(_coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString());
+            siteConfigRestRep.setSoftwareVersion(coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString());
         } catch (Exception e) {
             log.error("Fail to get software version {}", e);
         }
@@ -320,20 +337,20 @@ public class DisasterRecoveryService extends TaggedResource {
     // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc
     private void updateVdcTargetVersion(String action) throws Exception {
         SiteInfo siteInfo;
-        SiteInfo currentSiteInfo = _coordinator.getTargetInfo(SiteInfo.class);
+        SiteInfo currentSiteInfo = coordinator.getTargetInfo(SiteInfo.class);
         if (currentSiteInfo != null) {
             siteInfo = new SiteInfo(System.currentTimeMillis(), action, currentSiteInfo.getTargetDataRevision());
         } else {
             siteInfo = new SiteInfo(System.currentTimeMillis(), action);
         }
-        _coordinator.setTargetInfo(siteInfo);
+        coordinator.setTargetInfo(siteInfo);
         log.info("VDC target version updated to {}, action required: {}", siteInfo.getVdcConfigVersion(), action);
         //TODO update SiteInfo for all other standby sites
     }
     
     private void updateVdcTargetVersionAndDataRevision(String action) throws Exception {
         int ver = 1;
-        SiteInfo siteInfo = _coordinator.getTargetInfo(SiteInfo.class);
+        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
         if (siteInfo != null) {
             if (!siteInfo.isNullTargetDataRevision()) {
                 String currentDataRevision = siteInfo.getTargetDataRevision();
@@ -342,7 +359,7 @@ public class DisasterRecoveryService extends TaggedResource {
         }
         String targetDataRevision = String.valueOf(++ver);
         siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
-        _coordinator.setTargetInfo(siteInfo);
+        coordinator.setTargetInfo(siteInfo);
         log.info("VDC target version updated to {}, revision {}", 
                 siteInfo.getVdcConfigVersion(),  targetDataRevision);
     }
@@ -377,24 +394,6 @@ public class DisasterRecoveryService extends TaggedResource {
         return resp;
     }
     
-    @Override
-    protected Site queryResource(URI id) {
-        ArgValidator.checkUri(id);
-        Site standby = _dbClient.queryObject(Site.class, id);
-        ArgValidator.checkEntityNotNull(standby, id, isIdEmbeddedInURL(id));
-        return standby;
-    }
-
-    @Override
-    protected URI getTenantOwner(URI id) {
-        return null;
-    }
-
-    @Override
-    protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.SITE;
-    }
-    
     /*
      * Internal method to check whether standby can be attached to current primary site
      */
@@ -414,7 +413,7 @@ public class DisasterRecoveryService extends TaggedResource {
             }
             
             //DB schema version should be same
-            String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
+            String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
             String standbyDbSchemaVersion = standby.getDbSchemaVersion();
             if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
                 throw new Exception(String.format("Standby db schema version %s is not same as primary %s", standbyDbSchemaVersion, currentDbSchemaVersion));
@@ -424,7 +423,7 @@ public class DisasterRecoveryService extends TaggedResource {
             SoftwareVersion currentSoftwareVersion;
             SoftwareVersion standbySoftwareVersion;
             try {
-                currentSoftwareVersion = _coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
+                currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
                 standbySoftwareVersion = new SoftwareVersion(standby.getSoftwareVersion());
             } catch (Exception e) {
                 throw new Exception(String.format("Fail to get software version %s", e.getMessage()));
@@ -435,8 +434,8 @@ public class DisasterRecoveryService extends TaggedResource {
             }
             
             //this site should not be standby site
-            String primaryID = _coordinator.getPrimarySiteId();
-            if (primaryID != null && !primaryID.equals(_coordinator.getSiteId())) {
+            String primaryID = coordinator.getPrimarySiteId();
+            if (primaryID != null && !primaryID.equals(coordinator.getSiteId())) {
                 throw new Exception("This site is also a standby site");
             }
             
@@ -456,7 +455,7 @@ public class DisasterRecoveryService extends TaggedResource {
             int ipv4Count = site.getHostIPv4AddressMap().size();
             int ipv6Count = site.getHostIPv6AddressMap().size();
             int nodeCount = ipv4Count > 0? ipv4Count : ipv6Count;
-            ClusterInfo.ClusterState state = _coordinator.getControlNodesState(site.getUuid(), nodeCount);
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Site %s is not stable %s", site.getName(), state));
@@ -480,16 +479,16 @@ public class DisasterRecoveryService extends TaggedResource {
     }
 
     private boolean isClusterStable() {
-        return _coordinator.getControlNodesState() == ClusterInfo.ClusterState.STABLE;
+        return coordinator.getControlNodesState() == ClusterInfo.ClusterState.STABLE;
     }
     
     protected boolean isFreshInstallation() {
-        Configuration setupConfig = _coordinator.queryConfiguration(CONFIG_KIND, CONFIG_ID);
+        Configuration setupConfig = coordinator.queryConfiguration(CONFIG_KIND, CONFIG_ID);
         
         boolean freshInstall = (setupConfig == null) || Boolean.parseBoolean(setupConfig.getConfig(COMPLETE)) == false;
         log.info("Fresh installation {}", freshInstall);
         
-        boolean hasDataInDB = _dbClient.hasUsefulData();
+        boolean hasDataInDB = dbClient.hasUsefulData();
         log.info("Has useful data in DB {}", hasDataInDB);
         
         return freshInstall && !hasDataInDB;
@@ -524,5 +523,13 @@ public class DisasterRecoveryService extends TaggedResource {
 
     public void setSysUtils(SysUtils sysUtils) {
         this.sysUtils = sysUtils;
+    }
+    
+    public void setDbClient(DbClient dbClient) {
+        this.dbClient = dbClient;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
     }
 }

@@ -370,14 +370,12 @@ public interface CoordinatorClient {
      * @throws Exception
      */
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String siteId, String id,
-                                                               String kind) throws Exception;
+                                                               String kind) throws CoordinatorException;
 
     /**
      * Set Target info
      * 
      * @param info
-     * @param id
-     * @param kind
      * @throws CoordinatorException
      */
     public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException;
@@ -404,7 +402,7 @@ public interface CoordinatorClient {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception;
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException;
 
     /**
      * Get all Node Infos.

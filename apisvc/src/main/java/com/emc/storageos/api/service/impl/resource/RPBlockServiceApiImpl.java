@@ -619,9 +619,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         // Only check for existing source journals if this is not a direct journal add operation.
         if (!journalOnlyCreate) {
-            // If the CG already contains RP volumes, then we need to check if new/additional journal volumes need to be created, based on
-            // the
-            // journal policy specified.
+            // If the CG already contains RP volumes, then we need to check if new/additional journal 
+            // volumes need to be created, based on the journal policy specified.
             cgSourceVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.SOURCE.toString());
             cgTargetVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.TARGET.toString());
 
@@ -753,7 +752,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // If the CG contains volumes already and no new additional journals are provisioned,
                         // then we simply update the reference on the source for the journal volume.
                         _log.info(String.format("Re-use existing Target Journal for target [%s]", targetJournalVarray.getLabel()));
-                        Volume existingTargetJournalVolume = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
+                        Volume existingTargetJournalVolume = _rpHelper.selectExistingJournalForTargetVolume(cgTargetVolumes, 
+                                targetJournalVarray.getId(), targetJournalRec.getInternalSiteName());
                         targetJournals.put(targetJournalVarray.getId(), existingTargetJournalVolume);
                         _log.info(String.format("Existing Target Journal: [%s] (%s)", existingTargetJournalVolume.getLabel(), existingTargetJournalVolume.getId()));
                         continue;
@@ -2854,10 +2854,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     StoragePool backingVolumePool = _dbClient.queryObject(StoragePool.class, backingVolume.getPool());
 
                     buf.append(String.format("%n\t\t Backing Volume Name : [%s] (%s)%n", backingVolume.getLabel(), backingVolume.getId()));
-                    buf.append(String.format("\t\t Backing Volume Virtual Array : [%s] %n", backingVolumeVarray.getLabel()));
-                    buf.append(String.format("\t\t Backing Volume Virtual Pool : [%s] %n", backingVolumeVpool.getLabel()));
-                    buf.append(String.format("\t\t Backing Volume Storage System : [%s] %n", backingVolumeStorageSystem.getLabel()));
-                    buf.append(String.format("\t\t Backing Volume Storage Pool : [%s] %n", backingVolumePool.getLabel()));
+                    buf.append(String.format("\t\t Backing Volume Virtual Array : [%s] (%s) %n", backingVolumeVarray.getLabel(), backingVolumeVarray.getId()));
+                    buf.append(String.format("\t\t Backing Volume Virtual Pool : [%s] (%s) %n", backingVolumeVpool.getLabel(), backingVolumeVpool.getId()));
+                    buf.append(String.format("\t\t Backing Volume Storage System : [%s] (%s) %n", backingVolumeStorageSystem.getLabel(), backingVolumeStorageSystem.getId()));
+                    buf.append(String.format("\t\t Backing Volume Storage Pool : [%s] (%s) %n", backingVolumePool.getLabel(), backingVolumePool.getId()));
                     if (NullColumnValueGetter.isNotNullValue(backingVolume.getInternalSiteName())) {
                         String internalSiteName = ((ps.getRpSiteNames() != null)
                                 ? ps.getRpSiteNames().get(backingVolume.getInternalSiteName()) : backingVolume.getInternalSiteName());
@@ -2868,19 +2868,19 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 buf.append(String.format("\t\t=====%n"));
             }
 
-            buf.append(String.format("\t Consistency Group : [%s]%n", consistencyGroup.getLabel()));
-            buf.append(String.format("\t Virtual Array : [%s]%n", varray.getLabel()));
-            buf.append(String.format("\t Virtual Pool : [%s]%n", vpool.getLabel()));
-            buf.append(String.format("\t Capacity : [%s]%n", volume.getCapacity()));
+            buf.append(String.format("\t Consistency Group : [%s] (%s)%n", consistencyGroup.getLabel(), consistencyGroup.getId()));
+            buf.append(String.format("\t Virtual Array : [%s] (%s)%n", varray.getLabel(), varray.getId()));
+            buf.append(String.format("\t Virtual Pool : [%s] (%s)%n", vpool.getLabel(), vpool.getId()));
+            buf.append(String.format("\t Capacity : [%s] %n", volume.getCapacity()));
 
             if (!NullColumnValueGetter.isNullURI(volume.getStorageController())) {
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-                buf.append(String.format("\t Storage System : [%s]%n", storageSystem.getLabel()));
+                buf.append(String.format("\t Storage System : [%s] (%s)%n", storageSystem.getLabel(), storageSystem.getId()));
             }
 
             if (!NullColumnValueGetter.isNullURI(volume.getPool())) {
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, volume.getPool());
-                buf.append(String.format("\t Storage Pool : [%s]%n", pool.getLabel()));
+                buf.append(String.format("\t Storage Pool : [%s] (%s)%n", pool.getLabel(), pool.getId()));
             }
 
             if (!NullColumnValueGetter.isNullURI(volume.getAutoTieringPolicyUri())) {
@@ -2888,7 +2888,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 buf.append(String.format("\t Auto Tier Policy : [%s]%n", policy.getPolicyName()));
             }
 
-            buf.append(String.format("\t RP Protection System : [%s]%n", ps.getLabel()));
+            buf.append(String.format("\t RP Protection System : [%s] (%s)%n", ps.getLabel(), ps.getId()));
             buf.append(String.format("\t RP Replication Set : [%s]%n", volume.getRSetName()));
 
             if (Volume.PersonalityTypes.SOURCE.name().equals(volume.getPersonality())) {
@@ -2898,12 +2898,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) {
                 Volume journalVolume = _dbClient.queryObject(Volume.class, volume.getRpJournalVolume());
-                buf.append(String.format("\t RP Journal Volume : [%s]%n", journalVolume.getLabel()));
+                buf.append(String.format("\t RP Journal Volume : [%s] (%s)%n", journalVolume.getLabel(), journalVolume.getId()));
             }
 
             if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
                 Volume standbyJournalVolume = _dbClient.queryObject(Volume.class, volume.getSecondaryRpJournalVolume());
-                buf.append(String.format("\t RP Standby Journal Volume : [%s]%n", standbyJournalVolume.getLabel()));
+                buf.append(String.format("\t RP Standby Journal Volume : [%s] (%s)%n", standbyJournalVolume.getLabel(), standbyJournalVolume.getId()));
             }
 
             if (volume.getRpTargets() != null && !volume.getRpTargets().isEmpty()) {
@@ -3137,7 +3137,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean isSource = false;
         boolean isMPStandby = false;
         boolean isTarget = false;
-        List<Volume> cgVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId());
+        List<Volume> cgVolumes = RPHelper.getCgVolumes(consistencyGroup.getId(), _dbClient);
         if (cgVolumes.isEmpty()) {
             throw APIException.badRequests.noExistingVolumesInCG(consistencyGroup.getId().toString());
         }

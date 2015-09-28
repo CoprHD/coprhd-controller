@@ -27,7 +27,7 @@ import com.google.common.base.Joiner;
 /**
  * ProtectionAttrMatcher is responsible to match all the pools with
  * the given CoS protection attributes.
- * 
+ *
  */
 public class ProtectionAttrMatcher extends AttributeMatcher {
 
@@ -58,6 +58,8 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
 
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         Iterator<StoragePool> poolIterator = allPools.iterator();
+
+        boolean validProtectionSystems = false;
 
         while (poolIterator.hasNext()) {
             StoragePool storagePool = poolIterator.next();
@@ -91,6 +93,8 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
                 _logger.info(String.format("Storage pool [%s] not connected to any Protection System. Disregard storage pool.",
                         storagePool.getLabel()));
                 continue;
+            } else {
+                validProtectionSystems = true;
             }
 
             // Scan each RP system and see if the pool is valid, given the target/copy attributes
@@ -151,6 +155,11 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
                 }
             }
         }
+
+        if (!validProtectionSystems) {
+            _logger.info("No valid protection system could be found for storage pools.  Please check data protection systems to ensure they are not inactive or invalid.");
+        }
+
         _logger.info("Pools matching protection attributes Ended. " +
                 "Matched pools are: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;
@@ -159,11 +168,11 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
     /**
      * Determine if the varray with the passed id has a storage pool that
      * satisfies the RP Vpool.
-     * 
+     *
      * @param varrayId The id of a varray.
      * @param tgtVpoolPoolList The pool list for the Target Vpool.
      * @param isRPVPlex Flag indicate whether this is an RP+VPLEX request or not
-     * 
+     *
      * @return true if the varray has a storage pool that matches the HA
      *         VPool, false otherwise.
      */
@@ -201,10 +210,10 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
 
     /**
      * Check if the pool is valid given the Vpool protection attributes
-     * 
+     *
      * @param pool
      *            The pool to verify.
-     * 
+     *
      * @return true if the pool is valid to use for a protection
      */
     private boolean checkMirrorProtectionValidPool(StoragePool pool, Map<String, Object> attributeMap) {
@@ -253,12 +262,12 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
 
     /**
      * Check to determine if the Storage Pool in question is valid for RP+VPLEX.
-     * 
+     *
      * If the Protection System contains the VPLEX in question AND both the Protection System and VPLEX
      * contain the same varray, then we can consider this pool valid to use for placement.
-     * 
+     *
      * @param storagePool The Storage Pool in question, must check to see if RP+VPLEX/MetroPoint
-     * 
+     *
      * @return true, if the Storage Pool is valid for RP+VPLEX/MetroPoint
      */
     private boolean validRPVPlexStoragePool(StoragePool storagePool) {

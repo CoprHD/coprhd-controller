@@ -473,9 +473,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     public String addStepsForCreateMirrors(Workflow workflow, String waitFor,
             URI storage, URI sourceVolume, List<URI> mirrorList, boolean isCG) throws ControllerException {
+        String stepId = waitFor;
         if (!isCG) {
             for (URI mirror : mirrorList) {
-                workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
+                stepId = workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
                         String.format("Creating mirror for %s", sourceVolume), waitFor,
                         storage, getDeviceType(storage),
                         this.getClass(),
@@ -483,14 +484,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMirrorMethod(storage, asList(mirror)), null);
             }
         } else {
-            workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
+            stepId = workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
                     String.format("Creating mirror for %s", sourceVolume), waitFor,
                     storage, getDeviceType(storage),
                     this.getClass(),
                     createMirrorMethod(storage, mirrorList, isCG, false),
                     rollbackMirrorMethod(storage, mirrorList), null);
         }
-        return CREATE_MIRRORS_STEP_GROUP;
+        return stepId;
     }
 
     /**
@@ -1709,7 +1710,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
             getDevice(storageObj.getSystemType()).doCreateSingleSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
-            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -2640,7 +2640,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(consistencyGroup, storage));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, consistencyGroup, storage));
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
 
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3618,6 +3618,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             getDevice(storageSystem.getSystemType()).doCreateConsistencyGroup(
                     storageSystem, consistencyGroup, taskCompleter);
         } catch (Exception e) {
+            _log.error("create consistency group job failed:", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
             WorkflowStepCompleter.stepFailed(opId, serviceError);

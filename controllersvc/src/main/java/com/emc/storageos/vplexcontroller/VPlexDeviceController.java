@@ -367,7 +367,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             consistencyGroupManager = getConsistencyGroupManager(DiscoveredDataObject.Type.rp.name());
         } else if (!cg.checkForType(Types.RP) && cg.checkForType(Types.VPLEX)) {
             consistencyGroupManager = getConsistencyGroupManager(DiscoveredDataObject.Type.vplex.name());
-        }
+        } 
 
         return consistencyGroupManager;
     }
@@ -6460,17 +6460,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _log.info("Created new update CG workflow with operation id {}", opId);
 
         BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, _dbClient);
-
+        ConsistencyGroupManager consistencyGroupManager = null;
         if (cg != null) {
             // Get a reference to the ConsistencyGroupManager and delete the consistency group
-            ConsistencyGroupManager consistencyGroupManager =
-                    getConsistencyGroupManager(cg);
-
-            if (consistencyGroupManager != null) {
-                consistencyGroupManager.updateConsistencyGroup(workflow, vplexURI,
-                        cgURI, addVolumesList, removeVolumesList, opId);
+            if (cg.created()) {
+                consistencyGroupManager = getConsistencyGroupManager(cg);
+            } else if (!cg.created() && addVolumesList != null && !addVolumesList.isEmpty()) {
+                // Check on volumes to get the right consistency group manager
+                Volume volume = _dbClient.queryObject(Volume.class, addVolumesList.get(0)); 
+                consistencyGroupManager = getConsistencyGroupManager(volume);
             }
         }
+
+        if (consistencyGroupManager != null) {
+            consistencyGroupManager.updateConsistencyGroup(workflow, vplexURI,
+                        cgURI, addVolumesList, removeVolumesList, opId);
+        } 
     }
 
     /**

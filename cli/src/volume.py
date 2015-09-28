@@ -1408,7 +1408,7 @@ class Volume(object):
         else:
             return o    
         
-    
+    #To check whether a cloned volume is in detachable state or not
     def is_volume_detachable(self, name):
         
         volumeUri = self.volume_query(name)

@@ -711,6 +711,19 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * volume GUID with the front-end volume GUID using the 
      * backendVolumeGuidToVvolGuidMap.
      * 
+     * In so doing, the vvols will be relative to each other for FULL_COPIES
+     * and LOCAL_REPLICA_SOURCE_VOLUME, just like the backend volumes are, 
+     * which will enable us to link them up like this:
+     * 
+     *  source vvol
+     *      fullCopies: target vvol
+     *  source bvol
+     *      fullCopies: target bvol
+     *  target vvol
+     *      associatedSourceVolume: source vvol
+     *  target bvol
+     *      associatedSourceVolume: source bvol
+     * 
      * @param allUnmanagedVolumes all the volumes discovered
      * @param backendVolumeGuidToVvolGuidMap a map of backend volume GUIDs
      *              to the GUID of the front volume containing it

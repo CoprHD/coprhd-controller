@@ -162,9 +162,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         return blockServiceApiImpl;
     }
-    
+
     /**
      * Get the specific BlockServiceApiImpl based on the storage system type.
+     *
      * @param system The storage system instance
      * @return BloackServiceApiImpl for the storage system type.
      */
@@ -172,7 +173,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         BlockServiceApi blockServiceApiImpl = null;
         String systemType = system.getSystemType();
         if (systemType.equals(DiscoveredDataObject.Type.rp.name()) ||
-            systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
+                systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
             blockServiceApiImpl = getBlockServiceImpl(systemType);
         } else {
             blockServiceApiImpl = getBlockServiceImpl("group");
@@ -1045,7 +1046,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Get the specific BlockServiceApiImpl based on the storage system type.
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(cgStorageSystem);
-        
 
         // Adding/removing volumes to/from a consistency group
         // is not supported when the consistency group has active
@@ -1548,10 +1548,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(copy.getCopyID(), VirtualArray.class, "copyId");
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
-        if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
+        if (TechnologyType.RP.toString().equalsIgnoreCase(copy.getType())) {
             taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
-        } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+        } else if (TechnologyType.SRDF.toString().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else {
@@ -1612,10 +1612,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(copy.getCopyID(), VirtualArray.class, "copyId");
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
-        if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
+        if (TechnologyType.RP.toString().equalsIgnoreCase(copy.getType())) {
             taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
-        } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+        } else if (TechnologyType.SRDF.toString().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else {
@@ -1668,10 +1668,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(copy.getCopyID(), VirtualArray.class, "copyId");
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
-        if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
+        if (TechnologyType.RP.toString().equalsIgnoreCase(copy.getType())) {
             taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
-        } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+        } else if (TechnologyType.SRDF.toString().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else {

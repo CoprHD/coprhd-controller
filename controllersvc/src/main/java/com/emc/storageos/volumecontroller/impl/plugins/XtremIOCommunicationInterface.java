@@ -82,7 +82,6 @@ public class XtremIOCommunicationInterface extends
                 accessProfile.getSystemId());
         XtremIOClient xtremIOClient = null;
         try {
-            xtremioRestClientFactory.setModel(provider.getVersionString());
             xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getXtremIOV1Client(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
                     accessProfile.getUserName(), accessProfile.getPassword(), true);

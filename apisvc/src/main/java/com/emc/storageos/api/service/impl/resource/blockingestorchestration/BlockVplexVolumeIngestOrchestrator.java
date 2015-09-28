@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -263,6 +264,28 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         }
 
+        // validate that there are no array-based backend-only volume clones.
+        // that is, if there's a clone, it should have a virtual volume in 
+        // front of it, otherwise, we can ingest it.
+        if (context.getUnmanagedBackendOnlyClones().size() > 0) {
+            List<String> cloneInfo = new ArrayList<String>();
+            for (Entry<UnManagedVolume, Set<UnManagedVolume>> cloneEntry : context.getUnmanagedBackendOnlyClones().entrySet()) {
+                String message = cloneEntry.getKey().getLabel() + " has ";
+                List<String> clones = new ArrayList<String>();
+                for (UnManagedVolume clone : cloneEntry.getValue()) {
+                    clones.add(clone.getLabel()); 
+                }
+                message += Joiner.on(", ").join(clones) + ". ";
+                cloneInfo.add(message);
+            }
+            String reason = "cannot currently ingest a clone on the backend array "
+                    + "that doesn't have a virtual volume in front of it. "
+                    + "Backend-only clones found: "
+                    + Joiner.on(", ").join(cloneInfo);
+            _logger.error(reason);
+            throw IngestionException.exceptions.validationException(reason);
+        }
+        
         int mirrorCount = context.getUnmanagedVplexMirrors().size();
         if (mirrorCount > 0) {
             _logger.info("{} native mirror(s) are present, validating vpool", mirrorCount);

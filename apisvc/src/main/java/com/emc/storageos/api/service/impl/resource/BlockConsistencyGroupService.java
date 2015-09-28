@@ -1548,10 +1548,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(copy.getCopyID(), VirtualArray.class, "copyId");
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
-        if (TechnologyType.RP.toString().equalsIgnoreCase(copy.getType())) {
+        if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
-        } else if (TechnologyType.SRDF.toString().equalsIgnoreCase(copy.getType())) {
+        } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else {
@@ -1612,10 +1612,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(copy.getCopyID(), VirtualArray.class, "copyId");
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
-        if (TechnologyType.RP.toString().equalsIgnoreCase(copy.getType())) {
+        if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
-        } else if (TechnologyType.SRDF.toString().equalsIgnoreCase(copy.getType())) {
+        } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else {
@@ -1668,10 +1668,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(copy.getCopyID(), VirtualArray.class, "copyId");
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
-        if (TechnologyType.RP.toString().equalsIgnoreCase(copy.getType())) {
+        if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
-        } else if (TechnologyType.SRDF.toString().equalsIgnoreCase(copy.getType())) {
+        } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else {

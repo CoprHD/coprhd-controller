@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource;
@@ -45,6 +45,7 @@ import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.services.util.SysUtils;
+import com.emc.vipr.model.sys.ClusterInfo;
 
 public class DisasterRecoveryServiceTest {
 
@@ -79,6 +80,7 @@ public class DisasterRecoveryServiceTest {
         VirtualDataCenter localVDC = new VirtualDataCenter();
         
         standby = new SiteConfigRestRep();
+        standby.setClusterStable(true);
         standby.setFreshInstallation(true);
         standby.setDbSchemaVersion("2.4");
         standby.setSoftwareVersion("vipr-2.4.0.0.150");
@@ -197,6 +199,7 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testPrecheckForStandbyAttach() throws Exception {
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn("primary-site-id").when(coordinator).getSiteId();
         drService.precheckForStandbyAttach(standby);
     }
@@ -274,12 +277,14 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testPrecheckForStandbyAttach_PrimarySite_EmptyPrimaryID() throws Exception {
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn(null).when(coordinator).getPrimarySiteId();
         drService.precheckForStandbyAttach(standby);
     }
     
     @Test
     public void testPrecheckForStandbyAttach_PrimarySite_IsPrimary() throws Exception {
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn("123456").when(coordinator).getPrimarySiteId();
         doReturn("123456").when(coordinator).getSiteId();
         drService.precheckForStandbyAttach(standby);

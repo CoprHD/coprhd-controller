@@ -5,7 +5,6 @@
 package com.emc.storageos.coordinator.client.model;
 
 import java.net.URI;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,7 +15,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 
 /**
- * Representation for a ViPR standby
+ * Representation for a ViPR site, both primary and standby
  */
 public class Site implements CoordinatorSerializable {
 
@@ -147,10 +146,6 @@ public class Site implements CoordinatorSerializable {
 
     @Override
     public Site decodeFromString(String infoStr) throws FatalCoordinatorException {
-        if (infoStr == null) {
-            return null;
-        }
-
         Site site;
         try {
             String[] array = infoStr.split(ENCODING_SEPERATOR);
@@ -207,9 +202,7 @@ public class Site implements CoordinatorSerializable {
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
+        if (obj instanceof Site)
             return false;
         Site other = (Site) obj;
         if (uuid == null) {

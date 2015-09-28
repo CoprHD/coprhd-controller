@@ -1,11 +1,10 @@
 /*
- * Copyright (c) 2008-2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.dr;
 
 import java.net.URI;
-import java.util.Map;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -69,7 +68,7 @@ public class SiteRestRep extends DataObjectRestRep {
         this.state = state;
     }
 
-    
+    @XmlElement(name = "description")
     public String getDescription() {
         return description;
     }

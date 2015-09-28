@@ -176,8 +176,7 @@ public class VplexBackendIngestionContext {
                     }
                 }
                 if (!umvUris.isEmpty()) {
-                    boolean isLocal = isLocal();
-                    if ((isLocal && umvUris.size() == 1) || (!isLocal && umvUris.size() == 2)) {
+                    if ((isLocal() && umvUris.size() == 1) || (isDistributed() && umvUris.size() == 2)) {
                         // only return vols from the database if we have the correct number
                         // of backend volumes for this type of unmanaged vplex virtual volume
                         unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, umvUris, true);
@@ -252,7 +251,7 @@ public class VplexBackendIngestionContext {
                 parentVol.add(_unmanagedVirtualVolume.getNativeGuid());
                 backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), parentVol);
                 
-                if (!isLocal()) {
+                if (isDistributed()) {
                     // determine cluster location of distributed component storage volume leg
                     VPlexStorageVolumeInfo storageVolume = 
                             getBackendVolumeWwnToInfoMap().get(backendVol.getWwn());
@@ -975,6 +974,15 @@ public class VplexBackendIngestionContext {
      */
     public boolean isLocal() {
         return VPlexApiConstants.LOCAL_VIRTUAL_VOLUME.equals(getLocality());
+    }
+
+    /**
+     * Returns true if the virtual volume is a distributed volume.
+     * 
+     * @return true if the virtual volume is a distributed volume
+     */
+    public boolean isDistributed() {
+        return !isLocal();
     }
 
     /**

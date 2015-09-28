@@ -121,10 +121,11 @@ public class Volume extends BlockObject implements ProjectResource {
         }
     }
 
-    public static enum LinkStatus {
+    public enum LinkStatus {
         FAILED_OVER("6014"),
         IN_SYNC("6002 6015"),
         SUSPENDED("6013"),
+        CONSISTENT("6111"),
         SPLIT(""),
         SWAPPED(""),
         DETACHED(""),

@@ -479,6 +479,8 @@ public class BlockMapper {
         }
         to.setSupportedVPoolUris(supportedVPoolUris);
 
+        to.setWWN(from.getWwn());
+
         return to;
     }
 

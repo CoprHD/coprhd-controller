@@ -73,18 +73,21 @@ public class CinderUtils
             else
             {// For create case
                 storagePool.setFreeCapacity(currentFreeCapacity - sizeInGB * 1024 * 1024); // KBytes - KBytes
-                storagePool.setSubscribedCapacity(currentSubscribedCapacity + sizeInGB * 1024 * 1024); // KBytes + KBytes
+                long newSubscribedCapacity = currentSubscribedCapacity + sizeInGB * 1024 * 1024;// KBytes + KBytes
+                storagePool.setSubscribedCapacity(newSubscribedCapacity); 
 
                 // Check if total capacity needs an adjustment
-                if (isCapacityLimitExceeded(storagePool))
+                if (isCapacityLimitExceeded(newSubscribedCapacity, storagePool.getTotalCapacity()))
                 {
                     // If 75% mark is reached for consumed percent, then increment the total capacity by 2 times
-                    storagePool.setTotalCapacity(storagePool.getTotalCapacity() * 2);
-                    storagePool.setFreeCapacity(storagePool.getTotalCapacity() - storagePool.getSubscribedCapacity());
+                    Long currentTotalCapacity = storagePool.getTotalCapacity();
+                    Long newTotalCapacity = currentTotalCapacity * 2;
+                    storagePool.setTotalCapacity(newTotalCapacity);
+                    storagePool.setFreeCapacity(newTotalCapacity - newSubscribedCapacity);
                     _log.info(String.format("Consumed capacity perecent was greater than or equal to 75% \n"
                             + " Hence, increased the total capacity by 2 times"
                             + " New total capacity is %s",
-                            storagePool.getTotalCapacity()));
+                            newTotalCapacity));
                 }
             }
 
@@ -112,12 +115,8 @@ public class CinderUtils
      * @param storagePool
      * @return
      */
-    private static boolean isCapacityLimitExceeded(StoragePool storagePool)
+    private static boolean isCapacityLimitExceeded(long usedCapacity, long totalCapacity)
     {
-
-        long usedCapacity = storagePool.getSubscribedCapacity();
-        long totalCapacity = storagePool.getTotalCapacity();
-
         long consumedPercent = (usedCapacity / totalCapacity) * 100;
         if (consumedPercent >= 75) {
             return true;

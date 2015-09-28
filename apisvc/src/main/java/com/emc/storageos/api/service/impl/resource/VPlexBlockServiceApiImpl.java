@@ -1704,7 +1704,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 targetVolumeURI,
                 targetStoragePool,
                 cgURI,
-                capabilities));
+                capabilities,
+                capacity));
 
         // Create a migration to represent the migration of data
         // from the backend volume to the new backend volume for the

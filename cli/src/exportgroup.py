@@ -86,7 +86,7 @@ class ExportGroup(object):
 
         return exportgroups
 
-    def exportgroup_show(self, name, project, tenant, xml=False):
+    def exportgroup_show(self, name, project, tenant, varray=None, xml=False):
         '''
         This function will take export group name and project name as input and
         It will display the Export group with details.
@@ -96,7 +96,11 @@ class ExportGroup(object):
         return
             returns with Details of export group.
         '''
-        uri = self.exportgroup_query(name, project, tenant)
+        varrayuri = None
+        if(varray):
+            varrayObject = VirtualArray(self.__ipAddr, self.__port)
+            varrayuri = varrayObject.varray_query(varray)
+        uri = self.exportgroup_query(name, project, tenant, varrayuri)
         (s, h) = common.service_json_request(
             self.__ipAddr,
             self.__port,
@@ -230,7 +234,7 @@ class ExportGroup(object):
                              self.URI_EXPORT_GROUP_TAG, uri, add, remove)
         )
 
-    def exportgroup_query(self, name, project, tenant):
+    def exportgroup_query(self, name, project, tenant, varrayuri=None):
         '''
         This function will take export group name/id and project name  as input
         and returns export group id.
@@ -247,7 +251,14 @@ class ExportGroup(object):
             exportgroup = self.exportgroup_show(uri, project, tenant)
             if(exportgroup):
                 if (exportgroup['name'] == name):
-                    return exportgroup['id']
+                    if(varrayuri):
+                        varrayobj = exportgroup['varray']
+                        if(varrayobj['id'] == varrayuri):
+                            return exportgroup['id']
+                        else:
+                            continue
+                    else:
+                        return exportgroup['id']                            
         raise SOSError(
             SOSError.NOT_FOUND_ERR,
             "Export Group " + name + ": not found")
@@ -722,6 +733,10 @@ def show_parser(subcommand_parsers, common_parser):
                              metavar='<tenantname>',
                              dest='tenant',
                              help='container tenant name')
+    show_parser.add_argument('-varray', '-va',
+                             metavar='<varray>',
+                             dest='varray',
+                             help='varray name')
     show_parser.add_argument('-xml',
                              dest='xml',
                              action='store_true',
@@ -735,7 +750,7 @@ def exportgroup_show(args):
     obj = ExportGroup(args.ip, args.port)
     try:
         res = obj.exportgroup_show(args.name, args.project,
-                                   args.tenant, args.xml)
+                                   args.tenant, args.varray, args.xml)
         if(args.xml):
             return common.format_xml(res)
 

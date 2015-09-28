@@ -4014,7 +4014,7 @@ public class BlockService extends TaskResourceService {
             if (VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
                 // VNX/VMAX import to VPLEX cases
                 notSuppReasonBuff.setLength(0);
-                if (!VirtualPoolChangeAnalyzer.isVPlexImport(currentVpool, newVpool, notSuppReasonBuff)
+                if (!VirtualPoolChangeAnalyzer.isVPlexImport(volume, currentVpool, newVpool, notSuppReasonBuff)
                         || (!VirtualPoolChangeAnalyzer.doesVplexVpoolContainVolumeStoragePool(volume, newVpool, notSuppReasonBuff))) {
                     _log.info("VNX/VMAX cos change for volume is not supported: {}",
                             notSuppReasonBuff.toString());

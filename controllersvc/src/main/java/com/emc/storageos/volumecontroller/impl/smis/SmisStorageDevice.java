@@ -1593,7 +1593,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.ready(_dbClient);
             }
         } catch (Exception e) {
-            _log.error("Failed to create consistency group: " + e);
+            _log.error("Failed to create consistency group: ", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed(
                     "doCreateConsistencyGroup", e.getMessage());
             // Set task to error
@@ -2518,6 +2518,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doChangeCopyMode(StorageSystem system, Volume target,
             TaskCompleter completer) {
         _srdfOperations.performChangeCopyMode(system, target, completer);
+    }
+
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return _exportMaskOperationsHelper.getExportMaskHLUs(storage, exportMask);
     }
 
     /**

@@ -854,6 +854,16 @@ public interface BlockStorageDevice {
             TaskCompleter completer) throws Exception;
 
     /**
+     * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs
+     *
+     * @param storage the storage system
+     * @param exportMask the ExportMask that represents the masking component of the array
+     *
+     * @return The BlockObject URI to HLU mapping for the ExportMask
+     */
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
+
+    /**
      * Creates new array snapshots on the passed storage system.
      * 
      * @param system A reference to the storage system.

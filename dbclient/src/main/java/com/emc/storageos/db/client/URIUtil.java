@@ -119,7 +119,7 @@ public class URIUtil {
          * [A-Z]+: - This will match the class with any number of letters followed by a colon
          * [A-F0-9]{8} - used for matchin UUID, This segment is 8 hex characters.
          * The full UUID pattern is all Hex characters seperated by '-' in specific quantities
-         * (:[A-Z0-9]+)? - (optional) any amount of letters or numbers preceded by a colon
+         * :([A-Z0-9]+)? - any amount of letters or numbers preceded by a colon
          * 
          * Only legal characters (letters(any case), numbers, '-', ':')
          */

@@ -3610,19 +3610,24 @@ public class SmisCommandHelper implements SmisConstants {
      * @return
      */
     public String generateGroupName(Set<String> existingGroupNames, String storageGroupName) {
-        int count = 0;
-        String format = null;
-        while (count <= existingGroupNames.size()) {
-            if (count > 0) {
-                storageGroupName = String.format("%s_%d", storageGroupName, count);
+        String result = storageGroupName;
+        // Is 'storageGroupName' already in the list of existing names?
+        if (existingGroupNames.contains(storageGroupName)) {
+            // Yes -- name is already in the existing group name list. We're going to have to generate a unique name by using an appended
+            // numeric index. The format will be storageGroupName_<[N]>, where N is a number between 1 and the size of existingGroupNames.
+            int size = existingGroupNames.size();
+            for (int index = 1; index <= size; index++) {
+                // Generate an indexed name ...
+                result = String.format("%s_%d", storageGroupName, index);
+                // If the indexed name does not exist, then exit the loop and return 'result'
+                if (!existingGroupNames.contains(result)) {
+                    break;
+                }
             }
-
-            if (!existingGroupNames.contains(storageGroupName)) {
-                return storageGroupName;
-            }
-            count++;
         }
-        return storageGroupName;
+        _log.info(String.format("generateGroupName(existingGroupNames.size = %d, %s), returning %s", existingGroupNames.size(),
+                storageGroupName, result));
+        return result;
     }
 
     /**

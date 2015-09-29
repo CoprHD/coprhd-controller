@@ -10,13 +10,18 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.ProtectionMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
+import static com.google.common.collect.Collections2.transform;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1078,7 +1083,7 @@ public class BlockService extends TaskResourceService {
      */
     public static BlockServiceApi getBlockServiceImpl(Volume volume, DbClient dbClient) {
         // RP volumes may not be in an RP CoS (like after failover), so look to the volume properties
-        if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())
+        if (!isNullURI(volume.getProtectionController())
                 && volume.checkForRp()) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
         }
@@ -1851,7 +1856,7 @@ public class BlockService extends TaskResourceService {
             _dbClient.persistObject(volume);
         } else {
             URI systemURI = null;
-            if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())) {
+            if (!isNullURI(volume.getProtectionController())) {
                 systemURI = volume.getProtectionController();
             } else {
                 systemURI = volume.getStorageController();
@@ -2004,7 +2009,7 @@ public class BlockService extends TaskResourceService {
             if (forceDeactivate || (!Strings.isNullOrEmpty(volume.getNativeId()) && !volume.getInactive())) {
 
                 URI systemURI = null;
-                if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())) {
+                if (!isNullURI(volume.getProtectionController())) {
                     systemURI = volume.getProtectionController();
                 } else {
                     systemURI = volume.getStorageController();
@@ -2790,7 +2795,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkEntity(volume, id, true);
         ArgValidator.checkEntity(copyVolume, copyID, true);
 
-        if (NullColumnValueGetter.isNullURI(volume.getProtectionController())) {
+        if (isNullURI(volume.getProtectionController())) {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
                     "Attempt to do protection link management on unprotected volume: {0}",
                     new Object[] { volume.getWWN() });
@@ -2983,6 +2988,8 @@ public class BlockService extends TaskResourceService {
         verifyVirtualPoolChangeSupportedForVolumeAndVirtualPool(volume, vpool);
         _log.info("VirtualPool change is supported for requested volume and VirtualPool");
 
+        verifyAllVolumesInCGRequirement(Arrays.asList(volume), vpool);
+
         // verify quota
         if (!CapacityUtils.validateVirtualPoolQuota(_dbClient, vpool, volume.getProvisionedCapacity())) {
             throw APIException.badRequests.insufficientQuotaForVirtualPool(vpool.getLabel(), "volume");
@@ -3148,6 +3155,8 @@ public class BlockService extends TaskResourceService {
             totalProvisionedCapacity += volume.getProvisionedCapacity()
                     .longValue();
         }
+
+        verifyAllVolumesInCGRequirement(volumes, vPool);
 
         // verify target vPool quota
         if (!CapacityUtils.validateVirtualPoolQuota(_dbClient, vPool,
@@ -3529,7 +3538,7 @@ public class BlockService extends TaskResourceService {
             // CG and only the volumes in the CG are passed.
             URI cgURI = volume.getConsistencyGroup();
             if ((cg == null) && (!foundVolumeNotInCG)) {
-                if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                if (!isNullURI(cgURI)) {
                     cg = _permissionsHelper.getObjectById(cgURI, BlockConsistencyGroup.class);
                     _log.info("All volumes should be in CG {}:{}", cgURI, cg.getLabel());
                     cgVolumes.addAll(blockServiceAPI.getActiveCGVolumes(cg));
@@ -3537,8 +3546,8 @@ public class BlockService extends TaskResourceService {
                     _log.info("No volumes should be in CGs");
                     foundVolumeNotInCG = true;
                 }
-            } else if (((cg != null) && (NullColumnValueGetter.isNullURI(cgURI))) ||
-                    ((foundVolumeNotInCG) && (!NullColumnValueGetter.isNullURI(cgURI)))) {
+            } else if (((cg != null) && (isNullURI(cgURI))) ||
+                    ((foundVolumeNotInCG) && (!isNullURI(cgURI)))) {
                 // A volume was in a CG, so all volumes must be in a CG.
                 if (cg != null) {
                     // Volumes should all be in the CG and this one is not.
@@ -3948,7 +3957,7 @@ public class BlockService extends TaskResourceService {
                 }
                 if (volume.isVolumeExported(_dbClient)) {
                     throw APIException.badRequests.cannotImportExportedVolumeToVplex(volume.getId());
-                } else if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                } else if (!isNullURI(volume.getConsistencyGroup())) {
                     throw APIException.badRequests.cannotImportConsistencyGroupVolumeToVplex(volume.getId());
                 } else if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
                     // The backend would have a full copy, but the VPLEX volume would not.
@@ -4061,7 +4070,7 @@ public class BlockService extends TaskResourceService {
      *         the VirtualPool change for the volume.
      */
     private BlockServiceApi getBlockServiceImplForVirtualPoolChange(Volume volume, VirtualPool vpool) {
-        URI protectionSystemURI = NullColumnValueGetter.isNullURI(volume.getProtectionController()) ? null : volume
+        URI protectionSystemURI = isNullURI(volume.getProtectionController()) ? null : volume
                 .getProtectionController();
         URI storageSystemURI = volume.getStorageController();
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
@@ -4954,7 +4963,7 @@ public class BlockService extends TaskResourceService {
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,
             VirtualArray varray) {
         URI storageSystemUri = consistencyGroup.getStorageController();
-        if (NullColumnValueGetter.isNullURI(storageSystemUri)) {
+        if (isNullURI(storageSystemUri)) {
             return;
         }
         URIQueryResultList storagePortURIs = new URIQueryResultList();
@@ -5062,5 +5071,51 @@ public class BlockService extends TaskResourceService {
             blockResourceClass = VplexMirror.class;
         }
         return blockResourceClass;
+    }
+
+    /**
+     * Given a list of volumes, verify that any consistency groups associated with its volumes
+     * are fully specified, i.e. the list contains all the members of a consistency group.
+     *
+     * @param volumes
+     * @param targetVPool
+     */
+    private void verifyAllVolumesInCGRequirement(List<Volume> volumes, VirtualPool targetVPool) {
+        // Only applies to SRDF volumes
+        if (!VirtualPool.vPoolSpecifiesSRDF(targetVPool)) {
+            return;
+        }
+
+        StringBuilder errorMsg = new StringBuilder();
+        boolean failure = false;
+        Collection<URI> volIds = transform(volumes, fctnDataObjectToID());
+        Map<URI, Volume> cgId2Volume = new HashMap<>();
+
+        try {
+            // Build set of all consistency groups
+            for (Volume volume : volumes) {
+                URI cgId = volume.getConsistencyGroup();
+                if (!isNullURI(cgId) && !cgId2Volume.containsKey(cgId)) {
+                    cgId2Volume.put(cgId, volume);
+                }
+            }
+
+            // Verify that all consistency groups are fully specified
+            for (Map.Entry<URI, Volume> entry : cgId2Volume.entrySet()) {
+                List<URI> memberIds = _dbClient.queryByConstraint(getVolumesByConsistencyGroup(entry.getKey()));
+
+                memberIds.removeAll(volIds);
+
+                if (!memberIds.isEmpty()) {
+                    failure = true;
+                    errorMsg.append(entry.getValue().getLabel())
+                            .append(" is missing other consistency group members.\n");
+                }
+            }
+        } finally {
+            if (failure){
+                throw APIException.badRequests.cannotAddSRDFProtectionToPartialCG(errorMsg.toString());
+            }
+        }
     }
 }

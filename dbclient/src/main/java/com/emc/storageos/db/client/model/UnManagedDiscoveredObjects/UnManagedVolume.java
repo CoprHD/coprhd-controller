@@ -125,6 +125,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         VPLEX_MIRROR_MAP("vplexMirrorMap", "vplexMirrorMap"),
         VPLEX_NATIVE_MIRROR_TARGET_VOLUME("vplexNativeMirrorTargetVolume", "vplexNativeMirrorTargetVolume"),
         VPLEX_NATIVE_MIRROR_SOURCE_VOLUME("vplexNativeMirrorSourceVolume", "vplexNativeMirrorSourceVolume"),
+        VPLEX_STORAGE_VIEW_HLU_MAP("vplexStorageViewHluMap", "vplexStorageViewHluMap"),
         META_MEMBER_SIZE("metaMemberSize", "metaMemberSize"),
         META_MEMBER_COUNT("metaMemberCount", "metaMemberCount"),
         META_VOLUME_TYPE("compositeType", "compositeType"),

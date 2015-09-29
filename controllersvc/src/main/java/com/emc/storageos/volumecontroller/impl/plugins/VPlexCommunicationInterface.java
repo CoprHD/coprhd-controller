@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -417,11 +418,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
                 timer = System.currentTimeMillis();
                 Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap = new HashMap<String, Set<UnManagedExportMask>>();
-                discoverUnmanagedStorageViews(accessProfile, client, vvolMap, volumeToExportMasksMap);
+                Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap = new HashMap<String, Set<VPlexStorageViewInfo>>();
+                discoverUnmanagedStorageViews(accessProfile, client, vvolMap, volumeToExportMasksMap, volumeToStorageViewMap);
                 tracker.storageViewFetch = System.currentTimeMillis() - timer;
 
                 timer = System.currentTimeMillis();
-                discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap, tracker);
+                discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap, volumeToStorageViewMap, tracker);
                 tracker.unmanagedVolumeProcessing = System.currentTimeMillis() - timer;
 
                 s_logger.info(tracker.getPerformanceReport());
@@ -503,11 +505,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @param client a reference to the VPLEX API client
      * @param vvolMap map of virtual volume names to virtual volume info objects
      * @param volumeToExportMasksMap map of volumes to a set of associated UnManagedExportMasks
+     * @param volumeToStorageViewMap map of volumes to a set of associated VPlexStorageViewInfos
+     * @param tracker the performance report tracking object for this discovery process
      * @throws BaseCollectionException
      */
     private void discoverUnmanagedVolumes(AccessProfile accessProfile, VPlexApiClient client,
             Map<String, VPlexVirtualVolumeInfo> allVirtualVolumes,
             Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap,
+            Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap,
             UnmanagedDiscoveryPerformanceTracker tracker) throws BaseCollectionException {
 
         String statusMessage = "Starting discovery of Unmanaged VPLEX Volumes.";
@@ -558,7 +563,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             if (null != allVirtualVolumes) {
                 for (String name : allVirtualVolumes.keySet()) {
                     timer = System.currentTimeMillis();
-                    s_logger.info("Looking at Virtual Volume {}", name);
+                    s_logger.info("Discovering Virtual Volume {}", name);
 
                     // UnManagedVolume discover does a pretty expensive
                     // iterative call into the VPLEX API to get extended details
@@ -617,7 +622,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
                             updateUnmanagedVolume(info, vplex, unmanagedVolume, volumesToCgs, 
                                     clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap,
-                                    backendVolumeGuidToVvolGuidMap);
+                                    backendVolumeGuidToVvolGuidMap, volumeToStorageViewMap);
                             knownUnmanagedVolumes.add(unmanagedVolume);
                         } else {
                             // set up new unmanaged vplex volume
@@ -625,7 +630,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
                             unmanagedVolume = createUnmanagedVolume(info, vplex, volumesToCgs, 
                                     clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap,
-                                    backendVolumeGuidToVvolGuidMap);
+                                    backendVolumeGuidToVvolGuidMap, volumeToStorageViewMap);
                             newUnmanagedVolumes.add(unmanagedVolume);
                         }
 
@@ -844,7 +849,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, String> clusterIdToNameMap,
             Map<String, String> varrayToClusterIdMap,
             Map<String, String> distributedDevicePathToClusterMap,
-            Map<String, String> backendVolumeGuidToVvolGuidMap) {
+            Map<String, String> backendVolumeGuidToVvolGuidMap, 
+            Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap) {
 
         s_logger.info("Updating UnManagedVolume {} with latest from VPLEX volume {}",
                 volume.getLabel(), info.getName());
@@ -1084,6 +1090,42 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             volume.getSupportedVpoolUris().replace(matchedVPools);
             s_logger.info("Replaced Pools : {}", volume.getSupportedVpoolUris());
         }
+        
+        updateWwnAndHluInfo(volume, volumeToStorageViewMap.get(info.getName()));
+    }
+
+    /**
+     * For a given UnManagedVolume, determine the wwn from the storage views it is
+     * in.
+     * 
+     * @param unManagedVolume
+     * @param storageViews
+     */
+    private void updateWwnAndHluInfo(UnManagedVolume unManagedVolume, Set<VPlexStorageViewInfo> storageViews) {
+        if (null != storageViews) {
+            String wwn = unManagedVolume.getWwn();
+            StringSet hluMappings = new StringSet();
+            for (VPlexStorageViewInfo storageView : storageViews) {
+                if (wwn == null) {
+                    // the wwn may have been found in the virtual volume, if this is a 5.4+ VPLEX
+                    // otherwise, we need to check in the storage view mappings for a WWN (5.3 and before)
+                    wwn = storageView.getWWNForStorageViewVolume(unManagedVolume.getLabel());
+                    s_logger.info("found wwn {} for unmanaged volume {}", wwn, unManagedVolume.getLabel());
+                    if (wwn != null) {
+                        unManagedVolume.setWwn(BlockObject.normalizeWWN(wwn));
+                    }
+                }
+                Integer hlu = storageView.getHLUForStorageViewVolume(unManagedVolume.getLabel());
+                if (hlu != null) {
+                    hluMappings.add(storageView.getName() + "=" + hlu.toString());
+                }
+            }
+            if (!hluMappings.isEmpty()) {
+                s_logger.info("setting hlu map for volume {} to " + hluMappings, unManagedVolume.getLabel());
+                unManagedVolume.putVolumeInfo(
+                        SupportedVolumeInformation.VPLEX_STORAGE_VIEW_HLU_MAP.name(), hluMappings);
+            }
+        }
     }
 
     /**
@@ -1097,7 +1139,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     private UnManagedVolume createUnmanagedVolume(VPlexVirtualVolumeInfo info,
             StorageSystem vplex, Map<String, String> volumesToCgs, Map<String, String> clusterIdToNameMap,
             Map<String, String> varrayToClusterIdMap, Map<String, String> distributedDevicePathToClusterMap,
-            Map<String, String> backendVolumeGuidToVvolGuidMap) {
+            Map<String, String> backendVolumeGuidToVvolGuidMap, 
+            Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap) {
 
         s_logger.info("Creating new UnManagedVolume from VPLEX volume {}",
                 info.getName());
@@ -1107,7 +1150,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
         updateUnmanagedVolume(info, vplex, volume, volumesToCgs, 
                 clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap,
-                backendVolumeGuidToVvolGuidMap);
+                backendVolumeGuidToVvolGuidMap, volumeToStorageViewMap);
 
         return volume;
     }
@@ -1210,11 +1253,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @param client a reference to the VPLEX API client
      * @param vvolMap map of virtual volume names to virtual volume info objects
      * @param volumeToExportMasksMap map of volumes to a set of associated UnManagedExportMasks
+     * @param volumeToStorageViewMap map of volumes to a set of associated VPlexStorageViewInfos 
      * @throws BaseCollectionException
      */
     private void discoverUnmanagedStorageViews(AccessProfile accessProfile, VPlexApiClient client,
             Map<String, VPlexVirtualVolumeInfo> vvolMap,
-            Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap) throws BaseCollectionException {
+            Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap,
+            Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap) throws BaseCollectionException {
 
         String statusMessage = "Starting discovery of Unmanaged VPLEX Storage Views.";
         s_logger.info(statusMessage + " Access Profile Details :  IpAddress : "
@@ -1364,6 +1409,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         }
                         maskSet.add(uem);
                     }
+                    
+                    // add this storage view to the volume to storage view map for this volume
+                    Set<VPlexStorageViewInfo> storageViewSet = volumeToStorageViewMap.get(volumeName);
+                    if (storageViewSet == null) {
+                        storageViewSet = new HashSet<VPlexStorageViewInfo>();
+                    }
+                    storageViewSet.add(storageView);
+                    volumeToStorageViewMap.put(volumeName, storageViewSet);
                 }
 
                 if (uem.getId() == null) {
@@ -2099,3 +2152,4 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
     }
 }
+;

@@ -1033,15 +1033,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             throws CoordinatorException {
         return getTargetInfo(getSiteId(), clazz);
     }
-    
-    /**
-     * Get target info
-     * 
-     * @param clazz
-     * @param <T>
-     * @return
-     * @throws Exception
-     */
+
     @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz)
             throws CoordinatorException {
@@ -1064,16 +1056,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         
         return getTargetInfo(getSiteId(), clazz, id, kind);
     }
-    /**
-     * Get target info
-     * 
-     * @param clazz
-     * @param id
-     * @param kind
-     * @return
-     * @throws Exception
-     */
-    public <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz, String id,
+
+    private <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz, String id,
             String kind) throws CoordinatorException {
         T info;
         try {
@@ -1718,17 +1702,4 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
         return primarySiteId;
 	}  
-	
-	@Override
-    public SiteState getSiteState() {
-        String path = String.format("%1$s/%2$s", this.getSitePrefix(), Constants.SITE_STATE);
-        SiteState state = null;
-        try {
-            byte[] data = _zkConnection.curator().getData().forPath(path);
-            state = SiteState.valueOf(new String(data, "UTF-8"));
-        } catch (Exception e) {
-            throw CoordinatorException.retryables.errorWhileFindingNode(path, e);
-        }
-        return state;
-    }
 }

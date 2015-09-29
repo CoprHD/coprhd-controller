@@ -23,6 +23,7 @@ public class SiteParam {
     private String dbSchemaVersion;
     private boolean freshInstallation;
     private String secretKey;
+    private String state;
 
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -112,6 +113,15 @@ public class SiteParam {
 
     public void setShortId(String shortId) {
         this.shortId = shortId;
+    }
+
+    @XmlElement(name = "state")
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 
     @Override

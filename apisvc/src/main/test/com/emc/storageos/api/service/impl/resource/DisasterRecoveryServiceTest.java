@@ -237,7 +237,9 @@ public class DisasterRecoveryServiceTest {
         }
         
         doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
-        doReturn(SiteState.ACTIVE).when(coordinator).getSiteState();
+        Site site = new Site();
+        site.setState(SiteState.ACTIVE);
+        doReturn(site).when(coordinator).getTargetInfo(Site.class);
         SiteConfigRestRep response = drService.getStandbyConfig();
         compareSiteResponse(response, standbyConfig);
     }

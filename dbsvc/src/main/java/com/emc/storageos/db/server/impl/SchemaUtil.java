@@ -48,6 +48,8 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -878,6 +880,10 @@ public class SchemaUtil {
             if (rebuildData) {
                 _log.info("Rebuild bootstrap data from primary site");
                 StorageService.instance.rebuild(_vdcShortId);
+                Site currentSite = _coordinator.getTargetInfo(Site.class, _coordinator.getSiteId(), Site.CONFIG_KIND);
+                currentSite.setState(SiteState.STANDBY_SYNCED);
+                _coordinator.setTargetInfo(currentSite);
+                _log.info("Update current standby site state to SYNCED");
             }
             return;
         }

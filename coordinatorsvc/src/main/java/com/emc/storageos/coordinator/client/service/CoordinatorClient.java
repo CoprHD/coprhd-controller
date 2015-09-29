@@ -549,12 +549,6 @@ public interface CoordinatorClient {
     public String getPrimarySiteId();
     
     /**
-     * Get current site state
-     * @return SiteState the state of site
-     */
-    public SiteState getSiteState();
-
-    /**
      * Add a site ZNode in ZK
      * This should only be used by the add standby site API
      */

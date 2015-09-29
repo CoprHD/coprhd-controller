@@ -68,7 +68,6 @@ import com.emc.vipr.model.sys.ClusterInfo;
  * APIs implementation to standby sites lifecycle management such as add-standby, remove-standby, failover, pause
  * resume replication etc. 
  */
-
 @Path("/site")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -100,6 +99,7 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteRestRep addStandby(SiteAddParam param) {
         log.info("Retrieving standby site config from: {}", param.getVip());
+        
         try {
             VirtualDataCenter vdc = queryLocalVDC();
             List<Site> existingSites = new ArrayList<Site>();
@@ -115,7 +115,7 @@ public class DisasterRecoveryService {
 
             SiteConfigRestRep standbyConfig = viprClient.site().getStandbyConfig();
             precheckForStandbyAttach(standbyConfig);
-    
+            
             Site standbySite = new Site();
             standbySite.setCreationTime((new Date()).getTime());
             standbySite.setName(param.getName());
@@ -128,16 +128,13 @@ public class DisasterRecoveryService {
             String shortId = generateShortId(existingSites);
             standbySite.setStandbyShortId(shortId);
             standbySite.setDescription(param.getDescription());
-    
+            standbySite.setState(SiteState.STANDBY_SYNCING);
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }
-            
             vdc.getSiteUUIDs().add(standbySite.getUuid());
             dbClient.persistObject(vdc);
-    
             coordinator.addSite(standbyConfig.getUuid());
-            
             log.info("Persist standby site to ZK {}", shortId);
             coordinator.setTargetInfo(standbySite);
             
@@ -254,7 +251,7 @@ public class DisasterRecoveryService {
                 Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
                 standbyList.getSites().add(siteMapper.map(standby));
             } catch (Exception e) {
-                log.error("Find find site from ZK for UUID {}, {}", uuid, e);
+                log.error("Find find site from ZK for UUID " + uuid, e);
             }
         }
         
@@ -276,7 +273,7 @@ public class DisasterRecoveryService {
             Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
             return siteMapper.map(standby);
         } catch (Exception e) {
-            log.error("Find find site from ZK for UUID {}, {}", uuid, e);
+            log.error("Find find site from ZK for UUID " + uuid, e);
         }
         
         log.info("Can't find site with specified site ID {}", uuid);
@@ -323,7 +320,6 @@ public class DisasterRecoveryService {
     public SiteConfigRestRep getStandbyConfig() {
         log.info("Begin to get standby config");
         String siteId = coordinator.getSiteId();
-        SiteState siteState = coordinator.getSiteState();
         VirtualDataCenter vdc = queryLocalVDC();
         SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
         
@@ -335,8 +331,13 @@ public class DisasterRecoveryService {
         siteConfigRestRep.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
         siteConfigRestRep.setDbSchemaVersion(coordinator.getCurrentDbSchemaVersion());
         siteConfigRestRep.setFreshInstallation(isFreshInstallation());
-        siteConfigRestRep.setState(siteState.name());
         siteConfigRestRep.setClusterStable(isClusterStable());
+        Site site = coordinator.getTargetInfo(Site.class);
+        if (site != null) {
+            siteConfigRestRep.setState(site.getState().toString());
+        } else {
+            siteConfigRestRep.setState(SiteState.ACTIVE.toString());
+        }
         
         try {
             siteConfigRestRep.setSoftwareVersion(coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString());

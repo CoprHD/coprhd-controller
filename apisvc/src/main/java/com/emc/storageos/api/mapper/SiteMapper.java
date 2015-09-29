@@ -5,6 +5,7 @@
 package com.emc.storageos.api.mapper;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -28,6 +29,7 @@ public class SiteMapper {
         to.setVdcId(from.getVdc());
         to.setName(from.getName());
         to.setVip(from.getVip());
+        to.setState(from.getState().toString());
     }
 
     public void map(Site from, SiteParam to) {
@@ -38,6 +40,7 @@ public class SiteMapper {
         to.setUuid(from.getUuid());
         to.setVip(from.getVip());
         to.setShortId(from.getStandbyShortId());
+        to.setState(from.getState().toString());
     }
 
     public void map(SiteParam from, Site to) {
@@ -47,6 +50,7 @@ public class SiteMapper {
         to.getHostIPv6AddressMap().putAll(from.getHostIPv6AddressMap());
         to.setSecretKey(from.getSecretKey());
         to.setStandbyShortId(from.getShortId());
+        to.setState(SiteState.valueOf(from.getState()));
     }
 
 }

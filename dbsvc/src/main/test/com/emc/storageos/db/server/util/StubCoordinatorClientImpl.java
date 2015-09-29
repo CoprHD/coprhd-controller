@@ -421,11 +421,6 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     }
     
     @Override
-    public SiteState getSiteState() {
-        return SiteState.ACTIVE;
-    }
-
-    @Override
     public void addSite(String siteId) {
         throw new UnsupportedOperationException();
     }

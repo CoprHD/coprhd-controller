@@ -455,11 +455,6 @@ public class TestCoordinator extends CoordinatorClientImpl {
     public String getPrimarySiteId() {
         return "test-primary-site-id";
     }
-    
-    @Override
-    public SiteState getSiteState() {
-        return SiteState.ACTIVE;
-    }
 
     @Override
     public void addSite(String siteId) {

@@ -36,6 +36,7 @@ public class Site implements CoordinatorSerializable {
     private Map<String, String> hostIPv6AddressMap = new HashMap<String, String>();
     private String standbyShortId;
     private long creationTime;
+    private SiteState state;
     
     public String getUuid() {
         return uuid;
@@ -117,6 +118,14 @@ public class Site implements CoordinatorSerializable {
         this.creationTime = creationTime;
     }
 
+    public SiteState getState() {
+        return state;
+    }
+
+    public void setState(SiteState state) {
+        this.state = state;
+    }
+
     @Override
     public String encodeAsString() {
         StringBuilder buffer = new StringBuilder();
@@ -128,6 +137,7 @@ public class Site implements CoordinatorSerializable {
         buffer.append(description).append(ENCODING_SEPERATOR);
         buffer.append(standbyShortId).append(ENCODING_SEPERATOR);
         buffer.append(creationTime).append(ENCODING_SEPERATOR);
+        buffer.append(state).append(ENCODING_SEPERATOR);
 
         for (String key : hostIPv4AddressMap.keySet()) {
             buffer.append(key).append(ENCODING_MAP_KEYVALUE_SEPERATOR).append(hostIPv4AddressMap.get(key))
@@ -160,7 +170,7 @@ public class Site implements CoordinatorSerializable {
             site.setDescription(array[index++]);
             site.setStandbyShortId(array[index++]);
             site.setCreationTime(Long.parseLong(array[index++]));
-
+            site.setState(SiteState.valueOf(array[index++]));
             if (index < array.length) {
                 convertString2Map(array[index++], site.getHostIPv4AddressMap());
             }

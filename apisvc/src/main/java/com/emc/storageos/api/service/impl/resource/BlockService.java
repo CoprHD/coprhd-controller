@@ -1977,7 +1977,13 @@ public class BlockService extends TaskResourceService {
             ArgValidator.checkEntity(volume, volumeURI, isIdEmbeddedInURL(volumeURI));
             BlockServiceApi blockServiceApi = getBlockServiceImpl(volume);
 
-            ArgValidator.checkReference(Volume.class, volumeURI, blockServiceApi.checkForDelete(volume));
+            /**
+             * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
+             * Hence we don't require reference check for vmax.
+             */
+            if (!BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+                ArgValidator.checkReference(Volume.class, volumeURI, blockServiceApi.checkForDelete(volume));
+            }
 
             // For a volume that is a full copy or is the source volume for
             // full copies deleting the volume may not be allowed.

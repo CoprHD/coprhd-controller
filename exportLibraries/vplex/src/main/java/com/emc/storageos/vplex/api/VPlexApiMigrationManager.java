@@ -875,13 +875,19 @@ public class VPlexApiMigrationManager {
         // Get the extent name from the local device name and find the extent.
         // This is the source extent for the migration.
         String localDeviceName = virtualVolumeInfo.getSupportingDevice();
-        StringBuilder extentNameBuilder = new StringBuilder();
-        extentNameBuilder.append(VPlexApiConstants.EXTENT_PREFIX);
-        extentNameBuilder.append(localDeviceName.substring(VPlexApiConstants.DEVICE_PREFIX.length()));
-        extentNameBuilder.append(VPlexApiConstants.EXTENT_SUFFIX);
-        String extentName = extentNameBuilder.toString();
-        s_logger.info("Finding extent with name {}", extentName);
+        s_logger.info("Finding local device with name {}", localDeviceName);
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        VPlexDeviceInfo deviceInfo = discoveryMgr.findLocalDevice(localDeviceName);
+        if (null == deviceInfo) {
+            throw VPlexApiException.exceptions.cantFindLocalDevice(localDeviceName);
+        }
+        discoveryMgr.setSupportingComponentsForLocalDevice(deviceInfo);
+        List<VPlexExtentInfo> extentInfoList = deviceInfo.getExtentInfo();
+        if (null == extentInfoList || extentInfoList.isEmpty()) {
+            throw VPlexApiException.exceptions.cantFindExtentForLocalDevice(localDeviceName);
+        }
+        String extentName = extentInfoList.get(0).getName();
+        s_logger.info("Finding extent with name {}", extentName);
         VPlexExtentInfo srcExtentInfo = discoveryMgr.findExtent(extentName);
         s_logger.info("Found source extent");
 
@@ -1142,6 +1148,24 @@ public class VPlexApiMigrationManager {
                     if (virtualVolumeInfo != null) {
                         break;
                     }
+                }
+                if (migrationTgtName.equals(virtualVolumeInfo.getName())) {
+                    // If we are here then VPLEX didn't rename the volume name, make a call to rename volume name
+                    // Build the name for volume so as to rename the vplex volume that is created
+                    // with the same name as the device name to follow the name pattern _vol
+                    // as the suffix for the vplex volumes
+                    String volumeNameAfterMigration = virtualVolumeInfo.getName();
+                    String volumePathAfterMigration = virtualVolumeInfo.getPath();
+                    StringBuilder volumeNameBuilder = new StringBuilder();
+                    volumeNameBuilder.append(volumeNameAfterMigration);
+                    volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+
+                    // Rename the VPLEX volume name
+                    virtualVolumeInfo = _vplexApiClient.renameResource(virtualVolumeInfo, volumeNameBuilder.toString());
+
+                    s_logger.info(String.format("Renamed virtual volume name after migration from %s path: %s to %s path: %s",
+                            volumeNameAfterMigration, volumePathAfterMigration, virtualVolumeInfo.getName(), virtualVolumeInfo.getPath()));
+
                 }
                 migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
             } else if (rename) {

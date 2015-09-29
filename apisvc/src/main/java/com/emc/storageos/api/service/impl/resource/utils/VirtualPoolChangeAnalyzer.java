@@ -1303,4 +1303,51 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
         return true;
     }
+    
+    /**
+     * Determines if the volume qualifies for RP protection. (and if not, why not)
+     * 
+     * @param volume A reference to the volume.
+     * @param currentVpool A reference to the current volume Vpool.
+     * @param newVpool The desired new Vpool.
+     * @param dbClient A reference to a DB client.
+     */
+    public static boolean isSupportedRPRemoveProtectionVirtualPoolChange(Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
+            DbClient dbClient, StringBuffer notSuppReasonBuff) {
+        s_logger.info(String.format("Checking isSupportedRPRemoveProtectionVirtualPoolChange from [%s] to [%s]...",
+                currentVpool.getLabel(), newVpool.getLabel()));
+
+        // Make sure the Vpool are not the same instance.
+        if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
+            return false;
+        }        
+        
+        if (volume.checkForRp()
+                && VirtualPool.vPoolSpecifiesProtection(currentVpool)
+                && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {            
+            // Check that nothing other than the excluded attributes changed.
+            List<String> excluded = new ArrayList<String>();
+            String[] exclude = new String[] { PROTECTION_VARRAY_SETTINGS };
+            excluded.addAll(Arrays.asList(exclude));
+            excluded.addAll(Arrays.asList(generallyExcluded));
+            Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
+            if (!changes.isEmpty()) {
+                notSuppReasonBuff.append("These target pool differences are invalid: ");
+                for (String key : changes.keySet()) {
+                    s_logger.info("Unexpected Remove RP Protection Vpool attribute change: " + key);
+                    notSuppReasonBuff.append(key + " ");
+                }
+                s_logger.info("Virtual Pool change not supported {}", notSuppReasonBuff.toString());
+                s_logger.info(String.format("Parameters other than %s were changed",
+                        (Object[]) exclude));
+                return false;
+            }
+        } else {
+            s_logger.info("RP remove protection operation is NOT supported.");
+            return false;
+        }
+        
+        s_logger.info("RP remove protection operation is supported.");
+        return true;
+    }
 }

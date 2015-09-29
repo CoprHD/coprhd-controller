@@ -1522,6 +1522,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             return waitFor;
         }
 
+        List<VolumeDescriptor> descriptorsToRemove = new ArrayList<VolumeDescriptor>();
+        for (VolumeDescriptor descriptor : volumes) {
+            if (descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null) {
+                _log.info(String.format("Volume (%s) will not be deleted", descriptor.getVolumeURI()));
+                descriptorsToRemove.add(descriptor);
+            }
+        }
+        volumes.removeAll(descriptorsToRemove);
+        
         // Segregate by device.
         Map<URI, List<VolumeDescriptor>> deviceMap = VolumeDescriptor.getDeviceMap(volumes);
 

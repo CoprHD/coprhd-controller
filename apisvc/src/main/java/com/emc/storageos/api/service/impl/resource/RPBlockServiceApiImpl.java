@@ -78,6 +78,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
@@ -120,7 +121,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     private static final String SECONDARY_SRC_JOURNAL_SUFFIX = "-secondary-source-journal";
     private static final String VOLUME_TYPE_TARGET = "-target-";
     private static final String VOLUME_TYPE_TARGET_JOURNAL = "-target-journal-";
-
+    
     // Spring injected
     private RPHelper _rpHelper;
 
@@ -1826,11 +1827,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     /**
-     * 
      * Upgrade a local block volume to a protected RP volume
      * 
      * @param volume the existing volume being protected.
      * @param newVpool the requested virtual pool
+     * @param vpoolChangeParam Param sent down by the API Service
      * @param taskId the task identifier
      * @throws InternalException
      */
@@ -1935,6 +1936,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     && VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
                     && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
                 upgradeToMetroPointVolume(volume, newVpool, vpoolChangeParam, taskId);
+            } else if (volume.checkForRp() 
+                    && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+                removeProtection(volume, newVpool, vpoolChangeParam, taskId);
             } else {
                 _log.info("Protection VirtualPool change for VPLEX to RP+VPLEX volume.");
                 upgradeToProtectedVolume(volume, newVpool, vpoolChangeParam, taskId);
@@ -2604,9 +2608,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     @Override
-    protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI, List<URI> volumeURIs) {
+    protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI, 
+            List<URI> volumeURIs, String deletionType) {
 
-        List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs);
+        List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs, deletionType);
 
         List<VolumeDescriptor> filteredDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA,
@@ -2616,11 +2621,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         for (VolumeDescriptor descriptor : filteredDescriptors) {
             URI volumeURI = descriptor.getDeviceURI();
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-            if (volume != null && !volume.getInactive()) {
+            // Exclude inactive volumes and also Source volumes
+            // when the deletion type is Remove Protection as in that
+            // case we want to keep mirrors.
+            if (volume != null 
+                    && !volume.getInactive()
+                    && !(RPHelper.REMOVE_PROTECTION.equals(deletionType) 
+                            && Volume.PersonalityTypes.SOURCE.name().equals(volume.getPersonality()))) {
                 addDescriptorsForMirrors(volumeDescriptors, volume);
             }
         }
-
+        
         return volumeDescriptors;
     }
 
@@ -2666,6 +2677,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         List<VirtualPoolChangeOperationEnum> allowedOperations = new ArrayList<VirtualPoolChangeOperationEnum>();
 
+        // Doesn't matter if this is VPLEX or not, if we have a 
+        // protected volume and we're looking to move to an unprotected 
+        // state return the RP_REMOVE_PROTECTION as the allowed operation
+        if (volume.checkForRp()
+                && VirtualPool.vPoolSpecifiesProtection(currentVpool)
+                && !VirtualPool.vPoolSpecifiesProtection(newVpool)
+                && VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
+                        _dbClient, notSuppReasonBuff)) {
+            allowedOperations.add(VirtualPoolChangeOperationEnum.RP_REMOVE_PROTECTION);
+        }
+        
         boolean vplex = RPHelper.isVPlexVolume(volume);
         // Check to see if this is a VPLEX volume
         if (vplex) {
@@ -2690,11 +2712,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
             }
         } else {
-            if (VirtualPool.vPoolSpecifiesProtection(newVpool) &&
-                    VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume, currentVpool,
+            if (VirtualPool.vPoolSpecifiesProtection(newVpool) 
+                    && VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume, currentVpool,
                             newVpool, _dbClient, notSuppReasonBuff)) {
                 allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
-            }
+            } 
         }
 
         return allowedOperations;
@@ -3240,5 +3262,23 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         TaskList taskList = new TaskList();
         return this.createVolumes(param, project, journalVarray, journalVpool, recommendations, taskList, task, capabilities);
 
+    }
+    
+    /**
+     * Removes protection from the volume and leaves it in an unprotected state.
+     * 
+     * @param volume the existing volume being protected.
+     * @param newVpool the requested virtual pool
+     * @param vpoolChangeParam Param sent down by the API Service
+     * @param taskId the task identifier
+     * @throws InternalException
+     */
+    private void removeProtection(Volume volume, VirtualPool newVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId) 
+            throws InternalException {
+        List<URI> tempWrapper = new ArrayList<URI>();
+        tempWrapper.add(volume.getId());
+        _log.info(String.format("Request to remove protection from Volume [%s] (%s)"), volume.getLabel(), volume.getId());
+        this.deleteVolumes(volume.getProtectionController(), tempWrapper, RPHelper.REMOVE_PROTECTION, taskId);
+        RPHelper.rollbackProtectionOnVolume(volume, newVpool, _dbClient);
     }
 }

@@ -81,6 +81,8 @@ public class RPHelper {
     private static final String HTTPS = "https";
     private static final String WSDL = "wsdl";
     private static final String RP_ENDPOINT = "/fapi/version4_1";
+    
+    public static final String REMOVE_PROTECTION = "REMOVE_PROTECTION";
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -264,23 +266,28 @@ public class RPHelper {
      * handles vplex andnon-vplex as well as mixed storage configurations
      * (e.g. vplex source and non-vplex targets)
      * 
-     * @param systemURI
-     * @param volumeURIs
+     * @param systemURI System that the delete request belongs to
+     * @param volumeURIs All volumes to be deleted
+     * @param deletionType The type of deletion
      * @return
      */
     public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
-            List<URI> volumeURIs) {
+            List<URI> volumeURIs, String deletionType) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         try {
             Set<URI> allVolumeIds = getVolumesToDelete(volumeURIs);
 
             for (URI volumeURI : allVolumeIds) {
+                
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
 
                 VolumeDescriptor descriptor = null;
 
+                boolean isSourceVolume = false;
+                
                 // if RP source, add a descriptor for the RP source
                 if (volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                    isSourceVolume = true;
                     if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
                         _log.info(String.format("Adding RP_VPLEX_VIRT_SOURCE descriptor to delete virtual volume [%s] ", volume.getLabel()));
                         descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE, systemURI, volume.getId(), null, null);
@@ -288,17 +295,28 @@ public class RPHelper {
                         _log.info(String.format("Adding RP_SOURCE descriptor to delete virtual volume [%s] ", volume.getLabel()));
                         descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_SOURCE, systemURI, volumeURI, null, null);
                     }
-                    volumeDescriptors.add(descriptor);
+                    
+                    if (REMOVE_PROTECTION.equals(deletionType)) {
+                        Map<String, Object> volumeParams = new HashMap<String, Object>();
+                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);                    
+                        descriptor.setParameters(volumeParams);
+                    }
+                                                            
+                    volumeDescriptors.add(descriptor);                                        
                 }
-
+                
                 // if this is a virtual volume, add a descriptor for the virtual volume
                 if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
-                    // VPLEX virtual volume
-                    _log.info(String.format("Adding VPLEX_VIRT_VOLUME descriptor to delete virtual volume [%s] ", volume.getLabel()));
-                    descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(),
-                            volume.getId(), null, null);
-                    volumeDescriptors.add(descriptor);
-
+                    // VPLEX virtual volume, no descriptor needed if this is a Source volume and the deletion type
+                    // is Remove Protection.
+                    // BH: We probably need a post step to clean up the VPLEX CGs though...
+                    if (!isSourceVolume && !REMOVE_PROTECTION.equals(deletionType)) {
+                        _log.info(String.format("Adding VPLEX_VIRT_VOLUME descriptor to delete virtual volume [%s] ", volume.getLabel()));
+                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(),
+                                volume.getId(), null, null);
+                        volumeDescriptors.add(descriptor);
+                    }
+                    
                     // Next, add all the BLOCK volume descriptors for the VPLEX back-end volumes
                     for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                         Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeId));
@@ -308,6 +326,13 @@ public class RPHelper {
                                     associatedVolume.getLabel()));
                             descriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, associatedVolume.getStorageController(),
                                     associatedVolume.getId(), null, null);
+                            // Add a flag to not delete these backing volumes if this is a Source volume and
+                            // the deletion type is Remove Protection
+                            if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
+                                Map<String, Object> volumeParams = new HashMap<String, Object>();
+                                volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);                    
+                                descriptor.setParameters(volumeParams);
+                            }
                             volumeDescriptors.add(descriptor);
                         }
                     }
@@ -315,6 +340,13 @@ public class RPHelper {
                     _log.info(String.format("Adding BLOCK_DATA descriptor to delete volume [%s] ", volume.getLabel()));
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, volume.getStorageController(), volume.getId(),
                             null, null);
+                    // Add a flag to not delete this volume if this is a Source volume and
+                    // the deletion type is Remove Protection
+                    if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
+                        Map<String, Object> volumeParams = new HashMap<String, Object>();
+                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);                    
+                        descriptor.setParameters(volumeParams);
+                    }
                     volumeDescriptors.add(descriptor);
                 }
             }

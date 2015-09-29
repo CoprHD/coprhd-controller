@@ -11,6 +11,7 @@ public enum VirtualPoolChangeOperationEnum {
     NON_VPLEX_TO_VPLEX("Change one or more volumes from non-VPLEX to a local or distributed virtual pool"),
     RP_PROTECTED("Change one or more volumes to include RecoverPoint protection"),
     RP_PROTECTED_CHANGE("Change one or more volumes already protected by RecoverPoint to different RecoverPoint protection settings/setup"),
+    RP_REMOVE_PROTECTION("Change one or more volumes already protected by RecoverPoint and remove that protection leaving the source volume in an unprotected state"),
     SRDF_PROTECED("Change one or more volumes to include SRDF protection"),
     ADD_MIRRORS("Change one or more volumes to include continuous copies protection"),
     EXPORT_PATH_PARAMS("Change one or more volumes' path paramters"),

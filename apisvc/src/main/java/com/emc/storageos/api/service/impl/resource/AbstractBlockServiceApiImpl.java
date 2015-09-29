@@ -338,7 +338,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
         // Get volume descriptor for all volumes to be deleted.
         List<VolumeDescriptor> volumeDescriptors = getDescriptorsForVolumesToBeDeleted(
-                systemURI, volumeURIs);
+                systemURI, volumeURIs, deletionType);
 
         // Mark the volumes for deletion for a VIPR only delete, otherwise get
         // the controller and delete the volumes.
@@ -395,7 +395,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return The list of volume descriptors.
      */
     abstract protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(
-            URI systemURI, List<URI> volumeURIs);
+            URI systemURI, List<URI> volumeURIs, String deletionType);
 
     /**
      * Get the volume descriptors for all volumes to be deleted given the passed

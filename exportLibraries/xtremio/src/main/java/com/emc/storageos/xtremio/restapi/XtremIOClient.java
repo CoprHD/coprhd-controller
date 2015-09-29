@@ -61,6 +61,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             for (XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
                 URI xmsURI = URI.create(xmsInfo.getHref().concat(XtremIOConstants.XTREMIO_XMS_FILTER_STR));
                 response = get(xmsURI);
+                log.debug("Got response {} for url {}.", response.getClientResponseStatus(), xmsURI);
                 if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
                     isV2 = false;
                 } else {
@@ -68,7 +69,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
                 }
             }
         } catch (Exception ex) {
-            log.warn("Error retrieving xms version info");
+            log.warn("Error retrieving xms version info", ex);
             isV2 = false;
         }
 

@@ -15,6 +15,8 @@ public class ComputeImagesDataTable extends DataTable {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("imageName");
         addColumn("imageType");
+        addColumn("importedServers");// Servers the image succesfully imported to
+        addColumn("nonImportedServers");// Servers the image failed to import to
         addColumn("discoveryStatus").setRenderFunction("render.discoveryStatusIcon");
         sortAll();
         setDefaultSort("name", "asc");
@@ -28,6 +30,8 @@ public class ComputeImagesDataTable extends DataTable {
         public String imageUrl;
         public String computeImageStatus;
         public String discoveryStatus;
+        public String importedServers;
+        public String nonImportedServers;
 
         public ComputeImagesInfo() {
         }
@@ -39,6 +43,8 @@ public class ComputeImagesDataTable extends DataTable {
             this.imageType = ComputeImageTypes.getDisplayValue(computeImage.getImageType());
             this.imageUrl = computeImage.getImageUrl();
             this.computeImageStatus = computeImage.getComputeImageStatus();
+            this.importedServers = "lgly7185,lgly6195";
+            this.nonImportedServers = "lgly6186";
             String displayStatus = computeImage.getComputeImageStatus();
             if (displayStatus.equalsIgnoreCase("AVAILABLE")) {
                 this.discoveryStatus = "COMPLETE";

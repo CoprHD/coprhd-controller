@@ -2762,7 +2762,7 @@ public class RecoverPointClient {
 
                 if (!found) {
                     logger.warn(String.format("No matching replication set for volume [%s] with replication set ID [%s] found."
-                            + " This will need to be check on the RP System.", 
+                            + " This will need to be checked on the RP System.", 
                             volumeInfo.getRpVolumeWWN(), volumeInfo.getRpVolumeRSetID()));      
                     return;
                 }

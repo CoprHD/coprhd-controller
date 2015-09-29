@@ -483,16 +483,24 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    }
             }
             
+            
          // Persist the vNAS servers!!!
+            if (newvNasList != null && !newvNasList.isEmpty()) {
+                if(physicalNAS != null) {
+                     for(VirtualNAS virNas: newvNasList) {
+                        virNas.setParentNasUri(physicalNAS.getId());
+                    }
+                }
+                _log.info("discoverAccessZones - new Virtual NAS servers size {}", newvNasList.size());
+                _dbClient.createObject(newvNasList);
+            }
+            
             if (exitingvNASList != null && !exitingvNASList.isEmpty()) {
                 _log.info("discoverAccessZones - modified Virtaul NAS servers size {}", exitingvNASList.size());
                 _dbClient.persistObject(exitingvNASList);
             }
 
-            if (newvNasList != null && !newvNasList.isEmpty()) {
-                _log.info("discoverAccessZones - new Virtual NAS servers size {}", newvNasList.size());
-                _dbClient.createObject(newvNasList);
-            }
+            
             
             // Persist the NAS servers!!!
             if (exitingPhyList != null && !exitingPhyList.isEmpty()) {
@@ -2056,7 +2064,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         //add authentication map
       
         CifsServerMap cifsServersMap = getCifsServerMap(isiAccessZone);
-        if(cifsServersMap != null) { 
+        if(cifsServersMap != null && !cifsServersMap.isEmpty()) { 
             vNas.setCifsServersMap(cifsServersMap);
         }
         //set native "Guid"
@@ -2071,7 +2079,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             StringMap dbMetrics = vNas.getMetrics();
             _log.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
-
+            if (dbMetrics == null) {
+               dbMetrics = new StringMap(); 
+            }
             // Set the Limit Metric keys!!
             Long MaxObjects = 2048L;
             Long MaxCapacity = 200L * TBsINKB;
@@ -2118,12 +2128,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         
          //add authentication map
         CifsServerMap cifsServersMap = getCifsServerMap(isiAccessZone);
-        if(cifsServersMap != null) { 
+        if(cifsServersMap != null && !cifsServersMap.isEmpty()) { 
             phyNas.setCifsServersMap(cifsServersMap);
         }
             
             
         StringMap dbMetrics = phyNas.getMetrics();
+        if(dbMetrics == null) {
+            dbMetrics = new StringMap();
+        }
         // Set the Limit Metric keys!!
         Long MaxObjects = 2048L;
         Long MaxCapacity = 200L * TBsINKB;

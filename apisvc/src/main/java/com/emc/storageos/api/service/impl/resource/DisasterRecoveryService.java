@@ -4,10 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
-
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -63,6 +59,8 @@ import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.sys.ClusterInfo;
+
+import static com.emc.storageos.db.client.model.uimodels.InitialSetup.*;
 
 /**
  * APIs implementation to standby sites lifecycle management such as add-standby, remove-standby, failover, pause
@@ -179,7 +177,7 @@ public class DisasterRecoveryService {
     /**
      * Sync all the site information from the primary site to the new standby
      * The current site will be demoted from primary to standby during the process
-     * @param param
+     * @param configParam
      * @return
      */
     @PUT
@@ -390,8 +388,9 @@ public class DisasterRecoveryService {
             if (standby != null) {
                 log.info("Find standby site in local VDC and remove it");
 
-                VirtualDataCenter vdc = queryLocalVDC();
                 standby.setState(SiteState.STANDBY_PAUSED);
+                coordinator.setTargetInfo(uuid, standby);
+                VirtualDataCenter vdc = queryLocalVDC();
 
                 updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
                 for (String standbyUuid : vdc.getSiteUUIDs()) {

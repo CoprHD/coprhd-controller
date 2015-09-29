@@ -93,6 +93,7 @@ public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
                 case PAUSE_RP_LINK:
                 case RESUME_RP_LINK:
                 case FAILOVER_RP_LINK:
+                case FAILOVER_CANCEL_RP_LINK:
                 case SWAP_RP_VOLUME:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
                     break;

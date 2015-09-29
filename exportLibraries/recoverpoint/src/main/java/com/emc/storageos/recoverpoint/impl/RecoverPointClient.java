@@ -1058,12 +1058,6 @@ public class RecoverPointClient {
                 logger.info("RecoverPointClient: Briefly sleeping to accommodate export group latencies (Attempt #{} / {})",
                         MAX_SCAN_WAIT_TOTAL_TRIES - rescanTries, MAX_SCAN_WAIT_TOTAL_TRIES);
                 
-                // If we've tried over half the total retry times, attempt a reconnect
-                // operation to the RecoverPoint appliance.
-                if ((MAX_SCAN_WAIT_TOTAL_TRIES - rescanTries) == (MAX_SCAN_WAIT_TOTAL_TRIES / 2)) {
-                    this.reconnect();
-                }
-                
                 try {
                     Thread.sleep(MAX_SCAN_WAIT_RETRY_MILLISECONDS);
                 } catch (InterruptedException e1) {
@@ -2804,13 +2798,7 @@ public class RecoverPointClient {
             } else {
                 logger.warn(String.format("No replication sets found to be deleted from RP CG [%s] (%d)", 
                         groupSettings.getName(), cgID.getId()));
-            }
-        } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.failedToDeleteReplicationSet(
-                    volumeWWNs.toString(), e);
-        } catch (FunctionalAPIInternalError_Exception e) {
-            throw RecoverPointException.exceptions.failedToDeleteReplicationSet(
-                    volumeWWNs.toString(), e);
+            }        
         } catch (Exception e) {
             throw RecoverPointException.exceptions.failedToDeleteReplicationSet(
                     volumeWWNs.toString(), e);

@@ -351,7 +351,7 @@ public class RPHelper {
      * @param volumeIDs volume IDs
      * @return true if volumeIDs contains all of the source volumes in the protection set
      */
-    public static boolean canPerfromFullConsistencyGroupOperation(DbClient dbClient, ProtectionSet protectionSet, Collection<URI> volumeIDs) {
+    public static boolean containsAllRPSourceVolumes(DbClient dbClient, ProtectionSet protectionSet, Collection<URI> volumeIDs) {
 
         // find all source volumes.
         List<URI> sourceVolumeIDs = new ArrayList<URI>();

@@ -549,6 +549,47 @@ public class ExportUtils {
         return count > 1;
     }
 
+    /**
+     * This function is used to determine if an initiator is in an export mask other than the one
+     * being processed and this other export mask is used by a different export group yet they all
+     * are for the same host or compute resource. This situation happens when volumes in different
+     * virtual arrays but on the same storage array are exported to the same host. In this situation
+     * the application creates 2 export groups and 2 export masks in ViPR and 2 different masking 
+     * views on the storage array, yet the masking views share the same initiator group. 
+     * <p>
+     * This function checks that another export masks is not sharing the same initiator group 
+     * but that is not under the same export group (this is handled elsewhere) by searching 
+     * for an export mask that:<ol>
+     * <li>is for the same storage system</li>
+     * <li>is not one used by the same export group</li>
+     * <li>has the initiator added into it by the application</li>
+     * <li>has the exact set of initiators which a prerequisite to sharing an initiator group</li>
+     * </ol>  
+     * @param dbClient an instance of DbClient
+     * @param initiatorUri the URI of the initiator being checked
+     * @param curExportMask the export mask being processed
+     * @param exportMaskURIs other export masks in the same export group as the export mask being processed.
+     * @return true if the initiator is found in other export masks.
+     */
+    public static boolean isInitiatorShared(DbClient dbClient, URI initiatorUri, ExportMask curExportMask, Collection<URI> exportMaskURIs) {
+        List<ExportMask> results =
+                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
+                        ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+        int count = 0;
+        for (ExportMask exportMask : results) {
+            if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) && 
+                    exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
+                            !exportMaskURIs.contains(exportMask.getId()) && 
+                            exportMask.hasUserInitiator(initiatorUri) && 
+                            StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators())) {
+                _log.info(String.format("Initiator %s is shared with mask %s.", 
+                        initiatorUri, exportMask.getMaskName()));
+                count++;
+            }
+        }
+        return count > 0;
+    }
+
     static public int getNumberOfExportGroupsWithVolume(Initiator initiator, URI blockObjectId, DbClient dbClient) {
         List<ExportGroup> list = getInitiatorVolumeExportGroups(initiator, blockObjectId, dbClient);
         return (list != null) ? list.size() : 0;

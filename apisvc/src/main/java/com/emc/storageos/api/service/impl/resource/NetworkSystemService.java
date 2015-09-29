@@ -922,8 +922,7 @@ public class NetworkSystemService extends TaskResourceService {
         List<Zone> zones = new ArrayList<Zone>();
         for (SanZone sz : sanZones.getZones()) {
             Zone zone = new Zone(sz.getName());
-            boolean zoneNameValid = validateZoneName(sz.getName(), device.getSystemType());
-            _log.info("Zone name {} is valid for add {}", sz.getName(), zoneNameValid);
+            validateZoneName(sz.getName(), device.getSystemType());
             zones.add(zone);
             for (String szm : sz.getMembers()) {
                 ZoneMember member = createZoneMember(szm);

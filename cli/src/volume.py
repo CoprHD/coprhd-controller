@@ -1408,21 +1408,21 @@ class Volume(object):
         else:
             return o    
 
-			
+        
     #To check whether a cloned volume is in detachable state or not
     def is_volume_detachable(self, name):
         
         volumeUri = self.volume_query(name)
         vol = self.show_by_uri(volumeUri)
-		#Filtering based on "replicaState" attribute value of Cloned volume.
-		#If "replicaState" value is "SYNCHRONIZED" then only Cloned volume would be in detachable state.
+        #Filtering based on "replicaState" attribute value of Cloned volume.
+        #If "replicaState" value is "SYNCHRONIZED" then only Cloned volume would be in detachable state.
         if(vol and 'protection' in vol and
             'full_copies' in vol['protection'] and
             'replicaState' in vol['protection']['full_copies']):
             if(vol['protection']['full_copies']['replicaState'] == 'SYNCHRONIZED'):
                 return True
-			else:
-                return False	
+            else:
+                return False
         else:
             return False
         

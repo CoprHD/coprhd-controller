@@ -807,6 +807,10 @@ public class BlockStorageUtils {
         return null;
     }
 
+    /**
+     * Stores the virtual pool, virtual array, project, host, consistency group,
+     * and HLU values for volume create services.
+     */
     public static class VolumeParams {
         @Param(VIRTUAL_POOL)
         public URI virtualPool;
@@ -840,6 +844,9 @@ public class BlockStorageUtils {
         }
     }
 
+    /**
+     * Stores the name, size, and count of volumes for multi-volume create services.
+     */
     public static class VolumeTable {
         @Param(NAME)
         protected String nameParam;

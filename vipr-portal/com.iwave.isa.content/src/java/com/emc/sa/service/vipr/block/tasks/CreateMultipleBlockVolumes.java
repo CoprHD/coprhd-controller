@@ -13,6 +13,10 @@ import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 
+/**
+ * Task that will create multiple block volumes in parallel. Executes a single create volume API
+ * call for each CreateBlockVolumeHelper instance and returns tasks for all volumes that are created.
+ */
 public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
     private final List<CreateBlockVolumeHelper> helpers;
 

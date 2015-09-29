@@ -75,8 +75,6 @@ public class DBClient {
     private boolean turnOnLimit = false;
     private boolean activeOnly = true;
     
-    private Set<Class> scannedType = new HashSet<>();
-
     private static final String PRINT_COUNT_RESULT = "Column Family %s's row count is: %s";
     private static final String REGEN_RECOVER_FILE_MSG = "Please regenerate the recovery " +
             "file from the node where the last add VDC operation was initiated.";
@@ -85,6 +83,9 @@ public class DBClient {
 
     InternalDbClientImpl _dbClient = null;
     private DependencyChecker _dependencyChecker = null;
+    
+    private Set<Class> scannedType = new HashSet<>();
+    private boolean foundReference = false;
 
     HashMap<String, Class> _cfMap = new HashMap<String, Class>();
     ClassPathXmlApplicationContext ctx = null;
@@ -601,7 +602,7 @@ public class DBClient {
                 System.err.println(String.format("Failed to delete the object %s: active reference of type %s found",
                                         id, reference));
                 System.err.println(String.format("\nThe dependencies of %s are as following:", clazz.getSimpleName()));
-                printDependencies(clazz, true, "", clazz.toString(), dependencyTracker);
+                printDependencies(clazz, id, true, "", clazz.toString(), dependencyTracker);
                 return false;
             }
             log.info("Force to delete object {} that has active dependencies", id);
@@ -1128,7 +1129,7 @@ public class DBClient {
 
     }
     
-    public void printDependencies(String cfName) {
+    public void printDependencies(String cfName, URI uri) {
         final Class type = _cfMap.get(cfName);
         if (type == null) {
             System.err.println("Unknown Column Family: " + cfName);
@@ -1139,48 +1140,56 @@ public class DBClient {
                 .getBean("dataObjectScanner");
         DependencyTracker dependencyTracker = dataObjectscanner.getDependencyTracker();
 
-        printDependencies(type, true, "", type.toString(), dependencyTracker);
+        printDependencies(type, uri, true, "", type.getSimpleName(), dependencyTracker);
+        if (uri != null) {
+            if (foundReference) {
+                System.out.println("Find references of this id: " + uri);
+            } else {
+                System.out.println("No reference was found.");
+            }
+        }
     };
 
-    private void printDependencies(final Class type, boolean last, String prefix,
-            String output, DependencyTracker tracker) {
-        String selfPrefix = prefix;
-        if (last) {
-            selfPrefix += "+-";
-        } else {
-            selfPrefix += "|-";
-        }
-
-        selfPrefix += output;
+    private void printDependencies(final Class type, URI uri, boolean last,
+            String prefix, String output, DependencyTracker tracker) {
+        String selfPrefix = String.format("%s|-%s", prefix, output);
 
         System.out.println(selfPrefix);
 
         if (scannedType.contains(type)) {
             return;
         }
-        
+
         List<Dependency> dependencies = tracker.getDependencies(type);
         scannedType.add(type);
         for (int i = 0; i < dependencies.size(); i++) {
             Dependency dependency = dependencies.get(i);
+
             Class childType = dependency.getType();
-            String childPrefix = prefix;
+            String childPrefix = String.format("%s%s   ", prefix, last ? " " : "|");
 
             boolean lastChild = false;
             if (i == (dependencies.size() - 1)) {
                 lastChild = true;
             }
 
-            if (last) {
-                childPrefix += "    ";
-            } else {
-                childPrefix += "|   ";
-            }
-            
-            String childOutput = String.format("%s(Index:%s, CF:%s)", childType,
-                    dependency.getColumnField().getIndex().getClass().getSimpleName(), dependency.getColumnField()
+            String childOutput = String.format("%s(Index:%s, CF:%s)",
+                    childType.getSimpleName(), dependency.getColumnField().getIndex()
+                            .getClass().getSimpleName(), dependency.getColumnField()
                             .getIndexCF().getName());
-            printDependencies(childType, lastChild, childPrefix, childOutput, tracker);
+
+            List<URI> references = _dbClient.getReferUris(uri, type, dependency);
+            if (!references.isEmpty()) {
+                foundReference = true;
+                for (URI childUri : references) {
+                    childOutput += String.format("\n%s  *-%s", childPrefix, childUri);
+                    printDependencies(childType, childUri, lastChild, childPrefix,
+                            childOutput, tracker);
+                }
+            } else {
+                printDependencies(childType, null, lastChild, childPrefix, childOutput,
+                        tracker);
+            }
         }
     }
 }

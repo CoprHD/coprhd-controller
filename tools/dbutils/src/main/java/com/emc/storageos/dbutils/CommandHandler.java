@@ -32,6 +32,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
 
 public abstract class CommandHandler {
     public String cfName = null;
@@ -62,16 +63,21 @@ public abstract class CommandHandler {
     }
     
     public static class DependencyHandler extends CommandHandler {
+        String id = null;
+
         public DependencyHandler(String args[]) {
             if (args.length < 2) {
                 throw new IllegalArgumentException("Invalid command:need at least 2 arguments");
             }
             cfName = args[1];
+            if (args.length > 2) {
+                id = args[2];
+            }
         }
 
         @Override
         public void process(DBClient _client) throws Exception {
-            _client.printDependencies(cfName);
+            _client.printDependencies(cfName, id == null ? null : URI.create(id));
         }
 
     }

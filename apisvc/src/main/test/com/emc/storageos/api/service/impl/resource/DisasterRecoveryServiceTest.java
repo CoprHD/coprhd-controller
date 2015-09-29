@@ -25,6 +25,7 @@ import javax.crypto.SecretKey;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.omg.PortableServer.POAManagerPackage.State;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.ProductName;
@@ -92,13 +93,16 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr1", "10.247.101.111");
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
+        standbySite1.setState(SiteState.ACTIVE);
 
         standbySite2 = new Site();
         standbySite2.setUuid("site-uuid-2");
+        standbySite2.setState(SiteState.ACTIVE);
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
         standbySite3.setVdc(new URI("fake-vdc-id"));
+        standbySite3.setState(SiteState.ACTIVE);
 
         primarySiteParam = new SiteParam();
         /*primarySiteParam.setUuid("primary-site-uuid");

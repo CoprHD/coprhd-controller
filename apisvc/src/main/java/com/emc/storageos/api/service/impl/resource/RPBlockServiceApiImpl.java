@@ -1643,22 +1643,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             _log.error(e.getMessage(), e);
 
             try {
-            // If there is a change vpool volume, we need to ensure that we rollback protection on it.
-            // We want to return the volume back to it's original state.
-            if (isChangeVpool || isChangeVpoolForProtectedVolume) {
-                Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, rpProtectionRec.getVpoolChangeVolume());
-                VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolId);
-                RPHelper.rollbackProtectionOnVolume(changeVpoolVolume, oldVpool, _dbClient);
-            }
-
-            for (URI volumeURI : volumeURIs) {
-                // Rollback any volumes that were created during prepare, excluding the change vpool volume
-                // which would have already been handled above. Not too mention we of course do not want to
-                // completely rollback an existing volume (which the change vpool volume would be).
-                if (!volumeURI.equals(rpProtectionRec.getVpoolChangeVolume())) {
-                    RPHelper.rollbackVolume(volumeURI, _dbClient);
+                // If there is a change vpool volume, we need to ensure that we rollback protection on it.
+                // We want to return the volume back to it's original state.
+                if (isChangeVpool || isChangeVpoolForProtectedVolume) {
+                    Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, rpProtectionRec.getVpoolChangeVolume());
+                    VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolId);
+                    RPHelper.rollbackProtectionOnVolume(changeVpoolVolume, oldVpool, _dbClient);
                 }
-            }
+
+                for (URI volumeURI : volumeURIs) {
+                    // Rollback any volumes that were created during prepare, excluding the change vpool volume
+                    // which would have already been handled above. Not too mention we of course do not want to
+                    // completely rollback an existing volume (which the change vpool volume would be).
+                    if (!volumeURI.equals(rpProtectionRec.getVpoolChangeVolume())) {
+                        RPHelper.rollbackVolume(volumeURI, _dbClient);
+                    }
+                }
             } catch (Exception e2) {
                 // best effort for rollback; still need to set the tasks to error
                 _log.error("rollback create volume or change vpool failed");

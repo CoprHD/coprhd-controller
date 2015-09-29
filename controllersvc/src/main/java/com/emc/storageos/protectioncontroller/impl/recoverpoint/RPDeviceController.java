@@ -1932,7 +1932,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     // Volume Info to give RP to clean up the RSets
                     replicationSetsToRemove.add(volumeProtectionInfo);
                     // Source volume to be removed from Protection Set
-                    removeVolumeIDs.add(volume.getId().toString());
+                    if (!NullColumnValueGetter.isNullURI(volume.getId())) {                        
+                        removeVolumeIDs.add(volume.getId().toString());                        
+                    }                    
                     // All Target volumes to be removed from Protection Set
                     if (volume.getRpTargets() != null) {                        
                         removeVolumeIDs.addAll(volume.getRpTargets());

@@ -2819,7 +2819,8 @@ public class RecoverPointClient {
     private void validateRSetsRemoved(List<Long> resetIDsToValidate, ConsistencyGroupUID cgToValidate, List<String> volumeWWNs) 
             throws RecoverPointException {        
         try {            
-            logger.info(String.format("Validating that all requested RSets have been removed from RP CG [%d]", cgToValidate.getId()));
+            String cgName = functionalAPI.getGroupName(cgToValidate);
+            logger.info(String.format("Validating that all requested RSets have been removed from RP CG [%s] (%d)", cgName, cgToValidate.getId()));
             int rsetDeleteAttempt = 0;
             while (rsetDeleteAttempt < MAX_WAIT_FOR_RP_DELETE_ATTEMPTS) {
                 boolean allRSetsDeleted = true;
@@ -2831,7 +2832,8 @@ public class RecoverPointClient {
                 // If any are still present, wait and check again.
                 for (ReplicationSetSettings rset : replicationSetSettings) {                    
                     if (resetIDsToValidate.contains(rset.getReplicationSetUID().getId())) {
-                        logger.info(String.format("RSet [%d] has not been removed yet. Will wait and check again...", rset.getReplicationSetUID().getId()));
+                        logger.info(String.format("RSet [%s] (%d) has not been removed yet. Will wait and check again...", 
+                                rset.getReplicationSetName(), rset.getReplicationSetUID().getId()));
                         waitForRpOperation();
                         rsetDeleteAttempt++;
                         allRSetsDeleted = false;                        
@@ -2845,21 +2847,22 @@ public class RecoverPointClient {
                 }
                 if (allRSetsDeleted) {
                     // RSets appear to have been removed from RP
-                    logger.info(String.format("All requested RSets have been removed."));
+                    logger.info(String.format("All requested RSets have been removed from RP CG [%s] (%d).", 
+                            cgName, cgToValidate.getId()));
                     break;
                 }
             }
             // If we reached max attempts alert the user and continue on with delete operation.
             if (rsetDeleteAttempt >= MAX_WAIT_FOR_RP_DELETE_ATTEMPTS) {
                 // Allow the cleanup to continue in ViPR but warn the user
-                logger.error(String.format("Max attempts reached waiting for requested RSets to be removed from RP. "
+                logger.error(String.format("Max attempts reached waiting for requested RSets to be removed from RP CG. "
                         + "Please check RP System."));     
                 throw RecoverPointException.exceptions.failedToDeleteReplicationSet(
-                        volumeWWNs.toString(), new Exception("Max attempts reached waiting for requested RSets to be removed from RP. "
+                        volumeWWNs.toString(), new Exception("Max attempts reached waiting for requested RSets to be removed from RP CG. "
                         + "Please check RP System."));
             } 
         } catch (Exception e) {
-            logger.error(String.format("Exception hit while waiting for all requested RSets to be removed."));
+            logger.error(String.format("Exception hit while waiting for all requested RSets to be removed from RP CG."));
             throw RecoverPointException.exceptions.failedToDeleteReplicationSet(
                     volumeWWNs.toString(), e);
         }

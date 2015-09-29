@@ -896,12 +896,13 @@ public class BlockSnapshotService extends TaskResourceService {
         // use the source volume virtual pool for the VPLEX volume.
         volume.setVirtualPool(sourceVolume.getVirtualPool());
 
-        // This is not likely accurate, but we need to specify a storage
-        // pool for the volume ( I got a failure on export for vmax when not
-        // set to something). We could alternatively try and set the
-        // storage pool in the block snapshot instance so we have the actual
-        // storage pool.
-        // volume.setPool(sourceVolume.getPool());
+        // The pool is not currently set as the BlockSnapshot does not
+        // keep the storage pool for the target volume. This did not
+        // cause issues for the allowed operations (export/unexport/delete)
+        // for the VPLEX volume built on the snapshot. We could alternatively
+        // try and set the storage pool in the block snapshot instance so
+        // we have the actual storage pool.
+        // volume.setPool(TBD);
 
         // Create the instance in the database.
         _dbClient.createObject(volume);

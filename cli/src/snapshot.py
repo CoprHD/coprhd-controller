@@ -1004,7 +1004,7 @@ class Snapshot(object):
                 tag.tag_resource(
                     self.__ipAddr,
                     self.__port,
-                    Snapshot.URI_CONSISTENCY_GROUP_TAG,
+                    Snapshot.URI_BLOCK_SNAPSHOTS_TAG ,
                     suri,
                     add,
                     remove)

@@ -937,6 +937,8 @@ endif
 	$(ATSIGN)$(CHMOD) 770 $(INSTALL_PREFIX)/opt/storageos/play/play
 	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/db
 	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/geodb
+	$(ATSIGN)$(CHMOD) o-r -R $(INSTALL_PREFIX)/opt/storageos/conf
+	$(ATSIGN)$(SETFACL) -m u:1001:r -R $(INSTALL_PREFIX)/opt/storageos/conf   # svcuser(1001) is created during rpm installation in coprhd 
 
 _uninstall:
 	@echo "Uninstalling $(INSTALL_PREFIX)$(PRODUCT_PREFIX)"

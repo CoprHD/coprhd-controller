@@ -52,8 +52,11 @@ public class IsilonApi {
     private static final URI URI_STORAGE_POOLS = URI.create("/platform/1/diskpool/diskpools");
     private static final URI URI_STORAGE_PORTS = URI
             .create("/platform/1/cluster/smartconnect_zones");
+    private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
+    
     // private static final URI URI_EVENTS = URI.create("/platform/1/events/");
     private static final URI URI_EVENTS = URI.create("/platform/2/event/events/");
+    
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
     /**
@@ -950,6 +953,17 @@ public class IsilonApi {
                 clientResp.close();
             }
         }
+    }
+    /**
+     * get the list of access zone
+     * @return
+     * @throws IsilonException
+     */
+    public List<IsilonAccessZone> getAccessZones()throws IsilonException {
+        IsilonList<IsilonAccessZone> accessZoneIsilonList = list(_baseUrl.resolve(URI_ACCESS_ZONES),
+                "zones", IsilonAccessZone.class, null);
+        return accessZoneIsilonList.getList();
+
     }
 
     /**

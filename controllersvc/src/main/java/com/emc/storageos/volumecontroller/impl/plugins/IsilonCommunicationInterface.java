@@ -28,13 +28,18 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
+import com.emc.storageos.db.client.model.CifsServerMap;
+import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
@@ -43,6 +48,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.isilon.restapi.IsilonAccessZone;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonClusterConfig;
@@ -67,6 +73,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.ZeroRecordGenera
 import com.emc.storageos.volumecontroller.impl.plugins.metering.file.FileDBInsertion;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.file.FileZeroRecordGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.isilon.IsilonStatsRecorder;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
@@ -96,6 +103,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String UNIXSECURITY = "unix";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String SYSSECURITY = "sys";
+    private static final Long TBsINKB = 1073741824L;
 
     private IsilonApiFactory _factory;
 
@@ -348,7 +356,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports.get(NEW),
                     allExistPorts, _dbClient, _coordinator, poolsToMatchWithVpool);
-
+            discoverAccessZones(storageSystem);
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Isilon: %s",
                     storageSystemId.toString());
@@ -411,6 +419,95 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             String errMsg = String.format("discoverCluster failed. %s", e.getMessage());
             _log.error(errMsg, e);
             IsilonCollectionException ice = new IsilonCollectionException(errMsg);
+            throw ice;
+        }
+    }
+    
+    private void discoverAccessZones(StorageSystem storageSystem) {
+        URI storageSystemId = storageSystem.getId();
+        //HashMap<String, List<IsilonAccessZone>> accessZoneListHashMap = new HashMap<String, List<IsilonAccessZone>>();
+        List<IsilonAccessZone> accessZoneListTemp = null;
+        List<VirtualNAS> newvNasList = new ArrayList<VirtualNAS>();
+        List<VirtualNAS> exitingvNASList = new ArrayList<VirtualNAS>();
+        
+        List<PhysicalNAS> newPhyList = new ArrayList<PhysicalNAS>();
+        List<PhysicalNAS> exitingPhyList = new ArrayList<PhysicalNAS>();
+        
+        // Discover storage ports
+        try {
+            _log.info("discoverAccessZones for storage system {} - start", storageSystemId);
+            IsilonApi isilonApi = getIsilonDevice(storageSystem);
+
+            List<IsilonAccessZone> accessZoneList = new ArrayList<IsilonAccessZone>();
+            accessZoneListTemp = isilonApi.getAccessZones();
+            if( accessZoneListTemp == null || accessZoneListTemp.isEmpty()) {
+                //No ports defined throw an exception and fail the discovery
+                IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. No Zones defined");
+                throw ice;
+            } else {
+                accessZoneListTemp.addAll(accessZoneListTemp);
+            }
+            VirtualNAS virtualNAS = null;
+            PhysicalNAS physicalNAS = null;
+            CifsServerMap cifsServersMap = null;
+            for (IsilonAccessZone isilonAccessZone : accessZoneList) {
+                   if( isilonAccessZone.isSystem() == false) {
+                       virtualNAS = findvNasByNativeId(storageSystem, 
+                               isilonAccessZone.getZone_id().toString());
+                       if(virtualNAS == null) {
+                           virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
+                           newvNasList.add(virtualNAS);
+                       } else {
+                           cifsServersMap = getCifsServerMap(isilonAccessZone);
+                           if(cifsServersMap.isEmpty()) {
+                               virtualNAS.setCifsServersMap(cifsServersMap);
+                           }
+                           exitingvNASList.add(virtualNAS);
+                           
+                       }
+                   } else {
+                       
+                       physicalNAS = findPhysicalNasByNativeId(storageSystem, 
+                                                   isilonAccessZone.getZone_id().toString());
+                       if(physicalNAS == null) {
+                           physicalNAS = createPhysicalNas(storageSystem, isilonAccessZone);
+                           newPhyList.add(physicalNAS);
+                       } else {
+                           cifsServersMap = getCifsServerMap(isilonAccessZone);
+                           if(cifsServersMap.isEmpty()) {
+                               virtualNAS.setCifsServersMap(cifsServersMap);
+                           }
+                
+                           exitingPhyList.add(physicalNAS);
+                       }
+                   }
+            }
+            
+         // Persist the vNAS servers!!!
+            if (exitingvNASList != null && !exitingvNASList.isEmpty()) {
+                _log.info("discoverAccessZones - modified Virtaul NAS servers size {}", exitingvNASList.size());
+                _dbClient.persistObject(exitingvNASList);
+            }
+
+            if (newvNasList != null && !newvNasList.isEmpty()) {
+                _log.info("discoverAccessZones - new Virtual NAS servers size {}", newvNasList.size());
+                _dbClient.createObject(newvNasList);
+            }
+            
+            // Persist the NAS servers!!!
+            if (exitingPhyList != null && !exitingPhyList.isEmpty()) {
+                _log.info("discoverAccessZones - modified Physical NAS servers size {}", exitingPhyList.size());
+                _dbClient.persistObject(exitingPhyList);
+            }
+
+            if (newPhyList != null && !newPhyList.isEmpty()) {
+                _log.info("discoverAccessZones - new Physical NAS servers size {}", newPhyList.size());
+                _dbClient.createObject(newPhyList);
+            }
+            
+        } catch (Exception e) {
+            _log.error("discoverPorts failed. Storage system: {}", storageSystemId, e);
+            IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. Storage system: " + storageSystemId);
             throw ice;
         }
     }
@@ -1934,5 +2031,198 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return expMapTree;
     }
+    
+    /**
+     * Create Virtual NAS for the specified VNX File storage array
+     *
+     * @param system storage system information including credentials.
+     * @param discovered VDM of the specified VNX File storage array
+     * @return Virtual NAS Server
+     * @throws VNXFileCollectionException
+     */
+    private VirtualNAS createVirtualNas(StorageSystem system, IsilonAccessZone isiAccessZone) {
+
+        VirtualNAS vNas = new VirtualNAS();
+        
+        vNas.setStorageDeviceURI(system.getId());
+        
+        vNas.setNasName(isiAccessZone.getName());
+        vNas.setNativeId(isiAccessZone.getId());
+        vNas.setBaseDirPath(isiAccessZone.getPath());
+        vNas.setNasState(VirtualNasState.LOADED.toString());
+        vNas.setId(URIUtil.createId(VirtualNAS.class));
+        
+        //add authentication map
+      
+        CifsServerMap cifsServersMap = getCifsServerMap(isiAccessZone);
+        if(cifsServersMap != null) { 
+            vNas.setCifsServersMap(cifsServersMap);
+        }
+        
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, isiAccessZone.getZone_id().toString(), NativeGUIDGenerator.VIRTUAL_NAS);
+        vNas.setNativeGuid(nasNativeGuid);
+
+        PhysicalNAS parentNas = findPhysicalNasByNativeId(system, isiAccessZone.getZone_id().toString());
+
+        if (parentNas != null) {
+            vNas.setParentNasUri(parentNas.getId());
+
+            StringMap dbMetrics = vNas.getMetrics();
+            _log.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
+
+            // Set the Limit Metric keys!!
+            Long MaxObjects = 2048L;
+            Long MaxCapacity = 200L * TBsINKB;
+            String modelStr = system.getModel();
+            if (modelStr.startsWith("VNX")) {
+                if (Long.parseLong(modelStr.substring(3)) > 5300) {
+                    MaxCapacity = 256L * TBsINKB;
+                }
+            }
+
+            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
+            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+            vNas.setMetrics(dbMetrics);
+        }
+
+        return vNas;
+
+    }
+
+    /**
+     * Create Physical NAS for the specified VNX File storage array
+     *
+     * @param system storage system information including credentials.
+     * @param discovered DM of the specified VNX File storage array
+     * @return Physical NAS Server
+     * @throws VNXFileCollectionException
+     */
+    private PhysicalNAS createPhysicalNas(final StorageSystem system, IsilonAccessZone isiAccessZone)  {
+
+        PhysicalNAS phyNas = new PhysicalNAS();
+        
+        phyNas.setStorageDeviceURI(system.getId());
+
+        phyNas.setNasName(isiAccessZone.getName());
+        phyNas.setNativeId(isiAccessZone.getId());
+        
+        phyNas.setNasState(VirtualNasState.LOADED.toString());
+        phyNas.setId(URIUtil.createId(PhysicalNAS.class));
+            // Set storage port details to vNas
+        String physicalNasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                    system, isiAccessZone.getZone_id().toString(), NativeGUIDGenerator.PHYSICAL_NAS);
+        phyNas.setNativeGuid(physicalNasNativeGuid);
+            _log.info("Physical NAS created with guid {} ", phyNas.getNativeGuid());
+        
+         //add authentication map
+        CifsServerMap cifsServersMap = getCifsServerMap(isiAccessZone);
+        if(cifsServersMap != null) { 
+            phyNas.setCifsServersMap(cifsServersMap);
+        }
+            
+            
+        StringMap dbMetrics = phyNas.getMetrics();
+        // Set the Limit Metric keys!!
+        Long MaxObjects = 2048L;
+        Long MaxCapacity = 200L * TBsINKB;
+        String modelStr = system.getModel();
+        if (modelStr.startsWith("VNX")) {
+            if (Long.parseLong(modelStr.substring(3)) > 5300) {
+                MaxCapacity = 256L * TBsINKB;
+            }
+        }
+
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
+        dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+        phyNas.setMetrics(dbMetrics);
+
+        
+        return phyNas;
+
+    }
+    /**
+     * 
+     * @param isiAccessZone
+     * @return
+     */
+    CifsServerMap getCifsServerMap(IsilonAccessZone isiAccessZone) { 
+        //add authentication map
+        ArrayList<String> authArrayList = isiAccessZone.getAuth_providers();
+        CifsServerMap cifsServersMap = new CifsServerMap();
+        if(authArrayList != null) {
+            for(String authProvider: authArrayList) {
+                NasCifsServer nasCifsServer = new NasCifsServer();
+                nasCifsServer.setName(authProvider);
+                cifsServersMap.put(authProvider, nasCifsServer);
+            }
+        }
+        return cifsServersMap;
+    }
+
+/**
+ * Find the Virtual NAS by Native ID for the specified VNX File storage array
+ * 
+ * @param system storage system information including credentials.
+ * @param Native id of the specified Virtual NAS
+ * @return Virtual NAS Server
+ */
+private VirtualNAS findvNasByNativeId(StorageSystem system, String nativeId) {
+    URIQueryResultList results = new URIQueryResultList();
+    VirtualNAS vNas = null;
+
+    // Set storage port details to vNas
+    String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+            system, nativeId, NativeGUIDGenerator.VIRTUAL_NAS);
+
+    _dbClient.queryByConstraint(
+            AlternateIdConstraint.Factory.getVirtualNASByNativeGuidConstraint(nasNativeGuid),
+            results);
+    Iterator<URI> iter = results.iterator();
+    while (iter.hasNext()) {
+        VirtualNAS tmpVnas = _dbClient.queryObject(VirtualNAS.class, iter.next());
+
+        if (tmpVnas != null && !tmpVnas.getInactive()) {
+            vNas = tmpVnas;
+            _log.info("found virtual NAS {}", tmpVnas.getNativeGuid() + ":" + tmpVnas.getNasName());
+            break;
+        }
+    }
+    return vNas;
+
+}
+
+/**
+ * Find the Physical NAS by Native ID for the specified VNX File storage array
+ * 
+ * @param system storage system information including credentials.
+ * @param Native id of the specified Physical NAS
+ * @return Physical NAS Server
+ */
+private PhysicalNAS findPhysicalNasByNativeId(StorageSystem system, String nativeId) {
+    URIQueryResultList results = new URIQueryResultList();
+    PhysicalNAS physicalNas = null;
+
+    // Set storage port details to vNas
+    String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+            system, nativeId, NativeGUIDGenerator.PHYSICAL_NAS);
+
+    _dbClient.queryByConstraint(
+            AlternateIdConstraint.Factory.getPhysicalNasByNativeGuidConstraint(nasNativeGuid),
+            results);
+
+    Iterator<URI> iter = results.iterator();
+    while (iter.hasNext()) {
+        PhysicalNAS tmpNas = _dbClient.queryObject(PhysicalNAS.class, iter.next());
+
+        if (tmpNas != null && !tmpNas.getInactive()) {
+            physicalNas = tmpNas;
+            _log.info("found physical NAS {}", physicalNas.getNativeGuid() + ":" + physicalNas.getNasName());
+            break;
+        }
+    }
+    return physicalNas;
+
+}
 
 }

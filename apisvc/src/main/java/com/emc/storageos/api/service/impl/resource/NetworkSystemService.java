@@ -916,8 +916,6 @@ public class NetworkSystemService extends TaskResourceService {
 
         ArgValidator.checkFieldUriType(id, NetworkSystem.class, "id");
         NetworkSystem device = queryResource(id);
-        Operation op = _dbClient.createTaskOpStatus(NetworkSystem.class, device.getId(),
-                task, ResourceOperationTypeEnum.ADD_SAN_ZONE);
 
         List<Zone> zones = new ArrayList<Zone>();
         for (SanZone sz : sanZones.getZones()) {
@@ -938,6 +936,9 @@ public class NetworkSystemService extends TaskResourceService {
         }
 
         ArgValidator.checkFieldNotEmpty(zones, "zones");
+
+        Operation op = _dbClient.createTaskOpStatus(NetworkSystem.class, device.getId(),
+                task, ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(device.getSystemType());
         controller.addSanZones(device.getId(), fabricId, fabricWwn, zones, false, task);
         return toTask(device, task, op);
@@ -1031,8 +1032,6 @@ public class NetworkSystemService extends TaskResourceService {
 
         ArgValidator.checkFieldUriType(id, NetworkSystem.class, "id");
         NetworkSystem device = queryResource(id);
-        Operation op = _dbClient.createTaskOpStatus(NetworkSystem.class, device.getId(),
-                task, ResourceOperationTypeEnum.UPDATE_SAN_ZONE);
 
         List<ZoneUpdate> updateZones = new ArrayList<ZoneUpdate>();
         for (SanZoneUpdateParam sz : updateSanZones.getUpdateZones()) {
@@ -1065,6 +1064,9 @@ public class NetworkSystemService extends TaskResourceService {
         }
 
         ArgValidator.checkFieldNotEmpty(updateZones, "zones");
+
+        Operation op = _dbClient.createTaskOpStatus(NetworkSystem.class, device.getId(),
+                task, ResourceOperationTypeEnum.UPDATE_SAN_ZONE);
 
         NetworkController controller = getNetworkController(device.getSystemType());
         controller.updateSanZones(device.getId(), fabricId, fabricWwn, updateZones, false, task);

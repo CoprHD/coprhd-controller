@@ -988,7 +988,7 @@ class Snapshot(object):
                     remove)
             )
 
-        elif(resourceUri.find("Volume") > 0):
+        elif(resourceUri.find("Volume") > 0 or resourceUri.find("BlockConsistencyGroup") > 0):
             return (
                 tag.tag_resource(
                     self.__ipAddr,
@@ -999,17 +999,7 @@ class Snapshot(object):
                     remove)
             )
 
-        elif(resourceUri.find("BlockConsistencyGroup") > 0):
-            return (
-                tag.tag_resource(
-                    self.__ipAddr,
-                    self.__port,
-                    Snapshot.URI_BLOCK_SNAPSHOTS_TAG ,
-                    suri,
-                    add,
-                    remove)
-            )
-
+        
 
 # Snapshot Create routines
 

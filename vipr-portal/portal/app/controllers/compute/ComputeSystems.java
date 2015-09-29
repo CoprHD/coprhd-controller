@@ -10,15 +10,16 @@ import static controllers.Common.backToReferrer;
 import static controllers.Common.flashException;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import models.ComputeImageServerListTypes;
 import models.ComputeSystemTypes;
 import models.RegistrationStatus;
 import models.SearchScopes;
 import models.VlanListTypes;
-import models.datatable.ComputeImageServersDataTable;
 import models.datatable.ComputeImageServersDataTable.ComputeImageServerInfo;
 import models.datatable.ComputeSystemElementDataTable;
 import models.datatable.ComputeSystemElementDataTable.ComputeElementInfo;
@@ -65,6 +66,7 @@ public class ComputeSystems extends ViprResourceController {
     protected static final String MODEL_NAME = "ComputeSystems";
     protected static final String DELETED_SUCCESS = "ComputeSystems.deleted.success";
     protected static final String DELETED_ERROR = "ComputeSystems.deleted.error";
+    protected static final String AVAILABLE = "AVAILABLE";
 
     //
     // Add reference data so that they can be reference in html template
@@ -129,17 +131,24 @@ public class ComputeSystems extends ViprResourceController {
         ComputeSystemForm computeSystems = new ComputeSystemForm();
         // put all "initial create only" defaults here rather than field
         // initializers
+        List<ComputeImageServerRestRep> computeImageServersList = ComputeImageServerUtils.getComputeImageServers();
+        if (computeImageServersList != null) {
+            List<StringOption> computeImageServerOptions = new ArrayList<StringOption>();
+            List<String> computeImageServersArrayList = new ArrayList<String>();
+            computeImageServerOptions.add(ComputeImageServerListTypes.option(ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE));
+            for (ComputeImageServerRestRep cisrr : computeImageServersList) {
+                if (cisrr.getComputeImageServerStatus().equalsIgnoreCase(AVAILABLE)) {
+                    computeImageServersArrayList.add(cisrr.getName());
+                }
+            }
+            for (String imageServerId : computeImageServersArrayList) {
+                computeImageServerOptions.add(ComputeImageServerListTypes.option(imageServerId));
+            }
+            renderArgs.put("availableComputeImageServersList", computeImageServerOptions);
+        }
         computeSystems.portNumber = getDefaultPort(DefaultComputeSystemPortMap.port443);
         computeSystems.useSSL = true;
-        renderArgs.put("computeImageServersDataTable", createComputeImageServersDataTable());
         render("@edit", computeSystems);
-    }
-
-    private static ComputeImageServersDataTable createComputeImageServersDataTable() {
-        ComputeImageServersDataTable dataTable = new ComputeImageServersDataTable();
-        dataTable.setDefaultSort("name", "asc");
-
-        return dataTable;
     }
 
     public static void edit(String id) {
@@ -148,6 +157,7 @@ public class ComputeSystems extends ViprResourceController {
 
             ComputeSystemRestRep computeSystem = ComputeSystemUtils
                     .getComputeSystem(id);
+            System.out.println("edit computeSystems computeImage " + computeSystem.getComputeImageServer());
             if (computeSystem != null) {
                 if (computeSystem.getVlans() != null) {
                     List<StringOption> vlanOptions = new ArrayList<StringOption>();
@@ -158,9 +168,25 @@ public class ComputeSystems extends ViprResourceController {
                     }
                     renderArgs.put("computeSystemVlanList", vlanOptions);
                 }
+
+                List<ComputeImageServerRestRep> computeImageServersList = ComputeImageServerUtils.getComputeImageServers();
+                if (computeImageServersList != null) {
+                    List<StringOption> computeImageServerOptions = new ArrayList<StringOption>();
+                    List<String> computeImageServersArrayList = new ArrayList<String>();
+                    computeImageServerOptions.add(ComputeImageServerListTypes
+                            .option(ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE));
+                    for (ComputeImageServerRestRep cisrr : computeImageServersList) {
+                        if (cisrr.getComputeImageServerStatus().equalsIgnoreCase(AVAILABLE)) {
+                            computeImageServersArrayList.add(cisrr.getName());
+                        }
+                    }
+                    for (String imageServerId : computeImageServersArrayList) {
+                        computeImageServerOptions.add(ComputeImageServerListTypes.option(imageServerId));
+                    }
+                    renderArgs.put("availableComputeImageServersList", computeImageServerOptions);
+                }
                 ComputeSystemForm computeSystems = new ComputeSystemForm(
                         computeSystem);
-                renderArgs.put("computeImageServersDataTable", createComputeImageServersDataTable());
 
                 render("@edit", computeSystems);
             } else {
@@ -175,7 +201,6 @@ public class ComputeSystems extends ViprResourceController {
 
     @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(ComputeSystemForm computeSystems) {
-
         computeSystems.validate("computeSystems");
 
         if (Validation.hasErrors()) {
@@ -341,9 +366,9 @@ public class ComputeSystems extends ViprResourceController {
 
         public String vlanList;
 
-        public List<String> computeImageServers = Lists.newArrayList();;
+        public List<String> computeImageServerOptions = Lists.newArrayList();;
 
-        public String selectedComputeImageServer;
+        public String computeImageServer;
 
         public ComputeSystemForm() {
         }
@@ -364,10 +389,11 @@ public class ComputeSystems extends ViprResourceController {
                                 // ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
             this.unregistered = RegistrationStatus.isUnregistered(computeSystem
                     .getRegistrationStatus());
-            List<ComputeImageServerRestRep> computeImageServerList = ComputeImageServerUtils.getComputeImageServers();
             if (computeSystem.getComputeImageServer() != null) {
-                this.selectedComputeImageServer = computeSystem.getComputeImageServer();
-            } else {
+                System.out.println("getComputeImageServer is not null " + computeSystem.getComputeImageServer());
+                ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(computeSystem.getComputeImageServer());
+                System.out.println("getComputeImageServer name " + cisrr.getName());
+                this.computeImageServer = cisrr.getName();
             }
         }
 
@@ -435,8 +461,10 @@ public class ComputeSystems extends ViprResourceController {
             if (!this.osInstallNetwork.isEmpty()) {
                 createParam.setOsInstallNetwork(this.osInstallNetwork);
             }
-            if (this.selectedComputeImageServer != null) {
-                ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(this.selectedComputeImageServer);
+            System.out.println("computeSystems Form create computeImageServer  " + this.computeImageServer);
+            if (this.computeImageServer != null) {
+                ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServerByName(this.computeImageServer);
+                System.out.println("computeSystems Form create  computeImageServer " + cisrr.getId() + " name " + cisrr.getName());
                 createParam.setComputeImageServer(cisrr.getId());
             }
             return ComputeSystemUtils.create(createParam);
@@ -465,9 +493,23 @@ public class ComputeSystems extends ViprResourceController {
                     updateParam.setOsInstallNetwork(this.vlanList);
                 }
             }
-            if (this.selectedComputeImageServer != null) {
-                ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(this.selectedComputeImageServer);
-                updateParam.setComputeImageServer(cisrr.getId());
+            System.out.println("computeSystems Form update computeImageServer " + this.computeImageServer);
+            if (this.computeImageServer != null) {
+                if (this.computeImageServer.equalsIgnoreCase(ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE)) {
+                    URI computeImageServerUrl = null;
+                    try {
+                        computeImageServerUrl = new URI("");
+                    } catch (URISyntaxException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                    updateParam.setComputeImageServer(computeImageServerUrl);
+                    System.out.println("computeSystems Form update this.computeImageServer.equals NONE ");
+                } else {
+                    ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServerByName(this.computeImageServer);
+                    System.out.println("computeSystems Form update  computeImageServer " + cisrr.getId() + " name " + cisrr.getName());
+                    updateParam.setComputeImageServer(cisrr.getId());
+                }
             }
             updateParam.setUserName(this.userName);
             updateParam.setUseSSL(this.useSSL);

@@ -14,7 +14,7 @@
 
 <script type="text/javascript">
 function watchLoadStatus(datatable, itemsJson) {
-    var fields = ['computeImageStatus','imageName','imageType','discoveryStatus'];
+    var fields = ['computeImageStatus','imageName','imageType','importedServers','nonImportedServers','discoveryStatus'];
     var fieldToWatch = 'computeImageStatus';
     var triggerValues = ['IN_PROGRESS'];
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);

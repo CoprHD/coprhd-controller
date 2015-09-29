@@ -35,6 +35,24 @@ public class ComputeImageServerUtils {
         }
     }
 
+    public static ComputeImageServerRestRep getComputeImageServerByName(String name) {
+        try {
+            ComputeImageServerRestRep computeImageServer = null;
+            List<ComputeImageServerRestRep> computeImageServersList = getComputeImageServers();
+            for (ComputeImageServerRestRep cisrr : computeImageServersList) {
+                if (cisrr.getName().equalsIgnoreCase(name)) {
+                    computeImageServer = cisrr;
+                }
+            }
+            return computeImageServer;
+        } catch (ViPRHttpException e) {
+            if (e.getHttpCode() == 404) {
+                return null;
+            }
+            throw e;
+        }
+    }
+
     public static List<ComputeImageServerRestRep> getComputeImageServers() {
         return getViprClient().computeImageServers().getAll();
     }

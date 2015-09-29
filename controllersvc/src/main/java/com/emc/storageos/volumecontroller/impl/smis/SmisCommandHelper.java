@@ -69,6 +69,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.ExportMaskNameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -5216,6 +5217,15 @@ public class SmisCommandHelper implements SmisConstants {
         Volume volume = null;
         if (URIUtil.isType(blockObjectURI, Volume.class)) {
             volume = _dbClient.queryObject(Volume.class, blockObjectURI);
+
+            // If the there is a BlockSnapshot with the same native GUID as the volume, then
+            // this is a backend volume representing the snapshot for the purpose of importing
+            // the snapshot into VPLEX as a VPLEX volume. Therefore, treat it like a block snapshot
+            // and use the parent volume.
+            List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, volume.getNativeGuid());
+            if (!snapshots.isEmpty()) {
+                volume = _dbClient.queryObject(Volume.class, snapshots.get(0).getParent());
+            }
         }
         else if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
@@ -5223,15 +5233,6 @@ public class SmisCommandHelper implements SmisConstants {
         }
 
         if (volume != null) {
-            // Pool could be null if the Volume represents a block snapshot target
-            // volume and we are exporting the backend volume to VPLEX in the process
-            // of creating a VPLEX volume on top of the snapshot target volume.
-            URI poolURI = volume.getPool();
-            if (NullColumnValueGetter.isNullURI(poolURI)) {
-                policyName.append(Constants.NONE);
-                return policyName.toString();
-            }
-
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
             if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
                     || (NullColumnValueGetter.isNullURI(volume.getAutoTieringPolicyUri()))) {

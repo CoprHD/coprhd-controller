@@ -896,6 +896,10 @@ public class BlockSnapshotService extends TaskResourceService {
         // use the source volume virtual pool for the VPLEX volume.
         volume.setVirtualPool(sourceVolume.getVirtualPool());
 
+        // Set auto tier policy from the source volume. This comes
+        // into play in vmax3 export operations.
+        volume.setAutoTieringPolicyUri(sourceVolume.getAutoTieringPolicyUri());
+
         // The pool is not currently set as the BlockSnapshot does not
         // keep the storage pool for the target volume. This did not
         // cause issues for the allowed operations (export/unexport/delete)

@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -988,7 +989,7 @@ public class ConnectivityUtil {
         _log.info(String.format("isInitiatorConnectedToStorageSystem(%s) -- Checking for port connections on %s network",
                 initiator.getInitiatorPort(), networkLite.getLabel()));
         for (StoragePort port : ports) {
-            if (port.getId().equals(storagePort.getId())) {
+            if (URIUtil.identical(port.getId(), storagePort.getId())) {
                 _log.info(String
                         .format("isInitiatorAndTargetPortInSameNetwork(%s, %s) -- Found port in the same network as initiator, %s (%s). Returning true.",
                                 initiator.getInitiatorPort(), storagePort.getNativeGuid(), port.getNativeGuid(),

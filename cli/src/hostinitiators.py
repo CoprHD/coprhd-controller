@@ -116,10 +116,8 @@ class HostInitiator(object):
             HostInitiator.URI_HOST_LIST_INITIATORS.format(hostUri),
             body)
         o = common.json_decode(s)
-         
+        return self.check_for_sync(o, sync)
         
-        obj = self.check_for_sync(o, sync)
-        return obj
         
 
     """

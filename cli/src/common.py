@@ -916,7 +916,6 @@ def block_until_complete(componentType, resource_uri, task_id, ipAddr, port):
         t = Timer(300, timeout_handler)
         t.start()
         while(True):
-            
             out = get_task_by_resourceuri_and_taskId(
                 componentType, resource_uri, task_id, ipAddr, port)
 
@@ -977,9 +976,6 @@ def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
             
             task_uri_constant = singletonURIHelperInstance.getUri(
                 componentType, "task")
-            
-            
-            
             (s, h) = service_json_request(
                 ipAddr, port, "GET",
                 task_uri_constant.format(resource_uri,task_id), None)

@@ -255,9 +255,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                         if (volume.getConsistencyGroup() != null) {
                             BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
                                     volume.getConsistencyGroup());
-                            // first remove the volume from cg and then delete
-                            _log.info("Removing the volume {} from consistency group {}", volume.getLabel(), consistencyGroupObj.getLabel());
-                            client.removeVolumeFromConsistencyGroup(volume.getLabel(), consistencyGroupObj.getLabel(), clusterName);
+                            if (null != XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroupObj.getLabel(), clusterName)) {
+                                // first remove the volume from cg if exists on array and then delete
+                                _log.info("Removing the volume {} from consistency group {}", volume.getLabel(),
+                                        consistencyGroupObj.getLabel());
+                                client.removeVolumeFromConsistencyGroup(volume.getLabel(), consistencyGroupObj.getLabel(), clusterName);
+                            }
                         }
                         _log.info("Deleting the volume {}", volume.getLabel());
                         client.deleteVolume(volume.getLabel(), clusterName);

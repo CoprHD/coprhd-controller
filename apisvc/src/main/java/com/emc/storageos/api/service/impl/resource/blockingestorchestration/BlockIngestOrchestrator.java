@@ -103,10 +103,10 @@ public abstract class BlockIngestOrchestrator {
      * @param vPool the VirtualPool into which it would be ingested.
      */
     protected void validateUnManagedVolume(UnManagedVolume unManagedVolume, VirtualPool vPool) throws IngestionException {
-
         VolumeIngestionUtil.checkUnmanagedVolumeInactive(unManagedVolume);
         VolumeIngestionUtil.checkVPoolValidForUnManagedVolumeInProtectedMode(vPool, unManagedVolume, _dbClient);
         VolumeIngestionUtil.checkUnManagedResourceIngestable(unManagedVolume);
+        VolumeIngestionUtil.checkUnManagedResourceExportWwnPresent(unManagedVolume);
         VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
     }
 

@@ -61,7 +61,6 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -489,6 +488,28 @@ public class VolumeIngestionUtil {
         }
 
         throw IngestionException.exceptions.unmanagedVolumeNotIngestable(unManagedVolume.getLabel());
+    }
+
+    /**
+     * Checks for the presence of a WWN on a given UnManagedVolume
+     * if the volume is exported. If the WWN is not present, an
+     * IngestionException will be thrown. 
+     * 
+     * @param unManagedVolume the UnMangedVolume to check
+     * @throws IngestionException
+     */
+    public static void checkUnManagedResourceExportWwnPresent(
+            UnManagedVolume unManagedVolume) throws IngestionException {
+        StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
+        String isVolumeExported = unManagedVolumeCharacteristics
+                .get(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString());
+        if (null != isVolumeExported && Boolean.parseBoolean(isVolumeExported)) {
+            String wwn = unManagedVolume.getWwn();
+            if (null == wwn || wwn.isEmpty()) {
+                throw IngestionException.exceptions
+                    .exportedVolumeIsMissingWwn(unManagedVolume.getLabel());
+            }
+        }
     }
 
     /**
@@ -2175,6 +2196,9 @@ public class VolumeIngestionUtil {
                     // Remove the block object from existing volumes and add to the user created volumes of the export mask
                     for (ExportMask exportMask : exportMasks) {
                         String normalizedWWN = BlockObject.normalizeWWN(blockObject.getWWN());
+                        if (null == normalizedWWN) {
+                            throw IngestionException.exceptions.exportedVolumeIsMissingWwn(unManagedVolume.getLabel());
+                        }
                         if (exportMask.hasAnyExistingVolumes() && exportMask.getExistingVolumes().containsKey(normalizedWWN)) {
                             _logger.info(
                                     "Removing block object {} from existing volumes and adding to user created volumes of export mask {}",

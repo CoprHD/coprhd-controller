@@ -128,6 +128,9 @@ public class NetworkSystemService extends TaskResourceService {
         return EVENT_SERVICE_TYPE;
     }
 
+    private static final String BROCADE_ZONE_NAME_EXP = "[a-zA-Z0-9_]+";
+    private static final String CISCO_ZONE_NAME_EXP = "[a-zA-Z0-9_\\-]+";
+
     private static class NetworkJobExec implements AsyncTaskExecutorIntf {
 
         private final NetworkController _controller;
@@ -827,17 +830,20 @@ public class NetworkSystemService extends TaskResourceService {
     private boolean validateZoneName(String name, String deviceType) {
         boolean validZoneName = false;
         if (deviceType.equalsIgnoreCase(Type.brocade.toString())) {
-            if (name.matches("[a-zA-Z0-9_]+")) {
+            if (name.matches(BROCADE_ZONE_NAME_EXP)) {
                 validZoneName = true;
             }
         } else if (deviceType.equalsIgnoreCase(Type.mds.toString())) {
-            if (name.matches("[a-zA-Z0-9_\\-]+")) {
+            if (name.matches(CISCO_ZONE_NAME_EXP)) {
                 validZoneName = true;
             }
         }
+
         if(!validZoneName) {
+            _log.info("Zone name {} is not valid for device type {}", name, deviceType);
             throw APIException.badRequests.illegalZoneName(name);
         }
+        _log.info("Zone name {} is valid for device type {}", name, deviceType);
         return validZoneName;
     }
 
@@ -1032,8 +1038,7 @@ public class NetworkSystemService extends TaskResourceService {
         List<ZoneUpdate> updateZones = new ArrayList<ZoneUpdate>();
         for (SanZoneUpdateParam sz : updateSanZones.getUpdateZones()) {
             ZoneUpdate updateZone = new ZoneUpdate(sz.getName());
-            boolean zoneNameValid = validateZoneName(sz.getName(), device.getSystemType());
-            _log.info("Zone name {} is valid for update {}", sz.getName(), zoneNameValid);
+            validateZoneName(sz.getName(), device.getSystemType());
 
             for (String szm : sz.getAddMembers()) {
                 if (StringUtils.isEmpty(szm)) {

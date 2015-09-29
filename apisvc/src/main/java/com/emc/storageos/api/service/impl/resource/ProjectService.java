@@ -848,10 +848,13 @@ public class ProjectService extends TaggedResource {
             }
             project.setAssignedVNasServers(validVNasServers);
             _dbClient.persistObject(project);
-            _log.info("Successfully assigned the virtual NAS Servers to project : {} ", project.getLabel());
-        } else {
+            _log.info("Successfully assigned {} virtual NAS Servers to project : {} ",
+            		validVNasServers.size(), project.getLabel());
+        }
+        // Report error, if there are any invalid vnas servers found!!!
+        if (errorMsg != null && errorMsg.length() > 0) {
             _log.error("Failed to assigned the virtual NAS Servers to project due to {} ", errorMsg.toString());
-            throw APIException.badRequests.failedToAssignVNasToProject(errorMsg.toString());
+            throw APIException.badRequests.vNasServersNotAssociatedToProject();
         }
         return Response.ok().build();
     }
@@ -869,6 +872,7 @@ public class ProjectService extends TaggedResource {
     public StringSet validateVNasServers(Project project, VirtualNasParam param, StringBuilder errorMsg) {
         Set<String> vNasIds = param.getVnasServers();
         StringSet validNas = new StringSet();
+        
         if (vNasIds != null && !vNasIds.isEmpty() && project != null) {
 
             // Get list of domains associated with the project
@@ -889,26 +893,26 @@ public class ProjectService extends TaggedResource {
                 URI vnasURI = URI.create(id);
                 VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
                 ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
-
+                
                 // Validate the VNAS is assigned to project!!!
                 if (!vnas.isNotAssignedToProject()) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is associated to project " + project.getLabel());
                     _log.error(errorMsg.toString());
-                    return null;
+                    continue;
                 }
                 
                 // Validate the VNAS is in Discovery state -VISIBLE!!!
                 if (!DiscoveryStatus.VISIBLE.name().equals(vnas.getDiscoveryStatus())) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is not in Discovery-VISIBLE state ");
                     _log.error(errorMsg.toString());
-                    return null;
+                    continue;
                 }
                 
                 // Validate the VNAS state should be in loaded state !!!
                 if (!vnas.getVNasState().equalsIgnoreCase(VirtualNasState.LOADED.getNasState())) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is not in Loaded state");
                     _log.error(errorMsg.toString());
-                    return null;
+                    continue;
                 }
 
                 // Get list of domains associated with a VNAS server and validate with project's domain
@@ -928,7 +932,7 @@ public class ProjectService extends TaggedResource {
                 if (!domainMatched) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " domain is not matched with project domain");
                     _log.error(errorMsg.toString());
-                    return null;
+                    continue;
                 }
 
                 // Get list of file systems and associated project of VNAS server and validate with Project
@@ -953,7 +957,7 @@ public class ProjectService extends TaggedResource {
                 if (!projectMatched) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " has file systems belongs to other project");
                     _log.error(errorMsg.toString());
-                    return null;
+                    continue;
                 }
 
                 validNas.add(id);

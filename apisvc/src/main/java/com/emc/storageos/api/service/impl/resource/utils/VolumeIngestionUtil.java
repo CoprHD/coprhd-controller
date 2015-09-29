@@ -2458,10 +2458,11 @@ public class VolumeIngestionUtil {
 
         // TODO currently only the VPLEX discovery process is creating
         // this HLU_TO_EXPORT_LABEL_MAP --- this should also be added to other 
-        // unmanaged volume discovery services if the HLU is found to be required
+        // unmanaged volume discovery services if the HLU is found to be required.
+        // By default, if no mapping is found, a LUN_UNASSIGNED (-1) will be returned.
 
         StringSet hluMapEntries =  PropertySetterUtil.extractValuesFromStringSet(
-                SupportedVolumeInformation.HLU_TO_EXPORT_LABEL_MAP.toString(),
+                SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(),
                 unManagedVolume.getVolumeInformation());
 
         Integer hlu = ExportGroup.LUN_UNASSIGNED;

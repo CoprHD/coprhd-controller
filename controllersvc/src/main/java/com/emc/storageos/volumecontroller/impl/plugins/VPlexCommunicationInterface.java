@@ -1122,7 +1122,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             if (!hluMappings.isEmpty()) {
                 s_logger.info("setting hlu map for volume {} to " + hluMappings, unManagedVolume.getLabel());
                 unManagedVolume.putVolumeInfo(
-                        SupportedVolumeInformation.HLU_TO_EXPORT_LABEL_MAP.name(), hluMappings);
+                        SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name(), hluMappings);
             }
         }
     }

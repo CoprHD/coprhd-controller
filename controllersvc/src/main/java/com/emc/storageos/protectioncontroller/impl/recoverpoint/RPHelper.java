@@ -208,7 +208,7 @@ public class RPHelper {
             List<Volume> allVolsInRSet = getVolumesInRSet(volume);
             for (Volume vol : allVolsInRSet) {
                 volumeIDs.add(vol.getId());
-                if (vol.getProtectionSet() != null && !NullColumnValueGetter.isNullURI(vol.getProtectionSet().getURI())) {
+                if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
                     protectionSetIds.add(vol.getProtectionSet().getURI());
                 }
             }
@@ -1036,7 +1036,8 @@ public class RPHelper {
         // Filter only source volumes
         if (cgVolumes != null) {
             for (Volume cgVolume : cgVolumes) {
-                if (cgVolume.getPersonality() != null && cgVolume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) {
+                if (NullColumnValueGetter.isNotNullValue(cgVolume.getPersonality())
+                        && cgVolume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) {
                     cgSourceVolumes.add(cgVolume);
                 }
             }
@@ -1512,7 +1513,7 @@ public class RPHelper {
                 volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
 
                 // Clean up the Protection Set
-                if (volume.getProtectionSet() != null && !NullColumnValueGetter.isNullURI(volume.getProtectionSet().getURI())) {
+                if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
                     ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                     if (protectionSet != null) {
                         // Remove volume ID from the Protection Set
@@ -1522,7 +1523,7 @@ public class RPHelper {
                 }
 
                 // remove consistency group from volume
-                if (volume.getConsistencyGroup() != null) {
+                if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                     volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                 }
             }

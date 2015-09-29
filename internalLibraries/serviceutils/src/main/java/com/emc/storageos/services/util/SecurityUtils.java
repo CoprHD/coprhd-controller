@@ -54,7 +54,7 @@ public class SecurityUtils {
         if (value == null) {
             return null;
         }
-        value = ESAPI.encoder().canonicalize(value);
+        // value = ESAPI.encoder().canonicalize(value);
         value = value.replaceAll("\0", "");
         value = Jsoup.clean(value, Whitelist.none());
 

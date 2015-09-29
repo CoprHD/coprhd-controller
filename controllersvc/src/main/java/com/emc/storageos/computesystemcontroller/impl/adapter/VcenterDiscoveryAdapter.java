@@ -277,10 +277,10 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 String uuid = hw.systemInfo.uuid;
                 Host targetHost = findHostByUuid(uuid);
 
-                // check if host already exists in ViPR and is part of another vCenter
+                // check if host already exists in database and belongs to a datacenter in another vCenter
                 if (targetHost != null && !NullColumnValueGetter.isNullURI(targetHost.getVcenterDataCenter())) {
                     VcenterDataCenter hostDataCenter = getModelClient().datacenters().findById(targetHost.getVcenterDataCenter());
-                    if (hostDataCenter != null && hostDataCenter.getVcenter() != null
+                    if (hostDataCenter != null && !NullColumnValueGetter.isNullURI(hostDataCenter.getVcenter())
                             && !hostDataCenter.getVcenter().equals(dataCenter.getVcenter())) {
                         return true;
                     }

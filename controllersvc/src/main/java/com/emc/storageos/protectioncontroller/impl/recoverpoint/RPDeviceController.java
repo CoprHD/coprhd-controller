@@ -1892,7 +1892,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
 
-            if (RPHelper.canPerfromFullConsistencyGroupOperation(_dbClient, protectionSet, volumeIDs)) {
+            if (RPHelper.containsAllRPSourceVolumes(_dbClient, protectionSet, volumeIDs)) {
                 // There are no more volumes in the protection set so delete the CG
                 rp.deleteCG(volumeProtectionInfo);
 

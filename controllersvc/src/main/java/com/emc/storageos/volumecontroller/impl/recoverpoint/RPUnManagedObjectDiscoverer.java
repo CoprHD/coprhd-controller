@@ -220,6 +220,7 @@ public class RPUnManagedObjectDiscoverer {
                 // Now that we've processed all of the sources and targets, we can mark all of the target devices in the source devices.
                 for (GetVolumeResponse volume : rset.getVolumes()) {
                     // Find this volume in UnManagedVolumes based on wwn
+                    StringSet rpTargetVolumeIds = new StringSet();
                     UnManagedVolume unManagedVolume = DiscoveryUtils.checkUnManagedVolumeExistsInDBByWwn(dbClient, volume.getWwn());
                     
                     if (null == unManagedVolume) {
@@ -243,19 +244,28 @@ public class RPUnManagedObjectDiscoverer {
                         }
                         
                         // Don't bother if we just re-found the source device (TODO: Is this an issue for RP MP where there are two sources?)
-                        if (!targetUnManagedVolume.getId().equals(unManagedVolume.getId())) {
+                        if (targetUnManagedVolume.getId().equals(unManagedVolume.getId())) {
                             continue;
                         }
                         
                         // Store the source volume ID in the target unmanaged volume
-                        StringSet rpSourceVolumeId = new StringSet();
-                        rpSourceVolumeId.add(unManagedVolume.getId().toString());
-                        targetUnManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_SOURCE_VOLUME.toString(),
-                                rpSourceVolumeId);                        
+                        rpTargetVolumeIds.add(unManagedVolume.getId().toString());
+
+                        // Add the source unmanaged volume ID to the target volume
+                        StringSet rpUnManagedSourceVolumeId = new StringSet();
+                        rpUnManagedSourceVolumeId.add(unManagedVolume.getId().toString());
+                        targetUnManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_UNMANAGED_SOURCE_VOLUME.toString(),
+                                rpUnManagedSourceVolumeId);                        
 
                         // Update the target unmanaged volume with the source managed volume ID
                         dbClient.updateAndReindexObject(targetUnManagedVolume);
                     }
+
+                    // Add the unmanaged target IDs to the source unmanaged volume
+                    unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString(),
+                            rpTargetVolumeIds);
+                    
+                    dbClient.updateAndReindexObject(unManagedVolume);
                 }
 
             }

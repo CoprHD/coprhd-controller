@@ -15,9 +15,11 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,14 +28,21 @@ import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSet.ProtectionStatus;
+import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -42,11 +51,13 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.google.common.base.Joiner;
 
@@ -153,6 +164,99 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
         }
            
         _dbClient.persistObject(umpset);
+
+        // Perform export ingestion
+        URI exportGroupResourceUri = null;
+        String resourceType = ExportGroupType.Host.name();
+        String computeResourcelabel = null;
+        // TODO: In the case where the source or target is exported to a host as well, VMAX2 best practices dictate that you
+        // create separate MVs for each host's RP volumes.  That would mean a different export group per host/cluster.
+        ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, ((Volume)blockObject).getProtectionController());
+        UnManagedExportMask em = null;
+        boolean found = false;
+        for (String maskIdStr : unManagedVolume.getUnmanagedExportMasks()) {
+            // Find the mask associated with the protection system.  (Assume there's only one for this volume)
+            em = _dbClient.queryObject(UnManagedExportMask.class, URI.create(maskIdStr));
+            if (em == null) {
+                _logger.error("UnManagedExportMask with ID: " + maskIdStr + " could not be found in DB.  Could already be ingested.");
+                continue;
+            }
+            
+            if (em.getKnownInitiatorNetworkIds() == null || em.getKnownInitiatorNetworkIds().isEmpty()) {
+                _logger.error("UnManagedExportMask with ID: " + maskIdStr + " does not contain any RP initiators.  Ignoring for ingestion.");
+                continue;
+            }
+            
+            for (String wwn : em.getKnownInitiatorNetworkIds()) {
+                for (Entry<String, AbstractChangeTrackingSet<String>> siteInitEntry : protectionSystem.getSiteInitiators().entrySet()) {
+                    if (siteInitEntry.getValue().contains(wwn)) {
+                        _logger.info(String.format("Found UnManagedVolume %s was found in UnManagedExportMask %s and will be ingested (if not ingested already)", unManagedVolume.getLabel(), em.getMaskName()));
+                        found = true;
+                        break;
+                    }
+                }
+                // TODO: put this whole block in a method to remove these breaks
+                if (found) {
+                    break;
+                }
+            }
+            if (found) {
+                break;
+            }
+        }
+        
+        if (em == null) {
+            _logger.error("Could not find an unmanaged export mask associated with volume: " + unManagedVolume.getLabel());
+            // TODO: Throw exception
+            return null;
+        }
+        
+        ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), em.getKnownInitiatorUris(),
+                virtualArray.getId(), _dbClient);
+        boolean newExportGroupWasCreated = false;
+        if (null == exportGroup) {
+            newExportGroupWasCreated = true;
+            _logger.info("Creating Export Group with label {}", em.getMaskName());
+            // No existing group has the mask, let's create one.
+            exportGroup = new ExportGroup();
+            exportGroup.setId(URIUtil.createId(ExportGroup.class));
+            exportGroup.setLabel(em.getMaskName());
+            exportGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
+            exportGroup.setVirtualArray(virtualArray.getId());
+            exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
+            exportGroup.setGeneratedName(em.getMaskName());
+            exportGroup.setVolumes(new StringMap());
+            exportGroup.setOpStatus(new OpStatusMap());
+            // TODO: May need to use a default size or compute based on the contents of the export mask.
+            exportGroup.setNumPaths(em.getZoningMap().size());
+            
+            _logger.info(String.format("Creating new ExportGroup %s", exportGroup.getLabel()));
+        }
+        
+        // create an ingest param so that we can reuse the ingestExportMask method
+        VolumeExportIngestParam exportIngestParam = new VolumeExportIngestParam();
+        exportIngestParam.setProject(project.getId());
+        exportIngestParam.setVarray(virtualArray.getId());
+        exportIngestParam.setVpool(vPool.getId());
+        List<URI> volumeUris = new ArrayList<URI>();
+        volumeUris.add(unManagedVolume.getId());
+        exportIngestParam.setUnManagedVolumes(volumeUris);
+
+        // find the ingest export strategy and call into for this unmanaged export mask
+        IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(unManagedVolume);
+        List<UnManagedVolume> unManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
+        blockObject = ingestStrategy.ingestExportMasks(
+                unManagedVolume, exportIngestParam, exportGroup,
+                blockObject, unManagedVolumesToBeDeleted,
+                _dbClient.queryObject(StorageSystem.class, ((Volume)blockObject).getStorageController()), 
+                newExportGroupWasCreated, _dbClient.queryObject(Initiator.class, URIUtil.toURIList(em.getKnownInitiatorUris())));
+
+        if (null == blockObject) {
+            // an exception should have been thrown by a lower layer in
+            // ingestion did not succeed, but in case it wasn't, throw one
+            throw IngestionException.exceptions.generalVolumeException(
+                    unManagedVolume.getLabel(), "check the logs for more details");
+        } 
 
         // Create the managed protection set/CG objects when we have all of the volumes ingested
         if (validateAllVolumesInCGIngested(unManagedVolume, umpset)) {
@@ -263,44 +367,125 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
                 SupportedVolumeInformation.RP_PERSONALITY.toString(), unManagedVolumeInformation);
         if (Volume.PersonalityTypes.SOURCE.toString().equalsIgnoreCase(type)) {
             volume.setPersonality(PersonalityTypes.SOURCE.toString());
-            // The managed source volume needs to store the list of RP targets, however that is
-            // stored in the unmanaged volume target volume, so you'll find the management/update
-            // of the source volume with the RP targets in the UnManagedVolume processing for TARGET
-            // volumes (currently below)
+            
+            // When we ingest a source volume, we need to properly create the RP Target list for that source,
+            // however it is possible that not all (or any) of the RP targets have been ingested yet.  Therefore
+            // we need to do as much as we can:
+            // 
+            // 1. Process each managed target volume ID in the unmanaged source volume, add to the managed source volume's RP target list.
+            // 2. Go through each unmanaged RP target volume in the unmanaged source volume (before it goes away), add the managed source volume ID.
+            // 3. Go through each unmanaged RP target volume in the unmanaged source volume, remove the unmanaged source volume ID.
+            
+            // 1. Process each managed target volume ID in the unmanaged source volume, add to the managed source volume's RP target list.
+            StringSet rpManagedTargetVolumeIdStrs = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.RP_MANAGED_TARGET_VOLUMES.toString(), 
+                    unManagedVolumeInformation);
+            for (String rpManagedTargetVolumeIdStr : rpManagedTargetVolumeIdStrs) {
+                // Check to make sure the target volume is legit.
+                Volume managedTargetVolume = _dbClient.queryObject(Volume.class, URI.create(rpManagedTargetVolumeIdStr));
+                if (managedTargetVolume == null) {
+                    _logger.error("Could not find managed target volume: " + rpManagedTargetVolumeIdStr + " in DB.  Ingestion failed.");
+                    // TODO: Throw exception
+                    return;
+                }
+                
+                if (volume.getRpTargets() == null) {
+                    volume.setRpTargets(new StringSet());
+                }
+                volume.getRpTargets().add(managedTargetVolume.getId().toString());
+            }
+
+            // 2. Go through each unmanaged RP target volume in the unmanaged source volume (before it goes away), add the managed source volume ID.
+            // 3. Go through each unmanaged RP target volume in the unmanaged source volume, remove the unmanaged source volume ID.
+            StringSet rpUnManagedTargetVolumeIdStrs = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString(), 
+                    unManagedVolumeInformation);
+            for (String rpUnManagedTargetVolumeIdStr : rpUnManagedTargetVolumeIdStrs) {
+                UnManagedVolume unManagedTargetVolume = _dbClient.queryObject(UnManagedVolume.class, URI.create(rpUnManagedTargetVolumeIdStr));
+                if (unManagedTargetVolume == null) {
+                    _logger.error("Could not find unmanaged target volume: " + rpUnManagedTargetVolumeIdStr + " in DB.  Ingestion failed.");
+                    // TODO: Throw exception
+                    return;
+                }
+
+                // (2) Add the managed source volume ID to this target that hasn't been ingested yet, so when it IS ingested, we know
+                //     what RP source it belongs to.
+                StringSet rpManagedSourceVolumeId = new StringSet();
+                rpManagedSourceVolumeId.add(volume.getId().toString());
+                unManagedTargetVolume.putVolumeInfo(SupportedVolumeInformation.RP_MANAGED_SOURCE_VOLUME.toString(),
+                        rpManagedSourceVolumeId);
+
+                // (3) Remove the unmanaged source volume ID to this target that is going away as a result of ingestion.
+                //     This is for completeness.  The ID is going away in the DB, so we don't want any references to it anywhere.
+                StringSet rpUnManagedSourceVolumeId = new StringSet();
+                unManagedTargetVolume.putVolumeInfo(SupportedVolumeInformation.RP_UNMANAGED_SOURCE_VOLUME.toString(),
+                        rpUnManagedSourceVolumeId);
+                
+                _dbClient.updateAndReindexObject(unManagedTargetVolume);
+            }
+        
         } else if (Volume.PersonalityTypes.TARGET.toString().equalsIgnoreCase(type)) {
             volume.setPersonality(PersonalityTypes.TARGET.toString());
             
+            // Any time a target goes from UnManaged -> Managed, we need to ensure that:
+            // 1. If there is a source managed volume, it gets the managed target volume added to its RP Target List
+            // 2. If there is a source Unmanaged volume, the managed target volume added to its RP_MANAGED_TARGET_VOLUMES list
+            // 3. If there is a source Unmanaged volume, the unmanaged target volume is removed from the RP_UNMANAGED_TARGET_VOLUMES list
+            // 
+            // This ensures that we don't lose track of sources and targets, regardless of the order volumes are ingested and unmanaged volumes are
+            // deleted during the ingestion process.
+            
+            // First check to see if there's a managed volume out there with this blockObject's ID in its RP target list.
+            
             // Add this target volume to the RP source's target list
-            String rpSourceVolume = PropertySetterUtil.extractValueFromStringSet(
-                    SupportedVolumeInformation.RP_SOURCE_VOLUME.toString(), unManagedVolumeInformation);
-            if (rpSourceVolume == null) {
-                _logger.error("Unable to find unmanaged source volume for target volume: " + volume.getLabel());
-                return;
+            String rpManagedSourceVolume = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.RP_MANAGED_SOURCE_VOLUME.toString(), unManagedVolumeInformation);
+            if (rpManagedSourceVolume != null) {
+                // (1) Add the new managed target volume ID to the source volume's RP target list
+                Volume sourceVolume = _dbClient.queryObject(Volume.class, URI.create(rpManagedSourceVolume));
+                if (sourceVolume == null) {
+                    _logger.error("Could not find managed RP source volume in DB: " + rpManagedSourceVolume);
+                    // TODO: throw exception
+                    return;
+                }
+                
+                if (sourceVolume.getRpTargets() == null) {
+                    sourceVolume.setRpTargets(new StringSet());
+                }
+                sourceVolume.getRpTargets().add(volume.getId().toString());
+                _dbClient.updateAndReindexObject(sourceVolume);
+            } else {
+                _logger.info("There is no ingested RP source volume associated with this target yet: " + volume.getLabel());
+
+                String rpUnManagedSourceVolume = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedVolumeInformation.RP_UNMANAGED_SOURCE_VOLUME.toString(), unManagedVolumeInformation);
+                if (rpUnManagedSourceVolume == null) {
+                    _logger.error("There is no uningested RP source volume associated with this target either.  This is an error condition: " + volume.getLabel());
+                    // TODO: Throw exception
+                    return;
+                }
+                
+                // (2) Add the managed target to the RP_MANAGED_TARGET_VOLUMES list associated with the unmanaged source volume
+                UnManagedVolume unManagedSourceVolume = _dbClient.queryObject(UnManagedVolume.class, URI.create(rpUnManagedSourceVolume));
+                if (unManagedSourceVolume == null) {
+                    _logger.error("Could not find unmanaged RP source volume in DB: " + rpUnManagedSourceVolume);
+                    // TODO: Throw exception
+                    return;
+                }
+                
+                StringSet rpManagedTargetVolumeIdStrs = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.RP_MANAGED_TARGET_VOLUMES.toString(), 
+                        unManagedSourceVolume.getVolumeInformation());
+                rpManagedTargetVolumeIdStrs.add(volume.getId().toString());
+                unManagedSourceVolume.putVolumeInfo(SupportedVolumeInformation.RP_MANAGED_TARGET_VOLUMES.toString(),
+                        rpManagedTargetVolumeIdStrs);
+                
+                // (3) Remove the unmanaged target from the RP_UNMANAGED_TARGET_VOLUMES list associated with the unmanaged source volume
+                StringSet rpUnManagedTargetVolumeIdStrs = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString(), 
+                        unManagedSourceVolume.getVolumeInformation());
+                rpUnManagedTargetVolumeIdStrs.remove(unManagedVolume.getId().toString());
+                unManagedSourceVolume.putVolumeInfo(SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString(),
+                        rpUnManagedTargetVolumeIdStrs);
+                
+                _dbClient.updateAndReindexObject(unManagedSourceVolume);
             }
-            
-            // Find the unmanaged source volume
-            UnManagedVolume rpSourceUnManagedVolume = _dbClient.queryObject(UnManagedVolume.class, URI.create(rpSourceVolume));
-            if (rpSourceUnManagedVolume == null) {
-                _logger.error("Unable to get source unmanaged volume from DB for ID: " + rpSourceVolume);
-                return;
-            }
-            
-            // Find the managed source volume
-            String volumeNativeGuid = rpSourceUnManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
-                    VolumeIngestionUtil.VOLUME);
-            BlockObject rpSourceManagedBlockObject = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
-            if (!(rpSourceManagedBlockObject instanceof Volume)) {
-                _logger.error("Source block object found is not a block object.  Can not populate target volumes: " + volumeNativeGuid);
-                return;
-            }
-            
-            // Add the target volume to this source volume
-            Volume rpSourceManagedVolume = (Volume)rpSourceManagedBlockObject;
-            if (rpSourceManagedVolume.getRpTargets() == null) {
-                rpSourceManagedVolume.setRpTargets(new StringSet());
-            }
-            rpSourceManagedVolume.getRpTargets().add(volume.getId().toString());
-            _dbClient.updateAndReindexObject(rpSourceManagedVolume);
             
         } else if (Volume.PersonalityTypes.METADATA.toString().equalsIgnoreCase(type)) {
             volume.setPersonality(PersonalityTypes.METADATA.toString());

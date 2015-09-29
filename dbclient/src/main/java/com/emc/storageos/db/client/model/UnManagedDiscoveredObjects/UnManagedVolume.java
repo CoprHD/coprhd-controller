@@ -151,7 +151,10 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         RP_RSET_NAME("rpRSetName", "rpRSetName"),
         RP_INTERNAL_SITENAME("rpInternalSiteName", "rpInternalSiteName"),
         RP_PROTECTIONSYSTEM("protectionSystem", "protectionSystem"),
-        RP_SOURCE_VOLUME("rpSourceVolume", "rpSourceVolume");
+        RP_UNMANAGED_TARGET_VOLUMES("rpUnManagedTargetVolumes", "rpUnManagedTargetVolumes"),
+        RP_MANAGED_TARGET_VOLUMES("rpManagedTargetVolumes", "rpManagedTargetVolumes"),
+        RP_UNMANAGED_SOURCE_VOLUME("rpUnManagedSourceVolume", "rpUnManagedSourceVolume"),
+        RP_MANAGED_SOURCE_VOLUME("rpManagedSourceVolume", "rpManagedSourceVolume");
 
         private final String _infoKey;
         private final String _alternateKey;

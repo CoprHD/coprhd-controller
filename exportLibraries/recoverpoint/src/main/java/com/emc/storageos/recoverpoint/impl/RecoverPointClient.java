@@ -834,7 +834,14 @@ public class RecoverPointClient {
                     for (CreateVolumeParams journalVolume : copyParam.getJournals()) {
                         logger.info("Configuring Journal : \n" + journalVolume.toString() + "\n for copy: " + copyParam.getName() +
                                 "; CG " + request.getCgName());
-                        copySettingsParam.getNewJournalVolumes().add(RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));
+                        
+                        String journalWwn = journalVolume.getWwn();
+
+                        if (RecoverPointUtils.isXioVolume(journalVolume.getNativeGuid())) {
+                        	journalWwn = RecoverPointUtils.getXioNativeGuid(journalVolume.getNativeGuid());
+                        }
+                                                
+                        copySettingsParam.getNewJournalVolumes().add(RecoverPointUtils.getDeviceID(allSites, journalWwn));
                     }
 
                     cgSettingsParam.getCopiesChanges().add(copySettingsParam);
@@ -861,14 +868,20 @@ public class RecoverPointClient {
             Set<String> sourceWWNsInRset = new HashSet<String>();
             for (CreateVolumeParams volume : rsetParam.getVolumes()) {
 
+            	String volumeWwn = volume.getWwn();
+            	
+            	if (RecoverPointUtils.isXioVolume(volume.getNativeGuid())) {
+                	volumeWwn = RecoverPointUtils.getXioNativeGuid(volume.getNativeGuid());
+                }
+            	
                 UserVolumeSettingsChangesParam volSettings = new UserVolumeSettingsChangesParam();
-                volSettings.setNewVolumeID(RecoverPointUtils.getDeviceID(allSites, volume.getWwn()));
+                volSettings.setNewVolumeID(RecoverPointUtils.getDeviceID(allSites, volumeWwn));
 
                 ClusterUID volSiteId = getRPSiteID(volume.getInternalSiteName(), clusterIdCache);
 
-                if (volume.isProduction()) {
-                    // for metropoint, the same production volume will appear twice; we only want to add it once
-                    if (sourceWWNsInRset.contains(volume.getWwn())) {
+                if (volume.isProduction()) {                	                	
+                	// for metropoint, the same production volume will appear twice; we only want to add it once
+                    if (sourceWWNsInRset.contains(volumeWwn)) {
                         continue;
                     }
                     if (previousProdCopyName == null) {
@@ -879,7 +892,7 @@ public class RecoverPointClient {
                                         rsetParam.getName(), volume.getRpCopyName(), previousProdCopyName));
                         continue;
                     }
-                    sourceWWNsInRset.add(volume.getWwn());
+                    sourceWWNsInRset.add(volumeWwn);
                     logger.info("Configuring production copy volume : \n" + volume.toString());
                     ConsistencyGroupCopyUID copyUID = productionCopiesUID.get(Long.valueOf(volSiteId.getId()));
                     volSettings.setCopyUID(copyUID);
@@ -1091,16 +1104,12 @@ public class RecoverPointClient {
                         	String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
                         	
                         	// new code
-                        	if (volume.getVolumeStorageType().name().equalsIgnoreCase("XTREME_IO")) {
-                        		String nativeGuid = volumeParam.getNativeGuid();                        		
-                        		String[] splitString = nativeGuid.split("\\+");                        		
-                        		nativeGuid = splitString[3];
-                        		logger.info("nativeGuid: " + nativeGuid);
-                        		String nativeGuid1 = volumeParam.getNativeGuid().split("\\+")[3];
-                        		logger.info("nativeGuid1: " + nativeGuid1);
+                        	if (RecoverPointUtils.isXioVolume(volumeParam.getNativeGuid())) {
+                        		String xioNativeGuid = RecoverPointUtils.getXioNativeGuid(volumeParam.getNativeGuid());                        		                        		
+                        		logger.info("nativeGuid for XtremIO: " + xioNativeGuid);
                         		
-                        		if (siteVolUID.equalsIgnoreCase(nativeGuid)) {
-                        			logger.info("Found site and volume ID for journal: " + nativeGuid + " for copy: "
+                        		if (siteVolUID.equalsIgnoreCase(xioNativeGuid)) {
+                        			logger.info("Found site and volume ID for journal: " + xioNativeGuid + " for copy: "
                                             + copy.getName());
                                     found = true;
                                     break;
@@ -1154,18 +1163,14 @@ public class RecoverPointClient {
                             String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
                             
                             // new code
-                            if (volume.getVolumeStorageType().name().equalsIgnoreCase("XTREME_IO")) {
-                        		String nativeGuid = volumeParam.getNativeGuid();                        		
-                        		String[] splitString = nativeGuid.split("\\+");                        		
-                        		nativeGuid = splitString[3];
-                        		logger.info("nativeGuid: " + nativeGuid);
-                        		String nativeGuid1 = volumeParam.getNativeGuid().split("\\+")[3];
-                        		logger.info("nativeGuid1: " + nativeGuid1);
+                            if (RecoverPointUtils.isXioVolume(volumeParam.getNativeGuid())) {
+                            	String xioNativeGuid = RecoverPointUtils.getXioNativeGuid(volumeParam.getNativeGuid());                        		                        		
+                        		logger.info("nativeGuid for XtremIO: " + xioNativeGuid);
                         		
-                        		if (siteVolUID.equalsIgnoreCase(nativeGuid)) {
+                        		if (siteVolUID.equalsIgnoreCase(xioNativeGuid)) {
                                     logger.info(String.format(
                                             "Found site and volume ID for volume: %s for replication set: %s on site: %s (%s)",
-                                            nativeGuid, rset.getName(), rpSite.getSiteName(), volumeParam.getInternalSiteName()));
+                                            xioNativeGuid, rset.getName(), rpSite.getSiteName(), volumeParam.getInternalSiteName()));
                                     found = true;
                                     break;
                                 }

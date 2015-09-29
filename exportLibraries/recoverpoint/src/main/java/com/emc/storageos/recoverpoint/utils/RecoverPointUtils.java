@@ -565,4 +565,15 @@ public class RecoverPointUtils {
                 + " for the new consistency group");
         return preferredRPA;
     }
+    
+    public static String getXioNativeGuid(String nativeGuid) {    	
+    	// nativeGuid coming in XTREMIO+APM00142114518+VOLUME+ea85e053e92a4076bc7c6b76935e14a2
+    	// we want the final value after the third + sign
+    	return nativeGuid.split("\\+")[3];
+    }
+    
+    public static boolean isXioVolume(String nativeGuid) {    	
+    	// nativeGuid coming in XTREMIO+APM00142114518+VOLUME+ea85e053e92a4076bc7c6b76935e14a2
+    	return nativeGuid.contains("XTREMIO");
+    }
 }

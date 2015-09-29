@@ -2397,7 +2397,13 @@ public interface BadRequestExceptions {
     public BadRequestException targetVirtualArrayDoesNotMatch(final URI consistencyGroup, final URI virtualArray);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noValidSrdfTargetVolume(final URI volumeId, final URI virtualArray);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeMustBeSRDFProtected(final URI volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException srdfCgContainsNoSourceVolumes(final URI consistencyGroupId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException consistencyGroupMustBeSRDFProtected(final URI consistencyGroupId);

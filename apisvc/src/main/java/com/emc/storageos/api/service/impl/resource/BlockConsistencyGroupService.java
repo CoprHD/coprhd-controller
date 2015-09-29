@@ -1757,24 +1757,61 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.consistencyGroupMustBeSRDFProtected(consistencyGroupId);
         }
 
-        // Verify that the supplied target Virtual Array is being referenced by at least one target volume in the CG.
-        List<Volume> targetVolumes = getTargetVolumes(consistencyGroup, targetVarrayId);
+        // Get the block service implementation
+        BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
-        if (targetVolumes == null || targetVolumes.isEmpty()) {
-            // The supplied target varray is not referenced by any target volumes in the CG.
-            throw APIException.badRequests.targetVirtualArrayDoesNotMatch(consistencyGroupId, targetVarrayId);
+        // Get a list of CG volumes.
+        List<Volume> volumeList = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
+
+        if (volumeList == null || volumeList.isEmpty()) {
+            throw APIException.badRequests.consistencyGroupContainsNoVolumes(consistencyGroup.getId());
         }
 
-        // Verify that all target volumes are SRDF protected.
+        Volume srcVolume = null;
+        // Find a source volume in the SRDF local CG
+        for (Volume volume : volumeList) {
+            if (volume.getPersonality() != null &&
+                    volume.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+                srcVolume = volume;
+                break;
+            }
+        }
+
+        if (srcVolume == null) {
+            // CG contains no source volumes.
+            throw APIException.badRequests.srdfCgContainsNoSourceVolumes(consistencyGroup.getId());
+        }
+
+        // Find the target volume that corresponds to the source whose Virtual Array matches
+        // the specified target Virtual Array. From that, obtain the remote SRDF CG.
+        BlockConsistencyGroup targetCg = null;
+        if (srcVolume.getSrdfTargets() != null && !srcVolume.getSrdfTargets().isEmpty()) {
+            for (String uri : srcVolume.getSrdfTargets()) {
+                Volume target = _dbClient.queryObject(Volume.class, URI.create(uri));
+                if (target.getVirtualArray().equals(targetVarrayId)) {
+                    targetCg = _dbClient.queryObject(BlockConsistencyGroup.class, target.getConsistencyGroup());
+                    break;
+                }
+            }
+        }
+
+        // Get all target CG target volumes for validation
+        List<Volume> targetVolumes = getTargetVolumes(targetCg, targetVarrayId);
+
         for (Volume tgtVolume : targetVolumes) {
             if (!Volume.isSRDFProtectedTargetVolume(tgtVolume)) {
                 // All target volumes matching specified target virtual array must be SRDF
-                // protect.
+                // protected.
                 throw APIException.badRequests.volumeMustBeSRDFProtected(tgtVolume.getId());
             }
         }
 
-        // Get the first target volume
+        if (targetVolumes == null || targetVolumes.isEmpty()) {
+            // The supplied target varray is not referenced by any target volumes in the CG.
+            throw APIException.badRequests.targetVirtualArrayDoesNotMatch(targetCg.getId(), targetVarrayId);
+        }
+
+        // Get the first volume
         Volume targetVolume = targetVolumes.get(0);
 
         String task = UUID.randomUUID().toString();

@@ -1082,12 +1082,31 @@ public class RecoverPointClient {
             // Walk through the journals volumes to see where our WWNs lie
             //
             for (CreateCopyParams copy : copies) {
-                for (CreateVolumeParams volumeParam : copy.getJournals()) {
+                for (CreateVolumeParams volumeParam : copy.getJournals()) {                	                	                	
                     boolean found = false;
                     for (RPSite rpSite : allSites) {
                         ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
-                        for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
-                            String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
+                        for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {                                                    	
+                        	                        	
+                        	String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
+                        	
+                        	// new code
+                        	if (volume.getVolumeStorageType().name().equalsIgnoreCase("XTREME_IO")) {
+                        		String nativeGuid = volumeParam.getNativeGuid();                        		
+                        		String[] splitString = nativeGuid.split("\\+");                        		
+                        		nativeGuid = splitString[3];
+                        		logger.info("nativeGuid: " + nativeGuid);
+                        		String nativeGuid1 = volumeParam.getNativeGuid().split("\\+")[3];
+                        		logger.info("nativeGuid1: " + nativeGuid1);
+                        		
+                        		if (siteVolUID.equalsIgnoreCase(nativeGuid)) {
+                        			logger.info("Found site and volume ID for journal: " + nativeGuid + " for copy: "
+                                            + copy.getName());
+                                    found = true;
+                                    break;
+                        		}
+                        	}                                                        
+                            
                             if (siteVolUID.equalsIgnoreCase(volumeParam.getWwn())) {
                                 logger.info("Found site and volume ID for journal: " + volumeParam.getWwn() + " for copy: "
                                         + copy.getName());
@@ -1133,6 +1152,25 @@ public class RecoverPointClient {
                         ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                         for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                             String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
+                            
+                            // new code
+                            if (volume.getVolumeStorageType().name().equalsIgnoreCase("XTREME_IO")) {
+                        		String nativeGuid = volumeParam.getNativeGuid();                        		
+                        		String[] splitString = nativeGuid.split("\\+");                        		
+                        		nativeGuid = splitString[3];
+                        		logger.info("nativeGuid: " + nativeGuid);
+                        		String nativeGuid1 = volumeParam.getNativeGuid().split("\\+")[3];
+                        		logger.info("nativeGuid1: " + nativeGuid1);
+                        		
+                        		if (siteVolUID.equalsIgnoreCase(nativeGuid)) {
+                                    logger.info(String.format(
+                                            "Found site and volume ID for volume: %s for replication set: %s on site: %s (%s)",
+                                            nativeGuid, rset.getName(), rpSite.getSiteName(), volumeParam.getInternalSiteName()));
+                                    found = true;
+                                    break;
+                                }
+                        	} 
+                        	
                             if (siteVolUID.equalsIgnoreCase(volumeParam.getWwn())) {
                                 logger.info(String.format(
                                         "Found site and volume ID for volume: %s for replication set: %s on site: %s (%s)",

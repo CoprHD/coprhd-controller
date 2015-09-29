@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+_usage() {
+    echo "Usage: $0 [options] | <table-name1>[ <table-name2> <table-name3> ...]"
+    echo "This script is used for clear table (along with related index)."
+    echo "For further details, please refer to top comment in script."
+    echo ""
+    echo "Options:"
+    echo "    -h, --help        display help message ande exit"
+}
+
+_cleanup() {
+    rm -f "${TMP_FILE}"
+}
+
+if [ "$1" == "" -o "$1" == "-h" -o "$1" == "--help" ] ; then
+    _usage
+    exit 2
+fi
+
+TMP_FILE=$(mktemp)
+
+trap _cleanup EXIT
+trap _cleanup ERR
+
+for table in $@ ; do
+    echo "Checking ${table} ..."
+    /opt/storageos/bin/dbutils list "${table}" | awk '/^id:/ {print $2}' > "${TMP_FILE}"
+    [ -s "${TMP_FILE}" ] && /opt/storageos/bin/dbutils delete "${table}" -file "${TMP_FILE}"
+done

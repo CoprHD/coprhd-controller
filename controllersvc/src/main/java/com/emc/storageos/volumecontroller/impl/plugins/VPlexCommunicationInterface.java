@@ -1095,11 +1095,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     }
 
     /**
-     * For a given UnManagedVolume, determine the wwn from the storage views it is
-     * in.
+     * For a given UnManagedVolume, determine the wwn from the storage views it is in.
      * 
-     * @param unManagedVolume
-     * @param storageViews
+     * @param unManagedVolume the UnManagedVolume to check
+     * @param storageViews the VPlexStorageViewInfo set the unmanaged volume is found in
      */
     private void updateWwnAndHluInfo(UnManagedVolume unManagedVolume, Set<VPlexStorageViewInfo> storageViews) {
         if (null != storageViews) {

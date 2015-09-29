@@ -1105,7 +1105,7 @@ public class ExportMaskUtils {
     }
 
     /**
-     * Find a set of ExportMasks to which the give Initiators belong.
+     * Find a set of ExportMasks to which the given Initiators belong.
      * 
      * @param dbClient [IN] - For accessing DB
      * @param initiators [IN] - List of initiators to search for among the ExportMasks found in the DB.

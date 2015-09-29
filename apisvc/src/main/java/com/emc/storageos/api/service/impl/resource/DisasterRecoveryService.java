@@ -349,34 +349,6 @@ public class DisasterRecoveryService {
         return siteConfigRestRep;
     }
     
-    private void updateVdcTargetVersion(String siteId, String action) throws Exception {
-        SiteInfo siteInfo;
-        SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
-        if (currentSiteInfo != null) {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), action, currentSiteInfo.getTargetDataRevision());
-        } else {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), action);
-        }
-        coordinator.setTargetInfo(siteId, siteInfo);
-        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
-    }
-    
-    private void updateVdcTargetVersionAndDataRevision(String action) throws Exception {
-        int ver = 1;
-        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
-        if (siteInfo != null) {
-            if (!siteInfo.isNullTargetDataRevision()) {
-                String currentDataRevision = siteInfo.getTargetDataRevision();
-                ver = Integer.valueOf(currentDataRevision);
-            }
-        }
-        String targetDataRevision = String.valueOf(++ver);
-        siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
-        coordinator.setTargetInfo(siteInfo);
-        log.info("VDC target version updated to {}, revision {}", 
-                siteInfo.getVdcConfigVersion(),  targetDataRevision);
-    }
-    
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/standby/natcheck")
@@ -405,6 +377,64 @@ public class DisasterRecoveryService {
         resp.setBehindNAT(isBehindNat);
 
         return resp;
+    }
+
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/pause/{uuid}")
+    public SiteRestRep pauseStandby(@PathParam("uuid") String uuid) {
+        log.info("Begin to pause data sync between standby site from local vdc by uuid: {}", uuid);
+
+        try {
+            Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
+            if (standby != null) {
+                log.info("Find standby site in local VDC and remove it");
+
+                VirtualDataCenter vdc = queryLocalVDC();
+                standby.setState(SiteState.STANDBY_PAUSED);
+
+                updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+                for (String standbyUuid : vdc.getSiteUUIDs()) {
+                    updateVdcTargetVersion(standbyUuid, SiteInfo.RECONFIG_RESTART);
+                }
+                return siteMapper.map(standby);
+            }
+        } catch (Exception e) {
+            log.error("Error pausing site {}", uuid, e);
+            //TODO: throw custom exception for DR
+            throw new IllegalStateException(e);
+        }
+
+        log.warn("Can't find site {} from ZK", uuid);
+        return null;
+    }
+
+    private void updateVdcTargetVersion(String siteId, String action) throws Exception {
+        SiteInfo siteInfo;
+        SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
+        if (currentSiteInfo != null) {
+            siteInfo = new SiteInfo(System.currentTimeMillis(), action, currentSiteInfo.getTargetDataRevision());
+        } else {
+            siteInfo = new SiteInfo(System.currentTimeMillis(), action);
+        }
+        coordinator.setTargetInfo(siteId, siteInfo);
+        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
+    }
+
+    private void updateVdcTargetVersionAndDataRevision(String action) throws Exception {
+        int ver = 1;
+        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
+        if (siteInfo != null) {
+            if (!siteInfo.isNullTargetDataRevision()) {
+                String currentDataRevision = siteInfo.getTargetDataRevision();
+                ver = Integer.valueOf(currentDataRevision);
+            }
+        }
+        String targetDataRevision = String.valueOf(++ver);
+        siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
+        coordinator.setTargetInfo(siteInfo);
+        log.info("VDC target version updated to {}, revision {}",
+                siteInfo.getVdcConfigVersion(),  targetDataRevision);
     }
     
     /*

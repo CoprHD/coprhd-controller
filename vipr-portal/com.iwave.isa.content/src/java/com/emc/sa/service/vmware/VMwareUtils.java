@@ -247,61 +247,6 @@ public class VMwareUtils {
         }
     }
 
-    public static class VolumeParams {
-        @Param(VIRTUAL_POOL)
-        public URI virtualPool;
-        @Param(VIRTUAL_ARRAY)
-        public URI virtualArray;
-        @Param(PROJECT)
-        public URI project;
-        @Param(HOST)
-        public URI hostId;
-        @Param(value = CONSISTENCY_GROUP, required = false)
-        public URI consistencyGroup;
-        @Param(value = HLU, required = false)
-        public Integer hlu;
-
-        @Override
-        public String toString() {
-            return "Virtual Pool=" + virtualPool + ", Virtual Array=" + virtualArray + ", Project=" + project
-                    + ", Host Id=" + hostId + ", Consistency Group=" + consistencyGroup
-                    + ", HLU=" + hlu;
-        }
-
-        public Map<String, Object> getParams() {
-            Map<String, Object> map = new HashMap<String, Object>();
-            map.put(VIRTUAL_POOL, virtualPool);
-            map.put(VIRTUAL_ARRAY, virtualArray);
-            map.put(PROJECT, project);
-            map.put(HOST, hostId);
-            map.put(CONSISTENCY_GROUP, consistencyGroup);
-            map.put(HLU, hlu);
-            return map;
-        }
-    }
-
-    public static class VolumeTable {
-        @Param(NAME)
-        protected String nameParam;
-        @Param(SIZE_IN_GB)
-        protected Double sizeInGb;
-        @Param(value = NUMBER_OF_VOLUMES, required = false)
-        protected Integer count;
-
-        @Override
-        public String toString() {
-            return "Volume=" + nameParam + ", size=" + sizeInGb + ", count=" + count;
-        }
-
-        public Map<String, Object> getParams() {
-            Map<String, Object> map = new HashMap<String, Object>();
-            map.put(NAME, nameParam);
-            map.put(SIZE_IN_GB, sizeInGb);
-            map.put(NUMBER_OF_VOLUMES, count);
-            return map;
-        }
-    }
-
     /**
      * Class to hold params of all pair of Datastore / Volume.
      * 
@@ -341,13 +286,6 @@ public class VMwareUtils {
         Map<String, Object> map = new HashMap<String, Object>();
         map.putAll(table.getParams());
         map.putAll(params.getParams(hluInc));
-        return map;
-    }
-
-    public static Map<String, Object> createVolumeParam(VolumeTable table, VolumeParams params) {
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.putAll(table.getParams());
-        map.putAll(params.getParams());
         return map;
     }
 

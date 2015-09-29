@@ -55,6 +55,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * Compute image service handles create, update, and remove of compute images.
@@ -157,7 +158,9 @@ public class ComputeImageService extends TaskResourceService {
 
         ArgValidator.checkFieldNotEmpty(param.getImageUrl(), "image_url");
         ArgValidator.checkUrl(param.getImageUrl(), "image_url");
-
+        if (!checkForImageServers()) {
+            throw APIException.badRequests.cannotAddImageWithoutImageServer();
+        }
         ComputeImage ci = new ComputeImage();
         ci.setId(URIUtil.createId(ComputeImage.class));
 
@@ -457,5 +460,21 @@ public class ComputeImageService extends TaskResourceService {
             _dbClient.persistObject(ci);
             throw e;
         }
+    }
+
+    /**
+     * Check if there are image Servers in the system
+     */
+    private boolean checkForImageServers() {
+        boolean imageServerExists = true;
+        List<URI> imageServerURIList = _dbClient.queryByType(
+                ComputeImageServer.class, true);
+        ArrayList<URI> tempList = Lists.newArrayList(imageServerURIList
+                .iterator());
+
+        if (tempList.isEmpty()) {
+            imageServerExists = false;
+        }
+        return imageServerExists;
     }
 }

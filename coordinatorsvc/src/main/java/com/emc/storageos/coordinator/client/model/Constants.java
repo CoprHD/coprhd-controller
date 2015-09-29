@@ -120,4 +120,9 @@ public interface Constants {
     public static final String DYNAMIC_CFGFile_Key = "dynamicConfigFile";
     
     public static final String KEY_CERTIFICATE_PAIR_CONFIG_KIND = "keyCertificatePairConfig";
+    public static final String ZK_OBSERVER_CONFIG_SUFFIX= ":2888:2889:observer;2181";
+    public static final String MY_VDC_ID_KEY= "vdc_myid";
+    public static final String VDC_NODECOUNT_KEY_TEMPLATE= "vdc_%s_node_count";
+    public static final String ZK_SERVER_CONFIG_PREFIX= "server.";
+    public static final String STANDBY_PROPERTY_REGEX=".*standby\\d_network_\\d_ipaddr6?";
 }

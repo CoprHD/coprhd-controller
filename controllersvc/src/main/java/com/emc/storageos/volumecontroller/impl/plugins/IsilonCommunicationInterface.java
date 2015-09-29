@@ -445,7 +445,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. No Zones defined");
                 throw ice;
             } else {
-                accessZoneListTemp.addAll(accessZoneListTemp);
+                accessZoneList.addAll(accessZoneListTemp);
             }
             VirtualNAS virtualNAS = null;
             PhysicalNAS physicalNAS = null;
@@ -2045,9 +2045,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         VirtualNAS vNas = new VirtualNAS();
         
         vNas.setStorageDeviceURI(system.getId());
-        
+        //set name
         vNas.setNasName(isiAccessZone.getName());
         vNas.setNativeId(isiAccessZone.getId());
+        //set base directory path
         vNas.setBaseDirPath(isiAccessZone.getPath());
         vNas.setNasState(VirtualNasState.LOADED.toString());
         vNas.setId(URIUtil.createId(VirtualNAS.class));
@@ -2058,7 +2059,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if(cifsServersMap != null) { 
             vNas.setCifsServersMap(cifsServersMap);
         }
-        
+        //set native "Guid"
         String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                 system, isiAccessZone.getZone_id().toString(), NativeGUIDGenerator.VIRTUAL_NAS);
         vNas.setNativeGuid(nasNativeGuid);
@@ -2146,11 +2147,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param isiAccessZone
      * @return
      */
-    CifsServerMap getCifsServerMap(IsilonAccessZone isiAccessZone) { 
+    CifsServerMap getCifsServerMap(final IsilonAccessZone isiAccessZone) { 
         //add authentication map
         ArrayList<String> authArrayList = isiAccessZone.getAuth_providers();
         CifsServerMap cifsServersMap = new CifsServerMap();
-        if(authArrayList != null) {
+        if(authArrayList != null && !authArrayList.isEmpty()) {
             for(String authProvider: authArrayList) {
                 NasCifsServer nasCifsServer = new NasCifsServer();
                 nasCifsServer.setName(authProvider);

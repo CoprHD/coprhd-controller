@@ -12,7 +12,7 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.command.CommandException;
 import com.iwave.ext.linux.model.PowerPathDevice;
 
-public class FindHDiskForVolume extends RetryableTask<String> {
+public class FindHDiskForVolume extends RetryableCommandTask<String, CommandException> {
 
     private boolean usePowerPath;
     private BlockObjectRestRep volume;

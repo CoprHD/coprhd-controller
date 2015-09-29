@@ -5,11 +5,18 @@ package com.emc.sa.service.aix.tasks;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.emc.sa.service.vmware.VMwareUtils;
 import com.iwave.ext.command.CommandException;
-import com.vmware.vim25.MethodFault;
 
-public abstract class RetryableTask<T> extends AixExecutionTask<T> {
+/**
+ * The RetryableCommandTask retries an AixExecutionTask up to a default of five times. Subclasses are responsible
+ * for implementing canRetry for thrown CommandExceptions
+ * 
+ * @author Jay Logelin
+ *
+ * @param <T> the result Type
+ * @param <E> the Exception Type with which to check retry capabilities
+ */
+public abstract class RetryableCommandTask<T, E extends CommandException> extends AixExecutionTask<T> {
 
     private static final int DEFAULT_MAX_TRIES = 5;
 
@@ -47,52 +54,45 @@ public abstract class RetryableTask<T> extends AixExecutionTask<T> {
             tries++;
             Thread.sleep(delay);
             logInfo("retryable.task", getName());
-            beforeRetry();
             success = tryOnce(tries);
         }
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     private boolean tryOnce(int tries) {
         try {
             result = tryExecute();
             return true;
         } catch (CommandException e) {
-            if (!canRetry(e)) {
-                fail(e);
+            if (!canRetry((E) e)) {
+                fail((E) e);
             }
             else if (tries >= maxTries) {
                 logError("retryable.task.max.retries", getName());
-                fail(e);
+                fail((E) e);
             }
-            String message = getMessage(e);
+            String message = getMessage((E) e);
             logInfo("retryable.task.failed.retry", getName(), message);
             return false;
         }
     }
 
-    protected void beforeRetry() {
-    }
-
     protected abstract T tryExecute();
 
-    protected abstract boolean canRetry(CommandException e);
+    protected abstract boolean canRetry(E e);
 
-    protected void fail(CommandException e) {
+    protected void fail(E e) {
         String message = getMessage(e);
         logError("retryable.task.failed.with.error", getName(), message);
         throw e;
     }
 
-    protected String getMessage(CommandException e) {
+    protected String getMessage(E e) {
         String message = null;
         String defaultMessage = null;
         Throwable cause = e.getCause();
-        if (cause instanceof MethodFault) {
-            message = VMwareUtils.getFaultMessage((MethodFault) cause);
-            defaultMessage = cause.getClass().getName();
-        }
-        else if (cause != null) {
+        if (cause != null) {
             message = cause.getMessage();
             defaultMessage = cause.getClass().getName();
         }

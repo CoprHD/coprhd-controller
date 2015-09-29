@@ -1620,16 +1620,13 @@ public class RecoverPointClient {
     }
 
     /**
-     * Get a list of WWNs given a site ID
-     *
-     * @param int siteID - Site ID to get WWNs for
-     *
-     * @return Map<String, String> - a list of WWNs
-     *
+     * Given an RP site, return a map of all the RP initiator WWNs for each RPA in that site.  
+     * @param internalSiteName - RP internal site name
+     * @return Map of RPA number to Map with portWWN being the key and nodeWWN the value.
      * @throws RecoverPointException
      */
-    public Map<String, String> getInitiatorWWNs(String internalSiteName) throws RecoverPointException {
-        Map<String, String> wwns = new HashMap<String, String>();
+    public Map<String, Map<String, String>> getInitiatorWWNs(String internalSiteName) throws RecoverPointException {
+        Map<String, Map<String, String>> rpaWWNs = new HashMap<String, Map<String, String>>();
         try {
             FullRecoverPointSettings fullRecoverPointSettings = functionalAPI.getFullRecoverPointSettings();
             for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration()
@@ -1637,20 +1634,25 @@ public class RecoverPointClient {
                 if (!siteSettings.getInternalClusterName().equals(internalSiteName)) {
                     continue;
                 }
+                
                 ClusterRPAsState clusterRPAState = functionalAPI.getRPAsStateFromCluster(siteSettings.getCluster());
                 for (RpaState rpaState : clusterRPAState.getRpasStates()) {
                     for (InitiatorInformation rpaPortState : rpaState.getInitiatorsStates()) {
                         if (rpaPortState instanceof FiberChannelInitiatorInformation) {
                             FiberChannelInitiatorInformation initiator = (FiberChannelInitiatorInformation) rpaPortState;
                             String nodeWWN = WwnUtils.convertWWN(initiator.getNodeWWN(), WwnUtils.FORMAT.COLON);
-                            String portWWN = WwnUtils.convertWWN(initiator.getPortWWN(), WwnUtils.FORMAT.COLON);
-                            wwns.put(portWWN, nodeWWN);
-                            logger.info("RPA Node WWN: " + nodeWWN + ". Port WWN: " + portWWN);
+                            String portWWN = WwnUtils.convertWWN(initiator.getPortWWN(), WwnUtils.FORMAT.COLON);                            
+                            String rpaId = String.valueOf(rpaState.getRpaUID().getRpaNumber());
+                            logger.info(String.format("RPA ID: %s - RPA Port WWN : %s, NodeWWN : %s", rpaId, portWWN, nodeWWN));                          
+                            if (!rpaWWNs.containsKey(rpaId)) {
+                            	rpaWWNs.put(rpaId, new HashMap<String, String>());
+                            }
+                            rpaWWNs.get(rpaId).put(portWWN, nodeWWN);                         
                         }
                     }
                 }
             }
-            return wwns;
+            return rpaWWNs;
         } catch (FunctionalAPIActionFailedException_Exception e) {
             logger.error(e.getMessage());
             logger.error("Received FunctionalAPIActionFailedException_Exception. Get port information");

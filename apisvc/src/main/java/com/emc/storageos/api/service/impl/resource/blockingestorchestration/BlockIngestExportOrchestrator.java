@@ -168,8 +168,9 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 // coexistence
                 exportMask.removeFromExistingInitiator(userAddedInis);
 
-                // TODO Add HLU later if needed
-                exportMask.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
+                // find the HLU and set it in the volumes
+                exportMask.addVolume(blockObject.getId(), VolumeIngestionUtil.findHlu(unManagedVolume, exportMask));
+
                 // adding volume we need to add FCZoneReferences
                 StringSetMap zoneMap = ExportMaskUtils.getZoneMapFromZoneInfoMap(unManagedExportMask.getZoningMap(), initiators);
                 if (!zoneMap.isEmpty()) {

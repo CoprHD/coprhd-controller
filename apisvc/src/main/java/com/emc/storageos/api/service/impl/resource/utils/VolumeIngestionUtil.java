@@ -2416,4 +2416,57 @@ public class VolumeIngestionUtil {
         return clones;
     }
 
+    /**
+     * Find the HLU for the given UnManagedVolume and ExportMask (potentially
+     * an HLU could be different across ExportMasks).  This method will check
+     * the UnManagedVolume's HLU_TO_EXPORT_LABEL_MAP VolumeInformation.  This
+     * should be formatted as a StringSetMap where each StringSet is a collection
+     * of Strings in the format "exportMaskName=hlu".
+     * 
+     * @param unManagedVolume the UnManagedVolume to check
+     * @param exportMask the ExportMask to check by maskName
+     * 
+     * @return an Integer representing the LUN number for this volume in this mask
+     */
+    public static Integer findHlu(UnManagedVolume unManagedVolume, ExportMask exportMask) {
+
+        // TODO currently only the VPLEX discovery process is creating
+        // this HLU_TO_EXPORT_LABEL_MAP --- this should also be added to other 
+        // unmanaged volume discovery services if the HLU is found to be required
+
+        StringSet hluMapEntries =  PropertySetterUtil.extractValuesFromStringSet(
+                SupportedVolumeInformation.HLU_TO_EXPORT_LABEL_MAP.toString(),
+                unManagedVolume.getVolumeInformation());
+
+        Integer hlu = ExportGroup.LUN_UNASSIGNED;
+        String maskName = exportMask.getMaskName();
+        if (null != hluMapEntries) {
+            for (String hluEntry : hluMapEntries) {
+                // should be in the format exportMaskName=hlu
+                // (i.e., mask name to hlu/lun number)
+                if (hluEntry.startsWith(maskName)) {
+                    String[] hluEntryParts = hluEntry.split("=");
+                    if (hluEntryParts.length == 2) {
+                        // double check it matched the full mask name
+                        // just in case there some kind of overlap
+                        if (hluEntryParts[0].equals(maskName)) {
+                            String hluStr = hluEntryParts[1];
+                            if (null != hluStr && !hluStr.isEmpty()) {
+                                try {
+                                    hlu = Integer.valueOf(hluStr);
+                                    _logger.info("found hlu {} for {} in export mask " 
+                                            + exportMask.getMaskName(), hlu, 
+                                                unManagedVolume.getLabel());
+                                } catch (NumberFormatException ex) {
+                                    _logger.warn("could not parse HLU entry from " + hluEntry);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return hlu;
+    }
 }

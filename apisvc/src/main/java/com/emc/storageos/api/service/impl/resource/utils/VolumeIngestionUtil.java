@@ -1067,10 +1067,12 @@ public class VolumeIngestionUtil {
 
         List<URI> storagePortUris = new ArrayList<URI>(Collections2.transform(
                 eligibleMask.getKnownStoragePortUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        // update ZoneMappings and HLU's later if needed, now pass null
+
+        Map<String, Integer> wwnToHluMap = extractWwnToHluMap(eligibleMask, dbClient);
+
         ExportMaskUtils.initializeExportMaskWithVolumes(system, exportGroup, eligibleMask.getMaskName(), exportMaskLabel, allInitiators,
                 null, storagePortUris, eligibleMask.getZoningMap(), volume, eligibleMask.getUnmanagedInitiatorNetworkIds(),
-                eligibleMask.getNativeId(), userAddedInis, dbClient);
+                eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap);
 
         // remove unmanaged mask if created if the block object is not marked as internal
         if (!volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
@@ -1080,6 +1082,30 @@ public class VolumeIngestionUtil {
 
         updateExportGroup(exportGroup, volume, dbClient, allInitiators, hosts, cluster);
 
+    }
+
+    /**
+     * Extracts a map of WWNs to HLUs for UnManagedVolumes in a given UnManagedExportMask.
+     * 
+     * @param unManagedExportMask the UnManagedExportMask to check
+     * @param dbClient a reference to the database client
+     * 
+     * @return a map of WWNs to HLUs for UnManagedVolumes in a given UnManagedExportMask
+     */
+    public static Map<String, Integer> extractWwnToHluMap(UnManagedExportMask unManagedExportMask, DbClient dbClient) {
+        // create the volume wwn to hlu map
+        Map<String, Integer> wwnToHluMap = new HashMap<String, Integer>();
+        List<URI> unManagedVolumeUris = new ArrayList<URI>(Collections2.transform(
+                unManagedExportMask.getUnmanagedVolumeUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeUris);
+        for (UnManagedVolume vol : unManagedVolumes) {
+            String wwn = vol.getWwn();
+            if (wwn != null) {
+                wwnToHluMap.put(wwn, findHlu(vol, unManagedExportMask.getMaskName()));
+            }
+        }
+        _logger.info("wwn to hlu map for {} is " + wwnToHluMap, unManagedExportMask.getMaskName());
+        return wwnToHluMap;
     }
 
     /**
@@ -2424,11 +2450,11 @@ public class VolumeIngestionUtil {
      * of Strings in the format "exportMaskName=hlu".
      * 
      * @param unManagedVolume the UnManagedVolume to check
-     * @param exportMask the ExportMask to check by maskName
+     * @param exportMaskName the ExportMask to check by maskName
      * 
      * @return an Integer representing the LUN number for this volume in this mask
      */
-    public static Integer findHlu(UnManagedVolume unManagedVolume, ExportMask exportMask) {
+    public static Integer findHlu(UnManagedVolume unManagedVolume, String exportMaskName) {
 
         // TODO currently only the VPLEX discovery process is creating
         // this HLU_TO_EXPORT_LABEL_MAP --- this should also be added to other 
@@ -2439,23 +2465,22 @@ public class VolumeIngestionUtil {
                 unManagedVolume.getVolumeInformation());
 
         Integer hlu = ExportGroup.LUN_UNASSIGNED;
-        String maskName = exportMask.getMaskName();
         if (null != hluMapEntries) {
             for (String hluEntry : hluMapEntries) {
                 // should be in the format exportMaskName=hlu
                 // (i.e., mask name to hlu/lun number)
-                if (hluEntry.startsWith(maskName)) {
+                if (hluEntry.startsWith(exportMaskName)) {
                     String[] hluEntryParts = hluEntry.split("=");
                     if (hluEntryParts.length == 2) {
                         // double check it matched the full mask name
                         // just in case there some kind of overlap
-                        if (hluEntryParts[0].equals(maskName)) {
+                        if (hluEntryParts[0].equals(exportMaskName)) {
                             String hluStr = hluEntryParts[1];
                             if (null != hluStr && !hluStr.isEmpty()) {
                                 try {
                                     hlu = Integer.valueOf(hluStr);
                                     _logger.info("found hlu {} for {} in export mask " 
-                                            + exportMask.getMaskName(), hlu, 
+                                            + exportMaskName, hlu, 
                                                 unManagedVolume.getLabel());
                                 } catch (NumberFormatException ex) {
                                     _logger.warn("could not parse HLU entry from " + hluEntry);

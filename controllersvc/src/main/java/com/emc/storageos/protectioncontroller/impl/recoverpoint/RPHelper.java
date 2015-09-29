@@ -5,9 +5,11 @@
 
 package com.emc.storageos.protectioncontroller.impl.recoverpoint;
 
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getRpSourceVolumeByTarget;
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getRpJournalVolumeParent;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getSecondaryRpJournalVolumeParent;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -58,9 +60,6 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.google.common.base.Joiner;
-
-import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
-import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getRpSourceVolumeByTarget;
 
 /**
  * RecoverPoint specific helper bean
@@ -325,23 +324,6 @@ public class RPHelper {
         return volumeDescriptors;
     }
 
-    private int getJournalRsetCount(List<URI> protectionSetVolumes, URI journalVolume) {
-        int rSetCount = 0;
-
-        Iterator<URI> iter = protectionSetVolumes.iterator();
-        while (iter.hasNext()) {
-            URI protectedVolumeID = iter.next();
-            Volume protectionVolume = _dbClient.queryObject(Volume.class, protectedVolumeID);
-            if (!protectionVolume.getInactive() &&
-                    !protectionVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.toString())
-                    && protectionVolume.getRpJournalVolume().equals(journalVolume)) {
-                rSetCount++;
-            }
-        }
-
-        return rSetCount;
-    }
-
     /**
      * Determine if the protection set's source volumes are represented in the volumeIDs list.
      * Used to figure out if we can perform full CG operations or just partial CG operations.
@@ -378,36 +360,6 @@ public class RPHelper {
 
         _log.info("Found that all of the source volumes in the protection set are in the request.");
         return true;
-    }
-
-    /**
-     * Determines if a journal volume is shared by multiple replication sets.
-     * 
-     * @param protectionSetVolumes volumes from a protection set
-     * @param journalVolume journal volume
-     * @return true if journal is shared between more than one volume in a protection set
-     */
-    public boolean isJournalShared(List<URI> protectionSetVolumes, URI journalVolume) {
-        if (getJournalRsetCount(protectionSetVolumes, journalVolume) > 1) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Determines if a journal volume is active in a list of volumes.
-     * 
-     * @param protectionSetVolumes volumes from a protection set
-     * @param journalVolume journal volume
-     * @return true if journal is active with any active volume in a protection set
-     */
-    public boolean isJournalActive(List<URI> protectionSetVolumes, URI journalVolume) {
-        if (getJournalRsetCount(protectionSetVolumes, journalVolume) > 0) {
-            return true;
-        }
-
-        return false;
     }
 
     /**

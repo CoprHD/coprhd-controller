@@ -18,9 +18,11 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 public class ControllerLockingUtil {
@@ -38,11 +40,12 @@ public class ControllerLockingUtil {
      * @param dbClient
      * @param type ExportGroup.ExportGroupType -- used to determine if cluster export
      * @param initiatorURIs -- set of Initiators to consider
-     * @param storage -- URI of storage system (could be null in which case only host in key)
+     * @param storageURI -- URI of storage system (could be null in which case only host in key)
      * @return List<String> where each item in list is a lockKey
      */
     static public List<String> getHostStorageLockKeys(DbClient dbClient, ExportGroup.ExportGroupType type,
-            Collection<URI> initiatorURIs, URI storage) {
+            Collection<URI> initiatorURIs, URI storageURI) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
         List<String> lockKeys = new ArrayList<String>();
         // Collect the needed hosts, which can be specified either by URI or string name.
         Set<URI> hostURIs = new HashSet<URI>();
@@ -52,15 +55,8 @@ public class ControllerLockingUtil {
             if (initiator == null || initiator.getInactive()) {
                 continue;
             }
-            if (!NullColumnValueGetter.isNullURI(initiator.getHost())) {
-                // There is a host URI association. Use that.
-                hostURIs.add(initiator.getHost());
-            } else {
-                // Generate a fake URI from the host name. Remove any weird characters except colon, dash.
-                String fakeURIString = initiator.getHostName().replaceAll("[^a-zA-Z0-9_:-]", "");
-                String fakeURI = URI.create(fakeURIString).toString();
-                hostNames.add(fakeURI);
-            }
+            hostURIs.add(initiator.getHost());
+            hostNames.add(initiator.getHostName());
         }
         // If the export is type cluster, we want to add ALL the hosts in the clusters.
         if (type.equals(ExportGroup.ExportGroupType.Cluster)) {
@@ -87,20 +83,14 @@ public class ControllerLockingUtil {
                     if (host == null || host.getInactive()) {
                         continue;
                     }
-                    hostURIs.add(host.getId());
+                    hostNames.add(host.getHostName());
                 }
             }
         }
 
         // Now make a key for every host / storage pair
-        for (URI hostURI : hostURIs) {
-            String key = hostURI.toString() + (storage != null ? "::" + storage.toString() : "");
-            if (!lockKeys.contains(key)) {
-                lockKeys.add(key);
-            }
-        }
         for (String hostName : hostNames) {
-            String key = hostName + (storage != null ? "::" + storage.toString() : "");
+            String key = hostName +  "::" + storage.getNativeGuid();
             if (!lockKeys.contains(key)) {
                 lockKeys.add(key);
             }
@@ -113,11 +103,17 @@ public class ControllerLockingUtil {
     /**
      * Make a consistencyGroup / storageSystem duple key.
      * 
-     * @param consistencyGroup
-     * @param storageSystem
+     * @param cgURI
+     * @param storageURI
      * @return
      */
-    static public String getConsistencyGroupStorageKey(URI consistencyGroup, URI storageSystem) {
-        return consistencyGroup.toString() + "::" + storageSystem.toString();
+    static public String getConsistencyGroupStorageKey(DbClient dbClient, URI cgURI, URI storageURI)  {
+        BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
+        if (storage == null) {
+            return consistencyGroup.getLabel() + "::" + storageURI.toString();
+        } else {
+            return consistencyGroup.getLabel() + "::" + storage.getNativeGuid();
+        }   
     }
 }

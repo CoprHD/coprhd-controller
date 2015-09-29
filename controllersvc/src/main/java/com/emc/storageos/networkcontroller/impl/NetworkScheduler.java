@@ -428,25 +428,6 @@ public class NetworkScheduler {
     }
 
     /**
-     * Returns true if zoning is required for a volume.
-     * 
-     * @param volURI
-     * @return
-     * @throws DeviceControllerException
-     * @throws IOException
-     */
-    private boolean isZoningRequired(URI volURI) throws DeviceControllerException {
-        // Check that zoning is enabled
-        URI nhURI = getNeighborhoodURIForVolume(volURI);
-        VirtualArray nh = _dbClient.queryObject(VirtualArray.class, nhURI);
-        Volume volume = _dbClient.queryObject(Volume.class, volURI);
-        if (nh == null) {
-            throw DeviceControllerException.exceptions.virtualArrayNotFoundForVolume(volume.getLabel());
-        }
-        return isZoningRequired(_dbClient, nh);
-    }
-
-    /**
      * Finds all the network systems that have access to the initiators and '
      * storage port networks. When the initiators and storage port are in
      * different networks that are routed to each other, the assumption is that
@@ -1172,7 +1153,7 @@ public class NetworkScheduler {
                 if (ref.getInactive() == false) {
                     // Here is an apparent live reference; look up the volume and make
                     // sure it's still active too.
-                    Volume vol = _dbClient.queryObject(Volume.class, ref.getVolumeUri());
+                    BlockObject vol = BlockObject.fetch(_dbClient, ref.getVolumeUri());
                     ExportGroup group = _dbClient.queryObject(ExportGroup.class, ref.getGroupUri());
                     if (vol != null && vol.getInactive() == false && group != null && group.getInactive() == false) {
                         live = true;

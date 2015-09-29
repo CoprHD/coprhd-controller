@@ -214,6 +214,7 @@ CONTROLLER_OVF_DEFINITIONS       := storageos-properties-ovfenv.def
 CONTROLLER_PROPERTY_DEFINITIONS  := $(ITER_DEFINITIONS) $(CONTROLLER_OVF_DEFINITIONS) storageos-properties-config.def
     OVF_PROPERTY_METADATA_BEANS   = $(SOURCE_BASE)/syssvc/src/conf/sys-metadata-var.xml \
                                     $(SOURCE_BASE)/syssvc/src/conf/sys-metadata-var-template.xml
+                OVFBUILD_SVT_DATA = $(OVFBUILD_OVAS_DIR)/svt.data
                  CONFIG_DEFAULTS  = $(BUILD_BASE)/etc/config.defaults
           OVF_CONTROLLER_DEFAULTS = $(BUILD_BASE)/etc/.ovfenv.properties
                     ITER_DEFAULTS = $(BUILD_BASE)/etc/.iterable.properties
@@ -579,6 +580,21 @@ $(OVFBUILD_OVF_BUILDDIR)/%: %
 
 # Bootable installation ISO image for native hardware
 #
+.PHONY: svt clean-svt
+
+svt: $(OVFBUILD_SVT_DATA)
+
+clean-svt:
+	$(ATSIGN)$(RM) $(OVFBUILD_OVAS_DIR)/svt.data
+
+$(OVFBUILD_OVAS_DIR)/svt.data: FORCE
+	$(ATSIGN)$(RM) $(@) $(@).temp
+	$(ATECHO) gensvtdata.py $(OVFBUILD_OVAS_DIR)/$(@F) $(PRODUCT)
+	$(ATSIGN)./gensvtdata.py $(OVFBUILD_OVAS_DIR) $(PRODUCT) >$(@).temp
+	$(ATSIGN)$(MV) $(@).temp $(@)
+
+# Bootable installation ISO image for native hardware
+#
 .PHONY: native clean-native
 
 native: $(OVFBUILD_NATIVE_IMG)
@@ -921,6 +937,8 @@ endif
 	$(ATSIGN)$(CHMOD) 770 $(INSTALL_PREFIX)/opt/storageos/play/play
 	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/db
 	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/geodb
+	$(ATSIGN)$(CHMOD) o-r -R $(INSTALL_PREFIX)/opt/storageos/conf
+	$(ATSIGN)$(SETFACL) -m u:svcuser:r -R $(INSTALL_PREFIX)/opt/storageos/conf
 
 _uninstall:
 	@echo "Uninstalling $(INSTALL_PREFIX)$(PRODUCT_PREFIX)"

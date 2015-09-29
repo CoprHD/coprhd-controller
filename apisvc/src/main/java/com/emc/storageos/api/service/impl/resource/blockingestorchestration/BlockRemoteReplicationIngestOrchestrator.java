@@ -95,7 +95,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
             // blockObject already ingested, now just update internalflags &
             // srdf relationships. Run this logic always when volume NO_PUBLIC_ACCESS
             if (markUnManagedVolumeInactive(unManagedVolume, blockObject, unManagedVolumesSuccessfullyProcessed,
-                    createdObjectMap, updatedObjectMap, taskStatusMap)) {
+                    createdObjectMap, updatedObjectMap, taskStatusMap, vplexIngestionMethod)) {
                 _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ",
                         unManagedVolume.getNativeGuid());
                 unManagedVolume.setInactive(true);

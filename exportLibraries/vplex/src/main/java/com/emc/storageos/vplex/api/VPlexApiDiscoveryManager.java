@@ -6,7 +6,6 @@ package com.emc.storageos.vplex.api;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -272,7 +271,7 @@ public class VPlexApiDiscoveryManager {
         try {
             List<VPlexPortInfo> portInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
                     responseStr, VPlexPortInfo.class);
-            
+
             return portInfoList;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.errorProcessingPortInformation(e.getLocalizedMessage());
@@ -304,7 +303,7 @@ public class VPlexApiDiscoveryManager {
      * 
      * @param shallow true to get just the name and path for each cluster, false
      *            to get additional info about the systems and volumes.
-     *            
+     * 
      * @param isItlsRequired true to get the storage volume ITLs, false otherwise.
      * 
      * @return A list of VPlexClusterInfo specifying the info for the VPlex
@@ -315,7 +314,7 @@ public class VPlexApiDiscoveryManager {
      */
 
     List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean isItlsRequired)
-        throws VPlexApiException {
+            throws VPlexApiException {
 
         // Get the URI for the cluster info request and make the request.
         StringBuilder uriBuilder = new StringBuilder();
@@ -344,10 +343,10 @@ public class VPlexApiDiscoveryManager {
                     String clusterName = clusterInfo.getName();
                     clusterInfo.setStorageSystemInfo(getStorageSystemInfoForCluster(clusterName));
                     clusterInfo.setSystemVolumeInfo(getSystemVolumeInfoForCluster(clusterName));
-                    clusterInfo.setStorageVolumeInfo(getStorageVolumeInfoForCluster(clusterName, isItlsRequired));                    
+                    clusterInfo.setStorageVolumeInfo(getStorageVolumeInfoForCluster(clusterName, isItlsRequired));
                 }
             }
-            
+
             return clusterInfoList;
         } catch (Exception e) {
             s_logger.error(e.getLocalizedMessage(), e);
@@ -385,7 +384,7 @@ public class VPlexApiDiscoveryManager {
             List<VPlexClusterInfo> clusterInfoList = VPlexApiUtils.getChildrenFromResponse(
                     VPlexApiConstants.URI_CLUSTERS.toString(), responseStr,
                     VPlexClusterInfo.class);
-            
+
             return clusterInfoList;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.errorProcessingClusterInfo(e.getLocalizedMessage());
@@ -444,13 +443,14 @@ public class VPlexApiDiscoveryManager {
             }
 
             if (!volumeFound) {
-                                
+
                 throw VPlexApiException.exceptions.couldNotFindStorageVolumeMatchingWWNOrITL(volumeWWN, storageSystemNativeGuid);
             }
         }
 
         return storageVolumeInfoMap;
     }
+
     /**
      * Attempts to find the storage volume with the passed name.
      * 
@@ -1177,7 +1177,7 @@ public class VPlexApiDiscoveryManager {
                 storageSystemInfo.buildUniqueId();
                 storageSystemInfo.setClusterId(clusterName);
             }
-            
+
             return storageSystemInfoList;
         } catch (Exception e) {
             throw new VPlexApiException(String.format(
@@ -1203,16 +1203,16 @@ public class VPlexApiDiscoveryManager {
         StringBuilder uriBuilder = new StringBuilder();
         uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
         uriBuilder.append(clusterName);
-        
+
         String responseJsonFormat = null;
-        if(isITLFetch) {
+        if (isITLFetch) {
             uriBuilder.append(VPlexApiConstants.URI_STORAGE_VOLUMES_DETAILS.toString());
             responseJsonFormat = VPlexApiConstants.ACCEPT_JSON_FORMAT_1;
         } else {
             uriBuilder.append(VPlexApiConstants.URI_STORAGE_VOLUMES.toString());
             responseJsonFormat = VPlexApiConstants.ACCEPT_JSON_FORMAT_0;
         }
-        
+
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
         s_logger.info("Storage Volumes Request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI, responseJsonFormat);
@@ -1220,10 +1220,10 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
-        
+
         if (status != VPlexApiConstants.SUCCESS_STATUS) {
             throw VPlexApiException.exceptions.
-            failedGettingStorageVolumeInfo(clusterName, String.valueOf(status));
+                    failedGettingStorageVolumeInfo(clusterName, String.valueOf(status));
         }
 
         // Successful Response
@@ -1239,7 +1239,7 @@ public class VPlexApiDiscoveryManager {
             throw VPlexApiException.exceptions.failedProcessingStorageVolumeResponse(e.getMessage(), e);
         }
     }
-    
+
     /**
      * Get the system volume info for the cluster with the passed name.
      * 
@@ -1365,7 +1365,7 @@ public class VPlexApiDiscoveryManager {
                 engineInfo
                         .setDirectorInfo(getDirectorInfoForEngine(engineInfo.getName()));
             }
-            
+
             return engineInfoList;
         } catch (Exception e) {
             throw new VPlexApiException(String.format(
@@ -1415,7 +1415,7 @@ public class VPlexApiDiscoveryManager {
                 directorInfo.setPortInfo(getPortInfoForDirector(engineName,
                         directorInfo));
             }
-            
+
             return directorInfoList;
         } catch (Exception e) {
             throw new VPlexApiException(String.format(
@@ -1602,7 +1602,7 @@ public class VPlexApiDiscoveryManager {
         try {
             List<VPlexInitiatorInfo> initiatorInfoList = VPlexApiUtils.getResourcesFromResponseContext(
                     uriBuilder.toString(), responseStr, VPlexInitiatorInfo.class);
-            
+
             return initiatorInfoList;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.errorProcessingInitiatorInformation(e.getLocalizedMessage());
@@ -3305,7 +3305,7 @@ public class VPlexApiDiscoveryManager {
 
     /**
      * Returns a List of VPlexStorageVolumeInfo storage volumes for the given
-     * device name, locality (virtual volume type), and cluster name.  If it's
+     * device name, locality (virtual volume type), and cluster name. If it's
      * determined the top-level device is mirrored (i.e., has two child devices
      * in a RAID-1 configuration), then the VPLEX API request URI will go one
      * level deeper.
@@ -3369,7 +3369,9 @@ public class VPlexApiDiscoveryManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
         s_logger.info("Storage Volume Request URI is {}", requestURI.toString());
 
-        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        ClientResponse response = _vplexApiClient.get(requestURI,
+                VPlexApiConstants.ACCEPT_JSON_FORMAT_1,
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
@@ -3381,7 +3383,7 @@ public class VPlexApiDiscoveryManager {
 
         // Successful Response
         try {
-            List<VPlexStorageVolumeInfo> storageVolumeInfoList = 
+            List<VPlexStorageVolumeInfo> storageVolumeInfoList =
                     VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
                             responseStr, VPlexStorageVolumeInfo.class);
 
@@ -3392,8 +3394,8 @@ public class VPlexApiDiscoveryManager {
                     s_logger.info(info.toString());
                     if (!VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
                         badComponentTypeMessage.append("Unexpected component type ")
-                            .append(info.getComponentType()).append(" found for volume ")
-                            .append(info.getName()).append(". ");
+                                .append(info.getComponentType()).append(" found for volume ")
+                                .append(info.getName()).append(". ");
                     }
                 }
             }
@@ -3414,7 +3416,7 @@ public class VPlexApiDiscoveryManager {
 
     /**
      * Returns the top-level supporting device name for a given storage volume native id,
-     * wwn, and backend array serial number.  Uses the storage-volume used-by VPLEX CLI
+     * wwn, and backend array serial number. Uses the storage-volume used-by VPLEX CLI
      * command to do a reverse look up of the parent device for a storage volume
      * based on the native id, wwn, and array serial number.
      * 
@@ -3442,7 +3444,7 @@ public class VPlexApiDiscoveryManager {
 
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
                 URI.create(VPlexApiConstants.URI_STORAGE_VOLUME_USED_BY.toString()));
-        
+
         s_logger.info("Find device for storage volume request URI is {}", requestURI.toString());
 
         // the following will try to find a storage-volume used-by structure
@@ -3450,7 +3452,7 @@ public class VPlexApiDiscoveryManager {
         // in the getVolumeNamePattern method below. this is a best effort.
         // this uses the regex/wildcard name matching feature for context names
         // to try to find a storage volume based on the native id, wwn, and array serial number
-        
+
         // the max number of patterns possibly returned by getVolumeNamePattern
         int numPatterns = 4;
         boolean success = false;
@@ -3489,9 +3491,9 @@ public class VPlexApiDiscoveryManager {
 
         // this custom data parsing hackage is very uncomfortable...
         // the response payload comes back in a really grungy format like this:
-        //   /clusters/cluster-1/devices/device_VAPM00140844981-01735:\n  
-        //     extent_VAPM00140844981-01735_1\n
-        //       VAPM00140844981-01735\n\n
+        // /clusters/cluster-1/devices/device_VAPM00140844981-01735:\n
+        // extent_VAPM00140844981-01735_1\n
+        // VAPM00140844981-01735\n\n
         String deviceName = null;
         try {
             s_logger.info("custom data is " + customData);
@@ -3541,14 +3543,14 @@ public class VPlexApiDiscoveryManager {
                         + VPlexApiConstants.WILDCARD;
                 break;
             case 2:
-                // *[wwn].toLowerCase (the used-by command seems to be case-sensitive, 
+                // *[wwn].toLowerCase (the used-by command seems to be case-sensitive,
                 // and many vol names are lower case)
                 pattern = VPlexApiConstants.WILDCARD
                         + wwn.toLowerCase()
                         + VPlexApiConstants.WILDCARD;
                 break;
             case 3:
-                // *[wwn].substring(5) (for cases where the wwn was too long for 
+                // *[wwn].substring(5) (for cases where the wwn was too long for
                 // the 63-char limit, like ViPR claimed Xtremio vols)
                 pattern = VPlexApiConstants.WILDCARD
                         + wwn.substring(5).toLowerCase()
@@ -3558,28 +3560,26 @@ public class VPlexApiDiscoveryManager {
 
         return pattern;
     }
-    
+
     /**
-     * Returns a VPlexDistributedDeviceInfo object for the given device name based
-     * on its virtual volume type (local or distributed). For each leg, the device geometry 
-     * (RAID configuration) is analyzed to ensure an acceptable component type 
-     * for ingestion is present. RAID-0 is acceptable as is. If RAID-1 is found,
+     * Returns a VPlexDistributedDeviceInfo object for the given device. For each leg,
+     * the device geometry (RAID configuration) is analyzed to ensure an acceptable component
+     * type for ingestion is present. RAID-0 is acceptable as is. If RAID-1 is found,
      * then the children will need to be analyzed to make sure they are composed
      * of only RAID-0 devices (by calling getDeviceComponentInfoForIngestion).
      * RAID-C volumes at this level will be rejected.
      * 
      * @param deviceName the name of the device
-     * @param virtualVolumeType the type of virtual volume (local or distributed)
      * 
      * @return a VPlexResourceInfo object for the device name
      * @throws VPlexApiException
      */
     public VPlexDistributedDeviceInfo getDeviceStructureForDistributedIngestion(
-            String deviceName, String virtualVolumeType) throws VPlexApiException {
+            String deviceName) throws VPlexApiException {
 
         long start = System.currentTimeMillis();
-        s_logger.info("Getting device structure info for local device {} from VPLEX at "
-                + _vplexApiClient.getBaseURI().toString(), virtualVolumeType, deviceName);
+        s_logger.info("Getting device structure info for device {} from VPLEX at "
+                + _vplexApiClient.getBaseURI().toString(), deviceName);
 
         StringBuilder uriBuilder = new StringBuilder();
         // format /vplex/distributed-storage/distributed-devices
@@ -3592,7 +3592,9 @@ public class VPlexApiDiscoveryManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
         s_logger.info("Distributed Device Info Request URI is {}", requestURI.toString());
 
-        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        ClientResponse response = _vplexApiClient.get(requestURI,
+                VPlexApiConstants.ACCEPT_JSON_FORMAT_1,
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
@@ -3605,9 +3607,9 @@ public class VPlexApiDiscoveryManager {
         parentDevice.setName(deviceName);
 
         // Successful Response
-        List<VPlexDeviceInfo> deviceInfoList = 
-             VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
-                responseStr, VPlexDeviceInfo.class);
+        List<VPlexDeviceInfo> deviceInfoList =
+                VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                        responseStr, VPlexDeviceInfo.class);
 
         for (VPlexDeviceInfo componentDevice : deviceInfoList) {
             switch (componentDevice.getGeometry().toLowerCase()) {
@@ -3622,7 +3624,7 @@ public class VPlexApiDiscoveryManager {
                     break;
                 case VPlexApiConstants.ARG_GEOMETRY_RAIDC:
                 default:
-                    String reason = "invalid component device geometry " 
+                    String reason = "invalid component device geometry "
                             + componentDevice.getGeometry() + " for component " + componentDevice.getName();
                     s_logger.error(reason);
                     throw VPlexApiException.exceptions.deviceStructureIsIncompatibleForIngestion(reason);
@@ -3636,7 +3638,7 @@ public class VPlexApiDiscoveryManager {
                 s_logger.info(info.toString());
             }
         }
-        
+
         s_logger.info("TIMER: getDeviceStructureForDistributedIngestion took {}ms",
                 System.currentTimeMillis() - start);
 
@@ -3644,26 +3646,24 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
-     * Returns a VPlexDeviceInfo object for the given device name based
-     * on its virtual volume type (local or distributed). The device geometry 
-     * (RAID configuration) is analyzed to ensure an acceptable component type 
+     * Returns a VPlexDeviceInfo object for the given device. The device geometry
+     * (RAID configuration) is analyzed to ensure an acceptable component type
      * for ingestion is present. RAID-0 is acceptable as is. If RAID-1 is found,
      * then the children will need to be analyzed to make sure they are composed
      * of only RAID-0 devices (by calling getDeviceComponentInfoForIngestion).
      * RAID-C volumes at this level will be rejected.
      * 
      * @param deviceName the name of the device
-     * @param virtualVolumeType the type of virtual volume (local or distributed)
      * 
      * @return a VPlexResourceInfo object for the device name
      * @throws VPlexApiException
      */
     public VPlexDeviceInfo getDeviceStructureForLocalIngestion(
-            String deviceName, String virtualVolumeType) throws VPlexApiException {
+            String deviceName) throws VPlexApiException {
 
         long start = System.currentTimeMillis();
         s_logger.info("Getting device structure info for {} device {} from VPLEX at "
-                + _vplexApiClient.getBaseURI().toString(), virtualVolumeType, deviceName);
+                + _vplexApiClient.getBaseURI().toString(), deviceName);
 
         StringBuilder uriBuilder = new StringBuilder();
         // format /vplex/clusters/*/devices/DEVICE_NAME
@@ -3675,7 +3675,9 @@ public class VPlexApiDiscoveryManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
         s_logger.info("Local Device Info Request URI is {}", requestURI.toString());
 
-        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        ClientResponse response = _vplexApiClient.get(requestURI,
+                VPlexApiConstants.ACCEPT_JSON_FORMAT_1,
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
@@ -3687,7 +3689,7 @@ public class VPlexApiDiscoveryManager {
         VPlexDeviceInfo device = null;
 
         // Successful Response
-        List<VPlexDeviceInfo> deviceInfoList = 
+        List<VPlexDeviceInfo> deviceInfoList =
                 VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
                         responseStr, VPlexDeviceInfo.class);
         if (deviceInfoList.size() == 1) {
@@ -3705,7 +3707,7 @@ public class VPlexApiDiscoveryManager {
                     break;
                 case VPlexApiConstants.ARG_GEOMETRY_RAIDC:
                 default:
-                    String reason = "invalid component device geometry " 
+                    String reason = "invalid component device geometry "
                             + device.getGeometry() + " for component " + device.getName();
                     s_logger.error(reason);
                     throw VPlexApiException.exceptions.deviceStructureIsIncompatibleForIngestion(reason);
@@ -3722,7 +3724,7 @@ public class VPlexApiDiscoveryManager {
                 s_logger.info(info.toString());
             }
         }
-        
+
         s_logger.info("TIMER: getDeviceStructureForLocalIngestion took {}ms",
                 System.currentTimeMillis() - start);
 
@@ -3731,9 +3733,9 @@ public class VPlexApiDiscoveryManager {
 
     /**
      * Returns a List of child VPlexDeviceInfo components for a given
-     * VPlexDeviceInfo parent device.  The device geometry (RAID configuration) 
+     * VPlexDeviceInfo parent device. The device geometry (RAID configuration)
      * is analyzed to ensure an acceptable component type for ingestion
-     * is present. Only RAID-0 is acceptable for a child device.  RAID-1 and
+     * is present. Only RAID-0 is acceptable for a child device. RAID-1 and
      * RAID-C at this level will be rejected for ingestion purposes.
      * 
      * @param parentDevice the parent VPlexDeviceInfo
@@ -3758,7 +3760,9 @@ public class VPlexApiDiscoveryManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
         s_logger.info("Child Device Component Info Request URI is {}", requestURI.toString());
 
-        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        ClientResponse response = _vplexApiClient.get(requestURI,
+                VPlexApiConstants.ACCEPT_JSON_FORMAT_1,
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
@@ -3768,9 +3772,9 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexDeviceInfo> deviceInfoList = 
+        List<VPlexDeviceInfo> deviceInfoList =
                 VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
-                    responseStr, VPlexDeviceInfo.class);
+                        responseStr, VPlexDeviceInfo.class);
 
         for (VPlexDeviceInfo device : deviceInfoList) {
             switch (device.getGeometry().toLowerCase()) {
@@ -3780,7 +3784,7 @@ public class VPlexApiDiscoveryManager {
                 case VPlexApiConstants.ARG_GEOMETRY_RAID1:
                 case VPlexApiConstants.ARG_GEOMETRY_RAIDC:
                 default:
-                    String reason = "invalid component device geometry " 
+                    String reason = "invalid component device geometry "
                             + device.getGeometry() + " for component " + device.getName();
                     s_logger.error(reason);
                     throw VPlexApiException.exceptions.deviceStructureIsIncompatibleForIngestion(reason);
@@ -3799,4 +3803,58 @@ public class VPlexApiDiscoveryManager {
 
         return deviceInfoList;
     }
+
+    /**
+     * Returns a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names.
+     * 
+     * @return a Map of distributed device component context
+     *         paths from the VPLEX API to VPLEX cluster names
+     * 
+     * @throws VPlexApiException
+     */
+    public Map<String, String> getDistributedDevicePathToClusterMap()
+            throws VPlexApiException {
+
+        long start = System.currentTimeMillis();
+        s_logger.info("Getting distributed device path to cluster id map from VPLEX at "
+                + _vplexApiClient.getBaseURI().toString());
+
+        StringBuilder uriBuilder = new StringBuilder();
+        // format /vplex/distributed-storage/distributed-devices/*/distributed-device-components/*
+        uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICES.toString());
+        uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+        uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP.toString());
+        uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+        s_logger.info("Distributed Device Component Info Request URI is {}", requestURI.toString());
+
+        ClientResponse response = _vplexApiClient.get(requestURI,
+                VPlexApiConstants.ACCEPT_JSON_FORMAT_1,
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
+        String responseStr = response.getEntity(String.class);
+        int status = response.getStatus();
+        response.close();
+
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            throw VPlexApiException.exceptions.failedGettingDeviceStructure(String.valueOf(status));
+        }
+
+        // Successful Response
+        List<VPlexDeviceInfo> deviceInfoList =
+                VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                        responseStr, VPlexDeviceInfo.class);
+
+        Map<String, String> distributedDevicePathToClusterMap = new HashMap<String, String>();
+        for (VPlexDeviceInfo device : deviceInfoList) {
+            distributedDevicePathToClusterMap.put(device.getPath(), device.getCluster());
+        }
+
+        s_logger.info("TIMER: getDistributedDevicePathToClusterMap took {}ms",
+                System.currentTimeMillis() - start);
+
+        return distributedDevicePathToClusterMap;
+    }
+
 }

@@ -114,9 +114,8 @@ public class ObjectDeviceController implements ObjectController {
     public void deleteBucket(URI storage, URI bucket, String task) throws ControllerException {
         _log.info("ObjectDeviceController:deleteBucket Bucket URI : {} ", bucket);
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
-        Project project = _dbClient.queryObject(Project.class, bucketObj.getProject());
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, project, bucketObj, task);
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj, task);
 
         if (result.getCommandPending()) {
             return;
@@ -130,10 +129,8 @@ public class ObjectDeviceController implements ObjectController {
         _log.info("ObjectDeviceController:updateBucket Bucket URI : {} ", bucket);
 
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
-        Project project = _dbClient.queryObject(Project.class, bucketObj.getProject());
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucket(storageObj, project, bucketObj, softQuota,
-                hardQuota,
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucket(storageObj, bucketObj, softQuota, hardQuota,
                 retention, task);
 
         if (result.getCommandPending()) {

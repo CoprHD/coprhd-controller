@@ -86,6 +86,7 @@ public class BucketService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "object";
     private static final String SLASH = "/";
     private static final String UNDER_SCORE = "_";
+    private static final String SPECIAL_CHAR_REGEX = "[^\\dA-Za-z\\_]";
 
     private BucketScheduler _bucketScheduler;
     private NameGenerator _nameGenerator;
@@ -165,20 +166,9 @@ public class BucketService extends TaskResourceService {
         if (null == namespace || namespace.isEmpty()) {
             throw APIException.badRequests.objNoNamespaceForTenant(tenant.getId());
         }
-
-        StringBuilder bucketPath = new StringBuilder();
-        bucketPath.append(namespace).append(SLASH).append(project.getLabel()).append(SLASH).append(param.getLabel());
-
-        // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
-        // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
-        final String convertedName = param.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
-        _log.info("Original name {} and converted name {}", param.getLabel(), convertedName);
-        // There could be bucket with same name created with different projects/namespaces. Updating name to match this scenario.
-        param.setLabel(convertedName);
-        param.setPath(bucketPath.toString());
-
+        
         // Check if there already exist a bucket with same name in a Project.
-        checkForDuplicateName(param.getLabel(), Bucket.class, id, "project", _dbClient);
+        checkForDuplicateName(param.getLabel().replaceAll(SPECIAL_CHAR_REGEX, ""), Bucket.class, id, "project", _dbClient);
 
         return initiateBucketCreation(param, project, tenant, null);
     }
@@ -238,14 +228,11 @@ public class BucketService extends TaskResourceService {
                 task, ResourceOperationTypeEnum.CREATE_BUCKET);
         op.setDescription("Bucket Create");
 
-        // Bucket name @ Storage System
-        String bucketName = project.getLabel() + UNDER_SCORE + bucket.getLabel();
-
         // Controller invocation
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
         controller.createBucket(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), bucket.getId(),
-                bucketName, bucket.getNamespace(), bucket.getRetention(), bucket.getHardQuota(),
+                bucket.getName(), bucket.getNamespace(), bucket.getRetention(), bucket.getHardQuota(),
                 bucket.getSoftQuota(), bucket.getOwner(), task);
 
         auditOp(OperationTypeEnum.CREATE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
@@ -389,6 +376,18 @@ public class BucketService extends TaskResourceService {
         bucket.setPool(placement.getSourceStoragePool());
         bucket.setOpStatus(new OpStatusMap());
 
+        // There could be bucket with same name created with different projects/namespaces. Updating name to match this scenario.
+        bucket.setLabel(param.getLabel().replaceAll(SPECIAL_CHAR_REGEX, ""));
+
+        // Bucket name to be used at Storage System
+        String bucketName = project.getLabel() + UNDER_SCORE + param.getLabel();
+        bucket.setName(bucketName.replaceAll(SPECIAL_CHAR_REGEX, ""));
+
+        // Update Bucket path
+        StringBuilder bucketPath = new StringBuilder();
+        bucketPath.append(tenantOrg.getNamespace()).append(SLASH).append(project.getLabel()).append(SLASH).append(param.getLabel());
+        bucket.setPath(bucketPath.toString());
+
         if (flags != null) {
             bucket.addInternalFlags(flags);
         }
@@ -488,10 +487,10 @@ public class BucketService extends TaskResourceService {
                 resRepList);
         return resRepList;
     }
-    
-    private String getOwner(String orgOwner){
+
+    private String getOwner(String orgOwner) {
         String owner = orgOwner;
-        if(null==orgOwner || orgOwner.isEmpty()){
+        if (null == orgOwner || orgOwner.isEmpty()) {
             StorageOSUser user = getUserFromContext();
             owner = user.getName();
         }

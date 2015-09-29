@@ -6,7 +6,6 @@
 package com.emc.storageos.volumecontroller;
 
 import com.emc.storageos.db.client.model.Bucket;
-import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
@@ -29,7 +28,6 @@ public interface ObjectStorageDevice {
      * Update Bucket information to the Object Storage (Storage System)
      * 
      * @param storageObj Storage system instance
-     * @param project Project where bucket is created
      * @param bucket Bucket instance
      * @param softQuota Soft Quota for a bucket
      * @param hardQuota Hard Quota for a bucket
@@ -38,17 +36,16 @@ public interface ObjectStorageDevice {
      * @return Result of operation
      * @throws ControllerException if Update fails
      */
-    BiosCommandResult doUpdateBucket(StorageSystem storageObj, Project project, Bucket bucket, Long softQuota, Long hardQuota,
+    BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota,
             Integer retention, String taskId) throws ControllerException;
 
     /**
      * 
      * @param storageObj Storage system instance
-     * @param project Project where bucket is created
      * @param bucket Bucket instance
      * @param taskId Task ID
      * @return Result of operation
      * @throws ControllerException if Delete fails
      */
-    BiosCommandResult doDeleteBucket(StorageSystem storageObj, Project project, Bucket bucket, String taskId) throws ControllerException;
+    BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket, String taskId) throws ControllerException;
 }

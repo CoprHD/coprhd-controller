@@ -799,15 +799,6 @@ public class BlockSnapshotService extends TaskResourceService {
             throw APIException.badRequests.snapshotAlreadyImportedIntoVplex(id.toString());
         }
 
-        // Create a new INTERNAL Volume instance using the volume info
-        // in the block snapshot. VPLEX volumes are created from Volume
-        // instances rather then BlockObject instances, so we cannot use
-        // the BlockSnapshot directly. The other alternative is to modify
-        // all code involved with VPLEX volume creation and all code that
-        // accesses or modifies the backend volumes for VPLEX volumes. This
-        // would be a large, invasive undertaking.
-        Volume backendVolume = prepareVPLEXBackendVolumeFromSnapshot(snapshot, sourceVolume);
-
         // Get the virtual pool of the snapshot source volume. We need to set
         // a virtual pool for the VPLEX volume that will be created. Currently,
         // we use the virtual pool for the source volume, even though it may not
@@ -818,13 +809,29 @@ public class BlockSnapshotService extends TaskResourceService {
         // alternative is to create a generic internal virtual pool.
         VirtualPool sourceVolumeVpool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
 
+        // Create a new INTERNAL Volume instance using the volume info
+        // in the block snapshot. VPLEX volumes are created from Volume
+        // instances rather then BlockObject instances, so we cannot use
+        // the BlockSnapshot directly. The other alternative is to modify
+        // all code involved with VPLEX volume creation and all code that
+        // accesses or modifies the backend volumes for VPLEX volumes. This
+        // would be a large, invasive undertaking.
+        Volume backendVolume = prepareVPLEXBackendVolumeFromSnapshot(snapshot, sourceVolume);
+
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
 
         // Get the VPLEX block service implementation and call the routine to
         // import a non-VPLEX volume into VPLEX.
-        VPlexBlockServiceApiImpl vplexBlocSvcApi = (VPlexBlockServiceApiImpl) getBlockServiceImpl("vplex");
-        vplexBlocSvcApi.importVirtualVolume(snapshot.getStorageController(), backendVolume, sourceVolumeVpool, taskId);
+        try {
+            VPlexBlockServiceApiImpl vplexBlocSvcApi = (VPlexBlockServiceApiImpl) getBlockServiceImpl("vplex");
+            vplexBlocSvcApi.importVirtualVolume(snapshot.getStorageController(), backendVolume, sourceVolumeVpool, taskId);
+        } catch (Exception e) {
+            _log.error("Exception importing snahot to VPLEX", e);
+            backendVolume.setInactive(true);
+            _dbClient.persistObject(backendVolume);
+            throw e;
+        }
 
         // Create and return the task for this request. NOte that we
         // create the operation on the snapshot, but the import routine

@@ -537,16 +537,18 @@ public class RecoverPointScheduler implements Scheduler {
 
                     // Find a solution, given this vpool, and the target varrays
                     if (findSolution(rpProtectionRecommendation, rpRecommendation, varray, vpool, protectionVarrays,
-                            capabilities, satisfiedCount, false, null, project)) {
-                        // Check to ensure the protection system can handle the new resources about to come down
-                        if (!verifyPlacement(candidateProtectionSystem, rpProtectionRecommendation,
-                                rpProtectionRecommendation.getResourceCount())) {
-                            continue;
-                        }
+                            capabilities, satisfiedCount, false, null, project)) {                       
 
                         if ((totalSatisfiedCount >= totalRequestedCount)) {
                             rpProtectionRecommendation.setResourceCount(totalSatisfiedCount);
                             recommendations.add(rpProtectionRecommendation);
+                            
+                            // Check to ensure the protection system can handle the new resources about to come down
+                            if (!verifyPlacement(candidateProtectionSystem, rpProtectionRecommendation,
+                                    rpProtectionRecommendation.getResourceCount())) {
+                                continue;
+                            }
+                            
                             return recommendations;
                         } else {
                             break;
@@ -1262,12 +1264,7 @@ public class RecoverPointScheduler implements Scheduler {
                     // Find a solution, given this vpool, and the target varrays
                     if (findSolution(rpProtectionRecommendation, primaryRpRecommendation, varray, vpool, activeProtectionVarrays,
                             capabilities, satisfiedSourceVolCount, true, null, project)) {
-                        // Check to ensure the protection system can handle the new resources about to come down
-                        if (!verifyPlacement(primaryProtectionSystem, rpProtectionRecommendation,
-                                rpProtectionRecommendation.getResourceCount())) {
-                            continue;
-                        }
-
+                      
                         _log.info("RP Placement : An RP target placement solution has been identified for the MetroPoint primary (active) cluster.");
 
                         // We have a primary cluster protection recommendation for the specified metroPointType. We need to now determine if
@@ -1393,12 +1390,7 @@ public class RecoverPointScheduler implements Scheduler {
                                     // Find a solution, given this vpool, and the target varrays
                                     if (findSolution(rpProtectionRecommendation, secondaryRpRecommendation, haVarray, vpool,
                                             standbyProtectionVarrays, capabilities, satisfiedSourceVolCount, true, primaryRpRecommendation,
-                                            project)) {
-                                        // Check to ensure the protection system can handle the new resources about to come down
-                                        if (!verifyPlacement(primaryProtectionSystem, rpProtectionRecommendation,
-                                                rpProtectionRecommendation.getResourceCount())) {
-                                            continue;
-                                        }
+                                            project)) {                          
 
                                         _log.info("RP Placement : An RP target placement solution has been identified for the "
                                                 + "MetroPoint secondary (standby) cluster.");
@@ -1431,6 +1423,11 @@ public class RecoverPointScheduler implements Scheduler {
 
                         if (totalSatisfiedCount >= totalRequestedResourceCount) {
                             rpProtectionRecommendation.setResourceCount(totalSatisfiedCount);
+                            // Check to ensure the protection system can handle the new resources about to come down
+                            if (!verifyPlacement(primaryProtectionSystem, rpProtectionRecommendation,
+                                    rpProtectionRecommendation.getResourceCount())) {
+                                continue;
+                            }
                             return rpProtectionRecommendation;
                         } else {
                             break;// loop back to the next pool

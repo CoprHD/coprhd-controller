@@ -21,6 +21,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.ClientResponse.Status;
@@ -128,7 +129,7 @@ public class IsilonApi {
 
         try {
             JSONObject resp = clientResp.getEntity(JSONObject.class);
-            IsilonClusterInfo info = new Gson().fromJson(resp.toString(), IsilonClusterInfo.class);
+            IsilonClusterInfo info = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()), IsilonClusterInfo.class);
             // explicitly parse onefs-version, since the key name has "-", we
             // can not do it directly.
             // TODO: new PAPI does not have ""onefs-version-info" element in the
@@ -162,7 +163,7 @@ public class IsilonApi {
             }
 
             JSONObject resp = clientResp.getEntity(JSONObject.class);
-            IsilonClusterConfig config = new Gson().fromJson(resp.toString(),
+            IsilonClusterConfig config = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()),
                     IsilonClusterConfig.class);
 
             return config;
@@ -378,7 +379,7 @@ public class IsilonApi {
                 JSONArray array = obj.getJSONArray(key);
                 for (int i = 0; i < array.length(); i++) {
                     JSONObject exp = array.getJSONObject(i);
-                    ret.add(new Gson().fromJson(exp.toString(), c));
+                    ret.add(new Gson().fromJson(SecurityUtils.sanitizeJsonString(exp.toString()), c));
                 }
                 // Isilon PAPI sets "total" to "null" string when there are more
                 // entries than default page size (1000 entries). Saw this for
@@ -511,7 +512,7 @@ public class IsilonApi {
                     }
 
                     JSONObject exp = array.getJSONObject(0);
-                    returnInstance = new Gson().fromJson(exp.toString(), c);
+                    returnInstance = new Gson().fromJson(SecurityUtils.sanitizeJsonString(exp.toString()), c);
                 } else {
                     processErrorResponse("get", key + ": " + id, resp.getStatus(), jObj);
                 }
@@ -903,7 +904,7 @@ public class IsilonApi {
 
             JSONObject resp = clientResp.getEntity(JSONObject.class);
             sLogger.debug(resp.toString());
-            IsilonSmartConnectInfo info = new Gson().fromJson(resp.toString(),
+            IsilonSmartConnectInfo info = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()),
                     IsilonSmartConnectInfo.class);
             return info;
         } catch (Exception e) {
@@ -930,14 +931,14 @@ public class IsilonApi {
             try {
                 responseString = clientResp.getEntity(String.class);
                 sLogger.debug("Response:" + responseString);
-                info = new Gson().fromJson(responseString,
+                info = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
                         IsilonSmartConnectInfoV2.class);
             } catch (Exception e) {
                 sLogger.debug("Got Exception trying to get Json out of it " + e);
                 sLogger.debug("Response:String:" + responseString);
                 String fixedString = "{\"settings\":" + responseString + "}";
                 sLogger.debug("Fixed:String:" + fixedString);
-                info = new Gson().fromJson(fixedString,
+                info = new Gson().fromJson(SecurityUtils.sanitizeJsonString(fixedString),
                         IsilonSmartConnectInfoV2.class);
             }
             return info;
@@ -1052,7 +1053,7 @@ public class IsilonApi {
                             statValueCurrent.error.toString());
                 }
                 statValueCurrent.value = new Gson()
-                        .fromJson(entryObj.getString("value"), valueType);
+                        .fromJson(SecurityUtils.sanitizeJsonString(entryObj.getString("value")), valueType);
                 retMap.put(entryKey, statValueCurrent);
             }
             return retMap;
@@ -1109,7 +1110,7 @@ public class IsilonApi {
                         JSONArray entry = (JSONArray) array.get(i);
                         if (entry.length() == 2) {
                             long timestamp = entry.getLong(0);
-                            T value = new Gson().fromJson(entry.getString(1), valueType);
+                            T value = new Gson().fromJson(SecurityUtils.sanitizeJsonString(entry.getString(1)), valueType);
                             statValueHistory.values.put(timestamp, value);
                         }
                     }
@@ -1153,7 +1154,7 @@ public class IsilonApi {
             JSONArray protocols = resp.getJSONArray("protocols");
             for (int i = 0; i < protocols.length(); i++) {
                 JSONObject protocol = protocols.getJSONObject(i);
-                statProtocols.add(new Gson().fromJson(protocol.toString(),
+                statProtocols.add(new Gson().fromJson(SecurityUtils.sanitizeJsonString(protocol.toString()),
                         IsilonStats.Protocol.class));
             }
             return statProtocols;

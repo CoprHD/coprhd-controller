@@ -37,7 +37,7 @@ public class RemoveFullCopyService extends ViPRService {
             volume = BlockStorageUtils.getBlockResource(volumeOrConsistencyGroupId);
             logInfo("remove.full.copy.service.precheck", volume.getName());
         } else {
-            if (ConsistencyUtils.validateConsistencyGroupFullCopies(getClient(), volumeOrConsistencyGroupId)) {
+            if (!ConsistencyUtils.validateConsistencyGroupFullCopies(getClient(), volumeOrConsistencyGroupId)) {
                 ExecutionUtils.fail("failTask.ConsistencyGroup.noFullCopies", volumeOrConsistencyGroupId, volumeOrConsistencyGroupId);
             }
         }

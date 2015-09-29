@@ -1197,13 +1197,14 @@ public class IsilonApi {
     }
     
     /**
-     * Checks to see if the dir with the given path exists on the isilon device
+     * Checks to see if the NFSv4 service is enabled on the isilon device
      * 
      * @param fspath directory path to chek
      * @return boolean true if exists, false otherwise
      */
     public boolean nfsv4Enabled() throws IsilonException {
         ClientResponse resp = null;
+        boolean result=false;
         try {
             sLogger.debug("IsilonApi check nfsV4 support retrive global status - start");
             resp = _client.head(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS));
@@ -1213,6 +1214,8 @@ public class IsilonApi {
             
             
             String enabled = jsonResp.getJSONObject("settings").getString("nfsv4_enabled");
+            
+            result = Boolean.getBoolean(enabled);
             
             sLogger.debug("IsilonApi  nfsv4 is enable/disable is set to {}",enabled);
             
@@ -1227,6 +1230,6 @@ public class IsilonApi {
             }
         }
         
-        return false;
+        return result;
     }
 }

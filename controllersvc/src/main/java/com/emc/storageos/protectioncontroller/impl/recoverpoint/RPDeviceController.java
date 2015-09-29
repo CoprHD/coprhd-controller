@@ -31,7 +31,6 @@ import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor.Type;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
@@ -81,7 +80,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
-import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopyType;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
 import com.emc.storageos.recoverpoint.objectmodel.RPConsistencyGroup;
 import com.emc.storageos.recoverpoint.objectmodel.RPSite;
@@ -153,7 +151,9 @@ import com.google.common.base.Joiner;
  */
 public class RPDeviceController implements RPController, BlockOrchestrationInterface, MaskingOrchestrator {
 
-    // RecoverPoint consistency group name prefix
+    private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
+	private static final String RPA = "-rpa-";
+	// RecoverPoint consistency group name prefix
     private static final String CG_NAME_PREFIX = "ViPR-";
     private static final String VIPR_SNAPSHOT_PREFIX = "ViPR-snapshot-";
 
@@ -229,10 +229,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
     private static final Logger _log = LoggerFactory.getLogger(RPDeviceController.class);
-
-    private static final String EVENT_SERVICE_TYPE = "rp controller";
-    private static final String EVENT_SERVICE_SOURCE = "RPDeviceController";
-
+  
     private static final String METHOD_EXPORT_ORCHESTRATE_STEP = "exportOrchestrationSteps";
     private static final String METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "exportOrchestrationRollbackSteps";
     private static final String STEP_EXPORT_ORCHESTRATION = "exportOrchestration";
@@ -1004,7 +1001,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 String exportGroupGeneratedName = rpSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + rpSiteName + "_"
                         + varray.getLabel();
                 // Remove all non alpha-numeric characters, excluding "_".
-                exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
+                exportGroupGeneratedName = exportGroupGeneratedName.replaceAll(ALPHA_NUMERICS, "");
                 exportGroup.setGeneratedName(exportGroupGeneratedName);
                 // Set the option to Zone all initiators. If we dont do this, only available Storage Ports will be zoned to initiators. This
                 // means that if there are 4 available storage
@@ -1028,7 +1025,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     Initiator initiator = new Initiator();
                     initiator.addInternalFlags(Flag.RECOVERPOINT);
                     // Remove all non alpha-numeric characters, excluding "_", from the hostname
-                    String rpClusterName = rpSiteName.replaceAll("[^A-Za-z0-9_]", "");
+                    String rpClusterName = rpSiteName.replaceAll(ALPHA_NUMERICS, "");
                     _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
                     initiator.setClusterName(rpClusterName);
                     initiator.setProtocol("FC");
@@ -1036,8 +1033,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     
                     //Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
                     //A child RP IG will be created containing all the RPA IGs
-                    String hostName = rpClusterName + "RPA" + rpaId; 
-                    hostName = hostName.replaceAll("[^A-Za-z0-9_]", "");
+                    String hostName = rpClusterName + RPA + rpaId; 
+                    hostName = hostName.replaceAll(ALPHA_NUMERICS, "");
                     _log.info(String.format("Setting RP initiator host name : %s", hostName));
                     initiator.setHostName(hostName);
                     
@@ -3407,7 +3404,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // We're looking for a format of:
                 // rpSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + rpSiteName + "_" + varray.getLabel()
                 // and replacing all non alpha-numerics with "" (except "_").
-                String generatedName = exportGroup.getGeneratedName().trim().replaceAll("[^A-Za-z0-9_]", "");
+                String generatedName = exportGroup.getGeneratedName().trim().replaceAll(ALPHA_NUMERICS, "");
                 if (generatedName.equals(exportGroupToFind.getGeneratedName())) {
                     _log.info("Export Group already exists in database.");
                     return exportGroup;

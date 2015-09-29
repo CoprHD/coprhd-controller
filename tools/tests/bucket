@@ -1,0 +1,70 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# ECS bucket cli functions
+#----------------------------------------------------------------------
+
+def ecs_bucket_create(args):
+    bourne.connect(args.ip)
+    project_uri = bourne.project_query(args.project)
+    cos_uri     = bourne.cos_query('object', args.cos) #take care
+    nh_uri      = bourne.neighborhood_query(args.neighborhood)
+    s = bourne.ecs_bucket_create(args.label, project_uri, nh_uri, cos_uri, args.soft_quota, args.hard_quota, owner)
+    if (s['state'] == 'ready'):
+        print 'Fileshare created with id ' + s['resource']['id']
+    else:
+        print 'Fileshare create failed.'
+
+    
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+#bucket create <cmd> <cmd_args>
+parser = argparse.ArgumentParser(description = 'Bourne ECS bucket cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete')
+
+# bucket create label project cos soft_quota hard_quota owner
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',		help = 'label of bucket')
+create.add_argument('project',		help = 'container project name')
+create.add_argument('neighborhood',	help = 'neighborhood/varray where bucket should be created')
+create.add_argument('cos',		help = 'cos/vpool name for bucket')
+create.add_argument('soft quota',	help = 'soft quota for bucket')
+create.add_argument('hard quota',	help = 'hard quota for bucket')
+create.add_argument('owner',		help = 'owner for bucket')
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+            cmd = sys.argv[1]
+    else:
+            cmd = None
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        ecs_bucket_create(args)
+except e:
+    print e
+
+
+

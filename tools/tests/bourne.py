@@ -174,7 +174,6 @@ URI_VOLUME_FULL_COPY_CHECK_PROGRESS = URI_VOLUME_LIST     + '/{0}/protection/ful
 URI_FULL_COPY = URI_SERVICES_BASE  + '/block/full-copies'
 URI_FULL_COPY_RESTORE = URI_FULL_COPY + '/{0}/restore'
 URI_FULL_COPY_RESYNC = URI_FULL_COPY + '/{0}/resynchronize'
-URI_ADD_JOURNAL = URI_VOLUME_LIST + '/protection/addJournalCapacity'
 
 URI_UNMANAGED                    = URI_VDC + '/unmanaged'
 URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
@@ -3450,30 +3449,6 @@ class Bourne:
 
         print "VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})
-        print "RESP = ", resp
-        self.assert_is_dict(resp)
-        tr_list = resp['task']
-        #print 'DEBUG : debug operation for volume : ' + o['resource']['id']
-        print tr_list
-        result = list()
-        for tr in tr_list:
-            s = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
-            result.append(s)
-        return result
-
-    def volume_add_journal(self, copyName, project, neighborhood, cos, size, count, consistencyGroup):
-        parms = {
-            'name' : copyName,
-            'varray' : neighborhood,
-            'project' : project,
-            'vpool' :  cos,
-            'size' : size,
-            'count' : count,
-	    'consistency_group' : consistencyGroup,
-        }        
-
-        print "ADD JOURNAL Params = ", parms
-        resp = self.api('POST', URI_ADD_JOURNAL, parms, {})
         print "RESP = ", resp
         self.assert_is_dict(resp)
         tr_list = resp['task']
@@ -8236,3 +8211,43 @@ class Bourne:
         for tr in tr_list:
            result.append(tr['id'])
         return result
+
+
+    #method definition
+    def ecs_bucket_create(self, label, project, neighbourhood, cos,
+						soft_quota, hard_quota, owner):
+		params = {
+			'name'          : label,
+			'soft_quota'    : soft_quota,
+			'hard_quota'    : hard_quota,
+			'varray'        : neighbourhood,
+			'vpool'         : cos,
+			'owner'         : owner
+			}
+
+		URI_ECS_BUCKET_LIST = "/object/buckets"
+		print "ECS BUCKET CREATE Params = " 
+		print  params
+		o = self.api('POST', URI_ECS_BUCKET_LIST, params, {'project': project})
+		self.assert_is_dict(o)
+		#s = self.api_sync_2(o['resource']['id'], o['op_id'], self.fileshare_show_task)
+		return o #s
+
+#method call
+bourne = Bourne()
+bourne.connect("10.247.142.254")
+bourne.login( "root", "ChangeMe1!")
+s = bourne.ecs_bucket_create("python2", #label=name
+                      "urn:storageos:Project:11483dc6-0a5c-4bce-ac2a-8a7a18177778:global", #project
+                      "urn:storageos:VirtualArray:1bf90272-d4f4-4154-ac8c-4ed34aea1531:vdc1", #nh or varray
+                      "urn:storageos:VirtualPool:a0f1e0b9-a473-4bee-bf5c-194106ef65d2:vdc1", #cos or vpool
+                      "1", #sq
+                      "2", #hq
+                      "root" #owner
+                      )
+if (s['state'] == 'ready'):
+    print 'ECS Bucket created with id ' + s['resource']['id']
+else:
+    print 'ECS Bucket create failed.'
+
+

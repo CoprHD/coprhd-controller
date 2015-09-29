@@ -31,7 +31,6 @@ import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor.Type;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
@@ -81,7 +80,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
-import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopyType;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
 import com.emc.storageos.recoverpoint.objectmodel.RPConsistencyGroup;
 import com.emc.storageos.recoverpoint.objectmodel.RPSite;
@@ -153,7 +151,9 @@ import com.google.common.base.Joiner;
  */
 public class RPDeviceController implements RPController, BlockOrchestrationInterface, MaskingOrchestrator {
 
-    // RecoverPoint consistency group name prefix
+    private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
+	private static final String RPA = "-rpa-";
+	// RecoverPoint consistency group name prefix
     private static final String CG_NAME_PREFIX = "ViPR-";
     private static final String VIPR_SNAPSHOT_PREFIX = "ViPR-snapshot-";
 
@@ -229,10 +229,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
     private static final Logger _log = LoggerFactory.getLogger(RPDeviceController.class);
-
-    private static final String EVENT_SERVICE_TYPE = "rp controller";
-    private static final String EVENT_SERVICE_SOURCE = "RPDeviceController";
-
+  
     private static final String METHOD_EXPORT_ORCHESTRATE_STEP = "exportOrchestrationSteps";
     private static final String METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "exportOrchestrationRollbackSteps";
     private static final String STEP_EXPORT_ORCHESTRATION = "exportOrchestration";
@@ -1000,10 +997,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 exportGroup.setProject(new NamedURI(params.getProject(), exportGroup.getLabel()));
                 exportGroup.setVirtualArray(varrayURI);
                 exportGroup.setTenant(new NamedURI(params.getTenant(), exportGroup.getLabel()));
+                exportGroup.setType(ExportGroupType.Cluster.name());
                 String exportGroupGeneratedName = rpSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + rpSiteName + "_"
                         + varray.getLabel();
                 // Remove all non alpha-numeric characters, excluding "_".
-                exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
+                exportGroupGeneratedName = exportGroupGeneratedName.replaceAll(ALPHA_NUMERICS, "");
                 exportGroup.setGeneratedName(exportGroupGeneratedName);
                 // Set the option to Zone all initiators. If we dont do this, only available Storage Ports will be zoned to initiators. This
                 // means that if there are 4 available storage
@@ -1014,27 +1012,40 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 exportGroup.setZoneAllInitiators(true);
 
                 // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
-                Map<String, String> wwns = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
+                Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
 
-                if (wwns == null || wwns.isEmpty()) {
+                if (rpaWWNs == null || rpaWWNs.isEmpty()) {
                     throw DeviceControllerExceptions.recoverpoint.noInitiatorsFoundOnRPAs();
                 }
 
                 // Convert to initiator object
                 List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String wwn : wwns.keySet()) {
+                for (String rpaId : rpaWWNs.keySet()) {
+            	   for (Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
                     Initiator initiator = new Initiator();
                     initiator.addInternalFlags(Flag.RECOVERPOINT);
                     // Remove all non alpha-numeric characters, excluding "_", from the hostname
-                    initiator.setHostName(rpSiteName.replaceAll("[^A-Za-z0-9_]", ""));
-                    initiator.setInitiatorPort(wwn);
-                    initiator.setInitiatorNode(wwns.get(wwn));
+                    String rpClusterName = rpSiteName.replaceAll(ALPHA_NUMERICS, "");
+                    _log.info(String.format("Setting RP initiator cluster name : %s", rpClusterName));
+                    initiator.setClusterName(rpClusterName);
                     initiator.setProtocol("FC");
                     initiator.setIsManualCreation(false);
-
+                    
+                    //Group RP initiators by their RPA. This will ensure that separate IGs are created for each RPA
+                    //A child RP IG will be created containing all the RPA IGs
+                    String hostName = rpClusterName + RPA + rpaId; 
+                    hostName = hostName.replaceAll(ALPHA_NUMERICS, "");
+                    _log.info(String.format("Setting RP initiator host name : %s", hostName));
+                    initiator.setHostName(hostName);
+                    
+                    _log.info(String.format("Setting Initiator port WWN : %s, nodeWWN : %s", rpaWWN.getKey(), rpaWWN.getValue()));
+                    initiator.setInitiatorPort(rpaWWN.getKey());
+                    initiator.setInitiatorNode(rpaWWN.getValue());
+                   
                     // Either get the existing initiator or create a new if needed
                     initiator = getOrCreateNewInitiator(initiator);
                     initiators.add(initiator);
+            	   }
                 }
 
                 // We need to find and distill only those RP initiators that correspond to the network of the storage system and
@@ -1053,11 +1064,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                 rpNetworkToInitiatorsMap.put(rpInitiatorNetworkURI, new HashSet<Initiator>());
                             }
                             rpNetworkToInitiatorsMap.get(rpInitiatorNetworkURI).add(initiator);
-                            _log.info("RP Initiator [" + initiator.getInitiatorPort() + "] found on network: ["
-                                    + rpInitiatorNetworkURI.toASCIIString() + "]");
+                            _log.info(String.format("RP Initiator [%s] found on network: [%s]", 
+                            		initiator.getInitiatorPort(), rpInitiatorNetworkURI.toASCIIString()));
                         } else {
-                            _log.warn("RP Initiator [" + initiator.getInitiatorPort()
-                                    + "] was not found in any network. Excluding from automated exports");
+                    	  _log.info(String.format("RP Initiator [%s] was not found on any network. Excluding from automated exports", 
+                              		initiator.getInitiatorPort()));                         
                         }
                     }
                 }
@@ -1071,8 +1082,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         rpNetworkToInitiatorsMap, storageSystemURI, varrayURI);
 
                 for (URI networkURI : initiatorPortMap.keySet()) {
-                    for (StoragePort storagePort : initiatorPortMap.get(networkURI)) {
-                        _log.info("Network = [" + networkURI.toString() + "] PORT : [" + storagePort.getLabel() + "]");
+                    for (StoragePort storagePort : initiatorPortMap.get(networkURI)) {                  
+                        _log.info(String.format("Network : [%s] - Port : [%s]", networkURI.toString(), storagePort.getLabel()));
                     }
                 }
 
@@ -1093,7 +1104,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 List<String> lockKeys = ControllerLockingUtil
                         .getHostStorageLockKeys(_dbClient,
-                                ExportGroupType.Host,
+                                ExportGroupType.Cluster,
                                 initiatorSet, storageSystemURI);
                 boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
                         taskId, lockKeys, LockTimeoutValue.get(LockType.RP_EXPORT));
@@ -3393,7 +3404,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // We're looking for a format of:
                 // rpSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + rpSiteName + "_" + varray.getLabel()
                 // and replacing all non alpha-numerics with "" (except "_").
-                String generatedName = exportGroup.getGeneratedName().trim().replaceAll("[^A-Za-z0-9_]", "");
+                String generatedName = exportGroup.getGeneratedName().trim().replaceAll(ALPHA_NUMERICS, "");
                 if (generatedName.equals(exportGroupToFind.getGeneratedName())) {
                     _log.info("Export Group already exists in database.");
                     return exportGroup;

@@ -49,7 +49,7 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
         VNXeNfsShare result = null;
         StringBuilder queryFilter = new StringBuilder(VNXeConstants.NAME_FILTER);
 
-        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
             queryFilter.append(shareName);
             queryFilter.append(VNXeConstants.AND);
             queryFilter.append(VNXeConstants.FILE_SYSTEM_FILTER);
@@ -57,15 +57,16 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
         } else {
             queryFilter.append("\"" + shareName + "\"");
             queryFilter.append(VNXeConstants.AND);
-            queryFilter.append(VNXeConstants.FILE_SYSTEM_FILTER_2);
+            queryFilter.append(VNXeConstants.FILE_SYSTEM_FILTER_V31);
             queryFilter.append("\"" + fsId + "\"");
         }
         setFilter(queryFilter.toString());
         List<VNXeNfsShare> shareList = getDataForObjects(VNXeNfsShare.class);
         if (shareList != null && !shareList.isEmpty()) {
             result = shareList.get(0);
+            _logger.info("File system : {} NFS share named : {} found", fsId, shareName);
         } else {
-            _logger.info("No file system found using the fs id: {}, nfsShare name: {} ", fsId, shareName);
+            _logger.info("No file system share found using the fs id: {}, nfsShare name: {} ", fsId, shareName);
         }
         return result;
     }
@@ -81,7 +82,7 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
 
         StringBuilder queryFilter = new StringBuilder(VNXeConstants.NAME_FILTER);
 
-        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
             queryFilter.append(shareName);
             queryFilter.append(VNXeConstants.AND);
             queryFilter.append(VNXeConstants.SNAP_FILTER);
@@ -89,7 +90,7 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
         } else {
             queryFilter.append("\"" + shareName + "\"");
             queryFilter.append(VNXeConstants.AND);
-            queryFilter.append(VNXeConstants.SNAP_FILTER_2);
+            queryFilter.append(VNXeConstants.SNAP_FILTER_V31);
             queryFilter.append("\"" + snapId + "\"");
         }
         setFilter(queryFilter.toString());
@@ -97,8 +98,9 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
         List<VNXeNfsShare> shareList = getDataForObjects(VNXeNfsShare.class);// it should just return 1
         if (shareList != null && !shareList.isEmpty()) {
             result = shareList.get(0);
+            _logger.info("Snapshot : {} NFS share named : {} found", snapId, shareName);
         } else {
-            _logger.info("No file system found using the fs id: {}, nfsShare name: {} ", snapId, shareName);
+            _logger.info("No snapshot share found using the snapId : {}, nfsShare name: {} ", snapId, shareName);
         }
         return result;
     }

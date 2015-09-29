@@ -25,15 +25,15 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
     private static final String URL = "/api/types/filesystemSnap/instances";
     private static final String URL_INSTANCE = "/api/instances/filesystemSnap/";
     private static final String URL_RESTORE = "/action/restore";
-    private static final String URL_2 = "/api/types/snap/instances";
-    private static final String URL_INSTANCE_2 = "/api/instances/snap/";
+    private static final String URL_V31 = "/api/types/snap/instances";
+    private static final String URL_INSTANCE_V31 = "/api/instances/snap/";
 
     public FileSystemSnapRequests(KHClient client, float softwareVersion) {
         super(client);
-        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
             _url = URL;
         } else {
-            _url = URL_2;
+            _url = URL_V31;
         }
     }
 
@@ -72,6 +72,7 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
         // it should just return 1
         if (snapList != null && !snapList.isEmpty()) {
             result = snapList.get(0);
+            _logger.info("file system snapshot found using the name: " + name);
         } else {
             _logger.info("No file system snapshot found using the name: " + name);
         }
@@ -86,10 +87,10 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      * @throws VNXeException
      */
     public VNXeCommandJob deleteFileSystemSnap(String snapId, float softwareVersion) throws VNXeException {
-        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
             _url = URL_INSTANCE + snapId;
         } else {
-            _url = URL_INSTANCE_2 + snapId;
+            _url = URL_INSTANCE_V31 + snapId;
         }
         setQueryParameters(null);
         if (getDataForOneObject(VNXeFileSystemSnap.class) != null) {
@@ -107,10 +108,10 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      * @return
      */
     public VNXeFileSystemSnap getFileSystemSnap(String snapId, float softwareVersion) throws VNXeException {
-        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
             _url = URL_INSTANCE + snapId;
         } else {
-            _url = URL_INSTANCE_2 + snapId;
+            _url = URL_INSTANCE_V31 + snapId;
         }
         setQueryParameters(null);
         return getDataForOneObject(VNXeFileSystemSnap.class);
@@ -128,10 +129,10 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
     public VNXeCommandJob restoreFileSystemSnap(String snapId, VNXeSnapRestoreParam restoreParam, float softwareVersion)
             throws VNXeException {
         StringBuilder urlBuilder;
-        if (softwareVersion <= VNXeConstants.VNXE_OLD_FIRMWARE) {
+        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
             urlBuilder = new StringBuilder(URL_INSTANCE);
         } else {
-            urlBuilder = new StringBuilder(URL_INSTANCE_2);
+            urlBuilder = new StringBuilder(URL_INSTANCE_V31);
         }
         urlBuilder.append(snapId);
         urlBuilder.append(URL_RESTORE);

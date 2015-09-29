@@ -13,9 +13,9 @@ public class VNXeConstants {
     public static final String STORAGE_RESOURCE_FILTER = "storageResource.id eq ";
     public static final String NASSERVER_FILTER = "nasServer.id eq ";
     public static final String FILE_SYSTEM_FILTER = "parentFilesystem.id eq ";
-    public static final String FILE_SYSTEM_FILTER_2 = "filesystem.id eq ";
+    public static final String FILE_SYSTEM_FILTER_V31 = "filesystem.id eq ";
     public static final String SNAP_FILTER = "parentFilesystemSnap.id eq ";
-    public static final String SNAP_FILTER_2 = "snap.id eq ";
+    public static final String SNAP_FILTER_V31 = "snap.id eq ";
     public static final String ISCSINODE_FILTER = "iscsiNode.id eq ";
     public static final String IPADDRESS_FILTER = "address eq ";
     public static final String AND = " and ";
@@ -25,6 +25,6 @@ public class VNXeConstants {
     public static final String PORTWWN_FILTER = "portWWN eq ";
     public static final int REDIRECT_MAX = 100;
     public static final int MAX_NAME_LENGTH = 63;
-    public static final float VNXE_OLD_FIRMWARE = 3.0F;
+    public static final float VNXE_SOFTWARE_VERSION_OLD = 3.0F;
 
 }

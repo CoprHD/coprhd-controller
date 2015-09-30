@@ -66,7 +66,7 @@ import com.emc.storageos.model.block.VolumeExportIngestParam;
  * during this intermediate phase.  (NO_PUBLIC_ACCESS or similar)
  * 
  * Commmon RP Volume Ingestion Steps:
- * - A Volume objecty is created with respective personality field (SOURCE/JOURNAL/METADATA) filled-in
+ * - A Volume object is created with respective personality field (SOURCE/JOURNAL/METADATA) filled-in
  * - The UnManagedVolume reference is removed from the UnManagedProtectionSet
  * - A ManagedVolume reference is added to the UnManagedProtectionSet
  * - The export mask that is attached to the ProtectionSystem in the UnManagedProtectionSet that contains this volume is ingested

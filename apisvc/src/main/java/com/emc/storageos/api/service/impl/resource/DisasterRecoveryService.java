@@ -110,8 +110,7 @@ public class DisasterRecoveryService {
 
             // parameter validation and precheck
             validateAddParam(param, existingSites);
-            ViPRCoreClient viprClient = new ViPRCoreClient(param.getVip(), true).withLogin(param.getUsername(),
-                    param.getPassword());
+            ViPRCoreClient viprClient = createViPRCoreClient(param.getVip(), param.getUsername(), param.getPassword());
 
             SiteConfigRestRep standbyConfig = viprClient.site().getStandbyConfig();
             precheckForStandbyAttach(standbyConfig);
@@ -459,7 +458,7 @@ public class DisasterRecoveryService {
         }
     }
     
-    private void validateAddParam(SiteAddParam param, List<Site> existingSites) {
+    protected void validateAddParam(SiteAddParam param, List<Site> existingSites) {
         for (Site site : existingSites) {
             if (site.getName().equals(param.getName())) {
                 throw APIException.internalServerErrors.addStandbyPrecheckFailed("Duplicate site name");
@@ -516,7 +515,12 @@ public class DisasterRecoveryService {
         SoftwareVersion standbyVersionWildcard = new SoftwareVersion(versionString.substring(0, versionString.lastIndexOf("."))+".*");
         return currentSoftwareVersion.weakEquals(standbyVersionWildcard);
     }
-    
+
+    // encapsulate the create ViPRCoreClient operation for easy UT writing because need to mock ViPRCoreClient
+    protected ViPRCoreClient createViPRCoreClient(String vip, String username, String password) {
+        return new ViPRCoreClient(vip, true).withLogin(username, password);
+    }
+
     // encapsulate the get local VDC operation for easy UT writing because VDCUtil.getLocalVdc is static method
     protected VirtualDataCenter queryLocalVDC() {
         return VdcUtil.getLocalVdc();

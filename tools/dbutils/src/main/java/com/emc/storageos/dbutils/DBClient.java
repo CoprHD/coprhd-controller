@@ -630,7 +630,7 @@ public class DBClient {
     private <T extends DataObject> void printReferenceWhenDeletingFailed(URI id, Class<T> clazz,
             DependencyTracker tracker) {
         System.err.println(String.format(
-                "\nThe dependencies and references of %s(id: %s) are as following:",
+                "\nThe references of %s(id: %s) are as following:",
                 clazz.getSimpleName(), id));
         if (tracker == null) {
             DataObjectScanner dataObjectscanner = (DataObjectScanner) ctx
@@ -1151,7 +1151,8 @@ public class DBClient {
                 .getBean("dataObjectScanner");
         DependencyTracker dependencyTracker = dataObjectscanner.getDependencyTracker();
 
-        printDependencies(type, uri, true, "", type.getSimpleName(), dependencyTracker);
+        String output = uri == null ? type.getSimpleName() : uri.toString();
+        printDependencies(type, uri, true, "", output, dependencyTracker);
         if (uri != null) {
             if (foundReference) {
                 System.out.println("\nFound references of this id: " + uri);
@@ -1189,13 +1190,15 @@ public class DBClient {
                             .getClass().getSimpleName(), dependency.getColumnField()
                             .getIndexCF().getName());
 
-            List<URI> references = _dbClient.getReferUris(uri, type, dependency);
-            if (!references.isEmpty()) {
-                foundReference = true;
-                for (URI childUri : references) {
-                    childOutput += String.format("\n%s  *-%s", childPrefix, childUri);
-                    printDependencies(childType, childUri, lastChild, childPrefix,
-                            childOutput, tracker);
+            if (uri != null) {
+                List<URI> references = _dbClient.getReferUris(uri, type, dependency);
+                if (!references.isEmpty()) {
+                    foundReference = true;
+                    for (URI childUri : references) {
+                        childOutput = childUri.toString();
+                        printDependencies(childType, childUri, lastChild, childPrefix,
+                                childOutput, tracker);
+                    }
                 }
             } else {
                 printDependencies(childType, null, lastChild, childPrefix, childOutput,

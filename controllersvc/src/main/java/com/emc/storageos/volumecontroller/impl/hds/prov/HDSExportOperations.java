@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -62,7 +63,8 @@ import com.emc.storageos.hds.model.WorldWideName;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.NetworkLite;
+import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -375,20 +377,29 @@ public class HDSExportOperations implements ExportMaskOperations {
         List<HostStorageDomain> fcHsdsToAddInitiators = new ArrayList<HostStorageDomain>();
         List<HostStorageDomain> iSCSIHsdsToAddInitiators = new ArrayList<HostStorageDomain>();
         List<HostStorageDomain> hsdsWithAddIniResponseList = new ArrayList<HostStorageDomain>();
+        Map<URI, Set<String>> networkInitiatorsMap = NetworkUtil.getNetworkToInitiators(dbClient, initiators);
+        Map<HostStorageDomain, URI> networkToHsdObjectIdMap = getNetworkHostGroupObjectIdMap(storagePorts, createHsdsResponseList, dbClient);
+        log.info("networkInitiatorsMap: {}", networkInitiatorsMap);
+        log.info("networkToHsdObjectIdMap :{}", networkToHsdObjectIdMap);
+
         // Step 2: Add initiators to all HSD's using batch operation
-        for (HostStorageDomain hsd : createHsdsResponseList) {
-            HostStorageDomain hsdToAddInitiators = new HostStorageDomain(hsd);
-            List<String> initiatorsInSameNetwork = findInitiatorsPartOfSameNetwork(hsd, storagePorts, initiators);
+        for (Entry<HostStorageDomain, URI> hsdNetworkEntry : networkToHsdObjectIdMap.entrySet()) {
+            HostStorageDomain hsd = hsdNetworkEntry.getKey();
+            log.info("Processing hsd: {}", hsd.getObjectID());
+            HostStorageDomain hsdToAddInitiators = new HostStorageDomain(hsdNetworkEntry.getKey());
+            Set<String> initiatorsOnSameNetwork = networkInitiatorsMap.get(hsdNetworkEntry.getValue());
+            // Get the initiators part of the storagePort's Network
+            List<String> formattedInitiators = getFormattedInitiators(initiatorsOnSameNetwork);
             if (hsd.getDomainType().equalsIgnoreCase(HDSConstants.HOST_GROUP_DOMAIN_TYPE)) {
                 List<WorldWideName> wwnList = new ArrayList(Collections2.transform(
-                        initiatorsInSameNetwork, HDSUtils.fctnPortWWNToWorldWideName()));
+                        formattedInitiators, HDSUtils.fctnPortWWNToWorldWideName()));
                 hsdToAddInitiators.setWwnList(wwnList);
                 fcHsdsToAddInitiators.add(hsdToAddInitiators);
             }
             if (hsd.getDomainType().equalsIgnoreCase(
                     HDSConstants.ISCSI_TARGET_DOMAIN_TYPE)) {
                 List<ISCSIName> iscsiNameList = new ArrayList(Collections2.transform(
-                        initiatorsInSameNetwork, HDSUtils.fctnPortNameToISCSIName()));
+                        formattedInitiators, HDSUtils.fctnPortNameToISCSIName()));
                 hsdToAddInitiators.setIscsiList(iscsiNameList);
                 iSCSIHsdsToAddInitiators.add(hsdToAddInitiators);
             }
@@ -413,34 +424,41 @@ public class HDSExportOperations implements ExportMaskOperations {
         return hsdsWithAddIniResponseList;
     }
 
-    /**
-     * Finds the list of Initiators connected to the same network of the storageport.
-     * 
-     * @param hsd
-     * @param storagePorts
-     * @param initiators
-     * @return
-     */
-    private List<String> findInitiatorsPartOfSameNetwork(HostStorageDomain hsd, List<StoragePort> storagePorts,
-            List<Initiator> initiators) {
-        StoragePort portToVerify = findStoragePortOfHSD(hsd, storagePorts);
-        List<String> initiatorsInSameNetwork = new ArrayList<String>();
-        for (Initiator initiator : initiators) {
-            log.debug("Verifying initiator {} part of same network", initiator.getInitiatorPort());
-            if (ConnectivityUtil.isInitiatorAndTargetPortInSameNetwork(initiator, portToVerify, dbClient)) {
-                String formattedInitiatorName = initiator.getInitiatorPort();
-                if (HostInterface.Protocol.FC.name().equals(initiator.getProtocol())) {
-                    formattedInitiatorName = formattedInitiatorName.replace(
-                            HDSConstants.COLON, HDSConstants.DOT_OPERATOR);
+    private static Map<HostStorageDomain, URI> getNetworkHostGroupObjectIdMap(
+            List<StoragePort> sports, List<HostStorageDomain> hsds, DbClient dbClient) {
+        Map<HostStorageDomain, URI> networkToHSDMap = new HashMap<HostStorageDomain, URI>();
+        for (StoragePort sport : sports) {
+            Set<NetworkLite> networks = NetworkUtil.getEndpointAllNetworksLite(sport.getPortNetworkId(), dbClient);
+            if (null != networks && !networks.isEmpty()) {
+                for (NetworkLite network : networks) {
+                    if (network != null && network.getInactive() == false
+                            && network.getTransportType().equals(sport.getTransportType())) {
+                        HostStorageDomain hsd = findStoragePortOfHSD(hsds, sport);
+                        if (null != hsd) {
+                            log.info("Found a matching network {} for HSD {}", network.getLabel(), sport.getNativeGuid());
+                            networkToHSDMap.put(hsd, network.getId());
+                        } else {
+                            log.error("Couldn't find the HSD configured for port: {}", sport.getNativeGuid());
+                        }
+                    }
                 }
-                initiatorsInSameNetwork.add(formattedInitiatorName);
-            } else {
-                log.debug("Initiator & storage port not in same network: ({}, {})", initiator.getInitiatorPort(),
-                        portToVerify.getNativeGuid());
             }
         }
-        log.info("Found initiators & storagePort in same network ({}, {})", initiatorsInSameNetwork, portToVerify.getNativeGuid());
-        return initiatorsInSameNetwork;
+        return networkToHSDMap;
+    }
+
+    private List<String> getFormattedInitiators(Set<String> initiators) {
+        List<String> formattedInitiators = new ArrayList<String>();
+        if (null != initiators && !initiators.isEmpty()) {
+            for (String initiator : initiators) {
+                if (WWNUtility.isValidWWN(initiator)) {
+                    formattedInitiators.add(initiator.replace(HDSConstants.COLON, HDSConstants.DOT_OPERATOR));
+                } else {
+                    formattedInitiators.add(initiator);
+                }
+            }
+        }
+        return formattedInitiators;
     }
 
     /**
@@ -450,16 +468,14 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @param storagePorts
      * @return
      */
-    private StoragePort findStoragePortOfHSD(HostStorageDomain hsd, List<StoragePort> storagePorts) {
-        for (StoragePort port : storagePorts) {
-            if (HDSUtils.getPortID(port).equalsIgnoreCase(hsd.getPortID())) {
-                log.info("Found matching port for the HSD: {} {}", port.getNativeGuid(), hsd.getObjectID());
-                return port;
+    private static HostStorageDomain findStoragePortOfHSD(List<HostStorageDomain> hsds, StoragePort storagePort) {
+        for (HostStorageDomain hsd : hsds) {
+            if (HDSUtils.getPortID(storagePort).equalsIgnoreCase(hsd.getPortID())) {
+                log.info("Found matching port for the HSD: {} {}", storagePort.getNativeGuid(), hsd.getObjectID());
+                return hsd;
             }
         }
-        // This shouldn't be the case. otherwise throw exception
-        log.error("No storagePort found with matching hsd: {}", hsd.getObjectID());
-        throw HDSException.exceptions.noMatchingStoragePortForHostGroup(hsd.getObjectID());
+        return null;
     }
 
     /**
@@ -944,11 +960,9 @@ public class HDSExportOperations implements ExportMaskOperations {
                         log.warn("Couldn't find the HSD {} to remove volume from ExportMask", hsdObjectId);
                         continue;
                     }
-                    for (URI volumeURI : volumes) {
-                        if (null != hsd.getPathList() && !hsd.getPathList().isEmpty()) {
-                            pathObjectIdList.addAll(getPathObjectIdsFromHsd(hsd,
-                                    volumes));
-                        }
+                    if (null != hsd.getPathList() && !hsd.getPathList().isEmpty()) {
+                        pathObjectIdList.addAll(getPathObjectIdsFromHsd(hsd,
+                                volumes));
                     }
                 }
                 if (!pathObjectIdList.isEmpty()) {

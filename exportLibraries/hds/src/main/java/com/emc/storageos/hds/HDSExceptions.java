@@ -151,5 +151,5 @@ public interface HDSExceptions {
     public HDSException notAbleToFindHostStorageDomain(final String hsdId);
 
     @DeclareServiceCode(ServiceCode.HDS_COMMAND_ERROR)
-    public HDSException noMatchingStoragePortForHostGroup(final String hsdId);
+    public HDSException missingStoragePortConnectivity(final String portId, String storage);
 }

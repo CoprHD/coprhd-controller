@@ -423,6 +423,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
     }
     
+    /**
+     * discover the access zone and add to  vipr db
+     * @param storageSystem
+     */
     private void discoverAccessZones(StorageSystem storageSystem) {
         URI storageSystemId = storageSystem.getId();
         //HashMap<String, List<IsilonAccessZone>> accessZoneListHashMap = new HashMap<String, List<IsilonAccessZone>>();
@@ -439,6 +443,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
 
             List<IsilonAccessZone> accessZoneList = new ArrayList<IsilonAccessZone>();
+            //make restapi call to get access zones
             accessZoneListTemp = isilonApi.getAccessZones();
             if( accessZoneListTemp == null || accessZoneListTemp.isEmpty()) {
                 //No ports defined throw an exception and fail the discovery
@@ -450,10 +455,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             VirtualNAS virtualNAS = null;
             PhysicalNAS physicalNAS = null;
             CifsServerMap cifsServersMap = null;
+            //process the access zones list
             for (IsilonAccessZone isilonAccessZone : accessZoneList) {
-                   if( isilonAccessZone.isSystem() == false) {
-                       virtualNAS = findvNasByNativeId(storageSystem, 
-                               isilonAccessZone.getZone_id().toString());
+                    //is System access zone ?
+                   if (isilonAccessZone.isSystem() == false) {
+                       virtualNAS = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                        if(virtualNAS == null) {
                            virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
                            newvNasList.add(virtualNAS);
@@ -467,8 +473,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                        }
                    } else {
                        
-                       physicalNAS = findPhysicalNasByNativeId(storageSystem, 
-                                                   isilonAccessZone.getZone_id().toString());
+                       physicalNAS = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                        if(physicalNAS == null) {
                            physicalNAS = createPhysicalNas(storageSystem, isilonAccessZone);
                            newPhyList.add(physicalNAS);
@@ -486,6 +491,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             
          // Persist the vNAS servers!!!
             if (newvNasList != null && !newvNasList.isEmpty()) {
+                //add the parent system access zone to user defined access zones
                 if(physicalNAS != null) {
                      for(VirtualNAS virNas: newvNasList) {
                         virNas.setParentNasUri(physicalNAS.getId());
@@ -2141,7 +2147,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         Long MaxObjects = 2048L;
         Long MaxCapacity = 200L * TBsINKB;
         String modelStr = system.getModel();
-        if (modelStr.startsWith("VNX")) {
+        if (modelStr.startsWith("Isi")) {
             if (Long.parseLong(modelStr.substring(3)) > 5300) {
                 MaxCapacity = 256L * TBsINKB;
             }

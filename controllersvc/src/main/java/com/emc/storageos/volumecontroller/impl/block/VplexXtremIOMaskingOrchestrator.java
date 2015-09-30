@@ -48,6 +48,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     private static final Logger _log = LoggerFactory.getLogger(VplexXtremIOMaskingOrchestrator.class);
     private boolean simulation = false;
     private static final int XTREMIO_NUM_PORT_GROUP = 1;
+    private int vplexDirectorCount;
+    private int xtremIOXbricksCount;
     BlockDeviceController _blockController = null;
     WorkflowService _workflowService = null;
 
@@ -61,6 +63,10 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     public VplexXtremIOMaskingOrchestrator(DbClient dbClient, BlockDeviceController controller) {
         this._dbClient = dbClient;
         this._blockController = controller;
+    }
+
+    public void setVplexDirectorCount(int vplexDirectorCount) {
+        this.vplexDirectorCount = vplexDirectorCount;
     }
 
     @Override
@@ -102,7 +108,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         for (URI networkURI : orderedNetworks) {
             netNames.add(networkMap.get(networkURI).getLabel());
         }
-        _log.info("Calculating PortGroups for Networks: " + netNames.toString());
+        _log.info("Calculating PortGroups for Networks: {}", netNames.toString());
 
         Map<URI, List<List<StoragePort>>> useablePorts = new HashMap<URI, List<List<StoragePort>>>();
         // Map<URI, List<List<StoragePort>>> allocatablePortsNew = new HashMap<URI, List<List<StoragePort>>>();
@@ -146,6 +152,9 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         _log.info(String.format("Number of Port Groups: %d", numPG));
         portGroups.add(useablePorts);
         _log.info("Selected network to ports set: {}", useablePorts.entrySet());
+
+        // get number of X-bricks from selected ports
+        xtremIOXbricksCount = getXbricksCount(useablePorts);
 
         // Don't allow this network to have more than twice the number of
         // ports from the network with the fewest ports, i.e. do not exceed 2x portsPerPG.
@@ -368,6 +377,24 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         return orderedNetworks;
     }
 
+    /**
+     * Gets the number of X-bricks from the selected ports.
+     *
+     * @param useablePorts the port groups
+     * @return the xbricks count
+     */
+    private int getXbricksCount(Map<URI, List<List<StoragePort>>> useablePorts) {
+        Set<String> xBricks = new HashSet<String>();
+        for (List<List<StoragePort>> portSet : useablePorts.values()) {
+            for (List<StoragePort> ports : portSet) {
+                for (StoragePort port : ports) {
+                    xBricks.add(port.getPortGroup().split(Constants.HYPEN)[0]);
+                }
+            }
+        }
+        return xBricks.size();
+    }
+
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
             List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI) {
         return VPlexBackEndOrchestratorUtil.allocatePorts(allocator, candidatePorts, portsRequested, net, varrayURI,
@@ -383,8 +410,21 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         Map<StoragePort, Integer> portUsage = new HashMap<StoragePort, Integer>();
         // Iterate through each of the directors, matching each of its initiators
         // with one port. This will ensure not to violate four paths per director.
+
+        // select number of paths per VPLEX director
+        // if director count is less than X-bricks counts, choose only 2 initiators from each director
+        // leaving other initiators for future scale of X-bricks
+        int pathsPerDirector = 4;
+        // TODO determine which of the Director-Xbrick combinations require lesser paths per director
+        if (vplexDirectorCount < xtremIOXbricksCount) {
+            pathsPerDirector = 2;
+        }
+        _log.info(String.format("VPLEX Directors: %s, X-bricks: %s, Number of paths per VPLEX Director: %s", vplexDirectorCount,
+                xtremIOXbricksCount, pathsPerDirector));
+
         int directorNumber = 1;
         for (String director : initiatorGroup.keySet()) {
+            int numberOfPaths = 0;
             for (URI networkURI : initiatorGroup.get(director).keySet()) {
                 NetworkLite net = networkMap.get(networkURI);
                 for (Initiator initiator : initiatorGroup.get(director).get(networkURI)) {
@@ -406,10 +446,19 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                         StringSet ports = new StringSet();
                         ports.add(storagePort.getId().toString());
                         zoningMap.put(initiator.getId().toString(), ports);
+                        numberOfPaths++;
                     } else {
                         _log.info(String.format("A port could not be assigned for %s %s   %s", director, net.getLabel(),
                                 initiator.getInitiatorPort()));
                     }
+                    if (numberOfPaths >= pathsPerDirector) {
+                        // TODO split initiators paths across networks depending on number of paths
+                        break;
+                    }
+                }
+                if (numberOfPaths >= pathsPerDirector) {
+                    _log.info("Maximum paths per director ({}) reached for Director {}", numberOfPaths, director);
+                    break;
                 }
             }
             directorNumber++;

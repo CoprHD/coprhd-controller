@@ -928,6 +928,13 @@ public class VPlexBackendManager {
         // First we must determine the Initiator Groups and PortGroups to be used.
         VplexBackEndMaskingOrchestrator orca = getOrch(array);
 
+        // set VPLEX director count to set number of paths per director
+        if (orca instanceof VplexXtremIOMaskingOrchestrator) {
+            // get VPLEX director count
+            int directorCount = getVplexDirectorCount(initiatorGroups);
+            ((VplexXtremIOMaskingOrchestrator) orca).setVplexDirectorCount(directorCount);
+        }
+
         // get the allocatable ports - if the custom config requests pre-zoned ports to be used
         // get the existing zones in zonesByNetwork
         Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
@@ -979,6 +986,22 @@ public class VPlexBackendManager {
             exportMasksMap.put(exportMask, exportGroup);
         }
         return exportMasksMap;
+    }
+
+    /**
+     * Gets the number of VPLEX directors.
+     *
+     * @param initiatorGroups the initiator groups
+     * @return the vplex director count
+     */
+    public int getVplexDirectorCount(Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups) {
+        Set<String> directors = new HashSet<String>();
+        for (Map<String, Map<URI, Set<Initiator>>> initiatorGroup : initiatorGroups) {
+            for (String director : initiatorGroup.keySet()) {
+                directors.add(director);
+            }
+        }
+        return directors.size();
     }
 
     /**

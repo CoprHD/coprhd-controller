@@ -64,7 +64,9 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         Map<URI, List<StoragePort>> allocatablePorts = new HashMap<URI, List<StoragePort>>();
         URI varray1 = URI.create("varray1");
 
+        // single VPLEX Engine
         /**
+         * Single VPLEX Engine (2 Directors)
          * Single X-brick (2 SCs, 4 storage ports), 2 networks
          * SC ports spread across networks
          */
@@ -76,26 +78,14 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
         // orca.getInitiatorGroups(directorToInitiators, initiatorIdToNetwork, initiatorMap);
+        int directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+        orca.setVplexDirectorCount(directorCount);
         Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(
                 allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
-        /*
-         * context.reinitialize();
-         * networkMap.clear();
-         * allocatablePorts.clear();
-         * context = getNet1Ports(networkMap, allocatablePorts);
-         * context = getNet0Ports(networkMap, allocatablePorts);
-         * logNetworks(allocatablePorts);
-         * getInitiatorsVplex154Clus1(directorToInitiators, initiatorIdToNetwork, initiatorMap,
-         * "net1", "net0", null);
-         * initiatorGroups =
-         * bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
-         * portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
-         * makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
-         */
-
         /**
+         * Single VPLEX Engine (2 Directors)
          * Dual X-bricks (4 SCs, 8 storage ports), 2 networks
          * ports spread across networks
          */
@@ -109,6 +99,8 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
                 "net3", "net4", null);
         initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
+        directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+        orca.setVplexDirectorCount(directorCount);
         portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
@@ -124,11 +116,14 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
          * "net3", "net4", "net4X");
          * initiatorGroups =
          * bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
+         * directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+         * orca.setVplexDirectorCount(directorCount);
          * portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
          * makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
          */
 
         /**
+         * Single VPLEX Engine (2 Directors)
          * Dual X-bricks (4 SCs, 8 storage ports), 2 networks
          * network-1 has X-brick 1's ports; network-2 has X-brick 2's ports;
          */
@@ -142,10 +137,13 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
                 "net5", "net6", null);
         initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
+        directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+        orca.setVplexDirectorCount(directorCount);
         portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
         /**
+         * Single VPLEX Engine (2 Directors)
          * Quad X-bricks (8 SCs, 16 storage ports), 2 networks
          * ports spread across networks
          */
@@ -159,23 +157,152 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
                 "net7", "net8", null);
         initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
+        directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+        orca.setVplexDirectorCount(directorCount);
         portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
-        Thread.sleep(10000);
+
         /**
+         * Single VPLEX Engine (2 Directors)
          * Dual X-bricks (4 SCs, 3 ports from X-brick 1, 3 ports from X-brick 2), 2 networks
          * ports spread across networks with second network having only 2 ports
          */
         context.reinitialize();
         networkMap.clear();
         allocatablePorts.clear();
-        context = getNet573APorts(networkMap, allocatablePorts);
-        context = getNet573BPorts(networkMap, allocatablePorts);
+        context = getNetAPorts(networkMap, allocatablePorts);
+        context = getNetBPorts(networkMap, allocatablePorts);
         logNetworks(allocatablePorts);
         getInitiatorsVplex154Clus1(directorToInitiators, initiatorIdToNetwork, initiatorMap,
-                "net573A", "net573B", null);
+                "netA", "netB", null);
         initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
+        directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+        orca.setVplexDirectorCount(directorCount);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
+        makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
+
+
+        // Dual VPLEX Engine
+        /**
+         * Dual VPLEX Engine (4 Directors)
+         * Single X-brick (2 SCs, 4 storage ports), 2 networks
+         * SC ports spread across networks
+         */
+        context.reinitialize();
+        networkMap.clear();
+        allocatablePorts.clear();
+        context = getNet1Ports(networkMap, allocatablePorts);
+        context = getNet2Ports(networkMap, allocatablePorts);
+        logNetworks(allocatablePorts);
+        getInitiatorsVplex154Clus1DualEngines(directorToInitiators, initiatorIdToNetwork, initiatorMap,
+                "net1", "net2", null);
+        initiatorGroups =
+                bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
+        directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+        orca.setVplexDirectorCount(directorCount);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
+        makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
+
+        /**
+         * Dual VPLEX Engine (4 Directors)
+         * Dual X-bricks (4 SCs, 8 storage ports), 2 networks
+         * ports spread across networks
+         */
+        context.reinitialize();
+        networkMap.clear();
+        allocatablePorts.clear();
+        context = getNet3Ports(networkMap, allocatablePorts);
+        context = getNet4Ports(networkMap, allocatablePorts);
+        logNetworks(allocatablePorts);
+        getInitiatorsVplex154Clus1DualEngines(directorToInitiators, initiatorIdToNetwork, initiatorMap,
+                "net3", "net4", null);
+        initiatorGroups =
+                bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
+        directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+        orca.setVplexDirectorCount(directorCount);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
+        makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
+
+        /**
+         * Dual VPLEX Engine (4 Directors)
+         * Quad X-bricks (8 SCs, 16 storage ports), 2 networks
+         * ports spread across networks
+         */
+        context.reinitialize();
+        networkMap.clear();
+        allocatablePorts.clear();
+        context = getNet7Ports(networkMap, allocatablePorts);
+        context = getNet8Ports(networkMap, allocatablePorts);
+        logNetworks(allocatablePorts);
+        getInitiatorsVplex154Clus1DualEngines(directorToInitiators, initiatorIdToNetwork, initiatorMap,
+                "net7", "net8", null);
+        initiatorGroups =
+                bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
+        directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+        orca.setVplexDirectorCount(directorCount);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
+        makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
+
+
+        // Quad VPLEX Engine
+        /**
+         * Quad VPLEX Engine (8 Directors)
+         * Single X-brick (2 SCs, 4 storage ports), 2 networks
+         * SC ports spread across networks
+         */
+        context.reinitialize();
+        networkMap.clear();
+        allocatablePorts.clear();
+        context = getNet1Ports(networkMap, allocatablePorts);
+        context = getNet2Ports(networkMap, allocatablePorts);
+        logNetworks(allocatablePorts);
+        getInitiatorsVplex154Clus1QuadEngines(directorToInitiators, initiatorIdToNetwork, initiatorMap,
+                "net1", "net2", null);
+        initiatorGroups =
+                bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
+        directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+        orca.setVplexDirectorCount(directorCount);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
+        makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
+
+        /**
+         * Quad VPLEX Engine (8 Directors)
+         * Dual X-bricks (4 SCs, 8 storage ports), 2 networks
+         * ports spread across networks
+         */
+        context.reinitialize();
+        networkMap.clear();
+        allocatablePorts.clear();
+        context = getNet3Ports(networkMap, allocatablePorts);
+        context = getNet4Ports(networkMap, allocatablePorts);
+        logNetworks(allocatablePorts);
+        getInitiatorsVplex154Clus1QuadEngines(directorToInitiators, initiatorIdToNetwork, initiatorMap,
+                "net3", "net4", null);
+        initiatorGroups =
+                bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
+        directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+        orca.setVplexDirectorCount(directorCount);
+        portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
+        makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
+
+        /**
+         * Quad VPLEX Engine (8 Directors)
+         * Quad X-bricks (8 SCs, 16 storage ports), 2 networks
+         * ports spread across networks
+         */
+        context.reinitialize();
+        networkMap.clear();
+        allocatablePorts.clear();
+        context = getNet7Ports(networkMap, allocatablePorts);
+        context = getNet8Ports(networkMap, allocatablePorts);
+        logNetworks(allocatablePorts);
+        getInitiatorsVplex154Clus1QuadEngines(directorToInitiators, initiatorIdToNetwork, initiatorMap,
+                "net7", "net8", null);
+        initiatorGroups =
+                bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
+        directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
+        orca.setVplexDirectorCount(directorCount);
         portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
     }
@@ -202,25 +329,7 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
                     null);
             ExportMask exportMask = mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);
         }
-        _log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-    }
-
-    private static PortAllocationContext getNet0Ports(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
-        String label = "net0";
-        URI id = URI.create(label);
-        NetworkLite net = new NetworkLite(id, label);
-        networkMap.put(id, net);
-        PortAllocationContext context = new PortAllocationContext(net, label);
-        StoragePort port = null;
-        List<StoragePort> ports = new ArrayList<StoragePort>();
-        port = createFCPort("FA-7E:1", "50:00:00:00:00:00:00:7E:01");
-        addPort(context, port, null);
-        ports.add(port);
-        port = createFCPort("FA-7F:1", "50:00:00:00:00:00:00:7F:01");
-        addPort(context, port, null);
-        ports.add(port);
-        allocatablePorts.put(id, ports);
-        return context;
+        _log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
     }
 
     private static PortAllocationContext getNet1Ports(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
@@ -415,8 +524,8 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         return context;
     }
 
-    private static PortAllocationContext getNet573APorts(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
-        String label = "net573A";
+    private static PortAllocationContext getNetAPorts(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
+        String label = "netA";
         URI id = URI.create(label);
         NetworkLite net = new NetworkLite(id, label);
         networkMap.put(id, net);
@@ -435,8 +544,8 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         return context;
     }
 
-    private static PortAllocationContext getNet573BPorts(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
-        String label = "net573B";
+    private static PortAllocationContext getNetBPorts(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
+        String label = "netB";
         URI id = URI.create(label);
         NetworkLite net = new NetworkLite(id, label);
         networkMap.put(id, net);
@@ -476,6 +585,82 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
             addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-B", "50:00:14:42:70:7D:C4:11", net2);
             addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-B", "50:00:14:42:70:7D:C4:12", net1);
             addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-B", "50:00:14:42:70:7D:C4:13", net2);
+        }
+    }
+
+    private static void getInitiatorsVplex154Clus1DualEngines(
+            Map<String, Set<String>> directorToInitiators,
+            Map<String, URI> initiatorIdToNetwork,
+            Map<String, Initiator> initiatorMap, String net1, String net2, String net3) {
+        directorToInitiators.clear();
+        initiatorIdToNetwork.clear();
+        initiatorMap.clear();
+        if (net3 != null) {
+        } else {
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-A", "50:00:14:42:60:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-A", "50:00:14:42:60:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-A", "50:00:14:42:60:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-A", "50:00:14:42:60:7D:C4:13", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-B", "50:00:14:42:70:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-B", "50:00:14:42:70:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-B", "50:00:14:42:70:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-B", "50:00:14:42:70:7D:C4:13", net2);
+
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-A", "50:00:14:42:80:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-A", "50:00:14:42:80:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-A", "50:00:14:42:80:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-A", "50:00:14:42:80:7D:C4:13", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-B", "50:00:14:42:90:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-B", "50:00:14:42:90:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-B", "50:00:14:42:90:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-B", "50:00:14:42:90:7D:C4:13", net2);
+        }
+    }
+
+    private static void getInitiatorsVplex154Clus1QuadEngines(
+            Map<String, Set<String>> directorToInitiators,
+            Map<String, URI> initiatorIdToNetwork,
+            Map<String, Initiator> initiatorMap, String net1, String net2, String net3) {
+        directorToInitiators.clear();
+        initiatorIdToNetwork.clear();
+        initiatorMap.clear();
+        if (net3 != null) {
+        } else {
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-A", "50:00:14:42:60:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-A", "50:00:14:42:60:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-A", "50:00:14:42:60:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-A", "50:00:14:42:60:7D:C4:13", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-B", "50:00:14:42:70:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-B", "50:00:14:42:70:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-B", "50:00:14:42:70:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-1-1-B", "50:00:14:42:70:7D:C4:13", net2);
+
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-A", "50:00:14:42:80:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-A", "50:00:14:42:80:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-A", "50:00:14:42:80:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-A", "50:00:14:42:80:7D:C4:13", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-B", "50:00:14:42:90:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-B", "50:00:14:42:90:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-B", "50:00:14:42:90:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-2-1-B", "50:00:14:42:90:7D:C4:13", net2);
+
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-3-1-A", "50:00:14:43:60:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-3-1-A", "50:00:14:43:60:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-3-1-A", "50:00:14:43:60:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-3-1-A", "50:00:14:43:60:7D:C4:13", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-3-1-B", "50:00:14:43:70:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-3-1-B", "50:00:14:43:70:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-3-1-B", "50:00:14:43:70:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-3-1-B", "50:00:14:43:70:7D:C4:13", net2);
+
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-4-1-A", "50:00:14:43:80:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-4-1-A", "50:00:14:43:80:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-4-1-A", "50:00:14:43:80:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-4-1-A", "50:00:14:43:80:7D:C4:13", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-4-1-B", "50:00:14:43:90:7D:C4:10", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-4-1-B", "50:00:14:43:90:7D:C4:11", net2);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-4-1-B", "50:00:14:43:90:7D:C4:12", net1);
+            addInitiator(initiatorMap, directorToInitiators, initiatorIdToNetwork, "director-4-1-B", "50:00:14:43:90:7D:C4:13", net2);
         }
     }
 

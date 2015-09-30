@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.blockorchestrationcontroller;
@@ -210,6 +210,10 @@ public class VolumeDescriptor implements Serializable {
             List<VolumeDescriptor> descriptors,
             Type[] inclusive, Type[] exclusive) {
         List<VolumeDescriptor> result = new ArrayList<VolumeDescriptor>();
+        if (descriptors == null) {
+            return result;
+        }
+        
         HashSet<Type> included = new HashSet<Type>();
         if (inclusive != null) {
             included.addAll(Arrays.asList(inclusive));

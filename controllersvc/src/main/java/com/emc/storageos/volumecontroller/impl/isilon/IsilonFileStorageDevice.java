@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.isilon;
@@ -19,16 +9,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashMap;
-
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.model.file.ExportRule;
-import com.emc.storageos.model.file.ShareACL;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +23,8 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
@@ -52,6 +40,8 @@ import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare.Permission;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.file.ExportRule;
+import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
@@ -116,7 +106,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
      * @return IsilonApi object
      * @throws IsilonException
      */
-    IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
+            IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
         IsilonApi isilonAPI;
         URI deviceURI;
         try {
@@ -719,6 +709,20 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     }
 
     @Override
+    public boolean doCheckFSExists(StorageSystem storage, FileDeviceInputOutput args)
+            throws ControllerException {
+        _log.info("checking file system existence on array: ", args.getFsName());
+        boolean isFSExists = true; // setting true by default for safer side
+        try {
+            IsilonApi isi = getIsilonDevice(storage);
+            isFSExists = isi.existsDir(args.getFsMountPath());
+        } catch (IsilonException e) {
+            _log.error("Querying FS failed", e);
+        }
+        return isFSExists;
+    }
+
+    @Override
     public BiosCommandResult doExpandFS(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
         try {
@@ -727,8 +731,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             String quotaId = null;
             if (args.getFsExtensions() != null && args.getFsExtensions().get(QUOTA) != null) {
                 quotaId = args.getFsExtensions().get(QUOTA);
-            }
-            else {
+            } else {
                 final ServiceError serviceError = DeviceControllerErrors.isilon
                         .doExpandFSFailed(args.getFsId());
                 _log.error(serviceError.getMessage());
@@ -904,13 +907,13 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-            throws ControllerException {
+                    throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
         String devType = storage.getSystemType();
-        BiosCommandResult result = BiosCommandResult.createErrorResult(DeviceControllerException.errors.
-                unsupportedOperationOnDevType(op, devType));
+        BiosCommandResult result = BiosCommandResult
+                .createErrorResult(DeviceControllerException.errors.unsupportedOperationOnDevType(op, devType));
 
         return result;
 
@@ -1175,7 +1178,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-            throws ControllerException {
+                    throws ControllerException {
         // Requested Export Rules
         List<ExportRule> exportAdd = args.getExportRulesToAdd();
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
@@ -1745,8 +1748,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                     domain = "";
                 }
                 domain = domain.toLowerCase();
-                String userOrGroup = acl.getUser() == null ?
-                        acl.getGroup().toLowerCase() : acl.getUser().toLowerCase();
+                String userOrGroup = acl.getUser() == null ? acl.getGroup().toLowerCase() : acl.getUser().toLowerCase();
                 if (domain.length() > 0) {
                     userOrGroup = domain + "\\" + userOrGroup;
                 }

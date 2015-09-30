@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.util;
@@ -34,7 +34,7 @@ public class SumPrimitiveFieldAggregator implements DbAggregatorItf {
         return _valueMap.get(field).value;
     }
 
-    public long get_NRecords() {
+    public long getRecordNum() {
         return n_records;
     }
 

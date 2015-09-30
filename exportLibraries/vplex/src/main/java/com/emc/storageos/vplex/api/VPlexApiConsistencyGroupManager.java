@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -476,22 +466,39 @@ public class VPlexApiConsistencyGroupManager {
         // Find the virtual volumes with the passed names.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
-        List<VPlexVirtualVolumeInfo> virtualVolumeInfoList = new ArrayList<VPlexVirtualVolumeInfo>();
-        for (String virtualVolumeName : virtualVolumeNames) {
-            VPlexVirtualVolumeInfo virtualVolumeInfo = null;
-            for (VPlexClusterInfo clusterInfo : clusterInfoList) {
-                virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterInfo.getName(),
-                        virtualVolumeName, false);
-                if (virtualVolumeInfo != null) {
-                    break;
-                }
-            }
-            if (virtualVolumeInfo == null) {
-                throw VPlexApiException.exceptions.cantFindRequestedVolume(virtualVolumeName);
-            }
-            virtualVolumeInfoList.add(virtualVolumeInfo);
+        Map<String, List<VPlexVirtualVolumeInfo>> clusterToVirtualVolumes = new HashMap<String, List<VPlexVirtualVolumeInfo>>();
+        for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+            List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = discoveryMgr.getVirtualVolumesForCluster(clusterInfo.getName());
+            clusterToVirtualVolumes.put(clusterInfo.getName(), clusterVolumeInfoList);
         }
 
+        List<VPlexVirtualVolumeInfo> virtualVolumeInfoList = new ArrayList<VPlexVirtualVolumeInfo>();
+        List<String> notFoundVirtualVolumeNames = new ArrayList<String>();
+        for (String virtualVolumeName : virtualVolumeNames) {
+            s_logger.info("Find virtual volume {}", virtualVolumeName);
+            VPlexVirtualVolumeInfo virtualVolumeInfo = null;
+            for (String clusterId : clusterToVirtualVolumes.keySet()) {
+                List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = clusterToVirtualVolumes.get(clusterId);
+                for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
+                    s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
+                    if (volumeInfo.getName().equals(virtualVolumeName)) {
+                        s_logger.info("Found virtual volume {}", volumeInfo.getName());
+                        virtualVolumeInfo = volumeInfo;
+                        break;
+                    }
+                }
+            }
+
+            if (virtualVolumeInfo == null) {
+                notFoundVirtualVolumeNames.add(virtualVolumeName);
+            } else {
+                virtualVolumeInfoList.add(virtualVolumeInfo);
+            }
+        }
+
+        if (!notFoundVirtualVolumeNames.isEmpty()) {
+            throw VPlexApiException.exceptions.cantFindRequestedVolume(notFoundVirtualVolumeNames.toString());
+        }
         // Find the consistency group
         VPlexConsistencyGroupInfo cgInfo = discoveryMgr.findConsistencyGroup(cgName,
                 clusterInfoList, false);

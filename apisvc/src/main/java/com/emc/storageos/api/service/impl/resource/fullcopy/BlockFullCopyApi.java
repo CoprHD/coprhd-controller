@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
@@ -126,6 +116,17 @@ public interface BlockFullCopyApi {
      * @return TaskList
      */
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume);
+
+    /**
+     * Creates group synchronized relation between volume group
+     * and full copy group.
+     * 
+     * @param sourceVolume A reference to the full copy source volume.
+     * @param fullCopyVolume A reference to the full copy volume.
+     * 
+     * @return TaskList
+     */
+    public TaskList establishVolumeAndFullCopyGroupRelation(Volume sourceVolume, Volume fullCopyVolume);
 
     /**
      * Checks the progress of a data copy between the source and full copy.

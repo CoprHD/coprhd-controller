@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -457,12 +447,12 @@ public class VPlexPortInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("PortInfo ( ");
         str.append(super.toString());
-        str.append(", portWwn: " + portWwn);
-        str.append(", nodeWwn: " + nodeWwn);
-        str.append(", role: " + role);
-        str.append(", protocols: " + (protocols == null ? "null" : protocols.toString()));
-        str.append(", currentSpeed: " + currentSpeed);
-        str.append(", operationalStatus: " + operationalStatus);
+        str.append(", portWwn: ").append(portWwn);
+        str.append(", nodeWwn: ").append(nodeWwn);
+        str.append(", role: ").append(role);
+        str.append(", protocols: ").append((protocols == null ? "null" : protocols.toString()));
+        str.append(", currentSpeed: ").append(currentSpeed);
+        str.append(", operationalStatus: ").append(operationalStatus);
         str.append(" )");
         return str.toString();
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -19,8 +19,8 @@ import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeSnapshotParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
-import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -101,6 +101,20 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
      */
     public Task<BlockSnapshotRestRep> restore(URI id) {
         return postTask(getIdUrl() + "/restore", id);
+    }
+
+    /**
+     * Begins creating group synchronization between
+     * volume group and snapshot group.
+     * <p>
+     * API Call: <tt>POST /block/snapshots/{id}/start</tt>
+     * 
+     * @param id
+     *            the ID of the snapshot.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockSnapshotRestRep> start(URI id) {
+        return postTask(getIdUrl() + "/start", id);
     }
 
     /**

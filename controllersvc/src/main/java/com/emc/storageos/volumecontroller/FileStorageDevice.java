@@ -1,23 +1,16 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller;
 
 import java.util.List;
 
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.SMBFileShare;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 /**
@@ -34,6 +27,16 @@ public interface FileStorageDevice {
      * @throws ControllerException
      */
     public BiosCommandResult doCreateFS(StorageSystem storage, FileDeviceInputOutput fd)
+            throws ControllerException;
+
+    /**
+     * 
+     * @param storage storage device operation is to be performed on
+     * @param fd FileDeviceInputOutput object holding the data objects
+     * @return true if FS exists on Array else false
+     * @throws ControllerException
+     */
+    public boolean doCheckFSExists(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
 
     /**

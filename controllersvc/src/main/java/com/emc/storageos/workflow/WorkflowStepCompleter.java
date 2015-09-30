@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.workflow;
@@ -50,6 +50,16 @@ public class WorkflowStepCompleter implements Serializable {
      */
     static public void stepFailed(String stepId, ServiceCoded coded) throws WorkflowException {
         WorkflowService.completerStepError(stepId, coded);
+    }
+
+    /**
+     * Sets the step state to queued.
+     *
+     * @param stepId
+     * @throws WorkflowException
+     */
+    static public void stepQueued(String stepId) throws WorkflowException {
+        WorkflowService.completerStepQueued(stepId);
     }
 
     /**

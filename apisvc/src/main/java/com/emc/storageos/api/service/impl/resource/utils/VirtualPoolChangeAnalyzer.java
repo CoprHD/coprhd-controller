@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
@@ -206,8 +196,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                     // upgrade it to distributed, and then add it back to the
                     // CG manually if this is required.
                     notSuppReasonBuff
-                            .append("The volume is in a consistency group, and all volumes "
-                                    + " in a consistency group must be of the same type.");
+                            .append("The volume is in a consistency group");
                     return null;
                 } else {
                     if (!isRPVPlex) {
@@ -439,7 +428,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     }
 
     /**
-     * Returns true iff the difference between vpool1 and vpool2 is that vpool2 is
+     * Returns true if the difference between vpool1 and vpool2 is that vpool2 is
      * requesting highAvailability.
      * 
      * @param vpool1 Reference to Vpool to compare.
@@ -449,13 +438,20 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      * @return true if the Vpool difference indicates vpool2 adds VPlex high
      *         availability, false otherwise.
      */
-    public static boolean isVPlexImport(VirtualPool vpool1, VirtualPool vpool2,
+    public static boolean isVPlexImport(Volume volume, VirtualPool vpool1, VirtualPool vpool2,
             StringBuffer notImportReasonBuff) {
         s_logger.info(String.format("Checking isVPlexImport from [%s] to [%s]...", vpool1.getLabel(), vpool2.getLabel()));
+
+        if (null != volume.getMirrors() && !volume.getMirrors().isEmpty()) {
+            notImportReasonBuff.append("Volume " + volume.getLabel() + " " + volume.getId()
+                    + " has continuous copies attached. Change vpool for a volume which has continuous copies is not allowed.");
+            return false;
+        }
+
         String[] excluded = new String[] { ACLS, ASSIGNED_STORAGE_POOLS, DESCRIPTION,
                 HA_VARRAY_VPOOL_MAP, LABEL, MATCHED_POOLS, INVALID_MATCHED_POOLS, NUM_PATHS,
                 STATUS, TAGS, CREATION_TIME, THIN_VOLUME_PRE_ALLOCATION_PERCENTAGE,
-                NON_DISRUPTIVE_EXPANSION, AUTO_CROSS_CONNECT_EXPORT };
+                NON_DISRUPTIVE_EXPANSION, AUTO_CROSS_CONNECT_EXPORT, MIRROR_VPOOL };
         Map<String, Change> changes = analyzeChanges(vpool1, vpool2, null, excluded, null);
 
         // Note that we assume vpool1 is for a non-vplex volume and

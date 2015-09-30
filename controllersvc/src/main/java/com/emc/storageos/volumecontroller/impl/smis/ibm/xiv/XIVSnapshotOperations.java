@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 
@@ -85,7 +75,7 @@ public class XIVSnapshotOperations extends AbstractSnapshotOperations {
     @SuppressWarnings("rawtypes")
     @Override
     public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot,
-            Boolean createInactive, TaskCompleter taskCompleter)
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("createSingleVolumeSnapshot operation START");
         try {
@@ -232,18 +222,18 @@ public class XIVSnapshotOperations extends AbstractSnapshotOperations {
      * 
      * @param storage
      *            [required] - StorageSystem object representing the array
+     * @param taskCompleter
+     *            - TaskCompleter object used for the updating operation status.
      * @param snapshot
      *            [required] - BlockSnapshot URI representing the previously
      *            created snap for the volume
-     * @param taskCompleter
-     *            - TaskCompleter object used for the updating operation status.
      * @throws DeviceControllerException
      */
     @SuppressWarnings("rawtypes")
     @Override
     public void createGroupSnapshots(StorageSystem storage,
             List<URI> snapshotList, Boolean createInactive,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             URI snapshot = snapshotList.get(0);
             BlockSnapshot snapshotObj = _dbClient.queryObject(

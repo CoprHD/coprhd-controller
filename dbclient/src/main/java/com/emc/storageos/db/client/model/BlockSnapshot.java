@@ -1,26 +1,16 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.db.client.DbClient;
+import java.net.URI;
+import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 
-import java.net.URI;
-import java.util.List;
+import com.emc.storageos.db.client.DbClient;
 
 /**
  * @author burckb
@@ -98,12 +88,16 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     // Is an indication that the snapshot needs to be copied to the target.
     private Boolean _needsCopyToTarget;
 
+    // This value is an indicator if the snapshot is read only or writable
+    private Boolean _isReadOnly;
+
     public enum TechnologyType {
         NATIVE,
         RP,
         SRDF
     };
 
+    @Override
     @NamedRelationIndex(cf = "NamedRelationIndex", type = Volume.class)
     @Name("parent")
     public NamedURI getParent() {
@@ -115,6 +109,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         setChanged("parent");
     }
 
+    @Override
     public Class<? extends DataObject> parentClass() {
         return Volume.class;
     }
@@ -140,6 +135,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         setChanged("snapsetLabel");
     }
 
+    @Override
     @NamedRelationIndex(cf = "NamedRelationIndex", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
@@ -333,6 +329,16 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     public void setNeedsCopyToTarget(Boolean isAttached) {
         _needsCopyToTarget = isAttached;
         setChanged("needsCopyToTarget");
+    }
+
+    @Name("isReadOnly")
+    public Boolean getIsReadOnly() {
+        return (_isReadOnly != null) ? _isReadOnly : Boolean.FALSE;
+    }
+
+    public void setIsReadOnly(Boolean isReadOnly) {
+        _isReadOnly = isReadOnly;
+        setChanged("isReadOnly");
     }
 
     /**

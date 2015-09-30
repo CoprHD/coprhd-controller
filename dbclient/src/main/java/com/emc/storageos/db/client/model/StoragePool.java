@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
@@ -63,6 +53,8 @@ public class StoragePool extends VirtualArrayTaggedResource {
     private String _lowAvailableTierId;
     // Setting Id to be used if Tier policy set to Start_High_Then_Auto
     private String _startHighThenAutoTierId;
+    // Max Retention days
+    private Integer maxRetention;
 
     // Storage Tier Information for each Pool
     // VNX Pools have multiple tiers and VMAX has single Tier always
@@ -359,6 +351,16 @@ public class StoragePool extends VirtualArrayTaggedResource {
     public void setMaxResources(Integer maxResources) {
         this.maxResources = (maxResources > 0) ? maxResources : 0;
         setChanged("maxResources");
+    }
+
+    @Name("maxRetention")
+    public Integer getMaxRetention() {
+        return (null != maxRetention) ? maxRetention : 0;
+    }
+
+    public void setMaxRetention(Integer maxRetention) {
+        this.maxRetention = (maxRetention > 0) ? maxRetention : 0;
+        setChanged("maxRetention");
     }
 
     public boolean supportsProtocols(Set<String> protocols) {

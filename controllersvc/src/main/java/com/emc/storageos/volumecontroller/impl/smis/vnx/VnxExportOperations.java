@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis.vnx;
@@ -214,6 +214,12 @@ public class VnxExportOperations implements ExportMaskOperations {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} removeVolume START...", storage.getSerialNumber());
         try {
+        	if (null == volumeURIList || volumeURIList.isEmpty()) {
+				taskCompleter.ready(_dbClient);
+				_log.warn("{} removeVolume invoked with zero volumes, resulting in no-op....",
+						storage.getSerialNumber());
+				return;
+			}
             deleteOrShrinkStorageGroup(storage, exportMaskURI, volumeURIList, null);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
@@ -304,10 +310,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                 // Find out if the port is in this masking container
                 List<String> matchingInitiators = new ArrayList<String>();
                 for (String port : initiatorNames) {
-                    String normalizedName = port;
-                    if (WWNUtility.isValidWWN(port)) {
-                        normalizedName = WWNUtility.getUpperWWNWithNoColons(port);
-                    }
+                    String normalizedName = Initiator.normalizePort(port);
                     if (initiatorPorts.contains(normalizedName)) {
                         matchingInitiators.add(normalizedName);
                     }
@@ -549,7 +552,9 @@ public class VnxExportOperations implements ExportMaskOperations {
                                 Iterator<URI> resultsIter = results.iterator();
                                 if (resultsIter.hasNext()) {
                                     Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
-                                    mask.addVolume(volume.getId(), volumesToAdd.get(wwn));
+                                    if (null != volume) {
+                                        mask.addVolume(volume.getId(), volumesToAdd.get(wwn));
+                                    }
                                 }
                             }
                         }
@@ -1199,4 +1204,39 @@ public class VnxExportOperations implements ExportMaskOperations {
         return storageTierMethodologyId;
     }
 
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        Map<URI, Integer> hlus = Collections.emptyMap();
+        try {
+            CIMInstance instance = _helper.getLunMaskingProtocolController(storage, exportMask);
+            // There's a StorageGroup on the array for the ExportMask and it has userAddedVolumes.
+            if (instance != null && exportMask.getUserAddedVolumes() != null) {
+                hlus = new HashMap<>();
+                WBEMClient client = _helper.getConnection(storage).getCimClient();
+                // Get the volume WWN to HLU mapping from the StorageGroup
+                Map<String, Integer> discoveredVolumes = _helper.getVolumesFromLunMaskingInstance(client, instance);
+                for (String wwn : discoveredVolumes.keySet()) {
+                    Integer hlu = discoveredVolumes.get(wwn);
+                    if (hlu != null && exportMask.getUserAddedVolumes().containsKey(wwn)) {
+                        // Look up the volume URI given the WWN
+                        String uriString = exportMask.getUserAddedVolumes().get(wwn);
+                        // We have a proper HLU
+                        hlus.put(URI.create(uriString), hlu);
+                    }
+                }
+            }
+            _log.info(String.format("Retrieved these volumes from ExportMask %s (%s): %s", exportMask.getMaskName(), exportMask.getId(),
+                    CommonTransformerFunctions.collectionString(hlus.entrySet())));
+        } catch (Exception e) {
+            // Log an error, but return an empty list
+            _log.error(String.format("Encountered an exception when attempting to get volume to HLU mapping from ExportMask %s",
+                    exportMask.getMaskName()), e);
+            // We encountered an exception, so let's not return partial data ...
+            if (!hlus.isEmpty()) {
+                hlus.clear();
+            }
+        }
+        return hlus;
+    }
+    
 }

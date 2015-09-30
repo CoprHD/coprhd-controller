@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
@@ -18,6 +8,7 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,17 +47,17 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -237,6 +228,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @param taskCompleter
      * @throws DeviceControllerException
      */
+    @Override
     public void createExportMask(StorageSystem storage,
             URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs,
@@ -320,6 +312,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         _log.info("{} createExportMask END...", storage.getSerialNumber());
     }
 
+    @Override
     public void deleteExportMask(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
@@ -658,6 +651,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
     }
 
+    @Override
     public void addVolume(StorageSystem storage,
             URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs,
@@ -1037,6 +1031,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         return result;
     }
 
+    @Override
     public void removeVolume(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
@@ -1284,6 +1279,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
     }
 
+    @Override
     public void addInitiator(StorageSystem storage, URI exportMaskURI,
             List<Initiator> initiatorList, List<URI> targetURIList, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} addInitiator START...", storage.getSerialNumber());
@@ -1364,6 +1360,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         _log.info("{} addInitiator END...", storage == null ? null : storage.getSerialNumber());
     }
 
+    @Override
     public void removeInitiator(StorageSystem storage,
             URI exportMaskURI,
             List<Initiator> initiatorList,
@@ -1543,52 +1540,41 @@ public class VmaxExportOperations implements ExportMaskOperations {
      *            considered a hit.
      * @return Map of port name to Set of ExportMask URIs
      */
+    @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
             boolean mustHaveAllPorts) {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
-        CloseableIterator<CIMInstance> lunMaskingIter = null;
+        CloseableIterator<CIMInstance> maskInstanceItr = null;
         try {
             StringBuilder builder = new StringBuilder();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
-            lunMaskingIter = _helper.getSymmLunMaskingViews(storage);
-            while (lunMaskingIter.hasNext()) {
-                CIMInstance instance = lunMaskingIter.next();
-                String systemName = CIMPropertyFactory.getPropertyValue(instance,
-                        SmisConstants.CP_SYSTEM_NAME);
+            HashMap<String, CIMObjectPath> initiatorPathsMap = _cimPath.getInitiatorToInitiatorPath(storage, initiatorNames);
 
-                if (!systemName.contains(storage.getSerialNumber())) {
-                    // We're interested in the specific StorageSystem's masks.
-                    // The above getSymmLunMaskingViews call will get
-                    // a listing of for all the protocol controllers seen by the
-                    // SMISProvider pointed to by 'storage' system.
-                    continue;
-                }
+            List<String> maskNames = new ArrayList<String>();
+            for (String initiatorName : initiatorPathsMap.keySet()) {
+                CIMObjectPath initiatorPath = initiatorPathsMap.get(initiatorName);
 
-                String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
-                CIMProperty<String> deviceIdProperty =
-                        (CIMProperty<String>) instance.getObjectPath().
-                                getKey(SmisConstants.CP_DEVICE_ID);
+                maskInstanceItr = _helper.getAssociatorInstances(storage, initiatorPath, null, SmisConstants.SYMM_LUN_MASKING_VIEW, null,
+                        null, SmisConstants.PS_LUN_MASKING_CNTRL_NAME_AND_ROLE);
+                while (maskInstanceItr.hasNext()) {
+                    CIMInstance instance = maskInstanceItr.next();
+                    String systemName = CIMPropertyFactory.getPropertyValue(instance,
+                            SmisConstants.CP_SYSTEM_NAME);
 
-                // Get volumes and initiators for the masking instance
-                List<String> initiatorPorts =
-                        _helper.getInitiatorsFromLunMaskingInstance(client, instance);
-                // Find out if the port is in this masking container
-
-                List<String> matchingInitiators = new ArrayList<String>();
-                for (String port : initiatorNames) {
-                    String normalizedName = port;
-                    if (WWNUtility.isValidWWN(port)) {
-                        normalizedName = WWNUtility.getUpperWWNWithNoColons(port);
+                    if (!systemName.contains(storage.getSerialNumber())) {
+                        // We're interested in the specific StorageSystem's masks.
+                        // The above getSymmLunMaskingViews call will get
+                        // a listing of for all the protocol controllers seen by the
+                        // SMISProvider pointed to by 'storage' system.
+                        continue;
                     }
-                    if (initiatorPorts.contains(normalizedName)) {
-                        matchingInitiators.add(normalizedName);
-                    }
-                }
-                builder.append(String.format("%nXM:%s I:{%s}", name,
-                        Joiner.on(',').join(initiatorPorts)));
-                if (!matchingInitiators.isEmpty()) {
+
+                    String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
+                    CIMProperty<String> deviceIdProperty = (CIMProperty<String>) instance.getObjectPath()
+                            .getKey(SmisConstants.CP_DEVICE_ID);
+
                     // Look up ExportMask by deviceId/name and storage URI
                     boolean foundMaskInDb = false;
                     ExportMask exportMask = null;
@@ -1606,6 +1592,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             break;
                         }
                     }
+
                     // If there was no export group found in the database,
                     // then create a new one
                     if (!foundMaskInDb) {
@@ -1615,6 +1602,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         exportMask.setStorageDevice(storage.getId());
                         exportMask.setId(URIUtil.createId(ExportMask.class));
                         exportMask.setCreatedBySystem(false);
+                    }
+
+                    if (!maskNames.contains(name)) {
+                        // Update the tracking containers
+                        Map<String, Integer> volumeWWNs =
+                                _helper.getVolumesFromLunMaskingInstance(client, instance);
+                        exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
+
                         // Grab the storage ports that have been allocated for this
                         // existing mask and add them.
                         List<String> storagePorts =
@@ -1627,31 +1622,22 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 "         URI{ %s }\n",
                                 Joiner.on(',').join(storagePorts),
                                 Joiner.on(',').join(storagePortURIs)));
-                    } else {
-                        // Refresh the mask
-                        refreshExportMask(storage, exportMask);
-                        builder.append('\n');
+                        // Add the mask name to the list for which volumes are already updated
+                        maskNames.add(name);
                     }
+                    exportMask.addToExistingInitiatorsIfAbsent(initiatorName);
 
-                    // Update the tracking containers
-                    Map<String, Integer> volumeWWNs =
-                            _helper.getVolumesFromLunMaskingInstance(client, instance);
-                    exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
-                    exportMask.addToExistingInitiatorsIfAbsent(initiatorPorts);
-                    // Add references to initiators based on existing initiators.
-                    for (String port : initiatorPorts) {
-                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
-                        if (existingInitiator == null) {
-                            _log.warn(String
-                                    .format("Found that port %s is associated to MaskingView %s through SMI-S, but the port is not in the database",
-                                            port, name));
-                            continue;
-                        }
-                        exportMask.addInitiator(existingInitiator);
+                    Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(initiatorName), _dbClient);
+                    if (existingInitiator == null) {
+                        _log.warn(String
+                                .format("Found that port %s is associated to MaskingView %s through SMI-S, but the port is not in the database",
+                                        initiatorName, name));
+                        continue;
                     }
-
-                    String volumes = (exportMask.getExistingVolumes().size() < 100) ?
-                            Joiner.on(',').join(exportMask.getExistingVolumes().keySet()) : "...";
+                    exportMask.addInitiator(existingInitiator);
+                    StringMap existingVolumes = exportMask.getExistingVolumes();
+                    String volumes = (null != existingVolumes && existingVolumes.size() < 100) ?
+                            Joiner.on(',').join(existingVolumes.keySet()) : "...";
                     builder.append(String.format("XM:%s is matching. " +
                             "EI: { %s }, EV: { %s }",
                             name, Joiner.on(',').join(exportMask.getExistingInitiators()), volumes));
@@ -1661,16 +1647,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     } else {
                         _dbClient.createObject(exportMask);
                     }
-                    if (matchesSearchCriteria(exportMask, initiatorNames,
+
+                    if (matchesSearchCriteria(exportMask, new ArrayList<String>(Arrays.asList(initiatorName)),
                             mustHaveAllPorts)) {
-                        for (String it : matchingInitiators) {
-                            Set<URI> maskURIs = matchingMasks.get(it);
-                            if (maskURIs == null) {
-                                maskURIs = new HashSet<URI>();
-                                matchingMasks.put(it, maskURIs);
-                            }
-                            maskURIs.add(exportMask.getId());
+                        Set<URI> maskURIs = matchingMasks.get(initiatorName);
+                        if (maskURIs == null) {
+                            maskURIs = new HashSet<URI>();
+                            matchingMasks.put(initiatorName, maskURIs);
                         }
+                        maskURIs.add(exportMask.getId());
                     }
                 }
             }
@@ -1681,8 +1666,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             throw SmisException.exceptions.queryExistingMasksFailure(msg, e);
         } finally {
-            if (lunMaskingIter != null) {
-                lunMaskingIter.close();
+            if (maskInstanceItr != null) {
+                maskInstanceItr.close();
             }
             long totalTime = System.currentTimeMillis() - startTime;
             _log.info(String.format("findExportMasks took %f seconds", (double) totalTime / (double) 1000));
@@ -3879,6 +3864,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @param taskCompleter
      * @throws Exception the exception
      */
+    @Override
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception {
@@ -4565,5 +4551,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
         }
         return isRPJournal;
+    }
+
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return Collections.emptyMap();
     }
 }

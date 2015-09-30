@@ -1,15 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
- */
-/**  Copyright (c) 2008-2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
@@ -48,7 +39,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed,
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
             Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap) throws IngestionException {
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
 
         Volume volume = null;
 
@@ -99,7 +90,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         // Run this always when volume NO_PUBLIC_ACCESS
         if (markUnManagedVolumeInactive(unManagedVolume, volume,
                 unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap,
-                taskStatusMap)) {
+                taskStatusMap, vplexIngestionMethod)) {
             _logger.info("All the related replicas and parent has been ingested ",
                     unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
@@ -48,14 +38,19 @@ public class BackupExecutor {
         if (this.cfg.schedulerEnabled) {
             try (AutoCloseable lock = this.cfg.lock()) {
                 this.cfg.reload();
-
+                
+                log.info("Start to remove deleted backups");
                 removeDeletedBackups();
 
+                log.info("Start to do backup job");
                 if (shouldDoBackup()) {
                     doBackup();
                 }
 
+                log.info("Start to delete expired backups");
                 deleteExpiredBackups();
+            } catch (Exception e) {
+                log.error("Fail to run schedule backup", e);
             }
         }
     }
@@ -72,6 +67,7 @@ public class BackupExecutor {
         boolean modified = false;
         for (String tag : new ArrayList<>(this.cfg.retainedBackups)) {
             if (!clusterTags.contains(tag)) {
+                log.info("Remove tag from retained backup {}", tag);
                 this.cfg.retainedBackups.remove(tag);
                 modified = true;
             }
@@ -126,7 +122,7 @@ public class BackupExecutor {
             try {
                 Date backupTime = this.cfg.now().getTime();
                 tag = ScheduledBackupTag.toBackupTag(backupTime,
-                        this.cfg.dbSchemaVersion, this.cfg.nodeCount);
+                        this.cfg.getSoftwareVersion(), this.cfg.nodeCount);
                 log.info("Starting backup using tag {} (retry #{})", tag, retryCount);
                 this.cli.createBackup(tag);
 

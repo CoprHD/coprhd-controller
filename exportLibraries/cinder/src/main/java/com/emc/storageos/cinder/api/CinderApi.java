@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.cinder.api;
@@ -41,6 +31,7 @@ import com.emc.storageos.cinder.model.VolumeExpandRequest;
 import com.emc.storageos.cinder.model.VolumeShowResponse;
 import com.emc.storageos.cinder.model.VolumeTypes;
 import com.emc.storageos.cinder.rest.client.CinderRESTClient;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.sun.jersey.api.client.Client;
@@ -91,7 +82,7 @@ public class CinderApi {
         try {
             ClientResponse js_response = client.post(URI.create(uri), json);
             String s = js_response.getEntity(String.class);
-            AccessWrapper wrapper = gson.fromJson(s, AccessWrapper.class);
+            AccessWrapper wrapper = gson.fromJson(SecurityUtils.sanitizeJsonString(s), AccessWrapper.class);
             token = wrapper.access.token.id;
             tenantId = wrapper.access.token.tenant.id;
         } catch (Exception e) {
@@ -162,7 +153,7 @@ public class CinderApi {
         _log.info("Volume types = {}", s);
 
         Gson gson = new Gson();
-        volTypes = gson.fromJson(s, VolumeTypes.class);
+        volTypes = gson.fromJson(SecurityUtils.sanitizeJsonString(s), VolumeTypes.class);
 
         return volTypes;
 
@@ -242,7 +233,7 @@ public class CinderApi {
         if (js_response.getStatus() == ClientResponse.Status.ACCEPTED.getStatusCode())
         {
             // This means volume creation request accepted
-            VolumeCreateResponse response = gson.fromJson(s, VolumeCreateResponse.class);
+            VolumeCreateResponse response = gson.fromJson(SecurityUtils.sanitizeJsonString(s), VolumeCreateResponse.class);
             newVolumeId = response.volume.id;
         }
         else
@@ -411,7 +402,7 @@ public class CinderApi {
         }
 
         String jsonString = js_response.getEntity(String.class);
-        VolumeShowResponse volumeDetails = new Gson().fromJson(jsonString, VolumeShowResponse.class);
+        VolumeShowResponse volumeDetails = new Gson().fromJson(SecurityUtils.sanitizeJsonString(jsonString), VolumeShowResponse.class);
 
         _log.info("CinderApi - end showVolume");
         return volumeDetails;
@@ -428,8 +419,7 @@ public class CinderApi {
      * @throws Exception the exception
      */
     public VolumeAttachResponse attachVolume(String volumeId, String initiator,
-            String[] wwpns, String host) throws Exception
-    {
+            String[] wwpns, String[] wwnns, String host) throws Exception {
         _log.info("CinderApi - start attachVolume");
 
         Gson gson = new Gson();
@@ -437,9 +427,18 @@ public class CinderApi {
         VolumeAttachRequest volumeAttach = new VolumeAttachRequest();
         if (initiator != null) {
             volumeAttach.initializeConnection.connector.initiator = initiator;
-        } else if (wwpns != null) {
-            volumeAttach.initializeConnection.connector.wwpns = Arrays.copyOf(wwpns, wwpns.length);
         }
+        else {
+            if (wwpns != null) {
+                volumeAttach.initializeConnection.connector.wwpns = Arrays.copyOf(wwpns, wwpns.length);
+            }
+
+            if (null != wwnns) {
+                volumeAttach.initializeConnection.connector.wwnns = Arrays.copyOf(wwnns, wwnns.length);
+            }
+
+        }
+
         volumeAttach.initializeConnection.connector.host = host;
 
         String volumeAttachmentUri = endPoint.getBaseUri()
@@ -458,7 +457,7 @@ public class CinderApi {
         if (js_response.getStatus() == ClientResponse.Status.OK.getStatusCode()) {
             // This means volume attachment request accepted and being processed (Synch opr)
             try {
-                response = gson.fromJson(s, VolumeAttachResponse.class);
+                response = gson.fromJson(SecurityUtils.sanitizeJsonString(s), VolumeAttachResponse.class);
             } catch (JsonSyntaxException ex) {
                 /**
                  * Some drivers return 'target_wwn' as a string list but some returns it as string.
@@ -466,7 +465,7 @@ public class CinderApi {
                  * In such a case, we capture the response string in an Alternate Java object and
                  * return the details in default response object.
                  */
-                VolumeAttachResponseAlt altResponse = gson.fromJson(s, VolumeAttachResponseAlt.class);
+                VolumeAttachResponseAlt altResponse = gson.fromJson(SecurityUtils.sanitizeJsonString(s), VolumeAttachResponseAlt.class);
                 response = getResponseInVolumeAttachResponseFormat(altResponse);
             }
         }
@@ -518,18 +517,30 @@ public class CinderApi {
      * @throws Exception
      */
     public void detachVolume(String volumeId, String initiator, String[] wwpns,
+    		String[] wwnns,
             String host) throws Exception
     {
         _log.info("CinderApi - start detachVolume");
         Gson gson = new Gson();
 
         VolumeDetachRequest volumeDetach = new VolumeDetachRequest();
-        if (initiator != null) {
+        if (initiator != null)
+        {
             volumeDetach.terminateConnection.connector.initiator = initiator;
-        } else if (wwpns != null) {
-            volumeDetach.terminateConnection.connector.wwpns =
-                    Arrays.copyOf(wwpns, wwpns.length);
         }
+        else 
+        {
+        	if (wwpns != null)
+        	{
+        		volumeDetach.terminateConnection.connector.wwpns = Arrays.copyOf(wwpns, wwpns.length);
+        	}
+        	
+        	if(null != wwnns)
+        	{
+        		volumeDetach.terminateConnection.connector.wwnns = Arrays.copyOf(wwnns, wwnns.length);
+        	}
+            
+        } 
         volumeDetach.terminateConnection.connector.host = host;
 
         String volumeDetachmentUri = endPoint.getBaseUri()
@@ -617,7 +628,7 @@ public class CinderApi {
         String snapshotId = "";
         if (js_response.getStatus() == ClientResponse.Status.ACCEPTED.getStatusCode()) {
             // This means snapshot creation request accepted
-            SnapshotCreateResponse response = gson.fromJson(s, SnapshotCreateResponse.class);
+            SnapshotCreateResponse response = gson.fromJson(SecurityUtils.sanitizeJsonString(s), SnapshotCreateResponse.class);
             snapshotId = response.snapshot.id;
         } else {
             throw CinderException.exceptions.snapshotCreationFailed(s);
@@ -647,7 +658,7 @@ public class CinderApi {
             throw CinderException.exceptions.snapshotNotFound(snapshotId);
         }
 
-        SnapshotCreateResponse snapshotDetails = new Gson().fromJson(jsonString, SnapshotCreateResponse.class);
+        SnapshotCreateResponse snapshotDetails = new Gson().fromJson(SecurityUtils.sanitizeJsonString(jsonString), SnapshotCreateResponse.class);
         _log.info("CinderApi - end showSnapshot");
         return snapshotDetails;
     }
@@ -725,7 +736,7 @@ public class CinderApi {
         if (js_response.getStatus() == ClientResponse.Status.OK.getStatusCode())
         {
             String jsonString = js_response.getEntity(String.class);
-            listRes = new Gson().fromJson(jsonString, SnapshotListResponse.class);
+            listRes = new Gson().fromJson(SecurityUtils.sanitizeJsonString(jsonString), SnapshotListResponse.class);
         }
 
         _log.info("CinderApi - end listSnapshots");

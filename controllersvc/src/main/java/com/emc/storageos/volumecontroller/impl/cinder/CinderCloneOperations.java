@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.cinder;
 
@@ -45,6 +35,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.cinder.job.CinderSingleVolumeCreateJob;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 
 public class CinderCloneOperations implements CloneOperations
 {
@@ -167,6 +158,7 @@ public class CinderCloneOperations implements CloneOperations
     {
         // Not Supported
         Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
+        ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
         clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         clone.setReplicaState(ReplicationState.DETACHED.name());
         dbClient.persistObject(clone);
@@ -245,4 +237,10 @@ public class CinderCloneOperations implements CloneOperations
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
     }
+
+    @Override
+    public void establishVolumeCloneGroupRelation(StorageSystem storage, URI sourceVolume, URI clone, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
 }

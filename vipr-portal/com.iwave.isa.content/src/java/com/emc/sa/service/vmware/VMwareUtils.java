@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware;
@@ -22,8 +22,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import com.vmware.vim25.*;
-
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.bind.Param;
@@ -31,6 +29,18 @@ import com.google.common.collect.Lists;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VMWareException;
+import com.vmware.vim25.AlreadyExists;
+import com.vmware.vim25.DatastoreHostMount;
+import com.vmware.vim25.HostNasVolume;
+import com.vmware.vim25.HostRuntimeInfo;
+import com.vmware.vim25.HostScsiDisk;
+import com.vmware.vim25.HostSystemConnectionState;
+import com.vmware.vim25.HostVmfsVolume;
+import com.vmware.vim25.LocalizableMessage;
+import com.vmware.vim25.MethodFault;
+import com.vmware.vim25.NasDatastoreInfo;
+import com.vmware.vim25.PlatformConfigFault;
+import com.vmware.vim25.VmfsDatastoreInfo;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
@@ -213,13 +223,14 @@ public class VMwareUtils {
         @Param(value = HLU, required = false)
         protected Integer hlu;
 
+        @Override
         public String toString() {
             return "Virtual Pool=" + virtualPool + ", Virtual Array=" + virtualArray + ", Project=" + project
                     + ", Host Id=" + hostId + ", Volume Count=" + count + ", Consistency Group=" + consistencyGroup
                     + ", HLU=" + hlu;
         }
 
-        public Map<String, Object> getParams() {
+        public Map<String, Object> getParams(int hluInc) {
             Map<String, Object> map = new HashMap<String, Object>();
             map.put(VIRTUAL_POOL, virtualPool);
             map.put(VIRTUAL_ARRAY, virtualArray);
@@ -227,7 +238,11 @@ public class VMwareUtils {
             map.put(HOST, hostId);
             map.put(NUMBER_OF_VOLUMES, count);
             map.put(CONSISTENCY_GROUP, consistencyGroup);
-            map.put(HLU, hlu);
+            if (hlu == -1) {
+                map.put(HLU, hlu);
+            } else {
+                map.put(HLU, hlu + hluInc);
+            }
             return map;
         }
     }
@@ -246,6 +261,7 @@ public class VMwareUtils {
         @Param(SIZE_IN_GB)
         protected Double sizeInGb;
 
+        @Override
         public String toString() {
             return "Datastore Name=" + datastoreName + ", Volume=" + nameParam + ", size=" + sizeInGb;
         }
@@ -266,10 +282,10 @@ public class VMwareUtils {
      * @param params for volume creation
      * @return Map of all params
      */
-    public static Map<String, Object> createDatastoreVolumeParam(DatastoreToVolumeTable table, DatastoreToVolumeParams params) {
+    public static Map<String, Object> createDatastoreVolumeParam(DatastoreToVolumeTable table, DatastoreToVolumeParams params, int hluInc) {
         Map<String, Object> map = new HashMap<String, Object>();
         map.putAll(table.getParams());
-        map.putAll(params.getParams());
+        map.putAll(params.getParams(hluInc));
         return map;
     }
 

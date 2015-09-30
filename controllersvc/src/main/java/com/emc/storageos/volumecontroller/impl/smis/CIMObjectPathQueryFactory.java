@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis;
@@ -10,6 +10,7 @@ import static java.lang.String.format;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -31,6 +32,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
 
 /**
  * This class uses WBEM queries to acquire the CIMObjectPath instances directly from the Provider.
@@ -245,6 +247,25 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
         CIMObjectPath[] paths = {};
         return cimPathList.toArray(paths);
 
+    }
+
+    @Override
+    public HashMap<String, CIMObjectPath> getInitiatorToInitiatorPath(StorageSystem storageDevice, List<String> initiatorNames)
+            throws Exception {
+        HashMap<String, CIMObjectPath> initiatorToInitiatorPathMap = new HashMap<String, CIMObjectPath>();
+        for (String iniName : initiatorNames) {
+            String wql = format("SELECT * FROM %s WHERE InstanceID like '%s'",
+                    CP_SE_STORAGE_HARDWARE_ID, iniName);
+            CIMObjectPath queryClass = getQueryClass(CP_SE_STORAGE_HARDWARE_ID);
+
+            CIMObjectPath[] paths = execQuery(storageDevice, queryClass, wql);
+
+            if (paths.length == 0) {
+                continue;
+            }
+            initiatorToInitiatorPathMap.put(iniName, paths[0]);
+        }
+        return initiatorToInitiatorPathMap;
     }
 
     @Override
@@ -540,4 +561,5 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
             }
         };
     }
+
 }

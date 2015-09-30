@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.dbcli;
@@ -326,6 +316,9 @@ public class DbCli {
                                 throw new Exception("field format exception");
                             }
                             StringMap sMap = (StringMap) pd.getReadMethod().invoke(object);
+                            if (sMap == null) {
+                            	sMap = new StringMap();
+                            }
                             sMap.clear();
 
                             Set<String> keys = newStringMap.keySet();
@@ -358,6 +351,9 @@ public class DbCli {
                                 throw new Exception("field format exception");
                             }
                             StringSetMap sMap = (StringSetMap) pd.getReadMethod().invoke(object);
+                            if (sMap == null) {
+                                sMap = new StringSetMap();
+                            }
                             Set<String> keys = sMap.keySet();
                             for (String key : keys) {
                                 sMap.remove(key);

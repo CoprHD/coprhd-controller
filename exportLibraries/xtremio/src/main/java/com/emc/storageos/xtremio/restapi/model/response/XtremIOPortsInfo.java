@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.xtremio.restapi.model.response;
 
@@ -24,13 +14,13 @@ public class XtremIOPortsInfo {
 
     @SerializedName("targets")
     @JsonProperty(value = "targets")
-    private XtremIOPortInfo[] portInfo;
+    private XtremIOObjectInfo[] portInfo;
 
-    public XtremIOPortInfo[] getPortInfo() {
+    public XtremIOObjectInfo[] getPortInfo() {
         return portInfo != null ? portInfo.clone() : portInfo;
     }
 
-    public void setPortInfo(XtremIOPortInfo[] portInfo) {
+    public void setPortInfo(XtremIOObjectInfo[] portInfo) {
         if (portInfo != null) {
             this.portInfo = portInfo.clone();
         }

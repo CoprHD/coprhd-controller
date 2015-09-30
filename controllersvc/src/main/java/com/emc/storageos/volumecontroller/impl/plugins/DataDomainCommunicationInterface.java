@@ -1,29 +1,76 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
-import com.emc.storageos.datadomain.restapi.*;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.datadomain.restapi.DDOptionInfo;
+import com.emc.storageos.datadomain.restapi.DataDomainApiConstants;
+import com.emc.storageos.datadomain.restapi.DataDomainClient;
+import com.emc.storageos.datadomain.restapi.DataDomainClientFactory;
 import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainApiException;
 import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainResourceNotFoundException;
-import com.emc.storageos.datadomain.restapi.model.*;
+import com.emc.storageos.datadomain.restapi.model.DDExportClient;
+import com.emc.storageos.datadomain.restapi.model.DDExportInfo;
+import com.emc.storageos.datadomain.restapi.model.DDExportInfoDetail;
+import com.emc.storageos.datadomain.restapi.model.DDExportList;
+import com.emc.storageos.datadomain.restapi.model.DDMCInfoDetail;
+import com.emc.storageos.datadomain.restapi.model.DDMTreeInfo;
+import com.emc.storageos.datadomain.restapi.model.DDMTreeInfoDetail;
+import com.emc.storageos.datadomain.restapi.model.DDMTreeList;
+import com.emc.storageos.datadomain.restapi.model.DDMtreeCapacityInfos;
+import com.emc.storageos.datadomain.restapi.model.DDNetworkDetails;
+import com.emc.storageos.datadomain.restapi.model.DDNetworkInfo;
+import com.emc.storageos.datadomain.restapi.model.DDNetworkList;
+import com.emc.storageos.datadomain.restapi.model.DDShareInfo;
+import com.emc.storageos.datadomain.restapi.model.DDShareInfoDetail;
+import com.emc.storageos.datadomain.restapi.model.DDShareList;
+import com.emc.storageos.datadomain.restapi.model.DDStatsCapacityInfo;
+import com.emc.storageos.datadomain.restapi.model.DDStatsDataViewQuery;
+import com.emc.storageos.datadomain.restapi.model.DDStatsIntervalQuery;
+import com.emc.storageos.datadomain.restapi.model.DDSystem;
+import com.emc.storageos.datadomain.restapi.model.DDSystemInfo;
+import com.emc.storageos.datadomain.restapi.model.DDSystemList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.ShareACL;
+import com.emc.storageos.db.client.model.Stat;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProtocol;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -43,14 +90,8 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.file.FileZeroRec
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.*;
 
 /**
  * Created by zeldib on 2/14/14.
@@ -650,7 +691,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
             }
 
             if (existingUnManagedFileSystems != null && !existingUnManagedFileSystems.isEmpty()) {
-                _dbClient.persistObject(existingUnManagedFileSystems);
+                _dbClient.updateAndReindexObject(existingUnManagedFileSystems);
                 _log.info("{} {} Records updated to DB", existingUnManagedFileSystems.size(), UNMANAGED_FILESYSTEM);
             }
             storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.toString());
@@ -906,13 +947,13 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                     pools);
             unManagedFileSystem.setStoragePoolUri(pool.getId());
         }
+        _log.debug("Matched Pools : {}", Joiner.on("\t").join(vPools));
 
         if (null == vPools || vPools.isEmpty()) {
-            unManagedFileSystemInformation.put(
-                    UnManagedVolume.SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), new StringSet());
+            unManagedFileSystem.getSupportedVpoolUris().clear();
         } else {
-            unManagedFileSystemInformation.put(
-                    UnManagedVolume.SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), vPools);
+            unManagedFileSystem.getSupportedVpoolUris().replace(vPools);
+            _log.info("Replaced Pools :" + Joiner.on("\t").join(unManagedFileSystem.getSupportedVpoolUris()));
         }
 
         List<StoragePort> ports = getPortFromDB(system);

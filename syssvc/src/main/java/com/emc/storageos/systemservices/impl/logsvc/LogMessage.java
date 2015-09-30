@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc;
 
@@ -33,6 +23,10 @@ public class LogMessage {
     // nodeId and service are not set in the parser, and nodeId doesn't need to be
     // serialized in LogNetworkWriter.
     private byte[] nodeId;// node id
+
+    // nodeName and service are not set in the parser, and nodeName doesn't need to be
+    // serialized in LogNetworkWriter.
+    private byte[] nodeName;// node name
 
     // the following fields need to be serialized in LogNetworkWriter
     private byte[] service;
@@ -108,6 +102,17 @@ public class LogMessage {
 
     public void setNodeId(byte[] nodeId) {
         this.nodeId = nodeId;
+    }
+
+    public byte[] getNodeName() {
+        if (nodeName == null)
+            return NULL_BYTES;
+
+        return nodeName;
+    }
+
+    public void setNodeName(byte[] nodeName) {
+        this.nodeName = nodeName;
     }
 
     public void setService(byte[] service) {

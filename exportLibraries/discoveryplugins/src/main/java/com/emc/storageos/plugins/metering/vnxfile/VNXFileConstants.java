@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.plugins.metering.vnxfile;
 
@@ -57,6 +47,8 @@ public class VNXFileConstants {
     public static final String CONTROL_STATION_INFO = "controlStationInfo";
     public static final String STORAGE_PORT_GROUPS = "portGroups";
     public static final String STORAGE_PORTS = "ports";
+    public static final String INTREFACE_PORT_MAP = "logicalNetworkDevMap";
+    public static final String LOGICAL_NETWORK_SPEED_MAP = "portSpeedMap";
     public static final String FILESYSTEMS = "fileSystems";
     public static final String FILE_EXPORTS = "fileExports";
     public static final String VNX_FILE_SYSTEM_DISCOVERY = "vnxfileSystem";
@@ -122,5 +114,9 @@ public class VNXFileConstants {
     public static final String SHARE_UMASK = "umask";
     public static final String SHARE_MAXUSR = "maxusr";
     public static final String SHARE_NETBIOS = "netbios";
+
+    // for totalcapacity filesystems on vdm
+    public static final String FILE_CAPACITY_MAP = "filesystemCapacity";
+    public static final String SNAP_CAPACITY_MAP = "snapshotCapacity";
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.common;
@@ -51,7 +51,7 @@ public class VdcUtilTest {
 
         VdcUtil.setDbClient(dbClientMock);
         String minialVdcVersion = VdcUtil.getMinimalVdcVersion();
-        String expectedVdcVersion = VdcUtil.DEFAULT_VDC_DB_VERSION;
+        String expectedVdcVersion = DbConfigConstants.DEFAULT_VDC_DB_VERSION;
         Assert.assertEquals(expectedVdcVersion, minialVdcVersion);
     }
 
@@ -72,7 +72,7 @@ public class VdcUtilTest {
 
         VdcUtil.setDbClient(dbClientMock);
         String minialVdcVersion = VdcUtil.getMinimalVdcVersion();
-        String expectedVdcVersion = VdcUtil.DEFAULT_VDC_DB_VERSION;
+        String expectedVdcVersion = DbConfigConstants.DEFAULT_VDC_DB_VERSION;
         Assert.assertEquals(expectedVdcVersion, minialVdcVersion);
     }
 
@@ -96,7 +96,7 @@ public class VdcUtilTest {
 
         VdcUtil.setDbClient(dbClientMock);
         String minialVdcVersion = VdcUtil.getMinimalVdcVersion();
-        String expectedVdcVersion = VdcUtil.DEFAULT_VDC_DB_VERSION;
+        String expectedVdcVersion = DbConfigConstants.DEFAULT_VDC_DB_VERSION;
         Assert.assertEquals(expectedVdcVersion, minialVdcVersion);
     }
 }

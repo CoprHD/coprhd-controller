@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
@@ -362,12 +352,13 @@ public class BlockFullCopyUtils {
      * @return true if the full copy is detached from the source, false otherwise.
      */
     public static boolean isFullCopyDetached(Volume volume, DbClient dbClient) {
-        boolean result = true;
+        boolean result = false;
         String replicaState = volume.getReplicaState();
-        if (isVolumeFullCopy(volume, dbClient) && replicaState != null && !replicaState.isEmpty()) {
+        // When the full copy is detached, it will not have reference to the source volume.
+        if (!isVolumeFullCopy(volume, dbClient) && replicaState != null && !replicaState.isEmpty()) {
             ReplicationState state = ReplicationState.getEnumValue(replicaState);
-            if (state != null && state != ReplicationState.DETACHED) {
-                result = false;
+            if (state != null && state == ReplicationState.DETACHED) {
+                result = true;
             }
         }
         return result;
@@ -504,8 +495,7 @@ public class BlockFullCopyUtils {
         StorageSystem system = dbClient.queryObject(StorageSystem.class, systemURI);
         int maxCount = Integer.MAX_VALUE;
         if (system != null) {
-            maxCount = BlockFullCopyManager.getMaxFullCopiesForSystemType
-                    (system.getSystemType());
+            maxCount = BlockFullCopyManager.getMaxFullCopiesForSystemType(system.getSystemType());
         }
 
         if ((numRequested + currentCount) > maxCount) {

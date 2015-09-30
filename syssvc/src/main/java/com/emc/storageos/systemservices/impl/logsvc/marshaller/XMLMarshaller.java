@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.marshaller;
 
@@ -45,7 +35,9 @@ public class XMLMarshaller extends Marshaller {
         outputStream.write(LogUtil.escapeXml(logMessage.getLineNumber()));
         outputStream.write("</line>\n\t<node>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getNodeId()));
-        outputStream.write("</node>\n\t<message>".getBytes());
+        outputStream.write("</node>\n\t<node_name>".getBytes());
+        outputStream.write(LogUtil.escapeXml(logMessage.getNodeName()));
+        outputStream.write("</node_name>\n\t<message>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getLogContent()));
         outputStream.write("</message>\n\t<severity>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getLevel()));

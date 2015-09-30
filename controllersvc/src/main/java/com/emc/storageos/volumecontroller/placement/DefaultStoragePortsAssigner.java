@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.placement;
@@ -31,6 +31,7 @@ import com.emc.storageos.util.NetworkLite;
  * @author watsot3
  */
 public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
+
     protected static final Logger _log = LoggerFactory
             .getLogger(DefaultStoragePortsAssigner.class);
 
@@ -173,21 +174,24 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
         _log.info(String.format("Assigning ports to new Hosts: %s",
                 hostInitiatorsMap.keySet().toString()));
         assignPortsToHosts(assignments, storagePorts,
-                pathParams.getPathsPerInitiator(), hostInitiatorsMap);
+                pathParams.getPathsPerInitiator(), hostInitiatorsMap, initiatorNetwork);
     }
 
     /**
-     * Assign the ports to a set of new hosts.
+     * Assign the ports to a set of new hosts in the network.
      * 
      * @param assignments OUTPUT Map of list of StoragePorts representing the assignments
      * @param storagePorts INPUT the ports that can be used for assignment
      * @param pathsPerInitiator INPUT the desired number of paths per initiator
      * @param hostInitiatorsMap INPUT a map of Host URI to the Initiators in that host
+     * @param initiatorNetwork INPUT the initiators network
      */
-    private void assignPortsToHosts(
+    protected void assignPortsToHosts(
             Map<Initiator, List<StoragePort>> assignments,
             List<StoragePort> storagePorts,
-            int pathsPerInitiator, Map<URI, List<Initiator>> hostInitiatorsMap) {
+            int pathsPerInitiator, Map<URI,
+            List<Initiator>> hostInitiatorsMap,
+            NetworkLite initiatorNetwork) {
 
         // Assign the ports of each new host.
         // This is the default implementation, allocating pathsPerInitiator paths
@@ -214,7 +218,8 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     // Allocate contiguously the ports for one initiator
                     for (int i = 0; i < pathsPerInitiator; i++) {
                         StoragePort port = storagePorts.get(portIndex);
-                        if (!assignments.get(initiator).contains(port)) {
+                        if (!assignments.get(initiator).contains(port) &&
+                                isPortAssignableToInitiator(initiatorNetwork, initiator, port)) {
                             assignments.get(initiator).add(port);
                             _log.info(String.format("Port %s assigned to initiator %s host %s",
                                     BlockStorageScheduler.portName(port), initiator.getInitiatorPort(), host));
@@ -292,7 +297,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     _log.info(String.format("Adding new initiators to existing host: %s", hostURI));
                     Map<URI, List<Initiator>> existingHostInitiatorsMap = new HashMap<URI, List<Initiator>>();
                     existingHostInitiatorsMap.put(hostURI, hostInitiatorsMap.get(hostURI));
-                    assignPortsToHosts(assignments, unusedPorts, pathsPerInitiator, existingHostInitiatorsMap);
+                    assignPortsToHosts(assignments, unusedPorts, pathsPerInitiator, existingHostInitiatorsMap, initiatorNetwork);
                 } else {
                     _log.info(String.format(
                             "No unused or new ports available for new initiators in host: %s", hostURI));
@@ -302,7 +307,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
 
         // Assign all the ports for new hosts at one time.
         if (!newHostInitiatorsMap.isEmpty()) {
-            assignPortsToHosts(assignments, sortedPorts, pathsPerInitiator, newHostInitiatorsMap);
+            assignPortsToHosts(assignments, sortedPorts, pathsPerInitiator, newHostInitiatorsMap, initiatorNetwork);
         }
     }
 
@@ -448,5 +453,10 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             _log.info(String.format("Network %s max initiators per host %d", net.toString(), max));
         }
         return net2MaxHostInitiators;
+    }
+
+    @Override
+    public boolean isPortAssignableToInitiator(NetworkLite initiatorNetwork, Initiator initiator, StoragePort port) {
+        return true;
     }
 }

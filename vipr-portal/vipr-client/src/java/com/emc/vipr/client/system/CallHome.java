@@ -1,27 +1,23 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.system;
 
+import com.emc.storageos.model.*;
 import static com.emc.vipr.client.system.impl.PathConstants.CALLHOME_REGISTRATION_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CALLHOME_HEARTBEAT_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CALLHOME_ALERT_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.CALLHOME_ALERT_TASKS_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.CALLHOME_ALERT_TASK_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CALLHOME_ERS_URL;
 
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
 
-import java.net.URI;
 import java.util.List;
 
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.event.EventParameters;
 import com.emc.vipr.client.impl.RestClient;
-import com.emc.vipr.model.sys.SysSvcTask;
-import com.emc.vipr.model.sys.SysSvcTaskList;
 import com.emc.vipr.model.sys.eventhandler.Device;
 
 public class CallHome {
@@ -76,8 +72,8 @@ public class CallHome {
      * @param eventParameters The event parameters
      * @return The system service task
      */
-    public SysSvcTask sendAlert(String start, String end, EventParameters eventParameters) {
-        return sendAlert(null, null, null, null, null, start, end, null, null, false, eventParameters);
+    public TaskResourceRep sendAlert(String start, String end, EventParameters eventParameters) {
+        return sendAlert(null,null,null,null,null,start,end,null,null,false,eventParameters);
     }
 
     /**
@@ -107,7 +103,7 @@ public class CallHome {
      * @param eventParameters The event parameters
      * @return The system service task
      */
-    public SysSvcTask sendAlert(String source, Integer eventId, List<String> nodeIds,
+    public TaskResourceRep sendAlert(String source, Integer eventId, List<String> nodeIds,
             List<String> logNames, Integer severity, String start, String end, String msgRegex,
             Integer maxCount, boolean multipleRequests, EventParameters eventParameters) {
 
@@ -126,32 +122,7 @@ public class CallHome {
             addQueryParam(builder, FORCE_PARAM, FORCE);
         }
 
-        return client.postURI(SysSvcTask.class, eventParameters, builder.build());
-    }
-
-    /**
-     * Get all tasks for an alert event.
-     * <p>
-     * API Call: GET /callhome/alert/{id}/tasks/
-     * 
-     * @param id Alert event id
-     * @return List of tasks.
-     */
-    public SysSvcTaskList getTasks(URI id) {
-        return client.getURI(SysSvcTaskList.class, client.uriBuilder(CALLHOME_ALERT_TASKS_URL).build(id));
-    }
-
-    /**
-     * Get a task for an alert event.
-     * <p>
-     * API Call: GET /callhome/alert/{id}/tasks/{op_id}
-     * 
-     * @param id Alert event id
-     * @param opId Alert event task id
-     * @return Task details.
-     */
-    public SysSvcTask getTask(URI id, String opId) {
-        return client.getURI(SysSvcTask.class, client.uriBuilder(CALLHOME_ALERT_TASK_URL).build(id, opId));
+        return client.postURI(TaskResourceRep.class, eventParameters, builder.build());
     }
 
     /**

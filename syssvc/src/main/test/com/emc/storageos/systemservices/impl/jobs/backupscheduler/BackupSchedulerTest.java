@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
@@ -47,11 +37,11 @@ import java.util.TimeZone;
 public class BackupSchedulerTest {
     private static final String[] aliveBackupsAt20141231 = new String[] {
             // DAY: 1
-            "vipr-2.2-1-20141231011000",
-            "vipr-2.2-1-20141230011000",
-            "vipr-2.2-1-20141229011000",
-            "vipr-2.2-1-20141228011000",
-            "vipr-2.2-1-20141227011000",
+            "vipr-2.2.0.0.123-1-20141231011000",
+            "vipr-2.2.0.0.123-1-20141230011000",
+            "vipr-2.2.0.0.123-1-20141229011000",
+            "vipr-2.2.0.0.123-1-20141228011000",
+            "vipr-2.2.0.0.123-1-20141227011000",
     };
 
     @Test
@@ -59,7 +49,7 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
+        cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;
         cfg.startOffsetMinutes = 60;
@@ -97,7 +87,7 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
+        cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;
         cfg.startOffsetMinutes = 60;
@@ -153,7 +143,7 @@ public class BackupSchedulerTest {
         new TestProductName();
 
         FakeConfiguration cfg = new FakeConfiguration();
-        cfg.dbSchemaVersion = "2.2";
+        cfg.setSoftwareVersion("vipr-2.2.0.0.123");
         cfg.nodeCount = 1;
         cfg.copiesToKeep = 5;
         cfg.startOffsetMinutes = 60;

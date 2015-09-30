@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov;
 
@@ -41,6 +31,7 @@ import com.emc.storageos.volumecontroller.impl.hds.prov.job.HDSReplicationSyncJo
 import com.emc.storageos.volumecontroller.impl.hds.prov.job.HDSReplicationSyncJob.ReplicationStatus;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 
 public class HDSCloneOperations implements CloneOperations {
     private static final Logger log = LoggerFactory.getLogger(HDSCloneOperations.class);
@@ -149,6 +140,7 @@ public class HDSCloneOperations implements CloneOperations {
             Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolumeURI);
             hdsProtectionOperations.deleteShadowImagePair(storageSystem, sourceVolume, targetVolume);
             hdsProtectionOperations.removeDummyLunPath(storageSystem, cloneVolumeURI);
+            ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(targetVolume, dbClient);
             targetVolume.setReplicaState(ReplicationState.DETACHED.name());
             targetVolume.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
             dbClient.persistObject(targetVolume);
@@ -287,6 +279,11 @@ public class HDSCloneOperations implements CloneOperations {
     public void detachGroupClones(StorageSystem storageSystem, List<URI> clone, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
+    }
+
+    @Override
+    public void establishVolumeCloneGroupRelation(StorageSystem storage, URI sourceVolume, URI clone, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
 }

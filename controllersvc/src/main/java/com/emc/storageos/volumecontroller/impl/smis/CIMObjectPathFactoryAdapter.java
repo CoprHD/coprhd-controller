@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis;
@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -153,6 +154,12 @@ public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     @Override
     public CIMObjectPath[] getInitiatorPaths(StorageSystem storageDevice, String[] initiatorNames) throws Exception {
         return proxy.getInitiatorPaths(storageDevice, initiatorNames);
+    }
+
+    @Override
+    public HashMap<String, CIMObjectPath> getInitiatorToInitiatorPath(StorageSystem storageDevice, List<String> initiatorNames)
+            throws Exception {
+        return proxy.getInitiatorToInitiatorPath(storageDevice, initiatorNames);
     }
 
     @Override
@@ -299,4 +306,5 @@ public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     public CIMObjectPath getReplicationSettingObjectPathFromDefault(CIMInstance settingInstance) {
         return proxy.getReplicationSettingObjectPathFromDefault(settingInstance);
     }
+
 }

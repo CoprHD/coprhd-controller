@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.impl;
@@ -35,12 +25,6 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
-import com.emc.storageos.db.client.model.NoInactiveIndex;
-import com.netflix.astyanax.Execution;
-import com.netflix.astyanax.model.ByteBufferRange;
-import com.netflix.astyanax.partitioner.Partitioner;
-import com.netflix.astyanax.query.ColumnFamilyQuery;
 
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
@@ -67,6 +51,7 @@ import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NoInactiveIndex;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -89,17 +74,21 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.ColumnMutation;
+import com.netflix.astyanax.Execution;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
+import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.query.ColumnCountQuery;
+import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
@@ -832,6 +821,7 @@ public class DbClientImpl implements DbClient {
         return result;
     }
 
+    @Override
     public <T extends DataObject> void queryInactiveObjects(Class<T> clazz, final long timeBefore, QueryResultList<URI> result) {
         if (clazz.getAnnotation(NoInactiveIndex.class) != null) {
             final Iterator<Row<String, CompositeColumnName>> it = scanRowsByType(clazz, true, null, Integer.MAX_VALUE).iterator();
@@ -1380,13 +1370,13 @@ public class DbClientImpl implements DbClient {
                             .getKey(rowKey)
                             .autoPaginate(true)
                             .withColumnRange(type.getColumnRange(timeBucket, granularity, DEFAULT_TS_PAGE_SIZE));
-                    columns = query.execute().getResult();
-                    while (!columns.isEmpty()) {
+                    do {
+                        columns = query.execute().getResult();
                         for (Column<UUID> c : columns) {
                             result.data(type.getSerializer().deserialize(c.getByteArrayValue()),
                                     TimeUUIDUtils.getTimeFromUUID(c.getName()));
                         }
-                    }
+                    } while (!columns.isEmpty());
                     return null;
                 }
             }));
@@ -1570,27 +1560,45 @@ public class DbClientImpl implements DbClient {
 
     private Operation updateTaskStatus(Class<? extends DataObject> clazz, URI id,
             String opId, Operation updateOperation) {
-        try {
-            DataObject doobj = clazz.newInstance();
-            List<URI> ids = new ArrayList<URI>(Arrays.asList(id));
-            List<? extends DataObject> objs = queryObjectField(clazz, "status",
-                    ids);
-            if (!objs.isEmpty()) {
-                doobj = objs.get(0);
-                Operation op = doobj.getOpStatus().updateTaskStatus(opId, updateOperation);
-
-                _log.info("Updating operation {} {}", opId, updateOperation.getStatus());
-                persistObject(doobj);
-                return op;
-            }
-            else {
+        List<URI> ids = new ArrayList<URI>(Arrays.asList(id));
+        List<? extends DataObject> objs = queryObjectField(clazz, "status", ids);
+        if (objs == null || objs.isEmpty()) {
+            // When "status" map is null (empty) we do not get object when query by the map field name in CF.
+            // Try to get object by id.
+            objs = queryObject(clazz, ids);
+            if (objs == null || objs.isEmpty()) {
+                _log.error("Cannot find object {} in {}", id, clazz.getSimpleName());
                 return null;
             }
-        } catch (InstantiationException e) {
-            throw new IllegalStateException(e);
-        } catch (IllegalAccessException e) {
-            throw new IllegalStateException(e);
+            _log.info("Object {} has empty status map", id);
         }
+
+        DataObject doobj = objs.get(0);
+        _log.info(String.format("Updating operation %s for object %s with status %s", opId, doobj.getId(), updateOperation.getStatus()));
+        Operation op = doobj.getOpStatus().updateTaskStatus(opId, updateOperation);
+        if (op == null)
+        {
+            // OpStatusMap does not have entry for a given opId. The entry already expired based on ttl.
+            // Recreate the entry for this opId from the task object and proceed with update
+            _log.info("Operation map for object {} does not have entry for operation id {}", doobj.getId(), opId);
+            Task task = TaskUtils.findTaskForRequestId(this, doobj.getId(), opId);
+            if (task != null) {
+                _log.info(String.format("Creating operation %s for object %s from task instance %s", opId, doobj.getId(), task.getId()));
+                // Create operation instance for the task
+                Operation operation = TaskUtils.createOperation(task);
+                doobj.getOpStatus().createTaskStatus(opId, operation);
+                op = doobj.getOpStatus().updateTaskStatus(opId, updateOperation);
+                if (op == null) {
+                    _log.error(String.format("Failed to update operation %s for object %s ", opId, doobj.getId()));
+                    return null;
+                }
+            } else {
+                _log.warn(String.format("Task for operation %s and object %s does not exist.", opId, doobj.getId()));
+                return null;
+            }
+        }
+        persistObject(doobj);
+        return op;
     }
 
     @Override

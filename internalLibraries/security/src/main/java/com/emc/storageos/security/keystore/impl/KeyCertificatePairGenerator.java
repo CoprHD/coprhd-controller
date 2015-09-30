@@ -1,14 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013-2014 EMC Corporation All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation or is licensed to
- * EMC Corporation from third parties. Use of this software and the intellectual property
- * contained therein is expressly limited to the terms and conditions of the License
- * Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.keystore.impl;
 
@@ -35,6 +27,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -147,32 +140,24 @@ public class KeyCertificatePairGenerator {
         ext.set(AuthorityKeyIdentifierExtension.NAME,
                 new AuthorityKeyIdentifierExtension(new KeyIdentifier(pubKey), null, null));
 
-        GeneralNames names = new GeneralNames();
-        IPAddressName ipName;
-        GeneralName generalName;
-        DNSName dnsName;
-        Set<String> alreadyAddedHostNames = new HashSet<String>();
-        for (InetAddress entry : valuesHolder.getAddresses()) {
-            String currCannonicalName = entry.getCanonicalHostName().trim();
-            if (!entry.getCanonicalHostName().equals(entry.getHostAddress())
-                    && !alreadyAddedHostNames.contains(currCannonicalName)) {
-                dnsName = new DNSName(currCannonicalName);
-                generalName = new GeneralName(dnsName);
-                names.add(generalName);
-                alreadyAddedHostNames.add(currCannonicalName);
-            }
-            ipName = new IPAddressName(entry.getHostAddress());
-            generalName = new GeneralName(ipName);
-            names.add(generalName);
-        }
+        ext.set(SubjectAlternativeNameExtension.NAME, new SubjectAlternativeNameExtension(subjectAltNames()));
 
-        ext.set(SubjectAlternativeNameExtension.NAME, new SubjectAlternativeNameExtension(names));
         info.set(X509CertInfo.EXTENSIONS, ext);
 
         X509CertImpl cert = new X509CertImpl(info);
         cert.sign(privkey, valuesHolder.getSigningAlgorithm());
 
         return cert;
+    }
+
+    private GeneralNames subjectAltNames() throws IOException{
+        // Consists of VIP and internal node's IPs (IPv4 and IPV6 if have) but no DNS/Host name.
+        GeneralNames subAltNames = new GeneralNames();
+
+        for (InetAddress entry : valuesHolder.getAddresses()) {
+            subAltNames.add(new GeneralName(new IPAddressName(entry.getHostAddress())));
+        }
+        return subAltNames;
     }
 
     /**
@@ -507,5 +492,10 @@ public class KeyCertificatePairGenerator {
                 SecurityUtil.clearSensitiveData(random);
             }
         }
+    }
+
+    public static void validateKeyAndCertPairing(RSAPrivateKey privateKey, Certificate[] certChain) {
+        KeyCertificateEntry entry = new KeyCertificateEntry(privateKey.getEncoded(), certChain);
+        verifyKeyCertificateEntry(entry);
     }
 }

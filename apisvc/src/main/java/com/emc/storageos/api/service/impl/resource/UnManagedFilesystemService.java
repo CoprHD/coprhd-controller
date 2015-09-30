@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -66,6 +56,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
@@ -92,8 +83,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 
 @Path("/vdc/unmanaged/filesystems")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class UnManagedFilesystemService extends TaggedResource {
     private static final String EVENT_SERVICE_TYPE = "file";
     private static final String EVENT_SERVICE_SOURCE = "UnManagedFilesystemService";
@@ -317,6 +308,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                 String usedCapacity = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.ALLOCATED_CAPACITY.toString(),
                         unManagedFileSystemInformation);
+                String nasUri = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.NAS.toString(),
+                        unManagedFileSystemInformation);
+
                 String path = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.PATH.toString(),
                         unManagedFileSystemInformation);
@@ -338,6 +333,13 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (dataMover != null) {
                     _logger.info("Data Mover to Use {} {} {}",
                             new Object[] { dataMover.getAdapterName(), dataMover.getName(), dataMover.getLabel() });
+                }
+                
+                //check ingest is valid for given project
+                
+                if(!isIngestUmfsValidForProject(project, _dbClient, nasUri)) {
+                    _logger.info("ingest umfs {} is mounted to vNAS Uri {} invalid for project", path, nasUri);
+                    continue;
                 }
 
                 // Check to see if UMFS's storagepool's Tagged neighborhood has the "passed in" neighborhood.
@@ -663,6 +665,39 @@ public class UnManagedFilesystemService extends TaggedResource {
             _logger.info("share ACLs details {}", shareACL.toString());
         }
     }
+    
+    /**
+     * Validate vnas of unmanaged file system association with project       
+     * @param project
+     * @param dbClient
+     * @param nasUri
+     * @return
+     */
+    public boolean isIngestUmfsValidForProject(Project project, DbClient dbClient, String nasUri) {
+        boolean isIngestValid = true;
+        //step -1 check file system is mounted to VNAS
+        if( nasUri != null && URIUtil.getTypeName(nasUri).equals("VirtualNAS")) {
+            VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+            
+            //step -2 if project has any associated vNAS
+            StringSet vnasStringSet = project.getAssignedVNasServers();
+            if(vnasStringSet != null && !vnasStringSet.isEmpty()) {
+                //step -3 then check nasUri in project associated vnas list
+                if(vnasStringSet.contains(nasUri) == false && virtualNAS.isNotAssignedToProject() == false) {
+                    _logger.info("vNAS {} is assicated with other project", nasUri);
+                    isIngestValid = false;
+                }
+            } else {//then check vnas associated with any other project
+                //step -3 //if is associated with other project then don't ingest
+                if(virtualNAS.isNotAssignedToProject() == false) {
+                    _logger.info("vNAS {} is assicated with other project", nasUri);
+                    isIngestValid = false;
+                }
+            }
+        }
+        return isIngestValid;
+    }
+
 
     @Override
     protected ResourceTypeEnum getResourceType() {

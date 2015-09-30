@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.block;
@@ -15,8 +15,8 @@ import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
-import com.emc.sa.service.vmware.VMwareUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
+import com.emc.sa.service.vmware.VMwareUtils;
 import com.emc.sa.service.vmware.VMwareUtils.DatastoreToVolumeParams;
 import com.emc.sa.service.vmware.VMwareUtils.DatastoreToVolumeTable;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -46,11 +46,14 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
     public void init() throws Exception {
         super.init();
 
+        int hluIncrement = 0;
         // for each pair of datastore / volume, bind params to createBlockVolumeHelper
         for (DatastoreToVolumeTable dsToVol : datastoreToVolume) {
             CreateBlockVolumeHelper createBlockVolumeHelper = new CreateBlockVolumeHelper();
-            BindingUtils.bind(createBlockVolumeHelper, VMwareUtils.createDatastoreVolumeParam(dsToVol, datastoreToVolumeParams));
+            BindingUtils.bind(createBlockVolumeHelper,
+                    VMwareUtils.createDatastoreVolumeParam(dsToVol, datastoreToVolumeParams, hluIncrement));
             createBlockVolumeHelpers.add(createBlockVolumeHelper);
+            hluIncrement++;
         }
     }
 

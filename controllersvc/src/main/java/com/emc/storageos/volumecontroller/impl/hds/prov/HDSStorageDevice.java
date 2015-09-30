@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov;
 
@@ -24,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +21,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
-import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -42,6 +30,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -51,14 +40,15 @@ import com.emc.storageos.hds.HDSException;
 import com.emc.storageos.hds.api.HDSApiClient;
 import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.hds.api.HDSApiProtectionManager;
-import com.emc.storageos.hds.model.ReplicationInfo;
 import com.emc.storageos.hds.model.LDEV;
 import com.emc.storageos.hds.model.LogicalUnit;
+import com.emc.storageos.hds.model.ReplicationInfo;
 import com.emc.storageos.hds.model.StorageArray;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.CloneOperations;
+import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.MetaVolumeOperations;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
@@ -595,14 +585,14 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
      * (non-Javadoc)
      * 
      * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateSnapshot(com.emc.storageos.db.client.model.StorageSystem,
-     * java.util.List, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
+     * java.util.List, java.lang.Boolean, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
-            Boolean createInactive, TaskCompleter taskCompleter)
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         // CG support is not yet implemented for HDS
-        snapshotOperations.createSingleVolumeSnapshot(storage, snapshotList.get(0), createInactive, taskCompleter);
+        snapshotOperations.createSingleVolumeSnapshot(storage, snapshotList.get(0), createInactive, readOnly, taskCompleter);
     }
 
     /*

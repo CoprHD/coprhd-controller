@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.util;
 
@@ -38,10 +28,16 @@ public class NullColumnValueGetter {
      * @return a null string.
      */
     private static final String NULL_STR = "null";
+    
     /**
      * Constant return null URI.
      */
     private static final URI NULL_URI = URI.create(NULL_STR);
+    
+    /**
+     * Constant return null URI.
+     */
+    private static final NamedURI NULL_NAMED_URI = new NamedURI(NULL_URI, NULL_STR);
 
     /**
      * Return a null String value.
@@ -60,6 +56,15 @@ public class NullColumnValueGetter {
     public static URI getNullURI() {
         return NULL_URI;
     }
+    
+    /**
+     * Return a null Named URI value.
+     * 
+     * @return
+     */
+    public static NamedURI getNullNamedURI() {
+        return NULL_NAMED_URI;
+    }
 
     /**
      * Checks to see if a String value is null.
@@ -75,7 +80,7 @@ public class NullColumnValueGetter {
      * Checks to see if a String value is null.
      * 
      * @param s the value to be checked
-     * @return true if the String is not null
+     * @return true if the String is null
      */
     public static boolean isNullValue(String s) {
         return !isNotNullValue(s);

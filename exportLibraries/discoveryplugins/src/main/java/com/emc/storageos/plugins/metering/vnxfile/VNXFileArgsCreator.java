@@ -1,32 +1,67 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.plugins.metering.vnxfile;
 
 import java.io.InputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.JAXBException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.nas.vnxfile.xmlapi.*;
+import com.emc.nas.vnxfile.xmlapi.AccessPolicy;
+import com.emc.nas.vnxfile.xmlapi.CelerraSystemQueryParams;
+import com.emc.nas.vnxfile.xmlapi.CheckpointQueryParams;
+import com.emc.nas.vnxfile.xmlapi.CifsOptions;
+import com.emc.nas.vnxfile.xmlapi.CifsServerQueryParams;
+import com.emc.nas.vnxfile.xmlapi.DeleteCheckpoint;
+import com.emc.nas.vnxfile.xmlapi.DeleteFileSystem;
+import com.emc.nas.vnxfile.xmlapi.DeleteMount;
+import com.emc.nas.vnxfile.xmlapi.DeleteNfsExport;
+import com.emc.nas.vnxfile.xmlapi.DeleteTree;
+import com.emc.nas.vnxfile.xmlapi.ExtendFileSystem;
 import com.emc.nas.vnxfile.xmlapi.ExtendFileSystem.StoragePool;
 import com.emc.nas.vnxfile.xmlapi.ExtendFileSystem.StoragePool.EnableAutoExt;
+import com.emc.nas.vnxfile.xmlapi.FileSystem;
+import com.emc.nas.vnxfile.xmlapi.FileSystemAlias;
+import com.emc.nas.vnxfile.xmlapi.FileSystemQueryParams;
 import com.emc.nas.vnxfile.xmlapi.FileSystemQueryParams.AspectSelection;
+import com.emc.nas.vnxfile.xmlapi.FileSystemType;
+import com.emc.nas.vnxfile.xmlapi.FileSystemUsageSet;
+import com.emc.nas.vnxfile.xmlapi.LockingPolicy;
+import com.emc.nas.vnxfile.xmlapi.ModifyFileSystem;
 import com.emc.nas.vnxfile.xmlapi.ModifyFileSystem.AutoExtend;
+import com.emc.nas.vnxfile.xmlapi.ModifyTreeQuota;
+import com.emc.nas.vnxfile.xmlapi.MountQueryParams;
+import com.emc.nas.vnxfile.xmlapi.MoverOrVdmRef;
+import com.emc.nas.vnxfile.xmlapi.MoverQueryParams;
+import com.emc.nas.vnxfile.xmlapi.MoverRef;
+import com.emc.nas.vnxfile.xmlapi.MoverStatsSetQueryParams;
+import com.emc.nas.vnxfile.xmlapi.MoverStatsSetType;
+import com.emc.nas.vnxfile.xmlapi.NewCheckpoint;
+import com.emc.nas.vnxfile.xmlapi.NewFileSystem;
+import com.emc.nas.vnxfile.xmlapi.NewMount;
+import com.emc.nas.vnxfile.xmlapi.NewTree;
+import com.emc.nas.vnxfile.xmlapi.NfsExportQueryParams;
+import com.emc.nas.vnxfile.xmlapi.NfsOptions;
+import com.emc.nas.vnxfile.xmlapi.Query;
+import com.emc.nas.vnxfile.xmlapi.QueryStats;
+import com.emc.nas.vnxfile.xmlapi.QuotaLimits;
+import com.emc.nas.vnxfile.xmlapi.RestoreCheckpoint;
+import com.emc.nas.vnxfile.xmlapi.StoragePoolQueryParams;
+import com.emc.nas.vnxfile.xmlapi.Task;
+import com.emc.nas.vnxfile.xmlapi.TreeQuotaQueryParams;
+import com.emc.nas.vnxfile.xmlapi.UserAccountQueryParams;
+import com.emc.nas.vnxfile.xmlapi.VdmQueryParams;
+import com.emc.nas.vnxfile.xmlapi.VolumeStatsSetQueryParams;
+import com.emc.nas.vnxfile.xmlapi.VolumeStatsSetType;
 import com.emc.storageos.plugins.common.ArgsCreator;
 import com.emc.storageos.plugins.common.Util;
 import com.emc.storageos.plugins.common.domainmodel.Argument;
@@ -224,6 +259,34 @@ public class VNXFileArgsCreator extends ArgsCreator {
             CheckpointQueryParams ckptParams = new CheckpointQueryParams();
             query.getQueryRequestChoice().add(ckptParams);
             iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(ckptParams, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for celerra system info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+
+    }
+
+    /**
+     * create Mount query and returns its stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchMountFSInfo(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("VNX File System Mount info query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
+            MountQueryParams mountQueryParams = new MountQueryParams();
+            query.getQueryRequestChoice().add(mountQueryParams);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(mountQueryParams, false);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for celerra system info",
@@ -481,6 +544,75 @@ public class VNXFileArgsCreator extends ArgsCreator {
     }
 
     /**
+     * create Mover stats query and returns its stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchMoverStats(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("VNX Mover Stats query");
+        InputStream iStream = null;
+        List<QueryStats> statsList = new ArrayList<QueryStats>();
+        try {
+            Set<String> movers = (Set<String>) keyMap.get(VNXFileConstants.MOVERLIST);
+            if (null != movers && !movers.isEmpty()) {
+                for (String moverID : movers) {
+                    QueryStats queryStats = new QueryStats();
+                    MoverStatsSetQueryParams moverStatsSetQueryParams = new MoverStatsSetQueryParams();
+                    moverStatsSetQueryParams.setStatsSet(MoverStatsSetType.NETWORK_DEVICES);
+                    moverStatsSetQueryParams.setMover(moverID);
+                    queryStats.setMoverStats(moverStatsSetQueryParams);
+                    statsList.add(queryStats);
+                }
+                iStream = _vnxFileInputRequestBuilder.getMultiRequestQueryStatsPacket(statsList);
+            } else {
+                _logger.error("No movers found to construct volumeStats query.");
+            }
+
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for celerra mover stats",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
+
+    /**
+     * create Mover interface info query and returns its stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchMoverInterfacesInfo(final Argument argument,
+            final Map<String, Object> keyMap,
+            int index) throws VNXFilePluginException {
+        _logger.info("mover interfaces info query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
+            MoverQueryParams moverQuery = new MoverQueryParams();
+            MoverQueryParams.AspectSelection selection = new MoverQueryParams.AspectSelection();
+            selection.setMoverNetworkDevices(true);
+            moverQuery.setAspectSelection(selection);
+            query.getQueryRequestChoice().add(moverQuery);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(moverQuery, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for datamover info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
+
+    /**
      * Performs a query for the user accounts on the specified data mover.
      * 
      * @param argument
@@ -580,7 +712,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             String dataMover = null;
             if (!movers.isEmpty()) {
                 Iterator<String> iter = movers.iterator();
-                dataMover = (String) iter.next();
+                dataMover = iter.next();
             }
 
             _logger.debug("new file system name: {}", fsName);

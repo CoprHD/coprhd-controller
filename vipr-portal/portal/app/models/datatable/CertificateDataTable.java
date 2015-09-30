@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -23,8 +23,8 @@ public class CertificateDataTable extends DataTable {
         addColumn("commonName");
         addColumn("organization");
         addColumn("issuedBy");
-        addColumn("notBefore");
-        addColumn("notAfter");
+        addColumn("notBefore").setRenderFunction("render.localDate");
+        addColumn("notAfter").setRenderFunction("render.localDate");
         addColumn("userSupplied").setRenderFunction("render.boolean");
         addColumn("certificateValid").setRenderFunction("render.operationalStatus");
         sortAll();

@@ -49,11 +49,11 @@
 
     		if (status == 'DONE') {
     			var doneMsg = Messages.get("renderFunctions.recovery.result.done");
-    			$('#errorMsg').html("<span>" + doneMsg + endtime + ".</span>");
+    			$('#errorMsg').html("<span>" + doneMsg + formatLocalDateTime(new Date(endtime)) + ".</span>");
     		}
     		else if (status == 'FAILED') {
     			var failedMsg = Messages.get("renderFunctions.recovery.result.failed");
-    			$('#errorMsg').html("<span>" + failedMsg + endtime + ".</span>");
+    			$('#errorMsg').html("<span>" + failedMsg + formatLocalDateTime(new Date(endtime)) + ".</span>");
     			
                 var reasonMsg = Messages.get("renderFunctions.recovery.result.reason");
     			$('#errorResult').html("<span>" + reasonMsg + errorcode + "</span>");
@@ -71,11 +71,9 @@
 	        render.recoveryStatus('#recoveryStatus', status);
 	        render.recoveryStatus('#recoveryStatusAnim', status);
 	   	 
-	        startime = (startime) ? startime : "NA";
-	        $('#startTime').append(startime);
+	        startime = (startime) ? $('#startTime').append(formatLocalDateTime(new Date(startime))) : $('#startTime').append("NA");
 	   	 
-	        endtime = (endtime) ? endtime : "NA";
-	        $('#endTime').append(endtime);
+	        endtime = (endtime) ? $('#endTime').append(formatLocalDateTime(new Date(endtime))) : $('#endTime').append("NA");
 	        render.recoveryErrorStatus("#errorCode", errorcode)
 	   	
 	        if (status == 'INIT' || status == 'PREPARING' || status == 'SYNCING' || status == 'REPAIRING') {
@@ -153,8 +151,8 @@
                 disableBtnWhenStable();
     			setInterval(getRecoveryStatus, 5000);
     			renderRecoveryStatus("${recoveryStatus?.status}",
-    					             "${recoveryStatus?.startTime}",
-    					             "${recoveryStatus?.endTime}",
+    					             "${startTime}",
+    					             "${endTime}",
     					             "${recoveryStatus?.errorCode}");    			
     		},
     		error: function(jqXHR, exception) {

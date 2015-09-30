@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.client;
 
@@ -107,21 +97,28 @@ public class InternalAlertsClient {
     }
 
     public void sendInternalAlert(String src,
-            int eventId,
-            List<String> nodeIds,
-            List<String> logNames,
-            int severity,
-            Date start,
-            Date end,
-            String msgRegex,
-            String user,
-            String contact) throws SysClientException {
+                                  int eventId,
+                                  List<String> nodeIds,
+                                  List<String> nodeNames,
+                                  List<String> logNames,
+                                  int severity,
+                                  Date start,
+                                  Date end,
+                                  String msgRegex,
+                                  String user,
+                                  String contact) throws SysClientException {
 
         UriBuilder b = UriBuilder.fromUri(URI_SEND_INTERNAL_ALERT);
         b.queryParam("source", src).queryParam("event_id", Integer.toString(eventId));
         if (nodeIds != null) {
             for (String nodeId : nodeIds) {
                 b.queryParam(LogRequestParam.NODE_ID, nodeId);
+            }
+        }
+
+        if (nodeNames != null) {
+            for (String nodeName : nodeNames) {
+                b.queryParam(LogRequestParam.NODE_NAME, nodeName);
             }
         }
 

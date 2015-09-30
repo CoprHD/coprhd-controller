@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.utils;
@@ -517,7 +517,8 @@ public class ExportMaskUtils {
      * @param volumeMap - Map of Volume URIs to Integer HLUs
      * @param targets List<URI> of StoragePorts
      * @param zoneAssignments - Map from InitiatorURI to List of assigned port URIs.
-     * @param maskName TODO
+     * @param maskName the mask name
+     * @param dbClient an instance of DbClient
      * @return new ExportMask object, persisted in database
      * @throws Exception
      */

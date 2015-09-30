@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host.cluster;
@@ -17,6 +17,7 @@ public abstract class ClusterParam {
 
     private URI VcenterDataCenter;
     private URI project;
+    private Boolean autoExportEnabled;
 
     public ClusterParam() {
     }
@@ -53,6 +54,15 @@ public abstract class ClusterParam {
 
     public void setProject(URI project) {
         this.project = project;
+    }
+
+    @XmlElement(name = "auto_export_enabled")
+    public Boolean getAutoExportEnabled() {
+        return autoExportEnabled;
+    }
+
+    public void setAutoExportEnabled(Boolean autoExportEnabled) {
+        this.autoExportEnabled = autoExportEnabled;
     }
 
     /** Gets the cluster name */

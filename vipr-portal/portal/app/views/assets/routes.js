@@ -44,6 +44,7 @@ var routes = {
   Hosts_edit: #{jsAction @compute.Hosts.edit(':id')/},
   HostClusters_edit: #{jsAction @compute.HostClusters.edit(':id')/},
   StorageSystems_edit: #{jsAction @arrays.StorageSystems.edit(':id')/},
+  StorageSystems_getProjectsForNas: #{jsAction @arrays.StorageSystems.getProjectsForNas()/},
   SanSwitches_edit: #{jsAction @arrays.SanSwitches.edit(':id')/},
   DataProtectionSystems_edit: #{jsAction @arrays.DataProtectionSystems.edit(':id')/},
   StorageProviders_edit: #{jsAction @arrays.StorageProviders.edit(':id')/},

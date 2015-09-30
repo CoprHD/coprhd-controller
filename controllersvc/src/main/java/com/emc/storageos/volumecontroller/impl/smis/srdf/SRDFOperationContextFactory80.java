@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis.srdf;
@@ -119,6 +119,15 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
                 break;
             case DELETE_PAIR:
                 executorStrategy = new DetachStorageSyncsStrategy(helper);
+                break;
+            case RESET_TO_ADAPTIVE:
+            	executorStrategy = new ChangeModeToAdaptiveStrategy(helper);
+                break;
+            case RESET_TO_ASYNC:
+            	executorStrategy = new ChangeModeToAsyncStrategy(helper);
+                break;
+            case RESET_TO_SYNC:
+            	executorStrategy = new ChangeModeToSyncStrategy(helper);
                 break;
         }
         ctx.setExecutor(executorStrategy);

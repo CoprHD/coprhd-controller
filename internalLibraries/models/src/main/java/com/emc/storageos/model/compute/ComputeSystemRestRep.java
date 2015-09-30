@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.compute;
@@ -26,6 +26,8 @@ public class ComputeSystemRestRep extends DiscoveredSystemObjectRestRep {
     private String osInstallNetwork;
     private String vlans;
     private Boolean useSSL;
+    private String computeImageServer;
+    
 
     private List<NamedRelatedResourceRep> serviceProfileTemplates = new ArrayList<NamedRelatedResourceRep>();
 
@@ -111,4 +113,15 @@ public class ComputeSystemRestRep extends DiscoveredSystemObjectRestRep {
     public void setVlans(String vlans) {
         this.vlans = vlans;
     }
+
+    @XmlElement(name = "compute_image_server")
+	public String getComputeImageServer() {
+		return computeImageServer;
+	}
+
+	public void setComputeImageServer(String computeImageServer) {
+		this.computeImageServer = computeImageServer;
+	}
+    
+    
 }

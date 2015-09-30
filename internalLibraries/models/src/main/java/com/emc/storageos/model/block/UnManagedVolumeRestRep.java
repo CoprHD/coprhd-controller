@@ -1,21 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.block;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -76,6 +67,11 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
     private List<String> storagePortUris;
 
     /**
+     * List of supported VPool URIs associated with this UnManagedVolume.
+     */
+    private List<String> supportedVPoolUris;
+
+    /**
      * The storage system to which this volume belongs.
      * 
      * @valid none
@@ -88,6 +84,13 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
      * @valid none
      */
     private RelatedResourceRep storagePool;
+
+    /**
+     * WWN of the Volume
+     *
+     * @valid none
+     */
+    private String wwn;
 
     @XmlElement(name = "native_guid")
     public String getNativeGuid() {
@@ -194,4 +197,25 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
         this.storagePortUris = storagePortUris;
     }
 
+    @XmlElementWrapper(name = "supported_virtual_pools")
+    @XmlElement(name = "virtual_pool")
+    public List<String> getSupportedVPoolUris() {
+        if (supportedVPoolUris == null) {
+            supportedVPoolUris = new ArrayList<String>();
+        }
+        return supportedVPoolUris;
+    }
+
+    public void setSupportedVPoolUris(List<String> supportedVPoolUris) {
+        this.supportedVPoolUris = supportedVPoolUris;
+    }
+
+    public void setWWN(String wwn) {
+        this.wwn = wwn;
+    }
+
+    @XmlElement(name = "wwn")
+    public String getWWN() {
+        return wwn;
+    }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common;
@@ -52,7 +42,7 @@ public class DbSchemaScanner extends PackageScanner {
         DbSchema schema = null;
         if (DataObject.class.isAssignableFrom(clazz)) {
             if (_scannerInterceptor != null && _scannerInterceptor.isClassIgnored(clazz.getSimpleName())) {
-                log.warn("{} is ignored in schema due to interceptor", clazz.getSimpleName());
+                log.info("{} is ignored in schema due to interceptor", clazz.getSimpleName());
                 return;
             }
             schema = new DataObjectSchema(clazz, _scannerInterceptor);

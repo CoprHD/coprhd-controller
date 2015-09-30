@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
@@ -189,6 +189,8 @@ public class BlockMapper {
             toSRDF = new SRDFRestRep();
             toSRDF.setPersonality(from.getPersonality());
             toSRDF.setAssociatedSourceVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSrdfParent().getURI()));
+            toSRDF.setSrdfCopyMode(from.getSrdfCopyMode());
+            toSRDF.setSrdfGroup(from.getSrdfGroup());
         }
 
         // Protection object encapsulates mirrors and RP
@@ -471,6 +473,14 @@ public class BlockMapper {
         }
         to.setStoragePortUris(storagePortUris);
 
+        List<String> supportedVPoolUris = new ArrayList<String>();
+        for (String uri : from.getSupportedVpoolUris()) {
+            supportedVPoolUris.add(uri);
+        }
+        to.setSupportedVPoolUris(supportedVPoolUris);
+
+        to.setWWN(from.getWwn());
+
         return to;
     }
 
@@ -539,6 +549,8 @@ public class BlockMapper {
             return ResourceTypeEnum.BLOCK_VPOOL;
         } else if (VirtualPool.Type.file == cosType) {
             return ResourceTypeEnum.FILE_VPOOL;
+        } else if (VirtualPool.Type.object == cosType) {
+            return ResourceTypeEnum.OBJECT_VPOOL;
         } else {
             // impossible;
             return ResourceTypeEnum.BLOCK_VPOOL;

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.stream;
 
@@ -107,8 +97,8 @@ public class LogFileStream implements LogStream {
                 try {
                     reader = new LogReader(filePath, request, status, basename);
                 } catch (Exception e) {
-                    // TODO: generate a dynamic error log message
-                    logger.error("Fail to generate log reader for {}", filePath);
+                    status.append(String.format("Failed to open log file %s", e.getMessage()));
+                    logger.error("Failed to generate log reader for {}", e.getMessage());
                     return null;
                 }
                 logger.debug("Reading file - " + filePath);

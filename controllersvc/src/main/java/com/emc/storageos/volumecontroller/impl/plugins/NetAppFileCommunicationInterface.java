@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins;
@@ -22,21 +12,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
-import com.iwave.ext.netapp.model.CifsAcl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,9 +41,15 @@ import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.netapp.NetAppApi;
 import com.emc.storageos.netapp.NetAppException;
@@ -87,6 +74,7 @@ import com.google.common.collect.Sets;
 import com.iwave.ext.netapp.AggregateInfo;
 import com.iwave.ext.netapp.VFNetInfo;
 import com.iwave.ext.netapp.VFilerInfo;
+import com.iwave.ext.netapp.model.CifsAcl;
 import com.iwave.ext.netapp.model.ExportsHostnameInfo;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netapp.model.SecurityRuleInfo;
@@ -837,7 +825,7 @@ public class NetAppFileCommunicationInterface extends
 
             if (!existingUnManagedFileSystems.isEmpty()) {
                 // Update UnManagedFilesystem
-                _partitionManager.updateInBatches(existingUnManagedFileSystems,
+                _partitionManager.updateAndReIndexInBatches(existingUnManagedFileSystems,
                         Constants.DEFAULT_PARTITION_SIZE, _dbClient,
                         UNMANAGED_FILESYSTEM);
             }
@@ -1203,24 +1191,15 @@ public class NetAppFileCommunicationInterface extends
                     pools);
             unManagedFileSystem.setStoragePoolUri(pool.getId());
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool.getId());
-            if (unManagedFileSystemInformation.containsKey(UnManagedFileSystem.SupportedFileSystemInformation.
-                    SUPPORTED_VPOOL_LIST.toString())) {
-
-                if (null != matchedVPools && matchedVPools.isEmpty()) {
-                    // replace with empty string set doesn't work, hence added explicit code to remove all
-                    unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                } else {
-                    // replace with new StringSet
-                    unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(matchedVPools);
-                    _logger.info("Replaced Pools :" + Joiner.on("\t").join(unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-                }
+            _logger.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
+            if (null == matchedVPools || matchedVPools.isEmpty()) {
+                // clear all existing supported vpool list.
+                unManagedFileSystem.getSupportedVpoolUris().clear();
             } else {
-                unManagedFileSystemInformation
-                        .put(UnManagedFileSystem.SupportedFileSystemInformation.SUPPORTED_VPOOL_LIST
-                                .toString(), matchedVPools);
+                // replace with new StringSet
+                unManagedFileSystem.getSupportedVpoolUris().replace(matchedVPools);
+                _logger.info("Replaced Pools :"
+                        + Joiner.on("\t").join(unManagedFileSystem.getSupportedVpoolUris()));
             }
         }
 
@@ -1672,7 +1651,7 @@ public class NetAppFileCommunicationInterface extends
             String description = "";
             String maxusers = "-1";
             for (String key : shareMap.keySet()) {
-                String value = (String) shareMap.get(key);
+                String value = shareMap.get(key);
                 _logger.info("cifs share - key : {} and value : {}", key, value);
                 if (null != key) {
                     switch (key) {

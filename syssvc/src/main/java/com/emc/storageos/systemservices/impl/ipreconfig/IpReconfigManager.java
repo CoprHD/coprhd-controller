@@ -1,20 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.ipreconfig;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -117,8 +108,11 @@ public class IpReconfigManager implements Runnable {
         localIpinfo = new ClusterIpInfo();
         localIpinfo.loadFromPropertyMap(ovfprops);
 
-        if (ovfprops.get(PropertyConstants.NODE_ID_KEY) != null) {
-            localNodeId = Integer.valueOf(ovfprops.get(PropertyConstants.NODE_ID_KEY).split("vipr")[1]);
+        String node_id = ovfprops.get(PropertyConstants.NODE_ID_KEY);
+        if (node_id == null || node_id.equals(Constants.STANDALONE_ID)) {
+            localNodeId = 1;
+        } else {
+            localNodeId = Integer.valueOf(node_id.split("vipr")[1]);
         }
         nodeCount = Integer.valueOf(ovfprops.get(PropertyConstants.NODE_COUNT_KEY));
     }

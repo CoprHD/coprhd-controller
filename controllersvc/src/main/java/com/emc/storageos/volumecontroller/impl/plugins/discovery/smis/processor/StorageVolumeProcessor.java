@@ -10,6 +10,20 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.client.EnumerateResponse;
+import javax.wbem.client.WBEMClient;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -19,20 +33,8 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.client.EnumerateResponse;
-import javax.wbem.client.WBEMClient;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /*
  * Get volume info from StorageVolume instance
@@ -65,7 +67,6 @@ public class StorageVolumeProcessor extends StorageProcessor {
             Operation operation, Object resultObj, Map<String, Object> keyMap)
             throws BaseCollectionException {
         EnumerateResponse<CIMInstance> volumeInstanceChunks = (EnumerateResponse<CIMInstance>) resultObj;
-        WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
         _dbClient = (DbClient) keyMap.get(Constants.dbClient);
         _keyMap = keyMap;
         _updateVolumes = new ArrayList<Volume>();
@@ -105,7 +106,7 @@ public class StorageVolumeProcessor extends StorageProcessor {
     }
 
     @Override
-    protected int processInstances(Iterator<CIMInstance> instances) {
+    protected int processInstances(Iterator<CIMInstance> instances, WBEMClient client) {
         int count = 0;
         List<CIMObjectPath> metaVolumes = new ArrayList<>();
         while (instances.hasNext()) {
@@ -132,7 +133,8 @@ public class StorageVolumeProcessor extends StorageProcessor {
                         _logger.debug("Skipping Mirror, as its not being managed in Bourne");
                         continue;
                     }
-                    updateBlockMirror(volumeInstance, mirror, _keyMap);
+                    CIMInstance syncObject = getSyncElement(volumeInstance, client);
+                    updateBlockMirror(volumeInstance, mirror, _keyMap, syncObject);
                     if (_updateMirrors.size() > BATCH_SIZE) {
                         _partitionManager.updateInBatches(_updateMirrors, getPartitionSize(_keyMap),
                                 _dbClient, BLOCK_MIRROR);
@@ -193,7 +195,8 @@ public class StorageVolumeProcessor extends StorageProcessor {
         return usage.equalsIgnoreCase(TWELVE);
     }
 
-    private void updateBlockSnapShot(CIMInstance volumeInstance, BlockSnapshot snapShot, Map<String, Object> keyMap) {
+    private void
+            updateBlockSnapShot(CIMInstance volumeInstance, BlockSnapshot snapShot, Map<String, Object> keyMap) {
         String spaceConsumed = getAllocatedCapacity(volumeInstance, _volumeToSpaceConsumedMap, _isVMAX3);
         if (spaceConsumed != null) {
             snapShot.setAllocatedCapacity(Long.parseLong(spaceConsumed));
@@ -204,10 +207,13 @@ public class StorageVolumeProcessor extends StorageProcessor {
         _updateSnapShots.add(snapShot);
     }
 
-    private void updateBlockMirror(CIMInstance volumeInstance, BlockMirror mirror, Map<String, Object> keyMap) {
+    private void updateBlockMirror(CIMInstance volumeInstance, BlockMirror mirror, Map<String, Object> keyMap, CIMInstance syncObject) {
         String spaceConsumed = getAllocatedCapacity(volumeInstance, _volumeToSpaceConsumedMap, _isVMAX3);
         if (spaceConsumed != null) {
             mirror.setAllocatedCapacity(Long.parseLong(spaceConsumed));
+        }
+        if (null != syncObject) {
+            mirror.setSyncState(CIMPropertyFactory.getPropertyValue(syncObject, SmisConstants.CP_SYNC_STATE));
         }
 
         mirror.setProvisionedCapacity(returnProvisionedCapacity(volumeInstance,

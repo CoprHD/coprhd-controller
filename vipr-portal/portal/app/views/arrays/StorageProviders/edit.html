@@ -29,10 +29,18 @@
         <input-text class="initialFocus"></input-text>
       </control-group>
 
-      <control-group v-field="smisProvider.interfaceType" required>
+      <control-group v-field="smisProvider.interfaceType" ng-if="!editMode" required>
+        <select-one options="interfaceTypeOptions" ></select-one>
+      </control-group>      
+      
+      <control-group v-field="smisProvider.interfaceType" ng-if="editMode && (smisProvider.interfaceType =='scaleio' || smisProvider.interfaceType =='scaleioapi')" required>
+        <select-one options="optionsSIO" ></select-one>
+      </control-group>
+      
+      <control-group v-field="smisProvider.interfaceType" ng-if="editMode && (smisProvider.interfaceType !='scaleio' && smisProvider.interfaceType != 'scaleioapi')" required>
         <select-one options="interfaceTypeOptions" ng-disabled="editMode"></select-one>
       </control-group>
-
+            
       <control-group v-field="smisProvider.ipAddress" required>
         <input-text></input-text>
       </control-group>
@@ -46,36 +54,47 @@
         <input-text></input-text>
       </control-group>
 
-      <control-group v-field="smisProvider.userName" required="!editMode">
+      <control-group v-field="smisProvider.userName" required="!editMode" ng-hide="isMDMOnlyType()">
         <input-text></input-text>
       </control-group>
 
-      <control-group v-field="smisProvider.password" required="!editMode">
+      <control-group v-field="smisProvider.password" required="!editMode" ng-hide="isMDMOnlyType()">
         <input-password></input-password>
       </control-group>
 
-      <control-group v-field="smisProvider.confirmPassword" required="!editMode">
+      <control-group v-field="smisProvider.confirmPassword" required="!editMode" ng-hide="isMDMOnlyType()">
         <input-password></input-password>
       </control-group>
 
-      <control-group v-field="smisProvider.secondaryUsername" ng-show="isMDMDefaultType()">
+      <control-group v-field="smisProvider.secondaryUsername" ng-show="isMDMDefaultType()" required="isMDMOnlyType()">
         <input-text></input-text>
       </control-group>
-
-      <control-group v-field="smisProvider.secondaryPassword" ng-show="isMDMDefaultType()">
+            
+      <control-group v-field="smisProvider.secondaryPassword" ng-show="isMDMDefaultType()" required="isMDMOnlyType()">
         <input-password></input-password>
       </control-group>
 
-      <control-group v-field="smisProvider.secondaryPasswordConfirm" ng-show="isMDMDefaultType()">
+      <control-group v-field="smisProvider.secondaryPasswordConfirm" ng-show="isMDMDefaultType()" required="isMDMOnlyType()">
         <input-password></input-password>
-      </control-group>
+      </control-group>      
+      
 
       <control-group v-field="smisProvider.elementManagerURL" ng-show="isElementManagerType()">
         <input-text></input-text>
       </control-group>
 
-    </fieldset>
-
-    #{Form.saveCancel cancelHref:referrer/}
+    </fieldset>	
+    #{Form.saveCancel cancelHref:referrer/}  
   #{/form}
 </div>
+<script>
+$(document).ready(function() {
+	disableTypeScaleIOAPI();
+});
+function disableTypeScaleIOAPI() {
+	var providerType = '${smisProvider.interfaceType}';
+	if (providerType == 'scaleioapi') {
+		$("#smisProvider_interfaceType").attr('disabled',true);
+	}
+}
+</script>

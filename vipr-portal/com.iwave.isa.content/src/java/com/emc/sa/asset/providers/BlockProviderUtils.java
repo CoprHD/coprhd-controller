@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.asset.providers;
@@ -66,6 +66,32 @@ public class BlockProviderUtils {
             }
             else if (!onlyMounted && !isMounted) {
                 volumes.add(volume);
+            }
+        }
+        return volumes;
+    }
+    
+    /**
+     * Method to return all volumes associated with a specific datastore
+     * 
+     * @param viprClient 
+     * @param tenantId 
+     * @param hostOrClusterId 
+     * @param datastore name
+     * 
+     * @return list of volumes associated with specified datastore
+     */
+    public static List<VolumeRestRep> getBlockVolumesForDatastore(ViPRCoreClient viprClient, URI tenantId, URI hostOrClusterId,
+            String datastore) {
+        List<URI> hostIds = buildHostIdsList(viprClient, hostOrClusterId, true);
+
+        List<VolumeRestRep> volumes = Lists.newArrayList();
+        for (VolumeRestRep volume : getExportedBlockVolumes(viprClient, tenantId, hostOrClusterId)) {
+            for (URI hostId : hostIds) {
+                String ds = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
+                if (StringUtils.isNotBlank(ds) && ds.equals(datastore)) {
+                    volumes.add(volume);
+                }
             }
         }
         return volumes;
@@ -295,6 +321,14 @@ public class BlockProviderUtils {
             volumeNameMap.put(volume.getId(), volume.getName());
         }
         return volumeNameMap;
+    }
+
+    public static boolean isSupportedVPool(BlockVirtualPoolRestRep vpool) {
+        return vpool != null && vpool.getMultiVolumeConsistent() != null && vpool.getMultiVolumeConsistent();
+    }
+
+    public static boolean isType(URI uri, String name) {
+        return uri.toString().startsWith("urn:storageos:" + name);
     }
 
 }

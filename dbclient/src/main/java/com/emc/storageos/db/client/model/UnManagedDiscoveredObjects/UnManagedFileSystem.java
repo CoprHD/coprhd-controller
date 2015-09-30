@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
@@ -91,6 +91,7 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         DEVICE_LABEL("ElementName"),
         NAME("FSName"),
         PATH("FSPath"),
+        NAS("NasUri"),
         MOUNT_PATH("FSMountPath");
         private String _infoKey;
 

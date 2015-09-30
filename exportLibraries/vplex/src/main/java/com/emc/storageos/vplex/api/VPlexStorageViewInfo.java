@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -143,7 +133,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
             Integer volumeHLU = Integer.valueOf(hluStr);
             String volumeName = tokenizer.nextToken();
             String vpdId = tokenizer.nextToken();
-            int indexColon = vpdId.indexOf(":");
+            int indexColon = vpdId.indexOf(':');
             String volumeWWN = vpdId.substring(indexColon + 1);
             virtualVolumeWWNMap.put(volumeName, volumeWWN);
             virtualVolumeHLUMap.put(volumeName, volumeHLU);
@@ -266,11 +256,11 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("StorageViewInfo ( ");
         str.append(super.toString());
-        str.append(", clusterId: " + clusterId);
-        str.append(", virtualVolumes: " + virtualVolumes.toString());
-        str.append(", initiators: " + initiators.toString());
-        str.append(", initiator PWWNs: " + initiatorPwwns.toString());
-        str.append(", target ports: " + ports.toString());
+        str.append(", clusterId: ").append(clusterId);
+        str.append(", virtualVolumes: ").append(virtualVolumes.toString());
+        str.append(", initiators: ").append(initiators.toString());
+        str.append(", initiator PWWNs: ").append(initiatorPwwns.toString());
+        str.append(", target ports: ").append(ports.toString());
         str.append(" )");
         return str.toString();
     }

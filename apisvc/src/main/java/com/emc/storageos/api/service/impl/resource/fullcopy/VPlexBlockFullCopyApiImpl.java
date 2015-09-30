@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
@@ -189,6 +179,22 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // Call super first.
                 super.validateFullCopyCreateRequest(fcSourceObjList, count);
 
+                // If there are more than one volume in the consistency group, and they are on 
+                // different backend storage systems, return error.
+                if (fcSourceObjList.size() >1) {
+                    List<Volume> volumes = new ArrayList<Volume>();
+                    for (BlockObject fcSource : fcSourceObjList) {
+                        volumes.add((Volume)fcSource);
+                    }
+                    if (!VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumes, _dbClient)) {
+                        throw APIException.badRequests.fullCopyNotAllowedWhenCGAcrossMultipleSystems();
+                    }
+                }
+                // Check if the source volume is an ingested CG, without any back end CGs yet. if yes, throw error
+                Volume srcVol = (Volume) fcSourceObjList.get(0);
+                if (VPlexUtil.isVolumeInIngestedCG(srcVol, _dbClient)) {
+                    throw APIException.badRequests.fullCopyNotAllowedForIngestedCG(srcVol.getId().toString());
+                }
                 // Platform specific checks.
                 for (BlockObject fcSourceObj : fcSourceObjList) {
                     Volume fcSourceVolume = (Volume) fcSourceObj;
@@ -476,9 +482,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
                 // Prepare the volume.
                 Volume volume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size,
-                        vplexSystemProject, haVarray, haVpool,
-                        haRecommendation.getSourceDevice(), haRecommendation.getSourcePool(),
-                        nameBuilder.toString(), null, taskId, _dbClient);
+                    vplexSystemProject, haVarray, haVpool,
+                    haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
+                    nameBuilder.toString(), null, taskId, _dbClient);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                 _dbClient.persistObject(volume);
                 copyHAVolumes.add(volume);

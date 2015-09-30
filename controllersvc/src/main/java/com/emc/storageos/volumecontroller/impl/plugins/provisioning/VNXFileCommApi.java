@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins.provisioning;
@@ -24,7 +14,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,13 +28,13 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
+import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
-
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.plugins.common.domainmodel.Namespace;
 import com.emc.storageos.plugins.common.domainmodel.NamespaceList;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
@@ -257,6 +246,26 @@ public class VNXFileCommApi {
         return result;
     }
 
+    public boolean checkFileSystemExists(StorageSystem system, String fileId, String fileSys) throws VNXException {
+
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
+        boolean isFsAvailable = true;
+        try {
+            updateAttributes(reqAttributeMap, system);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
+            _provExecutor.setKeyMap(reqAttributeMap);
+            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE));
+            String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
+            if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
+                isFsAvailable = (Boolean) _provExecutor.getKeyMap().get(VNXFileConstants.IS_FILESYSTEM_AVAILABLE_ON_ARRAY);
+            }
+        } catch (Exception e) {
+            throw VNXException.exceptions.communicationFailed(e.getMessage());
+        }
+        return isFsAvailable;
+    }
+
     public XMLApiResult createSnapshot(final StorageSystem system,
             final String fsName,
             final String snapshotName,
@@ -303,8 +312,7 @@ public class VNXFileCommApi {
                     vnxSnap.setId(snId);
                     result.setObject(vnxSnap);
                     result.setCommandSuccess();
-                }
-                else {
+                } else {
                     result.setCommandFailed();
                     result.setMessage((String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC));
                 }
@@ -323,8 +331,7 @@ public class VNXFileCommApi {
 
     public XMLApiResult createQuotaDirectory(final StorageSystem system,
             final String fsName, final String quotaDirName, final String securityStyle,
-            final Long size, final Boolean oplocks, Boolean isMountRequired
-            ) throws VNXException {
+            final Long size, final Boolean oplocks, Boolean isMountRequired) throws VNXException {
 
         _log.info("Create VNX File System Quota dir: {} on file system {}", quotaDirName,
                 fsName);
@@ -361,8 +368,7 @@ public class VNXFileCommApi {
                     vnxQuotaTree.setId(qdId);
                     result.setObject(vnxQuotaTree);
                     result.setCommandSuccess();
-                }
-                else {
+                } else {
                     result.setCommandFailed();
                     result.setMessage((String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC));
                 }
@@ -381,8 +387,7 @@ public class VNXFileCommApi {
 
     public XMLApiResult modifyQuotaDirectory(final StorageSystem system,
             final String fsName, final String quotaDirName, final String securityStyle,
-            final Long size, final Boolean oplocks, Boolean isMountRequired
-            ) throws VNXException {
+            final Long size, final Boolean oplocks, Boolean isMountRequired) throws VNXException {
 
         _log.info("Modify VNX File System Quota dir: {} on file system {}", quotaDirName,
                 fsName);
@@ -419,8 +424,7 @@ public class VNXFileCommApi {
                     vnxQuotaTree.setId(qdId);
                     result.setObject(vnxQuotaTree);
                     result.setCommandSuccess();
-                }
-                else {
+                } else {
                     result.setCommandFailed();
                     result.setMessage((String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC));
                 }
@@ -438,8 +442,7 @@ public class VNXFileCommApi {
     }
 
     public XMLApiResult deleteQuotaDirectory(final StorageSystem system,
-            final String fsName, final String quotaDirName, final Boolean forceDelete, Boolean isMountRequired
-            ) throws VNXException {
+            final String fsName, final String quotaDirName, final Boolean forceDelete, Boolean isMountRequired) throws VNXException {
 
         _log.info("Delete VNX File System Quota dir: {} on file system {}", quotaDirName,
                 fsName);
@@ -556,10 +559,6 @@ public class VNXFileCommApi {
                                     result.setCommandFailed();
                                     result.setMessage(errMsg);
                                     return result;
-                                } else {
-                                    // Set as inactive
-                                    snapshot.setInactive(true);
-                                    _dbClient.persistObject(snapshot);
                                 }
                             }
                         }
@@ -606,11 +605,6 @@ public class VNXFileCommApi {
                 cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
                 if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
                     result.setCommandSuccess();
-                    if (fs != null)
-                    {
-                        fs.setInactive(true);
-                        _dbClient.persistObject(fs);
-                    }
                 } else {
                     String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                     result.setCommandFailed();
@@ -654,26 +648,6 @@ public class VNXFileCommApi {
                             result.setCommandFailed();
                             result.setMessage(errMsg);
                             return result;
-                        } else {
-                            String nativeGuid = NativeGUIDGenerator.generateNativeGuidForQuotaDir(_dbClient, quotaDirName, fs.getId());
-                            QuotaDirectory quotaDir = null;
-                            URIQueryResultList quotaDirIDList = new URIQueryResultList();
-                            _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getQuotaDirsByNativeGuid(nativeGuid),
-                                    quotaDirIDList);
-                            if (quotaDirIDList != null && quotaDirIDList.iterator().hasNext()) {
-                                _log.info("Quota dirs found with native guid : {} ", nativeGuid);
-
-                                while (quotaDirIDList.iterator().hasNext()) {
-                                    URI uri = quotaDirIDList.iterator().next();
-                                    quotaDir = _dbClient.queryObject(QuotaDirectory.class, uri);
-                                    if (quotaDir != null && !quotaDir.getInactive()) {
-                                        _log.info("Deactivated quota dir : {} ", quotaDir.getName());
-                                        // Set as inactive
-                                        quotaDir.setInactive(true);
-                                        _dbClient.persistObject(quotaDir);
-                                    }
-                                }
-                            }
                         }
                     }
                 }
@@ -756,15 +730,12 @@ public class VNXFileCommApi {
                 deleteMount = true;
             }
             XMLApiResult status = doUnexport(system, fileExport, args, deleteMount);
-            if (!status.isCommandSuccess())
-            {
+            if (!status.isCommandSuccess()) {
                 String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                 result.setCommandFailed();
                 result.setMessage(errMsg);
                 return result;
-            }
-            else
-            {
+            } else {
                 fObj.getFsExports().remove(key);
                 _log.info("Export removed : " + key);
                 exportsToUnExport--;
@@ -803,16 +774,13 @@ public class VNXFileCommApi {
                 deleteMount = true;
             }
             XMLApiResult status = doDeleteShare(system, dataMover, share.getName(), fs.getMountPath(), deleteMount, args);
-            if (!status.isCommandSuccess())
-            {
+            if (!status.isCommandSuccess()) {
                 _log.info("SMBFileShare deletion failed key {} : {} ", key, share.getName());
                 String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                 result.setCommandFailed();
                 result.setMessage(errMsg);
                 return result;
-            }
-            else
-            {
+            } else {
                 fObj.getSMBFileShares().remove(key);
                 _log.info("SMBFileShare removed : " + key);
                 noOfSharesToDelete--;
@@ -1123,7 +1091,8 @@ public class VNXFileCommApi {
                         FileExport exp = args.getFileObjExports().get(key);
                         VNXFileExport vnxExp = new VNXFileExport(exp.getClients(), exp.getStoragePortName(),
                                 exp.getPath(), exp.getSecurityType(), exp.getPermissions(),
-                                exp.getRootUserMapping(), exp.getProtocol(), exp.getStoragePort(), exp.getSubDirectory(), exp.getComments());
+                                exp.getRootUserMapping(), exp.getProtocol(), exp.getStoragePort(), exp.getSubDirectory(),
+                                exp.getComments());
                         vnxExports.add(vnxExp);
                     }
                     sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
@@ -1518,8 +1487,7 @@ public class VNXFileCommApi {
         URI fsId = fs.getId();
         List<Snapshot> snapshots = new ArrayList<Snapshot>();
         URIQueryResultList snapIDList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                getFileshareSnapshotConstraint(fsId), snapIDList);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(fsId), snapIDList);
         while (snapIDList.iterator().hasNext()) {
             URI uri = snapIDList.iterator().next();
             Snapshot snap = _dbClient.queryObject(Snapshot.class, uri);
@@ -1534,8 +1502,7 @@ public class VNXFileCommApi {
         URI fsId = fs.getId();
         List<QuotaDirectory> quotaDirs = new ArrayList<QuotaDirectory>();
         URIQueryResultList qdIDList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                getQuotaDirectoryConstraint(fsId), qdIDList);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getQuotaDirectoryConstraint(fsId), qdIDList);
         while (qdIDList.iterator().hasNext()) {
             URI uri = qdIDList.iterator().next();
             QuotaDirectory quotaDir = _dbClient.queryObject(QuotaDirectory.class, uri);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.exceptions;
@@ -25,14 +25,7 @@ public class ServiceErrorException extends ViPRHttpException {
 
     @Override
     public String getLocalizedMessage() {
-        if (getHttpCode() >= 100) {
-            return String.format("Error %s (http: %s): %s. %s",
-                    getCode(), getHttpCode(), getCodeDescription(), getDetailedMessage());
-        }
-        else {
-            return String.format("Error %s: %s. %s",
-                    getCode(), getCodeDescription(), getDetailedMessage());
-        }
+        return String.format("Error %s: %s", getCode(), getDetailedMessage());
     }
 
     @Override

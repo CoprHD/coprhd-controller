@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.smis;
@@ -138,7 +128,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                     new SmisCreateMetaVolumeHeadJob(null, forProvider.getId(), metaVolumeTaskCompleter, metaHead.getId());
 
             _helper.invokeMethodSynchronously(forProvider, configSvcPath,
-                    SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs,
+                    _helper.createVolumesMethodName(forProvider), inArgs,
                     outArgs, smisJobCompleter);
         } catch (WBEMException e) {
             _log.error("Problem making SMI-S call: ", e);
@@ -322,19 +312,6 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
         // case for VMAX, else the request will fail.
         // TODO there is a bug in smis --- the request to element composition service fails when name is set even for a single volume.
         // todo: the opt 450103 was opened on 05/30
-        // if (volumes.size() == 1) {
-        if (false) {
-            String tenantName = "";
-            try {
-                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant()
-                        .getURI());
-                tenantName = tenant.getLabel();
-            } catch (DatabaseException e) {
-                _log.error("Error lookup TenantOrb object", e);
-            }
-            label = _nameGenerator.generate(tenantName, volume.getLabel(), volume.getId()
-                    .toString(), '-', SmisConstants.MAX_VOLUME_NAME_LENGTH);
-        }
 
         Long capacity = volume.getTotalMetaMemberCapacity();
         Integer metaMemberCount = volume.getMetaMemberCount();

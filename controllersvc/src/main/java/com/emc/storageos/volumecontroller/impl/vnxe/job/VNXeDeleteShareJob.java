@@ -1,29 +1,26 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.CifsShareACL;
+import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.volumecontroller.FileSMBShare;
@@ -110,6 +107,7 @@ public class VNXeDeleteShareJob extends VNXeJob {
             return;
         }
         shareMap.remove(smbShare.getName());
+        deleteShareACLsFromDB(dbClient, fsObj);
         dbClient.persistObject(fsObj);
     }
 
@@ -121,8 +119,46 @@ public class VNXeDeleteShareJob extends VNXeJob {
             return snapObj;
         }
         shareMap.remove(smbShare.getName());
+        deleteShareACLsFromDB(dbClient, snapObj);
         dbClient.persistObject(snapObj);
         return snapObj;
+    }
+
+    private void deleteShareACLsFromDB(DbClient dbClient, FileObject fsObj) {
+
+        try {
+
+            ContainmentConstraint containmentConstraint = null;
+            if (isFile && fsObj != null) {
+                _logger.info("Querying DB for Share ACLs of share {} of filesystemId {} ", smbShare.getName(), fsObj.getId());
+                containmentConstraint = ContainmentConstraint.Factory.getFileCifsShareAclsConstraint(fsObj.getId());
+            } else if (!isFile && fsObj != null) {
+                URI snapshotId = fsObj.getId();
+                _logger.info("Querying DB for Share ACLs of share {} of SnapshotId {} ", smbShare.getName(), fsObj.getId());
+                containmentConstraint = ContainmentConstraint.Factory.getSnapshotCifsShareAclsConstraint(snapshotId);
+            }
+
+            List<CifsShareACL> shareAclList = CustomQueryUtility.queryActiveResourcesByConstraint(
+                    dbClient, CifsShareACL.class, containmentConstraint);
+            List<CifsShareACL> deleteAclList = new ArrayList<CifsShareACL>();
+
+            if (!shareAclList.isEmpty()) {
+                Iterator<CifsShareACL> shareAclIter = shareAclList.iterator();
+                while (shareAclIter.hasNext()) {
+                    CifsShareACL shareAcl = shareAclIter.next();
+                    if (smbShare.getName().equals(shareAcl.getShareName())) {
+                        shareAcl.setInactive(true);
+                        deleteAclList.add(shareAcl);
+                    }
+                }
+                if (!deleteAclList.isEmpty()) {
+                    _logger.info("Deleting ACLs of share {} of filesystem {}", smbShare.getName(), fsObj.getLabel());
+                    dbClient.persistObject(deleteAclList);
+                }
+            }
+        } catch (Exception e) {
+            _logger.error("Error while querying DB for ACL(s) of a share {}", e);
+        }
     }
 
 }

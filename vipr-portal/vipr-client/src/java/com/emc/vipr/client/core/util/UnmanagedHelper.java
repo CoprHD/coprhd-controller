@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.util;
@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.adapters.StringSetMapAdapter.Entry;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
@@ -27,7 +28,8 @@ public class UnmanagedHelper {
     public static final String IS_LOCAL_MIRROR = "IS_LOCAL_MIRROR";
     public static final String IS_VOLUME_EXPORTED = "IS_VOLUME_EXPORTED";
 
-    public static Set<URI> getVpoolsForUnmanaged(List<Entry> infoEntries, List<StringHashMapEntry> characteristicsEntries) {
+    public static Set<URI> getVpoolsForUnmanaged(List<StringHashMapEntry> characteristicsEntries,
+            List<String> supportedVPoolUris) {
         Set<URI> results = new HashSet<URI>();
 
         // Only return vpools which this can import if this is supported for ingestion
@@ -35,9 +37,9 @@ public class UnmanagedHelper {
             return results;
         }
 
-        for (Entry entry : infoEntries) {
-            if (SUPPORTED_VPOOL_LIST.equals(entry.getKey())) {
-                results.add(URI.create(entry.getValue()));
+        if (null != supportedVPoolUris) {
+            for (String vpoolUriStr : supportedVPoolUris) {
+                results.add(URI.create(vpoolUriStr));
             }
         }
         return results;

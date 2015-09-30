@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
@@ -19,6 +9,7 @@ import java.net.URI;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 /**
  * This interface holds all the methods used to create an error condition that
@@ -202,7 +193,7 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException systemVArrayNotDefined();
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
-    public InternalServerErrorException UnexpectedErrorDuringVarrayChange(Exception e);
+    public InternalServerErrorException unexpectedErrorDuringVarrayChange(Exception e);
 
     @DeclareServiceCode(ServiceCode.SECURITY_AUTH_TIMEOUT)
     public InternalServerErrorException authTimeout();
@@ -227,4 +218,10 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_IPRECONFIG_TRIGGER_FAILED)
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);
+
+    @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
+    public InternalServerErrorException unexpectedErrorVolumePlacement(Exception ex);
+
+    @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
+    public InternalServerErrorException unexpectedErrorExportGroupPlacement(Exception ex);
 }

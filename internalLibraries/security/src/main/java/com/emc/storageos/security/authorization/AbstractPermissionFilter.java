@@ -1,22 +1,14 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.authorization;
 
 import java.net.URI;
 import java.security.Principal;
+import java.text.CollationElementIterator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import javax.ws.rs.core.UriInfo;
@@ -31,6 +23,7 @@ import com.sun.jersey.spi.container.ContainerRequest;
 import com.sun.jersey.spi.container.ContainerRequestFilter;
 import com.sun.jersey.spi.container.ContainerResponseFilter;
 import com.sun.jersey.spi.container.ResourceFilter;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Abstract filter class for permission checker, implements filter method
@@ -93,6 +86,13 @@ public abstract class AbstractPermissionFilter implements ResourceFilter, Contai
     protected abstract UriInfo getUriInfo();
 
     /**
+     * Get tenant ids from the uri
+     *
+     * @return
+     */
+    protected abstract Set<URI> getTenantIdsFromURI(UriInfo uriInfo);
+
+    /**
      * ContainerRequestFilter - checks to see if one of the specified
      * permissions exists for the user, if not throws
      * APIException.forbidden.insufficientPermissionsForUser
@@ -124,6 +124,9 @@ public abstract class AbstractPermissionFilter implements ResourceFilter, Contai
                         URI tenantId = getTenantIdFromURI(getUriInfo());
                         tenantRoles = _permissionsHelper.getTenantRolesForUser(user, tenantId,
                                 isIdEmbeddedInURL(tenantId));
+                        if (CollectionUtils.isEmpty(tenantRoles)) {
+                            tenantRoles = getTenantRolesFromResource(user);
+                        }
                     } catch (DatabaseException ex) {
                         throw APIException.forbidden.failedReadingTenantRoles(ex);
                     }
@@ -170,6 +173,31 @@ public abstract class AbstractPermissionFilter implements ResourceFilter, Contai
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
         return request;
+    }
+
+    private Set<String> getTenantRolesFromResource(StorageOSUser user) {
+        Set<String> tenantRoles = null;
+        Set<URI> tenantIds = getTenantIdsFromURI(getUriInfo());
+        if (CollectionUtils.isEmpty(tenantIds)) {
+            return tenantRoles;
+        }
+
+        Iterator<URI> tenantIdIterator = tenantIds.iterator();
+        while (tenantIdIterator.hasNext()) {
+            URI tenantId = tenantIdIterator.next();
+            Set<String> localTenantRoles = _permissionsHelper.getTenantRolesForUser(user, tenantId,
+                    isIdEmbeddedInURL(tenantId));
+            if(CollectionUtils.isEmpty(localTenantRoles)) {
+                continue;
+            }
+
+            if (tenantRoles == null) {
+                tenantRoles = localTenantRoles;
+            } else {
+                tenantRoles.addAll(localTenantRoles);
+            }
+        }
+        return tenantRoles;
     }
 
     protected boolean isIdEmbeddedInURL(URI id) {

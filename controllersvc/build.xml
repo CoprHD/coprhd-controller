@@ -10,7 +10,7 @@
   <property name="jarfile" value="controllersvc" />
     
   <!-- <target name="CreateJar" description="Creates Jar file" depends="DetermineOS, SetProperties,StopServices,CreateJarFile,StartServices" />  -->
-  <target name="CreateJar" description="Creates Jar file" depends="DetermineOS, SetProperties, ChangePermissionJar, CreateJarFile, KillSingleService" />  
+  <target name="CreateJar" description="Creates Jar file" depends="DetermineOS, SetProperties, ChangePermissionJar, CreateJarFile, StopServices, StartServices" />  
     
   <target name="DetermineOS" description="Determines the OS.">
     <condition property="isMac">
@@ -40,27 +40,22 @@
     <jar jarfile="dist/storageos-${jarfile}.jar">
         <fileset dir="bin"/>
     </jar>
-    <scp file="dist/storageos-${jarfile}.jar" trust="true" todir="root:ChangeMe1!@${storageos.ip}:/opt/storageos/lib"/>
+    <scp file="dist/storageos-${jarfile}.jar" trust="true" todir="root:${storageos.passwd}@${storageos.ip}:/opt/storageos/lib"/>
     <delete dir="dist" />
   </target>
     
   <target name="StopServices" description="Stop the StorageOS services.">
     <!--  Stop the services -->
-    <sshexec host="${storageos.ip}" username="root" password="ChangeMe1!" command="/etc/storageos/storageos stop" trust="true"/>
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="/etc/storageos/storageos stop" trust="true"/>
   </target>
 
   <target name="ChangePermissionJar" description="Change the permission of the jar">
-    <sshexec host="${storageos.ip}" username="root" password="ChangeMe1!" command="chmod 777 /opt/storageos/lib/storageos-${jarfile}.jar" trust="true"/>
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="chmod 777 /opt/storageos/lib/storageos-${jarfile}.jar" trust="true"/>
   </target>
 
   <target name="StartServices" description="Start the StorageOS services.">
     <!--  Start the services -->
-    <sshexec host="${storageos.ip}" username="root" password="ChangeMe1!" command="/etc/storageos/storageos start" trust="true"/>
-  </target> 
-
-  <target name="KillSingleService" description="Kill a single server and the monitor will restart it.">
-    <!--  Start the services -->
-    <sshexec host="${storageos.ip}" username="root" password="ChangeMe1!" command="/workspace/killservice.sh controllersvc" trust="true"/>
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="/etc/storageos/storageos start" trust="true"/>
   </target> 
 
 </project>

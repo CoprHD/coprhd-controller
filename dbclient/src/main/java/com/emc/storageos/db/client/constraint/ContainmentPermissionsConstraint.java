@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.constraint;
 
@@ -20,6 +10,7 @@ import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObjectWithACLs;
+import com.emc.storageos.db.client.model.DiscoveredComputeSystemWithAcls;
 import com.emc.storageos.db.client.model.TenantOrg;
 
 /**
@@ -57,6 +48,13 @@ public interface ContainmentPermissionsConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(type);
             ColumnField field = doType.getColumnField(columeField);
             return new ContainmentPermissionsConstraintImpl(key, field, type);
+        }
+
+        public static ContainmentPermissionsConstraint
+                getDiscoveredObjsWithPermissionsConstraint(String key, Class<? extends DiscoveredComputeSystemWithAcls> clazz) {
+            DataObjectType doType = TypeMap.getDoType(clazz);
+            ColumnField field = doType.getColumnField("acls");
+            return new ContainmentPermissionsConstraintImpl(key, field, clazz);
         }
     }
 }

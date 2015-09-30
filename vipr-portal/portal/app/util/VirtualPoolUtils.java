@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -28,6 +28,9 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolUpdateParam;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolParam;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.StoragePoolAssignmentChanges;
 import com.emc.storageos.model.vpool.StoragePoolAssignments;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
@@ -82,7 +85,22 @@ public class VirtualPoolUtils {
             throw e;
         }
     }
+    
+    public static ObjectVirtualPoolRestRep getObjectVirtualPool(String id) {
+        return getObjectVirtualPool(uri(id));
+    }
 
+    public static ObjectVirtualPoolRestRep getObjectVirtualPool(URI id) {
+        try {
+            return getViprClient().objectVpools().get(id);
+        } catch (ViPRHttpException e) {
+            if (e.getHttpCode() == 404) {
+                return null;
+            }
+            throw e;
+        }
+    }
+    
     public static NamedRelatedResourceRep getBlockVirtualPoolRef(RelatedResourceRep ref) {
         return getBlockVirtualPoolRef(id(ref));
     }
@@ -96,6 +114,20 @@ public class VirtualPoolUtils {
         }
     }
 
+    public static NamedRelatedResourceRep getObjectVirtualPoolRef(RelatedResourceRep ref) {
+        return getObjectVirtualPoolRef(id(ref));
+    }
+
+    public static NamedRelatedResourceRep getObjectVirtualPoolRef(URI id) {
+        if (Security.hasAnyRole(Security.SYSTEM_ADMIN, Security.SYSTEM_MONITOR)) {
+            return createNamedRef(getViprClient().objectVpools().get(id));
+        }
+        else {
+            return findRef(getViprClient().objectVpools().list(), id);
+        }
+    }
+
+    
     public static NamedRelatedResourceRep getFileVirtualPoolRef(RelatedResourceRep ref) {
         return getFileVirtualPoolRef(id(ref));
     }
@@ -129,10 +161,21 @@ public class VirtualPoolUtils {
         return getViprClient().fileVpools().getAll(filter);
     }
 
-    public static List<FileVirtualPoolRestRep> getFileVirtualPools(Collection<URI> ids) {
-        return getViprClient().fileVpools().getByIds(ids);
+    public static List<ObjectVirtualPoolRestRep> getFileVirtualPools(Collection<URI> ids) {
+        return getViprClient().objectVpools().getByIds(ids);
     }
 
+    public static List<ObjectVirtualPoolRestRep> getObjectVirtualPools() {
+        return getViprClient().objectVpools().getAll();
+    }
+
+    public static List<ObjectVirtualPoolRestRep> getObjectVirtualPools(ResourceFilter<ObjectVirtualPoolRestRep> filter) {
+        return getViprClient().objectVpools().getAll(filter);
+    }
+
+    public static List<FileVirtualPoolRestRep> getObjectVirtualPools(Collection<URI> ids) {
+        return getViprClient().fileVpools().getByIds(ids);
+    }
     public static VirtualPoolCommonRestRep getVirtualPool(String id) {
         try {
             BlockVirtualPoolRestRep virtualPool = getBlockVirtualPool(id);
@@ -173,12 +216,20 @@ public class VirtualPoolUtils {
         return getViprClient().fileVpools().create(virtualPool);
     }
 
+    public static ObjectVirtualPoolRestRep create(ObjectVirtualPoolParam virtualPool) {
+        return getViprClient().objectVpools().create(virtualPool);
+    }
+    
     public static BlockVirtualPoolRestRep update(String id, BlockVirtualPoolUpdateParam virtualPool) {
         return getViprClient().blockVpools().update(uri(id), virtualPool);
     }
 
     public static FileVirtualPoolRestRep update(String id, FileVirtualPoolUpdateParam virtualPool) {
         return getViprClient().fileVpools().update(uri(id), virtualPool);
+    }
+
+    public static ObjectVirtualPoolRestRep update(String id, ObjectVirtualPoolUpdateParam virtualPool) {
+        return getViprClient().objectVpools().update(uri(id), virtualPool);
     }
 
     public static List<NamedRelatedResourceRep> refreshMatchingPools(BlockVirtualPoolRestRep virtualPool) {
@@ -189,6 +240,10 @@ public class VirtualPoolUtils {
         return getViprClient().fileVpools().refreshMatchingStoragePools(id(virtualPool));
     }
 
+    public static List<NamedRelatedResourceRep> refreshMatchingPools(ObjectVirtualPoolRestRep virtualPool) {
+        return getViprClient().objectVpools().refreshMatchingStoragePools(id(virtualPool));
+    }
+    
     public static void deactivateBlock(URI id) {
         getViprClient().blockVpools().deactivate(id);
     }
@@ -197,6 +252,10 @@ public class VirtualPoolUtils {
         getViprClient().fileVpools().deactivate(id);
     }
 
+    public static void deactivateObject(URI id) {
+        getViprClient().objectVpools().deactivate(id);
+    }
+    
     public static QuotaInfo getBlockQuota(String id) {
         return getViprClient().blockVpools().getQuota(uri(id));
     }
@@ -249,6 +308,11 @@ public class VirtualPoolUtils {
         return getViprClient().fileVpools().assignStoragePools(uri(id), createPoolAssignments(addPools, removePools));
     }
 
+    public static ObjectVirtualPoolRestRep updateAssignedObjectPools(String id, Collection<String> addPools,
+            Collection<String> removePools) {
+        return getViprClient().objectVpools().assignStoragePools(uri(id), createPoolAssignments(addPools, removePools));
+    }
+    
     private static VirtualPoolPoolUpdateParam createPoolAssignments(Collection<String> addPools,
             Collection<String> removePools) {
         StoragePoolAssignmentChanges changes = new StoragePoolAssignmentChanges();

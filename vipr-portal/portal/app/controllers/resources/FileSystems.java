@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.resources;
@@ -236,31 +236,31 @@ public class FileSystems extends ResourceController {
     }
 
     @FlashException(referrer = { "fileSystem" })
-    public static void deleteFileSystem(String fileSystemId) {
+    public static void deleteFileSystem(String fileSystemId, String deleteType) {
         if (StringUtils.isNotBlank(fileSystemId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
 
             boolean forceDelete = false;
             Task<FileShareRestRep> task = client.fileSystems().deactivate(uri(fileSystemId),
-                    new FileSystemDeleteParam(forceDelete));
+                    new FileSystemDeleteParam(forceDelete,deleteType));
             flash.put("info", MessagesUtils.get("resources.filesystem.deactivate"));
         }
         fileSystem(fileSystemId);
     }
 
     @FlashException(value = "fileSystems")
-    public static void delete(@As(",") String[] ids) {
-        delete(uris(ids));
+    public static void delete(@As(",") String[] ids, String deleteType) {
+        delete(uris(ids), deleteType);
     }
 
-    private static void delete(List<URI> ids) {
+    private static void delete(List<URI> ids, String deleteType) {
         if (ids != null) {
             ViPRCoreClient client = BourneUtil.getViprClient();
             List<Task<FileShareRestRep>> tasks = Lists.newArrayList();
             for (URI id : ids) {
                 boolean forceDelete = false;
                 Task<FileShareRestRep> task = client.fileSystems().deactivate(id,
-                        new FileSystemDeleteParam(forceDelete));
+                        new FileSystemDeleteParam(forceDelete, deleteType));
                 tasks.add(task);
             }
             if (!tasks.isEmpty()) {

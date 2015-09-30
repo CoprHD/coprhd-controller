@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
@@ -619,38 +609,43 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
             for (RPSite site : sites) {
                 // Get the initiators for this site.
-                Map<String, String> sitesInitiatorWWNS = rp.getInitiatorWWNs(site.getInternalSiteName());
+                Map<String, Map<String, String>> rpaWWNs = rp.getInitiatorWWNs(site.getInternalSiteName());
                 SiteArrays siteArrays = new SiteArrays();
                 siteArrays.setArrays(new HashSet<String>());
                 siteArrays.setSite(site);
 
                 // Add an RP site -> initiators entry to the protection system
-                StringSet siteInitiators = new StringSet(sitesInitiatorWWNS.keySet());
+                StringSet siteInitiators = new StringSet();
+                for(String rpaId : rpaWWNs.keySet()) {
+                	siteInitiators.addAll(rpaWWNs.get(rpaId).keySet());                	
+                }
                 system.putSiteIntitiatorsEntry(site.getInternalSiteName(), siteInitiators);
 
                 // Check to see if the RP initiator is in any Network - Based on which Network the RP initiator is in,
                 // we can look for the arrays in that Network that are potential candidates for connectivity.
-                for (String wwn : sitesInitiatorWWNS.keySet()) {
-                    for (URI networkURI : networks) {
-                        Network network = _dbClient.queryObject(Network.class, networkURI);
-                        StringMap discoveredEndpoints = network.getEndpointsMap();
-
-                        if (discoveredEndpoints.containsKey(wwn.toUpperCase())) {
-                            _log.info("WWN " + wwn + " is in Network : " + network.getLabel());
-                            isNetworkSystemConfigured = true; // Set this to true as we found the RP initiators in a Network on the Network
+                for (String rpaId : rpaWWNs.keySet()) {
+                	for(Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
+                		for (URI networkURI : networks) {
+                			Network network = _dbClient.queryObject(Network.class, networkURI);
+                			StringMap discoveredEndpoints = network.getEndpointsMap();
+                			
+                			if (discoveredEndpoints.containsKey(rpaWWN.getKey().toUpperCase())) {
+	                            _log.info("WWN " + rpaWWN.getKey() + " is in Network : " + network.getLabel());
+	                            isNetworkSystemConfigured = true; // Set this to true as we found the RP initiators in a Network on the Network
                                                               // System
-                            for (String discoveredEndpoint : discoveredEndpoints.keySet()) {
-                                // Ignore the RP endpoints - RP WWNs have a unique prefix. We want to only return back non RP initiators in
-                                // that NetworkVSAN.
-                                if (discoveredEndpoint.startsWith(RP_INITIATOR_PREFIX)) {
-                                    continue;
-                                }
+	                            for (String discoveredEndpoint : discoveredEndpoints.keySet()) {
+	                            	// Ignore the RP endpoints - RP WWNs have a unique prefix. We want to only return back non RP initiators in
+	                            	// that NetworkVSAN.
+	                            	if (discoveredEndpoint.startsWith(RP_INITIATOR_PREFIX)) {
+	                            		continue;
+	                            	}
 
                                 // Add the found endpoints to the list
                                 siteArrays.getArrays().add(discoveredEndpoint);
-                            }
-                        }
-                    }
+	                            }
+                			}
+                		}            		
+                	}                
                 }
                 // add to the list
                 rpSiteArrays.add(siteArrays);

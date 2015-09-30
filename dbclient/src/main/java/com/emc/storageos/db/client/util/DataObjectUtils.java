@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.util;
@@ -22,11 +22,9 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 
 /**
  * A utility class for implementing {@link DataObject} common functions.
- * 
- * @author elalih
- * 
  */
 public class DataObjectUtils {
+
     /**
      * This function returns the property value for an object of {@link DataObject} subtype.
      * 
@@ -141,7 +139,7 @@ public class DataObjectUtils {
     }
 
     /**
-     * Finds an DataObject in a collection by matching its property to a value. This method
+     * Finds a DataObject in a collection by matching its property to a value. This method
      * assumes only one object in the collection can be matched.
      * 
      * @param col the collection
@@ -189,5 +187,27 @@ public class DataObjectUtils {
             objs.add(itr.next());
         }
         return objs;
+    }
+
+    /**
+     * Utility functions that returns a map of a collection of objects
+     * by a selected property. If the property is null for an object, the
+     * object will not be added to the map.
+     * 
+     * @param col the objects collection
+     * @param property the property name
+     * @return a map of object by their property
+     */
+    public static <T extends DataObject> Map<String, T> mapByProperty(Collection<T> col, String property) {
+        Map<String, T> map = new HashMap<String, T>();
+        Object prop = null;
+        for (T t : col) {
+            prop = getPropertyValue(t.getClass(), t, property);
+            if (prop != null) {
+                map.put(prop.toString(), t);
+            }
+
+        }
+        return map;
     }
 }

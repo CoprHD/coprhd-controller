@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -25,13 +15,13 @@ import java.util.Map;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
 import com.emc.storageos.vplex.api.clientdata.PortInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.sun.jersey.api.client.ClientResponse;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The VPlex API Client is used to get information from the VPlex and to execute
@@ -178,15 +168,34 @@ public class VPlexApiClient {
     /**
      * Gets information about the VPLEX clusters.
      * 
+     * @param shallow true to get just the name and path for each cluster, false
+     *            to get additional info about the systems and volumes.
+     * @param isStorageVolumeItlsFetch true to get the storage volume ITLs, false otherwise.
+     * 
      * @return A list of VPlexClusterInfo instances.
      * 
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
-    public List<VPlexClusterInfo> getClusterInfo() throws VPlexApiException {
+    public List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean isStorageVolumeItlsFetch) throws VPlexApiException {
         s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(true);
+        return _discoveryMgr.getClusterInfo(shallow, isStorageVolumeItlsFetch);
     }
     
+    /**
+     * Gets information about the VPLEX clusters.
+     * 
+     * @param shallow true to get just the name and path for each cluster, false
+     *            to get additional info about the systems and volumes.
+     * 
+     * @return A list of VPlexClusterInfo instances.
+     * 
+     * @throws VPlexApiException When an error occurs querying the VPlex.
+     */
+    public List<VPlexClusterInfo> getClusterInfo(boolean shallow) throws VPlexApiException {
+        s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
+        return _discoveryMgr.getClusterInfo(shallow, false);
+    }
+
     /**
      * Rediscovers the storage systems attached to the VPlex identified by the
      * passed identifiers for the purpose of discovering new volumes accessible
@@ -284,6 +293,7 @@ public class VPlexApiClient {
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : clusterVirtualVolumeInfoList) {
                 virtualVolumeInfo.addCluster(clusterId);
                 String virtualVolumeName = virtualVolumeInfo.getName();
+
                 if (!virtualVolumeInfoMap.containsKey(virtualVolumeName)) {
                     // We want the unique list of virtual volumes on all
                     // clusters. Distributed volumes will appear on both
@@ -374,6 +384,9 @@ public class VPlexApiClient {
      * @param preserveData true if the native volume data should be preserved
      *        during virtual volume creation.
      * @param winningClusterId Used to set detach rules for distributed volumes.
+     * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
+     *            clusters.
+     * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
      * 
      * @return The information for the created virtual volume.
      * 
@@ -381,12 +394,13 @@ public class VPlexApiClient {
      *         volume.
      */
     public VPlexVirtualVolumeInfo createVirtualVolume(
-        List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
-        boolean discoveryRequired, boolean preserveData, String winningClusterId)
-        throws VPlexApiException {
+            List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
+            boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList,
+            boolean findVirtualVolume)
+            throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
-            discoveryRequired, preserveData, winningClusterId);
+                discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume);
     }
     
     /**
@@ -537,8 +551,8 @@ public class VPlexApiClient {
      * @param discoveryRequired true if the passed native volumes are newly
      *        exported and need to be discovered by the VPlex.
      * @param startNow true to start the migration now, else migration is
-     *        created in a paused state.
-     * @param transferSize transfer size for migration
+     *            created in a paused state.
+     * @param transferSize The transfer size for migration
      * @return A reference to the migration(s) started to migrate the virtual
      *         volume.
      * 
@@ -546,12 +560,12 @@ public class VPlexApiClient {
      *         initializing the migration.
      */
     public List<VPlexMigrationInfo> migrateVirtualVolume(String migrationName,
-        String virtualVolumeName, List<VolumeInfo> nativeVolumeInfoList,
-        boolean isRemote, boolean useDeviceMigration, boolean discoveryRequired,
-        boolean startNow, String transferSize) throws VPlexApiException {
+            String virtualVolumeName, List<VolumeInfo> nativeVolumeInfoList,
+            boolean isRemote, boolean useDeviceMigration, boolean discoveryRequired,
+            boolean startNow, String transferSize) throws VPlexApiException {
         s_logger.info("Request for virtual volume migration on VPlex at {}", _baseURI);
         return _migrationMgr.migrateVirtualVolume(migrationName, virtualVolumeName,
-            nativeVolumeInfoList, isRemote, useDeviceMigration, discoveryRequired, startNow, transferSize);
+                nativeVolumeInfoList, isRemote, useDeviceMigration, discoveryRequired, startNow, transferSize);
     }
     
     /**
@@ -1228,8 +1242,7 @@ public class VPlexApiClient {
      */
     public String getClusterName(String clusterId) {
         String clusterName = null;
-        
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true);
+        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
         for (VPlexClusterInfo clusterInfo : clusterInfos) {
             if (clusterId.equals(clusterInfo.getClusterId())) {
                 clusterName = clusterInfo.getName();
@@ -1247,8 +1260,7 @@ public class VPlexApiClient {
      */
     public Map<String, String> getClusterIdToNameMap() {
         Map<String, String> clusterIdToNameMap = new HashMap<String, String>();
-        
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true);
+        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
         for (VPlexClusterInfo clusterInfo : clusterInfos) {
             clusterIdToNameMap.put(clusterInfo.getClusterId(), clusterInfo.getName()); 
         }
@@ -1495,7 +1507,19 @@ public class VPlexApiClient {
     }
     
     /**
-     * Updates the VPLEX session id with the session specified in the 
+     * Finds virtual volume by name.
+     * 
+     * @param clusterInfoList List of detailed VPLEX cluster info.
+     * @param virtualVolumeInfos List of virtual volumes to find
+     * @return A map of virtual volume name to the virtual volume info.
+     */
+    public Map<String, VPlexVirtualVolumeInfo> findVirtualVolumes(List<VPlexClusterInfo> clusterInfoList,
+            List<VPlexVirtualVolumeInfo> virtualVolumeInfos) {
+        return _discoveryMgr.findVirtualVolumes(clusterInfoList, virtualVolumeInfos, true, true);
+    }
+
+    /**
+     * Updates the VPLEX session id with the session specified in the
      * passed response.
      * 
      * @param response A response resulting from a request to the VPLEX.
@@ -1519,5 +1543,114 @@ public class VPlexApiClient {
                 break;
             }
         }
+    }
+
+    /**
+     * Returns a Map of lowest-level storage-volume resource's WWN to its VPlexStorageVolumeInfo
+     * object for a given device name, virtual volume type, and cluster name. If
+     * hasMirror is true, this indicates the top-level device is composed of a
+     * RAID-1 mirror, so there's an extra layers of components to traverse in finding
+     * the lowest-level storage-volume resources.
+     * 
+     * @param deviceName the name of the top-level device to look at
+     * @param virtualVolumeType the type of virtual volume (local or distributed)
+     * @param clusterName the cluster name
+     * @param hasMirror indicates if the top-level device is a RAID-1 mirror
+     * 
+     * @return a map of WWNs to VPlexStorageVolumeInfo objects
+     * @throws VPlexApiException
+     */
+    public Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(String deviceName, String virtualVolumeType,
+            String clusterName, boolean hasMirror) throws VPlexApiException {
+        s_logger.info("Request to find storage volume wwns for {} on VPLEX at {}",
+                deviceName, _baseURI);
+
+        List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
+                .getStorageVolumesForDevice(deviceName, virtualVolumeType, clusterName, hasMirror);
+
+        Map<String, VPlexStorageVolumeInfo> storageVolumeWwns = new HashMap<String, VPlexStorageVolumeInfo>();
+        for (VPlexStorageVolumeInfo info : storageVolumes) {
+            if (null == info.getWwn()) {
+                String reason = "could not parse WWN for storage volume " + info.getName();
+                s_logger.error(reason);
+                throw VPlexApiException.exceptions.failedGettingStorageVolumeInfoForIngestion(reason);
+            }
+            String wwn = info.getWwn();
+            if (wwn != null && !wwn.isEmpty()) {
+                wwn = wwn.replaceAll("[^A-Fa-f0-9]", "");
+                wwn = wwn.toUpperCase();
+            }
+            storageVolumeWwns.put(wwn, info);
+        }
+
+        return storageVolumeWwns;
+    }
+
+    /**
+     * Returns the top-level supporting device name for a given storage volume native id,
+     * wwn, and backend array serial number.
+     * 
+     * @param volumeNativeId the storage volume's native id
+     * @param wwn the storage volume's wwn
+     * @param backendArraySerialNum the serial number of the backend array
+     * 
+     * @return the name of the top level device for the given storage volume
+     * @throws VPlexApiException
+     */
+    public String getDeviceForStorageVolume(String volumeNativeId,
+            String wwn, String backendArraySerialNum) throws VPlexApiException {
+
+        s_logger.info("Request to find device name for storage volume {} on VPLEX at {}",
+                volumeNativeId, _baseURI);
+
+        String deviceName = getDiscoveryManager()
+                .getDeviceForStorageVolume(volumeNativeId, wwn, backendArraySerialNum);
+
+        return deviceName;
+    }
+
+    /**
+     * Returns a VPlexResourceInfo object for the given device name based
+     * on its virtual volume type (local or distributed).
+     * 
+     * @param deviceName the name of the device
+     * @param virtualVolumeType the type of virtual volume (local or distributed)
+     * 
+     * @return a VPlexResourceInfo object for the device name
+     * @throws VPlexApiException
+     */
+    public VPlexResourceInfo getDeviceStructure(String deviceName, String virtualVolumeType)
+            throws VPlexApiException {
+        s_logger.info("Request to find {} device structure for {} on VPLEX at " + _baseURI,
+                virtualVolumeType, deviceName);
+
+        VPlexResourceInfo device = null;
+
+        switch (virtualVolumeType) {
+            case VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME:
+                device = getDiscoveryManager()
+                        .getDeviceStructureForDistributedIngestion(deviceName);
+                break;
+            case VPlexApiConstants.LOCAL_VIRTUAL_VOLUME:
+                device = getDiscoveryManager()
+                        .getDeviceStructureForLocalIngestion(deviceName);
+                break;
+        }
+
+        return device;
+    }
+
+    /**
+     * Returns a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names.
+     * 
+     * @return a Map of distributed device component context
+     *         paths from the VPLEX API to VPLEX cluster names
+     * 
+     * @throws VPlexApiException
+     */
+    public Map<String, String> getDistributedDevicePathToClusterMap()
+            throws VPlexApiException {
+        return _discoveryMgr.getDistributedDevicePathToClusterMap();
     }
 }

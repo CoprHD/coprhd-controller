@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api;
@@ -89,8 +89,8 @@ import com.emc.vipr.model.catalog.Parameter;
 import com.google.common.collect.Lists;
 
 @DefaultPermissions(
-        read_roles = {},
-        write_roles = {})
+        readRoles = {},
+        writeRoles = {})
 @Path("/catalog/orders")
 public class OrderService extends CatalogTaggedResourceService {
 

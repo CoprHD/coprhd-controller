@@ -1,30 +1,20 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource.utils;
+
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.common.DbDependencyPurger;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-/**
- * Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- * 
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties. Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- */
 
 public class PurgeRunnable<T extends DataObject> implements Runnable {
 
@@ -58,14 +48,14 @@ public class PurgeRunnable<T extends DataObject> implements Runnable {
         try {
             _dbPurger.purge(_decommissionResouce.getId(), _decommissionResouce.getClass());
 
-            _log.info(String.format("Purged the database successfully with %d iterations: resoruce %s",
+            _log.info(String.format("Purged the database successfully with %d iterations: resource %s",
                     _iteration, _decommissionResouce.getId()));
             Operation upd = new Operation(Operation.Status.ready.toString(),
                     String.format("Purged the resources %s from the Database", _decommissionResouce.getId()));
             _dbClient.updateTaskOpStatus(_decommissionResouce.getClass(), _decommissionResouce.getId(), _taskId, upd);
 
         } catch (Exception ex) {
-            _log.error(String.format("Failed to purge the database: resoruce %s, attempt #%d,",
+            _log.error(String.format("Failed to purge the database: resource %s, attempt #%d,",
                     _decommissionResouce.getId(), _iteration), ex);
             if (_iteration == _max_retries) {
                 Operation op = new Operation(Operation.Status.error.toString(),
@@ -79,7 +69,7 @@ public class PurgeRunnable<T extends DataObject> implements Runnable {
                     _log.error(String.format("Failed to reschedule removal of the resource %s from the database",
                             _decommissionResouce.getId()), e);
                     Operation op = new Operation(Operation.Status.error.toString(),
-                            String.format("Failed to reschedule removal of the resource %s rom the Database", _decommissionResouce.getId()));
+                            String.format("Failed to reschedule removal of the resource %s from the Database", _decommissionResouce.getId()));
                     _dbClient.updateTaskOpStatus(_decommissionResouce.getClass(), _decommissionResouce.getId(), _taskId, op);
 
                 }

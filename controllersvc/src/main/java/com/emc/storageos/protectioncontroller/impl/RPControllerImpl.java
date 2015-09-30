@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.protectioncontroller.impl;
@@ -34,6 +24,7 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
 /**
@@ -62,6 +53,7 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
         _dbClient = dbClient;
     }
 
+    @Override
     protected Controller lookupDeviceController(DiscoveredSystemObject storageSystem) {
         // dummy impl that returns the first one
         return _deviceImpl.iterator().next();
@@ -88,11 +80,12 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     }
 
     @Override
-    public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList, Boolean createInactive, String opId)
-            throws InternalException {
-        execFS("createSnapshot", protectionDevice, storageDevice, snapshotList, createInactive, opId);
+    public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
+            String opId) throws InternalException {
+        execFS("createSnapshot", protectionDevice, storageDevice, snapshotList, createInactive, readOnly, opId);
     }
 
+    @Override
     public void discover(AsyncTask[] tasks) throws ControllerException {
         try {
             ControllerServiceImpl.scheduleDiscoverJobs(tasks, Lock.DISCOVER_COLLECTION_LOCK, ControllerServiceImpl.DISCOVERY);
@@ -102,13 +95,6 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
                     e.getMessage());
             throw ClientControllerException.fatals.unableToScheduleDiscoverJobs(tasks, e);
         }
-    }
-
-    @Override
-    public void restoreVolume(URI protectionDevice, URI storageDevice,
-            URI snapshotId, String opId) throws InternalException {
-        execFS("restoreVolume", protectionDevice, storageDevice, snapshotId, opId);
-
     }
 
     @Override

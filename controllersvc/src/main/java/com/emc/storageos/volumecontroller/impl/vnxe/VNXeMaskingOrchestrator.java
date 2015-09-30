@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnxe;
@@ -18,12 +8,13 @@ package com.emc.storageos.volumecontroller.impl.vnxe;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
@@ -31,20 +22,17 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
-import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
+import com.emc.storageos.volumecontroller.impl.block.AbstractBasicMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
@@ -52,14 +40,15 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 
-public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator {
+public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     private static final Logger _log = LoggerFactory.getLogger(VNXeMaskingOrchestrator.class);
 
     private static final AtomicReference<BlockStorageDevice> VNXE_BLOCK_DEVICE = new AtomicReference<BlockStorageDevice>();
     public static final String VNXE_DEVICE = "vnxeDevice";
     public static final String DEFAULT_LABEL = "Default";
 
-    private BlockStorageDevice getDevice() {
+    @Override
+    public BlockStorageDevice getDevice() {
         BlockStorageDevice device = VNXE_BLOCK_DEVICE.get();
         synchronized (VNXE_BLOCK_DEVICE) {
             if (device == null) {
@@ -549,53 +538,6 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
         return true;
     }
 
-    /**
-     * Routine will update 'portNames' based on the hosts. Each host referenced by the
-     * hostURIs list will be looked up and its initiators queried. If the initiator is
-     * not in the list of initiators to export, its portname will be added to the
-     * portName list
-     * 
-     * @param portNames [out] - List or initiator.initiatorPortNames. The list
-     *            will include new members if there are any host initiators
-     *            that are not already part of the export request.
-     * @param portNamesToInitiatorURI [out] - Map of portName to initiator URI. This
-     *            map should contain all the port names in
-     *            'portNames'.
-     * @param initiatorsToExport [in] - List of Initiator URIs that are passed in the
-     *            export request call.
-     * @param hostURIs [in] - List of Host URIs applicable to the
-     *            initiatorsToExport list
-     */
-    private void queryHostInitiatorsAndAddToList(List<String> portNames,
-            Map<String, URI> portNamesToInitiatorURI,
-            Collection<URI> initiatorsToExport,
-            List<URI> hostURIs) {
-        for (URI hostURI : hostURIs) {
-            URIQueryResultList results = new URIQueryResultList();
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                    getContainedObjectsConstraint(hostURI, Initiator.class, "host"),
-                    results);
-            while (results.iterator().hasNext()) {
-                URI uri = results.iterator().next();
-                if (!initiatorsToExport.contains(uri)) {
-                    Initiator initiator = _dbClient.queryObject(Initiator.class, uri);
-                    if (initiator.getInactive()) {
-                        continue;
-                    }
-                    String normalizedName = initiator.getInitiatorPort();
-                    if (WWNUtility.isValidWWN(normalizedName)) {
-                        normalizedName = WWNUtility.getUpperWWNWithNoColons(initiator
-                                .getInitiatorPort());
-                    }
-                    if (!portNames.contains(normalizedName)) {
-                        portNames.add(normalizedName);
-                        portNamesToInitiatorURI.put(normalizedName, uri);
-                    }
-                }
-            }
-        }
-    }
-
     private Map<ExportMask, List<Initiator>> getInitiatorExportMasks(
             List<Initiator> initiators, DbClient dbClient, ExportGroup exportGroup) {
         Map<ExportMask, List<Initiator>> exportMasksMap = new HashMap<ExportMask, List<Initiator>>();
@@ -625,7 +567,6 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
     @Override
     protected Map<String, List<URI>> mapInitiatorsToComputeResource(
             ExportGroup exportGroup, Collection<URI> initiatorURIs) {
-        // TODO Auto-generated method stub
-        return null;
+        return Collections.EMPTY_MAP; // Better to return something instead of null
     }
 }

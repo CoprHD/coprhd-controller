@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.catalog;
@@ -113,7 +113,7 @@ public class Services extends Controller {
                     fieldOptions.put(field.getType() + "-options", options);
 
                     // If a required field is missing any options, display a warning message
-                    if (options.isEmpty() && field.isRequired()) {
+                    if (options.isEmpty() && field.isRequired() && !field.getType().equalsIgnoreCase("field")) {
                         flash.put("rawWarning", MessagesUtils.get("service.missingAssets", field.getLabel()));
                     }
                 }

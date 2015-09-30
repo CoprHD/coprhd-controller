@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.resource;
 
@@ -181,16 +171,20 @@ public class ControlService {
      * 
      * @brief Restart a service on a virtual machine
      * @param nodeId Virtual machine id (e.g. vipr1)
+     * @param nodeName node name of Virtual machine
      * @prereq none
      * @param name Service name
      */
     @POST
     @Path("service/restart")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response restartService(@QueryParam("node_id") String nodeId, @QueryParam("name") String name) {
+    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public Response restartService(@QueryParam("node_id") String nodeId, @QueryParam("name") String name, @QueryParam("node_name") String nodeName) {
+
+        nodeId=determineNodeId(nodeId,nodeName);
+
         List<String> controlNodeServiceNames = ServicesMetadata.getControlNodeServiceNames();
-        if (_coordinator.getMyNodeName().equals(nodeId)) {
+        if (_coordinator.getMyNodeId().equals(nodeId)) {
             if (!controlNodeServiceNames.contains(name)) {
                 throw APIException.badRequests.parameterIsNotOneOfAllowedValues("service name", controlNodeServiceNames.toString());
             }
@@ -242,7 +236,7 @@ public class ControlService {
             try {
                 LocalRepository.getInstance().restart(name);
             } catch (LocalRepositoryException e) {
-                throw APIException.internalServerErrors.serviceRestartError(name, _coordinator.getMyNodeName());
+                throw APIException.internalServerErrors.serviceRestartError(name, _coordinator.getMyNodeId());
             }
             return Response.ok().build();
         }
@@ -253,15 +247,19 @@ public class ControlService {
      * 
      * @brief Reboot a virtual machine
      * @param nodeId Virtual machine id (e.g. vipr1)
+     * @param nodeName node name of Virtual machine
      * @prereq none
      */
     @POST
     @Path("node/reboot")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response rebootNode(@QueryParam("node_id") String nodeId) {
-        _log.info("Reboot node: " + nodeId);
-        if (_coordinator.getMyNodeName().equals(nodeId)) {
+    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    public Response rebootNode(@QueryParam("node_id") String nodeId, @QueryParam("node_name") String nodeName) {
+
+        nodeId=determineNodeId(nodeId,nodeName);
+
+        _log.info("Reboot node: "+nodeId);
+        if(_coordinator.getMyNodeId().equals(nodeId)){
             auditControl(OperationTypeEnum.REBOOT_NODE, AuditLogManager.AUDITLOG_SUCCESS,
                     null, nodeId);
             return rebootNode();
@@ -317,7 +315,7 @@ public class ControlService {
      * 
      * @brief Power off ViPR controller appliance
      * @prereq none
-     * @return
+     * @return Status of ViPR controller appliance
      * @throws Exception
      */
     @POST
@@ -429,7 +427,7 @@ public class ControlService {
      */
     @GET
     @Path("cluster/dbrepair-status")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public DbRepairStatus getDbRepairStatus() throws Exception {
         _log.info("Received a getting db repair status request");
@@ -529,5 +527,31 @@ public class ControlService {
                 System.currentTimeMillis(), operationalStatus,
                 description,
                 descparams);
+    }
+
+    /**
+     * Verify only one parameter is provided for selecting node
+     * Determine if nodeId should be used or nodeName should be converted to nodeId and used
+     *
+     * @param nodeId Id of the node
+     * @param nodeName Name of the node
+     */
+    private String determineNodeId(String nodeId, String nodeName){
+        if (nodeName != null) {
+            //check that nodeId is empty
+            if (nodeId != null) {
+                throw APIException.badRequests.theParametersAreNotValid("cannot use node_id and node_name");
+            }
+
+            //get nodeIds for node names
+            nodeId = _coordinator.getMatchingNodeId(nodeName);
+            _log.info("Found node id {} for node name {}",nodeId,nodeName);
+
+            //verify nodeId found
+            if (nodeId == null) {
+                throw APIException.badRequests.parameterIsNotValid("node name");
+            }
+        }
+        return nodeId;
     }
 }

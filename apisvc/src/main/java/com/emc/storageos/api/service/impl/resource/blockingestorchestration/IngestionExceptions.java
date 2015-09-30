@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
@@ -130,7 +120,7 @@ public interface IngestionExceptions {
     public IngestionException unmanagedVolumeVpoolTieringPolicyMismatch(String unManagedVolume, String vpool);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
-    public IngestionException varrayIsInvalidForVplexVolume(String varray, String unManagedVolume);
+    public IngestionException varrayIsInvalidForVplexVolume(String unManagedVolume, String reason);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException unmanagedVolumeHasNoStoragePool(String unManagedVolume);
@@ -152,4 +142,13 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException inconsistentZoningAcrossHosts(String messages);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException failedToIngestVplexBackend(String message);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException failedToGetStorageVolumeInfoForDevice(String supportingDeviceName, String reason);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException validationException(String reason);
 }

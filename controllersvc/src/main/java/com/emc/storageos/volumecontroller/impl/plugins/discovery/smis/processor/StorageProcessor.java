@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
@@ -26,6 +16,7 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.UnsignedInteger32;
 import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
@@ -51,6 +42,7 @@ import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Splitter;
 
 public abstract class StorageProcessor extends PoolProcessor {
@@ -644,13 +636,13 @@ public abstract class StorageProcessor extends PoolProcessor {
             // process entries returned in the Open operation
             _logger.info("Processing initial return");
             instances = instChunks.getResponses();
-            int count = processInstances(instances);
+            int count = processInstances(instances, client);
             while (!instChunks.isEnd()) {
                 _logger.info("Processing next chunk of size {}", BATCH_SIZE);
                 instChunks = client.getInstancesWithPath(objPath, instChunks
                         .getContext(), new UnsignedInteger32(BATCH_SIZE));
                 instances = instChunks.getResponses();
-                count += processInstances(instances);
+                count += processInstances(instances, client);
             }
 
             _logger.info("Total instances processed {}", count);
@@ -672,6 +664,10 @@ public abstract class StorageProcessor extends PoolProcessor {
     }
 
     protected int processInstances(Iterator<CIMInstance> instances) {
+        return 0;
+    }
+
+    protected int processInstances(Iterator<CIMInstance> instances, WBEMClient client) {
         return 0;
     }
 
@@ -701,5 +697,25 @@ public abstract class StorageProcessor extends PoolProcessor {
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws BaseCollectionException {
         _args = inputArgs;
+    }
+
+    protected CIMInstance getSyncElement(CIMInstance volumeInstance, WBEMClient client) {
+        CloseableIterator<CIMObjectPath> storageSyncRefs;
+        CIMInstance syncObject = null;
+        try {
+            storageSyncRefs = client.referenceNames(volumeInstance.getObjectPath(),
+                    SmisConstants.CIM_STORAGE_SYNCHRONIZED, null);
+            if (storageSyncRefs.hasNext()) {
+                _logger.info("Processing the sync elements for volume: {}", volumeInstance.getObjectPath());
+                CIMObjectPath storageSync = storageSyncRefs.next();
+                if (null != storageSync) {
+                    syncObject = client.getInstance(storageSync, false, false,
+                            new String[] { SmisConstants.CP_SYNC_STATE });
+                }
+            }
+        } catch (WBEMException e) {
+            _logger.error("Not able to find the sync elements for volume {}", volumeInstance.getObjectPath());
+        }
+        return syncObject;
     }
 }

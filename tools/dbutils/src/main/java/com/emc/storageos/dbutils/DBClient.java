@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.dbutils;
 
@@ -18,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesQueryResult;
+import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
@@ -34,6 +25,7 @@ import com.emc.storageos.geo.vdccontroller.impl.InternalDbClient;
 import com.emc.storageos.geomodel.VdcConfig;
 import com.emc.storageos.security.SerializerUtils;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
 import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
 
@@ -80,7 +72,7 @@ public class DBClient {
     private static final String QUITCHAR = "q";
     private int listLimit = 100;
     private boolean turnOnLimit = false;
-    private boolean activeOnly = false;
+    private boolean activeOnly = true;
 
     private static final String PRINT_COUNT_RESULT = "Column Family %s's row count is: %s";
     private static final String REGEN_RECOVER_FILE_MSG = "Please regenerate the recovery " +
@@ -99,6 +91,7 @@ public class DBClient {
     private EncryptionProviderImpl geoEncryptionProvider;
     private EncryptionProviderImpl encryptionProvider;
     private boolean skipMigrationCheck = false;
+    private boolean showModificationTime = false;
 
     public DBClient(boolean skipMigrationCheck) {
         this.skipMigrationCheck = skipMigrationCheck;
@@ -162,24 +155,26 @@ public class DBClient {
      * @param clazz
      * @param <T>
      */
-    private <T extends DataObject> int queryAndPrintRecords(List<URI> ids, Class<T> clazz)
+    private <T extends DataObject> int queryAndPrintRecords(List<URI> ids, Class<T> clazz, Map<String, String> criterias)
             throws Exception {
 
         Iterator<T> objects;
-        BeanInfo bInfo;
         int countLimit = 0;
         int countAll = 0;
         String input;
         BufferedReader buf = new BufferedReader(new InputStreamReader(System.in));
+        boolean isPrint = true;
 
         try {
             objects = _dbClient.queryIterativeObjects(clazz, ids);
-            bInfo = Introspector.getBeanInfo(clazz);
             while (objects.hasNext()) {
                 T object = (T) objects.next();
-                printBeanProperties(bInfo.getPropertyDescriptors(), object);
-                countLimit++;
-                countAll++;
+                isPrint = printBeanProperties(clazz, object, criterias);
+                if (isPrint) {
+                    countLimit++;
+                    countAll++;
+                }
+                
                 if (!turnOnLimit || countLimit != listLimit) {
                     continue;
                 }
@@ -200,9 +195,6 @@ public class DBClient {
             log.error("Error querying from db: " + ex);
             System.err.println("Error querying from db: " + ex);
             throw ex;
-        } catch (IntrospectionException ex) {
-            log.error("Unexpected exception getting bean info", ex);
-            throw new RuntimeException("Unexpected exception getting bean info", ex);
         } finally {
             buf.close();
         }
@@ -226,64 +218,125 @@ public class DBClient {
             return;
         }
 
-        BeanInfo bInfo;
-
-        try {
-            bInfo = Introspector.getBeanInfo(clazz);
-        } catch (IntrospectionException ex) {
-            throw new RuntimeException("Unexpected exception getting bean info", ex);
-        }
-
-        printBeanProperties(bInfo.getPropertyDescriptors(), object);
+        printBeanProperties(clazz, object);
     }
 
     /**
-     * Print the contents in human readable format
      * 
-     * @param pds
+     * @param clazz
      * @param object
+     * @param criterias
+     *            Filter with some verify simple criteria
+     * @return Whether this record is print out
      * @throws Exception
      */
-    private <T extends DataObject> void printBeanProperties(PropertyDescriptor[] pds,
-            T object) throws Exception {
-        System.out.println("id: " + object.getId().toString());
+    private <T extends DataObject> boolean printBeanProperties(Class<T> clazz, T object, Map<String, String> criterias)
+            throws Exception {
+        Map<String, String> localCriterias = new HashMap<>(criterias);
+        
+        StringBuilder record = new StringBuilder();
+        record.append("id: " + object.getId().toString() + "\n");
+        boolean isPrint = true;
+        
+        BeanInfo bInfo;
+        try {
+            bInfo = Introspector.getBeanInfo(clazz);
+        } catch (IntrospectionException ex) {
+            log.error("Unexpected exception getting bean info", ex);
+            throw new RuntimeException("Unexpected exception getting bean info", ex);
+        }
+        
+        PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
         Object objValue;
         Class type;
+        Set<String> ignoreList = new HashSet<>();
         for (PropertyDescriptor pd : pds) {
             // skip class property
             if (pd.getName().equals("class") || pd.getName().equals("id")) {
                 continue;
             }
 
+            Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
+            String objKey;
+            if (nameAnnotation == null) {
+                objKey = pd.getName();
+            } else {
+                objKey = nameAnnotation.value();
+            }
+
             objValue = pd.getReadMethod().invoke(object);
+            
+            if(!localCriterias.isEmpty()) {
+                if(localCriterias.containsKey(objKey)) {
+                    if(!localCriterias.get(objKey).equalsIgnoreCase(String.valueOf(objValue))) {
+                        isPrint = false;
+                        break;
+                    }
+                    else {
+                        localCriterias.remove(objKey);
+                    }
+                }
+            }
+            
             if (objValue == null) {
+                ignoreList.add(objKey);
                 continue;
             }
 
             if (isEmptyStr(objValue)) {
+                ignoreList.add(objKey);
                 continue;
             }
-            System.out.print("\t" + pd.getName() + " = ");
+            
+            record.append("\t" + objKey + " = ");
 
             Encrypt encryptAnnotation = pd.getReadMethod().getAnnotation(Encrypt.class);
             if (encryptAnnotation != null) {
-                System.out.println("*** ENCRYPTED CONTENT ***");
+                record.append("*** ENCRYPTED CONTENT ***\n");
                 continue;
             }
 
             type = pd.getPropertyType();
             if (type == URI.class) {
-                System.out.println("URI: " + objValue);
+                record.append("URI: " + objValue + "\n");
             } else if (type == StringMap.class) {
-                System.out.println("StringMap " + objValue);
+                record.append("StringMap " + objValue + "\n");
             } else if (type == StringSet.class) {
-                System.out.println("StringSet " + objValue);
+                record.append("StringSet " + objValue + "\n");
             } else if (type == OpStatusMap.class) {
-                System.out.println("OpStatusMap " + objValue);
+                record.append("OpStatusMap " + objValue + "\n");
             } else {
-                System.out.println(objValue);
+                record.append(objValue + "\n");
             }
         }
+        
+        if (this.showModificationTime) {
+            Column<CompositeColumnName> latestField = _dbClient.getLatestModifiedField(
+                    TypeMap.getDoType(clazz), object.getId(), ignoreList);
+            if (latestField != null) {
+                record.append(String.format(
+                        "The latest modified time is %s on Field(%s).\n", new Date(
+                                latestField.getTimestamp() / 1000), latestField.getName()
+                                .getOne()));
+            }
+        }
+        
+        if (isPrint) {
+            if (!localCriterias.isEmpty()) {
+                String errMsg = String.format(
+                        "The filters %s are not available for the CF %s",
+                        localCriterias.keySet(), clazz);
+                throw new IllegalArgumentException(errMsg);
+            }
+            System.out.println(record.toString());
+        }
+        
+        return isPrint;
+    }
+    
+    private <T extends DataObject> boolean printBeanProperties(Class<T> clazz, T object)
+            throws Exception {
+        return printBeanProperties(clazz, object, new HashMap<String, String>());
     }
 
     private boolean isEmptyStr(Object objValue) {
@@ -321,7 +374,7 @@ public class DBClient {
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-    public void listRecords(String cfName) throws Exception {
+    public void listRecords(String cfName, Map<String, String> criterias) throws Exception {
         final Class clazz = _cfMap.get(cfName); // fill in type from cfName
         if (clazz == null) {
             System.err.println("Unknown Column Family: " + cfName);
@@ -337,7 +390,7 @@ public class DBClient {
             System.out.println("No records found");
             return;
         }
-        int count = queryAndPrintRecords(uris, clazz);
+        int count = queryAndPrintRecords(uris, clazz, criterias);
         System.out.println("Number of All Records is: " + count);
     }
 
@@ -638,6 +691,10 @@ public class DBClient {
     public void setActiveOnly(boolean activeOnly) {
         this.activeOnly = activeOnly;
     }
+
+	public void setShowModificationTime(boolean showModificationTime) {
+		this.showModificationTime = showModificationTime;
+	}
 
     /**
      * Read the schema record from db and dump it into a specified file

@@ -1,24 +1,14 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.protectioncontroller;
 
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-
 import java.net.URI;
 import java.util.List;
+
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
  * RecoverPoint Controller
@@ -45,24 +35,13 @@ public interface RPController extends ProtectionController {
      * @param storageDevice storage device of the volume
      * @param snapshotList list of snapshots
      * @param createInactive (unused)
+     * @param readOnly
      * @param task task ID
      * 
      * @throws InternalException
      */
     public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList,
-            Boolean createInactive, String task) throws InternalException;
-
-    /**
-     * Restore an RP bookmark. This will enable the specified bookmark on the CG if the CG is not already enabled. This step is
-     * required for RP bookmark restores.
-     * 
-     * @param protectionDevice RP protection system URI
-     * @param storageDevice storage device of the volume
-     * @param snapshotId snapshot URI
-     * @param task task ID
-     * @throws InternalException
-     */
-    public void restoreVolume(URI protectionDevice, URI storageDevice, URI snapshotId, String task) throws InternalException;
+            Boolean createInactive, Boolean readOnly, String task) throws InternalException;
 
     /**
      * Delete a snapshot

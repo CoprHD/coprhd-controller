@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.varray;
@@ -47,14 +47,14 @@ public class EndpointChanges {
     }
 
     public boolean hasAdded() {
-        return add != null && add.size() > 0;
+        return (add != null && !add.isEmpty());
     }
 
     public boolean hasRemoved() {
-        return remove != null && remove.size() > 0;
+        return (remove != null && !remove.isEmpty());
     }
 
     public boolean hasUpdates() {
-        return hasAdded() || hasRemoved();
+        return (hasAdded() || hasRemoved());
     }
 }

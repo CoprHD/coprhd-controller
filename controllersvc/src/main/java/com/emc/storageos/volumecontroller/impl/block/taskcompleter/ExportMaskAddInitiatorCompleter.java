@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -19,6 +9,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.storageos.util.ExportUtils;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
@@ -48,6 +39,7 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             ExportMask exportMask = (getMask() != null) ? dbClient.queryObject(ExportMask.class, getMask()) : null;
 
             if (exportMask != null) {
@@ -62,19 +54,26 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
                     // fall back to the original way of tracking user added initiators, which is to add all of them.
                     exportMask.addToUserCreatedInitiators(dbClient.queryObject(Initiator.class, _initiatorURIs));
                 }
-            }
 
-            for (URI initiatorURI : _initiatorURIs) {
-                Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
-                exportMask.addInitiator(initiator);
-            }
+                // Save the initiators to the ExportMask
+                for (URI initiatorURI : _initiatorURIs) {
+                    Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
+                    if (initiator != null) {
+                        exportMask.addInitiator(initiator);
+                    } else {
+                        _log.warn("Initiator {} does not exist.", initiatorURI);
+                    }
+                }
 
-            if (exportMask != null) {
+                // Save the target StoragePort URIs to the ExportMask
                 for (URI newTarget : _targetURIs) {
                     exportMask.addTarget(newTarget);
                 }
                 dbClient.updateAndReindexObject(exportMask);
             }
+
+            ExportUtils.reconcileExportGroupsHLUs(dbClient, exportGroup);
+            dbClient.persistObject(exportGroup);
             _log.info(String.format(
                     "Done ExportMaskAddInitiator - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

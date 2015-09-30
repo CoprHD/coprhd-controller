@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -401,7 +391,8 @@ public abstract class DataObject implements Serializable {
         NO_METERING(1),
         NO_PUBLIC_ACCESS(2),
         SUPPORTS_FORCE(3),
-        RECOVERPOINT(4);
+        RECOVERPOINT(4),
+        DELETION_IN_PROGRESS(5);
 
         private final long mask;
 

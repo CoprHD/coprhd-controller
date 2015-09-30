@@ -1,39 +1,33 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model;
 
-import javax.xml.bind.annotation.XmlElement;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.xml.bind.annotation.XmlElement;
 
 public enum ResourceTypeEnum {
     /* type service */
     FILE("fileshare", "/file/filesystems"),
     VOLUME("volume", "/block/volumes"),
+    BUCKET("bucket", "/object/buckets"),
     PROJECT("project", "/projects"),
     TENANT("tenant", "/tenants"),
     VPOOL("vpool", "/"),
     BLOCK_VPOOL("block_vpool", "/block/vpools"),
     FILE_VPOOL("file_vpool", "/file/vpools"),
+    OBJECT_VPOOL("object_vpool", "/object/vpools"),
     COMPUTE_VPOOL("compute_vpool", "/compute/vpools"),
     VARRAY("varray", "/vdc/varrays"),
     STORAGE_SYSTEM("storage_system", "/vdc/storage-systems"),
     STORAGE_POOL("storage_pool", "/vdc/storage-systems/%1$s/storage-pools"),
     STORAGE_TIER("storage_tier", "/vdc/storage-tiers"),
     STORAGE_PORT("storage_port", "/vdc/storage-systems/%1$s/storage-ports"),
+    RDF_GROUP("rdf_group", "/vdc/storage-systems/%1$s/rdf-groups"),
     PROTECTION_SYSTEM("protection_system", "/vdc/protection-systems"),
     PROTECTION_SET("protection_set", "/block/volumes/%1$s/protection/protection-sets"),
     FILE_SNAPSHOT("snapshot", "/file/snapshots"),
@@ -78,8 +72,9 @@ public enum ResourceTypeEnum {
     CUSTOM_CONFIG("controller_config", "/config/controller"),
     CONFIG_TYPE("config_type", "/config/controller/types"),
     SYS_EVENT("sysevent", ""),
-    USER_GROUP("user_group", "/vdc/admin/user-groups");
-
+    USER_GROUP("user_group", "/vdc/admin/user-groups"),
+    VIRTUAL_NAS("vnas-servers", "/vdc/vnas-servers"),
+    COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers");
     private final String type;
     private final String service;
 

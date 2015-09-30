@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.coordinator.client.service.impl;
@@ -78,6 +68,18 @@ public class WorkflowDataManagerImpl implements DistributedDataManager {
                 _zkClient.delete().guaranteed().forPath(path + "/" + child);
             }
             _zkClient.delete().guaranteed().forPath(path);
+        }
+    }
+
+    @Override
+    public void removeNode(String path, boolean recursive) throws Exception {
+        if (recursive) {
+            Stat stat = checkExists(path);
+            if (stat != null) {
+                _zkClient.delete().deletingChildrenIfNeeded().forPath(path);
+            }
+        } else {
+            removeNode(path);
         }
     }
 

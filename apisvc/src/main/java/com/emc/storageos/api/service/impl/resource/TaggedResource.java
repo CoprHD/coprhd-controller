@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -81,7 +71,7 @@ public abstract class TaggedResource extends ResourceService {
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/tags")
-    @InheritCheckPermission(write_access = true)
+    @InheritCheckPermission(writeAccess = true)
     public Tags assignTags(@PathParam("id") URI id, TagAssignment assignment) {
         DataObject object = queryResource(id);
         ArgValidator.checkEntityNotNull(object, id, isIdEmbeddedInURL(id));
@@ -528,7 +518,7 @@ public abstract class TaggedResource extends ResourceService {
     }
 
     protected void verifySystemAdmin() {
-        if (!isSystemAdmin()) {
+        if (!isSystemOrRestrictedSystemAdmin()) {
             throw APIException.forbidden
                     .insufficientPermissionsForUser(getUserFromContext().getName());
         }
@@ -536,6 +526,19 @@ public abstract class TaggedResource extends ResourceService {
 
     protected boolean isSystemAdmin() {
         return _permissionsHelper.userHasGivenRole(
-                getUserFromContext(), null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN);
+                getUserFromContext(), null, Role.SYSTEM_ADMIN);
+    }
+
+    protected boolean isRestrictedSystemAdmin() {
+        return _permissionsHelper.userHasGivenRole(
+                getUserFromContext(), null, Role.RESTRICTED_SYSTEM_ADMIN);
+    }
+
+    protected boolean isSystemOrRestrictedSystemAdmin() {
+        return isSystemAdmin() || isRestrictedSystemAdmin();
+    }
+
+    protected boolean isSecurityAdmin() {
+        return _permissionsHelper.userHasGivenRole(getUserFromContext(), null, Role.SECURITY_ADMIN);
     }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
@@ -341,6 +331,14 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * {@inheritDoc}
      */
     @Override
+    public TaskList establishVolumeAndFullCopyGroupRelation(Volume sourceVolume, Volume fullCopyVolume) {
+        return super.establishVolumeAndFullCopyGroupRelation(sourceVolume, fullCopyVolume);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         return super.checkProgress(sourceURI, fullCopyVolume);
     }
@@ -369,7 +367,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @param sc A reference to the error.
      * @param markInactive true to mark the volumes inactive, false otherwise.
      */
-    private void handleFailedRequest(String taskId, TaskList taskList,
+    protected void handleFailedRequest(String taskId, TaskList taskList,
             List<Volume> volumes, ServiceCoded sc, boolean markInactive) {
         for (TaskResourceRep volumeTask : taskList.getTaskList()) {
             volumeTask.setState(Operation.Status.error.name());

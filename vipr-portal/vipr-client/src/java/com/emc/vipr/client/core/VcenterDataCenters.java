@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -12,10 +12,15 @@ import com.emc.storageos.model.host.vcenter.*;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
+import com.emc.vipr.client.core.impl.SearchConstants;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.impl.RestClient;
+
+import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.util.List;
+import java.util.Properties;
+
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 /**
@@ -47,17 +52,21 @@ public class VcenterDataCenters extends AbstractCoreBulkResources<VcenterDataCen
     }
 
     /**
-     * Lists the datacenters for the given vCenter by ID.
+     * Lists the datacenters filtered by the tenants for the given vCenter by ID.
      * <p>
-     * API Call: <tt>GET /compute/vcenters/{vcenterId}/vcenter-data-centers</tt>
+     * API Call: <tt>GET /compute/vcenters/{vcenterId}/vcenter-data-centers?tenant={tenantId}</tt>
      * 
      * @param vcenterId
      *            the ID of the vCenter.
      * @return the list of datacenter references.
      */
-    public List<NamedRelatedResourceRep> listByVcenter(URI vcenterId) {
-        VcenterDataCenterList response = client.get(VcenterDataCenterList.class, PathConstants.DATACENTER_BY_VCENTER,
-                vcenterId);
+    public List<NamedRelatedResourceRep> listByVcenter(URI vcenterId, URI tenantId) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.DATACENTER_BY_VCENTER);
+        if(tenantId != null) {
+            uriBuilder.queryParam(SearchConstants.TENANT_PARAM, tenantId);
+        }
+
+        VcenterDataCenterList response = client.getURI(VcenterDataCenterList.class, uriBuilder.build(vcenterId));
         return ResourceUtils.defaultList(response.getDataCenters());
     }
 
@@ -69,8 +78,14 @@ public class VcenterDataCenters extends AbstractCoreBulkResources<VcenterDataCen
      *            the ID of the vCenter.
      * @return the list of datacenters.
      */
+
     public List<VcenterDataCenterRestRep> getByVcenter(URI vcenterId) {
-        List<NamedRelatedResourceRep> refs = listByVcenter(vcenterId);
+        List<NamedRelatedResourceRep> refs = listByVcenter(vcenterId, null);
+        return getByRefs(refs, null);
+    }
+
+    public List<VcenterDataCenterRestRep> getByVcenter(URI vcenterId, URI tenantId) {
+        List<NamedRelatedResourceRep> refs = listByVcenter(vcenterId, tenantId);
         return getByRefs(refs, null);
     }
 
@@ -151,7 +166,7 @@ public class VcenterDataCenters extends AbstractCoreBulkResources<VcenterDataCen
      * <p>
      * API Call: <tt>POST /compute/vcenter-data-centers/{id}/create-vcenter-cluster</tt>
      * 
-     * @param id
+     * @param dataCenterId
      *            the id of the data center.
      * @param clusterParam
      *            VcenterClusterParam id of the selected cluster
@@ -168,7 +183,7 @@ public class VcenterDataCenters extends AbstractCoreBulkResources<VcenterDataCen
      * <p>
      * API Call: <tt>PUT /compute/vcenter-data-centers/{id}/update-vcenter-cluster</tt>
      * 
-     * @param id
+     * @param dataCenterId
      *            the id of the data center.
      * @param clusterParam
      *            VcenterClusterParam id of the selected cluster

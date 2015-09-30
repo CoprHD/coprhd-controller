@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnxe;
@@ -20,6 +10,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -67,6 +58,7 @@ import com.emc.storageos.vnxe.models.AccessEnum;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
+import com.emc.storageos.vnxe.models.VNXeFileSystem;
 import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -225,6 +217,26 @@ public class VNXeStorageDevice extends VNXeOperations
         return BiosCommandResult.createPendingResult();
     }
 
+    @Override
+    public boolean doCheckFSExists(StorageSystem storage,
+            FileDeviceInputOutput fileInOut) throws ControllerException {
+        _logger.info("checking file system existence on array: ", fileInOut.getFsName());
+        boolean isFSExists = true;
+        try {
+            String name = fileInOut.getFsName();
+            VNXeApiClient apiClient = getVnxeClient(storage);
+            VNXeFileSystem fs = apiClient.getFileSystemByFSName(name);
+            if (fs != null && (fs.getName().equals(name))) {
+                isFSExists = true;
+            } else {
+                isFSExists = false;
+            }
+        } catch (Exception e) {
+            _logger.error("Querying File System failed with exception:", e);
+        }
+        return isFSExists;
+    }
+
     /*
      * @Override
      * public BiosCommandResult doDeleteFS(StorageSystem storage,
@@ -246,7 +258,7 @@ public class VNXeStorageDevice extends VNXeOperations
      * ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", "No Job returned from deleteFileSystem");
      * return BiosCommandResult.createErrorResult(error);
      * }
-     * 
+     *
      * }catch (VNXeException e) {
      * _logger.error("Delete file system got the exception", e);
      * if (completer != null) {
@@ -940,7 +952,7 @@ public class VNXeStorageDevice extends VNXeOperations
                 URI cg = vol.getConsistencyGroup();
                 BlockConsistencyGroup cgObj = _dbClient.queryObject(BlockConsistencyGroup.class, cg);
 
-                String cgId = cgObj.fetchArrayCgName(storage.getId());
+                String cgId = cgObj.getCgNameOnStorageSystem(storage.getId());
                 VNXeCommandJob job = apiClient.createLunsInLunGroup(volNames, storagePool.getNativeId(), vol.getCapacity(),
                         vol.getThinlyProvisioned(), autoTierPolicyName, cgId);
                 jobs.add(job.getId());
@@ -993,7 +1005,7 @@ public class VNXeStorageDevice extends VNXeOperations
             BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                     consistencyGroupURI);
             if (consistencyGroup != null) {
-                consistencyGroupId = consistencyGroup.fetchArrayCgName(storage.getId());
+                consistencyGroupId = consistencyGroup.getCgNameOnStorageSystem(storage.getId());
             }
         }
 
@@ -1023,7 +1035,7 @@ public class VNXeStorageDevice extends VNXeOperations
      * MetaVolumeRecommendation recommendation,
      * TaskCompleter volumeCompleter) throws DeviceControllerException {
      * // TODO Auto-generated method stub
-     * 
+     *
      * }
      */
 
@@ -1040,10 +1052,10 @@ public class VNXeStorageDevice extends VNXeOperations
                 if (volume.getConsistencyGroup() != null) {
                     BlockConsistencyGroup consistencyGroupObj = _dbClient.queryObject(BlockConsistencyGroup.class,
                             volume.getConsistencyGroup());
-                    List<String> lunIds = consistencyGroupMap.get(consistencyGroupObj.fetchArrayCgName(storageSystem.getId()));
+                    List<String> lunIds = consistencyGroupMap.get(consistencyGroupObj.getCgNameOnStorageSystem(storageSystem.getId()));
                     if (lunIds == null) {
                         lunIds = new ArrayList<String>();
-                        consistencyGroupMap.put(consistencyGroupObj.fetchArrayCgName(storageSystem.getId()), lunIds);
+                        consistencyGroupMap.put(consistencyGroupObj.getCgNameOnStorageSystem(storageSystem.getId()), lunIds);
                     }
                     lunIds.add(volume.getNativeId());
                 } else {
@@ -1207,19 +1219,30 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _logger.info("{} doCreateSingleSnapshot START ...", storage.getSerialNumber());
+        List<BlockSnapshot> snapshots = _dbClient
+                .queryObject(BlockSnapshot.class, snapshotList);
+        URI snapshot = snapshots.get(0).getId();
+        _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
+                readOnly, taskCompleter);
+        _logger.info("{} doCreateSingleSnapshot END ...", storage.getSerialNumber());
+    }
+
+    @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
-            Boolean createInactive, TaskCompleter taskCompleter)
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
 
         _logger.info("{} doCreateSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient
                 .queryObject(BlockSnapshot.class, snapshotList);
-        if (inConsistencyGroup(snapshots)) {
-            _snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive, taskCompleter);
+        if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
+            _snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive, readOnly, taskCompleter);
         } else {
             URI snapshot = snapshots.get(0).getId();
             _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
-                    taskCompleter);
+            		readOnly, taskCompleter);
 
         }
         _logger.info("{} doCreateSnapshot END ...", storage.getSerialNumber());
@@ -1232,7 +1255,7 @@ public class VNXeStorageDevice extends VNXeOperations
         _logger.info("{} doActivateSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotList);
         URI snapshot = snapshots.get(0).getId();
-        if (inConsistencyGroup(snapshots)) {
+        if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
             _snapshotOperations.activateGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
             _snapshotOperations.activateSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -1245,11 +1268,10 @@ public class VNXeStorageDevice extends VNXeOperations
     @Override
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-
         _logger.info("{} doDeleteSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
 
-        if (inConsistencyGroup(snapshots)) {
+        if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
             _snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
             _snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -1260,13 +1282,30 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doDeleteSelectedSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _logger.info("{} doDeleteSelectedSnapshot START ...", storage.getSerialNumber());
+        try {
+            _snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
+        } catch (DatabaseException e) {
+            String message = String.format(
+                    "IO exception when trying to delete snapshot(s) on array %s",
+                    storage.getSerialNumber());
+            _logger.error(message, e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteSnapshot",
+                    e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        }
+        _logger.info("{} doDeleteSelectedSnapshot END ...", storage.getSerialNumber());
+    }
+
+    @Override
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume,
             URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _logger.info("{} doRestoreFromSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
 
-        if (inConsistencyGroup(snapshots)) {
+        if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
             _snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             _snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
@@ -1304,6 +1343,21 @@ public class VNXeStorageDevice extends VNXeOperations
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
+    }
+
+    @Override
+    public void doEstablishVolumeNativeContinuousCopyGroupRelation(
+            StorageSystem storage, URI sourceVolume, URI mirror,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doEstablishVolumeSnapshotGroupRelation(
+            StorageSystem storage, URI sourceVolume, URI snapshot,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
     }
 
     @Override
@@ -1382,12 +1436,12 @@ public class VNXeStorageDevice extends VNXeOperations
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
         // check if lungroup has been created in the array
-        String lunGroupId = consistencyGroup.fetchArrayCgName(storage.getId());
+        String lunGroupId = consistencyGroup.getCgNameOnStorageSystem(storage.getId());
         if (lunGroupId == null || lunGroupId.isEmpty()) {
             _logger.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId())));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
             return;
 
         }
@@ -1396,7 +1450,7 @@ public class VNXeStorageDevice extends VNXeOperations
             apiClient.deleteLunGroup(lunGroupId, false, false);
             URI systemURI = storage.getId();
             consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
-                    consistencyGroup.fetchArrayCgName(systemURI));
+                    consistencyGroup.getCgNameOnStorageSystem(systemURI));
             if (markInactive) {
                 consistencyGroup.setInactive(true);
             }
@@ -1489,13 +1543,13 @@ public class VNXeStorageDevice extends VNXeOperations
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
         // check if lungroup has been created in the array
-        String lunGroupId = consistencyGroup.fetchArrayCgName(storage.getId());
+        String lunGroupId = consistencyGroup.getCgNameOnStorageSystem(storage.getId());
         if (lunGroupId == null || lunGroupId.isEmpty()) {
             // lun group has not created yet. return error
             _logger.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId())));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
             return;
 
         }
@@ -1528,7 +1582,7 @@ public class VNXeStorageDevice extends VNXeOperations
             }
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId()), e.getMessage()));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
 
     }
@@ -1540,13 +1594,13 @@ public class VNXeStorageDevice extends VNXeOperations
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
         // check if lungroup has been created in the array
-        String lunGroupId = consistencyGroup.fetchArrayCgName(storage.getId());
+        String lunGroupId = consistencyGroup.getCgNameOnStorageSystem(storage.getId());
         if (lunGroupId == null || lunGroupId.isEmpty()) {
             // lun group has not created yet. return error
             _logger.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId())));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
             return;
 
         }
@@ -1571,9 +1625,25 @@ public class VNXeStorageDevice extends VNXeOperations
             _logger.error("Exception caught when removing volumes from the consistency group ", e);
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId()), e.getMessage()));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
 
+    }
+
+    @Override
+    public void doAddToReplicationGroup(StorageSystem storage,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doRemoveFromReplicationGroup(StorageSystem storage,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
     }
 
     @Override
@@ -1581,30 +1651,6 @@ public class VNXeStorageDevice extends VNXeOperations
             Integer portNumber) {
         // TODO Auto-generated method stub
         return false;
-    }
-
-    /**
-     * Given a list of BlockSnapshot objects, determine if they were created as part of a
-     * consistency group.
-     * 
-     * @param snapshotList
-     *            [required] - List of BlockSnapshot objects
-     * @return true iff the BlockSnapshots were created as part of volume consistency group.
-     */
-    private boolean inConsistencyGroup(final List<BlockSnapshot> snapshotList) {
-        boolean isCgCreate = false;
-        if (snapshotList.size() == 1) {
-            BlockSnapshot snapshot = snapshotList.get(0);
-            final URI cgId = snapshot.getConsistencyGroup();
-            if (cgId != null) {
-                final BlockConsistencyGroup group = _dbClient.queryObject(
-                        BlockConsistencyGroup.class, cgId);
-                isCgCreate = group != null;
-            }
-        } else if (snapshotList.size() > 1) {
-            isCgCreate = true;
-        }
-        return isCgCreate;
     }
 
     @Override
@@ -2321,6 +2367,13 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doEstablishVolumeFullCopyGroupRelation(
+            StorageSystem storage, URI sourceVolume, URI fullCopy,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public void doRestoreFromGroupClone(StorageSystem storageSystem,
             List<URI> cloneVolume, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -2342,9 +2395,63 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return Collections.EMPTY_MAP;
+    }
+
+    @Override
     public void doFractureGroupClone(StorageSystem storageDevice,
             List<URI> clone, TaskCompleter completer) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
     }
+
+    @Override
+    public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        
+    }
+
+    @Override
+    public void doCreateGroupMirrors(StorageSystem storage,
+            List<URI> mirrorList, Boolean createInactive,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doFractureGroupMirrors(StorageSystem storage,
+            List<URI> mirrorList, Boolean sync, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doDetachGroupMirrors(StorageSystem storage,
+            List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doResumeGroupNativeContinuousCopies(StorageSystem storage,
+            List<URI> mirrorList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doDeleteGroupMirrors(StorageSystem storage,
+            List<URI> mirrorList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+	@Override
+    public void doRemoveMirrorFromDeviceMaskingGroup(StorageSystem system,
+            List<URI> mirrors, TaskCompleter completer)
+            throws DeviceControllerException {
+		throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+	}
 }

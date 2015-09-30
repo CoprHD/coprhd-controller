@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model;
@@ -46,6 +36,9 @@ public class TaskResourceRep extends DataObjectRestRep {
     private Calendar endTime;
     private Calendar lastUpdatedTime;
     private Integer progress;
+    private Calendar queuedStartTime;
+    private String queueName;
+
     private RelatedResourceRep workflow;
 
     public TaskResourceRep() {
@@ -140,7 +133,8 @@ public class TaskResourceRep extends DataObjectRestRep {
 
     /**
      * The state of the task
-     * 
+     *
+     * @valid queued = task is queued
      * @valid pending = task is pending
      * @valid ready = task succeed
      * @valid error = task fails
@@ -243,4 +237,23 @@ public class TaskResourceRep extends DataObjectRestRep {
     public void setWorkflow(RelatedResourceRep workflow) {
         this.workflow = workflow;
     }
+
+    @XmlElement(name = "queuedStartTime")
+    public Calendar getQueuedStartTime() {
+        return queuedStartTime;
+    }
+
+    public void setQueuedStartTime(Calendar queuedStartTime) {
+        this.queuedStartTime = queuedStartTime;
+    }
+
+    @XmlElement(name = "queueName")
+    public String getQueueName() {
+        return queueName;
+    }
+
+    public void setQueueName(String queueName) {
+        this.queueName = queueName;
+    }
+
 }

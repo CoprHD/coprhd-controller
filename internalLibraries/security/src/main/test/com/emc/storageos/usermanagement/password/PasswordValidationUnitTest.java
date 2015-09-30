@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.password;
@@ -25,7 +25,7 @@ public class PasswordValidationUnitTest {
     private static Logger logger = LoggerFactory.getLogger(PasswordValidationUnitTest.class);
 
     @Test
-    public void ChangedNumberRule() {
+    public void changedNumberRule() {
         ChangedNumberRule rule = new ChangedNumberRule(4);
 
         Password password = new Password("1122334455", "1122334455");

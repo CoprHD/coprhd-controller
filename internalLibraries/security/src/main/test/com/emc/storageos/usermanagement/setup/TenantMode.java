@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.setup;
@@ -27,7 +27,7 @@ public class TenantMode extends ADMode {
     protected static ViPRClientHelper viPRClientHelper;
 
     @BeforeClass
-    public synchronized static void setup_TenantModeBaseClass() throws Exception {
+    public synchronized static void setupTenantModeBaseClass() throws Exception {
         rootTenantID = superUserClient.getUserTenantId();
         viPRClientHelper = new ViPRClientHelper(superUserClient);
 
@@ -37,7 +37,7 @@ public class TenantMode extends ADMode {
     }
 
     @AfterClass
-    public static void teardown_TenantModeBaseClass() throws Exception {
+    public static void teardownTenantModeBaseClass() throws Exception {
 
         // add old user mappings back
         logger.info("restore root tenant user mappings");

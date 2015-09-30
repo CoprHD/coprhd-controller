@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.util;
@@ -160,6 +160,25 @@ public class NetworkUtil {
         NetworkLite networkLite = null;
         for (String uri : uris) {
             networkLite = getNetworkLite(URI.create(uri), dbClient);
+            if (networkLite != null) {
+                networks.add(networkLite);
+            }
+        }
+        return networks;
+    }
+
+    /**
+     * Returns a NetworkLite set for a collection of network URIs
+     * 
+     * @param uris the network URIs in string form
+     * @param dbClient an instance of DbClient
+     * @return the NetworkLite set for a collection of network URIs
+     */
+    public static Set<NetworkLite> queryNetworkLites(Collection<URI> uris, DbClient dbClient) {
+        Set<NetworkLite> networks = new HashSet<NetworkLite>();
+        NetworkLite networkLite = null;
+        for (URI uri : uris) {
+            networkLite = getNetworkLite(uri, dbClient);
             if (networkLite != null) {
                 networks.add(networkLite);
             }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
@@ -28,6 +18,7 @@ import javax.wbem.client.WBEMClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
 
+import com.emc.storageos.db.client.model.StorageSystem;
 import org.apache.curator.framework.recipes.locks.Lease;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +68,7 @@ public class SmisCreateMultiVolumeJob extends SmisAbstractCreateVolumeJob {
     }
 
     /**
-     * Execute operations to rename the volume name, which will run in the background.
+     * Perform specific processing, based on the SMI-S Provider version.
      * 
      * @param dbClient [in] - Client for reading/writing from/to database.
      * @param client [in] - WBEMClient for accessing SMI-S provider data
@@ -85,8 +76,29 @@ public class SmisCreateMultiVolumeJob extends SmisAbstractCreateVolumeJob {
      * @param volumePath [in] - Name reference to the SMI-S side volume object
      */
     @Override
-    void specificProcessing(final DbClient dbClient, final WBEMClient client, final Volume volume,
-            CIMInstance volumeInstance, final CIMObjectPath volumePath) {
+    protected void specificProcessing(final StorageSystem storageSystem, final DbClient dbClient,
+                                      final WBEMClient client, final Volume volume, CIMInstance volumeInstance,
+                                      final CIMObjectPath volumePath) {
+        if (storageSystem.getUsingSmis80()) {
+            super.specificProcessing(storageSystem, dbClient, client, volume, volumeInstance, volumePath);
+        } else {
+            specificProcessingFor4x(dbClient, client, volume, volumePath);
+        }
+    }
+
+    /**
+     * Specific processing for SMI-S Provider 4.x.
+     *
+     * With this version we are limited to using CreateOrModifyElementFromStoragePool, so execute operations to rename
+     * the volume name, which will run in the background.
+     *
+     * @param dbClient
+     * @param client
+     * @param volume
+     * @param volumePath
+     */
+    private void specificProcessingFor4x(final DbClient dbClient, final WBEMClient client,
+                                         final Volume volume, final CIMObjectPath volumePath) {
         _executor.execute(new Runnable() {
             @Override
             public void run() {

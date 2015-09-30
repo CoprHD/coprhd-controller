@@ -1,17 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2012. EMC Corporation All Rights Reserved This software contains the intellectual
- * property of EMC Corporation or is licensed to EMC Corporation from third parties. Use of this
- * software and the intellectual property contained therein is expressly limited to the terms and
- * conditions of the License Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +28,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.plugins.common.Constants;
+import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
 
 /**
  * This class will contain functions and properties related to creating CIMObjectPath objects.
@@ -273,6 +269,13 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         }
         initiatorPortPaths = list.toArray(initiatorPortPaths);
         return initiatorPortPaths;
+    }
+
+    @Override
+    public HashMap<String, CIMObjectPath> getInitiatorToInitiatorPath(StorageSystem storageDevice, List<String> initiatorNames)
+            throws Exception {
+        // No need to implement here
+        return null;
     }
 
     @Override

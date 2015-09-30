@@ -1,21 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.WWNUtility;
+import com.emc.storageos.db.client.util.iSCSIUtility;
 
 /**
  * SCSI initiator in either a Fiber Channel or iSCSI SAN.
@@ -174,6 +165,8 @@ public class Initiator extends HostInterface {
         String normalizedPort = port;
         if (WWNUtility.isValidWWN(port)) {
             normalizedPort = WWNUtility.getUpperWWNWithNoColons(port);
+        } else if(iSCSIUtility.isValidIQNPortName(port)) {
+            normalizedPort = normalizedPort.toLowerCase();
         }
         return normalizedPort;
     }
@@ -187,7 +180,7 @@ public class Initiator extends HostInterface {
             // iqn.1992-04.com.emc:cx.apm00121500018.b9
             int firstComma = port.indexOf(',');
             if (firstComma != -1) {
-                portNetworkId = port.substring(0, firstComma);
+                portNetworkId = port.substring(0, firstComma).toLowerCase();
             }
         } else if (!WWNUtility.isValidWWN(port)) {
             portNetworkId = WWNUtility.getWWNWithColons(port);

@@ -1,9 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2011 EMC Corporation
  * All Rights Reserved
- */
-/*
- * This computer code is copyright 2011 EMC Corporation. All rights reserved.
  */
 package com.emc.storageos.recoverpoint;
 
@@ -266,13 +263,13 @@ public class RecoverPointClientIntegrationTest {
             for (RPSite rpSite : returnList) {
                 boolean foundError = false;
                 logger.info("Testing RecoverPoint Get Site WWNs");
-                Map<String, String> WWNs = null;
+                Map<String, Map<String, String>> WWNs = null;
                 WWNs = rpClient.getInitiatorWWNs(rpSite.getInternalSiteName());
                 if (WWNs == null || WWNs.size() < 1) {
                     foundError = true;
                     fail("No WWNs were returned");
                 }
-                if (!foundError) {
+                if (!foundError) {                	
                     logger.info("TestRecoverPointServiceGetSiteWWNs PASSED.  Found " + WWNs.size() + " Initiator WWNs");
                 }
             }
@@ -889,7 +886,7 @@ public class RecoverPointClientIntegrationTest {
         }
         logger.info("Create the CG with two replication sets");
         CGRequestParams createCGParams = createCGParamsHelper(true, true, 2);
-        rpClient.createCG(createCGParams, false);
+        rpClient.createCG(createCGParams, false, false);
     }
 
     @Test
@@ -928,7 +925,7 @@ public class RecoverPointClientIntegrationTest {
         // CreateCGRequestParams createCGParams = CreateCGParamsHelper(true, false, 2);
         CGRequestParams createCGParams = createCGParamsHelper(true, false, 1);
 
-        rpClient.createCG(createCGParams, false);
+        rpClient.createCG(createCGParams, false, false);
     }
 
     public void recreateCGAndBookmark() throws RecoverPointException {

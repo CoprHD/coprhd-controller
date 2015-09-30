@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.geo.vdccontroller.impl;
@@ -37,6 +27,7 @@ import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.geomodel.VdcNatCheckParam;
 import com.emc.storageos.geomodel.VdcNatCheckResponse;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
+import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.security.geo.GeoServiceHelper;
@@ -651,7 +642,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
                 log.info(
                         "Can not get vdc version on {}, will use default version instead",
                         vdcId);
-                allVersions.add(VdcUtil.DEFAULT_VDC_DB_VERSION);
+                allVersions.add(DbConfigConstants.DEFAULT_VDC_DB_VERSION);
             }
         }
 

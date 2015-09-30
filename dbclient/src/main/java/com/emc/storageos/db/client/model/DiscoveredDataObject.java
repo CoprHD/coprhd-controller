@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2012. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
@@ -38,12 +28,12 @@ public class DiscoveredDataObject extends DataObject {
         vcenter,
         hds,
         ucs,
-        rpvplex,
         ibmxiv,
         openstack,
         vnxe,
         scaleio,
-        xtremio;
+        xtremio,
+        ecs;
 
         static public boolean isFileStorageSystem(Type type) {
             return (type == isilon || type == vnxfile || type == netapp || type == netappc || type == vnxe || type == datadomain);
@@ -75,6 +65,11 @@ public class DiscoveredDataObject extends DataObject {
         static public boolean isHDSStorageSystem(Type type) {
             return (type == hds);
         }
+
+        static public boolean isObjectStorageSystem(Type type) {
+            return (type == ecs);
+        }
+
     }
 
     public static enum DataCollectionJobStatus {

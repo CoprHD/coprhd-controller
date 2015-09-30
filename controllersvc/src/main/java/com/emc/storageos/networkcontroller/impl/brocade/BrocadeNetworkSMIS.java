@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.networkcontroller.impl.brocade;
@@ -581,14 +581,21 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                 memberPath = cimStringProperty(ins, _SettingData);
                 wwn = getPropertyValueFromString(memberPath, SmisConstants.CP_FABRIC);
                 if (StringUtils.equalsIgnoreCase(wwn, fabricWwn)) {
-                    alias = new ZoneWwnAlias();
-                    alias.setAddress(formatWWN(getPropertyValueFromString(memberPath, SmisConstants.CP_NSNAME)));
-                    alias.setName(getPropertyValueFromString(aliasPath, SmisConstants.CP_NSNAME));
-                    // Use a map to handle the unsupported scenario when an alias has more than one member
-                    // in this code the alias will arbitrarily have the the last members discovered.
-                    // this is needed to ensure code dependent on this code does not receive duplicates
-                    aliases.put(alias.getName(), alias);
-                    _log.debug("Retreived alias name " + alias.getName() + " and address " + alias.getAddress());
+                    try {
+                        alias = new ZoneWwnAlias();
+                        alias.setAddress(formatWWN(getPropertyValueFromString(memberPath, SmisConstants.CP_NSNAME)));
+                        alias.setName(getPropertyValueFromString(aliasPath, SmisConstants.CP_NSNAME));
+                        // Use a map to handle the unsupported scenario when an alias has more than one member
+                        // in this code the alias will arbitrarily have the the last members discovered.
+                        // this is needed to ensure code dependent on this code does not receive duplicates
+                        aliases.put(alias.getName(), alias);
+                        _log.debug("Retreived alias name " + alias.getName() + " and address " + alias.getAddress());
+                    } catch (Exception e){
+                        //if the WWN is not a valid one and setAddress will throw an error
+                        //Catch it , log it , skip it it and move forward with processing the rest of the data
+                        _log.warn("An exception was encountered while processing " + wwn + " may be it is malformed "
+                                + e.getMessage());
+                    }
                 }
             }
         } catch (Exception ex) {
@@ -662,8 +669,8 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
     }
 
     @SuppressWarnings("unchecked")
-    public List<Zoneset> getZoneSets(WBEMClient client, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers)
-            throws WBEMException {
+    public List<Zoneset> getZoneSets(WBEMClient client, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
+    		boolean excludeAliases) throws WBEMException {
         List<Zoneset> zonesets = new ArrayList<Zoneset>();
 
         fabricWwn = StringUtils.isEmpty(fabricWwn) ? getFabricWwn(client, fabricId) : fabricWwn;
@@ -679,10 +686,10 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
 
                     // if zoneName not specified, get all zones in the zoneset.
                     if (StringUtils.isEmpty(zoneName)) {
-                        activeZoneset.setZones(getZonesetZones(client, activeZonesetIns.getObjectPath(), !excludeMembers));
+                        activeZoneset.setZones(getZonesetZones(client, activeZonesetIns.getObjectPath(), !excludeMembers, !excludeAliases));
                     } else {
                         // looking for a zone with given zoneName
-                        Zone zone = getZone(client, zoneName, fabricWwn, true, !excludeMembers);
+                        Zone zone = getZone(client, zoneName, fabricWwn, true, !excludeMembers, !excludeAliases);
                         if (zone != null) {
                             activeZoneset.getZones().add(zone);
                         }
@@ -700,7 +707,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                         if (!zoneset.getActive() && StringUtils.equals(zoneset.getName(), activeZoneset.getName())) {
                             // found a pending active zoneset, consolidate its zones into active zoneset
                             if (StringUtils.isEmpty(zoneName)) {
-                                zoneset.setZones(getZonesetZones(client, zonesetIns.getObjectPath(), !excludeMembers));
+                                zoneset.setZones(getZonesetZones(client, zonesetIns.getObjectPath(), !excludeMembers, !excludeAliases));
 
                                 // consolidate active and pending zones in the zoneset
                                 List<String> activeZoneNames = new ArrayList<String>();
@@ -720,7 +727,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
 
                             } else if (activeZoneset.getZones().isEmpty()) {
                                 // if specified zone was not found in active zone set, look into pending zoneset
-                                Zone zone = getZone(client, zoneName, fabricWwn, true, !excludeMembers);
+                                Zone zone = getZone(client, zoneName, fabricWwn, true, !excludeMembers, !excludeAliases);
                                 if (zone != null) {
                                     zoneset.getZones().add(zone);
                                 }
@@ -771,7 +778,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
 
     @SuppressWarnings("unchecked")
     public List<Zone> getZonesetZones(WBEMClient client,
-            CIMObjectPath zonesetPath, boolean includeMembers) throws WBEMException {
+            CIMObjectPath zonesetPath, boolean includeMembers, boolean includeAliases) throws WBEMException {
         List<Zone> zones = new ArrayList<Zone>();
         if (zonesetPath != null) {
             CloseableIterator<CIMInstance> zoneItr = null;
@@ -781,7 +788,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                         null, false, null);
 
                 while (zoneItr.hasNext()) {
-                    Zone zone = getZoneFromZoneInstance(client, zoneItr.next(), includeMembers);
+                    Zone zone = getZoneFromZoneInstance(client, zoneItr.next(), includeMembers, includeAliases);
                     zones.add(zone);
                 }
             } finally {
@@ -852,7 +859,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                         null, false, null);
 
                 while (zoneItr.hasNext()) {
-                    Zone zone = getZoneFromZoneInstance(client, zoneItr.next(), false);
+                    Zone zone = getZoneFromZoneInstance(client, zoneItr.next(), false, false);
                     zones.add(zone);
                 }
             } finally {
@@ -960,12 +967,20 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
      * 
      * @param client instance of WBEMClient
      * @param path the zone path
+     * @param includeAliases if true, the aliases are retrieved and populated in the zone.
      * @return the list of aliases by name and WWN (asuming only 1 member in an alias)
      */
     public List<ZoneMember> getZoneMembers(WBEMClient client,
-            CIMObjectPath path) throws WBEMException {
-        List<ZoneMember> aliasMembers = getZoneAliases(client, path);
+            CIMObjectPath path, boolean includeAliases) throws WBEMException {
+        List<ZoneMember> aliasMembers = null;
         List<ZoneMember> wwnMembers = getZoneOrAliasMembers(client, path, false);
+        if (includeAliases) {
+            aliasMembers = getZoneAliases(client, path);
+    	} else {
+            _log.info("Excluding aliases while getting zone members");
+            aliasMembers = wwnMembers;
+            return aliasMembers;
+    	}
         boolean found = false;
         for (ZoneMember wwnMember : wwnMembers) {
             found = false;
@@ -1423,7 +1438,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                     CIMInstance zoneIns = zoneItr.next();
                     zone = cachedZones.get(zoneIns.getObjectPath());
                     if (zone == null) {
-                        zone = getZoneFromZoneInstance(client, zoneIns, true);
+                        zone = getZoneFromZoneInstance(client, zoneIns, true, false);
                         cachedZones.put(zoneIns.getObjectPath(), zone);
                     }
                     zones.add(zone);
@@ -1815,15 +1830,16 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
      * @param fabricWwn the WWN of the zone's fabric
      * @param active whether the active or inactive zone sought
      * @param includeMembers if the zone members should be retrieved or just the zone.
+     * @param includeAliases if true, the aliases are retrieved and populated in the zone.
      * @return A map of zone name to zone instance.
      * @throws WBEMException
      */
     public Map<String, Zone> getZones(WBEMClient client, List<String> names, String fabricWwn,
-            Boolean active, boolean includeMembers) throws WBEMException {
+            Boolean active, boolean includeMembers, boolean includeAliases) throws WBEMException {
         Map<String, Zone> zones = new HashMap<String, Zone>();
         if (names != null) {
             for (String name : names) {
-                zones.put(name, getZone(client, name, fabricWwn, active, includeMembers));
+                zones.put(name, getZone(client, name, fabricWwn, active, includeMembers, includeAliases));
             }
         }
         return zones;
@@ -1838,15 +1854,16 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
      * @param fabricWwn the WWN of the zone's fabric
      * @param active whether the active or inactive zone sought
      * @param includeMembers if the zone members should be retrieved or just the zone.
+     * @param includeAliases if true, the aliases are retrieved and populated in the zone.
      * @return and instance of {@link #_Zone}. Null if the some was not found in the switch.
      * @throws WBEMException
      */
     public Zone getZone(WBEMClient client, String zoneName, String fabricWwn,
-            Boolean active, boolean includeMembers) throws WBEMException {
+            Boolean active, boolean includeMembers, boolean includeAliases) throws WBEMException {
         CIMInstance zoneIns = getZoneInstance(client, zoneName, fabricWwn,
                 active);
         if (zoneIns != null) {
-            return getZoneFromZoneInstance(client, zoneIns, includeMembers);
+            return getZoneFromZoneInstance(client, zoneIns, includeMembers, includeAliases);
         }
         return null;
     }
@@ -1857,17 +1874,18 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
      * @param client an instance of WBEMClient
      * @param zoneIns an instance of CIMInstance
      * @param includeMembers if true, the members are retrieved and populated in the zone.
+     * @param includeAliases if true, the aliases are retrieved and populated in the zone.
      * @return and instance of {@link #_Zone}.
      * @throws WBEMException
      */
     private Zone getZoneFromZoneInstance(WBEMClient client,
-            CIMInstance zoneIns, boolean includeMembers) throws WBEMException {
+            CIMInstance zoneIns, boolean includeMembers, boolean includeAliases) throws WBEMException {
         Zone zone = new Zone(cimStringProperty(zoneIns, _element_name));
         zone.setActive(cimBooleanProperty(zoneIns, _active));
         zone.setCimObjectPath(zoneIns.getObjectPath());
         if (includeMembers) {
             zone.setMembers(getZoneMembers(client,
-                    zoneIns.getObjectPath()));
+                    zoneIns.getObjectPath(), includeAliases));
         }
         return zone;
     }

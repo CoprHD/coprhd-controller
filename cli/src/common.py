@@ -212,6 +212,8 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                            cookiefile + " : Cookie file not found")
 
         headers[SEC_AUTHTOKEN_HEADER] = token
+
+
         if (http_method == 'GET'):
             '''when the GET request is specified with a filename, we write
                the contents of the GET request to the filename. This option
@@ -256,6 +258,7 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
             response = requests.put(url, data=body, headers=headers,
                                     verify=False, cookies=cookiejar)
         elif (http_method == 'DELETE'):
+
             response = requests.delete(url, headers=headers, verify=False,
                                        cookies=cookiejar)
         else:
@@ -918,6 +921,7 @@ def block_until_complete(componentType, resource_uri, task_id, ipAddr, port):
 
             if(out):
                 if(out["state"] == "ready"):
+                    
                     # cancel the timer and return
                     t.cancel()
                     break
@@ -969,6 +973,7 @@ parameter task_uri_constant : The URI constant for the task
 def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
                                        task_id, ipAddr, port):
 
+            
             task_uri_constant = singletonURIHelperInstance.getUri(
                 componentType, "task")
             (s, h) = service_json_request(

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host.vcenter;
@@ -21,18 +21,26 @@ public abstract class VcenterParam {
     private String password;
     private Boolean useSsl;
     private String osVersion;
+    private Boolean cascadeTenancy;
 
     public VcenterParam() {
     }
 
     public VcenterParam(String name, Integer portNumber, String userName,
             String password, Boolean useSsl, String osVersion) {
+        this(name, portNumber, userName, password, useSsl, osVersion, Boolean.FALSE);
+    }
+
+    public VcenterParam(String name, Integer portNumber, String userName,
+                        String password, Boolean useSsl, String osVersion,
+                        Boolean cascadeTenancy) {
         this.name = name;
         this.portNumber = portNumber;
         this.userName = userName;
         this.password = password;
         this.useSsl = useSsl;
         this.osVersion = osVersion;
+        this.cascadeTenancy = cascadeTenancy;
     }
 
     /**
@@ -127,4 +135,23 @@ public abstract class VcenterParam {
 
     /** Gets the vCenter IP address */
     public abstract String findIpAddress();
+
+    /**
+     * A flag indicating whether to cascade the vCenter tenancy to all its
+     * datacenters and its clusters and hosts or not. If cascaded vCenter
+     * can belong to only one tenant.
+     *
+     * @valid true = cascades the vCenter tenancy to the datacenters
+     *                  and its hosts and clusters.
+     * @valid false = does not cascade.
+     */
+    @XmlElement(name = "cascade_tenancy")
+    @JsonProperty("cascade_tenancy")
+    public Boolean getCascadeTenancy() {
+        return cascadeTenancy;
+    }
+
+    public void setCascadeTenancy(Boolean cascadeTenancy) {
+        this.cascadeTenancy = cascadeTenancy;
+    }
 }

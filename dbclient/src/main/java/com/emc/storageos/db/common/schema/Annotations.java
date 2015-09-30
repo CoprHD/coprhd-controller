@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common.schema;
@@ -71,7 +61,7 @@ public class Annotations {
                                 .annotationType().getSimpleName())) {
                     String msg = String.format("Class annotation %s:%s is ignored in schema due to interceptor", runtimeType.getCfClass()
                             .getSimpleName(), annotations[i].annotationType().getSimpleName());
-                    log.warn(msg);
+                    log.info(msg);
                     continue;
                 } else if (!isClassAnnotation
                         && scannerInterceptor.isAnnotationIgnored(runtimeType.getCfClass().getSimpleName(), runtimeType
@@ -79,7 +69,7 @@ public class Annotations {
                     String msg = String.format("Property annotation %s:%s:%s is ignored in schema due to interceptor", runtimeType
                             .getCfClass().getSimpleName(), runtimeType.getPropertyDescriptor().getName(), annotations[i].annotationType()
                             .getSimpleName());
-                    log.warn(msg);
+                    log.info(msg);
                     continue;
                 }
             }

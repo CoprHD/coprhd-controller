@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
@@ -97,6 +87,7 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
     private static final String CONFFILE = "/etc/cinder/cinder.conf";
     private static final String VOLUME_BACKEND_NAME = "volume_backend_name";
     private static final String VIPR_THICK_POOL = "vipr:is_thick_pool";
+    private static final long DEFAULT_STORAGE_POOL_SIZE = 10 * 1024 * 1024 * 1024; //10 TB
     static final Integer timeout = 10000;           // in milliseconds
     static final Integer connectTimeout = 10000;    // in milliseconds
 
@@ -194,17 +185,20 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                         String parameter = splits[0].trim();
                         String value = splits[1].trim();
                         if (auth_section) {
-                            if (parameter.equalsIgnoreCase("admin_user")) {
+                            if (parameter.equalsIgnoreCase("admin_user") || 
+                                    parameter.equalsIgnoreCase("username")) {
                                 updateKeyInProvider(providerKeys,
                                         CinderConstants.KEY_CINDER_REST_USER, value);
                                 _logger.debug("REST user name = {}", value);
                             }
-                            else if (parameter.equalsIgnoreCase("admin_password")) {
+                            else if (parameter.equalsIgnoreCase("admin_password") ||
+                                    parameter.equalsIgnoreCase("password")) {
                                 updateKeyInProvider(providerKeys,
                                         CinderConstants.KEY_CINDER_REST_PASS_WORD, value);
                                 _logger.debug("REST password = {}", value);
                             }
-                            else if (parameter.equalsIgnoreCase("admin_tenant_name")) {
+                            else if (parameter.equalsIgnoreCase("admin_tenant_name") ||
+                                    parameter.equalsIgnoreCase("project_name")) {
                                 updateKeyInProvider(providerKeys,
                                         CinderConstants.KEY_CINDER_TENANT_NAME, value);
                                 _logger.debug("Tenant name = {}", value);
@@ -617,11 +611,11 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
         if (isThickPool) {
             pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THICK_ONLY
                     .toString());
-            pool.setMaximumThickVolumeSize((long) (1024 * 1024 * 1024));  // 1TB
+            pool.setMaximumThickVolumeSize(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB
         } else {
             pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_ONLY
                     .toString());
-            pool.setMaximumThinVolumeSize((long) (1024 * 1024 * 1024));  // 1TB
+            pool.setMaximumThinVolumeSize(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB
         }
         // UNSYNC_ASSOC -> snapshot, UNSYNC_UNASSOC -> clone
         StringSet copyTypes = new StringSet();
@@ -633,7 +627,7 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
         pool.setLabel(poolName);
 
         /*
-         * TODO: Keeping the total capacity as 1TB as there is no API/CLI
+         * TODO: Keeping the total capacity as 10 TB as there is no API/CLI
          * to know the volume type's capacity from cinder. These values
          * should be updated for actual capacity if in future cinder comes up
          * a way to know these values.
@@ -641,8 +635,8 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
          * Further these values will be adjusted as volume/snapshot gets created/deleted
          */
 
-        pool.setFreeCapacity((1024L * 1024L * 1024L)); // 1TB
-        pool.setTotalCapacity((1024L * 1024L * 1024L));  // 1TB
+        pool.setFreeCapacity(DEFAULT_STORAGE_POOL_SIZE); // 10 TB
+        pool.setTotalCapacity(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB
 
         return pool;
     }

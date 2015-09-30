@@ -49,15 +49,23 @@
       <dd ng-show="task.message">{{task.message}}&nbsp;</dd>
 
       <dt>&{'tasks.start'}:</dt>
-      <dd>{{task.startDate | date : 'MMM dd yyyy, H:mm:ss a'}}&nbsp;</dd>
+      <dd id="start">{{getLocalDateTime($('#start'),task.startDate)}}&nbsp;</dd>
 
       <span ng-show="task.endDate">
       <dt>&{'tasks.end'}:</dt>
-      <dd>{{task.endDate | date : 'MMM dd yyyy, H:mm:ss a'}}&nbsp;</dd>
+      <dd id="end">{{getLocalDateTime($('#end'),task.endDate)}}&nbsp;</dd>
       </span>
 
       <dt>&{'tasks.elapsed'}:</dt>
       <dd>{{task.elapsedTime | timeAgoInWords}}&nbsp;</dd>
+
+      <span ng-show="task.queueName">
+        <dt>&{'tasks.queueName'}:</dt>
+        <dd>{{task.queueName}}&nbsp;</dd>
+
+        <dt>&{'tasks.queuedElapsed'}:</dt>
+        <dd>{{task.queuedElapsedTime | timeAgoInWords}}&nbsp;</dd>
+      </span>
 
       <span ng-if="task.workflowId">
           <dt>&{'tasks.workflowId'}:</dt>
@@ -140,7 +148,7 @@
 function renderTime(o, val) {
   var time_ms = o.aData.timeMillis;
   if (time_ms) {
-      return moment(time_ms).format('YYYY-MM-DD HH:mm')
+	  return render.localDate(o,time_ms)
   }
   return "";
 }
@@ -197,7 +205,9 @@ function renderMessage(o, val) {
 }
 
 function renderDetails(data) {
-  var details = "<dl class='dl-horizontal'><dt>&{'system.logs.node'}</dt><dd>" + data.node + "</dd>";
+  var details = "<dl class='dl-horizontal'><dt>&{'system.logs.nodeId'}</dt><dd>" + data.node_id + "</dd>";
+
+  details += "<dt>&{'system.logs.nodeName'}</dt><dd>" + data.node_name + "</dd>";
   
   if (data["thread"]) {
 	details += "<dt>&{'system.logs.thread'}</dt><dd>" + data.thread + "</dd>";

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -105,8 +95,8 @@ import com.emc.vipr.model.keystore.RotateKeyAndCertParam;
  * Resource for VirtualDataCenter manipulation
  */
 @Path("/vdc")
-@DefaultPermissions(read_roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SECURITY_ADMIN })
+@DefaultPermissions(readRoles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SECURITY_ADMIN })
 public class VirtualDataCenterService extends TaskResourceService {
 
     @Autowired
@@ -200,7 +190,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN }, blockProxies = true)
     public TaskResourceRep addVirtualDataCenter(VirtualDataCenterAddParam param) {
         blockRoot();
         ArgValidator.checkFieldNotEmpty(param.getApiEndpoint(), "api_endpoint");
@@ -251,7 +241,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Path("/{id}")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public TaskResourceRep updateVirtualDataCenter(@PathParam("id") URI id, VirtualDataCenterModifyParam param) {
         ArgValidator.checkFieldUriType(id, VirtualDataCenter.class, "id");
 
@@ -315,7 +305,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN }, blockProxies = true)
     public TaskResourceRep removeVirtualDataCenter(@PathParam("id") URI id) {
         blockRoot();
         ArgValidator.checkFieldUriType(id, VirtualDataCenter.class, "id");
@@ -340,7 +330,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/disconnect")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN }, blockProxies = true)
     public TaskResourceRep disconnectVirtualDataCenter(@PathParam("id") URI id) {
         blockRoot();
         ArgValidator.checkFieldUriType(id, VirtualDataCenter.class, "id");
@@ -359,7 +349,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/reconnect")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN }, blockProxies = true)
     public TaskResourceRep reconnectVirtualDataCenter(@PathParam("id") URI id) {
         blockRoot();
         ArgValidator.checkFieldUriType(id, VirtualDataCenter.class, "id");
@@ -418,7 +408,7 @@ public class VirtualDataCenterService extends TaskResourceService {
      */
     @Path("/role-assignments")
     @PUT
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public RoleAssignments updateRoleAssignments(RoleAssignmentChanges changes) {
         VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
@@ -477,7 +467,7 @@ public class VirtualDataCenterService extends TaskResourceService {
      */
     @Path("/prepare-vdc")
     @POST
-    @CheckPermission(roles = { Role.SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN }, blockProxies = true)
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response prepareLocalVdc() {
         // remove root's role from all tenants
@@ -528,7 +518,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public CertificateChain setKeyCertificatePair(RotateKeyAndCertParam rotateKeyAndCertParam) {
 
         // Do Not support keystore rotation in multiple-vdcs env
@@ -584,6 +574,8 @@ public class VirtualDataCenterService extends TaskResourceService {
                                         KeyCertificateAlgorithmValuesHolder.FIPS_MINIMAL_KEY_SIZE,
                                         "bits");
                     }
+
+                    KeyCertificatePairGenerator.validateKeyAndCertPairing(rsaPrivateKey, chain);
 
                     Certificate prevCert = null;
                     try {

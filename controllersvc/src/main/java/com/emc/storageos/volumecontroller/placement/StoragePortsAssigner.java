@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.placement;
@@ -66,4 +66,16 @@ public interface StoragePortsAssigner {
             List<Initiator> initiators, List<StoragePort> storagePorts,
             ExportPathParams pathParams,
             Map<Initiator, List<StoragePort>> existingAssignments, NetworkLite initiatorNetwork);
+
+    /**
+     * Sub-class specific implementation for checking if the port can be assigned to the initiator.
+     * For example, when assigning from the list of pre-zoned ports, this check ensures that a zone
+     * exists between the pre-zoned port and the initiator.
+     * 
+     * @param initiatorNetwork -- the initiator's network
+     * @param initiator -- the initiator
+     * @param port -- the port
+     * @return if the port can be used for this initiator.
+     */
+    public boolean isPortAssignableToInitiator(NetworkLite initiatorNetwork, Initiator initiator, StoragePort port);
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.resource;
@@ -25,19 +15,15 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
+import com.emc.storageos.security.password.InvalidLoginManager;
+import com.emc.storageos.model.auth.LoginFailedIPList;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -109,6 +95,9 @@ public class ConfigService {
 
     @Autowired
     private PropertyManager propertyManager;
+
+    @Autowired
+    protected InvalidLoginManager _invLoginManager;
 
     public static final String CERTIFICATE_VERSION = "certificate_version";
     private static final Logger _log = LoggerFactory.getLogger(ConfigService.class);
@@ -370,7 +359,7 @@ public class ConfigService {
      * 
      * @brief Configure ConnectEMC FTPS properties
      * @prereq Cluster state should be STABLE
-     * @return
+     * @return ConnectEMC FTPS related properties
      */
     @POST
     @Path("connectemc/ftps/")
@@ -390,7 +379,7 @@ public class ConfigService {
      * 
      * @brief Configure ConnectEMC SMTP/Email properties
      * @prereq Cluster state should be STABLE
-     * @return
+     * @return Properties related to ConnectEMC Email
      */
     @POST
     @Path("connectemc/email/")
@@ -677,9 +666,9 @@ public class ConfigService {
 
             if (targetProps.containsKey(key) && !targetProps.get(key).equals(value)) {
                 updateProps.addProperty(key, value);
-            } // else if (!targetProps.containsKey(key)) {
-              // updateProps.addProperty(key, value);
-              // }
+            } else if (!targetProps.containsKey(key)) {
+            	updateProps.addProperty(key, value);
+            }
         }
 
         return updateProps;
@@ -909,5 +898,45 @@ public class ConfigService {
                 operationalStatus,
                 description,
                 descparams);
+    }
+
+
+    /**
+     * remove specified IP from login-failed-ip list.
+     *
+     * @param ip
+     * @return
+     */
+    @DELETE
+    @Path("/login-failed-ips/{ip}")
+    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
+    public Response removeLoginFailedIP(@PathParam("ip") String ip) {
+        if (StringUtils.isEmpty(ip)) {
+            throw APIException.badRequests.propertyIsNullOrEmpty();
+        }
+
+        if (!_invLoginManager.isClientIPExist(ip)) {
+            throw APIException.badRequests.clientIpNotExist();
+        }
+
+        _invLoginManager.removeInvalidRecord(ip);
+
+        return Response.ok().build();
+    }
+
+    /**
+     * list client IPs which have failed login attempts recently.
+     *
+     * @return
+     */
+    @GET
+    @Path("/login-failed-ips")
+    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
+    public LoginFailedIPList getLoginFailedIPs() {
+        LoginFailedIPList response = new LoginFailedIPList();
+        response.setLockoutTimeInMinutes(_invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins());
+        response.setMaxLoginAttempts(_invLoginManager.getMaxAuthnLoginAttemtsCount());
+        response.setInvalidLoginsList(_invLoginManager.listBlockedIPs());
+        return response;
     }
 }

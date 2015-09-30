@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013 EMC Corporation 
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.apidiff.serializer;
@@ -124,7 +114,7 @@ class HtmlSerializerHelper {
     }
 
     static String buildContent(final String content, final String ttContent, final int level) {
-        return String.format("<H%d> %s  <tt>%s</tt> </H%d>\n", level, content, ttContent, level);
+        return String.format("<H%d> %s  <tt>%s</tt> </H%d>%n", level, content, ttContent, level);
     }
 
     static String buildInPageLink(final String link) {
@@ -144,7 +134,7 @@ class HtmlSerializerHelper {
     }
 
     static String buildListItem(final String item) {
-        return String.format("      <LI> %s </LI>\n", item);
+        return String.format("      <LI> %s </LI>%n", item);
     }
 
     static String buildBodyHeader() {

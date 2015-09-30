@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.SRDF;
@@ -29,10 +29,9 @@ import java.util.Set;
 public class ConnectivityCollectionRelationshipsProcessor extends StorageProcessor {
     private Logger _log = LoggerFactory
             .getLogger(ConnectivityCollectionRelationshipsProcessor.class);
-    private static final String PROTOCOL_END_POINT = "ProtocolEndpoint";
-    private static final String VOLUME = "Volume";
+    private static final String PROTOCOL_END_POINT = "Symm_BackEndSCSIProtocolEndpoint";
+    private static final String VOLUME = "Symm_StorageVolume";
     private List<Object> args;
-    private DbClient _dbClient;
 
     @Override
     public void processResult(Operation operation, Object resultObj,
@@ -41,12 +40,12 @@ public class ConnectivityCollectionRelationshipsProcessor extends StorageProcess
             @SuppressWarnings("unchecked")
             final Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
             boolean volumeAdded = false;
-            _dbClient = (DbClient) keyMap.get(Constants.dbClient);
+            DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
             CIMObjectPath raGroupPath = getObjectPathfromCIMArgument(args);
             String ragGroupId = NativeGUIDGenerator
                     .generateRAGroupNativeGuid(raGroupPath);
             _log.debug("RA Group Id : {}", ragGroupId);
-            RemoteDirectorGroup rg = getRAGroupUriFromDB(_dbClient, ragGroupId);
+            RemoteDirectorGroup rg = getRAGroupUriFromDB(dbClient, ragGroupId);
             if (null == rg) {
                 _log.info("RA Group Not found : {}", ragGroupId);
                 return;
@@ -60,17 +59,15 @@ public class ConnectivityCollectionRelationshipsProcessor extends StorageProcess
             Set<String> volumeNativeGuids = new StringSet();
             while (it.hasNext()) {
                 CIMObjectPath connCollectionRelationPaths = it.next();
-
-                if (connCollectionRelationPaths.toString().contains(
-                        PROTOCOL_END_POINT)) {
+                String cimClass = connCollectionRelationPaths.getObjectName();
+                if (PROTOCOL_END_POINT.equals(cimClass)) {
                     String endPointId = connCollectionRelationPaths
                             .getKey(Constants.NAME).getValue().toString();
                     _log.info("End Point Added {}", connCollectionRelationPaths);
                     addPath(keyMap, Constants.ENDPOINTS_RAGROUP,
                             connCollectionRelationPaths);
                     rAGroupMap.put(endPointId, raGroupUri);
-                } else if (connCollectionRelationPaths.toString().contains(
-                        VOLUME)) {
+                } else if (VOLUME.equals(cimClass)) {
                     String volumeNativeGuid = getVolumeNativeGuid(connCollectionRelationPaths);
                     if (!volumeAdded
                             && !rAGroupMap.containsKey(volumeNativeGuid)) {
@@ -87,7 +84,7 @@ public class ConnectivityCollectionRelationshipsProcessor extends StorageProcess
                     volumeNativeGuids.add(volumeNativeGuid);
                 }
             }
-            RemoteDirectorGroup remoteGroup = _dbClient.queryObject(
+            RemoteDirectorGroup remoteGroup = dbClient.queryObject(
                     RemoteDirectorGroup.class, raGroupUri);
             // if no volumes, then by default this group supports both sync and
             // async
@@ -108,7 +105,7 @@ public class ConnectivityCollectionRelationshipsProcessor extends StorageProcess
                 _log.debug("Updated Volumes {}",
                         Joiner.on("\t").join(remoteGroup.getVolumes()));
             }
-            _dbClient.persistObject(remoteGroup);
+            dbClient.persistObject(remoteGroup);
         } catch (Exception e) {
             _log.error("Exception occurred while processing remote connectivity information.", e);
         }

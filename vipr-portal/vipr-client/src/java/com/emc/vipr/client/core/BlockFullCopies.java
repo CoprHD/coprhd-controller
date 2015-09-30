@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -100,6 +100,20 @@ public class BlockFullCopies extends ProjectResources<VolumeRestRep> implements 
      */
     public Tasks<VolumeRestRep> detachFullCopy(URI copyId) {
         return postTasks(getIdUrl() + "/detach", copyId);
+    }
+
+    /**
+     * Begins creating group synchronization between
+     * volume group and full copy group.
+     * <p>
+     * API Call: <tt>POST /block/full-copies/{id}/start</tt>
+     * 
+     * @param copyId
+     *            the ID of the full copy.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Tasks<VolumeRestRep> startFullCopy(URI copyId) {
+        return postTasks(getIdUrl() + "/start", copyId);
     }
 
     /**

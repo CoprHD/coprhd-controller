@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
@@ -21,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.util.ExportUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,6 +87,7 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
                         exportGroup.addVolume(boURI, Integer.parseInt(hlu));
                     }
                 }
+                ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
                 dbClient.updateAndReindexObject(exportMask);
                 exportGroup.addExportMask(exportMask.getId());
                 dbClient.updateAndReindexObject(exportGroup);

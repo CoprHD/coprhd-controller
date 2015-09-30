@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db;
@@ -37,7 +37,7 @@ public class TestDBClientUtils {
         addresses.put("localhost", dualInetAddress);
 
         CoordinatorClientInetAddressMap map = new CoordinatorClientInetAddressMap();
-        map.setNodeName("standalone");
+        map.setNodeId("standalone");
         map.setDualInetAddress(dualInetAddress);
         map.setControllerNodeIPLookupMap(addresses);
 

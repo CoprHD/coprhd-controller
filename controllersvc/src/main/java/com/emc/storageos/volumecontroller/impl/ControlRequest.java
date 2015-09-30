@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl;
@@ -27,6 +17,8 @@ public class ControlRequest implements Serializable {
     private static final String TARGET_CLASS_FIELD_NAME = "targettype";
     private static final String ARG_FIELD_NAME = "arguments";
     private static final String DEVICE_INFO_NAME = "deviceinfo";
+    private static final String TIMESTAMP = "timestamp";
+    private static final String LOCK_GROUP = "lockGroup";
 
     private Map<String, Object> _req = new HashMap<String, Object>();
 
@@ -38,6 +30,7 @@ public class ControlRequest implements Serializable {
         _req.put(DEVICE_INFO_NAME, info);
         _req.put(METHOD_FIELD_NAME, method);
         _req.put(TARGET_CLASS_FIELD_NAME, target.getClass().getName());
+        _req.put(TIMESTAMP, System.currentTimeMillis());
         _req.put(ARG_FIELD_NAME, Arrays.asList(args));
     }
 
@@ -60,6 +53,18 @@ public class ControlRequest implements Serializable {
 
     public String getQueueName() {
         return (String) _req.get(QUEUE_NAME);
+    }
+
+    public Long getTimestamp() {
+        return (Long) _req.get(TIMESTAMP);
+    }
+
+    public void setLockGroup(String lockGroup) {
+        _req.put(LOCK_GROUP, lockGroup);
+    }
+
+    public String getLockGroup() {
+        return (String) _req.get(LOCK_GROUP);
     }
 
     @SuppressWarnings({ "squid:S2118" })

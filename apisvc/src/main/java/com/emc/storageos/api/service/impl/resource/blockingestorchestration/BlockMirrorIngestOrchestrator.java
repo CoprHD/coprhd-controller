@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
@@ -47,7 +37,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
             List<UnManagedVolume> unManagedVolumesIngestedSuccessfully,
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
             Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap) throws IngestionException {
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
 
         // Validate the unManagedVolume properties
         validateUnManagedVolume(unManagedVolume, vPool);
@@ -65,7 +55,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         }
         // Run this always when the volume is NO_PUBLIC_ACCESS
         if (markUnManagedVolumeInactive(unManagedVolume, mirrorObj, unManagedVolumesIngestedSuccessfully, createdObjectMap,
-                updatedObjectMap, taskStatusMap)) {
+                updatedObjectMap, taskStatusMap, vplexIngestionMethod)) {
             logger.info("Marking UnManaged Volume {} as inactive, all the related replicas and parent has been ingested",
                     unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as inactive after successful export

@@ -1,13 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2008-2013 EMC Corporation All Rights Reserved This software
- * contains the intellectual property of EMC Corporation or is licensed to EMC
- * Corporation from third parties. Use of this software and the intellectual
- * property contained therein is expressly limited to the terms and conditions
- * of the License Agreement under which it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -83,6 +76,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
@@ -453,7 +447,8 @@ public abstract class VirtualPoolService extends TaggedResource {
                 ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedFileSystems(vpool,
                         _dbClient);
             } else if (vpool.getType().equals(VirtualPool.Type.block.name())) {
-                ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, _dbClient);
+                Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
+                ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
             }
 
             _dbClient.updateAndReindexObject(vpool);

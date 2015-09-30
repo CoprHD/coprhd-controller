@@ -1,22 +1,13 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.PropertyListDataObject;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -25,6 +16,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity.ManagedResourceCapacity;
+
 import static com.emc.storageos.db.client.model.mapper.PropertyListDataObjectMapper.map;
 
 import org.slf4j.Logger;
@@ -155,6 +147,16 @@ public class ManagedCapacityImpl implements Runnable {
         if (Thread.currentThread().interrupted()) {
             throw new InterruptedException();
         }
+        
+        manCap = new ManagedResourcesCapacity.ManagedResourceCapacity();
+        manCap.setType(ManagedResourcesCapacity.CapacityResourceType.BUCKET);
+        aggr = CustomQueryUtility.aggregatedPrimitiveField(dbClient, Bucket.class, "hardQuota");
+        manCap.setNumResources(aggr.getCount());
+        manCap.setResourceCapacity(aggr.getValue());
+        resourcesCapacity.getResourceCapacityList().add(manCap);
+        if (Thread.currentThread().interrupted()) {
+            throw new InterruptedException();
+        }
 
         return resourcesCapacity;
     }
@@ -163,6 +165,7 @@ public class ManagedCapacityImpl implements Runnable {
         POOL_MANAGED_CAPACITY,
         VOLUME_MANAGED_CAPACITY,
         FILE_MANAGED_CAPACITY,
+        OBJECT_MANAGED_CAPACITY,
     }
 
     public static ManagedResourcesCapacity.CapacityResourceType mapCapacityType(CapacityPropertyListTypes resourceType) {
@@ -176,6 +179,9 @@ public class ManagedCapacityImpl implements Runnable {
                 break;
             case FILE_MANAGED_CAPACITY:
                 type = ManagedResourcesCapacity.CapacityResourceType.FILESHARE;
+                break;
+            case OBJECT_MANAGED_CAPACITY:
+                type = ManagedResourcesCapacity.CapacityResourceType.BUCKET;
                 break;
         }
         return type;
@@ -192,6 +198,9 @@ public class ManagedCapacityImpl implements Runnable {
                 break;
             case FILESHARE:
                 type = CapacityPropertyListTypes.FILE_MANAGED_CAPACITY;
+                break;
+            case BUCKET:
+                type = CapacityPropertyListTypes.OBJECT_MANAGED_CAPACITY;
                 break;
         }
         return type;

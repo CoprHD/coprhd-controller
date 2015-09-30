@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -20,8 +20,8 @@ import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
-import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
+import com.emc.vipr.client.impl.RestClient;
 
 /**
  * Unmanaged Filesystems resources.
@@ -64,6 +64,12 @@ public class UnManagedFileSystems extends AbstractCoreBulkResources<UnManagedFil
         return ResourceUtils.defaultList(response.getUnManagedFileSystem());
     }
 
+    public List<NamedRelatedResourceRep> listByStorageSystemVirtualPool(URI storageSystemId, URI vpool) {
+        UnManagedFileSystemList response = client.get(UnManagedFileSystemList.class,
+                PathConstants.UNMANAGED_FILESYSTEM_BY_STORAGE_SYSTEM_VIRTUAL_POOL_URL, storageSystemId, vpool);
+        return ResourceUtils.defaultList(response.getNamedUnManagedFileSystem());
+    }
+
     /**
      * Gets the list of unmanaged file systems for the given storage system by ID. This is a convenience method for:
      * <tt>getByRefs(listByStorageSystem(storageSystemId))</tt>
@@ -74,6 +80,16 @@ public class UnManagedFileSystems extends AbstractCoreBulkResources<UnManagedFil
      */
     public List<UnManagedFileSystemRestRep> getByStorageSystem(URI storageSystemId) {
         return getByStorageSystem(storageSystemId, null);
+    }
+
+    public List<UnManagedFileSystemRestRep> getByStorageSystemVirtualPool(URI storageSystemId, URI vpool) {
+        return getByStorageSystemVirtualPool(storageSystemId, vpool, null);
+    }
+
+    public List<UnManagedFileSystemRestRep> getByStorageSystemVirtualPool(URI storageSystemId, URI vpool,
+            ResourceFilter<UnManagedFileSystemRestRep> filter) {
+        List<NamedRelatedResourceRep> refs = listByStorageSystemVirtualPool(storageSystemId, vpool);
+        return getByRefs(refs, filter);
     }
 
     /**

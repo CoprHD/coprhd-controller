@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -153,6 +153,10 @@ public class AdminDashboardUtils {
 
     public static Promise<Integer> fileVirtualPoolCount() {
         return new BulkResourceCount(FILE_VIRTUAL_POOL_COUNT_KEY, getViprClient().fileVpools()).asPromise();
+    }
+    
+    public static Promise<Integer> objectVirtualPoolCount() {
+    	return new BulkResourceCount(OBJECT_VIRTUAL_POOL_COUNT_KEY, getViprClient().objectVpools()).asPromise();
     }
 
     public static Promise<Integer> computeVirtualPoolCount() {

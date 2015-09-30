@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -25,7 +25,7 @@ public class CatalogCategoryBulkRep extends BulkRestRep {
      * List of catalog categories
      * 
      * @valid none
-     * @return
+     * @return The list of catalog categories
      */
     @XmlElement(name = "catalog_category")
     public List<CatalogCategoryRestRep> getCatalogCategories() {

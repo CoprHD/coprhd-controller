@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.authorization;
 
@@ -263,41 +253,6 @@ public class PermissionsHelper extends BasePermissionsHelper {
     }
 
     /**
-     * Converts StringSetMap of acls into a list of ACLEntrys as used by the API
-     * 
-     * @param acls
-     * @return
-     */
-    public ArrayList<ACLEntry> convertToACLEntries(StringSetMap acls) {
-        ArrayList<ACLEntry> assignments = new ArrayList<ACLEntry>();
-        if (acls != null && !acls.isEmpty()) {
-            for (Map.Entry<String, AbstractChangeTrackingSet<String>> ace : acls.entrySet()) {
-                PermissionsKey rowKey = new PermissionsKey();
-                rowKey.parseFromString(ace.getKey());
-                ACLEntry entry = new ACLEntry();
-                if (rowKey.getType().equals(PermissionsKey.Type.GROUP)) {
-                    entry.setGroup(rowKey.getValue());
-                } else if (rowKey.getType().equals(PermissionsKey.Type.SID)) {
-                    entry.setSubjectId(rowKey.getValue());
-                } else if (rowKey.getType().equals(PermissionsKey.Type.TENANT)) {
-                    entry.setTenant(rowKey.getValue());
-                }
-                for (String priv : ace.getValue()) {
-                    // skip owner
-                    if (priv.equalsIgnoreCase(ACL.OWN.toString())) {
-                        continue;
-                    }
-                    entry.getAces().add(priv);
-                }
-                if (!entry.getAces().isEmpty()) {
-                    assignments.add(entry);
-                }
-            }
-        }
-        return assignments;
-    }
-
-    /**
      * Abstract class for filtering acl entries from input
      */
     public static abstract class ACLInputFilter {
@@ -433,7 +388,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
      * @param filter ACLInputFilter for this object
      */
     public void updateACLs(DataObjectWithACLs obj, ACLAssignmentChanges changes,
-            ACLInputFilter filter) {
+                           ACLInputFilter filter) {
         if (changes.getRemove() != null && !changes.getRemove().isEmpty()) {
             StringSetMap acls = filter.convertFromACLEntries(changes.getRemove(), false);
             for (Map.Entry<String, AbstractChangeTrackingSet<String>> aclAssignment : acls.entrySet()) {
@@ -483,6 +438,47 @@ public class PermissionsHelper extends BasePermissionsHelper {
     public void checkTenantHasAccessToComputeVirtualPool(URI tenantId, ComputeVirtualPool vcpool) {
         if (!tenantHasUsageACL(tenantId, vcpool)) {
             throw APIException.forbidden.tenantCannotAccessComputeVirtualPool(vcpool.getLabel());
+        }
+    }
+
+    /**
+     * Update the acls for the DiscoveredComputedSystems objects (vCenter)
+     * from request.
+     *
+     * @param obj Object on which acls need to be updated
+     * @param changes ACLAssignmentChanges from the request
+     * @param filter ACLInputFilter for this object
+     */
+    public void updateACLs(DiscoveredComputeSystemWithAcls obj, ACLAssignmentChanges changes,
+                           ACLInputFilter filter) {
+        if (changes.getRemove() != null && !changes.getRemove().isEmpty()) {
+            StringSetMap acls = filter.convertFromACLEntries(changes.getRemove(), false);
+            for (Map.Entry<String, AbstractChangeTrackingSet<String>> aclAssignment : acls.entrySet()) {
+                String rowKey = aclAssignment.getKey();
+                obj.removeAcl(rowKey);
+            }
+        }
+        if (changes.getAdd() != null && !changes.getAdd().isEmpty()) {
+            // call this once, just to get the number of acls
+            StringSetMap acls = filter.convertFromACLEntries(changes.getAdd(), false);
+            int current = 0;
+            if (obj.getAcls() != null) {
+                current = obj.getAcls().size();
+            }
+            if (current + acls.size() > _maxRoleAclEntries) {
+                throw APIException.badRequests.exceedingRoleAssignmentLimit(_maxRoleAclEntries, current + acls.size());
+            }
+
+            // now that we're sure the total number of acls is less than the
+            // max, we can validate the users.
+            acls = filter.convertFromACLEntries(changes.getAdd(), true);
+
+            for (Map.Entry<String, AbstractChangeTrackingSet<String>> aclAssignment : acls.entrySet()) {
+                String rowKey = aclAssignment.getKey();
+                for (String ace : aclAssignment.getValue()) {
+                    obj.addAcl(rowKey, ace);
+                }
+            }
         }
     }
 }

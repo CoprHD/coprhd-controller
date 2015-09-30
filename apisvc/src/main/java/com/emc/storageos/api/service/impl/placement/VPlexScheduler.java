@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.placement;
 
@@ -408,19 +398,6 @@ public class VPlexScheduler implements Scheduler {
         // Initialize the list of recommendations.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
 
-        // Take into account the VPLEX CG when specified. We need to limit
-        // placement to the backend system where the corresponding backend CG
-        // resides in cases where there is a corresponding backend CG. There
-        // will be no backend CG for ingested CGs and in CGs created prior to
-        // release 2.2.
-        if (storageSystem == null) {
-            URI cgURI = capabilities.getBlockConsistencyGroup();
-            BlockConsistencyGroup cg = (cgURI == null ? null : _dbClient.queryObject(BlockConsistencyGroup.class, cgURI));
-            if (cg != null) {
-                storageSystem = getCGStorageSystemForBackendPlacement(cg, varray.getId(), null);
-            }
-        }
-
         // Get all storage pools that match the passed VirtualPool params,
         // and virtual array. In addition, the pool must have enough
         // capacity to hold at least one resource of the requested size.
@@ -493,18 +470,9 @@ public class VPlexScheduler implements Scheduler {
         // Initialize the list of recommendations.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
 
-        // Take into account the VPLEX CG when specified. We need to limit
-        // placement to the backend system where the corresponding backend CG
-        // resides in cases where there is a corresponding backend CG. There
-        // will be no backend CG for ingested CGs and in CGs created prior to
-        // release 2.2. On the source side, we need to limit placement to the
-        // backend system where the corresponding backend CG resides.
         URI cgURI = capabilities.getBlockConsistencyGroup();
         BlockConsistencyGroup cg = (cgURI == null ? null : _dbClient.queryObject(BlockConsistencyGroup.class, cgURI));
-        if ((srcStorageSystem == null) && (cg != null)) {
-            srcStorageSystem = getCGStorageSystemForBackendPlacement(cg, srcVarray.getId(), null);
-        }
-
+        
         // Get all storage pools that match the passed source VirtualPool params,
         // and source virtual array. In addition, the pool must have enough
         // capacity to hold at least one resource of the requested size.
@@ -529,12 +497,9 @@ public class VPlexScheduler implements Scheduler {
         // Get all storage pools that match the passed HA VirtualPool params,
         // and HA virtual array. In addition, the pool must have enough
         // capacity to hold at least one resource of the requested size.
-        // Again, We need to limit placement to the backend system where
-        // the corresponding backend CG resides in cases where there is a
-        // corresponding backend CG.
+       
         _log.info("Getting all matching pools for HA varray {}", haVarray.getId());
-        URI haStorageSystem = (cg != null ? getCGStorageSystemForBackendPlacement(cg,
-                haVarray.getId(), srcStorageSystem) : null);
+        URI haStorageSystem = null;
         List<StoragePool> allMatchingPoolsForHaVarray = getMatchingPools(
                 haVarray, haStorageSystem, haVpool, capabilities);
         _log.info("Found {} matching pools for HA varray", allMatchingPoolsForHaVarray.size());
@@ -599,7 +564,7 @@ public class VPlexScheduler implements Scheduler {
             // on the same physical array.
             Set<URI> recommendedSrcSystems = new HashSet<URI>();
             for (Recommendation recommendation : recommendationsForSrcVarray) {
-                recommendedSrcSystems.add(recommendation.getSourceDevice());
+                recommendedSrcSystems.add(recommendation.getSourceStorageSystem());
             }
 
             // Remove any storage pools on these systems from the list of
@@ -1050,9 +1015,10 @@ public class VPlexScheduler implements Scheduler {
         List<VPlexRecommendation> vplexRecommendations = new ArrayList<VPlexRecommendation>();
         for (Recommendation recommendation : recommendations) {
             VPlexRecommendation vplexRecommendation = new VPlexRecommendation();
-            vplexRecommendation.setSourceDevice(recommendation.getSourceDevice());
-            vplexRecommendation.setSourcePool(recommendation.getSourcePool());
+            vplexRecommendation.setSourceStorageSystem(recommendation.getSourceStorageSystem());
+            vplexRecommendation.setSourceStoragePool(recommendation.getSourceStoragePool());
             vplexRecommendation.setResourceCount(recommendation.getResourceCount());
+            //vplexRecommendation.setSourceDevice(URI.create(vplexStorageSystemId));
             vplexRecommendation.setVPlexStorageSystem(URI.create(vplexStorageSystemId));
             vplexRecommendation.setVirtualArray(varray.getId());
             vplexRecommendation.setVirtualPool(vpool);
@@ -1137,97 +1103,4 @@ public class VPlexScheduler implements Scheduler {
         return haVPool;
     }
 
-    /**
-     * Determines the backend storage system to which placement should be
-     * restricted based on the passed consistency group.
-     * 
-     * @param cg The consistency group
-     * @param varrayURI The virtual array in which placement is required.
-     * @param ignoreSystemURI A backend system to ignore.
-     * 
-     * @return The backend system to which placement should be restricted or
-     *         null for no restrictions.
-     */
-    protected URI getCGStorageSystemForBackendPlacement(BlockConsistencyGroup cg,
-            URI varrayURI, URI ignoreSystemURI) {
-        URI localSystemURI = null;
-
-        // Must be created.
-        if (!cg.created()) {
-            return localSystemURI;
-        }
-
-        // Must specify the LOCAL CG type. Only VPLEX CGs created in release 2.2
-        // or later will have a corresponding CG on the backend arrays. CGs created
-        // in earlier release will not have a corresponding backend CG, nor will
-        // ingested CGs. When there is no local CG, then there is no backend placement
-        // restriction.
-        if (!cg.checkForType(Types.LOCAL)) {
-            return localSystemURI;
-        }
-
-        // Get the active VPLEX volumes for the consistency group.
-        List<Volume> vplexVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
-        if (!vplexVolumes.isEmpty()) {
-            _log.info("Get backend system in varray {}", varrayURI);
-            // The consistency group contains volumes, so we need to find
-            // the local system being used for the requested side of
-            // of the vplex volumes, either source or HA. We can determine
-            // this by finding the corresponding backend volume.
-            Volume vplexVolume = vplexVolumes.get(0);
-            boolean varrayIsSource = vplexVolume.getVirtualArray().equals(varrayURI);
-            Volume localVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume,
-                    varrayIsSource, _dbClient);
-            if (localVolume != null) {
-                localSystemURI = localVolume.getStorageController();
-                _log.info("Backend system in varray is {}", localSystemURI);
-            }
-        } else {
-            // The consistency group has been created, but no longer contains
-            // any volumes, so we need find the local system with connectivity
-            // to the passed varray.
-            _log.info("No volumes in CG {}:{}", cg.getLabel(), cg.getId());
-            findCgLocalSystemWithVarrayConnectivity(cg, ignoreSystemURI, varrayURI);
-        }
-
-        return localSystemURI;
-    }
-
-    /**
-     * Find the local system associated to the consistency group, with connectivity
-     * to the passed varray.
-     * 
-     * @param cg The consistency group
-     * @param varrayURI The virtual array in which placement is required.
-     * @param ignoreSystemURI A backend system to ignore.
-     * 
-     * @return The backend system to which placement should be restricted or
-     *         null for no restrictions.
-     */
-    protected URI findCgLocalSystemWithVarrayConnectivity(BlockConsistencyGroup cg, URI ignoreSystemURI,
-            URI varrayURI) {
-        URI localSystemURI = null;
-
-        List<URI> localSystems = BlockConsistencyGroupUtils.getLocalSystems(cg, _dbClient);
-        if (localSystems.isEmpty()) {
-            _log.info("No local systems for CG");
-            return localSystemURI;
-        }
-
-        for (URI systemURI : localSystems) {
-            if ((ignoreSystemURI != null) && (ignoreSystemURI.equals(systemURI))) {
-                _log.info("Ignore system {}", ignoreSystemURI);
-                continue;
-            }
-            List<StoragePort> systemPorts = ConnectivityUtil.getStoragePortsForSystem(_dbClient, systemURI);
-            StringSet varrayIds = ConnectivityUtil.getStoragePortsVarrays(systemPorts);
-            if (varrayIds.contains(varrayURI.toString())) {
-                localSystemURI = systemURI;
-                _log.info("Backend system in varray {} is {}", varrayURI, localSystemURI);
-                break;
-            }
-        }
-
-        return localSystemURI;
-    }
 }

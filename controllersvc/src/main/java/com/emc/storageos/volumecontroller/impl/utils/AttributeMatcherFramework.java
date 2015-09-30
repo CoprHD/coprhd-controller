@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2013. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.utils;
 
@@ -82,12 +72,11 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
             @SuppressWarnings("unchecked")
             List<AttributeMatcher> attrMatcherList = (List<AttributeMatcher>) getBeanFromContext(matcherGroupName);
             ObjectLocalCache cache = new ObjectLocalCache(dbClient);
+            initializeCommonReferencesForAllMatchers(cache, coordinator);
             for (AttributeMatcher matcher : attrMatcherList) {
                 int poolSizeAtTheStart = matchedPools.size();
                 if (!matchedPools.isEmpty()) {
                     _logger.debug("passing {} pools to match", matchedPools.size());
-                    matcher.setObjectCache(cache);
-                    matcher.setCoordinatorClient(coordinator);
                     matchedPools = matcher.runMatchStoragePools(matchedPools, attributeMap);
                     if (matchedPools.isEmpty()) {
                         _logger.info(String.format("Failed to find match because of %s",
@@ -110,6 +99,41 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
             _logger.info("Ended execution of {} group matchers .", matcherGroupName);
         }
         return matchedPools;
+    }
+
+    /**
+     * Method will iterate through all AttributeMatchers (not a subset) and apply common references to them.
+     *
+     * @param cache [IN] - ObjectLocalCache to be applied to matchers
+     * @param coordinator [IN] - Coordinator reference to be applied to matchers
+     */
+    private void initializeCommonReferencesForAllMatchers(ObjectLocalCache cache, CoordinatorClient coordinator) {
+        Map<String, AttributeMatcher> uniqueMatcherMap = new HashMap<>();
+
+        @SuppressWarnings("unchecked")
+        List<AttributeMatcher> vpoolMatchers = (List<AttributeMatcher>) getBeanFromContext(AttributeMatcher.VPOOL_MATCHERS);
+        for (AttributeMatcher matcher : vpoolMatchers) {
+            uniqueMatcherMap.put(matcher.getClass().getSimpleName(), matcher);
+        }
+
+        @SuppressWarnings("unchecked")
+        List<AttributeMatcher> basicMatchers = (List<AttributeMatcher>) getBeanFromContext(AttributeMatcher.BASIC_PLACEMENT_MATCHERS);
+        for (AttributeMatcher matcher : basicMatchers) {
+            uniqueMatcherMap.put(matcher.getClass().getSimpleName(), matcher);
+        }
+
+        @SuppressWarnings("unchecked")
+        List<AttributeMatcher> placementMatchers = (List<AttributeMatcher>) getBeanFromContext(AttributeMatcher.PLACEMENT_MATCHERS);
+        for (AttributeMatcher matcher : placementMatchers) {
+            uniqueMatcherMap.put(matcher.getClass().getSimpleName(), matcher);
+        }
+
+        // The matchers have been gathered in the Map by class name, making it a unique list of
+        // matchers. Now iterate through them applying there references ...
+        for (AttributeMatcher matcher : uniqueMatcherMap.values()) {
+            matcher.setCoordinatorClient(coordinator);
+            matcher.setObjectCache(cache);
+        }
     }
 
     /**

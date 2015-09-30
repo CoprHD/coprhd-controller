@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.system.impl;
@@ -46,13 +46,13 @@ public class PathConstants {
     public static final String CONFIG_CONNECT_EMC_FTPS_URL = CONFIG_URL + "/connectemc/ftps";
     public static final String CONFIG_CONNECT_EMC_EMAIL_URL = CONFIG_URL + "/connectemc/email";
     public static final String CONFIG_PROP_RESET_URL = CONFIG_URL + "/properties/reset";
+    public static final String CONFIG_DELETE_BLOCK_IP = CONFIG_URL + "/login-failed-ips/{ip}";
+    public static final String CONFIG_LIST_BLOCK_IPS = CONFIG_URL + "/login-failed-ips";
 
     public static final String CALLHOME_URL = "/callhome";
     public static final String CALLHOME_REGISTRATION_URL = CALLHOME_URL + "/registration";
     public static final String CALLHOME_HEARTBEAT_URL = CALLHOME_URL + "/heartbeat";
     public static final String CALLHOME_ALERT_URL = CALLHOME_URL + "/alert";
-    public static final String CALLHOME_ALERT_TASKS_URL = CALLHOME_URL + "/alert/{id}/tasks";
-    public static final String CALLHOME_ALERT_TASK_URL = CALLHOME_URL + "/alert/{id}/tasks/{op_id}";
     public static final String CALLHOME_ERS_URL = CALLHOME_URL + "/esrs-device";
 
     public static final String USER_SCOPE_URL = "/user-scope";

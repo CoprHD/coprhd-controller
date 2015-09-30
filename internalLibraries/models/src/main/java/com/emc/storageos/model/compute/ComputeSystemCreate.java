@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.compute;
@@ -11,7 +11,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.emc.storageos.model.valid.Length;
 import com.emc.storageos.model.valid.Range;
-
+import java.net.URI;
 /**
  * The input parameter for the Create Compute System API Call
  * 
@@ -29,6 +29,7 @@ public class ComputeSystemCreate {
     private String osInstallNetwork;
     private String systemType;
     private Boolean useSSL;
+    private URI computeImageServer;
 
     public ComputeSystemCreate() {
     }
@@ -63,6 +64,16 @@ public class ComputeSystemCreate {
     public void setPortNumber(Integer portNumber) {
         this.portNumber = portNumber;
     }
+    
+    @XmlElement(name = "compute_image_server")
+    @JsonProperty("compute_image_server")
+    public URI getComputeImageServer() {
+		return computeImageServer;
+	}
+
+	public void setComputeImageServer(URI computeImageServer) {
+		this.computeImageServer = computeImageServer;
+	}
 
     /**
      * Specifies whether to use SSL (Secure Sockets Layer)

@@ -1,22 +1,17 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.property;
 
 import static com.emc.storageos.model.property.PropertyConstants.*;
+
+import java.util.Arrays;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 @XmlRootElement
@@ -103,13 +98,18 @@ public class PropertyMetadata {
     }
 
     public void setAllowedValues(String[] allowedValues) {
-        this.allowedValues = allowedValues;
+    	if(allowedValues != null){
+    		this.allowedValues =  Arrays.copyOf(allowedValues, allowedValues.length);
+    	} else{
+    		this.allowedValues = new String[0];
+    	}
+        
     }
 
     @XmlElement(name = "allowedValues")
     @JsonProperty("allowedValues")
     public String[] getAllowedValues() {
-        return allowedValues;
+        return allowedValues.clone();
     }
 
     public void setUserConfigurable(Boolean userConfigurable) {
@@ -173,13 +173,18 @@ public class PropertyMetadata {
     }
 
     public void setNotifiers(String[] notifiers) {
-        this.notifiers = notifiers;
+    	if(notifiers == null){
+    		this.notifiers = new String[0];
+    	}else{
+    		this.notifiers = Arrays.copyOf(notifiers, notifiers.length);
+    	}
+        
     }
 
     @XmlElement(name = "notifiers")
     @JsonProperty("notifiers")
     public String[] getNotifiers() {
-        return notifiers;
+        return notifiers.clone();
     }
 
     public void setValue(String value) {
@@ -208,6 +213,7 @@ public class PropertyMetadata {
      * 
      * @return default value from metadata. Null when property is non-usermutable.
      */
+    @JsonIgnore
     public String getDefaultValue() {
         if (userMutable == null || userMutable == false) {
             return null;
@@ -231,6 +237,7 @@ public class PropertyMetadata {
      * 
      * @return default value string. Null when no default values needed.
      */
+    @JsonIgnore
     public String getDefaultValueMetaData() {
         // return default value if exist
         if (value != null) {

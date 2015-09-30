@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.coordinator.client.service;
 
@@ -63,7 +53,7 @@ public class CoordinatorClientInetAddressMapTest extends CoordinatorTestBase {
 
         // set to node map
         // *** assume this node[0]
-        nodeMap.setNodeName(nodes[0]);
+        nodeMap.setNodeId(nodes[0]);
         nodeMap.setDualInetAddress(DualInetAddress.fromAddresses(ip4[0], ip6[0]));
 
         nodeMap.setControllerNodeIPLookupMap(controllerNodeMap);
@@ -116,7 +106,7 @@ public class CoordinatorClientInetAddressMapTest extends CoordinatorTestBase {
     @Test
     public void testGetConnectableAddressWithId() throws Exception {
         // *** assume this node[0]
-        nodeMap.setNodeName(nodes[0]);
+        nodeMap.setNodeId(nodes[0]);
         nodeMap.setDualInetAddress(DualInetAddress.fromAddresses(ip4[0], ip6[0]));
 
         // 1. test controller nodes, this should pass lookup
@@ -171,7 +161,7 @@ public class CoordinatorClientInetAddressMapTest extends CoordinatorTestBase {
     @Test
     public void testExpandURI() throws Exception {
         // *** assume this node[0], dual stack
-        nodeMap.setNodeName(nodes[0]);
+        nodeMap.setNodeId(nodes[0]);
         nodeMap.setDualInetAddress(DualInetAddress.fromAddresses(ip4[0], ip6[0]));
 
         // 1. controller nodes should resolve/expand
@@ -238,7 +228,7 @@ public class CoordinatorClientInetAddressMapTest extends CoordinatorTestBase {
      */
     @Test
     public void testGetExternalConnectableAddress() throws UnknownHostException {
-        nodeMap.setNodeName(nodes[0]);
+        nodeMap.setNodeId(nodes[0]);
         nodeMap.setDualInetAddress(DualInetAddress.fromAddresses(ip4[0], ip6[0]));
 
         String external_ip = "10.10.10.200";// remote node
@@ -291,7 +281,7 @@ public class CoordinatorClientInetAddressMapTest extends CoordinatorTestBase {
      */
     @Test
     public void testGetLocalConnectableAddress() throws UnknownHostException {
-        nodeMap.setNodeName(nodes[0]);
+        nodeMap.setNodeId(nodes[0]);
         nodeMap.setDualInetAddress(DualInetAddress.fromAddresses(ip4[0], ip6[0]));
 
         String external_ip = "10.10.10.200";// remote node

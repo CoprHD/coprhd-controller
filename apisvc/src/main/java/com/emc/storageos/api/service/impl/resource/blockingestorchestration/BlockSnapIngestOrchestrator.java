@@ -1,15 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
- */
-/**  Copyright (c) 2008-2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
@@ -48,7 +39,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
             Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap) throws IngestionException {
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
 
         BlockSnapshot snapShot = null;
 
@@ -75,7 +66,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
 
         // Run this logic always when Volume is NO_PUBLIC_ACCESS
         if (markUnManagedVolumeInactive(unManagedVolume, snapShot, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap,
-                taskStatusMap)) {
+                taskStatusMap, vplexIngestionMethod)) {
             _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ", unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as inactive after successful export
             if (!unManagedVolumeExported) {
@@ -117,9 +108,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         snapShot.setStorageController(system.getId());
         snapShot.setVirtualArray(virtualArray.getId());
         snapShot.setProject(new NamedURI(project.getId(), snapShot.getLabel()));
-
-        String wwn = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.WWN.toString(), unManagedVolumeInformation);
-        snapShot.setWWN(wwn);
+        snapShot.setWWN(unManagedVolume.getWwn());
 
         String allocatedCapacity = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(), unManagedVolume.getVolumeInformation());
@@ -133,6 +122,11 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                 SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), unManagedVolume.getVolumeInformation());
         Boolean isSyncActive = (null != syncActive) ? Boolean.parseBoolean(syncActive) : false;
         snapShot.setIsSyncActive(isSyncActive);
+
+        String readOnly = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.IS_READ_ONLY.toString(), unManagedVolume.getVolumeInformation());
+        Boolean isReadOnly = (null != readOnly) ? Boolean.parseBoolean(readOnly) : false;
+        snapShot.setIsReadOnly(isReadOnly);
 
         String settingsInstance = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.SETTINGS_INSTANCE.toString(), unManagedVolume.getVolumeInformation());

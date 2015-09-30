@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.tenant;
 
@@ -23,15 +13,17 @@ import java.net.URI;
 public abstract class TenantParam {
 
     private String description;
+    private String namespace;
     private URI webStorageDefaultProject;
     private URI webStorageDefaultVpool;
 
     public TenantParam() {
     }
 
-    public TenantParam(String description, URI webStorageDefaultProject,
+    public TenantParam(String description, String namespace, URI webStorageDefaultProject,
             URI webStorageDefaultVpool) {
         this.description = description;
+        this.namespace = namespace;
         this.webStorageDefaultProject = webStorageDefaultProject;
         this.webStorageDefaultVpool = webStorageDefaultVpool;
     }
@@ -50,6 +42,25 @@ public abstract class TenantParam {
         this.description = description;
     }
 
+    /**
+     * Namespace associated to a tenant.
+     * 
+     * @valid any string
+     */
+    @XmlElement(required = false)
+    public String getNamespace() {
+        return namespace;
+    }
+
+    /**
+     * Sets namespace for a Tenant.
+     * 
+     * @param namespace
+     */
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+    
     /**
      * Default project URI for this tenant
      * 

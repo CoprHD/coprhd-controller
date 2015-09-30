@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
@@ -40,15 +40,11 @@ public class SmisBlockResumeMirrorJob extends SmisBlockMirrorJob {
             if (jobStatus == JobStatus.SUCCESS) {
                 log.info("Mirror resume success");
                 BlockMirror mirror = dbClient.queryObject(BlockMirror.class, taskCompleter.getMirrorURI());
-                Volume volume = dbClient.queryObject(Volume.class, mirror.getSource().getURI());
 
                 log.info("Updating sync details for mirror {}", mirror.getId());
                 WBEMClient client = getWBEMClient(dbClient, jobContext.getCimConnectionFactory());
                 updateSynchronizationAspects(client, mirror);
                 dbClient.persistObject(mirror);
-
-                String msg = format("Resumed synchronization between volume %s and mirror %s",
-                        volume.getId(), mirror.getId());
                 getTaskCompleter().ready(dbClient);
             } else if (jobStatus == JobStatus.ERROR) {
                 log.info("Mirror resume failed");

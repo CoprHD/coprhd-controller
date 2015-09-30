@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.server.impl;
 
@@ -104,19 +94,19 @@ public class DbRepairRunnable implements Runnable {
         return state != null ? state : new DbRepairJobState();
     }
 
-    public static String getSelfLockNodeName(InterProcessLock lock) throws Exception {
+    public static String getSelfLockNodeId(InterProcessLock lock) throws Exception {
         if (lock instanceof InterProcessMutex) {
             Collection<String> nodes = ((InterProcessMutex) lock).getParticipantNodes();
             if (nodes == null || nodes.isEmpty()) {
                 return null;
             }
 
-            String nodeName = nodes.iterator().next();
-            int lastSlash = nodeName.lastIndexOf('/');
+            String nodeId = nodes.iterator().next();
+            int lastSlash = nodeId.lastIndexOf('/');
             if (lastSlash != -1) {
-                nodeName = nodeName.substring(lastSlash + 1);
+                nodeId = nodeId.substring(lastSlash + 1);
             }
-            return nodeName;
+            return nodeId;
         }
 
         return null;
@@ -135,7 +125,7 @@ public class DbRepairRunnable implements Runnable {
         StartStatus status = getRepairStatus(getClusterStateDigest(), this.maxRetryTimes, this.crossVdc);
         if (status == StartStatus.STARTED) {
             log.info("Starting repair with state: {}", this.state.toString());
-            String workerId = getSelfLockNodeName(lock);
+            String workerId = getSelfLockNodeId(lock);
             if (workerId != null) {
                 this.state.setCurrentWorker(workerId);
             }

@@ -1,20 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.common;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,6 +62,7 @@ public class DbSchemaInterceptorImpl extends DbSchemaScannerInterceptor {
             put("Stat", statFields);
         }
     };
+    
 
     private List<String> cfClsAntnList = new ArrayList<String>() {
         {
@@ -78,6 +71,11 @@ public class DbSchemaInterceptorImpl extends DbSchemaScannerInterceptor {
         }
     };
 
+    private static final List<String> ignoreCfList = Arrays.asList(new String[] {"ObjectBaseUrl", "ObjectMeteringInfo", 
+    																			 "ObjectNetwork", "ObjectStore",
+    																			 "NodeObj", "NamespaceInfo",
+    																			 "NamespaceZone", "NsTenantZoneMap",
+    																			 "KeyPoolFileAccessExpiration", "KeyPoolInfo"});
     @Override
     public boolean isFieldIgnored(String cfName, String fieldName) {
         if (this.cfFieldsIgnoreMap == null) {
@@ -100,5 +98,14 @@ public class DbSchemaInterceptorImpl extends DbSchemaScannerInterceptor {
         }
 
         return this.cfClsAntnList.contains(annotationName);
+    }
+    
+    @Override
+    public boolean isClassIgnored(String cfName) {
+        return ignoreCfList.contains(cfName);
+    }
+    
+    public static List<String> getIgnoreCfList() {
+    	return Collections.unmodifiableList(ignoreCfList);
     }
 }

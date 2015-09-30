@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -26,16 +26,18 @@ public class IngestUnexportedUnmanagedVolumes extends WaitForTasks<UnManagedVolu
     private URI projectId;
     private URI varrayId;
     private List<URI> unmanagedVolumeIds;
+    private String ingestionMethod;
 
-    public IngestUnexportedUnmanagedVolumes(String vpoolId, String varrayId, String projectId, List<String> unmanagedVolumeIds) {
-        this(uri(vpoolId), uri(varrayId), uri(projectId), uris(unmanagedVolumeIds));
+    public IngestUnexportedUnmanagedVolumes(String vpoolId, String varrayId, String projectId, List<String> unmanagedVolumeIds, String ingestionMethod) {
+        this(uri(vpoolId), uri(varrayId), uri(projectId), uris(unmanagedVolumeIds), ingestionMethod);
     }
 
-    public IngestUnexportedUnmanagedVolumes(URI vpoolId, URI varrayId, URI projectId, List<URI> unmanagedVolumeIds) {
+    public IngestUnexportedUnmanagedVolumes(URI vpoolId, URI varrayId, URI projectId, List<URI> unmanagedVolumeIds, String ingestionMethod) {
         this.vpoolId = vpoolId;
         this.varrayId = varrayId;
         this.projectId = projectId;
         this.unmanagedVolumeIds = unmanagedVolumeIds;
+        this.ingestionMethod = ingestionMethod;
         setWaitFor(true);
         setMaxErrorDisplay(MAX_ERROR_DISPLAY);
         provideDetailArgs(vpoolId, projectId, varrayId, unmanagedVolumeIds.size());
@@ -48,6 +50,7 @@ public class IngestUnexportedUnmanagedVolumes extends WaitForTasks<UnManagedVolu
         ingest.setVpool(vpoolId);
         ingest.setProject(projectId);
         ingest.setVarray(varrayId);
+        ingest.setVplexIngestionMethod(ingestionMethod);
         return executeChunks(ingest);
     }
 

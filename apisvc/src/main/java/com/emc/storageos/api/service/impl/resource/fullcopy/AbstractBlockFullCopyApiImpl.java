@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
@@ -58,6 +48,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
@@ -336,6 +327,8 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                     if (!fullCopyURI.equals(fullCopyVolume.getId())) {
                         volume = _dbClient.queryObject(Volume.class, fullCopyURI);
                     }
+                    ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(volume, _dbClient);
+                    volume.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
                     volume.setReplicaState(ReplicationState.DETACHED.name());
                     _dbClient.persistObject(volume);
                 }
@@ -382,6 +375,14 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      */
     @Override
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TaskList establishVolumeAndFullCopyGroupRelation(Volume sourceVolume, Volume fullCopyVolume) {
         throw APIException.methodNotAllowed.notSupported();
     }
 

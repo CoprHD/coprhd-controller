@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.util;
 
@@ -250,6 +240,18 @@ public class LogUtil {
         if (bytes == null) {
             bytes = nodeId.getBytes();
             nodeIdByteMap.put(nodeId, bytes);
+        }
+        return bytes;
+    }
+
+    private static Map<String, byte[]> nodeNameByteMap = new HashMap<>();
+
+    public static byte[] nodeNameToBytes(String nodeName) {
+        byte[] bytes = nodeNameByteMap.get(nodeName);
+        if (bytes == null) {
+            bytes = nodeName.getBytes();
+            nodeNameByteMap.put(nodeName, bytes);
+            logger.info("Added "+nodeName+" to bytemap :"+nodeIdByteMap.keySet().toString());
         }
         return bytes;
     }

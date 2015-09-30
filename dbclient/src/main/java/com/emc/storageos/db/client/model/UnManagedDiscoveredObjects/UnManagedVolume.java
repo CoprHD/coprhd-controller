@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.AlternateId;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.IndexByKey;
 import com.emc.storageos.db.client.model.Name;
@@ -38,6 +39,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
 
     private StringSet storagePortUris;
 
+    private String _wwn;
+
     public enum SupportedVolumeCharacterstics {
 
         IS_MAPPED("EMCSVIsMapped", "EMCIsMapped"),
@@ -46,6 +49,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         IS_AUTO_TIERING_ENABLED("PolicyRuleName", "PolicyRuleName"),
         IS_FULL_COPY("FullCopy", "FullCopy"),
         IS_LOCAL_MIRROR("LocalMirror", "LocalMirror"),
+        IS_VPLEX_NATIVE_MIRROR("VplexNativeMirror", "VplexNativeMirror"),
         IS_SNAP_SHOT("Snapshot", "Snapshot"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
         IS_BOUND("EMCSVIsBound", "EMCIsBound"),
@@ -58,8 +62,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         IS_VPLEX_BACKEND_VOLUME("isVplexBackendVolume", "isVplexBackendVolume"),
         EXPORTGROUP_TYPE("exportGroupType", "exportGroupType");
 
-        private String _charactersticsKey;
-        private String _charactersticAlternateKey;
+        private final String _charactersticsKey;
+        private final String _charactersticAlternateKey;
 
         SupportedVolumeCharacterstics(String charactersticsKey, String charactersticAlternateKey) {
             _charactersticsKey = charactersticsKey;
@@ -93,7 +97,6 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         SYSTEM_TYPE("SystemType", "SystemType"),
         RAID_LEVEL("SSElementName", "EMCRaidLevel"),
         STORAGE_POOL("PoolUri", "PoolUri"),
-        WWN("EMCSVWWN", "EMCWWN"),
         NATIVE_GUID("NativeGuid", "NativeGuid"),
         AUTO_TIERING_POLICIES("PolicyRuleName", "PolicyRuleName"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
@@ -110,6 +113,18 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         VPLEX_SUPPORTING_DEVICE_NAME("vplexSupportingDeviceName", "vplexSupportingDeviceName"),
         VPLEX_CONSISTENCY_GROUP_NAME("vplexConsistencyGroup", "vplexConsistencyGroup"),
         VPLEX_CLUSTER_IDS("vplexClusters", "vplexClusters"),
+        // unmanaged volume native GUIDs for the vplex backend volumes
+        VPLEX_BACKEND_VOLUMES("vplexBackendVolumes", "vplexBackendVolumes"),
+        // vplex cluster id for a vplex backend volume
+        VPLEX_BACKEND_CLUSTER_ID("vplexBackendClusterId", "vplexBackendClusterId"),
+        // native GUID of the VPLEX virtual volume containing this volume
+        VPLEX_PARENT_VOLUME("vplexParentVolume", "vplexParentVolume"),
+        // map of backend clone volume GUID to virtual volume GUID 
+        VPLEX_FULL_CLONE_MAP("vplexFullCloneMap", "vplexFullCloneMap"),
+        // map of unmanaged volume GUID mirror to vplex device info context path
+        VPLEX_MIRROR_MAP("vplexMirrorMap", "vplexMirrorMap"),
+        VPLEX_NATIVE_MIRROR_TARGET_VOLUME("vplexNativeMirrorTargetVolume", "vplexNativeMirrorTargetVolume"),
+        VPLEX_NATIVE_MIRROR_SOURCE_VOLUME("vplexNativeMirrorSourceVolume", "vplexNativeMirrorSourceVolume"),
         META_MEMBER_SIZE("metaMemberSize", "metaMemberSize"),
         META_MEMBER_COUNT("metaMemberCount", "metaMemberCount"),
         META_VOLUME_TYPE("compositeType", "compositeType"),
@@ -131,10 +146,11 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         SNAPSHOTS("snapshots", "snapshots"), // snapshots of a source volume, for internal ingestion use only
         NEEDS_COPY_TO_TARGET("needsCopyToTarget", "needsCopyToTarget"),
         TECHNOLOGY_TYPE("technologyType", "technologyType"),
-        SETTINGS_INSTANCE("settingsInstance", "settingsInstance");
+        SETTINGS_INSTANCE("settingsInstance", "settingsInstance"),
+        IS_READ_ONLY("isReadOnly", "isReadOnly");
 
-        private String _infoKey;
-        private String _alternateKey;
+        private final String _infoKey;
+        private final String _alternateKey;
 
         SupportedVolumeInformation(String infoKey, String alterateKey) {
             _infoKey = infoKey;
@@ -284,8 +300,36 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         this.storagePortUris = storagePortUris;
     }
 
+    @AlternateId("UnManagedVolumeWwnIndex")
+    @Name("wwn")
+    public String getWwn() {
+        return _wwn;
+    }
+
+    public void setWwn(String wwn) {
+        _wwn = BlockObject.normalizeWWN(wwn);
+        setChanged("wwn");
+    }
+
     public enum Types {
         SOURCE,
-        TARGET
+        TARGET,
+        REGULAR;
+
+        public static boolean isSourceVolume(Types types) {
+            return SOURCE == types;
+        }
+
+        public static boolean isTargetVolume(Types types) {
+            return TARGET == types;
+        }
+
+        public static boolean isRegularVolume(Types types) {
+            return REGULAR == types;
+        }
+    }
+    
+    public String toString() {
+        return this.getLabel() + " (" + this.getId() + ")";
     }
 }

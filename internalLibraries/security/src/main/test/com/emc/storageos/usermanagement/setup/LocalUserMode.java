@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.setup;
@@ -26,7 +26,7 @@ public class LocalUserMode {
     protected static ViPRCoreClient coreClient;
 
     @BeforeClass
-    public synchronized static void setup_LocalUserModeBaseClass() throws Exception {
+    public synchronized static void setupLocalUserModeBaseClass() throws Exception {
         // get the Bourne IP from parameter
         String param_IP = System.getProperty("APP_HOST_NAMES");
         if (param_IP != null) {
@@ -51,7 +51,7 @@ public class LocalUserMode {
     }
 
     @AfterClass
-    public static void teardown_LocalUserModeBaseClass() throws Exception {
+    public static void teardownLocalUserModeBaseClass() throws Exception {
         if (systemClient != null) {
             systemClient.auth().logout();
         }

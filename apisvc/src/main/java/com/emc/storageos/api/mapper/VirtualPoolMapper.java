@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
@@ -29,6 +29,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.ProtectionCopyPolicy;
 import com.emc.storageos.model.vpool.ProtectionSourcePolicy;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
@@ -245,7 +246,15 @@ public class VirtualPoolMapper {
         to.setLongTermRetention(from.getLongTermRetention());
         return mapVirtualPoolFields(from, to, null);
     }
-
+    
+    public static ObjectVirtualPoolRestRep toObjectVirtualPool(VirtualPool from) {
+        if (from == null) {
+            return null;
+        }
+        ObjectVirtualPoolRestRep to = new ObjectVirtualPoolRestRep();
+        return mapVirtualPoolFields(from, to, null);
+    }
+    
     private static <T extends VirtualPoolCommonRestRep> T mapVirtualPoolFields(VirtualPool from, T to,
             Map<URI, VpoolProtectionVarraySettings> protectionSettings) {
         mapDataObjectFieldsNoLink(from, to);
@@ -257,6 +266,8 @@ public class VirtualPoolMapper {
             case file:
                 type = ResourceTypeEnum.FILE_VPOOL;
                 break;
+            case object:
+                type = ResourceTypeEnum.OBJECT_VPOOL;
         }
         to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(type, from.getId())));
         to.setType(from.getType());

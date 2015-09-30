@@ -1,18 +1,19 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.cinder;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.CinderEndPointInfo;
@@ -20,6 +21,7 @@ import com.emc.storageos.cinder.api.CinderApi;
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.cinder.errorhandling.CinderException;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -52,16 +54,6 @@ import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * OpenStack Cinder specific provisioning implementation class.
@@ -648,11 +640,12 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      * (com.emc.storageos.db.client.model.StorageSystem,
      * java.util.List,
      * java.lang.Boolean,
+     * java.lang.Boolean,
      * com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
-            Boolean createInactive, TaskCompleter taskCompleter)
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
 
         log.debug("In CinderStorageDevice.doCreateSnapshot method.");
@@ -824,6 +817,15 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
         return true;
+    }
+    
+    public void doWaitForSynchronized(Class<? extends BlockObject> clazz,
+            StorageSystem storageObj, URI target, TaskCompleter completer) {
+        // Do nothing - cinder API does not have API to synchronize copies
+        // This has to do nothing for VPLEX+Cinder case to pass for the
+        // volume clone.
+        log.info("Nothing to do here.  Cinder does not require a wait for synchronization");
+        completer.ready(dbClient);
     }
 
 }

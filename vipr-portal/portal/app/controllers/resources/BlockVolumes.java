@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.resources;
@@ -123,6 +123,10 @@ public class BlockVolumes extends ResourceController {
         if (volume.getStorageController() != null) {
             renderArgs.put("storageSystem", StorageSystemUtils.getStorageSystemRef(volume.getStorageController()));
         }
+        if (volume.getAccessState() == null || volume.getAccessState().isEmpty()) {
+            renderArgs.put("isAccessStateEmpty", "true");
+        }
+       
 
         Tasks<VolumeRestRep> tasksResponse = client.blockVolumes().getTasks(volume.getId());
         List<Task<VolumeRestRep>> tasks = tasksResponse.getTasks();

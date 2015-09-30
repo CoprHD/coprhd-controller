@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -88,10 +78,11 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
  * This information can be used to get the indications from block devices.
  * 2. User can register and deregister SMISProvider.
  * 
+ * This class is deprecated class. Use /vdc/storage-providers instead of /vdc/smis-providers.
  */
 @Deprecated
 @Path("/vdc/smis-providers")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, write_roles = { Role.SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN })
 public class SMISProviderService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(SMISProviderService.class);
@@ -126,7 +117,8 @@ public class SMISProviderService extends TaskResourceService {
      * Register an SMI-S provider to create storage systems of type
      * vnxblock and vmax. This call is not used to create SMI-S
      * providers for vnxfile.
-     * 
+     * <p> 
+     * The method is deprecated. Use /vdc/storage-providers instead.
      * @param param SMIS-Provider parameters
      * @brief Register SMI-S provider
      * @return Newly registered SMIS-Provider details
@@ -190,7 +182,8 @@ public class SMISProviderService extends TaskResourceService {
     /**
      * This call allows user to fetch SMI-S Provider details such as provider
      * host access credential details.
-     * 
+     * <p>
+     * The method is deprecated. Use /vdc/storage-providers/{id} instead.
      * @param id the URN of a ViPR SMIS-Provider
      * @brief Show SMI-S provider
      * @return SMIS-Provider details.
@@ -215,7 +208,8 @@ public class SMISProviderService extends TaskResourceService {
 
     /**
      * This function allows user to fetch list of all SMI-S Providers information.
-     * 
+     * <p>
+     * The method is deprecated. Use /vdc/storage-providers instead.
      * @brief List SMI-S providers
      * @return List of SMIS-Providers.
      */
@@ -243,7 +237,8 @@ public class SMISProviderService extends TaskResourceService {
     /**
      * Update the SMISProvider. This is useful when we move arrays to some other
      * provider.
-     * 
+     * <p>
+     * The method is deprecated. Use /vdc/storage-providers/{id} instead.
      * @param id the URN of a ViPR SMIS-Provider
      * @brief Update SMI-S provider
      * @return Updated SMIS-Provider information.
@@ -323,7 +318,7 @@ public class SMISProviderService extends TaskResourceService {
 
     /**
      * Scan all SMI-S providers.
-     * 
+     * <p>The method is deprecated. Use /vdc/storage-providers/scan instead.
      * @brief Scan SMI-S providers
      * @return TasList of all created asynchronous tasks
      */
@@ -353,7 +348,8 @@ public class SMISProviderService extends TaskResourceService {
 
     /**
      * Allows the user to deactivate an SMI-S provider.
-     * 
+     * <p>
+     * The method is deprecated. Use /vdc/storage-providers/{id}/deactivate instead.
      * @param id the URN of a ViPR SMI-S provider
      * 
      * @brief Delete SMI-S provider
@@ -412,7 +408,8 @@ public class SMISProviderService extends TaskResourceService {
      * applicable to systems that cannot be discovered via an SMI-S provider.
      * Only VNX storage system can be mapped programatically into SMIS Provider.
      * Otherwise this method should be used to reinstall previously decommissioned Arrays.
-     * 
+     * <p>
+     * The method is deprecated. Use /vdc/storage-providers/storage-systems instead.
      * @param param The storage system details.
      * 
      * @brief Create a storage system and add it to the SMI-S providers.
@@ -494,6 +491,8 @@ public class SMISProviderService extends TaskResourceService {
      * the storage system
      * Note: only vnxblock can be actively connected to the SMIS provider. VMAX skips this step,
      * the system must be visible to the SMIS provider beforehand.
+     * <p>
+     * The method is deprecated. Use /vdc/storage-providers/storage-systems/{system_id} instead.
      * 
      * @param id the URN of a ViPR SMI-S provider
      * @param param The storage system details to update.
@@ -557,7 +556,7 @@ public class SMISProviderService extends TaskResourceService {
 
     /**
      * Get zone role assignments
-     * 
+     * The method is deprecated. Use /vdc/storage-providers/deactivated-systems
      * @brief List zone role assignments
      * @return Role assignment details
      */
@@ -580,6 +579,8 @@ public class SMISProviderService extends TaskResourceService {
     /**
      * Allows the user to get the id, name, and self link for all storage
      * systems visible to the provider with the passed id.
+     * <p>
+     * The method is deprecated. Use /vdc/storage-providers/{id}/storage-systems
      * 
      * @param id the URN of a ViPR SMI-S provider
      * 
@@ -681,7 +682,8 @@ public class SMISProviderService extends TaskResourceService {
      * Allows the user to get data for the storage system with the passed system
      * id that is associated with the SMI-S provider with the passed provider
      * id.
-     * 
+     * <p>
+     * The method is deprecated. Use /vdc/storage-providers/{id}/storage-systems/{systemId}
      * 
      * @param id the URN of a ViPR SMI-S provider
      * @param systemId The id of the storage system.
@@ -745,6 +747,7 @@ public class SMISProviderService extends TaskResourceService {
 
     /**
      * Retrieve resource representations based on input ids.
+     * The method is deprecated. Use /vdc/storage-providers/bulk
      * 
      * @param param POST data containing the id list.
      * @brief List data of SMI-S provider resources

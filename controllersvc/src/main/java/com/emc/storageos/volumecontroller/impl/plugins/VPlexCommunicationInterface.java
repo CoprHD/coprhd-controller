@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
@@ -18,14 +8,18 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
+import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +45,7 @@ import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
@@ -72,6 +67,7 @@ import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VersionChecker;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -89,6 +85,8 @@ import com.emc.storageos.vplex.api.VPlexPortInfo.SpeedUnits;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexTargetInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -99,11 +97,12 @@ import com.google.common.collect.Sets.SetView;
 public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceImpl {
 
     // string constants
-    private final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
-    protected static int BATCH_SIZE = Constants.DEFAULT_PARTITION_SIZE;
+    public static final String VPLEX_INITIATOR_HOSTNAME_PREFIX = "vplex_";
+    private static final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
     private static final String TRUE = "true";
     private static final String FALSE = "false";
     private static final String LOCAL = "local";
+    private static int BATCH_SIZE = Constants.DEFAULT_PARTITION_SIZE;
 
     // WWN for offline ports
     public static final String OFFLINE_PORT_WWN = "00:00:00:00:00:00:00:00";
@@ -141,6 +140,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * 
      * @param partitionManager
      */
+    @Override
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
     }
@@ -334,7 +334,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, StorageSystemViewObject> scanCache) throws VPlexCollectionException {
         try {
             // Get the cluster info.
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo();
+            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(true);
 
             // Get the cluster assembly identifiers and form the
             // system serial number based on these identifiers.
@@ -396,32 +396,35 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     @Override
     public void discover(AccessProfile accessProfile) throws BaseCollectionException {
-
-        long start = new Date().getTime();
         s_logger.info("initiating discovery of VPLEX system {}", accessProfile.getProfileName());
         if ((null != accessProfile.getnamespace())
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
                                 .toString()))) {
+
             try {
                 VPlexApiClient client = getVPlexAPIClient(accessProfile);
 
-                long unManagedStart = new Date().getTime();
+                long timer = System.currentTimeMillis();
+                UnmanagedDiscoveryPerformanceTracker tracker = new UnmanagedDiscoveryPerformanceTracker();
+
+                tracker.discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
+                        _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
+
                 Map<String, VPlexVirtualVolumeInfo> vvolMap = client.getVirtualVolumes(true);
+                tracker.virtualVolumeFetch = System.currentTimeMillis() - timer;
+                tracker.totalVolumesFetched = vvolMap.size();
+
+                timer = System.currentTimeMillis();
                 Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap = new HashMap<String, Set<UnManagedExportMask>>();
-                long unmanagedElapsed = new Date().getTime() - unManagedStart;
-                s_logger.info("TIMER: discovering deep vplex unmanaged volumes took {} ms", unmanagedElapsed);
-
-                unManagedStart = new Date().getTime();
                 discoverUnmanagedStorageViews(accessProfile, client, vvolMap, volumeToExportMasksMap);
-                unmanagedElapsed = new Date().getTime() - unManagedStart;
-                s_logger.info("TIMER: discovering vplex unmanaged storage views took {} ms", unmanagedElapsed);
+                tracker.storageViewFetch = System.currentTimeMillis() - timer;
 
-                unManagedStart = new Date().getTime();
-                discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap);
-                unmanagedElapsed = new Date().getTime() - unManagedStart;
+                timer = System.currentTimeMillis();
+                discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap, tracker);
+                tracker.unmanagedVolumeProcessing = System.currentTimeMillis() - timer;
 
-                s_logger.info("TIMER: discovering vplex unmanaged volumes took {} ms", unmanagedElapsed);
+                s_logger.info(tracker.getPerformanceReport());
             } catch (URISyntaxException ex) {
                 s_logger.error(ex.getLocalizedMessage());
                 throw VPlexCollectionException.exceptions.vplexUnmanagedVolumeDiscoveryFailed(
@@ -430,9 +433,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         } else {
             discoverAll(accessProfile);
         }
-
-        long elapsed = new Date().getTime() - start;
-        s_logger.info("TIMER: vplex storage system discovery took {} ms", elapsed);
     }
 
     /**
@@ -461,7 +461,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
 
             // Get the cluster information
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo();
+            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(true);
 
             // Get the cluster assembly identifiers and form the
             // system serial number based on these identifiers.
@@ -507,7 +507,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     private void discoverUnmanagedVolumes(AccessProfile accessProfile, VPlexApiClient client,
             Map<String, VPlexVirtualVolumeInfo> allVirtualVolumes,
-            Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap) throws BaseCollectionException {
+            Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap,
+            UnmanagedDiscoveryPerformanceTracker tracker) throws BaseCollectionException {
 
         String statusMessage = "Starting discovery of Unmanaged VPLEX Volumes.";
         s_logger.info(statusMessage + " Access Profile Details :  IpAddress : "
@@ -528,15 +529,16 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         List<UnManagedVolume> knownUnmanagedVolumes = new ArrayList<UnManagedVolume>();
         List<UnManagedExportMask> unmanagedExportMasksToUpdate = new ArrayList<UnManagedExportMask>();
 
-        try {
+        Map<String, String> backendVolumeGuidToVvolGuidMap = new HashMap<String, String>();
 
+        try {
             // set batch size for persisting unmanaged volumes
-            int batchSize = Constants.DEFAULT_PARTITION_SIZE;
-            Map<String, String> props = (Map<String, String>) accessProfile.getProps();
+            Map<String, String> props = accessProfile.getProps();
             if (null != props && null != props.get(Constants.METERING_RECORDS_PARTITION_SIZE)) {
-                batchSize = Integer.parseInt(props.get(Constants.METERING_RECORDS_PARTITION_SIZE));
+                BATCH_SIZE = Integer.parseInt(props.get(Constants.METERING_RECORDS_PARTITION_SIZE));
             }
 
+            long timer = System.currentTimeMillis();
             Map<String, String> volumesToCgs = new HashMap<String, String>();
             List<VPlexConsistencyGroupInfo> cgs = client.getConsistencyGroups();
             s_logger.info("Found {} Consistency Groups.", cgs.size());
@@ -546,25 +548,52 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 }
             }
             s_logger.info("Volume to Consistency Group Map is: " + volumesToCgs.toString());
+            tracker.consistencyGroupFetch = System.currentTimeMillis() - timer;
 
             Map<String, String> clusterIdToNameMap = client.getClusterIdToNameMap();
             Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
+            Map<String, String> distributedDevicePathToClusterMap = 
+                    VPlexControllerUtils.getDistributedDevicePathToClusterMap(vplexUri, _dbClient);
 
             if (null != allVirtualVolumes) {
                 for (String name : allVirtualVolumes.keySet()) {
+                    timer = System.currentTimeMillis();
                     s_logger.info("Looking at Virtual Volume {}", name);
-                    VPlexVirtualVolumeInfo info = allVirtualVolumes.get(name);
 
                     // UnManagedVolume discover does a pretty expensive
                     // iterative call into the VPLEX API to get extended details
+                    String discoveryKillSwitch = ControllerUtils
+                            .getPropertyValueFromCoordinator(
+                                    _coordinator, VplexBackendIngestionContext.DISCOVERY_KILL_SWITCH);
+                    if ("stop".equals(discoveryKillSwitch)) {
+                        s_logger.warn("discovery kill switch was set to stop, "
+                                + "so discontinuing unmanaged volume discovery");
+                        return;
+                    }
                     // on every volume in each cluster. First it gets all the
                     // volume names/paths (the inexpensive "lite" call), then
                     // iterates through them getting the details to populate the
+                    String discoveryFilter = ControllerUtils
+                            .getPropertyValueFromCoordinator(
+                                    _coordinator, VplexBackendIngestionContext.DISCOVERY_FILTER);
+                    if ((discoveryFilter != null && !discoveryFilter.isEmpty())
+                            && !(name.matches(discoveryFilter))) {
+                        s_logger.warn("name {} doesn't match discovery filter {}", name, discoveryFilter);
+                        continue;
+                    }
                     // VPlexVirtualVolumeInfo objects with extended details
+                    VPlexVirtualVolumeInfo info = allVirtualVolumes.get(name);
                     // needed for unmanaged volume discovery.
                     // In my testing, I ran into situations where this took so
                     // long that by the time it got to some arbitrary volume to
                     // populate with more details, that volume had been deleted
+                    // by some other process and the VPLEX API threw a 404 Not
+                    // Found. ...which then caused the whole unmanaged volume
+                    // discovery process to fail.
+                    // So, there is a very rare chance that processing could get
+                    // to this point and the name would would be in the key set,
+                    // but the info object would be null... basically if it got
+                    // to here null, it would mean a 404 happened earlier.
                     // by some other process and the VPLEX API threw a 404 Not
                     // Found. ...which then caused the whole unmanaged volume
                     // discovery process to fail.
@@ -586,13 +615,17 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             // just refresh / update the existing unmanaged volume
                             s_logger.info("Unmanaged Volume {} is already known to ViPR", name);
 
-                            updateUnmanagedVolume(info, vplex, unmanagedVolume, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
+                            updateUnmanagedVolume(info, vplex, unmanagedVolume, volumesToCgs, 
+                                    clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap,
+                                    backendVolumeGuidToVvolGuidMap);
                             knownUnmanagedVolumes.add(unmanagedVolume);
                         } else {
                             // set up new unmanaged vplex volume
                             s_logger.info("Unmanaged Volume {} is not known to ViPR", name);
 
-                            unmanagedVolume = createUnmanagedVolume(info, vplex, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
+                            unmanagedVolume = createUnmanagedVolume(info, vplex, volumesToCgs, 
+                                    clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap,
+                                    backendVolumeGuidToVvolGuidMap);
                             newUnmanagedVolumes.add(unmanagedVolume);
                         }
 
@@ -630,11 +663,22 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         s_logger.info("Virtual Volume {} is already managed by "
                                 + "ViPR as Volume URI {}", name, managedVolume.getId());
                     }
+
+                    tracker.volumeTimeResults.put(name, System.currentTimeMillis() - timer);
+                    tracker.totalVolumesDiscovered++;
+
+                    s_logger.info("estimated discovery time remaining: " +
+                            tracker.getDiscoveryTimeRemaining());
                 }
             } else {
                 s_logger.warn("No virtual volumes were found on VPLEX.");
             }
 
+            List<UnManagedVolume> allVols = new ArrayList<UnManagedVolume>();
+            allVols.addAll(newUnmanagedVolumes);
+            allVols.addAll(knownUnmanagedVolumes);
+            processBackendClones(allVols, backendVolumeGuidToVvolGuidMap);
+            
             persistUnManagedVolumes(newUnmanagedVolumes, knownUnmanagedVolumes, true);
             persistUnManagedExportMasks(null, unmanagedExportMasksToUpdate, true);
             cleanUpOrphanedVolumes(vplex.getId(), allUnmanagedVolumes);
@@ -655,6 +699,83 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 } catch (Exception ex) {
                     s_logger.error("Error while saving VPLEX discovery status message: {} - Exception: {}",
                             statusMessage, ex.getLocalizedMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * This method iterates through all the front-end virtual volumes
+     * checking for the presence of HAS_REPLICAS or IS_FULL_COPY which were
+     * found earlier in discovery.  If found, it will swap the backend 
+     * volume GUID with the front-end volume GUID using the 
+     * backendVolumeGuidToVvolGuidMap.
+     * 
+     * In so doing, the vvols will be relative to each other for FULL_COPIES
+     * and LOCAL_REPLICA_SOURCE_VOLUME, just like the backend volumes are, 
+     * which will enable us to link them up like this:
+     * 
+     *  source vvol
+     *      fullCopies: target vvol
+     *  source bvol
+     *      fullCopies: target bvol
+     *  target vvol
+     *      associatedSourceVolume: source vvol
+     *  target bvol
+     *      associatedSourceVolume: source bvol
+     * 
+     * @param allUnmanagedVolumes all the volumes discovered
+     * @param backendVolumeGuidToVvolGuidMap a map of backend volume GUIDs
+     *              to the GUID of the front volume containing it
+     */
+    private void processBackendClones(List<UnManagedVolume> allUnmanagedVolumes, 
+            Map<String, String> backendVolumeGuidToVvolGuidMap) {
+        
+        for (UnManagedVolume unManagedVolume : allUnmanagedVolumes) {
+            String isFullCopyStr = unManagedVolume.getVolumeCharacterstics()
+                    .get(SupportedVolumeCharacterstics.IS_FULL_COPY.toString());
+            boolean isFullCopy = (null != isFullCopyStr && Boolean.parseBoolean(isFullCopyStr));
+            
+            if (isFullCopy) {
+                String fullCopySource = VplexBackendIngestionContext
+                        .extractValueFromStringSet(
+                                SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.name(),
+                                unManagedVolume.getVolumeInformation());
+                
+                if (fullCopySource != null && !fullCopySource.isEmpty()) {
+                    // we're going to swap the backend volume guid for the 
+                    // front-end virtual volume guid
+                    fullCopySource = backendVolumeGuidToVvolGuidMap.get(fullCopySource);
+                    StringSet set = new StringSet();
+                    set.add(fullCopySource);
+                    unManagedVolume.putVolumeInfo(
+                            SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.name(), set);
+                }
+            }
+            
+            String hasReplicasStr = unManagedVolume.getVolumeCharacterstics()
+                    .get(SupportedVolumeCharacterstics.HAS_REPLICAS.toString());
+            boolean hasReplicas = (null != hasReplicasStr && Boolean.parseBoolean(hasReplicasStr));
+            
+            if (hasReplicas) {
+                String fullCopyTarget = VplexBackendIngestionContext
+                        .extractValueFromStringSet(
+                                SupportedVolumeInformation.FULL_COPIES.name(),
+                                unManagedVolume.getVolumeInformation());
+                
+                if (fullCopyTarget != null && !fullCopyTarget.isEmpty()) {
+                    StringSet set = unManagedVolume.getVolumeInformation()
+                            .get(SupportedVolumeInformation.FULL_COPIES.name());
+                    if (set == null) {
+                        set = new StringSet();
+                    }
+                    // we're going to swap the backend volume guid for the 
+                    // front-end virtual volume guid
+                    set.remove(fullCopyTarget);
+                    fullCopyTarget = backendVolumeGuidToVvolGuidMap.get(fullCopyTarget);
+                    set.add(fullCopyTarget);
+                    unManagedVolume.putVolumeInfo(
+                            SupportedVolumeInformation.FULL_COPIES.name(), set);
                 }
             }
         }
@@ -721,7 +842,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             StorageSystem vplex, UnManagedVolume volume,
             Map<String, String> volumesToCgs,
             Map<String, String> clusterIdToNameMap,
-            Map<String, String> varrayToClusterIdMap) {
+            Map<String, String> varrayToClusterIdMap,
+            Map<String, String> distributedDevicePathToClusterMap,
+            Map<String, String> backendVolumeGuidToVvolGuidMap) {
 
         s_logger.info("Updating UnManagedVolume {} with latest from VPLEX volume {}",
                 volume.getLabel(), info.getName());
@@ -729,6 +852,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         volume.setStorageSystemUri(vplex.getId());
         volume.setNativeGuid(info.getPath());
         volume.setLabel(info.getName());
+        volume.setWwn(info.getWwn());
 
         volume.getUnmanagedExportMasks().clear();
         volume.getInitiatorUris().clear();
@@ -775,11 +899,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             unManagedVolumeCharacteristics.put(
                     SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), FALSE);
         }
-
-        // set an is-ingestable flag, used later by the ingest process
-        String isVolumeIngestable = isVolumeIngestable(info) ? TRUE : FALSE;
-        unManagedVolumeCharacteristics.put(
-                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), isVolumeIngestable);
 
         // set system type
         StringSet systemTypes = new StringSet();
@@ -865,31 +984,106 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         }
 
-        if (unManagedVolumeInformation
-                .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
-
-            if (null != matchedVPools && matchedVPools.isEmpty()) {
-                // replace with empty string set doesn't work, hence added explicit code to remove all
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
-            } else {
-                // replace with new StringSet
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(matchedVPools);
-                s_logger.info("Replaced Pools :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-            }
-        } else {
-            unManagedVolumeInformation.put(
-                    SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), matchedVPools);
-            s_logger.info("Matching VPOOLS found for unmanaged volume " + volume.getLabel()
-                    + " are " + matchedVPools.toString());
-        }
-
         // add this info to the unmanaged volume object
         volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
         volume.addVolumeInformation(unManagedVolumeInformation);
+
+        // discover backend volume data
+        boolean isRecoverPointEnabled = false;
+        String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
+                _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
+        if (!VplexBackendIngestionContext.DISCOVERY_MODE_INGESTION_ONLY.equals(discoveryMode)) {
+            try {
+                VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
+                context.setDistributedDevicePathToClusterMap(distributedDevicePathToClusterMap);
+                context.discover();
+                
+                for (UnManagedVolume bvol : context.getUnmanagedBackendVolumes()) {
+                    
+                    // map this backend volume's GUID to its parent front-end volume GUID
+                    backendVolumeGuidToVvolGuidMap.put(bvol.getNativeGuid(), volume.getNativeGuid());
+                    
+                    // check for recoverpoint enabled status
+                    String rpEnabled = bvol.getVolumeCharacterstics()
+                            .get(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString());
+                    isRecoverPointEnabled = (null != rpEnabled && Boolean.parseBoolean(rpEnabled));
+                    
+                    // check if this backend volume is a full copy (and is target of clone)
+                    // if so, write this volume's GUID to the parent vvol's LOCAL_REPLICA_SOURCE_VOLUME
+                    // so that we can swap it out for the backend parent vvol's GUID 
+                    String isFullCopyStr = bvol.getVolumeCharacterstics()
+                            .get(SupportedVolumeCharacterstics.IS_FULL_COPY.toString());
+                    boolean isFullCopy = (null != isFullCopyStr && Boolean.parseBoolean(isFullCopyStr));
+                    
+                    if (isFullCopy) {
+                        String fullCopySourceBvol = VplexBackendIngestionContext
+                                .extractValueFromStringSet(
+                                        SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.name(),
+                                        bvol.getVolumeInformation());
+                        
+                        if (fullCopySourceBvol != null && !fullCopySourceBvol.isEmpty()) {
+                            StringSet set = new StringSet();
+                            set.add(fullCopySourceBvol);
+                            volume.putVolumeInfo(
+                                    SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.name(), set);
+                            volume.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_FULL_COPY.toString(), 
+                                    Boolean.TRUE.toString());
+                        }
+                    }
+                    
+                    // check if this backend volume has a replica (and is source of clone)
+                    // if so, write this volume's GUID to the parent vvol's FULL_COPIES
+                    // so that we can swap it out for the backend parent vvol's GUID 
+                    String hasReplicasStr = bvol.getVolumeCharacterstics()
+                            .get(SupportedVolumeCharacterstics.HAS_REPLICAS.toString());
+                    boolean hasReplicas = (null != hasReplicasStr && Boolean.parseBoolean(hasReplicasStr));
+                    
+                    if (hasReplicas) {
+                        String fullCopyTargetBvol = VplexBackendIngestionContext
+                                .extractValueFromStringSet(
+                                        SupportedVolumeInformation.FULL_COPIES.name(),
+                                        bvol.getVolumeInformation());
+                        
+                        if (fullCopyTargetBvol != null && !fullCopyTargetBvol.isEmpty()) {
+                            StringSet set = volume.getVolumeInformation()
+                                    .get(SupportedVolumeInformation.FULL_COPIES.name());
+                            if (set == null) {
+                                set = new StringSet();
+                            }
+                            set.add(fullCopyTargetBvol);
+                            volume.putVolumeInfo(
+                                    SupportedVolumeInformation.FULL_COPIES.name(), set);
+                            volume.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), 
+                                    Boolean.TRUE.toString());
+
+                        }
+                    }
+                }
+                
+                s_logger.info(context.getPerformanceReport());
+            } catch (Exception ex) {
+                s_logger.warn("error discovering backend structure for {}: ",
+                        volume.getNativeGuid(), ex);
+                // no need to throw further
+            }
+        }
+
+        // set an is-ingestable flag, used later by the ingest process
+        String ingestable = isRecoverPointEnabled ? FALSE : TRUE;
+        unManagedVolumeCharacteristics.put(
+                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), ingestable);
+
+        if (null == matchedVPools || matchedVPools.isEmpty() || isRecoverPointEnabled) {
+            // clean all supported vpools.
+            volume.getSupportedVpoolUris().clear();
+            s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
+        } else {
+            // replace with new StringSet
+            volume.getSupportedVpoolUris().replace(matchedVPools);
+            s_logger.info("Replaced Pools : {}", volume.getSupportedVpoolUris());
+        }
     }
 
     /**
@@ -902,7 +1096,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     private UnManagedVolume createUnmanagedVolume(VPlexVirtualVolumeInfo info,
             StorageSystem vplex, Map<String, String> volumesToCgs, Map<String, String> clusterIdToNameMap,
-            Map<String, String> varrayToClusterIdMap) {
+            Map<String, String> varrayToClusterIdMap, Map<String, String> distributedDevicePathToClusterMap,
+            Map<String, String> backendVolumeGuidToVvolGuidMap) {
 
         s_logger.info("Creating new UnManagedVolume from VPLEX volume {}",
                 info.getName());
@@ -910,7 +1105,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         UnManagedVolume volume = new UnManagedVolume();
         volume.setId(URIUtil.createId(UnManagedVolume.class));
 
-        updateUnmanagedVolume(info, vplex, volume, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
+        updateUnmanagedVolume(info, vplex, volume, volumesToCgs, 
+                clusterIdToNameMap, varrayToClusterIdMap, distributedDevicePathToClusterMap,
+                backendVolumeGuidToVvolGuidMap);
 
         return volume;
     }
@@ -921,20 +1118,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @param info a VPlexVirtualVolumeInfo descriptor
      * @return true if the virtual volume is ingestable by ViPR
      */
-    private boolean isVolumeIngestable(VPlexVirtualVolumeInfo info) {
 
-        // currently no checks are needed during the ingest phase
-
-        return true;
-    }
-
-    /**
-     * Handles persisting UnManagedVolumes in batches.
-     * 
-     * @param unManagedVolumesToCreate UnManagedVolumes to be created
-     * @param unManagedVolumesToUpdate UnManagedVolumes to be updated
-     * @param flush if true, persistence with be forced
-     */
     private void persistUnManagedVolumes(List<UnManagedVolume> unManagedVolumesToCreate,
             List<UnManagedVolume> unManagedVolumesToUpdate, boolean flush) {
         if (null != unManagedVolumesToCreate) {
@@ -946,7 +1130,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
         if (null != unManagedVolumesToUpdate) {
             if (flush || (unManagedVolumesToUpdate.size() > BATCH_SIZE)) {
-                _partitionManager.updateInBatches(unManagedVolumesToUpdate,
+                _partitionManager.updateAndReIndexInBatches(unManagedVolumesToUpdate,
                         BATCH_SIZE, _dbClient, UNMANAGED_VOLUME);
                 unManagedVolumesToUpdate.clear();
             }
@@ -1153,18 +1337,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 }
 
                 s_logger.info("now discovering storage volumes in storage view " + storageView.getName());
-                for (String volumeName : storageView.getVirtualVolumes()) {
-
-                    s_logger.info("found volume " + volumeName.toString());
-
-                    StringTokenizer tokenizer = new StringTokenizer(volumeName, ",");
-                    String hluStr = tokenizer.nextToken();
-                    hluStr = hluStr.substring(1); // skips an opening "("
-                    Integer volumeHLU = Integer.valueOf(hluStr);
-                    volumeName = tokenizer.nextToken();
-                    String vpdId = tokenizer.nextToken();
-                    int indexColon = vpdId.indexOf(":");
-                    String volumeWWN = vpdId.substring(indexColon + 1);
+                for (String volumeNameStr : storageView.getVirtualVolumes()) {
+                    s_logger.info("found volume " + volumeNameStr);
+                    // volumeNameStr contains value like
+                    // (161,dd_V000195701573-00D57_VAPM00140801303-00614_vol,VPD83T3:6000144000000010f07dc46a0717e61d,2G)
+                    String[] tokens = volumeNameStr.split(",");
+                    String volumeName = tokens[1];
 
                     VPlexVirtualVolumeInfo vvol = vvolMap.get(volumeName);
                     Volume volume = findVirtualVolumeManagedByVipr(vvol);
@@ -1676,7 +1854,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 || IPAddressUtil.isIPv6LiteralAddress(hostName)) {
             // The VNX cannot deal with literal IP addresses in the hostName
             // field of an initiator. Make it something more reasonable.
-            hostName = "vplex_" + hostName;
+            hostName = VPLEX_INITIATOR_HOSTNAME_PREFIX + hostName;
             s_logger.info("New host name is {}", hostName);
         }
 
@@ -1709,7 +1887,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             hostName = mgmntSvr.getIPAddress();
             if (IPAddressUtil.isIPv4LiteralAddress(hostName)
                     || IPAddressUtil.isIPv6LiteralAddress(hostName)) {
-                hostName = "vplex_" + hostName;
+                hostName = VPLEX_INITIATOR_HOSTNAME_PREFIX + hostName;
                 s_logger.info("New host name is {}", hostName);
             }
 
@@ -1819,6 +1997,105 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             } else {
                 return StoragePort.OperationalStatus.NOT_OK.name();
             }
+        }
+    }
+
+    /**
+     * Private inner class to track and report on discovery performance.
+     */
+    private class UnmanagedDiscoveryPerformanceTracker {
+
+        public String discoveryMode = "Unknown";
+        public Map<String, Long> volumeTimeResults = new TreeMap<String, Long>();
+        public long startTime = new Date().getTime();
+        public long virtualVolumeFetch = 0;
+        public long storageViewFetch = 0;
+        public long consistencyGroupFetch = 0;
+        public long unmanagedVolumeProcessing = 0;
+        public int totalVolumesFetched = 0;
+        public int totalVolumesDiscovered = 0;
+
+        /**
+         * Returns a String containing details of the VPLEX UnManagedVolume discovery session.
+         * 
+         * @return a String that is text report on discovery performance
+         */
+        public String getPerformanceReport() {
+            StringBuilder report = new StringBuilder("\n\nVolume Discovery Performance Report\n");
+            report.append("\tdiscovery mode: ").append(discoveryMode).append("\n");
+            long totalDiscoveryTime = System.currentTimeMillis() - startTime;
+            report.append("\ttotal discovery time: ").append(totalDiscoveryTime);
+            report.append(" (about ").append(totalDiscoveryTime / 1000 / 60).append(" minutes)\n");
+            report.append("\ttotal volumes fetched: ").append(totalVolumesFetched).append("\n");
+            report.append("\ttotal volumes discovered: ").append(totalVolumesDiscovered).append("\n");
+            long averageTime = 0;
+            if (totalVolumesDiscovered != 0) {
+                averageTime = (System.currentTimeMillis() - startTime) / totalVolumesDiscovered;
+            }
+            report.append("\taverage time per volume: ").append(averageTime).append("ms\n");
+            report.append("\tvirtual volume data fetch: ").append(virtualVolumeFetch).append("ms\n");
+            report.append("\tstorage view data fetch: ").append(storageViewFetch).append("ms\n");
+            report.append("\tconsistency group data fetch: ").append(consistencyGroupFetch).append("ms\n");
+            report.append("\tunmanaged volume processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
+
+            volumeTimeResults = sortByValue(volumeTimeResults);
+            report.append("\nTop 20 Longest-Running Volumes...\n");
+            Object[] keys = volumeTimeResults.keySet().toArray();
+            for (int i = 0; i < 20; i++) {
+                if (keys.length >= (1 + i)) {
+                    Object key = keys[keys.length - 1 - i];
+                    report.append("\t").append(key).append(": ").append(volumeTimeResults.get(key)).append("ms\n");
+                }
+            }
+
+            return report.toString();
+        }
+
+        /**
+         * Returns an estimate of the time remaining for discovery based on the total
+         * number of volumes to be discovered and the average single volume discovery
+         * time to the point this method is called.
+         * 
+         * @return an estimate of time remaining for discovery
+         */
+        public String getDiscoveryTimeRemaining() {
+            try {
+                if (totalVolumesDiscovered != 0) {
+                    long averageTime = (System.currentTimeMillis() - startTime) / totalVolumesDiscovered;
+                    long timeRemaining = averageTime * (totalVolumesFetched - totalVolumesDiscovered);
+                    timeRemaining = (timeRemaining / 1000 / 60);
+                    if (timeRemaining < 1) {
+                        return "less than a minute";
+                    }
+                    return "about " + timeRemaining + " minutes";
+                }
+            } catch (Exception ex) {
+                s_logger.warn("couldn't calculate discovery remaining time estimate: ", ex.getLocalizedMessage());
+            }
+
+            return "Unknown";
+        }
+
+        /**
+         * Sorts the given map by values rather than keys.
+         * 
+         * @param map the Map to sort
+         * @return the Map returned sorted by values
+         */
+        public <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
+            List<Map.Entry<K, V>> listOfEntries = new LinkedList<Map.Entry<K, V>>(map.entrySet());
+            Collections.sort(listOfEntries, new Comparator<Map.Entry<K, V>>() {
+                public int compare(Map.Entry<K, V> o1, Map.Entry<K, V> o2) {
+                    return (o1.getValue()).compareTo(o2.getValue());
+                }
+            });
+
+            Map<K, V> sortedMap = new LinkedHashMap<K, V>();
+            for (Map.Entry<K, V> entry : listOfEntries) {
+                sortedMap.put(entry.getKey(), entry.getValue());
+            }
+
+            return sortedMap;
         }
     }
 }

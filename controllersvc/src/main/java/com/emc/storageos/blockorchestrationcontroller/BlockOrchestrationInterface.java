@@ -1,12 +1,14 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.blockorchestrationcontroller;
 
+import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.workflow.Workflow;
 
@@ -78,6 +80,25 @@ public interface BlockOrchestrationInterface {
             throws InternalException;
 
     /**
+     * Add the necessary steps for restoring a volume from a snapshot.
+     * 
+     * @param workflow - Workflow being constructed
+     * @param waitFor - The String key that should be used for waiting on previous steps in Workflow.createStep
+     * @param storage - URI of storage controller
+     * @param pool - URI of pool where the volume belongs
+     * @param volume - URI of volume to be restored
+     * @param snapshot - URI of snapshot used for restoration
+     * @param updateOpStatus - Operation ID
+     * @param taskId - The top level operation's taskId
+     * @param completer - The completer for the entire workflow.
+     * @return A waitFor key that can be used by subsequent controllers to wait on
+     * @throws InternalException
+     */
+    public String addStepsForRestoreVolume(Workflow workflow, String waitFor, URI storage, 
+            URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String taskId, BlockSnapshotRestoreCompleter completer) 
+            throws InternalException;
+    
+   /**
      * Adds the steps necessary for changing the virtual pool of one or more volumes of a given
      * technology (Block, RP, VPlex, etc.) to the given Workflow.
      * 

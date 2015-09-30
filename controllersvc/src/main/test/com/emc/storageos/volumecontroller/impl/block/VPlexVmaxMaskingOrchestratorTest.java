@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.block;
@@ -27,6 +27,8 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.placement.PortAllocatorTestContext;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocatorTest;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.vplexcontroller.VPlexBackendManager;
 
@@ -171,7 +173,8 @@ public class VPlexVmaxMaskingOrchestratorTest extends StoragePortsAllocatorTest 
                 igIterator = initiatorGroups.iterator();
             }
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
-            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap);
+            StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones("vmax", null);
+            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
             VPlexBackendManager mgr = new VPlexBackendManager(null, null, null, null, null, URI.create("project"), URI.create("tenant"),
                     null);
             ExportMask exportMask = mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);

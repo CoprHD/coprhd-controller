@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -93,15 +83,16 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Function;
 
 @Path("/block/vpools")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        read_acls = { ACL.USE },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        readAcls = { ACL.USE },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class BlockVirtualPoolService extends VirtualPoolService {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockVirtualPoolService.class);
@@ -198,9 +189,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         // update the implicit pools matching with this VirtualPool.
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
-
+        Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, _dbClient);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
         }
 
         _dbClient.createObject(vpool);
@@ -328,7 +319,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     public ACLAssignments updateAcls(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
         return updateAclsOnVirtualPool(VirtualPool.Type.block, id, changes);
@@ -506,7 +497,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
 
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, _dbClient);
+            Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
         }
 
         // Validate Mirror Vpool
@@ -1255,7 +1247,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     protected BlockVirtualPoolBulkRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        if (isSystemAdmin()) {
+        if (isSystemOrRestrictedSystemAdmin()) {
             return queryBulkResourceReps(ids);
         }
 

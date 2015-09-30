@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware;
@@ -13,6 +13,7 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logWarn;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +30,7 @@ import com.emc.sa.service.vipr.file.tasks.FindFilesystemWithDatastore;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vmware.block.tasks.CreateVmfsDatastore;
+import com.emc.sa.service.vmware.block.tasks.DetachLunsFromHost;
 import com.emc.sa.service.vmware.block.tasks.ExpandVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.ExtendVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.FindHostScsiDiskForLun;
@@ -36,6 +38,7 @@ import com.emc.sa.service.vmware.block.tasks.FindLunsBackingDatastore;
 import com.emc.sa.service.vmware.block.tasks.RefreshStorage;
 import com.emc.sa.service.vmware.block.tasks.SetMultipathPolicy;
 import com.emc.sa.service.vmware.block.tasks.SetStorageIOControl;
+import com.emc.sa.service.vmware.block.tasks.UnmountVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.VerifyDatastoreHostMounts;
 import com.emc.sa.service.vmware.file.tasks.CreateNfsDatastore;
 import com.emc.sa.service.vmware.file.tasks.GetEndpoints;
@@ -64,6 +67,7 @@ import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VMWareException;
 import com.vmware.vim25.DatastoreHostMount;
@@ -221,6 +225,14 @@ public class VMwareSupport {
 
     }
 
+    public void detachLuns(HostSystem host, List<HostScsiDisk> disks) {
+        execute(new DetachLunsFromHost(host, disks));
+    }
+
+    public void unmountVmfsDatastore(HostSystem host, Datastore datastore) {
+        execute(new UnmountVmfsDatastore(host, datastore));
+    }
+
     /**
      * Sets the storage IO control for the given datastore
      * 
@@ -316,14 +328,55 @@ public class VMwareSupport {
      * @param datastore
      *            the datastore.
      */
-    public void deleteVmfsDatastore(Collection<VolumeRestRep> volumes, URI hostOrClusterId, Datastore datastore) {
+    public void deleteVmfsDatastore(Collection<VolumeRestRep> volumes, URI hostOrClusterId, final Datastore datastore) {
         List<HostSystem> hosts = getHostsForDatastore(datastore);
         if (hosts.isEmpty()) {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
+
         enterMaintenanceMode(datastore);
+        setStorageIOControl(datastore, false);
+
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                unmountVmfsDatastore(host, datastore);
+            }
+        });
+
+        final Map<HostSystem, List<HostScsiDisk>> hostDisks = buildHostDiskMap(hosts, datastore);
+
         execute(new DeleteDatastore(hosts.get(0), datastore));
+
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                List<HostScsiDisk> disks = hostDisks.get(host);
+                detachLuns(host, disks);
+            }
+        });
         removeVmfsDatastoreTag(volumes, hostOrClusterId);
+    }
+
+    private Map<HostSystem, List<HostScsiDisk>> buildHostDiskMap(List<HostSystem> hosts, Datastore datastore) {
+
+        Map<HostSystem, List<HostScsiDisk>> hostDisks = new HashMap<>();
+
+        for (HostSystem host : hosts) {
+            List<HostScsiDisk> disks = new HostStorageAPI(host).listDisks(datastore);
+            hostDisks.put(host, disks);
+        }
+        return hostDisks;
+    }
+
+    private void executeOnHosts(List<HostSystem> hosts, HostSystemCallback callback) {
+        for (HostSystem host : hosts) {
+            callback.exec(host);
+        }
+    }
+
+    private interface HostSystemCallback {
+        public void exec(HostSystem host);
     }
 
     /**
@@ -396,6 +449,7 @@ public class VMwareSupport {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
         enterMaintenanceMode(datastore);
+        setStorageIOControl(datastore, false);
         for (HostSystem host : hosts) {
             execute(new DeleteDatastore(host, datastore));
         }
@@ -484,7 +538,7 @@ public class VMwareSupport {
      *            the hosts to refresh;
      */
     public void refreshStorage(List<HostSystem> hosts) {
-        if (hosts.size() > 0) {
+        if (!hosts.isEmpty()) {
             execute(new RefreshStorage(hosts));
         }
     }

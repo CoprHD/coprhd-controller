@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -87,9 +77,9 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * A service that provides APIs for viewing, updating and deleting clusters.
  * 
  */
-@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        write_roles = { Role.TENANT_ADMIN },
-        read_acls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN },
+        readAcls = { ACL.ANY })
 @Path("/compute/clusters")
 public class ClusterService extends TaskResourceService {
 
@@ -124,11 +114,26 @@ public class ClusterService extends TaskResourceService {
             ClusterUpdateParam updateParam) {
         // update the cluster
         Cluster cluster = queryObject(Cluster.class, id, true);
+        boolean oldExportEnabled = cluster.getAutoExportEnabled();
+
         validateClusterData(updateParam, cluster.getTenant(), cluster, _dbClient);
         populateCluster(updateParam, cluster);
         _dbClient.persistObject(cluster);
         auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, null,
                 cluster.auditParameters());
+
+        boolean enablingAutoExports = !oldExportEnabled && cluster.getAutoExportEnabled();
+
+        if (enablingAutoExports) {
+            String taskId = UUID.randomUUID().toString();
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.synchronizeSharedExports(cluster.getId(), taskId);
+            Operation op = _dbClient.createTaskOpStatus(Cluster.class, cluster.getId(), taskId,
+                    ResourceOperationTypeEnum.UPDATE_CLUSTER);
+            auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, op.getStatus(),
+                    cluster.auditParameters());
+        }
+
         return map(queryObject(Cluster.class, id, false));
     }
 
@@ -339,6 +344,9 @@ public class ClusterService extends TaskResourceService {
         if (param.getVcenterDataCenter() != null) {
             cluster.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ?
                     NullColumnValueGetter.getNullURI() : param.getVcenterDataCenter());
+        }
+        if (param.getAutoExportEnabled() != null) {
+            cluster.setAutoExportEnabled(param.getAutoExportEnabled());
         }
         // Commented out because cluster project is not currently used
         // if (param.project != null) {

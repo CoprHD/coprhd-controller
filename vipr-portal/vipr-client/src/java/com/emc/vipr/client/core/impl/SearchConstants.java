@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.impl;
@@ -15,4 +15,5 @@ public class SearchConstants {
     public static final String CLUSTER_PARAM = "cluster";
     public static final String HOST_PARAM = "host";
     public static final String TENANT_PARAM = "tenant";
+    public static final String DISCOVER_VCENTER = "discover_vcenter";
 }

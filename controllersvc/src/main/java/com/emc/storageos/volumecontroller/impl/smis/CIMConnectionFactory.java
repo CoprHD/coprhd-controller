@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2012. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
@@ -112,7 +102,8 @@ public class CIMConnectionFactory {
              * Check cimConnection already exist for vnxfile, if not create new one
              */
             if (StorageSystem.Type.vnxfile.name().equals(storageDevice.getSystemType())) {
-                connection = _connectionManager.getConnection(storageDevice.getSmisProviderIP());
+                connection = _connectionManager.getConnection(ConnectionManager.generateConnectionCacheKey(
+                        storageDevice.getSmisProviderIP(), storageDevice.getPortNumber()));
             } else {
                 connection = getConnection(storageDevice.getSmisProviderIP(), storageDevice.getSmisPortNumber().toString());
             }
@@ -158,8 +149,8 @@ public class CIMConnectionFactory {
             try {
                 CimConnection connection = getConnection(smisProvider.getIPAddress(), smisProvider.getPortNumber().toString());
                 if (null == connection) {
-                    _log.error("No CIMOM connection found for ip {}",
-                            smisProvider.getIPAddress());
+                    _log.error("No CIMOM connection found for ip/port {}",
+                            ConnectionManager.generateConnectionCacheKey(smisProvider.getIPAddress(), smisProvider.getPortNumber()));
                     // No need to add connection, as getConnection() called from any thread would create it.
                     continue;
                 }
@@ -201,8 +192,9 @@ public class CIMConnectionFactory {
                     Type.vnxfile.toString().equals(storageSystem.getSystemType())) {
                 CimConnection cimConnection = getConnection(storageSystem);
                 if (null == cimConnection) {
-                    _log.error("No CIMOM connection found for ip {}",
-                            storageSystem.getSmisProviderIP());
+                    _log.error("No CIMOM connection found for ip/port {}",
+                            ConnectionManager.generateConnectionCacheKey(storageSystem.getSmisProviderIP(),
+                                    storageSystem.getSmisPortNumber()));
                     recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
                             STORAGE_PROVIDER_DOWN_DESCRIPTION_VNXFILE + storageSystem.getSmisProviderIP(),
                             storageSystem.getId());
@@ -221,8 +213,11 @@ public class CIMConnectionFactory {
                         storageSystem.setSmisConnectionStatus(ConnectionStatus.NOTCONNECTED.toString());
                         _dbClient.persistObject(storageSystem);
                     }
-                    _connectionManager.removeConnection(storageSystem.getSmisProviderIP());
-                    _log.info("Removed invalid connection for smis {} from connectionManager", storageSystem.getSmisProviderIP());
+                    _connectionManager.removeConnection(ConnectionManager.generateConnectionCacheKey(
+                            storageSystem.getSmisProviderIP(), storageSystem.getPortNumber()));
+                    _log.info("Removed invalid connection for smis {} from connectionManager",
+                            ConnectionManager.generateConnectionCacheKey(storageSystem.getSmisProviderIP(),
+                                    storageSystem.getSmisPortNumber()));
                 }
                 else {
                     // If the provider is in CONNECTED state, generating success event &
@@ -364,7 +359,7 @@ public class CIMConnectionFactory {
     public synchronized CimConnection getConnection(String ipAddress, String port) {
         CimConnection connection = null;
         try {
-            connection = _connectionManager.getConnection(ipAddress);
+            connection = _connectionManager.getConnection(ConnectionManager.generateConnectionCacheKey(ipAddress, Integer.parseInt(port)));
             if (null == connection) {
                 connection = addConnection(ipAddress, port);
 
@@ -388,7 +383,8 @@ public class CIMConnectionFactory {
     private synchronized CimConnection addConnection(String smisIPAddress, String port) {
         CimConnection connection = null;
         try {
-            connection = _connectionManager.getConnection(smisIPAddress);
+            connection = _connectionManager
+                    .getConnection(ConnectionManager.generateConnectionCacheKey(smisIPAddress, Integer.parseInt(port)));
             if (null == connection) {
                 String smisAltId = smisIPAddress + "-" + port;
                 List<StorageProvider> providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient, smisAltId);
@@ -416,7 +412,8 @@ public class CIMConnectionFactory {
                 connInfo.setInteropNS(CimConstants.DFLT_CIM_CONNECTION_INTEROP_NS);
                 _connectionManager.addConnection(connInfo);
                 connection = _connectionManager.getConnection(smisIPAddress);
-                _log.info("Connection Added to Cache {}", smisProvider.getIPAddress());
+                _log.info("Connection Added to Cache {}", ConnectionManager.generateConnectionCacheKey(
+                        smisProvider.getIPAddress(), smisProvider.getPortNumber()));
             }
         } catch (ConnectionManagerException ex) {
             _log.error("Exception occurred while adding connections due to ",

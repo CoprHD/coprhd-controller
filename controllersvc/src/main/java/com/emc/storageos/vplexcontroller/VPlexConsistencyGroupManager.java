@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.vplexcontroller;
@@ -11,10 +11,13 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.emc.storageos.exceptions.DeviceControllerException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +80,32 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             log.info("No consistency group for volume creation.");
             return waitFor;
         }
+        return addStepsForCreateConsistencyGroup(workflow, waitFor, vplexSystem, vplexVolumeURIs, 
+                willBeRemovedByEarlierStep, cgURI);
+        
+    }
+    
+    /**
+     * Create consistency group and add volumes to it
+     * @param workflow The workflow
+     * @param waitFor The previous step that it needs to wait for
+     * @param vplexSystem The vplex system
+     * @param vplexVolumeURIs The vplex volumes to be added to the consistency group
+     * @param willBeRemovedByEarlierStep if the consistency group could be removed by previous step
+     * @param cgURI The consistency group URI
+     * @return
+     * @throws ControllerException
+     */
+    private String addStepsForCreateConsistencyGroup(Workflow workflow, String waitFor,
+            StorageSystem vplexSystem, List<URI> vplexVolumeURIs,
+            boolean willBeRemovedByEarlierStep, URI cgURI) throws ControllerException {
 
+        // No volumes, all done.
+        if (vplexVolumeURIs.isEmpty()) {
+            log.info(String.format("No volumes specified to add to the consistency group %s", cgURI.toString()));
+            return waitFor;
+        }
+        
         URI vplexURI = vplexSystem.getId();
         String nextStep = waitFor;
         BlockConsistencyGroup cg = null;
@@ -137,10 +165,11 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 nextStep, vplexURI, vplexSystem.getSystemType(), this.getClass(),
                 createAddVolumesToCGMethod(vplexURI, cgURI, volumeList),
                 createRemoveVolumesFromCGMethod(vplexURI, cgURI, volumeList), null);
-        log.info("Created step for add volumes to consistency group.");
+        log.info(String.format("Created step for adding volumes to the consistency group %s", cgURI.toString()));
 
         return nextStep;
     }
+
 
     /**
      * A method the creates the method to create a new VPLEX consistency group.
@@ -161,7 +190,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
      * 
      * @param vplexURI The URI of the VPLEX storage system.
      * @param cgURI The URI of the Bourne consistency group
-     * @param vplexVolumeURI The URI of the VPLEX used to determine the VPlex
+     * @param vplexVolumeURIs The URI of the VPLEX used to determine the VPlex
      *            cluster/distributed information.
      * @param stepId The workflow step id.
      * 
@@ -177,7 +206,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
 
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(cgURI, vplexURI));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(dbClient, cgURI, vplexURI));
             workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.RP_VPLEX_CG));
 
             // Get the API client.
@@ -298,9 +327,12 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             }
             log.info("Got VPLEX volume names.");
 
+            long startTime = System.currentTimeMillis();
             // Add the volumes to the CG.
             client.addVolumesToConsistencyGroup(cgName, vplexVolumeNames);
-            log.info("Added volumes to consistency group.");
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.info(String.format("TIMER: Adding %s virtual volume(s) %s to the consistency group %s took %f seconds",
+                    vplexVolumeNames.size(), vplexVolumeNames, cgName, (double) elapsed / (double) 1000));
 
             // Make sure the volumes are updated. Necessary when
             // adding volumes to a CG after volume creation.
@@ -320,87 +352,6 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                     "Exception adding volumes to consistency group: " + ex.getMessage(), ex);
             ServiceError svcError = VPlexApiException.errors.jobFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, svcError);
-        }
-    }
-
-    /**
-     * A method that creates the workflow method for removing VPLEX volumes from a
-     * consistency group.
-     * 
-     * @param vplexURI The URI of the VPLEX storage system.
-     * @param cgURI The URI of the consistency group.
-     * @param vplexVolumeURIs The URIs of the volumes to be removed from the
-     *            consistency group.
-     * 
-     * @return A reference to the workflow method to remove VPLEX volumes from a
-     *         consistency group.
-     */
-    private Workflow.Method createRemoveVolumesFromCGMethod(URI vplexURI, URI cgURI,
-            List<URI> vplexVolumeURIs) {
-        return new Workflow.Method(REMOVE_VOLUMES_FROM_CG_METHOD_NAME, vplexURI, cgURI,
-                vplexVolumeURIs);
-    }
-
-    /**
-     * The method called by the workflow to remove VPLEX volumes from a VPLEX
-     * consistency group.
-     * 
-     * @param vplexURI The URI of the VPLEX storage system.
-     * @param cgURI The URI of the consistency group.
-     * @param vplexVolumeURIs The URIs of the volumes to be removed from the
-     *            consistency group.
-     * @param stepId The workflow step id.
-     * 
-     * @throws WorkflowException When an error occurs updating the workflow step
-     *             state.
-     */
-    public void removeVolumesFromCG(URI vplexURI, URI cgURI, List<URI> vplexVolumeURIs,
-            String stepId) throws WorkflowException {
-        try {
-            // Update workflow step.
-            WorkflowStepCompleter.stepExecuting(stepId);
-            log.info("Updated workflow step state to execute for remove volumes from consistency group.");
-
-            // Get the API client.
-            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, dbClient);
-            VPlexApiClient client = getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
-            log.info("Got VPLEX API client.");
-
-            Volume firstVPlexVolume = getDataObject(Volume.class, vplexVolumeURIs.get(0), dbClient);
-            String cgName = getVplexCgName(firstVPlexVolume, cgURI);
-
-            // Get the names of the volumes to be removed.
-            List<Volume> vplexVolumes = new ArrayList<Volume>();
-            List<String> vplexVolumeNames = new ArrayList<String>();
-            for (URI vplexVolumeURI : vplexVolumeURIs) {
-                Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
-                vplexVolumes.add(vplexVolume);
-                vplexVolumeNames.add(vplexVolume.getDeviceLabel());
-            }
-            log.info("Got VPLEX volume names.");
-
-            // Remove the volumes from the CG.
-            client.removeVolumesFromConsistencyGroup(vplexVolumeNames, cgName, false);
-            log.info("Removed volumes from consistency group.");
-
-            // Make sure the volumes are updated.
-            for (Volume vplexVolume : vplexVolumes) {
-                vplexVolume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                dbClient.updateAndReindexObject(vplexVolume);
-            }
-
-            // Update workflow step state to success.
-            WorkflowStepCompleter.stepSucceded(stepId);
-            log.info("Updated workflow step state to success for remove volumes from consistency group.");
-        } catch (VPlexApiException vae) {
-            log.error("Exception removing volumes from consistency group: " + vae.getMessage(), vae);
-            WorkflowStepCompleter.stepFailed(stepId, vae);
-        } catch (Exception ex) {
-            log.error(
-                    "Exception removing volumes from consistency group: " + ex.getMessage(), ex);
-            String opName = ResourceOperationTypeEnum.DELETE_CG_VOLUME.getName();
-            ServiceError serviceError = VPlexApiException.errors.removeVolumesFromCGFailed(opName, ex);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
 
@@ -443,7 +394,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
 
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(cgURI, vplexURI));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(dbClient, cgURI, vplexURI));
             workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.RP_VPLEX_CG));
 
             // Get the API client.
@@ -498,8 +449,24 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, dbClient);
             BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
 
+            // Lock the CG for the duration of update CG workflow.
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(dbClient, cgURI, vplexURI));
+            boolean acquiredLocks = workflowService.acquireWorkflowLocks(workflow, lockKeys, LockTimeoutValue.get(LockType.RP_VPLEX_CG));
+            if (!acquiredLocks) {
+                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                        "UpdateConsistencyGroup: " + cg.getLabel());
+            }
+            
+            // Users could use updateConsistencyGroup operation to add backend CGs for ingested CGs.
+            // if that's the case, we will only add the backend CGs, but not add those virtual volumes to 
+            // the VPlex CG.
+            boolean isIngestedCG = isAddingBackendCGForIngestedCG(cg, addVolumesList);
+            
+            // Check if the CG has been created in VPlex yet
+            boolean isNewCg = !cg.created();
             // If necessary, create a step to update the local CGs.
-            if (cg.getTypes().contains(Types.LOCAL.toString())) {
+            if (cg.getTypes().contains(Types.LOCAL.toString()) || isIngestedCG || isNewCg) {
                 // We need to determine the backend systems that own the local CGs and the
                 // volumes to be added/removed from each. There should really only be either
                 // one of two backend systems depending upon whether or not the volumes are
@@ -547,7 +514,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             }
 
             // Now create a step to add volumes to the CG.
-            if ((addVolumesList != null) && !addVolumesList.isEmpty()) {
+            if ((addVolumesList != null) && !addVolumesList.isEmpty() && !isIngestedCG && !isNewCg) {
                 // See if the CG contains no volumes. If so, we need to
                 // make sure the visibility and storage cluster info for
                 // the VPLEX CG is correct for these volumes we are adding.
@@ -585,6 +552,9 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                         waitFor, vplexURI, vplexSystem.getSystemType(), this.getClass(),
                         addMethod, rollbackMethodNullMethod(), null);
                 log.info("Created step for add volumes to consistency group.");
+            } else if (isNewCg && addVolumesList != null && !addVolumesList.isEmpty()) {
+                addStepsForCreateConsistencyGroup(workflow, waitFor, vplexSystem, addVolumesList, false, cgURI);
+                
             }
 
             TaskCompleter completer = new VPlexTaskCompleter(BlockConsistencyGroup.class,
@@ -712,5 +682,28 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 removeMethod, removeRollbackMethod, null);
         log.info("Created step for remove volumes from consistency group.");
         return waitFor;
+    }
+    
+    /**
+     * Check if update consistency group operation is for adding back end consistency groups for ingested CG.
+     * @param cg
+     * @param addVolumesList
+     * @return true or false
+     */
+    private boolean isAddingBackendCGForIngestedCG(BlockConsistencyGroup cg, List<URI>addVolumesList) {
+        boolean result = false;
+        if (cg.getTypes().contains(Types.LOCAL.toString())) {
+            // Not ingested CG
+            return result;
+        }
+        List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, dbClient, null);
+        Set<String> cgVolumeURIs = new HashSet<String>();
+        for (Volume cgVolume : cgVolumes) {
+            cgVolumeURIs.add(cgVolume.getId().toString());
+        }
+        if (!addVolumesList.isEmpty() && cgVolumeURIs.contains(addVolumesList.get(0).toString())) {
+            result = true;
+        }
+        return result;
     }
 }

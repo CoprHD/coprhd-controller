@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
@@ -146,6 +146,7 @@ public class HostMapper {
         mapTenantResource(from, to);
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
         to.setVcenterDataCenter(toRelatedResource(ResourceTypeEnum.VCENTERDATACENTER, from.getVcenterDataCenter()));
+        to.setAutoExportEnabled(from.getAutoExportEnabled());
         return to;
     }
 
@@ -169,8 +170,9 @@ public class HostMapper {
         to.setPortNumber(from.getPortNumber());
         to.setIpAddress(from.getIpAddress());
         to.setUseSsl(from.getUseSSL());
-        to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
+        to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.findVcenterTenant()));
         to.setOsVersion(from.getOsVersion());
+        to.setCascadeTenancy(from.getCascadeTenancy());
         return to;
     }
 }

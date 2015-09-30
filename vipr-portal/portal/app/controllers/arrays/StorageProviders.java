@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.arrays;
@@ -61,11 +61,12 @@ public class StorageProviders extends ViprResourceController {
 
     private static void addReferenceData() {
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.OPTIONS);
+        renderArgs.put("optionsSIO", StorageProviderTypes.optionSIO);
         renderArgs.put("sslDefaultStorageProviderList", Arrays.asList(StorageProviderTypes.SSL_DEFAULT_OPTIONS));
         renderArgs.put("nonSSLStorageSystemList", Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));
         renderArgs.put("mdmDefaultStorageProviderList", Arrays.asList(StorageSystemTypes.MDM_DEFAULT_OPTIONS));
+        renderArgs.put("mdmonlyProviderList", Arrays.asList(StorageSystemTypes.MDM_ONLY_OPTIONS));
         renderArgs.put("elementManagerStorageProviderList", Arrays.asList(StorageSystemTypes.ELEMENT_MANAGER_OPTIONS));
-
         List<EnumOption> defaultStorageProviderPortMap = Arrays.asList(EnumOption.options(DefaultStorageProviderPortMap.values()));
         renderArgs.put("defaultStorageProviderPortMap", defaultStorageProviderPortMap);
     }
@@ -188,7 +189,7 @@ public class StorageProviders extends ViprResourceController {
         public String name;
 
         @MaxSize(2048)
-        @Required
+        
         public String userName;
 
         @HostNameOrIpAddress
@@ -218,8 +219,9 @@ public class StorageProviders extends ViprResourceController {
         public String secondaryPasswordConfirm = "";
 
         public String elementManagerURL;
+        
 
-        public StorageProviderForm() {
+        public StorageProviderForm() {        	
         }
 
         public StorageProviderForm(StorageProviderRestRep smisProvider) {
@@ -228,6 +230,10 @@ public class StorageProviders extends ViprResourceController {
 
         public boolean isNew() {
             return StringUtils.isBlank(id);
+        }
+        
+        public boolean isScaleIOApi() {
+            return StorageProviderTypes.isScaleIOApi(interfaceType);
         }
 
         public void readFrom(StorageProviderRestRep storageProvider) {
@@ -241,7 +247,12 @@ public class StorageProviders extends ViprResourceController {
             this.interfaceType = storageProvider.getInterface();
             this.secondaryUsername = storageProvider.getSecondaryUsername();
             this.secondaryPassword = ""; // the platform will never return the real password
-            this.elementManagerURL = storageProvider.getElementManagerURL();
+            this.elementManagerURL = storageProvider.getElementManagerURL();      
+            if(isScaleIOApi()) {
+            	this.secondaryUsername = this.userName;
+            	this.secondaryPassword = this.password;
+            	this.secondaryPasswordConfirm = this.confirmPassword;
+            }
         }
 
         public URI save() {
@@ -253,13 +264,13 @@ public class StorageProviders extends ViprResourceController {
             }
         }
 
-        public StorageProviderRestRep update() {
+        public StorageProviderRestRep update() {        	
             return StorageProviderUtils.update(uri(id), name, ipAddress, portNumber, userName,
                     password, useSSL, interfaceType, secondaryUsername, secondaryPassword, elementManagerURL);
         }
 
-        public Task<StorageProviderRestRep> create() {
-            Task<StorageProviderRestRep> task = StorageProviderUtils.create(name, ipAddress, portNumber, userName, password,
+        public Task<StorageProviderRestRep> create() {        	
+        	Task<StorageProviderRestRep> task = StorageProviderUtils.create(name, ipAddress, portNumber, userName, password,
                     useSSL, interfaceType, secondaryUsername, secondaryPassword, elementManagerURL);
             new SaveWaitJob(getViprClient(), task).now();
             return task;
@@ -267,11 +278,18 @@ public class StorageProviders extends ViprResourceController {
 
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
-
-            if (isNew()) {
-                Validation.required(fieldName + ".password", this.password);
-                Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
+            
+            if (isScaleIOApi() ) {
+            	Validation.required(fieldName + ".secondaryPassword", this.secondaryPassword);
+            	Validation.required(fieldName + ".secondaryPasswordConfirm", this.secondaryPasswordConfirm);
             }
+            
+            if (isNew() && !isScaleIOApi()) {
+            	Validation.required(fieldName + ".userName", this.userName);
+            	   	Validation.required(fieldName + ".password", this.password);
+                	Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
+                }
+            
 
             if (!StringUtils.equals(StringUtils.trim(password), StringUtils.trim(confirmPassword))) {
                 Validation.addError(fieldName + ".confirmPassword",
@@ -283,6 +301,7 @@ public class StorageProviders extends ViprResourceController {
                         MessagesUtils.get("smisProvider.secondaryPassword.confirmPassword.not.match"));
             }
         }
+        
     }
 
     @SuppressWarnings("rawtypes")

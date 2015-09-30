@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -125,6 +125,17 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      */
     public Tasks<VolumeRestRep> create(VolumeCreate create) {
         return postTasks(create, baseUrl);
+    }
+
+    /**
+     * Adds journal capacity
+     * 
+     * @param create
+     *            the block volume create configuration for journal volumes.
+     * @return tasks for monitoring the progress of the operation(s).
+     */
+    public Tasks<VolumeRestRep> addJournalCapacity(VolumeCreate create) {
+        return postTasks(create, baseUrl + "/protection/addJournalCapacity");
     }
 
     /**

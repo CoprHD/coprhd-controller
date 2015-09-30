@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.networkcontroller.impl;
@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 
 /**
  * A helper class to manage/update the network associations in the following cases
@@ -91,11 +92,15 @@ public class NetworkAssociationHelper {
             // update the network implicitly connected varrays based on added ports
             updateConnectedVirtualArrays(network, addPorts, true, dbClient);
         }
-
+        
         // now I need to handle pools
         StoragePoolAssociationHelper.handleNetworkUpdated(network, addVarrays, remVarray, createdAndUpdatedPorts, remPorts, dbClient,
                 coordinator);
+        
+        // Update the virtual nas with network changes!!!
+        StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(addPorts, remPorts, dbClient);
     }
+    
 
     /**
      * Updates the implicitly connected virtual arrays for the passed

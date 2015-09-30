@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -42,6 +42,8 @@ public enum ResourceType {
     UNMANAGED_FILESYSTEM("UnManagedFileSystem"),
     UNMANAGED_EXPORTMASK("UnManagedExportMask"),
 
+    BUCKET("Bucket"),
+    
     UNKNOWN("Unknown");
 
     private static final Pattern RESOURCE_ID = Pattern.compile("urn\\:storageos\\:([^\\:]+)");

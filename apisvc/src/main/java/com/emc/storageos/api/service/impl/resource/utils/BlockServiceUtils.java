@@ -1,24 +1,14 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -30,9 +20,12 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
@@ -187,9 +180,19 @@ public class BlockServiceUtils {
         while (queryResultsIter.hasNext()) {
             BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, queryResultsIter.next());
             if ((snapshot != null) && (!snapshot.getInactive()) && (snapshot.getIsSyncActive())) {
-                throw APIException.badRequests.NoFullCopiesForVMAX3VolumeWithActiveSnapshot(replicaType);
+                throw APIException.badRequests.noFullCopiesForVMAX3VolumeWithActiveSnapshot(replicaType);
             }
         }
     }
 
+    /**
+     * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or higher
+     *
+     * @param volume Volume part of the CG
+     * @return true if the operation is supported.
+     */
+    public static boolean checkVolumeCanBeAddedOrRemoved(Volume volume, DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+        return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
+    }
 }

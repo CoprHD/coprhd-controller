@@ -33,7 +33,9 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/geo \
     $(ETCDIR)/genconfig.d/geodb \
     $(ETCDIR)/genconfig.d/nginx \
+    $(ETCDIR)/genconfig.d/password \
     $(ETCDIR)/genconfig.d/portal \
+    $(ETCDIR)/genconfig.d/security \
     $(ETCDIR)/genconfig.d/ssh \
     $(ETCDIR)/genconfig.d/ssh_auth_key \
     $(ETCDIR)/genconfig.d/ssl \
@@ -49,6 +51,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/boot/10geodb \
     $(ETCDIR)/genconfig.d/boot/10nginx \
     $(ETCDIR)/genconfig.d/boot/10portal \
+    $(ETCDIR)/genconfig.d/boot/00security \
     $(ETCDIR)/genconfig.d/boot/00ssl \
     $(ETCDIR)/genconfig.d/boot/10syssvc \
     $(ETCDIR)/gentmpl \
@@ -169,8 +172,6 @@ ETCFILES_APPLIANCE = diskresizetool \
     genconfig.d/firewall \
     genconfig.d/network \
     genconfig.d/ntp \
-    genconfig.d/password \
-    genconfig.d/security \
     genconfig.d/system \
     genconfig.d/vasa \
     genconfig.d/boot/10connectemc \
@@ -178,7 +179,6 @@ ETCFILES_APPLIANCE = diskresizetool \
     genconfig.d/boot/00firewall \
     genconfig.d/boot/00network \
     genconfig.d/boot/00ntp \
-    genconfig.d/boot/00security \
     genconfig.d/boot/00system \
     genconfig.d/boot/10vasa \
     nginx/vasasvc-server-common.conf \
@@ -187,6 +187,7 @@ ETCFILES_APPLIANCE = diskresizetool \
     nginx/vasasvc-server-IPv6-template.conf \
     nginx/storageos-vasasvc.conf \
     storageos/boot-ovfenv \
+    systemd/system/auditd.service \
     systool
 
 # The files that should be added into the rpm for oss builds only

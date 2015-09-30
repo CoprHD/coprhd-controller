@@ -1,21 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
 import java.io.IOException;
-
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -124,6 +114,9 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
         final String serialId = keyMap.get(Constants._serialID).toString();
         Iterator iterator = fsUsageList.iterator();
         keyMap.put(Constants._TimeCollected, System.currentTimeMillis());
+        
+        Map<String, Long> fsCapacityMap = new HashMap<String, Long>();        
+        
         while (iterator.hasNext()) {
             FileSystemSetUsageStats fsSetUsageStats = (FileSystemSetUsageStats) iterator.next();
             List<Item> fsUsageItems = fsSetUsageStats.getItem();
@@ -156,7 +149,15 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
                         }
                     }
                 }
+               // filesystem and total capacity in Map
+                long totalSpace =item.getSpaceTotal();
+                String fsNativeId = item.getFileSystem();
+                fsCapacityMap.put(fsNativeId, Long.valueOf(totalSpace));
+                _logger.info("processFileShareInfo - FileSystem native id  {}  and file system total size{}", 
+                        fsNativeId, String.valueOf(totalSpace));
             }
+            _logger.info("Filesystems found - {} ", fsCapacityMap.size());
+            keyMap.put(VNXFileConstants.FILE_CAPACITY_MAP, fsCapacityMap);
         }
         _logger.info("No. of stat objects: {}", statList.size());
     }

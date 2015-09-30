@@ -1,23 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.auth.impl;
 
-import com.emc.storageos.auth.AuthenticationManager;
-import com.emc.storageos.auth.StorageOSAuthenticationHandler;
-import com.emc.storageos.auth.StorageOSPersonAttributeDao;
-import com.emc.storageos.auth.TokenManager;
+import com.emc.storageos.auth.*;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
@@ -169,7 +156,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
             _log.error(
                     "Could not find an authentication provider that supports the user {}",
                     userId);
-            throw APIException.badRequests.NoAuthnProviderFound(userId);
+            throw APIException.badRequests.noAuthnProviderFound(userId);
         }
     }
 
@@ -346,6 +333,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
         private Long _lastNotificationTime = 0L;
         private Long _lastReloadTime = 0L;
         private HashMap<URI, Long> _lastKnownConfiguration = null;
+        private int _lastKnownLdapConnectionTimeout = 0;
 
         private class Waiter {
             private long _t = 0;
@@ -429,6 +417,11 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                     return true;
                 }
             }
+
+            if (_lastKnownLdapConnectionTimeout != SystemPropertyUtil.getLdapConnectionTimeout(_coordinator)) {
+                return true;
+            }
+
             // nothing is changed
             return false;
         }
@@ -443,6 +436,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
             for (AuthnProvider provider : knownProviders) {
                 _lastKnownConfiguration.put(provider.getId(), provider.getLastModified());
             }
+            _lastKnownLdapConnectionTimeout = SystemPropertyUtil.getLdapConnectionTimeout(_coordinator);
         }
 
         @Override

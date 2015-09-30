@@ -11,8 +11,8 @@ import javax.xml.bind.annotation.XmlElement;
 
 public enum ResourceOperationTypeEnum {
 
-    //@todo - update the following enum with more fields (esp description, audit message, event messages(if needed)
-    //@todo- validate the actions/description (esp controller specific operation) with controller team.
+    // @todo - update the following enum with more fields (esp description, audit message, event messages(if needed)
+    // @todo- validate the actions/description (esp controller specific operation) with controller team.
 
     /* name description */
     CREATE_TENANT("CREATE TENANT", "create tenant operation"),
@@ -47,9 +47,9 @@ public enum ResourceOperationTypeEnum {
     COMMIT_VOLUME_MIGRATION("COMMIT VOLUME MIGRATION", "commit volume migration"),
     ROLLBACK_COMMIT_VOLUME_MIGRATION("ROLLBAK COMMIT VOLUME MIGRATION", "rollback commit volume migration"),
     DELETE_MIGRATION_SOURCE_VOLUMES("DELETE MIGRATION SOURCE VOLUMES", "delete migration source volumes"),
-    PAUSE_MIGRATION         ("PAUSE MIGRATION",  "puase migration"),
-    RESUME_MIGRATION         ("RESUME MIGRATION",  "resume migration"),
-    CANCEL_MIGRATION         ("CANCEL MIGRATION",  "cancel migration"),
+    PAUSE_MIGRATION("PAUSE MIGRATION", "puase migration"),
+    RESUME_MIGRATION("RESUME MIGRATION", "resume migration"),
+    CANCEL_MIGRATION("CANCEL MIGRATION", "cancel migration"),
     CREATE_VOLUME_WORKFLOW_STEP("CREATE VOLUME WF STEP", "create volume workflow step"),
     DELETE_VOLUME_WORKFLOW_STEP("DELETE VOLUME WF STEP", "delete volume workflow step"),
     ADD_INITIATOR_WORKFLOW_STEP("ADD INITIATOR WF STEP", "add initiator workflow step"),
@@ -286,8 +286,8 @@ public enum ResourceOperationTypeEnum {
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
     ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "add journal volume to consistency group"),
     SYS_EVENT("SYSTEM EVENT", "System Event"),
-    CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER","Create and verify a compute image server"),
-    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER","Update and verify a compute image server");
+    CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER", "Create and verify a compute image server"),
+    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "Update and verify a compute image server");
 
     private final String name;
     private final String description;

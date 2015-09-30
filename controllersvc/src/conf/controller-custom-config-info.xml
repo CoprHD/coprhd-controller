@@ -840,7 +840,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="vplex" value="Lowest"/>
+                <entry key="default" value="Lowest"/>
             </map>
         </property>
         <property name="constraints">

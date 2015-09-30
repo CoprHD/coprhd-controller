@@ -10,7 +10,7 @@ import java.net.URI;
  * Defines constants relative to using the VPlex HTTP Element Manager API.
  */
 public class VPlexApiConstants {
-    
+
     // Constants define the headers required when making HTTP requests to the
     // VPlex Management Station using the Element Manager API.
     public static final String USER_NAME_HEADER = "Username";
@@ -19,22 +19,22 @@ public class VPlexApiConstants {
     public static final String CONNECTION_HEADER = "Connection";
     public static final String CONNECTION_HEADER_VALUE_CLOSE = "close";
     public static final String SESSION_COOKIE = "JSESSIONID";
-    
+
     // Constants related to JSON response formatting from the VPLEX API
     //
     // JSON format 0 is a very expansive JSON format that includes lots of
-    //               unnecessary spacing and maps of maps of maps. Quite a
-    //               few existing ViPR calls use this format still, but the
-    //               best practice would be to move towards JSON format 1.
+    // unnecessary spacing and maps of maps of maps. Quite a
+    // few existing ViPR calls use this format still, but the
+    // best practice would be to move towards JSON format 1.
     // JSON format 1 is a compacted JSON format that can reduce the size of
-    //               the response payload by 50% or more and also removes the
-    //               need to set attributes on VPlexResourceInfo classes, since
-    //               the format is more compatible with GSON.
+    // the response payload by 50% or more and also removes the
+    // need to set attributes on VPlexResourceInfo classes, since
+    // the format is more compatible with GSON.
     // Cache Control settings affect a response cache on the VPLEX. Settings
-    //               greater than zero will allow the VPLEX to avoid fetching
-    //               data internally again if nothing has changed within the
-    //               max-age value time frame.  Setting cache-control to zero
-    //               will force the VPLEX to fetch the most recent data.
+    // greater than zero will allow the VPLEX to avoid fetching
+    // data internally again if nothing has changed within the
+    // max-age value time frame. Setting cache-control to zero
+    // will force the VPLEX to fetch the most recent data.
     public static final String ACCEPT_HEADER = "Accept";
     public static final String ACCEPT_JSON_FORMAT_0 = ";format=0";
     public static final String ACCEPT_JSON_FORMAT_1 = ";format=1";
@@ -42,7 +42,7 @@ public class VPlexApiConstants {
     public static final String CACHE_CONTROL_MAXAGE_KEY = "max-age=";
     public static final String CACHE_CONTROL_MAXAGE_DEFAULT_VALUE = "600";
     public static final String CACHE_CONTROL_MAXAGE_ZERO = "0";
-    
+
     // Constants defining HTTP resource paths.
     public static final String WILDCARD = "*";
     public static final String SLASH = "/";
@@ -131,14 +131,14 @@ public class VPlexApiConstants {
     public static final String REBUILD_STATUS_ATT_KEY = "rebuild-status";
     public static final String REBUILD_STATUS_DONE = "done";
     public static final String REBUILD_STATUS_ERROR = "error";
-    public static final String ATTRIBUTE_CG_RP_ENABLED="recoverpoint-enabled";
-    public static final String ATTRIBUTE_CG_AUTO_RESUME="auto-resume-at-loser";
+    public static final String ATTRIBUTE_CG_RP_ENABLED = "recoverpoint-enabled";
+    public static final String ATTRIBUTE_CG_AUTO_RESUME = "auto-resume-at-loser";
     public static final String EXCEPTION_MSG_JSON_KEY = "exception";
-    
+
     // Constant defines the JSON key for arguments passed as POST data in
     // a VPlex API POST request to execute a VPlex command.
     public static final String POST_DATA_ARG_KEY = "args";
-    
+
     // Constants define VPlex command arguments
     public static final String ARG_DASH_A = "-a";
     public static final String ARG_DASH_C = "-c";
@@ -175,44 +175,44 @@ public class VPlexApiConstants {
     public static final String UNDERSCORE_OPERATOR = "_";
     public static final String PLUS_OPERATOR = "+";
     public static final String HYPHEN_OPERATOR = "-";
-    
+
     // Virtual Volume Locality
     public static final String LOCAL_VIRTUAL_VOLUME = "local";
     public static final String DISTRIBUTED_VIRTUAL_VOLUME = "distributed";
-    
-    // Virtual Volume VPD-ID 
+
+    // Virtual Volume VPD-ID
     public static final String VOLUME_WWN_PREFIX = "VPD83T3:";
-    
-    // The prefix and suffix VPlex applies to an extent when created 
+
+    // The prefix and suffix VPlex applies to an extent when created
     // for a storage volume. Note that the suffix implies that only
     // one extent is created for the storage volumes.
     public static final String EXTENT_PREFIX = "extent_";
     public static final String EXTENT_SUFFIX = "_1";
-    
+
     // The prefix we append to the storage volume name when creating
     // a local device.
     public static final String DEVICE_PREFIX = "device_";
-    
+
     // The prefix we append when creating a distributed device.
     public static final String DIST_DEVICE_PREFIX = "dd";
-    
+
     // Delimiter used when building a distributed device name
     public static final String DIST_DEVICE_NAME_DELIM = "_";
-    
-    // The suffix appended by VPlex to the device name when creating 
+
+    // The suffix appended by VPlex to the device name when creating
     // a virtual volume for that device.
     public static final String VIRTUAL_VOLUME_SUFFIX = "_vol";
-    
+
     // The prefix appended to the initiator port WWN to set the
     // initiator name when an initiator is registered.
     public static final String REGISTERED_INITIATOR_PREFIX = "REGISTERED_";
     public static final String UNREGISTERED_INITIATOR_PREFIX = "UNREGISTERED-";
     public static final String WWN_PREFIX = "0x";
-    
+
     // The delimiter used to separate the port and node WWNs when
     // registering an initiator port.
     public static final String INITIATOR_REG_DELIM = "|";
-    
+
     // Constants representing response status for VPlex requests
     public static final int SUCCESS_STATUS = 200;
     public static final int ASYNC_STATUS = 202;
@@ -220,23 +220,23 @@ public class VPlexApiConstants {
     public static final int NOT_FOUND_STATUS = 404;
     public static final int TASK_PENDING_STATUS = 517;
     public static final int COULD_NOT_READ_STORAGE_VIEW_STATUS = 541;
-    
+
     // Number of milliseconds to wait before checking the status of
     // a VPlex command that is running asynchronously.
     public static final int TASK_PENDING_WAIT_TIME = 10000;
-    
+
     // Maximum number of retries while checking the status of an
     // asynchronous command. This value times the wait time
-    // determines how long we'll wait for the asynchronous 
+    // determines how long we'll wait for the asynchronous
     // command to complete.
     public static final int MAX_RETRIES = 60;
-    
+
     // VPlex API null attribute value
     public static final String NULL_ATT_VAL = "null";
-    
+
     // Type for a system volume that is a logging volume
     public static final String LOGGING_VOLUME_TYPE = "logging-volume";
-    
+
     // Component type for a storage volume
     public static final String STORAGE_VOLUME_TYPE = "storage-volume";
 
@@ -244,29 +244,29 @@ public class VPlexApiConstants {
     // long we will try and find those volumes before giving up.
     public static final int FIND_STORAGE_VOLUME_RETRY_COUNT = 5;
     public static final long FIND_STORAGE_VOLUME_SLEEP_TIME_MS = 3000;
-    
+
     // Controls how long we sleep before retrying StorageView create
     public static final int STORAGE_VIEW_CREATE_RETRY_TIME_MS = 60000;
     public static final int STORAGE_VIEW_CREATE_MAX_RETRIES = 1;
-    
+
     // Controls how long we wait for a volume expansion to complete.
     public static final int EXPANSION_STATUS_RETRY_COUNT = 12;
     public static final long EXPANSION_STATUS_SLEEP_TIME_MS = 5000;
-    
+
     // When waiting on a rebuild operation to complete these parameters
     // control how long we wait.
     public static final int REBUILD_WAIT_RETRY_COUNT = 240;
     public static final long REBUILD_WAIT_SLEEP_TIME_MS = 60000;
-    
+
     // Retry parameters for when trying to reattach the HA mirror
     // for a distributed virtual volume.
     public static final int REATTACH_HA_MIRROR_RETRY_COUNT = 10;
     public static final long REATTACH_HA_MIRROR_SLEEP_TIME_MS = 60000;
-    
-    // Value to specify for virtual volumes in storage views, when 
+
+    // Value to specify for virtual volumes in storage views, when
     // the VPlex is to assign the LUN ID.
     public static final int LUN_UNASSIGNED = -1;
-    
+
     // Migration status
     public static final String MIGRATION_COMPLETE = "complete";
     public static final String MIGRATION_INPROGRESS = "in-progress";
@@ -276,32 +276,32 @@ public class VPlexApiConstants {
     public static final String MIGRATION_ERROR = "error";
     public static final String MIGRATION_QUEUED = "queued";
     public static final String MIGRATION_PART_CANCELED = "partially-cancelled";
-    
+
     // Constant defines a string found in the exception message returned
     // in the response to a cache-invalidate request that fails because
     // the operation timed out prior to the invalidation completing.
     public static final String CACHE_INVALIDATE_IN_PROGRESS_MSG = "Please execute 'virtual-volume cache-invalidate-status";
-    
+
     // Dismantle error message
     public static final String DISMANTLE_ERROR_MSG = "will not be dismantled because";
-    
+
     // Cluster ids
     public static final String CLUSTER_1_ID = "1";
     public static final String CLUSTER_2_ID = "2";
-    
+
     // Rule set names
     public static final String CLUSTER_1_DETACHES = "cluster-1-detaches";
     public static final String CLUSTER_2_DETACHES = "cluster-2-detaches";
-    
+
     // Default EMC recommended detach delay in seconds.
     public static final int DETACH_DELAY = 5;
-    
+
     public static final String HDS_SYSTEM = "HDS";
-    
+
     public static final int FIND_NEW_ARTIFACT_MAX_TRIES = 60;
     public static final int FIND_NEW_ARTIFACT_SLEEP_TIME_MS = 10000;
-    
-    // VPLEX API error response fragment used to check if 
+
+    // VPLEX API error response fragment used to check if
     // the failure were due to duplicate storage view
     public static final String DUPLICATE_STORAGE_VIEW_ERROR_FRAGMENT = "failed with Status 537: Duplicate view";
 

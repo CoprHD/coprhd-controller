@@ -94,7 +94,7 @@ import com.emc.storageos.model.block.VolumeExportIngestParam;
  * - BlockConsistencyGroup and ProtectionSet objects are created and all ingested volumes therein are updated with references to them.
  * 
  */
-public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrchestrator {
+public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator {
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockRecoverPointIngestOrchestrator.class);
 
@@ -209,6 +209,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
             decorateUpdatesForRPTarget(volume, unManagedVolume);
         } else if (Volume.PersonalityTypes.METADATA.toString().equalsIgnoreCase(type)) {
             volume.setPersonality(PersonalityTypes.METADATA.toString());
+            volume.setAccessState(Volume.VolumeAccessState.NOT_READY.toString());
         }
         
         // Set the various RP related fields
@@ -242,7 +243,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
     private void decorateUpdatesForRPSource(Volume volume, UnManagedVolume unManagedVolume) {
         StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
         volume.setPersonality(PersonalityTypes.SOURCE.toString());
-
+        volume.setAccessState(Volume.VolumeAccessState.READWRITE.toString());
+        volume.setLinkStatus(Volume.LinkStatus.IN_SYNC.toString());
+        
         // When we ingest a source volume, we need to properly create the RP Target list for that source,
         // however it is possible that not all (or any) of the RP targets have been ingested yet.  Therefore
         // we need to do as much as we can:
@@ -308,6 +311,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
     private void decorateUpdatesForRPTarget(Volume volume, UnManagedVolume unManagedVolume) {
         StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
         volume.setPersonality(PersonalityTypes.TARGET.toString());
+        volume.setAccessState(Volume.VolumeAccessState.NOT_READY.toString());
+        volume.setLinkStatus(Volume.LinkStatus.IN_SYNC.toString());
         
         // Any time a target goes from UnManaged -> Managed, we need to ensure that:
         // 1. If there is a source managed volume, it gets the managed target volume added to its RP Target List
@@ -414,16 +419,29 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
         }
         
         // Set references to protection set/CGs properly in each volume
-        for (String volumeID: pset.getVolumes()) {
-            Volume volume = _dbClient.queryObject(Volume.class, URI.create(volumeID));
-            if (volume == null) {
-                // TODO: Throw exception
-                _logger.error("Volume " + volumeID + " could not be found in the database.  Cannot process ingestion.");
-                return;
-            }
-            
+        List<Volume> volumes = _dbClient.queryObject(Volume.class, URIUtil.toURIList(pset.getVolumes()));
+
+        for (Volume volume : volumes) {
             volume.setConsistencyGroup(cg.getId());
             volume.setProtectionSet(new NamedURI(pset.getId(), pset.getLabel()));
+
+            // For sources and targets, peg an RP journal volume to be associated with each.
+            // This is a bit arbitrary for ingested RP volues as they may have 5 journal volumes for one source volume.
+            // We just pick one since we only store one journal volume ID in a Volume object.
+            if (volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString()) ||
+                    volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.TARGET.toString())) {
+                // Find a journal for that rp copy
+                for (Volume journalVolume : volumes) {
+                    if (journalVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString()) &&
+                            journalVolume.getRpCopyName() != null &&
+                            volume.getRpCopyName() != null &&
+                            journalVolume.getRpCopyName().equals(volume.getRpCopyName())) {
+                        volume.setRpJournalVolume(journalVolume.getId());
+                    }
+                }
+            }
+            
+            _dbClient.persistObject(volume);
         }
     }
 
@@ -663,6 +681,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
             }         
         }
 
+        _logger.info("Created new protection set: " + pset.getId().toString());
         _dbClient.createObject(pset);
         return pset;
     }
@@ -685,6 +704,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockVolumeIngestOrches
         cg.setTypes(types);
         cg.setTenant(project.getTenantOrg());
         cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
+        _logger.info("Created new block consistency group: " + cg.getId().toString());
         _dbClient.createObject(cg);
         return cg;
     }

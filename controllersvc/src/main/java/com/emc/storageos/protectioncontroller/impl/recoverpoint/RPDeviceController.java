@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -1103,8 +1104,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
 
                 List<String> lockKeys = ControllerLockingUtil
-                        .getHostStorageLockKeys(_dbClient,
-                                ExportGroupType.Cluster,
+                        .getStorageLockKeysByHostName(_dbClient,                             
                                 initiatorSet, storageSystemURI);
                 boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
                         taskId, lockKeys, LockTimeoutValue.get(LockType.RP_EXPORT));
@@ -1934,31 +1934,30 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 setProtectionSetStatus(volumeProtectionInfo, ProtectionStatus.DISABLED.toString(), system);
             } else {
+                List<RecoverPointVolumeProtectionInfo> replicationSetsToRemove = new ArrayList<RecoverPointVolumeProtectionInfo>();
+                List<String> removeVolumeIDs = new ArrayList<String>();
                 for (Volume volume : volumes) {
+                    _log.info(String.format("Volume [%s] (%s) needs to have it's replication set removed from RP", 
+                            volume.getLabel(), volume.getId()));
                     // Delete the replication set if there are more volumes (other replication sets).
                     // If there are no other replications sets we will simply delete the CG instead.
                     volumeProtectionInfo = rp.getProtectionInfoForVolume(volume.getWWN());
-                    rp.deleteReplicationSet(volumeProtectionInfo, volume.getWWN());
-
-                    // Now cleanup the ProtectionSet reference and the volumes reference to the CG.
-
-                    // Find all replication set volumes (except journals) that corresponding to the
-                    // current volume. We need to remove these from the ProtectionSet.
-                    List<String> removeVolumeIDs = new ArrayList<String>();
-                    for (String protectionVolumeID : protectionSet.getVolumes()) {
-                        URI uri = new URI(protectionVolumeID);
-                        Volume protectionVolume = _dbClient.queryObject(Volume.class, uri);
-                        if (protectionVolume != null
-                                && !protectionVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString()) &&
-                                NullColumnValueGetter.isNotNullValue(protectionVolume.getRSetName()) &&
-                                protectionVolume.getRSetName().equals(volume.getRSetName())) {
-                            removeVolumeIDs.add(protectionVolumeID);
-                        }
+                    // Volume Info to give RP to clean up the RSets
+                    replicationSetsToRemove.add(volumeProtectionInfo);
+                    // Source volume to be removed from Protection Set
+                    if (!NullColumnValueGetter.isNullURI(volume.getId())) {                        
+                        removeVolumeIDs.add(volume.getId().toString());                        
+                    }                    
+                    // All Target volumes to be removed from Protection Set
+                    if (volume.getRpTargets() != null) {                        
+                        removeVolumeIDs.addAll(volume.getRpTargets());
                     }
-
-                    // Cleanup the ProtectionSet.
-                    cleanupProtectionSetVolumes(protectionSet, removeVolumeIDs, false);
                 }
+                // Remove the Replication Sets from RP                
+                rp.deleteReplicationSets(replicationSetsToRemove);
+                
+                // Cleanup the ViPR Protection Set
+                cleanupProtectionSetVolumes(protectionSet, removeVolumeIDs, false);
             }
             WorkflowStepCompleter.stepSucceded(token);
             _log.info("cgDeleteStep is complete");
@@ -2062,7 +2061,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     volumeList);
 
             // Make all of the steps in removing this CG (or replication sets from this CG) sequential.
-            psetWaitFor = workflow.createStep(STEP_DV_REMOVE_CG, "Remove consistency group subtask (if no more volumes) for RP CG: "
+            psetWaitFor = workflow.createStep(STEP_DV_REMOVE_CG, "Remove replication set(s) and/or consistency group subtask (if no more volumes) for RP CG: "
                     + protectionSet.getLabel(),
                     psetWaitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
                     cgRemovalExecuteMethod, null, stepId);
@@ -2086,7 +2085,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String returnStep = waitFor;
         Set<URI> volumeURIs = _rpHelper.getVolumesToDelete(VolumeDescriptor.getVolumeURIs(filteredSourceVolumeDescriptors));
 
-        _log.info(String.format("Following volume(s) will be deleted :  [%s]", Joiner.on("--").join(volumeURIs)));
+        _log.info(String.format("Following volume(s) will be unexported from their Export Groups :  [%s]", Joiner.on("--").join(volumeURIs)));
 
         Map<URI, RPExport> rpExports = new HashMap<URI, RPExport>();
         for (URI volumeURI : volumeURIs) {
@@ -2106,7 +2105,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             volume.getLabel());
                     continue;
                 }
-
             }
 
             // Get the storage controller URI of the volume
@@ -2139,8 +2137,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         }
                     }
                 }
-            }
-            else if (VirtualPool.vPoolSpecifiesMetroPoint(virtualPool)) {
+            } else if (VirtualPool.vPoolSpecifiesMetroPoint(virtualPool)) {
                 // We are dealing with a MetroPoint distributed volume so we need to get 2 export groups, one
                 // export group for each cluster.
                 if (volume.getAssociatedVolumes() != null &&
@@ -2161,8 +2158,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         addExportGroup(rpExports, exportGroup, volumeURI, storageURI);
                     }
                 }
-            }
-            else {
+            } else {
                 _log.info(String.format("Volume [%s] to be removed from export group.", volume.getLabel()));
                 // Find the Export Group for this regular RP volume
                 ExportGroup exportGroup =
@@ -2835,7 +2831,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         _log.info("export group add volume step in workflow: " + exportGroup.getId());
     }
 
-    /*
+    /**
      * RPDeviceController.exportRemoveVolume()
      * 
      * This method is a mini-orchestration of all of the steps necessary to remove an RP volume from an export group.
@@ -2847,11 +2843,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * - Disable the bookmarks associated with the snapshot.
      * 
      * @param protectionDevice The RP System used to manage the protection
-     * 
      * @param exportgroupID The export group
-     * 
      * @param snapshotID snapshot ID to remove
-     * 
      * @param token The task object
      */
     @Override

@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
 import com.emc.storageos.util.NetworkLite;
@@ -344,8 +345,6 @@ public class RecoverPointScheduler implements Scheduler {
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
         String candidateSourceInternalSiteName = "";
         RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();
-        RPRecommendation sourceJournalRecommendation = null;
-
         placementStatus = new PlacementStatus();
 
         // If this is a change vpool, first check to see if we can build recommendations from the existing RP CG.
@@ -517,8 +516,8 @@ public class RecoverPointScheduler implements Scheduler {
                     rpProtectionRecommendation.getSourceRecommendations().add(rpRecommendation);
 
                     // Build Source Journal Recommendation
-                    if (sourceJournalRecommendation == null) {
-                        sourceJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
+                    if (rpProtectionRecommendation.getSourceJournalRecommendation() == null) {
+                        RPRecommendation sourceJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
                                 candidateSourceInternalSiteName,
                                 vpool.getJournalSize(), journalVarray, journalVpool, candidateProtectionSystem,
                                 capabilities, totalRequestedCount, vpoolChangeVolume, false);
@@ -1072,10 +1071,7 @@ public class RecoverPointScheduler implements Scheduler {
             protectionVarrayURIs.add(vArray.getId());
             placementStatus.getProcessedProtectionVArrays().put(vArray.getId(), false);
         }
-
-        RPRecommendation activeJournalRecommendation = null;
-        RPRecommendation standbyJournalRecommendation = null;
-
+        
         // Sort the primary source candidate pools.
         VirtualArray activeJournalVarray = varray;
         VirtualPool activeJournalVpool = vpool;
@@ -1248,8 +1244,8 @@ public class RecoverPointScheduler implements Scheduler {
 
                     URI primarySourceStorageSystemURI = primaryRpRecommendation.getVirtualVolumeRecommendation().getVPlexStorageSystem();
 
-                    if (activeJournalRecommendation == null) {
-                        activeJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
+                    if (rpProtectionRecommendation.getSourceJournalRecommendation() == null) {
+                        RPRecommendation activeJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
                                 primaryRpRecommendation.getInternalSiteName(), vpool.getJournalSize(),
                                 activeJournalVarray, activeJournalVpool, primaryProtectionSystem,
                                 capabilities, totalRequestedResourceCount, vpoolChangeVolume, false);
@@ -1381,8 +1377,8 @@ public class RecoverPointScheduler implements Scheduler {
                                         continue;
                                     }
 
-                                    if (standbyJournalRecommendation == null) {
-                                        standbyJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
+                                    if (rpProtectionRecommendation.getStandbyJournalRecommendation() == null) {
+                                        RPRecommendation standbyJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
                                                 secondarySourceInternalSiteName, vpool.getJournalSize(),
                                                 standbyJournalVarray, standbyJournalVpool, primaryProtectionSystem,
                                                 capabilities, totalRequestedResourceCount, vpoolChangeVolume, true);
@@ -2426,15 +2422,16 @@ public class RecoverPointScheduler implements Scheduler {
         }
 
         if (foundJournal) {
+        	_log.info(String.format("RP Journal Placement : %n"));
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
             // If we got here, it means that we found a valid storage pool for journal, return back the recommendation
             return buildRpRecommendation(storageSystem.getLabel(), journalVarray, journalVpool, journalStoragePool, newCapabilities,
                     newCapabilities.getResourceCount(), internalSiteName,
                     storageSystemURI, storageSystem.getSystemType(), ps);
-        } else {
-            // Couldnt find a journal recommendation, handle appropriately.
-            return null;
-        }
+        } 
+       
+        // Couldnt find a journal recommendation, throw an exception
+    	throw APIException.badRequests.unableToFindJournalRecommendation(internalSiteName);       
     }
 
     /**
@@ -2674,14 +2671,15 @@ public class RecoverPointScheduler implements Scheduler {
 
         // Get all the pools that can satisy the size constraint of (size * resourceCount)
         List<RPRecommendation> reconsiderPools = new ArrayList<RPRecommendation>();
+        StringBuffer buff = new StringBuffer();
         for (StoragePool storagePool : candidatePools) {
-            int count = Math.abs((int) (storagePool.getFreeCapacity() / (sizeInKB)));
-            _log.info(String.format("%nRP Placement : # of resources of size %sGB that pool %s can accomodate: %s%n",
-                    SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB).toString(), storagePool.getLabel(), count));
+            int count = Math.abs((int) (storagePool.getFreeCapacity() / (sizeInKB)));          
             RPRecommendation recommendedPool = getRecommendationForStoragePool(poolsInAllRecommendations, storagePool);
             // pool should be capable of satisfying atleast one resource of the specified size.
             if (count >= 1) {
                 if (recommendedPool == null) {
+                	buff.append(String.format("%nRP Placement : # of resources of size %dGB that pool %s can accomodate: %s",
+                            SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB), storagePool.getLabel(), count));
                     // Pool not in any recommendation thus far, create a new recommendation
                     Recommendation recommendation = new Recommendation();
                     recommendation.setSourceStoragePool(storagePool.getId());
@@ -2695,27 +2693,24 @@ public class RecoverPointScheduler implements Scheduler {
                 }
             }
         }
+        
+        _log.info(buff.toString());
+        
+        //Append the reconsider pool list, that way the non-reconsider pools are considered first and then the reconsider pools
+        if (!reconsiderPools.isEmpty()) {
+            // Reconsider all the consumed pools and see if there is any pool that can match the cumulative size.
+            // Say the pool was already recommended for X resources, and the current request needed Y resources.
+            // The pool recommendation should satisfy X+Y to be a valid recommendation.
+            recommendations.addAll(placeAlreadyRecommendedPool(sizeInBytes, requestedCount, sizeInKB,
+                    reconsiderPools));
+        }
 
         if (!recommendations.isEmpty()) {
             // There is atleast one pool that is capable of satisfying the request, return the list.
             printPoolRecommendations(recommendations);
             return recommendations;
         }
-
-        if (!reconsiderPools.isEmpty()) {
-            // Reconsider all the consumed pools and see if there is any pool that can match the cumulative size.
-            // Say the pool was already recommended for X resources, and the current request needed Y resources.
-            // The pool recommendation should satisfy X+Y to be a valid recommendation.
-            recommendations = placeAlreadyRecommendedPool(sizeInBytes, requestedCount, sizeInKB,
-                    reconsiderPools);
-        }
-
-        if (!recommendations.isEmpty()) {
-            // There is atleast one pool in the reconsider list that can satisfy the request, return the list.
-            printPoolRecommendations(recommendations);
-            return recommendations;
-        }
-
+            
         if (personality.equals(RPHelper.SOURCE)) {
             List<RPRecommendation> existingSourcePoolRecs = rpProtectionRecommendation.getSourcePoolsInRecommendation();
             recommendations = placeAlreadyRecommendedPool(sizeInBytes, requestedCount, sizeInKB,
@@ -2756,8 +2751,8 @@ public class RecoverPointScheduler implements Scheduler {
                 if (journalRec.getInternalSiteName().equals(internalSiteName)) {
                     StoragePool existingTargetPool = dbClient.queryObject(StoragePool.class, journalRec.getSourceStoragePool());
                     int count = Math.abs((int) (existingTargetPool.getFreeCapacity() / (sizeInKB)));
-                    _log.info(String.format("%nRP Placement : # of resources of size %sGB that pool %s can accomodate: %s%n",
-                            SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB).toString(), existingTargetPool.getLabel(), count));
+                    _log.info(String.format("%nRP Placement : # of resources of size %dGB that pool %s can accomodate: %s%n",
+                            SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB), existingTargetPool.getLabel(), count));
                     if (count >= requestedCount + journalRec.getResourceCount()) {
                         recommendations.add(journalRec);
                     }
@@ -2808,15 +2803,18 @@ public class RecoverPointScheduler implements Scheduler {
             long requestedCount, long sizeInKB,
             List<RPRecommendation> recs) {
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
+        StringBuffer buff = new StringBuffer();
         for (Recommendation rec : recs) {
             StoragePool existingTargetPool = dbClient.queryObject(StoragePool.class, rec.getSourceStoragePool());
             int count = Math.abs((int) (existingTargetPool.getFreeCapacity() / (sizeInKB)));
-            _log.info(String.format("%nRP Placement : # of resources of size %sGB that pool %s can accomodate: %s%n",
+           buff.append(String.format("%nRP Placement (Already placed) : # of resources of size %sGB that pool %s can accomodate: %d",
                     SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB).toString(), existingTargetPool.getLabel(), count));
             if (count >= requestedCount + rec.getResourceCount()) {
                 recommendations.add(rec);
             }
         }
+        
+        _log.info(buff.toString());
         return recommendations;
     }
 

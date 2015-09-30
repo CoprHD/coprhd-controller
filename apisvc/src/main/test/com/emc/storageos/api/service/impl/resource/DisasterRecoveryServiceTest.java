@@ -189,12 +189,13 @@ public class DisasterRecoveryServiceTest {
         doReturn(mockViPRCoreClient(uuid)).when(drService).createViPRCoreClient(vip, username, password);
 
         // mock a local VDC
-        VirtualDataCenter localVDC = new VirtualDataCenter();
-        localVDC.getSiteUUIDs().add(standbySite1.getUuid());
-        localVDC.getSiteUUIDs().add(standbySite2.getUuid());
         doReturn(localVDC).when(drService).queryLocalVDC();
-        doReturn(standbySite1).when(coordinator).getTargetInfo(Site.class, standbySite1.getUuid(), Site.CONFIG_KIND);
-        doReturn(standbySite2).when(coordinator).getTargetInfo(Site.class, standbySite2.getUuid(), Site.CONFIG_KIND);
+        List<Configuration> allConfigs = new ArrayList<Configuration>();
+        allConfigs.add(standbySite1.toConfiguration());
+        allConfigs.add(standbySite2.toConfiguration());
+        doReturn(allConfigs).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
 
         // mock new added site
         Site newAdded = new Site();
@@ -202,7 +203,7 @@ public class DisasterRecoveryServiceTest {
         newAdded.setVip(vip);
         newAdded.getHostIPv4AddressMap().put("vipr1", "1.1.1.1");
         newAdded.setState(SiteState.ACTIVE);
-        doReturn(newAdded).when(coordinator).getTargetInfo(Site.class, newAdded.getUuid(), Site.CONFIG_KIND);
+        doReturn(newAdded.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, newAdded.getUuid());
 
         // mock checking and validating methods
         doNothing().when(drService).precheckForStandbyAttach(any(SiteConfigRestRep.class));

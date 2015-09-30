@@ -476,7 +476,7 @@ public class VdcSiteManager extends AbstractManager {
                 resetTargetPowerOffState();
                 // Phase 2 - check if all nodes successfully write new revision to local
                 if (initiatePoweroff(false)) {
-                    // commit - if all nodes successfully write the change to local, write commit flag file as local 
+                    // commit - if all nodes successfully write the change to local, write commit flag file at local 
                     localRepository.setDataRevision(targetDataRevision, true);
                     reboot();
                 } else {

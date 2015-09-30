@@ -421,7 +421,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 Map<String, Set<VPlexStorageViewInfo>> volumeToStorageViewMap = new HashMap<String, Set<VPlexStorageViewInfo>>();
                 discoverUnmanagedStorageViews(accessProfile, client, vvolMap, volumeToExportMasksMap, volumeToStorageViewMap);
                 tracker.storageViewFetch = System.currentTimeMillis() - timer;
-
+                
                 timer = System.currentTimeMillis();
                 discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap, volumeToStorageViewMap, tracker);
                 tracker.unmanagedVolumeProcessing = System.currentTimeMillis() - timer;
@@ -1091,7 +1091,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             s_logger.info("Replaced Pools : {}", volume.getSupportedVpoolUris());
         }
         
-        updateWwnAndHluInfo(volume, volumeToStorageViewMap.get(info.getName()));
+        Set<VPlexStorageViewInfo> svs = volumeToStorageViewMap.get(volume.getLabel());
+        if (svs != null) {
+            updateWwnAndHluInfo(volume, svs);
+        }
     }
 
     /**
@@ -1120,7 +1123,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 }
             }
             if (!hluMappings.isEmpty()) {
-                s_logger.info("setting hlu map for volume {} to " + hluMappings, unManagedVolume.getLabel());
+                s_logger.info("setting HLU_TO_EXPORT_MASK_NAME_MAP for unmanaged volume {} to " 
+                        + hluMappings, unManagedVolume.getLabel());
                 unManagedVolume.putVolumeInfo(
                         SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name(), hluMappings);
             }

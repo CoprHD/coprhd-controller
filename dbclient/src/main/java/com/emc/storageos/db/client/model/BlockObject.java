@@ -6,6 +6,7 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
+import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -250,6 +251,28 @@ public abstract class BlockObject extends DataObject {
         }
 
         return block;
+    }
+
+    /**
+     * Utility function to retrieve derived BlockObjects based on their URIs (e.g, Volume or BlockSnapshot).
+     * The block objects need to be of same type
+     *
+     * @param dbClient [in] - DbClient object to read from database
+     * @param blockURIs [in] - URIs of BlockObjects
+     * @return BlockObject instances
+     */
+    public static List <? extends BlockObject> fetch(DbClient dbClient, List<URI> blockURIs) {
+        List<? extends BlockObject> blockObjects = null;
+
+        if (URIUtil.isType(blockURIs.get(0), Volume.class)) {
+            blockObjects = dbClient.queryObject(Volume.class, blockURIs);
+        } else if (URIUtil.isType(blockURIs.get(0), BlockSnapshot.class)) {
+            blockObjects = dbClient.queryObject(BlockSnapshot.class, blockURIs);
+        } else if (URIUtil.isType(blockURIs.get(0), BlockMirror.class)) {
+            blockObjects = dbClient.queryObject(BlockMirror.class, blockURIs);
+        }
+
+        return blockObjects;
     }
 
     /**

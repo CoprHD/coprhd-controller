@@ -8,8 +8,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -18,8 +20,10 @@ import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -44,6 +48,8 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
+import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
@@ -51,6 +57,8 @@ import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.services.util.SysUtils;
+import com.emc.vipr.client.ClientConfig;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.sys.ClusterInfo;
 
 public class DisasterRecoveryServiceTest {
@@ -166,10 +174,53 @@ public class DisasterRecoveryServiceTest {
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
         doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
     }
-    
+
     @Test
     public void testAddStandby() {
-        //TODO this test case will be add when implement attach standby feature
+        // prepare parameters for adding standby
+        String name = "new-added-standby";
+        String desc = "standby-site-1-description";
+        String vip = "0.0.0.0";
+        String username = "root";
+        String password = "password";
+        String uuid = "new-added-standby-site-1";
+
+        // mock a ViPRCoreClient with specific UUID
+        doReturn(mockViPRCoreClient(uuid)).when(drService).createViPRCoreClient(vip, username, password);
+
+        // mock a local VDC
+        VirtualDataCenter localVDC = new VirtualDataCenter();
+        localVDC.getSiteUUIDs().add(standbySite1.getUuid());
+        localVDC.getSiteUUIDs().add(standbySite2.getUuid());
+        doReturn(localVDC).when(drService).queryLocalVDC();
+        doReturn(standbySite1).when(coordinator).getTargetInfo(Site.class, standbySite1.getUuid(), Site.CONFIG_KIND);
+        doReturn(standbySite2).when(coordinator).getTargetInfo(Site.class, standbySite2.getUuid(), Site.CONFIG_KIND);
+
+        // mock new added site
+        Site newAdded = new Site();
+        newAdded.setUuid(uuid);
+        newAdded.setVip(vip);
+        newAdded.getHostIPv4AddressMap().put("vipr1", "1.1.1.1");
+        newAdded.setState(SiteState.ACTIVE);
+        doReturn(newAdded).when(coordinator).getTargetInfo(Site.class, newAdded.getUuid(), Site.CONFIG_KIND);
+
+        // mock checking and validating methods
+        doNothing().when(drService).precheckForStandbyAttach(any(SiteConfigRestRep.class));
+        doNothing().when(drService).validateAddParam(any(SiteAddParam.class), any(List.class));
+
+        // assemble parameters, add standby
+        SiteAddParam params = new SiteAddParam();
+        params.setName(name);
+        params.setDescription(desc);
+        params.setVip(vip);
+        params.setUsername(username);
+        params.setPassword(password);
+        SiteRestRep rep = drService.addStandby(params);
+
+        // verify the REST response
+        assertEquals(name, rep.getName());
+        assertEquals(desc, rep.getDescription());
+        assertEquals(vip, rep.getVip());
     }
 
     @Test
@@ -360,5 +411,22 @@ public class DisasterRecoveryServiceTest {
             assertNotNull(site.getHostIPv6AddressMap().get(key));
             assertEquals(response.getHostIPv6AddressMap().get(key), site.getHostIPv6AddressMap().get(key));
         }
+    }
+
+    protected ViPRCoreClient mockViPRCoreClient(final String uuid) {
+        class MockViPRCoreClient extends ViPRCoreClient {
+            @Override
+            public com.emc.vipr.client.core.Site site() {
+                com.emc.vipr.client.core.Site site = mock(com.emc.vipr.client.core.Site.class);
+                SiteConfigRestRep config = new SiteConfigRestRep();
+                config.setUuid(uuid);
+                config.setHostIPv4AddressMap(new HashMap<String, String>());
+                config.setHostIPv6AddressMap(new HashMap<String, String>());
+                doReturn(config).when(site).getStandbyConfig();
+                doReturn(null).when(site).syncSite(any(SiteConfigParam.class));
+                return site;
+            }
+        }
+        return new MockViPRCoreClient();
     }
 }

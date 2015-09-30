@@ -2091,12 +2091,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // Set the Limit Metric keys!!
             Long MaxObjects = 2048L;
             Long MaxCapacity = 200L * TBsINKB;
-            String modelStr = system.getModel();
-            if (modelStr.startsWith("VNX")) {
-                if (Long.parseLong(modelStr.substring(3)) > 5300) {
-                    MaxCapacity = 256L * TBsINKB;
-                }
-            }
+            
 
             dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
             dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
@@ -2147,12 +2142,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         Long MaxObjects = 2048L;
         Long MaxCapacity = 200L * TBsINKB;
         String modelStr = system.getModel();
-        if (modelStr.startsWith("Isi")) {
-            if (Long.parseLong(modelStr.substring(3)) > 5300) {
-                MaxCapacity = 256L * TBsINKB;
-            }
-        }
-
+        
         dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
         dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
         phyNas.setMetrics(dbMetrics);

@@ -46,6 +46,7 @@ URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'
 URI_CATALOG_VPOOL_FILE            = URI_CATALOG_VPOOL   + '/file'
 URI_CATALOG_VPOOL_BLOCK           = URI_CATALOG_VPOOL   + '/block'
+URI_CATALOG_VPOOL_OBJECT          = URI_CATALOG_VPOOL   + '/object'
 URI_VPOOLS                         = URI_SERVICES_BASE + '/{0}/vpools'
 URI_VPOOLS_MATCH                   = URI_SERVICES_BASE + '/{0}/vpools/matching-pools'
 URI_OBJ_VPOOL                     = URI_SERVICES_BASE + '/{0}/data-services-vpools'
@@ -1345,12 +1346,6 @@ class Bourne:
         return cos_params
 
     def cos_list(self, type):
-        if(type == 'object'):
-            o = self.api('GET', URI_OBJ_VPOOL.format(type))
-            if (not o):
-                return {};
-            return o['data_services_vpools']
-        else:
             o = self.api('GET', URI_VPOOLS.format(type))
             if (not o):
                 return {};
@@ -1726,10 +1721,7 @@ class Bourne:
         return cos['name']
 
     def cos_show(self, type, uri):
-        if(type=='object'):
-            return self.api('GET', URI_OBJ_VPOOL_INSTANCE.format(type, uri))
-        else:
-            return self.api('GET', URI_VPOOL_INSTANCE.format(type, uri))
+        return self.api('GET', URI_VPOOL_INSTANCE.format(type, uri))
 
     def cos_query(self, type, name):
         if (self.__is_uri(name)):
@@ -8243,10 +8235,10 @@ class Bourne:
 						soft_quota, hard_quota, owner):
 		params = {
 			'name'          : label,
-			'soft_quota'    : soft_quota,
-			'hard_quota'    : hard_quota,
 			'varray'        : neighbourhood,
 			'vpool'         : cos,
+   			'soft_quota'    : soft_quota,
+			'hard_quota'    : hard_quota,
 			'owner'         : owner
 			}
 
@@ -8259,20 +8251,20 @@ class Bourne:
 		return o #s
 
 #method call
-bourne = Bourne()
-bourne.connect("10.247.142.254")
-bourne.login( "root", "ChangeMe1!")
-s = bourne.ecs_bucket_create("python2", #label=name
-                      "urn:storageos:Project:11483dc6-0a5c-4bce-ac2a-8a7a18177778:global", #project
-                      "urn:storageos:VirtualArray:1bf90272-d4f4-4154-ac8c-4ed34aea1531:vdc1", #nh or varray
-                      "urn:storageos:VirtualPool:a0f1e0b9-a473-4bee-bf5c-194106ef65d2:vdc1", #cos or vpool
-                      "1", #sq
-                      "2", #hq
-                      "root" #owner
-                      )
-if (s['state'] == 'ready'):
-    print 'ECS Bucket created with id ' + s['resource']['id']
-else:
-    print 'ECS Bucket create failed.'
+#bourne = Bourne()
+#bourne.connect("10.247.142.254")
+#bourne.login( "root", "ChangeMe1!")
+#s = bourne.ecs_bucket_create("python2", #label=name
+#                      "urn:storageos:Project:11483dc6-0a5c-4bce-ac2a-8a7a18177778:global", #project
+#                      "urn:storageos:VirtualArray:1bf90272-d4f4-4154-ac8c-4ed34aea1531:vdc1", #nh or varray
+#                      "urn:storageos:VirtualPool:a0f1e0b9-a473-4bee-bf5c-194106ef65d2:vdc1", #cos or vpool
+#                      "1", #sq
+#                      "2", #hq
+#                      "root" #owner
+#                      )
+#if (s['state'] == 'ready'):
+#    print 'ECS Bucket created with id ' + s['resource']['id']
+#else:
+#    print 'ECS Bucket create failed.'
 
 

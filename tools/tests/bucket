@@ -15,14 +15,17 @@ from bourne import Bourne
 
 def ecs_bucket_create(args):
     bourne.connect(args.ip)
+    bourne.login( "root", "ChangeMe1!")
+    print "bucket args " 
+    print args
     project_uri = bourne.project_query(args.project)
-    cos_uri     = bourne.cos_query('object', args.cos) #take care
+    cos_uri     = bourne.cos_query('object', args.cos) #take care of 'object'
     nh_uri      = bourne.neighborhood_query(args.neighborhood)
-    s = bourne.ecs_bucket_create(args.label, project_uri, nh_uri, cos_uri, args.soft_quota, args.hard_quota, owner)
+    s = bourne.ecs_bucket_create(args.label, project_uri, nh_uri, cos_uri, args.soft_quota, args.hard_quota, args.owner)
     if (s['state'] == 'ready'):
-        print 'Fileshare created with id ' + s['resource']['id']
+        print 'ECS bucket created with id ' + s['resource']['id']
     else:
-        print 'Fileshare create failed.'
+        print 'ECS bucket create failed.'
 
     
 #----------------------------------------------------------------------
@@ -37,15 +40,16 @@ except:
 #bucket create <cmd> <cmd_args>
 parser = argparse.ArgumentParser(description = 'Bourne ECS bucket cli usage.')
 parser.add_argument('cmd', help = 'cmd = (create | delete')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # bucket create label project cos soft_quota hard_quota owner
 create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 create.add_argument('label',		help = 'label of bucket')
 create.add_argument('project',		help = 'container project name')
 create.add_argument('neighborhood',	help = 'neighborhood/varray where bucket should be created')
-create.add_argument('cos',		help = 'cos/vpool name for bucket')
-create.add_argument('soft quota',	help = 'soft quota for bucket')
-create.add_argument('hard quota',	help = 'hard quota for bucket')
+create.add_argument('cos',		    help = 'cos/vpool name for bucket')
+create.add_argument('soft_quota',	help = 'soft quota for bucket')
+create.add_argument('hard_quota',	help = 'hard quota for bucket')
 create.add_argument('owner',		help = 'owner for bucket')
 
 
@@ -60,11 +64,15 @@ try:
     else:
             cmd = None
 
+    bourne = Bourne()
+
     if (cmd == "create"):
         args = create.parse_args()
+        print "params in bucket file"
+        print args
         ecs_bucket_create(args)
-except e:
-    print e
+except:
+    raise
 
 
 

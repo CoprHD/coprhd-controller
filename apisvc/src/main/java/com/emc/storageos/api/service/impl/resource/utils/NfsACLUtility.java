@@ -16,14 +16,13 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.FileNfsACL;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
-import com.emc.storageos.model.file.NfsACLUpdateParams.NfsACLOperationErrorType;
 import com.emc.storageos.model.file.NfsACLUpdateParams.NfsACLOperationType;
 import com.emc.storageos.model.file.NfsACLUpdateParams.NfsPermission;
 import com.emc.storageos.model.file.NfsACLs;
@@ -41,15 +40,11 @@ public class NfsACLUtility {
     private String fileSystemPath;
     private String missingRequestParameterErrorString;
     private List<String> userGroupList;
-    public static final String REQUEST_PARAM_PERMISSION_TYPE = "permission_type"; // NOSONAR
-                                                                                  // ("Suppressing Sonar violation for variable name should be in camel case")
-    public static final String REQUEST_PARAM_PERMISSION = "permission";			  // NOSONAR
-    // ("Suppressing Sonar violation for variable name should be in camel case")
-    public static final String REQUEST_PARAM_USER = "user";						  // NOSONAR
-    // ("Suppressing Sonar violation for variable name should be in camel case")
-    public static final String REQUEST_PARAM_GROUP = "group";					  // NOSONAR
+    public static final String REQUEST_PARAM_PERMISSION_TYPE = "permission_type";
+    public static final String REQUEST_PARAM_PERMISSION = "permission";
 
-    // ("Suppressing Sonar violation for variable name should be in camel case")
+    public static final String REQUEST_PARAM_USER = "user";
+    public static final String REQUEST_PARAM_GROUP = "group";
 
     public NfsACLUtility(DbClient dbClient, FileShare fs, Snapshot snapshot,
             String fileSystemPath) {
@@ -105,216 +100,16 @@ public class NfsACLUtility {
     }
 
     private void reportDeleteErrors(NfsACLUpdateParams param) {
-
-        String opName = NfsACLOperationType.DELETE.name();
-        // Report Add ACL Errors
-        NfsACLs nfsAcls = param.getAclsToDelete();
-        if (nfsAcls == null || nfsAcls.getNfsACLs().isEmpty()) {
-            return;
-        }
-
-        List<NfsACL> nfsAclList = nfsAcls.getNfsACLs();
-        for (NfsACL acl : nfsAclList) {
-            if (!acl.canProceedToNextStep()) {
-                NfsACLOperationErrorType error = acl.getErrorType();
-
-                switch (error) {
-
-                /*
-                 * case SNAPSHOT_EXPORT_SHOULD_BE_READ_ONLY: { throw
-                 * APIException.badRequests.snapshotExportPermissionReadOnly();
-                 * }
-                 */
-
-                    case USER_AND_GROUP_PROVIDED: {
-                        throw APIException.badRequests.bothUserAndGroupInACLFound(
-                                acl.getUser(), acl.getGroup());
-                    }
-
-                    case USER_OR_GROUP_NOT_PROVIDED: {
-
-                        throw APIException.badRequests
-                                .missingUserOrGroupInACE(opName);
-                    }
-
-                    case MULTIPLE_ACES_WITH_SAME_USER_OR_GROUP: {
-
-                        String userOrGroup = acl.getUser() == null ? acl.getGroup()
-                                : acl.getUser();
-
-                        throw APIException.badRequests
-                                .multipleACLsWithUserOrGroupFound(opName,
-                                        userOrGroup);
-                    }
-
-                    case MULTIPLE_DOMAINS_FOUND: {
-                        String domain1 = acl.getDomain();
-                        String userOrGroup = acl.getUser() == null ? acl.getGroup()
-                                : acl.getUser();
-                        String domain2 = userOrGroup.substring(0, userOrGroup.indexOf("\\"));
-                        throw APIException.badRequests.multipleDomainsFound(opName, domain1, domain2);
-                    }
-
-                    case ACL_NOT_FOUND: {
-                        throw APIException.badRequests.nfsACLNotFoundFound(
-                                opName, acl.toString());
-                    }
-
-                    default:
-                        break;
-                }
-
-            }
-        }
+        // TODO
 
     }
 
     private void reportModifyErrors(NfsACLUpdateParams param) {
-
-        String opName = NfsACLOperationType.MODIFY.name();
-        // Report Add ACL Errors
-        NfsACLs nfsAcls = param.getAclsToModify();
-        if (nfsAcls == null || nfsAcls.getNfsACLs().isEmpty()) {
-            return;
-        }
-
-        List<NfsACL> nfsAclList = nfsAcls.getNfsACLs();
-        for (NfsACL acl : nfsAclList) {
-            if (!acl.canProceedToNextStep()) {
-                NfsACLOperationErrorType error = acl.getErrorType();
-
-                switch (error) {
-
-                    case SNAPSHOT_FS_SHOULD_BE_READ_ONLY: {
-                        throw APIException.badRequests
-                                .snapshotFileCifsPermissionReadOnly();
-                    }
-
-                    case INVALID_PERMISSION: {
-                        if (acl.getPermission() != null) {
-                            throw APIException.badRequests
-                                    .invalidPermissionForACL(acl.getPermission());
-                        } else {
-                            throw APIException.badRequests.missingValueInACE(
-                                    opName, REQUEST_PARAM_PERMISSION);
-                        }
-                    }
-
-                    case USER_AND_GROUP_PROVIDED: {
-                        throw APIException.badRequests.bothUserAndGroupInACLFound(
-                                acl.getUser(), acl.getGroup());
-                    }
-
-                    case USER_OR_GROUP_NOT_PROVIDED: {
-
-                        throw APIException.badRequests
-                                .missingUserOrGroupInACE(opName);
-                    }
-
-                    case MULTIPLE_ACES_WITH_SAME_USER_OR_GROUP: {
-
-                        String userOrGroup = acl.getUser() == null ? acl.getGroup()
-                                : acl.getUser();
-
-                        throw APIException.badRequests
-                                .multipleACLsWithUserOrGroupFound(opName,
-                                        userOrGroup);
-                    }
-
-                    case ACL_NOT_FOUND: {
-                        throw APIException.badRequests.nfsACLNotFoundFound(
-                                opName, acl.toString());
-                    }
-
-                    case MULTIPLE_DOMAINS_FOUND: {
-                        String domain1 = acl.getDomain();
-                        String userOrGroup = acl.getUser() == null ? acl.getGroup()
-                                : acl.getUser();
-                        String domain2 = userOrGroup.substring(0, userOrGroup.indexOf("\\"));
-                        throw APIException.badRequests.multipleDomainsFound(opName, domain1, domain2);
-                    }
-
-                    case ACL_EXISTS:
-                    default:
-                        break;
-                }
-
-            }
-        }
-
+        // TODO
     }
 
     private void reportAddErrors(NfsACLUpdateParams param) {
-
-        String opName = NfsACLOperationType.ADD.name();
-        // Report Add ACL Errors
-        NfsACLs nfsAcls = param.getAclsToAdd();
-        if (nfsAcls == null || nfsAcls.getNfsACLs().isEmpty()) {
-            return;
-        }
-
-        List<NfsACL> nfsAclList = nfsAcls.getNfsACLs();
-        for (NfsACL acl : nfsAclList) {
-            if (!acl.canProceedToNextStep()) {
-                NfsACLOperationErrorType error = acl.getErrorType();
-
-                switch (error) {
-
-                    case SNAPSHOT_FS_SHOULD_BE_READ_ONLY: {
-                        throw APIException.badRequests
-                                .snapshotFileCifsPermissionReadOnly();
-                    }
-
-                    case INVALID_PERMISSION: {
-                        if (acl.getPermission() != null) {
-                            throw APIException.badRequests
-                                    .invalidPermissionForACL(acl.getPermission());
-                        } else {
-                            throw APIException.badRequests.missingValueInACE(
-                                    opName, REQUEST_PARAM_PERMISSION);
-                        }
-                    }
-
-                    case USER_AND_GROUP_PROVIDED: {
-                        throw APIException.badRequests.bothUserAndGroupInACLFound(
-                                acl.getUser(), acl.getGroup());
-                    }
-
-                    case USER_OR_GROUP_NOT_PROVIDED: {
-
-                        throw APIException.badRequests
-                                .missingUserOrGroupInACE(opName);
-                    }
-
-                    case MULTIPLE_ACES_WITH_SAME_USER_OR_GROUP: {
-
-                        String userOrGroup = acl.getUser() == null ? acl.getGroup()
-                                : acl.getUser();
-
-                        throw APIException.badRequests
-                                .multipleACLsWithUserOrGroupFound(opName,
-                                        userOrGroup);
-                    }
-
-                    case MULTIPLE_DOMAINS_FOUND: {
-                        String domain1 = acl.getDomain();
-                        String userOrGroup = acl.getUser() == null ? acl.getGroup()
-                                : acl.getUser();
-                        String domain2 = userOrGroup.substring(0, userOrGroup.indexOf("\\"));
-                        throw APIException.badRequests.multipleDomainsFound(opName, domain1, domain2);
-                    }
-
-                    case ACL_EXISTS: {
-                        throw APIException.badRequests.nfsACLAlreadyExists(
-                                opName, acl.toString());
-                    }
-                    // case ACL_NOT_FOUND:
-                    default:
-                        break;
-                }
-
-            }
-        }
+        // TODO
 
     }
 
@@ -348,162 +143,27 @@ public class NfsACLUtility {
 
     }
 
+    private void verifyAddNfsACLs(List<NfsACL> nfsACLs) {
+        // TODO Auto-generated method stub
+
+    }
+
     private void verifyDeleteNfsACLs(List<NfsACL> nfsAclList) {
-        if (nfsAclList == null) {
-            return;
-        }
-        _log.info("Number of NFS ACL(s) to delete {} ", nfsAclList.size());
+        // TODO
 
-        for (NfsACL acl : nfsAclList) {
-            acl.proceedToNextStep();
-            _log.info("Verifying ACL {}", acl.toString());
-
-            // Are there same user or group found in other acls. If so, report
-            // error
-            verifyUserGroup(acl);
-
-            if (!acl.canProceedToNextStep()) {
-                break;
-            }
-
-            // Verify with existing ACL
-            FileNfsACL dbNfsAcl = getExistingACL(acl);
-
-            // If same acl exists, allow to modify
-            if (dbNfsAcl != null) {
-                _log.info("Existing ACL found in delete request: {}",
-                        dbNfsAcl);
-                acl.proceedToNextStep();
-
-            } else {
-                // If not found, don't allow to proceed further
-                if (acl.canProceedToNextStep()) {
-                    _log.error("No existing ACL found in DB to delete {}", acl);
-                    acl.cancelNextStep(NfsACLOperationErrorType.ACL_NOT_FOUND);
-                }
-            }
-        }
     }
 
     private void verifyModifyNfsACLs(List<NfsACL> nfsAclList) {
-        if (nfsAclList == null) {
-            return;
-        }
-        _log.info("Number of NFS ACL(s) to modify {} ", nfsAclList.size());
-
-        for (NfsACL acl : nfsAclList) {
-            acl.proceedToNextStep();
-            _log.info("Verifying ACL {}", acl.toString());
-
-            // Are there same user or group found in other acls. If so, report
-            // error
-            verifyUserGroup(acl);
-
-            if (!acl.canProceedToNextStep()) {
-                break;
-            }
-
-            validatePermissions(acl);
-
-            if (!acl.canProceedToNextStep()) {
-                break;
-            }
-            // Verify with existing ACL
-            FileNfsACL dbNfsAcl = getExistingACL(acl);
-
-            // If same acl exists, allow to modify
-            if (dbNfsAcl != null) {
-                _log.info("Existing ACL in modify request: {}", dbNfsAcl);
-                acl.proceedToNextStep();
-
-            } else {
-                // If not found, don't allow to proceed further
-                if (acl.canProceedToNextStep()) {
-                    _log.error("No existing ACL found in DB to modify {}", acl);
-                    acl.cancelNextStep(NfsACLOperationErrorType.ACL_NOT_FOUND);
-                }
-            }
-        }
-    }
-
-    private void verifyAddNfsACLs(List<NfsACL> nfsAclList) {
-        if (nfsAclList == null) {
-            return;
-        }
-        _log.info("Number of NFS ACL(s) to add {} ", nfsAclList.size());
-
-        for (NfsACL acl : nfsAclList) {
-            acl.proceedToNextStep();
-            _log.info("Verifying ACL {}", acl.toString());
-
-            // Are there same user or group found in other acls. If so, report
-            // error
-            verifyUserGroup(acl);
-
-            if (!acl.canProceedToNextStep()) {
-                break;
-            }
-
-            validatePermissions(acl);
-
-            if (!acl.canProceedToNextStep()) {
-                break;
-            }
-            // Verify with existing ACL
-            FileNfsACL dbNfsAcl = getExistingACL(acl);
-
-            // If same acl exists, don't allow to add again.
-            if (dbNfsAcl != null) {
-                _log.error(
-                        "Duplicate ACL in add request. User/group in ACL for NFS already exists: {}",
-                        dbNfsAcl);
-                acl.cancelNextStep(NfsACLOperationErrorType.ACL_EXISTS);
-                break;
-            }
-            // If not found proceed for further verifications.
-            else {
-                if (acl.canProceedToNextStep()) {
-                    _log.info("No existing ACL found in DB {}", acl);
-                }
-            }
-        }
+        // TODO
     }
 
     public List<NfsACL> queryExistingNfsACLs() {
-
-        List<NfsACL> aclList = new ArrayList<NfsACL>();
-
-        List<FileNfsACL> dbNfsAclList = queryDBSFileNfsACLs();
-
-        if (dbNfsAclList != null) {
-            Iterator<FileNfsACL> fileNfsAclIter = dbNfsAclList.iterator();
-            while (fileNfsAclIter.hasNext()) {
-
-                FileNfsACL dbNfsAcl = fileNfsAclIter.next();
-                if (fileSystemPath.equals(dbNfsAcl.getFileSystemPath())) {
-                    NfsACL acl = new NfsACL();
-                    acl.setFileSystemPath(fileSystemPath);
-                    acl.setDomain(dbNfsAcl.getDomain());
-                    acl.setUser(dbNfsAcl.getUser());
-                    acl.setGroup(dbNfsAcl.getGroup());
-                    acl.setPermission(dbNfsAcl.getPermission());
-                    if (this.fs != null) {
-                        acl.setFileSystemId(this.fs.getId());
-                    } else {
-                        acl.setSnapshotId(this.snapshot.getId());
-                    }
-
-                    aclList.add(acl);
-
-                }
-            }
-        }
-
-        return aclList;
+        // TODO
+        return null;
 
     }
 
-    private List<FileNfsACL> queryDBSFileNfsACLs() {
+    private List<NFSShareACL> queryDBSFileNfsACLs() {
 
         try {
             ContainmentConstraint containmentConstraint = null;
@@ -524,9 +184,9 @@ public class NfsACLUtility {
                                 .getId());
             }
 
-            List<FileNfsACL> nfsAclList = CustomQueryUtility
+            List<NFSShareACL> nfsAclList = CustomQueryUtility
                     .queryActiveResourcesByConstraint(this.dbClient,
-                            FileNfsACL.class, containmentConstraint);
+                            NFSShareACL.class, containmentConstraint);
 
             return nfsAclList;
 
@@ -538,35 +198,18 @@ public class NfsACLUtility {
 
     }
 
-    private FileNfsACL getExistingACL(NfsACL requestAcl) {
-        FileNfsACL acl = null;
+    private NFSShareACL getExistingACL(NfsACL requestAcl) {
+        // TODO
+        return null;
 
-        String domainOfReqAce = requestAcl.getDomain();
-
-        if (domainOfReqAce == null) {
-            domainOfReqAce = "";
-        }
-
-        String userOrGroup = requestAcl.getUser() == null ? requestAcl
-                .getGroup() : requestAcl.getUser();
-        // Construct ACL Index
-        StringBuffer aclIndex = new StringBuffer();
-        aclIndex.append(this.fs == null ? this.snapshot.getId().toString()
-                : this.fs.getId().toString());
-        aclIndex.append(this.fileSystemPath).append(domainOfReqAce)
-                .append(userOrGroup);
-
-        acl = this.queryACLByIndex(aclIndex.toString());
-
-        return acl;
     }
 
-    private FileNfsACL queryACLByIndex(String index) {
+    private NFSShareACL queryACLByIndex(String index) {
 
         _log.info("Querying ACL in DB by alternate Id: {}", index);
 
         URIQueryResultList result = new URIQueryResultList();
-        FileNfsACL acl = null;
+        NFSShareACL acl = null;
 
         if (this.fs != null) {
             dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -579,7 +222,7 @@ public class NfsACLUtility {
         Iterator<URI> it = result.iterator();
         while (it.hasNext()) {
             if (result.iterator().hasNext()) {
-                acl = dbClient.queryObject(FileNfsACL.class, it.next());
+                acl = dbClient.queryObject(NFSShareACL.class, it.next());
                 if (acl != null && !acl.getInactive()) {
                     _log.info("Existing ACE found in DB: {}", acl);
                     break;
@@ -592,90 +235,9 @@ public class NfsACLUtility {
 
     private void validatePermissions(NfsACL acl) {
 
-        if (acl == null) {
-            return;
-        }
-
-        String permissionValue = acl.getPermission();
-        try {
-            NfsPermission permission = NfsPermission
-                    .valueOf(permissionValue.toUpperCase());
-            if (permission != null) {
-                acl.setPermission(getFormattedPermissionText(permission));
-                acl.proceedToNextStep();
-            }
-        } catch (Exception e) {
-            _log.error("Invalid value for permission: {}", permissionValue);
-            acl.cancelNextStep(NfsACLOperationErrorType.INVALID_PERMISSION);
-            return;
-        }
-
-        if (this.snapshot != null) {
-            // Snapshot fs permission must be read only
-            if (!NfsPermission.READ.name().equalsIgnoreCase(
-                    acl.getPermission())) {
-                _log.error("Snapshot permission should be read only");
-                acl.cancelNextStep(NfsACLOperationErrorType.SNAPSHOT_FS_SHOULD_BE_READ_ONLY);
-            }
-        }
-
     }
 
     private void verifyUserGroup(NfsACL acl) {
-
-        String userOrGroup = null;
-
-        if (acl == null) {
-            return;
-        }
-
-        if (acl.getUser() == null && acl.getGroup() == null) {
-            acl.cancelNextStep(NfsACLOperationErrorType.USER_OR_GROUP_NOT_PROVIDED);
-            _log.error("User or group is missing.");
-        } else if (acl.getUser() != null && acl.getGroup() != null) {
-            acl.cancelNextStep(NfsACLOperationErrorType.USER_AND_GROUP_PROVIDED);
-            _log.error("Either user or group should be provided. Never both.");
-        } else {
-            String domain = acl.getDomain();
-            if (domain == null) {
-                domain = "";
-            }
-
-            domain = domain.toLowerCase();
-            if (acl.getUser() != null) {
-                userOrGroup = domain + acl.getUser().toLowerCase();
-            } else {
-                userOrGroup = domain + acl.getGroup().toLowerCase();
-            }
-        }
-
-        if (userOrGroup != null) {
-
-            if (!userGroupList.contains(userOrGroup)) {
-                userGroupList.add(userOrGroup);
-            } else {
-                acl.cancelNextStep(NfsACLOperationErrorType.MULTIPLE_ACES_WITH_SAME_USER_OR_GROUP);
-                _log.error("There are multiple ACEs with same user or group.");
-            }
-        }
-        // below code is to validate domain
-        if (acl.getDomain() != null && acl.getUser() != null) {
-
-            if (acl.getUser().contains("\\")) {
-                acl.cancelNextStep(NfsACLOperationErrorType.MULTIPLE_DOMAINS_FOUND);
-                _log.error("Multiple Domains found. Please provide either in user or in domain field.");
-
-            }
-        }
-        if (acl.getDomain() != null && acl.getGroup() != null) {
-
-            if (acl.getGroup().contains("\\")) {
-                acl.cancelNextStep(NfsACLOperationErrorType.MULTIPLE_DOMAINS_FOUND);
-                _log.error("Multiple Domains found. Please provide either in group or in domain field.");
-
-            }
-        }
-
     }
 
     private String getFormattedPermissionText(NfsPermission permission) {

@@ -6,13 +6,11 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
-@Cf("FileNfsACL")
-public class FileNfsACL extends FileACL {
+@Cf("NFSShareACL")
+public class NFSShareACL extends FileACL {
 
     protected URI fileSystemId;
     protected URI snapshotId;
-    protected URI fileExportRuleId;
-    protected String opType;
 
     @RelationIndex(cf = "RelationIndex", type = Snapshot.class)
     @Name("snapshotId")
@@ -38,49 +36,27 @@ public class FileNfsACL extends FileACL {
         setChanged("fileSystemId");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = FileExportRule.class)
-    @Name("fileExportRuleId")
-    public URI getFileExportRuleId() {
-        return fileExportRuleId;
-    }
-
-    public void setFileExportRuleId(URI fileExportRuleId) {
-        this.fileExportRuleId = fileExportRuleId;
-        calculateACLIndex();
-        setChanged("fileExportRuleId");
-    }
-
-    @Name("opType")
-    public String getOpType() {
-        return opType;
-    }
-
-    public void setOpType(String opType) {
-        this.opType = opType;
-        setChanged("opType");
-    }
-
     @Override
     public void calculateACLIndex() {
 
-        String userOrGroup = this.user == null ? this.group : this.user;
         StringBuffer aclIndexBuffer = new StringBuffer();
 
-        if (this.fileSystemPath != null && userOrGroup != null) {
+        if (this.fileSystemPath != null && this.user != null) {
             if (this.fileSystemId != null) {
                 aclIndexBuffer.append(this.fileSystemId.toString())
                         .append(this.fileSystemPath)
                         .append(this.domain == null ? "" : this.domain)
-                        .append(userOrGroup);
-                this.setfileSystemExportACLIndex(aclIndexBuffer.toString());
+                        .append(this.user);
+
+                this.setFileSystemACLIndex(aclIndexBuffer.toString());
             }
 
             if (this.snapshotId != null) {
                 aclIndexBuffer.append(this.snapshotId.toString())
                         .append(this.fileSystemPath)
                         .append(this.domain == null ? "" : this.domain)
-                        .append(userOrGroup);
-                this.setsnapshotExportACLIndex(aclIndexBuffer.toString());
+                        .append(this.user);
+                this.setSnapshotACLIndex(aclIndexBuffer.toString());
             }
 
         }
@@ -101,14 +77,14 @@ public class FileNfsACL extends FileACL {
             builder.append(snapshotId);
             builder.append(", ");
         }
-        if (fileSystemExportACLIndex != null) {
-            builder.append("fileSystemExportACLIndex=");
-            builder.append(fileSystemExportACLIndex);
+        if (fileSystemACLIndex != null) {
+            builder.append("fileSystemACLIndex=");
+            builder.append(fileSystemACLIndex);
             builder.append(", ");
         }
-        if (snapshotExportACLIndex != null) {
-            builder.append("snapshotExportACLIndex=");
-            builder.append(snapshotExportACLIndex);
+        if (snapshotACLIndex != null) {
+            builder.append("snapshotACLIndex=");
+            builder.append(snapshotACLIndex);
             builder.append(", ");
         }
         if (user != null) {
@@ -116,9 +92,9 @@ public class FileNfsACL extends FileACL {
             builder.append(user);
             builder.append(", ");
         }
-        if (group != null) {
-            builder.append("group=");
-            builder.append(group);
+        if (type != null) {
+            builder.append("type=");
+            builder.append(type);
             builder.append(", ");
         }
         if (domain != null) {

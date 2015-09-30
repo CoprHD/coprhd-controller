@@ -32,6 +32,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.collections.map.HashedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +44,6 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CifsShareUtility;
 import com.emc.storageos.api.service.impl.resource.utils.ExportVerificationUtility;
-import com.emc.storageos.api.service.impl.resource.utils.NfsACLUtility;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
@@ -64,6 +64,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -107,6 +108,7 @@ import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemSnapshotParam;
+import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
@@ -1998,27 +2000,77 @@ public class FileService extends TaskResourceService {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/acl")
+    @Path("/{id}/acls")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public NfsACLs getFileSahreACLs(@PathParam("id") URI id,
-            @PathParam("shareName") String shareName) {
+            @QueryParam("allDirs") boolean allDirs,
+            @QueryParam("subDir") String subDir) {
 
-        _log.info("Request recieved to get ACLs with Id: {}  shareName: {}",
-                id, shareName);
+        _log.info("Request recieved for Acl  with Id : {}  allDirs : {} subDir : {}",
+                new Object[] { id, allDirs, subDir });
 
-        // Validate the FS id
+        // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        ArgValidator.checkFieldNotNull(shareName, "shareName");
         FileShare fs = queryResource(id);
-
+        // top level acls which contains many acl inside.
         NfsACLs acls = new NfsACLs();
-        NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, shareName);
-        List<NfsACL> shareAclList = util.queryExistingNfsACLs();
+        List<NfsACL> nfsAclList = new ArrayList<NfsACL>();
+        List<NfsACE> nfsAceList = new ArrayList<>();
+        Map<String, List<NfsACE>> nfsAclMap = new HashedMap();
+        // Query All ACl Specific to a File System.
+        List<NFSShareACL> nfsAcls = queryDBFsACL(fs);
+        _log.info("Number of existing ACL found : {} ", nfsAcls.size());
+        if (allDirs) {
+            // ALl EXPORTS
+            for (NFSShareACL nfsAcl : nfsAcls) {
+                // list of the ace
+                List<NfsACE> nfsAces = new ArrayList<>();
+                NfsACE ace = new NfsACE();
+                getCIFSAce(nfsAcl, ace);
+                nfsAces.add(ace);
+                nfsAclMap.put(nfsAcl.getFileSystemPath(), nfsAces);
+            }
 
-        _log.info("Number of existing ACLs found : {} ", shareAclList.size());
-        if (!shareAclList.isEmpty()) {
-            acls.setNfsACLs(shareAclList);
+            for (String mountpath : nfsAclMap.keySet()) {
+                NfsACL nfsAcl = new NfsACL(mountpath, nfsAclMap.get(mountpath));
+                nfsAclList.add(nfsAcl);
+                acls.setNfsACLs(nfsAclList);
+
+            }
+
+        } else if (subDir != null && subDir.length() > 0) {
+            // Filter for a specific Sub Directory export
+
+            for (NFSShareACL nfsAcl : nfsAcls) {
+                if (nfsAcl.getFileSystemPath().endsWith("/" + subDir)) {
+                    // list of the ace
+
+                    NfsACE ace = new NfsACE();
+                    getCIFSAce(nfsAcl, ace);
+                    nfsAceList.add(ace);
+                }
+            }
+            NfsACL nfsAcl = new NfsACL();
+            nfsAcl.setNfsAces(nfsAceList);
+            nfsAclList.add(nfsAcl);
+            acls.setNfsACLs(nfsAclList);
+        } else {
+            // Filter for No SUBDIR - main export rules with no sub dirs
+            for (NFSShareACL nfsAcl : nfsAcls) {
+                if (nfsAcl.getFileSystemPath().equalsIgnoreCase(fs.getPath())) {
+
+                    NfsACE ace = new NfsACE();
+                    getCIFSAce(nfsAcl, ace);
+                    nfsAceList.add(ace);
+                }
+            }
+            NfsACL nfsAcl = new NfsACL();
+            nfsAcl.setNfsAces(nfsAceList);
+            nfsAclList.add(nfsAcl);
+            acls.setNfsACLs(nfsAclList);
         }
+        _log.info("Number of Acl rules returning {}", nfsAclList.size());
+
         return acls;
 
     }
@@ -2082,4 +2134,37 @@ public class FileService extends TaskResourceService {
         dest.setRootHosts(orig.getRootHosts());
         dest.setMountPoint(orig.getMountPoint());
     }
+
+    private void getCIFSAce(NFSShareACL orig, NfsACE dest) {
+
+        dest.setDomain(orig.getDomain());
+        dest.setPermission(orig.getPermission());
+        dest.setPermissionType(orig.getPermission());
+        dest.setType(orig.getType());
+        dest.setUser(orig.getUser());
+
+    }
+
+    /**
+     * To get all the ACLs associated with the a FileShare
+     * 
+     * @param fs
+     * @return
+     */
+    private List<NFSShareACL> queryDBFsACL(FileShare fs) {
+        List<NFSShareACL> rules = null;
+        _log.info("Querying all NfsExportACL Using FsId {}", fs.getId());
+        try {
+
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileNfsAclsConstraint(fs.getId());
+            List<NFSShareACL> nfsShareAcl = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, NFSShareACL.class,
+                    containmentConstraint);
+            return nfsShareAcl;
+        } catch (Exception e) {
+            _log.error("Error while querying {}", e);
+        }
+
+        return rules;
+    }
+
 }

@@ -39,7 +39,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FileExportRule;
-import com.emc.storageos.db.client.model.FileNfsACL;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Project;
@@ -651,15 +651,15 @@ public interface ContainmentConstraint extends Constraint {
         }
 
         public static ContainmentConstraint getFileNfsAclsConstraint(URI fsURI) {
-            DataObjectType doType = TypeMap.getDoType(FileNfsACL.class);
+            DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
             ColumnField field = doType.getColumnField(FILE_SYSTEM_ID);
-            return new ContainmentConstraintImpl(fsURI, FileNfsACL.class, field);
+            return new ContainmentConstraintImpl(fsURI, NFSShareACL.class, field);
         }
 
         public static ContainmentConstraint getSnapshotNfsAclsConstraint(URI snapshotURI) {
-            DataObjectType doType = TypeMap.getDoType(FileNfsACL.class);
+            DataObjectType doType = TypeMap.getDoType(NFSShareACL.class);
             ColumnField field = doType.getColumnField("snapshotId");
-            return new ContainmentConstraintImpl(snapshotURI, FileNfsACL.class, field);
+            return new ContainmentConstraintImpl(snapshotURI, NFSShareACL.class, field);
         }
 
         public static ContainmentConstraint getVirtualNASByParentConstraint(URI physicalNAS) {

@@ -7,21 +7,20 @@ package com.emc.storageos.db.client.model;
 public abstract class FileACL extends DataObject {
 
     protected String user;
-    protected String group;
+    protected String type;
     protected String domain;
 
-    // Name of the cifs Export
     protected String fileSystemPath;
 
     // Permissions for user or group: read(r), change (rw) or full control
     protected String permission;
 
-    // deviceExportId is the uid of the export on the array. Currently Isilon uses it
-    // NetApp and VNXFile don't use this field.
-    protected String deviceExportPath;
+    // permissionType can be allow or deny
+    protected String permissionType;
 
-    protected String fileSystemExportACLIndex;
-    protected String snapshotExportACLIndex;
+    protected String fileSystemACLIndex;
+
+    protected String snapshotACLIndex;
 
     public static enum SupportedPermissions {
         read, change, fullcontrol
@@ -37,14 +36,14 @@ public abstract class FileACL extends DataObject {
         setChanged("user");
     }
 
-    @Name("group")
-    public String getGroup() {
-        return group;
+    @Name("type")
+    public String getType() {
+        return type;
     }
 
-    public void setGroup(String group) {
-        this.group = group;
-        setChanged("group");
+    public void setType(String type) {
+        this.type = type;
+        setChanged("type");
     }
 
     @Name("domain")
@@ -62,7 +61,7 @@ public abstract class FileACL extends DataObject {
         return fileSystemPath;
     }
 
-    public void setgetFileSystemPath(String fileSystemPath) {
+    public void setFileSystemPath(String fileSystemPath) {
         this.fileSystemPath = fileSystemPath;
         setChanged("fileSystemPath");
     }
@@ -77,36 +76,35 @@ public abstract class FileACL extends DataObject {
         setChanged("permission");
     }
 
-    @Name("deviceExportPath")
-    public String getDeviceExportPath() {
-        return deviceExportPath;
+    @Name("fileSystemACLIndex")
+    @AlternateId("fileSystemACLIndexTable")
+    public String getFileSystemACLIndex() {
+        return fileSystemACLIndex;
     }
 
-    public void setDeviceExportPath(String deviceExportPath) {
-        this.deviceExportPath = deviceExportPath;
-        setChanged("deviceExportPath");
-    }
-
-    @Name("fileSystemExportACLIndex")
-    @AlternateId("fileSystemExportACLIndexTable")
-    public String getfileSystemExportACLIndex() {
-        return fileSystemExportACLIndex;
-    }
-
-    public void setfileSystemExportACLIndex(String fileSystemExportACLIndex) {
-        this.fileSystemExportACLIndex = fileSystemExportACLIndex;
+    public void setFileSystemACLIndex(String fileSystemACLIndex) {
+        this.fileSystemACLIndex = fileSystemACLIndex;
         setChanged("fileSystemExportACLIndex");
     }
 
-    @Name("snapshotExportACLIndex")
-    @AlternateId("snapshotExportACLIndexTable")
-    public String getsnapshotExportACLIndex() {
-        return snapshotExportACLIndex;
+    @Name("snapshotACLIndex")
+    @AlternateId("snapshotACLIndexTable")
+    public String getSnapshotExportACLIndex() {
+        return snapshotACLIndex;
     }
 
-    public void setsnapshotExportACLIndex(String snapshotExportACLIndex) {
-        this.snapshotExportACLIndex = snapshotExportACLIndex;
-        setChanged("snapshotExportACLIndex");
+    public void setSnapshotACLIndex(String snapshotACLIndex) {
+        this.snapshotACLIndex = snapshotACLIndex;
+        setChanged("snapshotACLIndex");
+    }
+
+    @Name("permission_type")
+    public String getPermissionType() {
+        return permissionType;
+    }
+
+    public void setPermissionType(String permissionType) {
+        this.permissionType = permissionType;
     }
 
     @Override
@@ -115,13 +113,13 @@ public abstract class FileACL extends DataObject {
         builder.append("ExportACL [user=");
         builder.append(user);
         builder.append(", group=");
-        builder.append(group);
+        builder.append(type);
         builder.append(", fileSystemPath=");
         builder.append(fileSystemPath);
         builder.append(", permission=");
         builder.append(permission);
         builder.append(", deviceExportPath=");
-        builder.append(deviceExportPath);
+
         builder.append("]");
         return builder.toString();
     }

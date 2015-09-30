@@ -23,6 +23,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -319,7 +320,7 @@ public class ComputeImageServerService extends TaskResourceService {
             imageServer.setImageServerIp(imageServerAddress);
             imageServer.setTftpBootDir(bootDir);
             imageServer.setImageServerUser(username);
-            if(password!= null){
+            if(StringUtils.isNotBlank(password)){
                 imageServer.setImageServerPassword(password);
             }
             imageServer.setOsInstallTimeoutMs((int) installTimeout);

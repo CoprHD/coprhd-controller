@@ -716,7 +716,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String copyMode = null;
         String rpoType = null;
         Long rpoValue = null;
-
+        int maxNumberOfSnapShots = 0; 
+        
         Map<URI, Volume> volumeMap = new HashMap<URI, Volume>();
 
         // Sort the volume descriptors using the natural order of the enum.
@@ -740,6 +741,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             boolean isRPSource = _rpHelper.isRPSource(volumeDescriptor);
             boolean isRPTarget = _rpHelper.isRPTarget(volumeDescriptor);
             boolean extraParamsGathered = false;
+                        
+            maxNumberOfSnapShots = volumeDescriptor.getCapabilitiesValues().getRPMaxSnaps();            
 
             // Set up the source and target volumes in their respective replication sets
             if (isRPSource || isRPTarget) {
@@ -754,7 +757,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                     copyMode = volumeDescriptor.getCapabilitiesValues().getRpCopyMode();
                     rpoType = volumeDescriptor.getCapabilitiesValues().getRpRpoType();
-                    rpoValue = volumeDescriptor.getCapabilitiesValues().getRpRpoValue();
+                    rpoValue = volumeDescriptor.getCapabilitiesValues().getRpRpoValue();                                                           
+                    
                     // Flag so we only grab this information once
                     extraParamsGathered = true;
                 }
@@ -772,7 +776,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                 backingVolume.getInternalSiteName(),
                                 true,
                                 backingVolume.getRpCopyName(),
-                                volume.getWWN());
+                                volume.getWWN(),
+                                maxNumberOfSnapShots);
                         _log.info(String.format("Creating RSet Param for MetroPoint RP PROD - VOLUME: [%s] Name: [%s]",
                                 backingVolume.getLabel(), backingVolume.getRSetName()));
                         populateRsetsMap(rsetParamsMap, volumeParams, volume);
@@ -784,7 +789,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             volume.getInternalSiteName(),
                             isRPSource,
                             volume.getRpCopyName(),
-                            volume.getWWN());
+                            volume.getWWN(),
+                            maxNumberOfSnapShots);
                     String type = isRPSource ? "PROD" : "TARGET";
                     _log.info(String.format("Creating RSet Param for RP %s - VOLUME: [%s] Name: [%s]",
                             type, volume.getLabel(), volume.getRSetName()));
@@ -813,7 +819,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         volume.getInternalSiteName(),
                         _rpHelper.isProductionJournal(productionCopies, volume),
                         volume.getRpCopyName(),
-                        volume.getWWN());
+                        volume.getWWN(),
+                        maxNumberOfSnapShots);
                 String key = volume.getRpCopyName();
                 _log.info(String.format("Creating Copy Param for RP JOURNAL: VOLUME - [%s] Name: [%s]", volume.getLabel(), key));
                 if (copyParamsMap.containsKey(key)) {
@@ -880,7 +887,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return volume parameter for RP
      */
     private CreateVolumeParams populateVolumeParams(URI volumeId, URI storageSystemId, URI neighborhoodId,
-            String internalSiteName, boolean production, String rpCopyName, String wwn)
+            String internalSiteName, boolean production, String rpCopyName, String wwn, int maxNumberOfSnapShots)
     {
         CreateVolumeParams volumeParams = new CreateVolumeParams();
         volumeParams.setVirtualArray(neighborhoodId);
@@ -890,6 +897,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         volumeParams.setVolumeURI(volumeId);
         volumeParams.setRpCopyName(rpCopyName);
         volumeParams.setWwn(wwn);
+        volumeParams.setMaxNumberOfSnapShots(maxNumberOfSnapShots);
         return volumeParams;
     }
 

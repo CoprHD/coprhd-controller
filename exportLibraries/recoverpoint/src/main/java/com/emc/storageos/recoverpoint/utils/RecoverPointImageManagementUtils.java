@@ -967,9 +967,14 @@ public class RecoverPointImageManagementUtils {
                             allLinksInDesiredState = false;
                             break;
                         }
+                    } else if (PipeState.SNAP_IDLE.equals(desiredPipeState)) {
+                    	 if (PipeState.SNAP_IDLE.equals(pipeState) || PipeState.SNAP_SHIPPING.equals(pipeState)) {
+                             allLinksInDesiredState = true;
+                             break;
+                    	 }
                     } else {
-                        // Other desired states (like UNKNOWN [inactive])
-                        if (pipeState.equals(desiredPipeState)) {
+                        // Other desired states (like UNKNOWN [inactive])                    	
+                    	if (pipeState.equals(desiredPipeState)) {
                             logger.info("CG link state matches the desired state.");
                             allLinksInDesiredState = true;
                         } else {

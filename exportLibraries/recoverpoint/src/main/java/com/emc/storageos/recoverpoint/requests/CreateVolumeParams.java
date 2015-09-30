@@ -21,6 +21,7 @@ public class CreateVolumeParams implements Serializable {
     private String wwn;
     private String rpCopyName;
     private String nativeGuid;
+    private int maxNumberOfSnapShots;
 
     public URI getVolumeURI() {
         return volumeURI;
@@ -86,17 +87,26 @@ public class CreateVolumeParams implements Serializable {
 		this.nativeGuid = nativeGuid;
 	}
 
+	public int getMaxNumberOfSnapShots() {
+		return maxNumberOfSnapShots;
+	}
+
+	public void setMaxNumberOfSnapShots(int maxNumberOfSnapShots) {
+		this.maxNumberOfSnapShots = maxNumberOfSnapShots;
+	}
+	
 	@Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append("\n\tvolumeURI:        " + volumeURI);
-        sb.append("\n\tinternalSiteName: " + internalSiteName);
-        sb.append("\n\tvirtualArray:     " + virtualArray);
-        sb.append("\n\tproduction:       " + production);
-        sb.append("\n\tstorageSystem:    " + storageSystem);
-        sb.append("\n\twwn:              " + wwn);
-        sb.append("\n\trpCopyName:       " + rpCopyName);
-        sb.append("\n\tnativeGuid:       " + nativeGuid);
+        sb.append("\n\tvolumeURI:            " + volumeURI);
+        sb.append("\n\tinternalSiteName:     " + internalSiteName);
+        sb.append("\n\tvirtualArray:         " + virtualArray);
+        sb.append("\n\tproduction:           " + production);
+        sb.append("\n\tstorageSystem:        " + storageSystem);
+        sb.append("\n\twwn:                  " + wwn);
+        sb.append("\n\trpCopyName:           " + rpCopyName);
+        sb.append("\n\tnativeGuid:           " + nativeGuid);
+        sb.append("\n\tmaxNumberOfSnapShots: " + maxNumberOfSnapShots);
         return sb.toString();
-    }
+    }	
 }

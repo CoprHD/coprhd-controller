@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
@@ -1558,5 +1559,9 @@ public class RPHelper {
         }
 
         return volume;
+    }
+    
+    public static boolean protectXtremioVolume(Volume volume, DbClient dbClient) {    	
+    	return dbClient.queryObject(StorageSystem.class, volume.getStorageController()).getSystemType().equalsIgnoreCase(Type.xtremio.toString());
     }
 }

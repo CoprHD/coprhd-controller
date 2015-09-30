@@ -593,8 +593,14 @@ public class RecoverPointClient {
             logger.info("Adding journals and rsets for CG " + request.getCgName());
             functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
 
+            PipeState pipeState = PipeState.ACTIVE;
+            if (usingSnapShotTechnology(request)) {
+            	logger.info("Setting link state for snapshot technology.");
+            	pipeState = PipeState.SNAP_IDLE;
+            }            
+            
             logger.info("Waiting for links to become active for CG " + request.getCgName());
-            (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, PipeState.ACTIVE);
+            (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, pipeState);
             logger.info(String.format("Consistency group %s has been created.", request.getCgName()));
 
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
@@ -749,6 +755,20 @@ public class RecoverPointClient {
             }
         }
         return null;
+    }
+    
+    private int getMaxNumberOfSnapShots(CreateCopyParams copyParam) {
+        if (copyParam.getJournals() != null && !copyParam.getJournals().isEmpty()) {
+            return copyParam.getJournals().iterator().next().getMaxNumberOfSnapShots();
+        }
+        return 0;
+    }
+    
+    private boolean usingSnapShotTechnology(CGRequestParams request) {
+    	 if (getMaxNumberOfSnapShots(request.getCopies().get(0)) > 0) {
+    		return true; 
+    	 }
+    	 return false;
     }
 
     /**
@@ -951,6 +971,8 @@ public class RecoverPointClient {
                     copyPolicy.setCopyName(copyParam.getName());
                     copyPolicy.setCopyPolicy(functionalAPI.getDefaultConsistencyGroupCopyPolicy());
                     copyPolicy.setCopyUID(cgCopyUID);
+                    
+                    copyPolicy.getCopyPolicy().getSnapshotsPolicy().setNumOfDesiredSnapshots(getMaxNumberOfSnapShots(copyParam));
 
                     fullConsistencyGroupPolicy.getCopiesPolicies().add(copyPolicy);
 
@@ -1003,6 +1025,14 @@ public class RecoverPointClient {
 
                     ConsistencyGroupLinkPolicy linkPolicy = createLinkPolicy(copyType, request.cgPolicy.copyMode, request.cgPolicy.rpoType,
                             request.cgPolicy.rpoValue);
+                    
+                    if (copyPolicy.getCopyPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() > 0) {
+                    	SnapshotShippingPolicy snapPolicy = new SnapshotShippingPolicy();
+                    	snapPolicy.setIntervaInMinutes(1L);
+                    	snapPolicy.setMode(SnapshotShippingMode.PERIODICALLY);
+                    	linkPolicy.setSnapshotShippingPolicy(snapPolicy);
+                    }
+                                                            
                     ConsistencyGroupLinkSettings linkSettings = new ConsistencyGroupLinkSettings();
                     linkSettings.setGroupLinkUID(linkUid);
                     linkSettings.setLinkPolicy(linkPolicy);
@@ -1108,7 +1138,6 @@ public class RecoverPointClient {
                         	// new code
                         	if (RecoverPointUtils.isXioVolume(volumeParam.getNativeGuid())) {
                         		String xioNativeGuid = RecoverPointUtils.getXioNativeGuid(volumeParam.getNativeGuid());                        		                        		
-                        		logger.info("nativeGuid for XtremIO: " + xioNativeGuid);
                         		
                         		if (siteVolUID.equalsIgnoreCase(xioNativeGuid)) {
                         			logger.info("Found site and volume ID for journal: " + xioNativeGuid + " for copy: "
@@ -1167,7 +1196,6 @@ public class RecoverPointClient {
                             // new code
                             if (RecoverPointUtils.isXioVolume(volumeParam.getNativeGuid())) {
                             	String xioNativeGuid = RecoverPointUtils.getXioNativeGuid(volumeParam.getNativeGuid());                        		                        		
-                        		logger.info("nativeGuid for XtremIO: " + xioNativeGuid);
                         		
                         		if (siteVolUID.equalsIgnoreCase(xioNativeGuid)) {
                                     logger.info(String.format(
@@ -1323,13 +1351,7 @@ public class RecoverPointClient {
             logger.warn("RPO Policy specified only one of value and type, both need to be specified for RPO policy to be applied.  Ignoring RPO policy.");
         }
         linkProtectionPolicy.setRpoPolicy(rpoPolicy);
-        linkPolicy.setProtectionPolicy(linkProtectionPolicy);
-        
-        SnapshotShippingPolicy snapPolicy = new SnapshotShippingPolicy();
-        snapPolicy.setIntervaInMinutes(1L);
-        snapPolicy.setMode(SnapshotShippingMode.PERIODICALLY);
-        linkPolicy.setSnapshotShippingPolicy(snapPolicy);
-        
+        linkPolicy.setProtectionPolicy(linkProtectionPolicy);        
 
         return linkPolicy;
 

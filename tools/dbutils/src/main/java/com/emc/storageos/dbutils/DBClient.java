@@ -637,7 +637,7 @@ public class DBClient {
                     .getBean("dataObjectScanner");
             tracker = dataObjectscanner.getDependencyTracker();
         }
-        printDependencies(clazz, id, true, "", clazz.toString(), tracker);
+        printDependencies(clazz, id, true, "", id.toString(), tracker);
     }
 
     private <T extends DataObject> T queryObject(URI id, Class<T> clazz) throws Exception {

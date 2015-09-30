@@ -600,8 +600,10 @@ public class ExportMaskUtils {
         if (volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
             _log.info("Block object {} is marked internal. Adding to existing volumes of the mask {}", volume.getNativeGuid(),
                     exportMask.getMaskName());
-            String hlu = wwnToHluMap.get(volume.getWWN()) != null ? 
-                    wwnToHluMap.get(volume.getWWN()).toString() : ExportGroup.LUN_UNASSIGNED_STR;
+            String hlu = ExportGroup.LUN_UNASSIGNED_STR;
+            if (wwnToHluMap.containsKey(volume.getWWN())) {
+                hlu = String.valueOf(wwnToHluMap.get(volume.getWWN()));
+            }
             exportMask.addToExistingVolumesIfAbsent(volume, hlu);
         } else {
             exportMask.addToUserCreatedVolumes(volume);

@@ -174,8 +174,10 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 exportMask.addToExistingVolumesIfAbsent(wwnToHluMap);
 
                 // find the HLU and set it in the volumes
-                Integer hlu = wwnToHluMap.get(blockObject.getWWN()) != null ?
-                        wwnToHluMap.get(blockObject.getWWN()) : ExportGroup.LUN_UNASSIGNED;
+                Integer hlu = ExportGroup.LUN_UNASSIGNED;
+                if (wwnToHluMap.containsKey(blockObject.getWWN())) {
+                    hlu = wwnToHluMap.get(blockObject.getWWN());
+                }
                 exportMask.addVolume(blockObject.getId(), hlu);
 
                 // adding volume we need to add FCZoneReferences

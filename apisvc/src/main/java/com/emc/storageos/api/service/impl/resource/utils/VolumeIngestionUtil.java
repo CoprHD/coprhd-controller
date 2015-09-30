@@ -1095,9 +1095,9 @@ public class VolumeIngestionUtil {
     public static Map<String, Integer> extractWwnToHluMap(UnManagedExportMask unManagedExportMask, DbClient dbClient) {
         // create the volume wwn to hlu map
         Map<String, Integer> wwnToHluMap = new HashMap<String, Integer>();
-        List<URI> unManagedVolumeUris = new ArrayList<URI>(Collections2.transform(
+        List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(
+                UnManagedVolume.class, Collections2.transform(
                 unManagedExportMask.getUnmanagedVolumeUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeUris);
         for (UnManagedVolume vol : unManagedVolumes) {
             String wwn = vol.getWwn();
             if (wwn != null) {

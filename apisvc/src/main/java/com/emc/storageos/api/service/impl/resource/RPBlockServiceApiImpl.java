@@ -20,9 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -541,7 +538,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param capabilities
      * @param taskList The TaskList to store tasks
      * @param task Task Id
-     * @param isChangeVpool Boolean to determine if this is a change vpool op
      */
     private void createTaskForVolume(Volume volume, VirtualPoolCapabilityValuesWrapper capabilities, TaskList taskList, String task) {
         ResourceOperationTypeEnum type = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME;
@@ -549,6 +545,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         if (capabilities.getAddJournalCapacity()) {
             type = ResourceOperationTypeEnum.ADD_JOURNAL_VOLUME;
         }
+        createTaskForVolume(volume, type, taskList, task);
+    }
+
+    /**
+     * Used to create a task and add it to the TaskList
+     *
+     * @param volume
+     *            Volume that the task is for
+     * @param type
+     *            type of the task
+     * @param taskList
+     *            The TaskList to store tasks
+     * @param task
+     *            Task Id
+     */
+    private void createTaskForVolume(Volume volume, ResourceOperationTypeEnum type, TaskList taskList, String task) {
 
         // Create the OP
         Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, type);
@@ -1037,7 +1049,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @throws ControllerException
      */
     private List<VolumeDescriptor> createVolumeDescriptors(RPProtectionRecommendation recommendation, List<URI> volumeURIs,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities, URI oldVpool) {
 
         List<Volume> preparedVolumes = _dbClient.queryObject(Volume.class, volumeURIs);
 
@@ -1066,7 +1078,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 Map<String, Object> volumeParams = new HashMap<String, Object>();
                 volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID, recommendation.getVpoolChangeVolume());
                 volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, recommendation.getVpoolChangeVpool());
-                volumeParams.put(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID, volume.getVirtualPool());
+                volumeParams.put(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID, oldVpool);
 
                 desc.setParameters(volumeParams);
                 descriptors.add(desc);
@@ -1588,6 +1600,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean isChangeVpool = (rpProtectionRec.getVpoolChangeVolume() != null);
         boolean isChangeVpoolForProtectedVolume = rpProtectionRec.isVpoolChangeProtectionAlreadyExists();
 
+        // for change vpool, save off the original source volume in case we need to roll back
+        URI oldVpoolId = null;
+        if (isChangeVpool || isChangeVpoolForProtectedVolume) {
+            Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, rpProtectionRec.getVpoolChangeVolume());
+            oldVpoolId = changeVpoolVolume.getVirtualPool();
+        }
+
         try {
             // Prepare the volumes
             prepareRecommendedVolumes(param, task, taskList, project,
@@ -1595,48 +1614,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     capabilities.getResourceCount(),
                     recommendations, volumeLabel, capabilities,
                     volumeDescriptors, volumeURIs);
-        } catch (Exception e) {
-            String errorMsg = "Error occurred while preparing RP volumes.";
-            _log.error(errorMsg, e);
 
-            // If there is a change vpool volume, we need to ensure that we rollback protection on it.
-            // We want to return the volume back to it's original state.
-            if (isChangeVpool || isChangeVpoolForProtectedVolume) {
-                Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, rpProtectionRec.getVpoolChangeVolume());
-                VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, changeVpoolVolume.getVirtualPool());
-                RPHelper.rollbackProtectionOnVolume(changeVpoolVolume, oldVpool, _dbClient);
-            }
-
-            for (URI volumeURI : volumeURIs) {
-                // Rollback any volumes that were created during prepare, excluding the change vpool volume
-                // which would have already been handled above. Not too mention we of course do not want to
-                // completely rollback an existing volume (which the change vpool volume would be).
-                if (!volumeURI.equals(rpProtectionRec.getVpoolChangeVolume())) {
-                    RPHelper.rollbackVolume(volumeURI, _dbClient);
-                }
-            }
-
-            // Let's check to see if there are existing tasks, if so, put them in error.
-            if (taskList.getTaskList() != null && !taskList.getTaskList().isEmpty()) {
-                for (TaskResourceRep volumeTask : taskList.getTaskList()) {
-                    volumeTask.setState(Operation.Status.error.name());
-                    volumeTask.setMessage(errorMsg);
-                    Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMsg);
-                    _dbClient.updateTaskOpStatus(Volume.class, volumeTask.getResource()
-                            .getId(), task, statusUpdate);
-                }
-            }
-
-            throw APIException.badRequests.rpBlockApiImplPrepareVolumeException(volumeLabel);
-        }
-
-        try {
             // Execute the volume creations requests for each recommendation.
             Iterator<Recommendation> recommendationsIter = recommendations.iterator();
             while (recommendationsIter.hasNext()) {
                 RPProtectionRecommendation recommendation = (RPProtectionRecommendation) recommendationsIter.next();
 
-                volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities));
+                volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities, oldVpoolId));
                 logDescriptors(volumeDescriptors);
 
                 BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
@@ -1663,33 +1647,43 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
         } catch (Exception e) {
-            if (_log.isErrorEnabled()) {
-                _log.error("Controller error", e);
+            _log.error(e.getMessage(), e);
+
+            try {
+                // If there is a change vpool volume, we need to ensure that we rollback protection on it.
+                // We want to return the volume back to it's original state.
+                if (isChangeVpool || isChangeVpoolForProtectedVolume) {
+                    Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, rpProtectionRec.getVpoolChangeVolume());
+                    VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolId);
+                    RPHelper.rollbackProtectionOnVolume(changeVpoolVolume, oldVpool, _dbClient);
+                }
+
+                for (URI volumeURI : volumeURIs) {
+                    // Rollback any volumes that were created during prepare, excluding the change vpool volume
+                    // which would have already been handled above. Not too mention we of course do not want to
+                    // completely rollback an existing volume (which the change vpool volume would be).
+                    if (!volumeURI.equals(rpProtectionRec.getVpoolChangeVolume())) {
+                        RPHelper.rollbackVolume(volumeURI, _dbClient);
+                    }
+                }
+            } catch (Exception e2) {
+                // best effort for rollback; still need to set the tasks to error
+                _log.error("rollback create volume or change vpool failed");
+                _log.error(e2.getMessage(), e);
             }
 
-            String errorMsg = String.format("Controller error: %s", e.getMessage());
-            _log.error("Create volume failed - %s", errorMsg);
-            for (URI volumeURI : volumeURIs) {
-                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                if (volume != null) {
-                    TaskResourceRep volumeTask = toTask(volume, task);
+            // Let's check to see if there are existing tasks, if so, put them in error.
+            if (taskList.getTaskList() != null && !taskList.getTaskList().isEmpty()) {
+                for (TaskResourceRep volumeTask : taskList.getTaskList()) {
                     volumeTask.setState(Operation.Status.error.name());
-                    volumeTask.setMessage(errorMsg);
-                    Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMsg);
+                    volumeTask.setMessage(e.getMessage());
+                    Operation statusUpdate = new Operation(Operation.Status.error.name(), e.getMessage());
                     _dbClient.updateTaskOpStatus(Volume.class, volumeTask.getResource()
                             .getId(), task, statusUpdate);
-                    if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
-                        taskList.getTaskList().add(volumeTask);
-                    }
                 }
             }
 
-            // If there was a controller error creating the volumes,
-            // throw an internal server error and include the task
-            // information in the response body, which will inform
-            // the user what succeeded and what failed.
-            throw new WebApplicationException(Response
-                    .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
+            throw APIException.badRequests.rpBlockApiImplPrepareVolumeException(volumeLabel);
         }
 
         return taskList;
@@ -1884,8 +1878,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, vpoolChangeParam.getConsistencyGroup());
 
+        // Now that we have a handle on the current vpool, let's set the new vpool on the volume.
+        // The volume will not be persisted just yet but we need to have the new vpool to
+        // properly make placement decisions and to add reference to the new vpool to the
+        // recommendation objects that will be created.
+        URI currentVpool = volume.getVirtualPool();
+        volume.setVirtualPool(newVpool.getId());
         List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(volume, newVpool, vpoolChangeParam,
                 capabilities);
+        volume.setVirtualPool(currentVpool);
 
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolume();
@@ -1901,6 +1902,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volume.getVirtualArray(), volume.getProject().getURI());
 
         TaskList taskList = new TaskList();
+        createTaskForVolume(volume, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL, taskList, taskId);
         createVolumes(param, project, varray, newVpool, recommendations, taskList, taskId, capabilities);
     }
 
@@ -1928,14 +1930,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         if ((DiscoveredDataObject.Type.vplex.name().equals(systemType))
                 || (DiscoveredDataObject.Type.vmax.name().equals(systemType))
                 || (DiscoveredDataObject.Type.vnxblock.name().equals(systemType))) {
+
             // Get the current vpool
             VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-
-            // Now that we have a handle on the current vpool, let's set the new vpool on the volume.
-            // The volume will not be persisted just yet but we need to have the new vpool to
-            // properly make placement decisions and to add reference to the new vpool to the
-            // recommendation objects that will be created.
-            volume.setVirtualPool(newVpool.getId());
 
             if (volume.checkForRp()
                     && !VirtualPool.vPoolSpecifiesMetroPoint(currentVpool)
@@ -2081,7 +2078,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 _log.info("Expand Volume requested size : {}", newSize);
                 _log.info("Expand source calculated size : {}", capacities.get(Volume.PersonalityTypes.SOURCE));
                 _log.info("Expand target calcaluted size : {}", capacities.get(Volume.PersonalityTypes.TARGET));
-                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null);
+                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null, null);
 
                 for (VolumeDescriptor volDesc : volumeDescriptors) {
                     if (volDesc.getType() == VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE) {
@@ -2106,7 +2103,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 // Step 3: Call the controller to do the expand.
                 _log.info("Expand volume request size : {}", normalizedRequestSize);
-                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null);
+                List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null, null);
 
                 for (VolumeDescriptor volDesc : volumeDescriptors) {
                     volDesc.setVolumeSize(normalizedRequestSize);
@@ -2992,7 +2989,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         Project project = _dbClient.queryObject(Project.class, volume.getProject());
 
+        // Now that we have a handle on the current vpool, let's set the new vpool on the volume.
+        // The volume will not be persisted just yet but we need to have the new vpool to
+        // properly make placement decisions and to add reference to the new vpool to the
+        // recommendation objects that will be created.
+        URI currentVpool = volume.getVirtualPool();
+        volume.setVirtualPool(newVpool.getId());
         List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(volume, newVpool, vpoolChangeParam, null);
+        volume.setVirtualPool(currentVpool);
 
         if (recommendations.isEmpty()) {
             throw APIException.badRequests.noStorageFoundForVolume();
@@ -3011,6 +3015,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
         TaskList taskList = new TaskList();
+        createTaskForVolume(volume, ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL, taskList, taskId);
         createVolumes(param, project, varray, newVpool, recommendations, taskList, taskId, capabilities);
     }
 

@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -1103,8 +1104,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
 
                 List<String> lockKeys = ControllerLockingUtil
-                        .getHostStorageLockKeys(_dbClient,
-                                ExportGroupType.Cluster,
+                        .getStorageLockKeysByHostName(_dbClient,                             
                                 initiatorSet, storageSystemURI);
                 boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
                         taskId, lockKeys, LockTimeoutValue.get(LockType.RP_EXPORT));

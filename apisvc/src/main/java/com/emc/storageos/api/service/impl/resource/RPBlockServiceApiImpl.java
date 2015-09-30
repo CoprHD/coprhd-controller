@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -2643,6 +2644,19 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 cleanVolumeFromExports(assocVolumeURI, true);
             }
         }
+        
+        // If we're deleting the last volume, we can delete the ProtectionSet object
+        Set<URI> psetsDeleted = new HashSet<URI>();
+        for (URI sourceVolumeURI : sourceVolumeURIs) {
+            Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
+            ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet().getURI());
+            if (!psetsDeleted.contains(sourceVolume.getProtectionSet().getURI()) &&
+                 _rpHelper.getVolumesToDelete(sourceVolumeURIs).size() == pset.getVolumes().size()) {
+                pset.setInactive(true);
+                _dbClient.persistObject(pset);
+                psetsDeleted.add(sourceVolume.getProtectionSet().getURI());
+            }
+        }        
     }
 
     @Override

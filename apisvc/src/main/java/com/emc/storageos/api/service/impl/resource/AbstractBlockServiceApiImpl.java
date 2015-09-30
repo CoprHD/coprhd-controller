@@ -347,7 +347,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 BlockObject bo = BlockObject.fetch(_dbClient, volumeURI);
                 if (bo instanceof Volume) {
                     Volume volume = (Volume) bo;
-                    if (volume.isVolumeExported(_dbClient)) {
+                    if (volume.isVolumeExported(_dbClient) && !volume.checkForRp()) {
                         throw APIException.badRequests.inventoryDeleteNotSupportedonExportedVolumes(volume.getNativeGuid());
                     }
                 } else if (bo instanceof BlockSnapshot) {

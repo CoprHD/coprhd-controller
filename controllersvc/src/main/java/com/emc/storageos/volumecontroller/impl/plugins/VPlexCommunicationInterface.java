@@ -1108,7 +1108,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             String wwn = unManagedVolume.getWwn();
             StringSet hluMappings = new StringSet();
             for (VPlexStorageViewInfo storageView : storageViews) {
-                if (wwn == null) {
+                if (wwn == null || wwn.isEmpty()) {
                     // the wwn may have been found in the virtual volume, if this is a 5.4+ VPLEX
                     // otherwise, we need to check in the storage view mappings for a WWN (5.3 and before)
                     wwn = storageView.getWWNForStorageViewVolume(unManagedVolume.getLabel());

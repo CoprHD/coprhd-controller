@@ -349,8 +349,7 @@ public class BucketService extends TaskResourceService {
         StoragePool pool = null;
         Bucket bucket = new Bucket();
         bucket.setId(URIUtil.createId(Bucket.class));
-        bucket.setLabel(param.getLabel());
-        bucket.setPath(param.getPath());
+        bucket.setLabel(param.getLabel().replaceAll(SPECIAL_CHAR_REGEX, ""));
         bucket.setHardQuota(SizeUtil.translateSize(param.getHardQuota()));
         bucket.setSoftQuota(SizeUtil.translateSize(param.getSoftQuota()));
         bucket.setRetention(Integer.valueOf(param.getRetention()));
@@ -374,9 +373,6 @@ public class BucketService extends TaskResourceService {
         bucket.setStorageDevice(placement.getSourceStorageSystem());
         bucket.setPool(placement.getSourceStoragePool());
         bucket.setOpStatus(new OpStatusMap());
-
-        // There could be bucket with same name created with different projects/namespaces. Updating name to match this scenario.
-        bucket.setLabel(param.getLabel().replaceAll(SPECIAL_CHAR_REGEX, ""));
 
         // Bucket name to be used at Storage System
         String bucketName = project.getLabel() + UNDER_SCORE + param.getLabel();

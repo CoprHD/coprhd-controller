@@ -1,0 +1,131 @@
+#!/etc/genconfig
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+PORTS_PROTECTED_IN_CLUSTER="2181 2888"
+PORTS_PROTECTED_ACROSS_SITE="2181 2888"
+PRIMARY_CERTIFICATE_FILE="/opt/storageos/primary_ipsec.crt"
+STANDBY_CERTIFICATE_FILE="/opt/storageos/standby_ipsec.crt"
+IPSEC_CONF_FILE="/etc/ipsec.conf"
+LOCAL_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
+
+
+#
+# common section for all connnections in ipsec.conf
+#
+COMMON_SECTION=$(cat << EOF
+
+conn %default 
+    authby=publickey
+    keyexchange=ike
+    type=transport
+    esp=aes128gcm16!
+    auto=route
+     
+    leftcert=${PRIMARY_CERTIFICATE_FILE}
+    leftid=@${LOCAL_IP}
+
+EOF
+)
+
+_get_ips_in_cluster() {
+    # generate participants for nodes in primary site 
+    local cursite_begin_index="0"
+    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+    local primary_cnt="${!var}"
+    local ips=""
+    for i in $(seq ${primary_cnt}) ; do
+        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr"
+        local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_${i}_ipaddr6"
+        local ipaddr="${!var}"
+        [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
+        if [ "${ipaddr}" != "${LOCAL_IP}" ] ; then
+            ips="${ips} ${ipaddr}"
+        fi
+    done
+    echo "${ips}"
+}
+
+_get_ips_in_standby() {
+    # generate observers for standby sites
+    ips=""
+    if [ -n "${_GENCONFIG_site_ids}" ] ; then
+        local begin="${primary_cnt}" # begin index in all node list
+        local total="0"              # total number of all standby nodes
+        for standby in ${_GENCONFIG_site_ids}; do
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_node_count"
+            local standby_cnt="${!var}"
+            total="$((${standby_cnt} + ${total}))"
+        done
+       # echo "--foreach:iter_standby:$(seq --separator=',' $((${begin} + 1)) $((${begin} + ${total})) )"
+        for standby in ${_GENCONFIG_site_ids} ; do
+            if [ "${_GENCONFIG_site_myid}" == "${standby}" ] ; then
+                cursite_begin_index="$((${begin}))"
+            fi
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_node_count"
+            local standby_cnt="${!var}"
+            for standby_index in $(seq --separator=',' $((${begin} + 1)) $((${begin} + ${standby_cnt}))); do
+                var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_$((${standby_index} - ${begin}))_ipaddr"
+                var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_$((${standby_index} - ${begin}))_ipaddr6"
+                local ipaddr="${!var}"
+                [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
+                ips="${ips} ${ipaddr}"
+            done
+            begin="$((${begin} + ${standby_cnt}))"
+        done
+    else
+        # no standby defined
+	echo ""
+    fi
+    echo "$ips"
+}
+
+_gen_conn_sections() {
+    local ips=$1
+    local ports=$2
+    local cert=$3
+
+    for ip in ${ips}
+    do
+        for port in ${ports}
+        do
+            conn=$(cat << EOF
+
+conn ${port}-${LOCAL_IP}-${ip}
+    leftsubnet=${LOCAL_IP}[tcp/${port}]
+    right=${ip}
+    rightid=@${ip}
+    rightcert=${cert}
+EOF
+)
+    echo "${conn}"
+        done
+    done
+}
+
+IPS_IN_CLUSTER=$(_get_ips_in_cluster)
+IPS_OF_STANDBYS=$(_get_ips_in_standby)
+
+
+
+_gen_ipsec_conf() {
+    local conn_in_cluster=$(_gen_conn_sections "${IPS_IN_CLUSTER}" "${PORTS_PROTECTED_IN_CLUSTER}" "${PRIMARY_CERTIFICATE_FILE}")
+    local conn_of_standby=$(_gen_conn_sections "${IPS_IN_CLUSTER}" "${PORTS_PROTECTED_IN_CLUSTER}" "${STANDBY_CERTIFICATE_FILE}")
+    local content=$(cat << EOF
+${COMMON_SECTION}
+${conn_in_cluster}
+${conn_of_standby}
+EOF
+)
+#    _genconfig_write 400 root:root "${IPSEC_CONF_FILE}" "${content}"
+    echo "${content}"
+}
+
+_gen_ipsec_conf

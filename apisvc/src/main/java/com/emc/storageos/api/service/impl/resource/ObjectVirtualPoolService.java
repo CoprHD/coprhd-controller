@@ -31,10 +31,13 @@ import com.emc.storageos.api.mapper.VirtualPoolMapper;
 import com.emc.storageos.api.mapper.functions.MapObjectVirtualPool;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -126,6 +129,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     public ObjectVirtualPoolRestRep getObjectVirtualPool(@PathParam("id") URI id) {
         VirtualPool vpool = getVirtualPool(VirtualPool.Type.object, id);
         ObjectVirtualPoolRestRep restRep = toObjectVirtualPool(vpool);
+        restRep.setNumResources(getNumResources(vpool, _dbClient));
         if (null != vpool.getMaxRetention()) {
             restRep.setMaxRetention(vpool.getMaxRetention());
         }
@@ -497,5 +501,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         }
 
         return vPool;
+    }
+    
+    private static Integer getNumResources(VirtualPool vpool, DbClient dbClient) {
+        return dbClient.countObjects(Bucket.class, "virtualPool", vpool.getId());
     }
 }

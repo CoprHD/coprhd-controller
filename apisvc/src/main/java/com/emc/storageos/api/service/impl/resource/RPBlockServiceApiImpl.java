@@ -36,6 +36,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyz
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -113,10 +114,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     private static final String MP_ACTIVE_COPY_SUFFIX = " - Active Production";
     private static final String MP_STANDBY_COPY_SUFFIX = " - Standby Production";
 
-    private static final String PRIMARY_SRC_JOURNAL_SUFFIX = "-primary-source-journal";
-    private static final String SECONDARY_SRC_JOURNAL_SUFFIX = "-secondary-source-journal";
     private static final String VOLUME_TYPE_TARGET = "-target-";
-    private static final String VOLUME_TYPE_TARGET_JOURNAL = "-target-journal-";
+    private static final int LOCK_WAIT_SECONDS = 60;
 
     // Spring injected
     private RPHelper _rpHelper;
@@ -675,17 +674,24 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             for (int volumeCount = 0; volumeCount < numberOfJournalVolumesInRequest; volumeCount++) {
 
-                // get a unique journal volume name
-                String journalName = _rpHelper.getJournalVolumeName(varray, consistencyGroup);
+                // acquire a lock so it's possible to get a unique name for the volume
+                String lockKey = new StringBuilder(consistencyGroup.getLabel()).append("-").append(varray.getLabel()).toString();
+                InterProcessLockHolder lock = null;
+                try {
+                    _log.info("Attempting to acquire lock: " + lockKey);
+                    lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_SECONDS);
+                    // get a unique journal volume name
+                    String journalName = _rpHelper.getJournalVolumeName(varray, consistencyGroup);
 
-                // Create source journal
-                sourceJournal = createRecoverPointVolume(rpProtectionRec.getSourceJournalRecommendation(),
- journalName,
-                        project, capabilities, consistencyGroup, param,
-                        protectionSystemURI, Volume.PersonalityTypes.METADATA,
-                        "RSET_NAME", null, null, taskList,
-                        task,
-                        sourceCopyName, descriptors, null, null, null, false, false);
+                    // Create source journal
+                    sourceJournal = createRecoverPointVolume(rpProtectionRec.getSourceJournalRecommendation(), journalName, project,
+                            capabilities, consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.METADATA, "RSET_NAME",
+                            null, null, taskList, task, sourceCopyName, descriptors, null, null, null, false, false);
+                } finally {
+                    if (lock != null) {
+                        lock.close();
+                    }
+                }
                 volumeURIs.add(sourceJournal.getId());
                 volumeInfoBuffer.append(logVolumeInfo(sourceJournal));
             }
@@ -708,16 +714,25 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             for (int volumeCount = 0; volumeCount < numberOfJournalVolumesInRequest; volumeCount++) {
 
-                // get a unique journal volume name
-                String journalName = _rpHelper.getJournalVolumeName(varray, consistencyGroup);
+                // acquire a lock so it's possible to get a unique name for the volume
+                String lockKey = new StringBuilder(consistencyGroup.getLabel()).append("-").append(varray.getLabel()).toString();
+                InterProcessLockHolder lock = null;
+                try {
+                    _log.info("Attempting to acquire lock: " + lockKey);
+                    lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_SECONDS);
+                    // get a unique journal volume name
+                    String journalName = _rpHelper.getJournalVolumeName(varray, consistencyGroup);
 
-                // If MetroPoint is enabled we need to create the standby journal volume
-                standbyJournal = createRecoverPointVolume(rpProtectionRec.getStandbyJournalRecommendation(),
- journalName,
-                        project, capabilities, consistencyGroup, param,
-                        protectionSystemURI, Volume.PersonalityTypes.METADATA,
-                        "RSET_NAME", null, null, taskList, task,
-                        standbySourceCopyName, descriptors, null, null, null, false, false);
+                    // If MetroPoint is enabled we need to create the standby journal volume
+                    standbyJournal = createRecoverPointVolume(rpProtectionRec.getStandbyJournalRecommendation(), journalName, project,
+                            capabilities, consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.METADATA, "RSET_NAME",
+                            null, null, taskList, task, standbySourceCopyName, descriptors, null, null, null, false, false);
+                } finally {
+                    if (lock != null) {
+                        lock.close();
+                    }
+                }
+                volumeURIs.add(sourceJournal.getId());
                 volumeURIs.add(standbyJournal.getId());
                 volumeInfoBuffer.append(logVolumeInfo(standbyJournal));
             }
@@ -791,20 +806,29 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 for (int volumeCount = 0; volumeCount < numberOfJournalVolumesInRequest; volumeCount++) {
 
-                    // get a unique journal volume name
-                    String journalName = _rpHelper.getJournalVolumeName(targetCopyVarray, consistencyGroup);
+                    // acquire a lock so it's possible to get a unique name for the volume
+                    String lockKey = new StringBuilder(consistencyGroup.getLabel()).append("-").append(targetCopyVarray.getLabel())
+                            .toString();
+                    InterProcessLockHolder lock = null;
+                    try {
+                        _log.info("Attempting to acquire lock: " + lockKey);
+                        lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_SECONDS);
+                        // get a unique journal volume name
+                        String journalName = _rpHelper.getJournalVolumeName(targetCopyVarray, consistencyGroup);
 
-                    // Create target journal
-                    Volume targetJournalVolume = createRecoverPointVolume(targetJournalRec, journalName,
-                            project, capabilities, consistencyGroup, param,
-                            protectionSystemURI, Volume.PersonalityTypes.METADATA,
-                            "RSET_NAME", null, null, taskList,
-                            task, targetCopyVarray.getLabel(),
-                            descriptors, null, null, null, false, false);
-                    volumeURIs.add(targetJournalVolume.getId());
-                    volumeInfoBuffer.append(logVolumeInfo(targetJournalVolume));
+                        // Create target journal
+                        Volume targetJournalVolume = createRecoverPointVolume(targetJournalRec, journalName, project, capabilities,
+                                consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.METADATA, "RSET_NAME", null, null,
+                                taskList, task, targetCopyVarray.getLabel(), descriptors, null, null, null, false, false);
+                        volumeURIs.add(targetJournalVolume.getId());
+                        volumeInfoBuffer.append(logVolumeInfo(targetJournalVolume));
 
-                    targetJournals.put(targetCopyVarray.getId(), targetJournalVolume);
+                        targetJournals.put(targetCopyVarray.getId(), targetJournalVolume);
+                    } finally {
+                        if (lock != null) {
+                            lock.close();
+                        }
+                    }
                 }
             }
         }

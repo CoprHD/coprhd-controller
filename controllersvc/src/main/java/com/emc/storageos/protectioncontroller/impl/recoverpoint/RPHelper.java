@@ -1613,7 +1613,7 @@ public class RPHelper {
      */
     public String getJournalVolumeName(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
         String journalPrefix = new StringBuilder(varray.getLabel()).append("-").append(consistencyGroup.getLabel()).append("-")
-                .append("journal").toString();
+                .append(JOURNAL).toString();
         List<Volume> existingJournals = getJournalVolumesForCopy(varray, consistencyGroup);
 
         // filter out old style journal volumes

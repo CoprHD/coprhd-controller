@@ -41,19 +41,6 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/ssl \
     $(ETCDIR)/genconfig.d/syssvc \
     $(ETCDIR)/genconfig.d/test \
-    $(ETCDIR)/genconfig.d/boot/10api \
-    $(ETCDIR)/genconfig.d/boot/10auth \
-    $(ETCDIR)/genconfig.d/boot/10controller \
-    $(ETCDIR)/genconfig.d/boot/10coordinator \
-    $(ETCDIR)/genconfig.d/boot/10db \
-    $(ETCDIR)/genconfig.d/boot/10dbclient \
-    $(ETCDIR)/genconfig.d/boot/10geo \
-    $(ETCDIR)/genconfig.d/boot/10geodb \
-    $(ETCDIR)/genconfig.d/boot/10nginx \
-    $(ETCDIR)/genconfig.d/boot/10portal \
-    $(ETCDIR)/genconfig.d/boot/00security \
-    $(ETCDIR)/genconfig.d/boot/00ssl \
-    $(ETCDIR)/genconfig.d/boot/10syssvc \
     $(ETCDIR)/gentmpl \
     $(ETCDIR)/diagtool \
     $(ETCDIR)/powerofftool \
@@ -174,13 +161,7 @@ ETCFILES_APPLIANCE = diskresizetool \
     genconfig.d/ntp \
     genconfig.d/system \
     genconfig.d/vasa \
-    genconfig.d/boot/10connectemc \
-    genconfig.d/boot/00dns \
-    genconfig.d/boot/00firewall \
-    genconfig.d/boot/00network \
-    genconfig.d/boot/00ntp \
-    genconfig.d/boot/00system \
-    genconfig.d/boot/10vasa \
+    genconfig.d/boot.manifest \
     nginx/vasasvc-server-common.conf \
     nginx/vasasvc-server-dual-template.conf \
     nginx/vasasvc-server-IPv4-template.conf \
@@ -193,6 +174,7 @@ ETCFILES_APPLIANCE = diskresizetool \
 # The files that should be added into the rpm for oss builds only
 ETCFILES_LINUX = \
     storageos/boot-ovfenv \
+    genconfig.d/boot.manifest \
     systool
 
 ifeq ($(BUILD_TYPE),emc)

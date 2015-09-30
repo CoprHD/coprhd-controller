@@ -133,11 +133,13 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     Volume existingTargetVolume = null;
                     // get target
                     StringSet targets = existingSourceVolume.getSrdfTargets();
-                    for (String target : targets) {
-                        if (NullColumnValueGetter.isNotNullValue(target)) {
-                            existingTargetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
-                            targetVolumeCGURI = existingTargetVolume.getConsistencyGroup();
-                            break;
+                    if (targets != null) {
+                        for (String target : targets) {
+                            if (NullColumnValueGetter.isNotNullValue(target)) {
+                                existingTargetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
+                                targetVolumeCGURI = existingTargetVolume.getConsistencyGroup();
+                                break;
+                            }
                         }
                     }
                     break;

@@ -210,7 +210,9 @@ public class RPHelper {
             List<Volume> allVolsInRSet = getVolumesInRSet(volume);
             for (Volume vol : allVolsInRSet) {
                 volumeIDs.add(vol.getId());
-                protectionSetIds.add(vol.getProtectionSet().getURI());
+                if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
+                    protectionSetIds.add(vol.getProtectionSet().getURI());
+                }
             }
             if (cg == null) {
                 cg = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
@@ -331,6 +333,23 @@ public class RPHelper {
         return volumeDescriptors;
     }
 
+    private int getJournalRsetCount(List<URI> protectionSetVolumes, URI journalVolume) {
+        int rSetCount = 0;
+
+        Iterator<URI> iter = protectionSetVolumes.iterator();
+        while (iter.hasNext()) {
+            URI protectedVolumeID = iter.next();
+            Volume protectionVolume = _dbClient.queryObject(Volume.class, protectedVolumeID);
+            if (!protectionVolume.getInactive() &&
+                    !protectionVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.toString())
+                    && protectionVolume.getRpJournalVolume().equals(journalVolume)) {
+                rSetCount++;
+            }
+        }
+
+        return rSetCount;
+    }
+
     /**
      * Determine if the protection set's source volumes are represented in the volumeIDs list.
      * Used to figure out if we can perform full CG operations or just partial CG operations.
@@ -367,6 +386,36 @@ public class RPHelper {
 
         _log.info("Found that all of the source volumes in the protection set are in the request.");
         return true;
+    }
+
+    /**
+     * Determines if a journal volume is shared by multiple replication sets.
+     *
+     * @param protectionSetVolumes volumes from a protection set
+     * @param journalVolume journal volume
+     * @return true if journal is shared between more than one volume in a protection set
+     */
+    public boolean isJournalShared(List<URI> protectionSetVolumes, URI journalVolume) {
+        if (getJournalRsetCount(protectionSetVolumes, journalVolume) > 1) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines if a journal volume is active in a list of volumes.
+     *
+     * @param protectionSetVolumes volumes from a protection set
+     * @param journalVolume journal volume
+     * @return true if journal is active with any active volume in a protection set
+     */
+    public boolean isJournalActive(List<URI> protectionSetVolumes, URI journalVolume) {
+        if (getJournalRsetCount(protectionSetVolumes, journalVolume) > 0) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -994,7 +1043,8 @@ public class RPHelper {
         // Filter only source volumes
         if (cgVolumes != null) {
             for (Volume cgVolume : cgVolumes) {
-                if (cgVolume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) {
+                if (NullColumnValueGetter.isNotNullValue(cgVolume.getPersonality())
+                        && cgVolume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) {
                     cgSourceVolumes.add(cgVolume);
                 }
             }
@@ -1424,7 +1474,7 @@ public class RPHelper {
                         protectionSetVolumeIdsToRemove.add(rpTargetId);
                         Volume targetVol = rollbackVolume(URI.create(rpTargetId), dbClient);
                         // Rollback any target journal volumes that were created
-                        if (!NullColumnValueGetter.isNullURI(targetVol.getRpJournalVolume())) {
+                        if (targetVol != null && !NullColumnValueGetter.isNullURI(targetVol.getRpJournalVolume())) {
                             if (lastSourceVolumeInCG) {
                                 protectionSetVolumeIdsToRemove.add(targetVol.getRpJournalVolume().toString());
                                 rollbackVolume(targetVol.getRpJournalVolume(), dbClient);
@@ -1470,11 +1520,18 @@ public class RPHelper {
                 volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
 
                 // Clean up the Protection Set
-                ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                if (protectionSet != null) {
-                    // Remove volume ID from the Protection Set
-                    protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
-                    dbClient.persistObject(protectionSet);
+                if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
+                    ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                    if (protectionSet != null) {
+                        // Remove volume ID from the Protection Set
+                        protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
+                        dbClient.persistObject(protectionSet);
+                    }
+                }
+
+                // remove consistency group from volume
+                if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                 }
             }
 
@@ -1494,7 +1551,7 @@ public class RPHelper {
      */
     public static Volume rollbackVolume(URI volumeURI, DbClient dbClient) {
         Volume volume = dbClient.queryObject(Volume.class, volumeURI);
-        if (!volume.getInactive()) {
+        if (volume != null && !volume.getInactive()) {
             _log.info(String.format("Rollback volume [%s]...", volume.getLabel()));
             volume.setInactive(true);
             volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
@@ -1506,7 +1563,7 @@ public class RPHelper {
                     && !volume.getAssociatedVolumes().isEmpty()) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                    if (!associatedVolume.getInactive()) {
+                    if (associatedVolume != null && !associatedVolume.getInactive()) {
                         _log.info(String.format("Rollback volume [%s]...", associatedVolume.getLabel()));
                         associatedVolume.setInactive(true);
                         associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
@@ -1556,8 +1613,7 @@ public class RPHelper {
      */
     public String getJournalVolumeName(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
         String journalPrefix = new StringBuilder(varray.getLabel()).append("-").append(consistencyGroup.getLabel()).append("-")
-                .append("journal")
-                .toString();
+                .append("journal").toString();
         List<Volume> existingJournals = getJournalVolumesForCopy(varray, consistencyGroup);
 
         // filter out old style journal volumes

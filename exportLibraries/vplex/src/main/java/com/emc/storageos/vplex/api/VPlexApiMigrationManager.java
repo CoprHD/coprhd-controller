@@ -66,10 +66,10 @@ public class VPlexApiMigrationManager {
      * @throws VPlexApiException When an error occurs creating and/or
      *             initializing the migration.
      */
-            List<VPlexMigrationInfo> migrateVirtualVolume(String migrationName,
-                    String virtualVolumeName, List<VolumeInfo> nativeVolumeInfoList,
-                    boolean isRemote, boolean useDeviceMigration, boolean discoveryRequired,
-                    boolean startNow, String transferSize) throws VPlexApiException {
+    List<VPlexMigrationInfo> migrateVirtualVolume(String migrationName,
+            String virtualVolumeName, List<VolumeInfo> nativeVolumeInfoList,
+            boolean isRemote, boolean useDeviceMigration, boolean discoveryRequired,
+            boolean startNow, String transferSize) throws VPlexApiException {
 
         s_logger.info("Migrating virtual volume {}", virtualVolumeName);
 
@@ -130,7 +130,7 @@ public class VPlexApiMigrationManager {
      * 
      * @throws VPlexApiException When an error occurs pausing the migrations.
      */
-            void pauseMigrations(List<String> migrationNames) throws VPlexApiException {
+    void pauseMigrations(List<String> migrationNames) throws VPlexApiException {
         s_logger.info("Pausing migrations {}", migrationNames);
 
         // Find the requested migrations. An exception will be thrown if
@@ -210,7 +210,7 @@ public class VPlexApiMigrationManager {
      * 
      * @throws VPlexApiException When an error occurs resuming the migrations.
      */
-            void resumeMigrations(List<String> migrationNames) throws VPlexApiException {
+    void resumeMigrations(List<String> migrationNames) throws VPlexApiException {
         s_logger.info("Resuming migrations {}", migrationNames);
 
         // Find the requested migrations. An exception will be thrown if
@@ -299,7 +299,7 @@ public class VPlexApiMigrationManager {
      * 
      * @throws VPlexApiException When an error occurs committing the migrations.
      */
-            List<VPlexMigrationInfo> commitMigrations(List<String> migrationNames,
+    List<VPlexMigrationInfo> commitMigrations(List<String> migrationNames,
                     boolean cleanup, boolean remove, boolean rename) throws VPlexApiException {
 
         s_logger.info("Committing migrations {}", migrationNames);
@@ -404,7 +404,7 @@ public class VPlexApiMigrationManager {
      * 
      * @throws VPlexApiException When an error occurs cleaning the migrations.
      */
-            void cleanMigrations(List<String> migrationNames) throws VPlexApiException {
+    void cleanMigrations(List<String> migrationNames) throws VPlexApiException {
         s_logger.info("Cleaning migrations {}", migrationNames);
 
         // Find the requested migrations. An exception will be thrown if
@@ -441,7 +441,7 @@ public class VPlexApiMigrationManager {
      * 
      * @throws VPlexApiException When an error occurs canceling the migrations.
      */
-            void cancelMigrations(List<String> migrationNames, boolean cleanup, boolean remove)
+    void cancelMigrations(List<String> migrationNames, boolean cleanup, boolean remove)
                     throws VPlexApiException {
         s_logger.info("Canceling migrations {}", migrationNames);
 
@@ -562,7 +562,7 @@ public class VPlexApiMigrationManager {
      * @throws VPlexApiException When an error occurs removing the migration
      *             records.
      */
-            void removeMigrations(List<String> migrationNames) throws VPlexApiException {
+    void removeMigrations(List<String> migrationNames) throws VPlexApiException {
         s_logger.info("Removing records for migrations {}", migrationNames);
 
         // Find the requested migrations. An exception will be thrown if
@@ -788,7 +788,7 @@ public class VPlexApiMigrationManager {
     private VPlexMigrationInfo migrateLocalVirtualVolumeDevice(String migrationName,
             VPlexVirtualVolumeInfo virtualVolumeInfo, Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow,
             String transferSize)
-                    throws VPlexApiException {
+            throws VPlexApiException {
 
         // Find the local device.
         String localDeviceName = virtualVolumeInfo.getSupportingDevice();

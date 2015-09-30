@@ -396,7 +396,7 @@ public class VPlexApiClient {
             List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
             boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList,
             boolean findVirtualVolume)
-                    throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
                 discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume);
@@ -433,7 +433,7 @@ public class VPlexApiClient {
      */
     public VPlexDeviceInfo createDeviceAndAttachAsMirror(VPlexVirtualVolumeInfo virtualVolume,
             List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired, boolean preserveData)
-                    throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request for mirror creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createDeviceAndAttachAsMirror(virtualVolume, nativeVolumeInfoList, discoveryRequired, preserveData);
     }
@@ -1273,7 +1273,7 @@ public class VPlexApiClient {
      * 
      * @return The base URI for the client.
      */
-            URI getBaseURI() {
+    URI getBaseURI() {
         return _baseURI;
     }
 
@@ -1291,7 +1291,7 @@ public class VPlexApiClient {
      * 
      * @return The API client virtual volume manager.
      */
-            VPlexApiVirtualVolumeManager getVirtualVolumeManager() {
+    VPlexApiVirtualVolumeManager getVirtualVolumeManager() {
         return _virtualVolumeMgr;
     }
 
@@ -1300,7 +1300,7 @@ public class VPlexApiClient {
      * 
      * @return The API client export manager.
      */
-            VPlexApiExportManager getExportManager() {
+    VPlexApiExportManager getExportManager() {
         return _exportMgr;
     }
 
@@ -1311,7 +1311,7 @@ public class VPlexApiClient {
      * @param resourceURI The resource URI.
      * @return The client response.
      */
-            ClientResponse get(URI resourceURI) {
+    ClientResponse get(URI resourceURI) {
         return get(resourceURI,
                 VPlexApiConstants.ACCEPT_JSON_FORMAT_0,
                 VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO);
@@ -1326,7 +1326,7 @@ public class VPlexApiClient {
      *            See VPlexApiConstants.ACCEPT_JSON_FORMAT_*
      * @return The client response.
      */
-            ClientResponse get(URI resourceURI, String jsonFormat) {
+    ClientResponse get(URI resourceURI, String jsonFormat) {
         return get(resourceURI, jsonFormat,
                 VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO);
     }
@@ -1341,7 +1341,7 @@ public class VPlexApiClient {
      * 
      * @return The client response.
      */
-            ClientResponse get(URI resourceURI, String jsonFormat, String cacheControlMaxAge) {
+    ClientResponse get(URI resourceURI, String jsonFormat, String cacheControlMaxAge) {
         int retryCount = 0;
         ClientResponse response = null;
         while (++retryCount <= GET_RETRY_COUNT) {
@@ -1369,7 +1369,7 @@ public class VPlexApiClient {
      * @param postData The POST data.
      * @return The client response.
      */
-            ClientResponse post(URI resourceUri, String postData) {
+    ClientResponse post(URI resourceUri, String postData) {
         return post(resourceUri, postData, VPlexApiConstants.ACCEPT_JSON_FORMAT_0);
     }
 
@@ -1381,7 +1381,7 @@ public class VPlexApiClient {
      * 
      * @return The client response.
      */
-            ClientResponse post(URI resourceURI, String postData, String jsonFormat) {
+    ClientResponse post(URI resourceURI, String postData, String jsonFormat) {
         ClientResponse response = _client.post(resourceURI, postData, _vplexSessionId, jsonFormat);
         updateVPLEXSessionId(response);
 
@@ -1410,7 +1410,7 @@ public class VPlexApiClient {
      * @param resourceURI The resource URI.
      * @return The client response.
      */
-            ClientResponse put(URI resourceURI) {
+   ClientResponse put(URI resourceURI) {
         return put(resourceURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_0);
     }
 
@@ -1444,7 +1444,7 @@ public class VPlexApiClient {
      * @throws VPlexApiException When the command completes unsuccessfully or we
      *             time out because it is taking too long.
      */
-            String waitForCompletion(ClientResponse asyncResponse) throws VPlexApiException {
+    String waitForCompletion(ClientResponse asyncResponse) throws VPlexApiException {
         MultivaluedMap<String, String> headers = asyncResponse.getHeaders();
         String taskResourceStr = headers.getFirst(VPlexApiConstants.LOCATION_HEADER);
         if (taskResourceStr == null) {

@@ -73,7 +73,7 @@ import com.google.common.base.Function;
 @Path("/block/migrations")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
-                ACL.ALL })
+        ACL.ALL })
 public class MigrationService extends TaskResourceService {
     // A reference to the BlockServiceApi for VPlex.
     VPlexBlockServiceApiImpl _vplexBlockServiceApi = null;

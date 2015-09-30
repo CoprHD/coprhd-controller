@@ -174,6 +174,7 @@ URI_VOLUME_FULL_COPY_CHECK_PROGRESS = URI_VOLUME_LIST     + '/{0}/protection/ful
 URI_FULL_COPY = URI_SERVICES_BASE  + '/block/full-copies'
 URI_FULL_COPY_RESTORE = URI_FULL_COPY + '/{0}/restore'
 URI_FULL_COPY_RESYNC = URI_FULL_COPY + '/{0}/resynchronize'
+URI_ADD_JOURNAL = URI_VOLUME_LIST + '/protection/addJournalCapacity'
 
 URI_UNMANAGED                    = URI_VDC + '/unmanaged'
 URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
@@ -3449,6 +3450,30 @@ class Bourne:
 
         print "VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})
+        print "RESP = ", resp
+        self.assert_is_dict(resp)
+        tr_list = resp['task']
+        #print 'DEBUG : debug operation for volume : ' + o['resource']['id']
+        print tr_list
+        result = list()
+        for tr in tr_list:
+            s = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
+            result.append(s)
+        return result
+
+    def volume_add_journal(self, copyName, project, neighborhood, cos, size, count, consistencyGroup):
+        parms = {
+            'name' : copyName,
+            'varray' : neighborhood,
+            'project' : project,
+            'vpool' :  cos,
+            'size' : size,
+            'count' : count,
+	    'consistency_group' : consistencyGroup,
+        }        
+
+        print "ADD JOURNAL Params = ", parms
+        resp = self.api('POST', URI_ADD_JOURNAL, parms, {})
         print "RESP = ", resp
         self.assert_is_dict(resp)
         tr_list = resp['task']

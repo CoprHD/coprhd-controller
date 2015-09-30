@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 
 /**
@@ -102,10 +103,10 @@ public abstract class BlockIngestOrchestrator {
      * @param vPool the VirtualPool into which it would be ingested.
      */
     protected void validateUnManagedVolume(UnManagedVolume unManagedVolume, VirtualPool vPool) throws IngestionException {
-
         VolumeIngestionUtil.checkUnmanagedVolumeInactive(unManagedVolume);
         VolumeIngestionUtil.checkVPoolValidForUnManagedVolumeInProtectedMode(vPool, unManagedVolume, _dbClient);
         VolumeIngestionUtil.checkUnManagedResourceIngestable(unManagedVolume);
+        VolumeIngestionUtil.checkUnManagedResourceExportWwnPresent(unManagedVolume);
         VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
     }
 
@@ -617,15 +618,25 @@ public abstract class BlockIngestOrchestrator {
      * @param unManagedVolumes
      * @param createdObjects Already processed Block Objects in Memory
      * @param taskStatusMap
+     * @param vplexIngestionMethod the VPLEX backend ingestion method
      * @return
      */
     @SuppressWarnings("deprecation")
-    protected boolean markUnManagedVolumeInactive(UnManagedVolume currentUnmanagedVolume, BlockObject currentBlockObject,
-            List<UnManagedVolume> unManagedVolumes,
-            Map<String, BlockObject> createdObjects, Map<String, List<DataObject>> updatedObjects, Map<String, StringBuffer> taskStatusMap) {
+    protected boolean markUnManagedVolumeInactive(UnManagedVolume currentUnmanagedVolume, 
+            BlockObject currentBlockObject, List<UnManagedVolume> unManagedVolumes,
+            Map<String, BlockObject> createdObjects, Map<String, List<DataObject>> updatedObjects, 
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) {
         _logger.info("Running unmanagedvolume {} replica ingestion status", currentUnmanagedVolume.getNativeGuid());
         boolean markUnManagedVolumeInactive = false;
 
+        // if the vplex ingestion method is vvol-only, we don't need to check replicas 
+        if (VolumeIngestionUtil.isVplexVolume(currentUnmanagedVolume) &&
+                VplexBackendIngestionContext.INGESTION_METHOD_VVOL_ONLY.equals(vplexIngestionMethod)) {
+            _logger.info("This is a VPLEX virtual volume and the ingestion method is "
+                    + "virtual volume only. Skipping replica ingestion algorithm.");
+            return true;
+        }
+        
         Map<BlockObject, List<BlockObject>> parentReplicaMap = new HashMap<BlockObject, List<BlockObject>>();
         StringSet processedUnManagedGUIDS = new StringSet();
         UnManagedVolume rootUnManagedVolume = currentUnmanagedVolume;
@@ -661,6 +672,14 @@ public abstract class BlockIngestOrchestrator {
                 parentVolumeNativeGUID = getParentVolumeNativeGUIDByRepType(unManagedVolumeInformation);
                 _logger.info("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
                         rootUnManagedVolume.getNativeGuid());
+                
+                // if the parent is null and this is a VPLEX backend volume, then it 
+                // would seem the backend array has been discovered for 
+                // UnManaged Volumes, but the VPLEX device has not.
+                if ((null == parentVolumeNativeGUID) 
+                        && VolumeIngestionUtil.isVplexBackendVolume(rootUnManagedVolume)) {
+                    throw IngestionException.exceptions.vplexBackendVolumeHasNoParent(rootUnManagedVolume.getLabel());
+                }
             } else {
                 _logger.info("unmanagedvolume not found looking for ingested volume {} in vipr db", parentVolumeNativeGUID);
                 // parent might be already ingested
@@ -676,6 +695,14 @@ public abstract class BlockIngestOrchestrator {
                     parentVolumeNativeGUID = getParentVolumeNativeGUIDByRepType(unManagedVolumeInformation);
                     _logger.info("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
                             rootUnManagedVolume.getNativeGuid());
+                    
+                    // if the parent is null and this is a VPLEX backend volume, then it 
+                    // would seem the backend array has been discovered for 
+                    // UnManaged Volumes, but the VPLEX device has not.
+                    if ((null == parentVolumeNativeGUID) 
+                            && VolumeIngestionUtil.isVplexBackendVolume(rootUnManagedVolume)) {
+                        throw IngestionException.exceptions.vplexBackendVolumeHasNoParent(rootUnManagedVolume.getLabel());
+                    }
                 } else {
                     _logger.info("Found a replica {} whose parent is already ingested with PUBLIC_ACCESS=true", parentVolumeNativeGUID);
                     // Find the ViPR object and put the block object and the parent in the map and break
@@ -726,10 +753,11 @@ public abstract class BlockIngestOrchestrator {
             for (BlockObject replica : parentReplicaMap.get(parent)) {
                 if (replica instanceof BlockMirror) {
                     VolumeIngestionUtil.setupMirrorParentRelations(replica, parent, _dbClient);
-                } else if (replica instanceof Volume && isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
-                    VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
                 } else if (replica instanceof Volume) {
-                    if (VolumeIngestionUtil.isVplexVolume(currentUnmanagedVolume)) {
+                    if (isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
+                        VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
+                    } else if (VolumeIngestionUtil.isVplexVolume(parent, _dbClient)
+                            && VolumeIngestionUtil.isVplexBackendVolume(replica, _dbClient)) {
                         VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);
                     } else {
                         VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);

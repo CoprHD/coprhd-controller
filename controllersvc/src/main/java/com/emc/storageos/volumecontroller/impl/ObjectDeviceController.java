@@ -3,7 +3,6 @@
  * All Rights Reserved
  */
 
-
 package com.emc.storageos.volumecontroller.impl;
 
 import java.net.URI;
@@ -85,48 +84,34 @@ public class ObjectDeviceController implements ObjectController {
     }
 
     @Override
-    public void createBucket(URI storage, URI uriPool, URI bkt, String label, String namespace, String retention,
-            String hardQuota, String softQuota, String owner, String opId) throws ControllerException {
+    public void createBucket(URI storage, URI uriPool, URI bkt, String label, String namespace, Integer retention,
+            Long hardQuota, Long softQuota, String owner, String task) throws ControllerException {
 
-        _log.info("ObjectDeviceController:createBucket start");
-        StorageSystem storageObj = null;
+        _log.info("ObjectDeviceController:createBucket Bucket URI : {} ", bkt);
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bkt);
-        BiosCommandResult result = null;
+        StoragePool stPool = _dbClient.queryObject(StoragePool.class, uriPool);
+        ObjectDeviceInputOutput args = new ObjectDeviceInputOutput();
+        args.setName(label);
+        args.setNamespace(namespace);
+        args.setDevStoragePool(stPool.getNativeId()); // recommended storage pool
+        args.setRetentionPeriod(retention);
+        args.setBlkSizeHQ(hardQuota);
+        args.setNotSizeSQ(softQuota);
+        args.setOwner(owner);
 
-        try {
-            StoragePool stPool = _dbClient.queryObject(StoragePool.class, uriPool);
-            ObjectDeviceInputOutput args = new ObjectDeviceInputOutput();
-            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-
-            args.setName(label);
-            args.setNamespace(namespace);
-            args.setDevStoragePool(stPool.getNativeId()); // recommended storage pool
-            args.setRetentionPeriod(retention);
-            args.setBlkSizeHQ(hardQuota);
-            args.setNotSizeSQ(softQuota);
-            args.setOwner(owner);
-
-            _log.info("ObjectDeviceController:createBucket URI and Type: " + storage.toString() + "   " +
-                    storageObj.getSystemType());
-            result = getDevice(storageObj.getSystemType()).doCreateBucket(storageObj, args);
-            if (!result.getCommandPending()) {
-                bucketObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
-            }
-
-            if(result.isCommandSuccess()){
-                bucketObj.setNativeId(args.getBktNativeId());
-            }
-            _dbClient.persistObject(bucketObj);
-            _log.info("ObjectDeviceController:createBucket end");
-        } catch (Exception e) {
-            bucketObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
-            _log.error("ObjectDeviceController:createBucket Unable to create Bucket storage");
+        _log.info("ObjectDeviceController:createBucket URI and Type: " + storage.toString() + "   " +
+                storageObj.getSystemType());
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateBucket(storageObj, bucketObj, args, task);
+        if (result.getCommandPending()) {
+            return;
         }
+        bucketObj.getOpStatus().updateTaskStatus(task, result.toOperation());
     }
 
     @Override
     public void deleteBucket(URI storage, URI bucket, String task) throws ControllerException {
-        _log.info("ObjectDeviceController:deleteBucket");
+        _log.info("ObjectDeviceController:deleteBucket Bucket URI : {} ", bucket);
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
         BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj, task);
@@ -140,7 +125,7 @@ public class ObjectDeviceController implements ObjectController {
     @Override
     public void updateBucket(URI storage, URI bucket, Long softQuota, Long hardQuota, Integer retention,
             String task) throws ControllerException {
-        _log.info("ObjectDeviceController:updateBucket");
+        _log.info("ObjectDeviceController:updateBucket Bucket URI : {} ", bucket);
 
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);

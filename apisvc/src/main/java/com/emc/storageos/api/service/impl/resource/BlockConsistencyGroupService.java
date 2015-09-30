@@ -152,9 +152,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         return blockServiceApiImpl;
     }
-    
+
     /**
      * Get the specific BlockServiceApiImpl based on the storage system type.
+     * 
      * @param system The storage system instance
      * @return BloackServiceApiImpl for the storage system type.
      */
@@ -162,7 +163,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         BlockServiceApi blockServiceApiImpl = null;
         String systemType = system.getSystemType();
         if (systemType.equals(DiscoveredDataObject.Type.rp.name()) ||
-            systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
+                systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
             blockServiceApiImpl = getBlockServiceImpl(systemType);
         } else {
             blockServiceApiImpl = getBlockServiceImpl("group");
@@ -750,13 +751,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
 
-        // Get the storage system for the consistency group.
-        StorageSystem storage = _permissionsHelper.getObjectById(consistencyGroup.getStorageController(), StorageSystem.class);
-        if (storage.checkIfVmax3()) {
-            // T8.0.1 provider doesn't support group restore
-            throw APIException.methodNotAllowed.notSupported();
-        }
-
         // Get the parent volume.
         final Volume snapshotParentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
 
@@ -810,11 +804,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Get the storage system for the consistency group.
         StorageSystem storage = _permissionsHelper.getObjectById(consistencyGroup.getStorageController(), StorageSystem.class);
-        if (storage.checkIfVmax3()) {
-            if (snapshot.getSettingsInstance() == null) {
-                throw APIException.badRequests.snapshotNullSettingsInstance(snapshot.getLabel());
-            }
-        }
 
         // resync for OpenStack storage system type is not supported
         if (Type.openstack.name().equalsIgnoreCase(storage.getSystemType())) {
@@ -1035,7 +1024,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Get the specific BlockServiceApiImpl based on the storage system type.
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(cgStorageSystem);
-        
 
         // Adding/removing volumes to/from a consistency group
         // is not supported when the consistency group has active

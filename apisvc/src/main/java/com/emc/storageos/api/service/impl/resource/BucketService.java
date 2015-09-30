@@ -155,7 +155,6 @@ public class BucketService extends TaskResourceService {
 
         // Check for all mandatory field
         ArgValidator.checkFieldNotNull(param.getLabel(), "name");
-        ArgValidator.checkFieldNotNull(param.getOwner(), "owner");
 
         Project project = _permissionsHelper.getObjectById(id, Project.class);
         ArgValidator.checkEntity(project, id, isIdEmbeddedInURL(id));

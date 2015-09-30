@@ -287,7 +287,8 @@ public class CIMConnectionFactory {
         } else {
             _log.info("{} is not the active smis provider", smisProvider.getId());
             if (null != connection) {
-                _connectionManager.removeConnection(smisProvider.getIPAddress());
+                _connectionManager.removeConnection(ConnectionManager.generateConnectionCacheKey(
+                        smisProvider.getIPAddress(), smisProvider.getPortNumber()));
             }
         }
     }

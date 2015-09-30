@@ -84,9 +84,8 @@ BEGIN	{
     }
     groupName = ARGV[1];
     portszoned = ARGV[2];
-    zonename = ARGV[3];
-    operation = ARGV[4];
-    split(portszoned, portszonedlist, ", ");
+    operation = ARGV[3];
+    split(portszoned, portszonedlist, ",");
     system("/opt/storageos/bin/dbutils list ExportGroup >/tmp/_eg");
     system("/opt/storageos/bin/dbutils list ExportMask >/tmp/_em");
     system("/opt/storageos/bin/dbutils list StoragePort >/tmp/_port");
@@ -135,12 +134,18 @@ BEGIN	{
                                 found="false";
                             }
                         }
-                        if (found ~ "true") {
+                        if (found ~ "false") {
                             break;
                         }
                     }
                     if (found ~ "true") {
                         print "1" > "/tmp/_prezone";
+                        if (length(portnetworkid) == length(portszonedlist)) {
+                            print "1" > "/tmp/_portsused";
+                        }
+                        else {
+                            print "0" > "/tmp/_portsused";
+                        }
                     }
                     else {
                         print "0" > "/tmp/_prezone";

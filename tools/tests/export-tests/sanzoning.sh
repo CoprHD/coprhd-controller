@@ -15,12 +15,15 @@ source conf/sanity.conf
 
 SAN_VA=san-va
 SAN_NETWORK_losam82=$SAN_VA/$SAN_ZONE_losam82
+COS_NAME=""
 COS_VMAXBLOCK_THIN=cosvmaxb_thin
 COS2_VMAXBLOCK_THIN=cosvmaxb_thin2
 COS_VNXBLOCK_THIN=cosvnxb_thin
 COS2_VNXBLOCK_THIN=cosvnxb_thin2
 BLK_SIZE=1073741824
 
+ZONE_NAME=""
+ZONE_ADDR=""
 ZONE1_NAME_VMAX=VMAXsanityzonetest1
 ZONE2_NAME_VMAX=VMAXsanityzonetest2
 ZONE3_NAME_VMAX=VMAXsanityzonetest3
@@ -129,6 +132,10 @@ delete_hosts() {
     hosts delete $HOST_NAME
 }
 
+delete_virtual_pool() {
+    cos delete $COS_NAME block
+}
+
 add_initiator_to_host() {
     # Add host initiators to network vplex154nbr2
     transportzone add $SAN_NETWORK_losam82 $ZONE2_ADDR1
@@ -150,115 +157,17 @@ add_networks_to_varrays() {
     transportzone assign $SAN_ZONE_losam82 $SAN_VA
 }
 
-setup_zones1_vnx() {
-    echo "Creating zone " $ZONE1_NAME_VNX
-    zone create $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE1_NAME_VNX,$ZONE1_ADDR1+$ZONE1_ADDR2_VNX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE1_NAME_VNX --exclude_members false
+setup_zones() {
+    echo "Creating zone " $ZONE_NAME
+    zone create $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE_NAME,$ZONE_ADDR
+    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE_NAME --exclude_members false
     zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
 }
 
-cleanup_zones1_vnx() {
-    echo "Deleting zone " $ZONE1_NAME_VNX
-    zone delete $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE1_NAME_VNX,$ZONE1_ADDR1+$ZONE1_ADDR2_VNX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE1_NAME_VNX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-setup_zones2_vnx() {
-    echo "Creating zone " $ZONE2_NAME_VNX
-    zone create $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE2_NAME_VNX,$ZONE2_ADDR1+$ZONE2_ADDR2_VNX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE2_NAME_VNX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-cleanup_zones2_vnx() {
-    echo "Deleting zone " $ZONE2_NAME_VNX
-    zone delete $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE2_NAME_VNX,$ZONE2_ADDR1+$ZONE2_ADDR2_VNX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE2_NAME_VNX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-setup_zones3_vnx() {
-    echo "Creating zone " $ZONE3_NAME_VNX
-    zone create $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE3_NAME_VNX,$ZONE3_ADDR1+$ZONE3_ADDR2_VNX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE3_NAME_VNX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}   
-    
-cleanup_zones3_vnx() {
-    echo "Deleting zone " $ZONE3_NAME_VNX
-    zone delete $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE3_NAME_VNX,$ZONE3_ADDR1+$ZONE3_ADDR2_VNX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE3_NAME_VNX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-setup_zones4_vnx() {
-    echo "Creating zone " $ZONE4_NAME_VNX
-    zone create $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE4_NAME_VNX,$ZONE4_ADDR1+$ZONE4_ADDR2_VNX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE4_NAME_VNX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}   
-    
-cleanup_zones4_vnx() {
-    echo "Deleting zone " $ZONE4_NAME_VNX
-    zone delete $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE4_NAME_VNX,$ZONE4_ADDR1+$ZONE4_ADDR2_VNX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE4_NAME_VNX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-setup_zones1_vmax() {
-    echo "Creating zone " $ZONE1_NAME_VMAX
-    zone create $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE1_NAME_VMAX,$ZONE1_ADDR1+$ZONE1_ADDR2_VMAX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE1_NAME_VMAX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-cleanup_zones1_vmax() {
-    echo "Deleting zone " $ZONE1_NAME_VMAX
-    zone delete $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE1_NAME_VMAX,$ZONE1_ADDR1+$ZONE1_ADDR2_VMAX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE1_NAME_VMAX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-setup_zones2_vmax() {
-    echo "Creating zone " $ZONE2_NAME_VMAX
-    zone create $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE2_NAME_VMAX,$ZONE2_ADDR1+$ZONE2_ADDR2_VMAX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE2_NAME_VMAX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-cleanup_zones2_vmax() {
-    echo "Deleting zone " $ZONE2_NAME_VMAX
-    zone delete $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE2_NAME_VMAX,$ZONE2_ADDR1+$ZONE2_ADDR2_VMAX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE2_NAME_VMAX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-setup_zones3_vmax() {
-    echo "Creating zone " $ZONE3_NAME_VMAX
-    zone create $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE3_NAME_VMAX,$ZONE3_ADDR1+$ZONE3_ADDR2_VMAX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE3_NAME_VMAX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-cleanup_zones3_vmax() {
-    echo "Deleting zone " $ZONE3_NAME_VMAX
-    zone delete $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE3_NAME_VMAX,$ZONE3_ADDR1+$ZONE3_ADDR2_VMAX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE3_NAME_VMAX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-setup_zones4_vmax() {
-    echo "Creating zone " $ZONE4_NAME_VMAX
-    zone create $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE4_NAME_VMAX,$ZONE4_ADDR1+$ZONE4_ADDR2_VMAX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE4_NAME_VMAX --exclude_members false
-    zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
-}
-
-cleanup_zones4_vmax() {
-    echo "Deleting zone " $ZONE4_NAME_VMAX
-    zone delete $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE4_NAME_VMAX,$ZONE4_ADDR1+$ZONE4_ADDR2_VMAX
-    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE4_NAME_VMAX --exclude_members false
+cleanup_zones() {
+    echo "Deleting zone " $ZONE_NAME
+    zone delete $BROCADE_NETWORK --fabricid $FABRIC_ID --zones $ZONE_NAME,$ZONE_ADDR
+    zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE_NAME --exclude_members false
     zone activate $BROCADE_NETWORK --fabricid $FABRIC_ID
 }
 
@@ -357,14 +266,32 @@ cleanup() {
     echo "Cleaning up volumes on VMAX"
     run volume delete $project/$VMAX_VOLUME1_NAME --wait
     run volume delete $project/$VMAX_VOLUME2_NAME --wait
-    cleanup_zones1_vnx
-    cleanup_zones2_vnx
-    cleanup_zones3_vnx
-    cleanup_zones4_vnx
-    cleanup_zones1_vmax
-    cleanup_zones2_vmax
-    cleanup_zones3_vmax
-    cleanup_zones4_vmax
+
+    echo "Cleaning up zones created"
+    ZONE_NAME=$ZONE1_NAME_VNX
+    ZONE_ADDR=$ZONE1_ADDR1+$ZONE1_ADDR2_VNX
+    cleanup_zones
+    ZONE_NAME=$ZONE2_NAME_VNX
+    ZONE_ADDR=$ZONE2_ADDR1+$ZONE2_ADDR2_VNX
+    cleanup_zones
+    ZONE_NAME=$ZONE3_NAME_VNX
+    ZONE_ADDR=$ZONE3_ADDR1+$ZONE3_ADDR2_VNX
+    cleanup_zones
+    ZONE_NAME=$ZONE4_NAME_VNX
+    ZONE_ADDR=$ZONE4_ADDR1+$ZONE4_ADDR2_VNX
+    cleanup_zones
+    ZONE_NAME=$ZONE1_NAME_VMAX
+    ZONE_ADDR=$ZONE1_ADDR1+$ZONE1_ADDR2_VMAX
+    cleanup_zones
+    ZONE_NAME=$ZONE2_NAME_VMAX
+    ZONE_ADDR=$ZONE2_ADDR1+$ZONE2_ADDR2_VMAX
+    cleanup_zones
+    ZONE_NAME=$ZONE3_NAME_VMAX
+    ZONE_ADDR=$ZONE3_ADDR1+$ZONE3_ADDR2_VMAX
+    cleanup_zones
+    ZONE_NAME=$ZONE4_NAME_VMAX
+    ZONE_ADDR=$ZONE4_ADDR1+$ZONE4_ADDR2_VMAX
+    cleanup_zones
 }
 
 addvolumezonecheck() {
@@ -440,12 +367,32 @@ compare_ports_zones() {
         done <"/tmp/_fczoneref"
         rm -f "/tmp/_fczoneref"
     fi
+    if [ -f "/tmp/_portsused" ]
+    then
+        while read LINE  
+        do
+            if [ $LINE -eq 1 ]
+            then
+                echo "All zoned ports are used"
+            else
+                echo "All zoned ports are not used"
+            fi
+        done <"/tmp/_portsused"
+        rm -f "/tmp/_portsused"
+    fi
 }
 
 sanzonereuse() {
+    portzonedmatchvpoolpath
+    portzonedmorethanvpoolpath
+}
+
+portzonedmatchvpoolpath() {
 #   Zone Reuse - Ports zoned match vpool paths requirements - VNX
 #   Create export group test
-    setup_zones1_vnx
+    ZONE_NAME=$ZONE1_NAME_VNX
+    ZONE_ADDR=$ZONE1_ADDR1+$ZONE1_ADDR2_VNX
+    setup_zones
     echo "Testing reusing zones on VNX"
     echo "Creating volume "
     run volume create $VNX_VOLUME1_NAME $project $SAN_VA $COS_VNXBLOCK_THIN $BLK_SIZE --thinVolume true
@@ -455,28 +402,32 @@ sanzonereuse() {
     echo "Creating export group"
     run export_group create --type Host $project $VNX_EXPORT_NAME $SAN_VA --volspec "$vnx_vol1+1" --hosts $HOST_NAME
     run export_group show $vnx_exp    
-    run dumpexport $VNX_EXPORT_NAME $ZONE1_ADDR2_VNX $ZONE1_NAME_VNX portselection
+    run dumpexport $VNX_EXPORT_NAME $ZONE1_ADDR2_VNX portselection
     compare_ports_zones
     checkzone=$( networksystem zonereferences $ZONE1_ADDR1 $ZONE1_ADDR2_VNX | grep -c $ZONE1_NAME_VNX )
     echo "Matched " $checkzone " zone with name " $ZONE1_NAME_VNX " and endpoints " $ZONE1_ADDR1 " and " $ZONE1_ADDR2_VNX
 
 #   Add initiator to host test
-    setup_zones2_vnx
+    ZONE_NAME=$ZONE2_NAME_VNX
+    ZONE_ADDR=$ZONE2_ADDR1+$ZONE2_ADDR2_VNX
+    setup_zones
     echo "Adding initiator to host"
     add_initiator_to_host
-    run dumpexport $VNX_EXPORT_NAME $ZONE2_ADDR2_VNX $ZONE2_NAME_VNX portselection
+    run dumpexport $VNX_EXPORT_NAME $ZONE1_ADDR2_VNX,$ZONE2_ADDR2_VNX portselection
     compare_ports_zones
     checkzone=$( networksystem zonereferences $ZONE2_ADDR1 $ZONE2_ADDR2_VNX | grep -c $ZONE2_NAME_VNX )
     echo "Matched " $checkzone " zone with name " $ZONE2_NAME_VNX " and endpoints " $ZONE2_ADDR1 " and " $ZONE2_ADDR2_VNX
 
 #   Change Vpool to add paths test
-    setup_zones3_vnx
-    setup_zones4_vnx
+    ZONE_NAME=$ZONE3_NAME_VNX
+    ZONE_ADDR=$ZONE3_ADDR1+$ZONE3_ADDR2_VNX
+    setup_zones
+    ZONE_NAME=$ZONE4_NAME_VNX
+    ZONE_ADDR=$ZONE4_ADDR1+$ZONE4_ADDR2_VNX
+    setup_zones
     echo "Change vpool to add paths"
     add_path_to_vpool_vnx
-    run dumpexport $VNX_EXPORT_NAME $ZONE3_ADDR2_VNX $ZONE3_NAME_VNX portselection
-    compare_ports_zones
-    run dumpexport $VNX_EXPORT_NAME $ZONE4_ADDR2_VNX $ZONE4_NAME_VNX portselection
+    run dumpexport $VNX_EXPORT_NAME $ZONE1_ADDR2_VNX,$ZONE2_ADDR2_VNX,$ZONE3_ADDR2_VNX,$ZONE4_ADDR2_VNX portselection
     compare_ports_zones
     checkzone=$( networksystem zonereferences $ZONE3_ADDR1 $ZONE3_ADDR2_VNX | grep -c $ZONE3_NAME_VNX )
     echo "Matched " $checkzone " zone with name " $ZONE3_NAME_VNX " and endpoints " $ZONE3_ADDR1 " and " $ZONE3_ADDR2_VNX
@@ -495,7 +446,7 @@ sanzonereuse() {
     else
         echo "zone(s) exist in ViPR after deleting export group "
     fi
-    run dumpexport $VNX_EXPORT_NAME $ZONE1_ADDR2_VNX $ZONE1_NAME_VNX checkfczone
+    run dumpexport $VNX_EXPORT_NAME $ZONE1_ADDR2_VNX checkfczone
     compare_ports_zones
 
 #   Delete volume test
@@ -503,10 +454,18 @@ sanzonereuse() {
     run volume delete $project/$VNX_VOLUME1_NAME --wait
 
 #   Clean up Zones
-    cleanup_zones1_vnx
-    cleanup_zones2_vnx
-    cleanup_zones3_vnx
-    cleanup_zones4_vnx
+    ZONE_NAME=$ZONE1_NAME_VNX
+    ZONE_ADDR=$ZONE1_ADDR1+$ZONE1_ADDR2_VNX
+    cleanup_zones
+    ZONE_NAME=$ZONE2_NAME_VNX
+    ZONE_ADDR=$ZONE2_ADDR1+$ZONE2_ADDR2_VNX
+    cleanup_zones
+    ZONE_NAME=$ZONE3_NAME_VNX
+    ZONE_ADDR=$ZONE3_ADDR1+$ZONE3_ADDR2_VNX
+    cleanup_zones
+    ZONE_NAME=$ZONE4_NAME_VNX
+    ZONE_ADDR=$ZONE4_ADDR1+$ZONE4_ADDR2_VNX
+    cleanup_zones
 
 #   Clean up hosts and initiators
     delete_initiators
@@ -518,7 +477,9 @@ sanzonereuse() {
 
 #   Zone Reuse - Ports zoned match vpool paths requirements - VMAX
 #   Create export group test
-    setup_zones1_vmax
+    ZONE_NAME=$ZONE1_NAME_VMAX
+    ZONE_ADDR=$ZONE1_ADDR1+$ZONE1_ADDR2_VMAX
+    setup_zones
     echo "Testing reusing zones on VMAX"
     echo "Creating volume "
     run volume create $VMAX_VOLUME1_NAME $project $SAN_VA $COS_VMAXBLOCK_THIN $BLK_SIZE --thinVolume true
@@ -528,28 +489,32 @@ sanzonereuse() {
     echo "Creating export group"
     run export_group create --type Host $project $VMAX_EXPORT_NAME $SAN_VA --volspec "$vmax_vol1+1" --hosts $HOST_NAME    
     run export_group show $vmax_exp
-    run dumpexport $VMAX_EXPORT_NAME $ZONE1_ADDR2_VMAX $ZONE1_NAME_VMAX portselection
+    run dumpexport $VMAX_EXPORT_NAME $ZONE1_ADDR2_VMAX portselection
     compare_ports_zones
     checkzone=$( networksystem zonereferences $ZONE1_ADDR1 $ZONE1_ADDR2_VMAX | grep -c $ZONE1_NAME_VMAX )
     echo "Matched " $checkzone " zone with name " $ZONE1_NAME_VMAX " and endpoints " $ZONE1_ADDR1 " and " $ZONE1_ADDR2_VMAX
 
 #   Add initiator to host test
-    setup_zones2_vmax
+    ZONE_NAME=$ZONE2_NAME_VMAX
+    ZONE_ADDR=$ZONE2_ADDR1+$ZONE2_ADDR2_VMAX
+    setup_zones
     echo "Adding initiator to host"
     add_initiator_to_host
-    run dumpexport $VMAX_EXPORT_NAME $ZONE2_ADDR2_VMAX $ZONE2_NAME_VMAX portselection
+    run dumpexport $VMAX_EXPORT_NAME $ZONE1_ADDR2_VMAX,$ZONE2_ADDR2_VMAX portselection
     compare_ports_zones
     checkzone=$( networksystem zonereferences $ZONE2_ADDR1 $ZONE2_ADDR2_VMAX | grep -c $ZONE2_NAME_VMAX )
     echo "Matched " $checkzone " zone with name " $ZONE2_NAME_VMAX " and endpoints " $ZONE2_ADDR1 " and " $ZONE2_ADDR2_VMAX
 
 #   Change Vpool to add paths test
-    setup_zones3_vmax
-    setup_zones4_vmax
+    ZONE_NAME=$ZONE3_NAME_VMAX
+    ZONE_ADDR=$ZONE3_ADDR1+$ZONE3_ADDR2_VMAX
+    setup_zones
+    ZONE_NAME=$ZONE4_NAME_VMAX
+    ZONE_ADDR=$ZONE4_ADDR1+$ZONE4_ADDR2_VMAX
+    setup_zones
     echo "Change vpool to add paths"
     add_path_to_vpool_vmax
-    run dumpexport $VMAX_EXPORT_NAME $ZONE3_ADDR2_VMAX $ZONE3_NAME_VMAX portselection
-    compare_ports_zones
-    run dumpexport $VMAX_EXPORT_NAME $ZONE4_ADDR2_VMAX $ZONE4_NAME_VMAX portselection
+    run dumpexport $VMAX_EXPORT_NAME $ZONE1_ADDR2_VMAX,$ZONE2_ADDR2_VMAX,$ZONE3_ADDR2_VMAX,$ZONE4_ADDR2_VMAX portselection
     compare_ports_zones
     checkzone=$( networksystem zonereferences $ZONE3_ADDR1 $ZONE3_ADDR2_VMAX | grep -c $ZONE3_NAME_VMAX )
     echo "Matched " $checkzone " zone with name " $ZONE3_NAME_VMAX " and endpoints " $ZONE3_ADDR1 " and " $ZONE3_ADDR2_VMAX
@@ -568,7 +533,7 @@ sanzonereuse() {
     else
         echo "zone(s) exist in ViPR after deleting export group "
     fi
-    run dumpexport $VMAX_EXPORT_NAME $ZONE1_ADDR2_VMAX $ZONE1_NAME_VMAX checkfczone
+    run dumpexport $VMAX_EXPORT_NAME $ZONE1_ADDR2_VMAX checkfczone
     compare_ports_zones
 
 #   Delete volume test
@@ -576,14 +541,83 @@ sanzonereuse() {
     run volume delete $project/$VMAX_VOLUME1_NAME --wait
 
 #   Clean up Zones
-    cleanup_zones1_vmax
-    cleanup_zones2_vmax
-    cleanup_zones3_vmax
-    cleanup_zones4_vmax
+    ZONE_NAME=$ZONE1_NAME_VMAX
+    ZONE_ADDR=$ZONE1_ADDR1+$ZONE1_ADDR2_VMAX
+    cleanup_zones
+    ZONE_NAME=$ZONE2_NAME_VMAX
+    ZONE_ADDR=$ZONE2_ADDR1+$ZONE2_ADDR2_VMAX
+    cleanup_zones
+    ZONE_NAME=$ZONE3_NAME_VMAX
+    ZONE_ADDR=$ZONE3_ADDR1+$ZONE3_ADDR2_VMAX
+    cleanup_zones
+    ZONE_NAME=$ZONE4_NAME_VMAX
+    ZONE_ADDR=$ZONE4_ADDR1+$ZONE4_ADDR2_VMAX
+    cleanup_zones
 
 #   Clean up hosts and initiators
     delete_initiators
     delete_hosts
+}
+
+portzonedmorethanvpoolpath() {
+#   Delete virtual Pool
+    COS_NAME=$COS_VNXBLOCK_THIN
+    delete_virtual_pool
+    COS_NAME=$COS2_VNXBLOCK_THIN
+    delete_virtual_pool
+    COS_NAME=$COS_VMAXBLOCK_THIN
+    delete_virtual_pool
+    COS_NAME=$COS2_VMAXBLOCK_THIN
+    delete_virtual_pool
+
+#   Create virtual pool
+    setup_virtual_pools
+
+#   Set up hosts and initiators
+    setup_hosts
+    setup_initiators
+
+#   Zone Reuse - More than needed ports pre-zoned - VNX
+#   Create export group test
+    ZONE_NAME=$ZONE1_NAME_VNX
+    ZONE_ADDR=$ZONE1_ADDR1+$ZONE1_ADDR2_VNX+$ZONE2_ADDR2_VNX
+    setup_zones
+    echo "Testing reusing zones on VNX"
+    echo "Creating volume "
+    run volume create $VNX_VOLUME1_NAME $project $SAN_VA $COS_VNXBLOCK_THIN $BLK_SIZE --thinVolume true
+
+#   Create export group test
+    echo "Exporting volume "
+    echo "Creating export group"
+    run export_group create --type Host $project $VNX_EXPORT_NAME $SAN_VA --volspec "$vnx_vol1+1" --hosts $HOST_NAME
+    run export_group show $vnx_exp
+    run dumpexport $VNX_EXPORT_NAME $ZONE1_ADDR2_VNX,$ZONE2_ADDR2_VNX portselection
+    compare_ports_zones
+    checkzone=$( networksystem zonereferences $ZONE1_ADDR1 $ZONE1_ADDR2_VNX | grep -c $ZONE1_NAME_VNX )
+    echo "Matched " $checkzone " zone with name " $ZONE1_NAME_VNX " and endpoints " $ZONE1_ADDR1 " and " $ZONE1_ADDR2_VNX
+    checkzone=$( networksystem zonereferences $ZONE1_ADDR1 $ZONE2_ADDR2_VNX | grep -c $ZONE1_NAME_VNX )
+    echo "Matched " $checkzone " zone with name " $ZONE1_NAME_VNX " and endpoints " $ZONE1_ADDR1 " and " $ZONE2_ADDR2_VNX
+
+#   Delete export group test 
+    echo "Deleting export group"
+    run export_group delete $vnx_exp
+    zone1count=$( zone list $BROCADE_NETWORK --fabricid $FABRIC_ID --zone_name $ZONE1_NAME_VNX --exclude_members false | grep -c "*sanityzonetest*" )
+    if [ $zone1count -eq 0 ]; then
+        echo "zone(s) don't exist in ViPR after deleting export group "
+    else
+        echo "zone(s) exist in ViPR after deleting export group "
+    fi
+    run dumpexport $VNX_EXPORT_NAME $ZONE1_ADDR2_VNX checkfczone
+    compare_ports_zones
+
+#   Delete volume test
+    echo "Deleting volume "
+    run volume delete $project/$VNX_VOLUME1_NAME --wait
+
+#   Clean up Zones
+    ZONE_NAME=$ZONE1_NAME_VNX
+    ZONE_ADDR=$ZONE1_ADDR1+$ZONE1_ADDR2_VNX+$ZONE2_ADDR2_VNX
+    cleanup_zones
 }
 
 sanzoning_test() {

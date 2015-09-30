@@ -50,7 +50,6 @@ import com.emc.fapiclient.ws.FullConsistencyGroupCopyPolicy;
 import com.emc.fapiclient.ws.FullConsistencyGroupLinkPolicy;
 import com.emc.fapiclient.ws.FullConsistencyGroupPolicy;
 import com.emc.fapiclient.ws.FullRecoverPointSettings;
-import com.emc.fapiclient.ws.FunctionalAPIActionFailedException;
 import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIImpl;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
@@ -114,7 +113,6 @@ import com.emc.storageos.recoverpoint.utils.RecoverPointConnection;
 import com.emc.storageos.recoverpoint.utils.RecoverPointImageManagementUtils;
 import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
-import com.google.common.base.Joiner;
 
 /**
  * Client implementation of the RecoverPoint controller
@@ -445,7 +443,7 @@ public class RecoverPointClient {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
 
-        List<String> replicationSetsRollback = new ArrayList<String>();
+        List<RecoverPointVolumeProtectionInfo> replicationSetsRollback = new ArrayList<RecoverPointVolumeProtectionInfo>();
         RecoverPointCGResponse response = new RecoverPointCGResponse();
         List<ConsistencyGroupCopySettings> groupCopySettings = null;
         ConsistencyGroupUID cgUID = null;
@@ -514,16 +512,19 @@ public class RecoverPointClient {
             logger.info("Waiting for links to become active for CG " + request.getCgName());
             (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, PipeState.ACTIVE);
             logger.info(String.format("Replication sets have been added to consistency group %s.", request.getCgName()));
-
+            
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
 
             return response;
 
         } catch (Exception e) {
             for (CreateRSetParams rsetParam : request.getRsets()) {
-                replicationSetsRollback.add(rsetParam.getName());
+            	for(CreateVolumeParams volumeParam : rsetParam.getVolumes()) {
+            		RecoverPointVolumeProtectionInfo volProtectionInfo = this.getProtectionInfoForVolume(volumeParam.getWwn());
+            		replicationSetsRollback.add(volProtectionInfo);
+            	}                
             }
-            cleanupReplicationSets(functionalAPI, cgUID, replicationSetsRollback);
+            deleteReplicationSets(replicationSetsRollback);
             throw RecoverPointException.exceptions.failedToAddReplicationSetToConsistencyGroup(request.getCgName(), getCause(e));
         }
     }
@@ -1282,61 +1283,6 @@ public class RecoverPointClient {
 
         return linkPolicy;
 
-    }
-
-    /**
-     * Rollback the replication sets for a CG.
-     *
-     * @param functionalAPI
-     * @param cgUID
-     * @param replicationSetsRollback
-     */
-    private void cleanupReplicationSets(FunctionalAPIImpl functionalAPI, ConsistencyGroupUID cgUID,
-            List<String> replicationSetsRollback) {
-        logger.info("Rolling back any replication sets that were created.");
-        // Do not delete the CG because it was already existed before we started messing around with it.
-        // Remove the replication sets that were created. No need to worry about copies since if the
-        // CG was existing, we are re-using the copies (journals).
-        if (replicationSetsRollback != null) {
-            for (String replicationSetName : replicationSetsRollback) {
-                try {
-                    ReplicationSetUID replicationSetUID = getReplicationSetUID(functionalAPI, cgUID, replicationSetName);
-                    if (replicationSetUID == null) {
-                        // If we cannot find the replication set, do not fail. Rollback what we can.
-                        logger.error("Cannot rollback replication set.  Unable to find replication set UID for " + replicationSetName);
-                        continue;
-                    }
-                    logger.info("Removing replication set " + replicationSetName);
-                    functionalAPI.removeReplicationSet(cgUID, replicationSetUID);
-                } catch (FunctionalAPIActionFailedException_Exception e) {
-                    logger.error("Problem rolling back RecoverPoint replication set " + replicationSetName, e);
-                } catch (FunctionalAPIInternalError_Exception e) {
-                    logger.error("Problem rolling back RecoverPoint replication set " + replicationSetName, e);
-                }
-            }
-        }
-    }
-
-    /**
-     * Gets a ReplicationSetUID given the name of the replication set.
-     *
-     * @param functionalAPI the functional API instance.
-     * @param cgUID the consistency group UID.
-     * @param replicationSetName the replication set name.
-     * @return the replication set UID.
-     * @throws FunctionalAPIActionFailedException_Exception
-     * @throws FunctionalAPIInternalError_Exception
-     */
-    private ReplicationSetUID getReplicationSetUID(FunctionalAPIImpl functionalAPI, ConsistencyGroupUID cgUID, String replicationSetName)
-            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
-        ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgUID);
-        for (ReplicationSetSettings replicationSet : groupSettings.getReplicationSetsSettings()) {
-            if (replicationSet.getReplicationSetName().equalsIgnoreCase(replicationSetName)) {
-                return replicationSet.getReplicationSetUID();
-            }
-        }
-
-        return null;
     }
 
     /**

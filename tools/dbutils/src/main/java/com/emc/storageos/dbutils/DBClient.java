@@ -599,8 +599,7 @@ public class DBClient {
         String reference = _dependencyChecker.checkDependencies(id, clazz, false);
         if (reference != null) {
             if (!force) {
-                System.err.println(String.format("Failed to delete the object %s: active reference of type %s found",
-                                        id, reference));
+                System.err.println(String.format("Failed to delete the object %s: there are active dependencies", id));
                 printReferenceWhenDeletingFailed(id, clazz, dependencyTracker);
                 return false;
             }

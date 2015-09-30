@@ -41,6 +41,7 @@ import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation.Target;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -98,11 +99,6 @@ public class SRDFScheduler implements Scheduler {
 
     private static final int BYTESCONVERTER = 1024;
     public static final Logger _log = LoggerFactory.getLogger(SRDFScheduler.class);
-    public static final char REPLACE_RDF_STR_BEFORE = ' ';
-    public static final char REPLACE_RDF_STR_AFTER = '_';
-    public static final int RDF_GROUP_NAME_MAX_LENGTH = 10;
-    public static final String RDF_GROUP_PREFIX = "V-";
-
     @Autowired
     protected PermissionsHelper _permissionsHelper = null;
 
@@ -955,33 +951,8 @@ public class SRDFScheduler implements Scheduler {
             // systems
             _log.error("No matching storage system was found in all target varrays requested with the correct RDF groups.");
             throw APIException.badRequests
-                    .unableToFindSuitableStorageSystemsforSRDF(StringUtils.join(getQualifyingRDFGroupNames(project), ","));
+                    .unableToFindSuitableStorageSystemsforSRDF(StringUtils.join(SRDFUtils.getQualifyingRDFGroupNames(project), ","));
         }
-    }
-
-    /**
-     * Get the qualifying RDF Group names allowed that we can match against.
-     * 
-     * @param project
-     *            project requested
-     * @return string of a qualifying name
-     */
-    public static StringSet getQualifyingRDFGroupNames(final Project project) {
-        StringSet names = new StringSet();
-        String grpName1 = "V-"
-                + project.getLabel().replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER);
-        if (grpName1.length() > RDF_GROUP_NAME_MAX_LENGTH) {
-            names.add(grpName1.substring(0, RDF_GROUP_NAME_MAX_LENGTH - 1));
-        } else {
-            names.add(grpName1);
-        }
-        String grpName2 = project.getLabel().replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER);
-        if (grpName2.length() > RDF_GROUP_NAME_MAX_LENGTH) {
-            names.add(grpName2.substring(0, RDF_GROUP_NAME_MAX_LENGTH - 1));
-        } else {
-            names.add(grpName2);
-        }
-        return names;
     }
 
     private List<RemoteDirectorGroup> storeRAGroupsinList(final Iterator<URI> raGroupIter) {
@@ -1045,16 +1016,16 @@ public class SRDFScheduler implements Scheduler {
             cgObj = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupUri);
         }
         // Primary name check, "V-<projectname>" or "<projectname>"
-        StringSet grpNames = getQualifyingRDFGroupNames(project);
+        StringSet grpNames = SRDFUtils.getQualifyingRDFGroupNames(project);
 
         // For placement requiring project label, at least warn if the project label is so long that
         // it may cause an issue now or in the future.
         // If placement doesn't require project-based label below, remove this check.
-        if (project.getLabel().length() > RDF_GROUP_NAME_MAX_LENGTH - RDF_GROUP_PREFIX.length()) {
+        if (project.getLabel().length() > SRDFUtils.RDF_GROUP_NAME_MAX_LENGTH - SRDFUtils.RDF_GROUP_PREFIX.length()) {
             _log.warn(String
                     .format("SRDF RA Group Placement: Project name is longer than the number of characters allowed by VMAX for an RA group name.  This will cause an issue if you have multiple projects that start with %s",
                             project.getLabel().substring(0,
-                                    RDF_GROUP_NAME_MAX_LENGTH - RDF_GROUP_PREFIX.length())));
+                                    SRDFUtils.RDF_GROUP_NAME_MAX_LENGTH - SRDFUtils.RDF_GROUP_PREFIX.length())));
         }
 
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -1078,7 +1049,7 @@ public class SRDFScheduler implements Scheduler {
             }
 
             // Check to see if the RA Group contains (substring is OK) any of the desired labels
-            if (raGroup.getLabel() == null || !containsRaGroupName(grpNames, raGroup.getLabel())) {
+            if (raGroup.getLabel() == null || !SRDFUtils.containsRaGroupName(grpNames, raGroup.getLabel())) {
                 _log.info(String
                         .format("SRDF RA Group Placement: Found that the RA Group does not have a label or does not contain any of the names (%s), which is currently required for leveraging existing RA Groups.",
                                 StringUtils.join(grpNames, ",")));
@@ -1150,24 +1121,6 @@ public class SRDFScheduler implements Scheduler {
 
         _log.warn("SRDF RA Group Placement: No RA Group was suitable for SRDF protection.  See previous log messages for specific failed criteria on each RA Group considered.");
         return null;
-    }
-
-    /**
-     * Returns false if the label doesn't available in the grpNames
-     * Primary name check, "V-<projectname>" or "<projectname>"
-     * 
-     * @param grpNames list of potential names to match
-     * @param label label desired from project
-     * @return
-     */
-    public static boolean containsRaGroupName(StringSet grpNames, String label) {
-        // check on each name instead of .contains() as we need to ignore case difference.
-        for (String name : grpNames) {
-            if (name.equalsIgnoreCase(label)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

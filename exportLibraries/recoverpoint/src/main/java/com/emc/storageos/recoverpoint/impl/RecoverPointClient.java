@@ -78,6 +78,8 @@ import com.emc.fapiclient.ws.RpaUID;
 import com.emc.fapiclient.ws.RpoMinimizationType;
 import com.emc.fapiclient.ws.RpoPolicy;
 import com.emc.fapiclient.ws.SnapshotGranularity;
+import com.emc.fapiclient.ws.SnapshotShippingMode;
+import com.emc.fapiclient.ws.SnapshotShippingPolicy;
 import com.emc.fapiclient.ws.SyncReplicationThreshold;
 import com.emc.fapiclient.ws.SystemStatistics;
 import com.emc.fapiclient.ws.UserVolumeSettings;
@@ -1322,6 +1324,12 @@ public class RecoverPointClient {
         }
         linkProtectionPolicy.setRpoPolicy(rpoPolicy);
         linkPolicy.setProtectionPolicy(linkProtectionPolicy);
+        
+        SnapshotShippingPolicy snapPolicy = new SnapshotShippingPolicy();
+        snapPolicy.setIntervaInMinutes(1L);
+        snapPolicy.setMode(SnapshotShippingMode.PERIODICALLY);
+        linkPolicy.setSnapshotShippingPolicy(snapPolicy);
+        
 
         return linkPolicy;
 

@@ -336,6 +336,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 }
                 
                 //check ingest is valid for given project
+                
                 if(!isIngestUmfsValidForProject(project, _dbClient, nasUri)) {
                     _logger.info("ingest umfs {} is mounted to vNAS Uri {} invalid for project", path, nasUri);
                     continue;
@@ -675,7 +676,7 @@ public class UnManagedFilesystemService extends TaggedResource {
     public boolean isIngestUmfsValidForProject(Project project, DbClient dbClient, String nasUri) {
         boolean isIngestValid = true;
         //step -1 check file system is mounted to VNAS
-        if( URIUtil.getTypeName(nasUri).equals("VirtualNAS")) {
+        if( nasUri != null && URIUtil.getTypeName(nasUri).equals("VirtualNAS")) {
             VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
             
             //step -2 if project has any associated vNAS

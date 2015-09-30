@@ -31,7 +31,7 @@ public class RestoreFromFullCopyService extends ViPRService {
     public void precheck() throws Exception {
         super.precheck();
         if (!ConsistencyUtils.isVolumeStorageType(storageType)) {
-            if (ConsistencyUtils.validateConsistencyGroupFullCopies(getClient(), consistencyGroupId)) {
+            if (!ConsistencyUtils.validateConsistencyGroupFullCopies(getClient(), consistencyGroupId)) {
                 ExecutionUtils.fail("failTask.ConsistencyGroup.noFullCopies", consistencyGroupId, consistencyGroupId);
             }
         }

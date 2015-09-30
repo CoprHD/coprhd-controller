@@ -618,7 +618,7 @@ public class AuthenticationResource {
 
         if (_invLoginManager.isTheClientIPBlocked(clientIP) == true) {
             _log.error("The client IP is blocked for too many invalid login attempts: " + clientIP);
-            int minutes = _invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins();
+            int minutes = _invLoginManager.getTimeLeftToUnblock(clientIP);
             message = String.format("%s.<br>Will be cleared within %d minutes", FORM_INVALID_LOGIN_LIMIT_ERROR, minutes);
         } else if (userName == null || userOldPassw == null
                 || userPassw == null || confirmPassw == null) {
@@ -697,7 +697,7 @@ public class AuthenticationResource {
         _log.debug("Client IP: {}", clientIP);
         if (_invLoginManager.isTheClientIPBlocked(clientIP) == true) {
             _log.error("The client IP is blocked for too many invalid login attempts: " + clientIP);
-            int minutes = _invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins();
+            int minutes = _invLoginManager.getTimeLeftToUnblock(clientIP);
             loginError = String.format("%s.<br>Will be cleared within %d minutes", FORM_INVALID_LOGIN_LIMIT_ERROR, minutes);
             updateInvalidLoginCount = false;
         }
@@ -1127,7 +1127,7 @@ public class AuthenticationResource {
             _log.error("The client IP is blocked for too many invalid login attempts: " + clientIP);
             throw APIException.unauthorized.
                     exceedingErrorLoginLimit(_invLoginManager.getMaxAuthnLoginAttemtsCount(),
-                            _invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins());
+                            _invLoginManager.getTimeLeftToUnblock(clientIP));
         }
     }
 }

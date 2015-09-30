@@ -11,18 +11,24 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbIndex;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
+import com.emc.storageos.db.common.DependencyTracker.Dependency;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
@@ -322,5 +328,23 @@ public class InternalDbClientImpl extends InternalDbClient {
         }
 
         return latestField;
+    }
+    
+    public List<URI> getReferUris(URI targetUri, Class<? extends DataObject> type, Dependency dependency) {
+        List<URI> references = new ArrayList<>();
+        if (targetUri == null) {
+            return references;
+        }
+        ContainmentConstraint constraint = 
+                new ContainmentConstraintImpl(targetUri, dependency.getType(), dependency.getColumnField());
+        URIQueryResultList result = new URIQueryResultList();
+        this.queryByConstraint(constraint, result);
+        Iterator<URI> resultIt = result.iterator();
+        if(resultIt.hasNext()) {
+            references.add(resultIt.next());
+        }
+        
+        
+        return references;
     }
 }

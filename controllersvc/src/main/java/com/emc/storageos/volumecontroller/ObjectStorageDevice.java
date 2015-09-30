@@ -1,3 +1,8 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.volumecontroller;
 
 import com.emc.storageos.db.client.model.Bucket;
@@ -8,13 +13,15 @@ public interface ObjectStorageDevice {
 
     /**
      * 
-     * @param storageObj    storage system
-     * @param ob            Device specific paras
-     * @return              Result of command
+     * @param storageObj storage system
+     * @param bucket Bucket instance
+     * @param ob Device specific paras
+     * @param taskId Task ID
+     * @return Result of command
      * @throws ControllerException if create fails
      */
-    
-    BiosCommandResult doCreateBucket(StorageSystem storageObj, ObjectDeviceInputOutput ob)
+
+    BiosCommandResult doCreateBucket(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput ob, String taskId)
             throws ControllerException;
 
     /**
@@ -25,6 +32,7 @@ public interface ObjectStorageDevice {
      * @param softQuota Soft Quota for a bucket
      * @param hardQuota Hard Quota for a bucket
      * @param retention Retention period on a bucket
+     * @param taskId Task ID
      * @return Result of operation
      * @throws ControllerException if Update fails
      */
@@ -35,6 +43,7 @@ public interface ObjectStorageDevice {
      * 
      * @param storageObj Storage system instance
      * @param bucket Bucket instance
+     * @param taskId Task ID
      * @return Result of operation
      * @throws ControllerException if Delete fails
      */

@@ -494,13 +494,7 @@ public class DataCollectionJobUtil {
             }
         } else if (storageDevice.getSystemType().equals(
                 Type.scaleio.toString())) {
-            accessProfile.setSystemType(storageDevice.getSystemType());
-            accessProfile.setIpAddress(storageDevice.getSmisProviderIP());
-            accessProfile.setUserName(storageDevice.getSmisUserName());
-            accessProfile.setserialID(storageDevice.getSerialNumber());
-            accessProfile.setPassword(storageDevice.getSmisPassword());
-            accessProfile.setPortNumber(storageDevice.getSmisPortNumber());
-            accessProfile.setLastSampleTime(0L);
+            injectDiscoveryProfile(accessProfile, storageDevice);
             if (null != nameSpace) {
                 accessProfile.setnamespace(nameSpace);
             }

@@ -6,8 +6,8 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -506,7 +506,7 @@ public class StorageProvider extends DataObject {
             setStorageSystems(new StringSet());
         }
         getStorageSystems().add(storage.getId().toString());
-        dbClient.persistObject(this);
+        dbClient.updateAndReindexObject(this);
     }
 
     public void removeStorageSystem(DbClient dbClient, StorageSystem storage) throws DatabaseException {
@@ -517,17 +517,17 @@ public class StorageProvider extends DataObject {
         if (storage.getActiveProviderURI().equals(getId())) {
             if (null != storage.getProviders() && !storage.getProviders().isEmpty()) {
                 Iterator<String> iter = storage.getProviders().iterator();
-	            if (iter.hasNext())  {
-	                try {
-	                    storage.setActiveProviderURI(new URI(iter.next()));
-	                } catch (URISyntaxException ex) {
-	                	logger.error("URISyntaxException occurred: {}", ex.getMessage());
-	                }
-	            }
-	            else {
-	                storage.setActiveProviderURI(null);
-	            }
-        	}
+                if (iter.hasNext()) {
+                    try {
+                        storage.setActiveProviderURI(new URI(iter.next()));
+                    } catch (URISyntaxException ex) {
+                        logger.error("URISyntaxException occurred: {}", ex.getMessage());
+                    }
+                }
+                else {
+                    storage.setActiveProviderURI(null);
+                }
+            }
         }
         dbClient.persistObject(storage);
 

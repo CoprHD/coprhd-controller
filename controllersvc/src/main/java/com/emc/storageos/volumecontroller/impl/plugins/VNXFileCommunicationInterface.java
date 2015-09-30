@@ -1228,6 +1228,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             if (existingNas != null) {
                 existingNas.setProtocols(protocols);
                 existingNas.setCifsServersMap(cifsServersMap);
+                existingNas.setNasState(vdm.getState());
+                existingNas.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                 PhysicalNAS parentNas = findPhysicalNasByNativeId(system, vdm.getMoverId());
                 if (parentNas != null) {
                     existingNas.setParentNasUri(parentNas.getId());
@@ -1243,16 +1245,22 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
         }
 
+        List<VirtualNAS> discoveredVNasServers = new ArrayList<VirtualNAS>();
         // Persist the NAS servers!!!
         if (existingNasServers != null && !existingNasServers.isEmpty()) {
             _logger.info("discoverVdmPortGroups - modified VirtualNAS servers size {}", existingNasServers.size());
             _dbClient.persistObject(existingNasServers);
+            discoveredVNasServers.addAll(existingNasServers);
         }
 
         if (newNasServers != null && !newNasServers.isEmpty()) {
             _logger.info("discoverVdmPortGroups - new VirtualNAS servers size {}", newNasServers.size());
             _dbClient.createObject(newNasServers);
+            discoveredVNasServers.addAll(newNasServers);
         }
+        
+        // Verify the existing vnas servers!!!
+        DiscoveryUtils.checkVirtualNasNotVisible(discoveredVNasServers, _dbClient, system.getId());
 
         _logger.info("Vdm Port group discovery for storage system {} complete.", system.getId());
         for (StorageHADomain newDomain : newPortGroups) {

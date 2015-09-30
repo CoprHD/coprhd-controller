@@ -270,8 +270,8 @@ public class CIMConnectionFactory {
                         recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
                                 STORAGE_PROVIDER_DOWN_DESCRIPTION, smisProvider.getId());
                     }
-                    _connectionManager.removeConnection(smisProvider
-                            .getIPAddress());
+                    _connectionManager.removeConnection(ConnectionManager.generateConnectionCacheKey(
+                            smisProvider.getIPAddress(), smisProvider.getPortNumber()));
                     _log.error("Connection Liveness Failed {}",
                             smisProvider.getIPAddress());
                     smisProvider

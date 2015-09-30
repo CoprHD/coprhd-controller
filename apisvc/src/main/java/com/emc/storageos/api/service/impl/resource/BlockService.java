@@ -3155,7 +3155,6 @@ public class BlockService extends TaskResourceService {
             totalProvisionedCapacity += volume.getProvisionedCapacity()
                     .longValue();
         }
-
         verifyAllVolumesInCGRequirement(volumes, vPool);
 
         // verify target vPool quota
@@ -5081,18 +5080,13 @@ public class BlockService extends TaskResourceService {
      * @param targetVPool
      */
     private void verifyAllVolumesInCGRequirement(List<Volume> volumes, VirtualPool targetVPool) {
-        // Only applies to SRDF volumes
-        if (!VirtualPool.vPoolSpecifiesSRDF(targetVPool)) {
-            return;
-        }
-
         StringBuilder errorMsg = new StringBuilder();
         boolean failure = false;
         Collection<URI> volIds = transform(volumes, fctnDataObjectToID());
         Map<URI, Volume> cgId2Volume = new HashMap<>();
 
         try {
-            // Build set of all consistency groups
+            // Build map of consistency groups to a single group member representative
             for (Volume volume : volumes) {
                 URI cgId = volume.getConsistencyGroup();
                 if (!isNullURI(cgId) && !cgId2Volume.containsKey(cgId)) {
@@ -5102,10 +5096,14 @@ public class BlockService extends TaskResourceService {
 
             // Verify that all consistency groups are fully specified
             for (Map.Entry<URI, Volume> entry : cgId2Volume.entrySet()) {
+                // Currently, we only care about verifying CG's when adding SRDF protection
+                if (!isAddingSRDFProtection(entry.getValue(), targetVPool)) {
+                    continue;
+                }
+
                 List<URI> memberIds = _dbClient.queryByConstraint(getVolumesByConsistencyGroup(entry.getKey()));
 
                 memberIds.removeAll(volIds);
-
                 if (!memberIds.isEmpty()) {
                     failure = true;
                     errorMsg.append(entry.getValue().getLabel())
@@ -5117,5 +5115,9 @@ public class BlockService extends TaskResourceService {
                 throw APIException.badRequests.cannotAddSRDFProtectionToPartialCG(errorMsg.toString());
             }
         }
+    }
+
+    private boolean isAddingSRDFProtection(Volume v, VirtualPool targetVPool) {
+        return v.getSrdfTargets() == null && VirtualPool.vPoolSpecifiesSRDF(targetVPool);
     }
 }

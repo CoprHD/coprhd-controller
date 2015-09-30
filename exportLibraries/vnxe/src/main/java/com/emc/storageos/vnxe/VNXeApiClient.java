@@ -787,7 +787,7 @@ public class VNXeApiClient {
         param.setPath(path);
         VNXeBase snap = new VNXeBase();
         snap.setId(snapId);
-        if (VNXeUtils.ifHigherVersion(getBasicSystemInfo().getSoftwareVersion(),
+        if (!VNXeUtils.ifHigherVersion(getBasicSystemInfo().getSoftwareVersion(),
                 VNXeConstants.VNXE_BASE_SOFT_VER)) {
             param.setFilesystemSnap(snap);
         } else {
@@ -829,7 +829,7 @@ public class VNXeApiClient {
         }
         NfsShareCreateForSnapParam nfsCreateParam = new NfsShareCreateForSnapParam();
         VNXeBase snap = new VNXeBase(snapId);
-        if (VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
+        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             nfsCreateParam.setFilesystemSnap(snap);
         } else {
             nfsCreateParam.setSnap(snap);

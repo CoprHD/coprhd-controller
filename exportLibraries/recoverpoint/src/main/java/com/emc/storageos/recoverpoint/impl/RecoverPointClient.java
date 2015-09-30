@@ -512,11 +512,9 @@ public class RecoverPointClient {
             logger.info("Waiting for links to become active for CG " + request.getCgName());
             (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, PipeState.ACTIVE);
             logger.info(String.format("Replication sets have been added to consistency group %s.", request.getCgName()));
-            
+                   
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
-
             return response;
-
         } catch (Exception e) {
             for (CreateRSetParams rsetParam : request.getRsets()) {
             	for(CreateVolumeParams volumeParam : rsetParam.getVolumes()) {
@@ -2685,7 +2683,7 @@ public class RecoverPointClient {
         // Used to capture the volume WWNs associated with each replication set to remove.
         List<String> volumeWWNs = new ArrayList<String>();
         Map<Long, String> rsetNames = new HashMap<Long, String>();
-        List<Long> resetIDsToValidate = new ArrayList<Long>();
+        List<Long> rsetIDsToValidate = new ArrayList<Long>();
 
         try {
             ConsistencyGroupUID cgID = new ConsistencyGroupUID();
@@ -2719,9 +2717,11 @@ public class RecoverPointClient {
                 repSetUID.setId(volumeInfo.getRpVolumeRSetID());
                 repSetUID.setGroupUID(cgID);
 
-                cgSettingsParam.getRemovedReplicationSets().add(repSetUID);
+                if (!containsRepSetUID(cgSettingsParam.getRemovedReplicationSets(), repSetUID)) {
+                	cgSettingsParam.getRemovedReplicationSets().add(repSetUID);
+                    rsetIDsToValidate.add(repSetUID.getId());
+                }
                 volumeWWNs.add(volumeInfo.getRpVolumeWWN());
-                resetIDsToValidate.add(volumeInfo.getRpVolumeRSetID());
                 
                 logger.info(String.format("Adding replication set [%s] (%d) to be removed from RP CG [%s] (%d)", 
                         rsetNames.get(volumeInfo.getRpVolumeRSetID()), volumeInfo.getRpVolumeRSetID(), 
@@ -2740,7 +2740,7 @@ public class RecoverPointClient {
                 // Remove the replication sets
                 functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
                 // Validate that the RSets have been removed
-                validateRSetsRemoved(resetIDsToValidate, cgID, volumeWWNs);                
+                validateRSetsRemoved(rsetIDsToValidate, cgID, volumeWWNs);                
                 logger.info("Request to delete replication sets " + rsetNames.toString() + " from RP CG "
                         + groupSettings.getName() + " completed.");
             } else {
@@ -2751,6 +2751,21 @@ public class RecoverPointClient {
             throw RecoverPointException.exceptions.failedToDeleteReplicationSet(
                     volumeWWNs.toString(), e);
         }
+    }
+    
+    /**
+     * Returns true if repSetUID is already contained in rsetUids list. 
+     * @param rsetUids List of ReplicationSet UIDs
+     * @param repSetUID ReplicationSet UID to check if it is contained in the rsetUids list.
+     * @return
+     */
+    public boolean containsRepSetUID(List<ReplicationSetUID> rsetUids, ReplicationSetUID repSetUID) {
+    	for(ReplicationSetUID rsetUid : rsetUids) {
+    		if (rsetUid.getId() == repSetUID.getId()) {
+    			return true;    			
+    		}
+    	}
+    	return false;
     }
     
     /**

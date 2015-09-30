@@ -1869,13 +1869,11 @@ public class BlockService extends TaskResourceService {
                     _log.error("Delete error", e);
                 }
 
-                volume = _dbClient.queryObject(Volume.class, volume.getId());
-
                 Volume vol = _dbClient.queryObject(Volume.class, volume.getId());
                 op = vol.getOpStatus().get(task);
                 op.error(e);
                 vol.getOpStatus().updateTaskStatus(task, op);
-                _dbClient.persistObject(volume);
+                _dbClient.persistObject(vol);
                 throw e;
             }
 

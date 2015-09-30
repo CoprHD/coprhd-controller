@@ -651,7 +651,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             _log.info("Create Active Source Journal...");
 
             // varray is used to get unique journal volume names
-            VirtualArray varray = _dbClient.queryObject(VirtualArray.class, rpProtectionRec.getVirtualArray());
+            VirtualArray varray = _dbClient.queryObject(VirtualArray.class, rpProtectionRec.getSourceJournalRecommendation()
+                    .getVirtualArray());
 
             // Number of journals to create - will only be greater than 1 when doing add journal operation.
             int numberOfJournalVolumesInRequest = rpProtectionRec.getSourceJournalRecommendation().getResourceCount();

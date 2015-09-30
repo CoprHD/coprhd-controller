@@ -459,6 +459,8 @@ public class VdcSiteManager extends AbstractManager {
      * Check if data revision is same as local one. If not, switch to target revision and reboot the whole cluster
      * simultaneously.
      * 
+     * The data revision switch is implemented as 2-phase commit protocol to ensure 
+     * 
      * @throws Exception
      */
     private void updateDataRevision() throws Exception {
@@ -466,17 +468,27 @@ public class VdcSiteManager extends AbstractManager {
         String localRevision = localRepository.getDataRevision();
         log.info("Step3: local data revision is {}", localRevision);
         if (!targetSiteInfo.isNullTargetDataRevision() && !targetDataRevision.equals(localRevision)) {
-            localRepository.setDataRevision(targetDataRevision);
-            log.info("Step3: Trying to reach agreement with timeout on cluster poweroff");
-            if (checkAllNodesAgreeToPowerOff(false) && initiatePoweroff(false)) {
-                log.info("Step3: Reach agreement on cluster poweroff");
+            log.info("Step3: Trying to reach agreement with timeout for data revision change");
+            if (checkAllNodesAgreeToPowerOff(false)) { 
+                log.info("Step3: Reach agreement for data revision change");
+                // Phase 1 - make sure all nodes agreed and write changes to local - uncommitted
+                localRepository.setDataRevision(targetDataRevision, false);
                 resetTargetPowerOffState();
-                reboot();
+                // Phase 2 - check if all nodes successfully write new revision to local
+                if (initiatePoweroff(false)) {
+                    // commit - if all nodes successfully write the change to local, write commit flag file as local 
+                    localRepository.setDataRevision(targetDataRevision, true);
+                    reboot();
+                } else {
+                    // rollback - if all nodes successfully write the change to local, rollback the commit at local
+                    log.warn("Step3: Failed to receive confirmation from other nodes. Rollback data revision change");
+                    publishNodePowerOffState(PowerOffState.State.NONE);
+                    localRepository.setDataRevision(localRevision, true);
+                }
             } else {
                 log.warn("Step3: Failed to reach agreement among all the nodes. Delay data revision change until next run");
                 publishNodePowerOffState(PowerOffState.State.NONE);
                 resetTargetPowerOffState();
-                localRepository.setDataRevision(localRevision);
             }
         }
     }    

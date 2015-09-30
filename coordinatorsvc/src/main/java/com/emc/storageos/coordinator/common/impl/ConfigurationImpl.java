@@ -50,6 +50,7 @@ public class ConfigurationImpl implements Configuration {
         return _map.getProperty(key);
     }
 
+    
     @Override
     public Map<String, String> getAllConfigs(boolean customOnly) {
         Map<String, String> toReturn = new HashMap<String, String>();

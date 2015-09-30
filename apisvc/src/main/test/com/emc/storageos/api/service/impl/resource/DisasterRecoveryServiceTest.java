@@ -17,12 +17,15 @@ import static org.mockito.Mockito.spy;
 import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
+import org.apache.http.client.utils.URIUtils;
+import org.eclipse.jetty.util.log.Log;
 import org.junit.Before;
 import org.junit.Test;
 import org.omg.PortableServer.POAManagerPackage.State;
@@ -34,7 +37,9 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.model.dr.DRNatCheckParam;
@@ -63,7 +68,8 @@ public class DisasterRecoveryServiceTest {
     private SiteConfigRestRep standby;
     private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
-
+    private VirtualDataCenter localVDC;
+    
     @Before
     public void setUp() throws Exception {
         
@@ -78,7 +84,8 @@ public class DisasterRecoveryServiceTest {
         RepositoryInfo repositoryInfo = new RepositoryInfo(new SoftwareVersion("vipr-2.4.0.0.100"), available);
         
         // setup local VDC
-        VirtualDataCenter localVDC = new VirtualDataCenter();
+        localVDC = new VirtualDataCenter();
+        localVDC.setId(URIUtil.createId(VirtualDataCenter.class));
         
         standby = new SiteConfigRestRep();
         standby.setClusterStable(true);
@@ -94,15 +101,19 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
         standbySite1.setState(SiteState.ACTIVE);
+        standbySite1.setVdc(localVDC.getId());
+        
 
         standbySite2 = new Site();
         standbySite2.setUuid("site-uuid-2");
         standbySite2.setState(SiteState.ACTIVE);
+        standbySite2.setVdc(localVDC.getId());
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
         standbySite3.setVdc(new URI("fake-vdc-id"));
         standbySite3.setState(SiteState.ACTIVE);
+        standbySite3.setVdc(localVDC.getId());
 
         primarySiteParam = new SiteParam();
         /*primarySiteParam.setUuid("primary-site-uuid");
@@ -163,26 +174,26 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testGetAllStandby() throws Exception {
-        VirtualDataCenter localVDC = new VirtualDataCenter();
-        localVDC.getSiteUUIDs().add(standbySite1.getUuid());
-        localVDC.getSiteUUIDs().add(standbySite2.getUuid());
-        
         doReturn(localVDC).when(drService).queryLocalVDC();
-        doReturn(standbySite1).when(coordinator).getTargetInfo(Site.class, standbySite1.getUuid(), Site.CONFIG_KIND);
-        doReturn(standbySite2).when(coordinator).getTargetInfo(Site.class, standbySite2.getUuid(), Site.CONFIG_KIND);
+        List<Configuration> allConfigs = new ArrayList<Configuration>();
+        allConfigs.add(standbySite1.toConfiguration());
+        allConfigs.add(standbySite2.toConfiguration());
+        doReturn(allConfigs).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
         
         SiteList responseList = drService.getSites();
 
         assertNotNull(responseList.getSites());
         assertEquals(2, responseList.getSites().size());
 
-        compareSiteResponse(responseList.getSites().get(0), standbySite2);
-        compareSiteResponse(responseList.getSites().get(1), standbySite1);
+        compareSiteResponse(responseList.getSites().get(0), standbySite1);
+        compareSiteResponse(responseList.getSites().get(1), standbySite2);
     }
 
     @Test
     public void testGetStandby() throws Exception {
-        doReturn(standbySite1).when(coordinator).getTargetInfo(Site.class, standbySite1.getUuid(), Site.CONFIG_KIND);
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
 
         SiteRestRep response = drService.getSite("site-uuid-1");
         compareSiteResponse(response, standbySite1);
@@ -190,7 +201,7 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testGetStandby_NotBelongLocalVDC() throws Exception {
-        doReturn(null).when(coordinator).getTargetInfo(eq(Site.class), anyString(), anyString());
+        doReturn(null).when(coordinator).queryConfiguration(Site.CONFIG_KIND, "site-uuid-not-exist");
 
         SiteRestRep response = drService.getSite("site-uuid-not-exist");
         assertNull(response);
@@ -243,7 +254,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
         Site site = new Site();
         site.setState(SiteState.ACTIVE);
-        doReturn(site).when(coordinator).getTargetInfo(Site.class);
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, coordinator.getSiteId());
         SiteConfigRestRep response = drService.getStandbyConfig();
         compareSiteResponse(response, standbyConfig);
     }

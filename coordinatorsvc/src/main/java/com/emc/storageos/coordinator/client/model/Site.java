@@ -8,35 +8,54 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 
 /**
  * Representation for a ViPR site, both primary and standby
  */
-public class Site implements CoordinatorSerializable {
-
-    public static final String CONFIG_KIND = "siteInfo";
-
-    private static final String ENCODING_SEPERATOR = ",";
-    private static final String ENCODING_MAP_KEYVALUE_SEPERATOR = ";";
-    
+public class Site {
     private static final Logger log = LoggerFactory.getLogger(Site.class);
+    
+    private static final String KEY_VDC = "vdc";
+    private static final String KEY_NAME = "name";
+    private static final String KEY_DESCRIPTION = "description";
+    private static final String KEY_VIP = "vip";
+    private static final String KEY_SECRETKEY = "secretKey";
+    private static final String KEY_STANDBY_SHORTID = "standbyShortId";
+    private static final String KEY_CREATIONTIME = "creationTime";
+    private static final String KEY_SITE_STATE = "state";
+    private static final String KEY_NODESADDR = "nodesAddr";
+    private static final String KEY_NODESADDR6 = "nodesAddr6";
+    
+    public static final String CONFIG_KIND = "disasterRecoverySites";
 
     private String uuid;
     private URI vdc;
-    private String name;
-    private String vip;
-    private String secretKey;
-    private String description;
+    private String name = "";
+    private String vip = "";
+    private String secretKey = "";
+    private String description = "";
     private Map<String, String> hostIPv4AddressMap = new HashMap<String, String>();
     private Map<String, String> hostIPv6AddressMap = new HashMap<String, String>();
-    private String standbyShortId;
-    private long creationTime;
-    private SiteState state;
+    private String standbyShortId = "";
+    private long creationTime = 0;
+    private SiteState state = SiteState.ACTIVE;
+    
+    public Site() {
+    }
+    
+    public Site(Configuration config) {
+        if (config != null) {
+            fromConfiguration(config);
+        }
+    }
     
     public String getUuid() {
         return uuid;
@@ -127,80 +146,6 @@ public class Site implements CoordinatorSerializable {
     }
 
     @Override
-    public String encodeAsString() {
-        StringBuilder buffer = new StringBuilder();
-        buffer.append(uuid).append(ENCODING_SEPERATOR);
-        buffer.append(vdc).append(ENCODING_SEPERATOR);
-        buffer.append(name).append(ENCODING_SEPERATOR);
-        buffer.append(vip).append(ENCODING_SEPERATOR);
-        buffer.append(secretKey).append(ENCODING_SEPERATOR);
-        buffer.append(description).append(ENCODING_SEPERATOR);
-        buffer.append(standbyShortId).append(ENCODING_SEPERATOR);
-        buffer.append(creationTime).append(ENCODING_SEPERATOR);
-        buffer.append(state).append(ENCODING_SEPERATOR);
-
-        for (String key : hostIPv4AddressMap.keySet()) {
-            buffer.append(key).append(ENCODING_MAP_KEYVALUE_SEPERATOR).append(hostIPv4AddressMap.get(key))
-                    .append(ENCODING_MAP_KEYVALUE_SEPERATOR);
-        }
-        buffer.append(ENCODING_SEPERATOR);
-
-        for (String key : hostIPv6AddressMap.keySet()) {
-            buffer.append(key).append(ENCODING_MAP_KEYVALUE_SEPERATOR).append(hostIPv6AddressMap.get(key))
-                    .append(ENCODING_MAP_KEYVALUE_SEPERATOR);
-        }
-        buffer.append(ENCODING_SEPERATOR);
-
-        return buffer.toString();
-    }
-
-    @Override
-    public Site decodeFromString(String infoStr) throws FatalCoordinatorException {
-        Site site;
-        try {
-            String[] array = infoStr.split(ENCODING_SEPERATOR);
-
-            int index = 0;
-            site = new Site();
-            site.setUuid(array[index++]);
-            site.setVdc(new URI(array[index++]));
-            site.setName(array[index++]);
-            site.setVip(array[index++]);
-            site.setSecretKey(array[index++]);
-            site.setDescription(array[index++]);
-            site.setStandbyShortId(array[index++]);
-            site.setCreationTime(Long.parseLong(array[index++]));
-            site.setState(SiteState.valueOf(array[index++]));
-            if (index < array.length) {
-                convertString2Map(array[index++], site.getHostIPv4AddressMap());
-            }
-
-            if (index < array.length) {
-                convertString2Map(array[index++], site.getHostIPv6AddressMap());
-            }
-        } catch (Exception e) {
-            log.error("Cant't decode String {} to Site, {}", infoStr, e);
-            throw CoordinatorException.fatals.decodingError(e.getMessage());
-        }
-
-        return site;
-    }
-
-    private void convertString2Map(String input, Map<String, String> map) {
-        if (input != null && input.length() > 0) {
-            String[] keyValues = input.split(ENCODING_MAP_KEYVALUE_SEPERATOR);
-            for (int i = 0; i < keyValues.length; i++) {
-                map.put(keyValues[i], keyValues[++i]);
-            }
-        }
-    }
-
-    @Override
-    public CoordinatorClassInfo getCoordinatorClassInfo() {
-        return new CoordinatorClassInfo(this.uuid, CONFIG_KIND, "site");
-    }
-
-    @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
@@ -223,6 +168,80 @@ public class Site implements CoordinatorSerializable {
         return true;
     }
 
+    public Configuration toConfiguration() {
+        ConfigurationImpl config = new ConfigurationImpl();
+        config.setKind(CONFIG_KIND);
+        config.setId(uuid);
+        if (name != null) {
+            config.setConfig(KEY_NAME, name);
+        }
+        if (description != null) {
+            config.setConfig(KEY_DESCRIPTION, description);
+        }
+        if (vip != null) {
+            config.setConfig(KEY_VIP, vip);
+        }
+        if (vdc != null) {
+            config.setConfig(KEY_VDC, vdc.toString());
+        }
+        if (secretKey != null) {
+            config.setConfig(KEY_SECRETKEY, this.secretKey);
+        }
+        if (standbyShortId != null) {
+            config.setConfig(KEY_STANDBY_SHORTID, this.standbyShortId);
+        }
+        config.setConfig(KEY_CREATIONTIME, String.valueOf(creationTime));
+        if (state != null) {
+            config.setConfig(KEY_SITE_STATE, String.valueOf(state));
+        }
+        config.setConfig(KEY_NODESADDR, StringUtil.join(this.hostIPv4AddressMap.values(), ","));
+        config.setConfig(KEY_NODESADDR6, StringUtil.join(this.hostIPv6AddressMap.values(), ","));
+        return config;
+    }
+
+    private void fromConfiguration(Configuration config) {
+        if (!config.getKind().equals(CONFIG_KIND)) {
+            throw new IllegalArgumentException("Unexpected configuration kind for Site");
+        }
+        try {
+            this.uuid = config.getId();
+            this.name = config.getConfig(KEY_NAME);
+            this.description = config.getConfig(KEY_DESCRIPTION);
+            String s = config.getConfig(KEY_VDC);
+            if (s != null) {
+                this.vdc = new URI(s);
+            }
+            this.vip = config.getConfig(KEY_VIP);
+            this.secretKey = config.getConfig(KEY_SECRETKEY);
+            this.standbyShortId = config.getConfig(KEY_STANDBY_SHORTID);
+            s = config.getConfig(KEY_CREATIONTIME);
+            if (s != null) {
+                this.creationTime = Long.valueOf(s);
+            }
+            s = config.getConfig(KEY_SITE_STATE);
+            if (s != null) {
+                state = SiteState.valueOf(config.getConfig(KEY_SITE_STATE));
+            }
+            String addrs = config.getConfig(KEY_NODESADDR);
+            if (addrs != null) {
+                int i = 1;
+                for (String addr : addrs.split(",")) {
+                    hostIPv4AddressMap.put(String.format("node%d", i++), addr);
+                }
+            }
+            
+            String addr6s = config.getConfig(KEY_NODESADDR6);
+            if (addr6s != null) {
+                int i = 1;
+                for (String addr : addr6s.split(",")) {
+                    hostIPv6AddressMap.put(String.format("node%d", i++), addr);
+                }
+            }
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Unrecognized configuration data for Site", ex);
+        }
+    }
+    
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

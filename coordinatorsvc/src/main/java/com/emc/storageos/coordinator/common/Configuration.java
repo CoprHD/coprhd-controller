@@ -25,7 +25,7 @@ public interface Configuration {
      * @return service UUID
      */
     public String getId();
-
+    
     /**
      * Retrieve configuration field
      * 

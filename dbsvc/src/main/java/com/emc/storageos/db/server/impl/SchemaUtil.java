@@ -832,6 +832,17 @@ public class SchemaUtil {
 
         vdc.setLocal(true);
         dbClient.createObject(vdc);
+        
+        // insert DR primary site info to ZK
+        Site site = new Site();
+        site.setUuid(_coordinator.getSiteId());
+        site.setName("Primary Site");
+        site.setVdc(vdc.getId());
+        site.setHostIPv4AddressMap(ipv4Addresses);
+        site.setHostIPv6AddressMap(ipv6Addresses);
+        site.setState(SiteState.ACTIVE);
+        site.setCreationTime(System.currentTimeMillis());
+        _coordinator.persistServiceConfiguration(site.toConfiguration());
     }
 
     /**
@@ -880,9 +891,9 @@ public class SchemaUtil {
             if (rebuildData) {
                 _log.info("Rebuild bootstrap data from primary site");
                 StorageService.instance.rebuild(_vdcShortId);
-                Site currentSite = _coordinator.getTargetInfo(Site.class, _coordinator.getSiteId(), Site.CONFIG_KIND);
+                Site currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
                 currentSite.setState(SiteState.STANDBY_SYNCED);
-                _coordinator.setTargetInfo(currentSite);
+                _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
                 _log.info("Update current standby site state to SYNCED");
             }
             return;

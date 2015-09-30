@@ -328,11 +328,18 @@ _genconfig_exec_scripts() {
 # data inconsistency.
 _genconfig_data_versioning() {
    local tgt_dataver=${_GENCONFIG_target_data_revision}
+   local committed=${_GENCONFIG_target_data_revision_committed}
    if [ -n "${tgt_dataver}" ]; then
-       _genconfig_setup_versioning_dir "/data/db" "1" ${tgt_dataver}
-       _genconfig_setup_versioning_dir "/data/geodb" "1" ${tgt_dataver}
-       _genconfig_setup_versioning_dir "/data/zk" "version-2" ${tgt_dataver}
-       rm -f /data/zk/myid
+       if [ "${committed}" != "true" ] ; then
+           # uncommited data revision detected. Coodinatorsvc and dbsvc should
+           # not start 
+           touch "/data/UNCOMMITTED_DATA_REVISION"
+       else
+           _genconfig_setup_versioning_dir "/data/db" "1" ${tgt_dataver}
+           _genconfig_setup_versioning_dir "/data/geodb" "1" ${tgt_dataver}
+           _genconfig_setup_versioning_dir "/data/zk" "version-2" ${tgt_dataver}
+           rm -f /data/zk/myid
+       fi
    fi
 }
 

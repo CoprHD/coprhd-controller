@@ -231,23 +231,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public void setPrimarySite(String siteId) throws Exception {
-        String primarySitePointer = String.format("%1$s/%2$s", ZkPath.SITES, Constants.SITE_PRIMARY_PTR);
-        ZkConnection zkConnection = getZkConnection();
-        try {
-            EnsurePath ePath = new EnsurePath(primarySitePointer);
-            log.info("create ZK path {}", primarySitePointer);
-            ePath.ensure(zkConnection.curator().getZookeeperClient());
-            byte[] data = siteId.getBytes();
-            Stat stat = getZkConnection().curator().checkExists().forPath(primarySitePointer);
-            if (stat == null) {
-                zkConnection.curator().create().forPath(primarySitePointer, data);
-            } else {
-                zkConnection.curator().setData().forPath(primarySitePointer, data);
-            }
-        } catch(Exception e) {
-            log.error("Failed to persist {} to {}", siteId, primarySitePointer);
-            throw e;
-        }
+        ConfigurationImpl config = new ConfigurationImpl();
+        config.setKind(Constants.CONFIG_DR_PRIMARY_KIND);
+        config.setId(Constants.CONFIG_DR_PRIMARY_ID);
+        config.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, siteId);
+        persistServiceConfiguration(config);
     }
 
     /**
@@ -591,9 +579,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private String getKindPath(String siteId, String kind) {
-        if (kind.equals(Site.CONFIG_KIND))
-            return ZkPath.SITES.toString();
-        
         StringBuilder builder = new StringBuilder();
         if (isSiteSpecific(kind)) {
             String sitePrefix = getSitePrefix(siteId);
@@ -1692,14 +1677,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
 	@Override
 	public String getPrimarySiteId() {
-	    String path = String.format("%1$s/%2$s", ZkPath.SITES.toString(), Constants.SITE_PRIMARY_PTR);
-	    String primarySiteId = null;
-	    try {
-	        byte[] data = _zkConnection.curator().getData().forPath(path);
-            primarySiteId = new String(data, "UTF-8");
-        } catch (Exception e) {
-            throw CoordinatorException.retryables.errorWhileFindingNode(path, e);
-        }
-        return primarySiteId;
+	    Configuration config = queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
+	    return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
 	}  
 }

@@ -41,7 +41,7 @@ public class CoordinatorImpl implements Coordinator {
     // runs periodic snapshot cleanup
     private static final String PURGER_POOL = "SnapshotPurger";
     private ScheduledExecutorService _exe = new NamedScheduledThreadPoolExecutor(PURGER_POOL, 1);
-
+    private static final String UNCOMMITTED_DATA_REVISION_FLAG = "/data/UNCOMMITTED_DATA_REVISION";
     /**
      * Set node / cluster config
      * 
@@ -71,6 +71,10 @@ public class CoordinatorImpl implements Coordinator {
 
     @Override
     public synchronized void start() throws IOException {
+        if (new File(UNCOMMITTED_DATA_REVISION_FLAG).exists()) {
+            _log.error("Uncommitted data revision detected. Manual relink db/zk data directory");
+            throw new RuntimeException("Uncommited data revision");
+        }
         // snapshot clean up runs at regular interval and leaves desired snapshots
         // behind
         _exe.scheduleWithFixedDelay(

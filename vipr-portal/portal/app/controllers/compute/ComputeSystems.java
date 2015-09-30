@@ -157,7 +157,6 @@ public class ComputeSystems extends ViprResourceController {
 
             ComputeSystemRestRep computeSystem = ComputeSystemUtils
                     .getComputeSystem(id);
-            System.out.println("edit computeSystems computeImage " + computeSystem.getComputeImageServer());
             if (computeSystem != null) {
                 if (computeSystem.getVlans() != null) {
                     List<StringOption> vlanOptions = new ArrayList<StringOption>();
@@ -390,9 +389,7 @@ public class ComputeSystems extends ViprResourceController {
             this.unregistered = RegistrationStatus.isUnregistered(computeSystem
                     .getRegistrationStatus());
             if (computeSystem.getComputeImageServer() != null) {
-                System.out.println("getComputeImageServer is not null " + computeSystem.getComputeImageServer());
                 ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(computeSystem.getComputeImageServer());
-                System.out.println("getComputeImageServer name " + cisrr.getName());
                 this.computeImageServer = cisrr.getName();
             }
         }
@@ -461,10 +458,8 @@ public class ComputeSystems extends ViprResourceController {
             if (!this.osInstallNetwork.isEmpty()) {
                 createParam.setOsInstallNetwork(this.osInstallNetwork);
             }
-            System.out.println("computeSystems Form create computeImageServer  " + this.computeImageServer);
             if (this.computeImageServer != null) {
                 ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServerByName(this.computeImageServer);
-                System.out.println("computeSystems Form create  computeImageServer " + cisrr.getId() + " name " + cisrr.getName());
                 createParam.setComputeImageServer(cisrr.getId());
             }
             return ComputeSystemUtils.create(createParam);
@@ -493,7 +488,6 @@ public class ComputeSystems extends ViprResourceController {
                     updateParam.setOsInstallNetwork(this.vlanList);
                 }
             }
-            System.out.println("computeSystems Form update computeImageServer " + this.computeImageServer);
             if (this.computeImageServer != null) {
                 if (this.computeImageServer.equalsIgnoreCase(ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE)) {
                     URI computeImageServerUrl = null;
@@ -504,10 +498,8 @@ public class ComputeSystems extends ViprResourceController {
                         e.printStackTrace();
                     }
                     updateParam.setComputeImageServer(computeImageServerUrl);
-                    System.out.println("computeSystems Form update this.computeImageServer.equals NONE ");
                 } else {
                     ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServerByName(this.computeImageServer);
-                    System.out.println("computeSystems Form update  computeImageServer " + cisrr.getId() + " name " + cisrr.getName());
                     updateParam.setComputeImageServer(cisrr.getId());
                 }
             }

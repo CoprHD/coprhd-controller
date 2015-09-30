@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
+import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.FileSystemSnapCreateParam;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
@@ -28,9 +29,9 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
     private static final String URL_V31 = "/api/types/snap/instances";
     private static final String URL_INSTANCE_V31 = "/api/instances/snap/";
 
-    public FileSystemSnapRequests(KHClient client, float softwareVersion) {
+    public FileSystemSnapRequests(KHClient client, String softwareVersion) {
         super(client);
-        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
+        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             _url = URL;
         } else {
             _url = URL_V31;
@@ -86,8 +87,8 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      * @return
      * @throws VNXeException
      */
-    public VNXeCommandJob deleteFileSystemSnap(String snapId, float softwareVersion) throws VNXeException {
-        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
+    public VNXeCommandJob deleteFileSystemSnap(String snapId, String softwareVersion) throws VNXeException {
+        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             _url = URL_INSTANCE + snapId;
         } else {
             _url = URL_INSTANCE_V31 + snapId;
@@ -107,8 +108,8 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      * 
      * @return
      */
-    public VNXeFileSystemSnap getFileSystemSnap(String snapId, float softwareVersion) throws VNXeException {
-        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
+    public VNXeFileSystemSnap getFileSystemSnap(String snapId, String softwareVersion) throws VNXeException {
+        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             _url = URL_INSTANCE + snapId;
         } else {
             _url = URL_INSTANCE_V31 + snapId;
@@ -126,10 +127,10 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
      * @return VNXeCommandJob
      * @throws VNXeException
      */
-    public VNXeCommandJob restoreFileSystemSnap(String snapId, VNXeSnapRestoreParam restoreParam, float softwareVersion)
+    public VNXeCommandJob restoreFileSystemSnap(String snapId, VNXeSnapRestoreParam restoreParam, String softwareVersion)
             throws VNXeException {
         StringBuilder urlBuilder;
-        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
+        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             urlBuilder = new StringBuilder(URL_INSTANCE);
         } else {
             urlBuilder = new StringBuilder(URL_INSTANCE_V31);

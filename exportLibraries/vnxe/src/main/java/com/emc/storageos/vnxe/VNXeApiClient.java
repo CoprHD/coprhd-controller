@@ -165,13 +165,6 @@ public class VNXeApiClient {
     }
 
     /**
-     * get the system software version specific info
-     */
-    public float getSystemSoftwareVersion() {
-        return Float.parseFloat(getBasicSystemInfo().getSoftwareVersion().substring(0, 3));
-    }
-
-    /**
      * get all of Nfs servers
      */
     public List<VNXeNfsServer> getNfsServers() {
@@ -486,7 +479,7 @@ public class VNXeApiClient {
         _logger.info("finding nfsShare id for file system id: {}, and nameKey: {} ",
                 fsId, shareName);
         NfsShareRequests req = new NfsShareRequests(_khClient);
-        VNXeNfsShare share = req.findNfsShare(fsId, shareName, getSystemSoftwareVersion());
+        VNXeNfsShare share = req.findNfsShare(fsId, shareName, getBasicSystemInfo().getSoftwareVersion());
         return share;
     }
 
@@ -518,7 +511,7 @@ public class VNXeApiClient {
     public VNXeNfsShare findSnapNfsShare(String snapId, String shareName) {
         _logger.info("finding nfsShare id for snap id: {}, and shareName: {} ", snapId, shareName);
         NfsShareRequests req = new NfsShareRequests(_khClient);
-        VNXeNfsShare share = req.findSnapNfsShare(snapId, shareName, getSystemSoftwareVersion());
+        VNXeNfsShare share = req.findSnapNfsShare(snapId, shareName, getBasicSystemInfo().getSoftwareVersion());
         return share;
     }
 
@@ -609,7 +602,7 @@ public class VNXeApiClient {
         parm.setStorageResource(resource);
         parm.setName(name);
         parm.setIsReadOnly(false);
-        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getSystemSoftwareVersion());
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getBasicSystemInfo().getSoftwareVersion());
 
         return req.createFileSystemSnap(parm);
 
@@ -623,7 +616,7 @@ public class VNXeApiClient {
      */
     public VNXeFileSystemSnap getSnapshotByName(String name) {
         _logger.info("Getting the snapshot {}: ", name);
-        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getSystemSoftwareVersion());
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getBasicSystemInfo().getSoftwareVersion());
         return req.getByName(name);
 
     }
@@ -636,7 +629,7 @@ public class VNXeApiClient {
      */
     public VNXeCommandJob deleteFileSystemSnap(String snapId) {
         _logger.info("deleting file system snap:" + snapId);
-        float softwareVersion = getSystemSoftwareVersion();
+        String softwareVersion = getBasicSystemInfo().getSoftwareVersion();
         FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
         return req.deleteFileSystemSnap(snapId, softwareVersion);
     }
@@ -649,8 +642,9 @@ public class VNXeApiClient {
      */
     public VNXeCommandJob restoreFileSystemSnap(String snapId) {
         _logger.info("restoring file system snap:" + snapId);
-        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getSystemSoftwareVersion());
-        return req.restoreFileSystemSnap(snapId, null, getSystemSoftwareVersion());
+        String softwareVersion = getBasicSystemInfo().getSoftwareVersion();
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
+        return req.restoreFileSystemSnap(snapId, null, softwareVersion);
     }
 
     /**
@@ -661,7 +655,7 @@ public class VNXeApiClient {
      */
     public List<VNXeFileSystemSnap> getFileSystemSnaps(String fsId) {
         String resourceId = getStorageResourceId(fsId);
-        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getSystemSoftwareVersion());
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, getBasicSystemInfo().getSoftwareVersion());
         return req.getFileSystemSnaps(resourceId);
     }
 
@@ -793,7 +787,8 @@ public class VNXeApiClient {
         param.setPath(path);
         VNXeBase snap = new VNXeBase();
         snap.setId(snapId);
-        if (getSystemSoftwareVersion() <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
+        if (VNXeUtils.ifHigherVersion(getBasicSystemInfo().getSoftwareVersion(),
+                VNXeConstants.VNXE_BASE_SOFT_VER)) {
             param.setFilesystemSnap(snap);
         } else {
             param.setSnap(snap);
@@ -825,7 +820,7 @@ public class VNXeApiClient {
 
         _logger.info("creating nfs share for the snap: " + snapId);
         NfsShareRequests request = new NfsShareRequests(_khClient);
-        float softwareVersion = getSystemSoftwareVersion();
+        String softwareVersion = getBasicSystemInfo().getSoftwareVersion();
         FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
         VNXeFileSystemSnap snapshot = req.getFileSystemSnap(snapId, softwareVersion);
         if (snapshot == null) {
@@ -834,7 +829,7 @@ public class VNXeApiClient {
         }
         NfsShareCreateForSnapParam nfsCreateParam = new NfsShareCreateForSnapParam();
         VNXeBase snap = new VNXeBase(snapId);
-        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
+        if (VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             nfsCreateParam.setFilesystemSnap(snap);
         } else {
             nfsCreateParam.setSnap(snap);

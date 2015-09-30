@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
+import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.NfsShareCreateForSnapParam;
 import com.emc.storageos.vnxe.models.NfsShareModifyForShareParam;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
@@ -45,11 +46,11 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
      * @param shareName
      * @return
      */
-    public VNXeNfsShare findNfsShare(String fsId, String shareName, float softwareVersion) {
+    public VNXeNfsShare findNfsShare(String fsId, String shareName, String softwareVersion) {
         VNXeNfsShare result = null;
         StringBuilder queryFilter = new StringBuilder(VNXeConstants.NAME_FILTER);
 
-        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
+        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             queryFilter.append(shareName);
             queryFilter.append(VNXeConstants.AND);
             queryFilter.append(VNXeConstants.FILE_SYSTEM_FILTER);
@@ -78,11 +79,11 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
      * @param shareName
      * @return VNXeNfsShare
      */
-    public VNXeNfsShare findSnapNfsShare(String snapId, String shareName, float softwareVersion) {
+    public VNXeNfsShare findSnapNfsShare(String snapId, String shareName, String softwareVersion) {
 
         StringBuilder queryFilter = new StringBuilder(VNXeConstants.NAME_FILTER);
 
-        if (softwareVersion <= VNXeConstants.VNXE_SOFTWARE_VERSION_OLD) {
+        if (!VNXeUtils.ifHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             queryFilter.append(shareName);
             queryFilter.append(VNXeConstants.AND);
             queryFilter.append(VNXeConstants.SNAP_FILTER);

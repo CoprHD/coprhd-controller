@@ -590,7 +590,7 @@ public class DBClient {
     private <T extends DataObject> boolean queryAndDeleteObject(URI id, Class<T> clazz, boolean force)
             throws Exception {
         DependencyTracker dependencyTracker = null;
-        if (_dependencyChecker == null) {
+        if (_dependencyChecker == null ) {
             DataObjectScanner dataObjectscanner = (DataObjectScanner) ctx.getBean("dataObjectScanner");
             dependencyTracker = dataObjectscanner.getDependencyTracker();
             _dependencyChecker = new DependencyChecker(_dbClient, dependencyTracker);
@@ -601,8 +601,7 @@ public class DBClient {
             if (!force) {
                 System.err.println(String.format("Failed to delete the object %s: active reference of type %s found",
                                         id, reference));
-                System.err.println(String.format("\nThe dependencies of %s are as following:", clazz.getSimpleName()));
-                printDependencies(clazz, id, true, "", clazz.toString(), dependencyTracker);
+                printReferenceWhenDeletingFailed(id, clazz, dependencyTracker);
                 return false;
             }
             log.info("Force to delete object {} that has active dependencies", id);
@@ -625,8 +624,21 @@ public class DBClient {
         }
 
         System.err.println(String.format("The object %s can't be deleted", id));
-
+        printReferenceWhenDeletingFailed(id, clazz, dependencyTracker);
         return false;
+    }
+    
+    private <T extends DataObject> void printReferenceWhenDeletingFailed(URI id, Class<T> clazz,
+            DependencyTracker tracker) {
+        System.err.println(String.format(
+                "\nThe dependencies and references of %s(id: %s) are as following:",
+                clazz.getSimpleName(), id));
+        if (tracker == null) {
+            DataObjectScanner dataObjectscanner = (DataObjectScanner) ctx
+                    .getBean("dataObjectScanner");
+            tracker = dataObjectscanner.getDependencyTracker();
+        }
+        printDependencies(clazz, id, true, "", clazz.toString(), tracker);
     }
 
     private <T extends DataObject> T queryObject(URI id, Class<T> clazz) throws Exception {
@@ -1143,9 +1155,9 @@ public class DBClient {
         printDependencies(type, uri, true, "", type.getSimpleName(), dependencyTracker);
         if (uri != null) {
             if (foundReference) {
-                System.out.println("Find references of this id: " + uri);
+                System.out.println("\nFound references of this id: " + uri);
             } else {
-                System.out.println("No reference was found.");
+                System.out.println("\nNo reference was found of this id: " + uri);
             }
         }
     };

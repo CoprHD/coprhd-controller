@@ -30,7 +30,7 @@ public class Main {
         LIST,
         QUERY,
         DELETE,
-        DEPENDENCY,
+        SHOW_DEPENDENCY,
         COUNT,
         GET_RECORDS,
         GLOBALLOCK,
@@ -87,7 +87,8 @@ public class Main {
         System.out
                 .printf("\t\t%s\t<file_path>\tEvery single line in this file is an object id, multiple object ids should be separated to different line.%n",
                         DELETE_FILE);
-        System.out.printf("\t%s <Column Family Name> [id]%n", Command.DEPENDENCY.name().toLowerCase());
+        System.out.printf("\t%s <Column Family Name> [id]%n", Command.SHOW_DEPENDENCY.name().toLowerCase());
+        System.out.printf("\t\t%s\t\t Print out the exact dependency objects for this specific id.%n", "id");
         System.out.printf("\t%s [%s] <Column Family Name>%n",
                 Command.COUNT.name().toLowerCase(), INACTIVE);
         System.out.printf("\t\t%s\t Count including inactive object ids.%n", INACTIVE);
@@ -212,7 +213,7 @@ public class Main {
                     _client.init();
                     handler = new DeleteHandler(args);
                     break;
-                case DEPENDENCY:
+                case SHOW_DEPENDENCY:
                     _client.init();
                     handler = new DependencyHandler(args);
                     break;

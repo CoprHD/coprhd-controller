@@ -74,6 +74,7 @@ public class VplexBackendIngestionContext {
     private Map<UnManagedVolume, String> unmanagedMirrors;
     private Map<String, Map<String, VPlexDeviceInfo>> mirrorMap;
     private Map<String, VPlexStorageVolumeInfo> backendVolumeWwnToInfoMap;
+    private Map<String, String> distributedDevicePathToClusterMap;
 
     private Project backendProject;
     private Project frontendProject;
@@ -106,9 +107,8 @@ public class VplexBackendIngestionContext {
     public void discover() {
         this.setDiscoveryInProgress(true);
         this.getUnmanagedBackendVolumes();
-        // disabled for COP-16754
-        // this.getUnmanagedFullClones();
         this.getUnmanagedVplexMirrors();
+        this.getUnmanagedVplexClones();
     }
 
     /**
@@ -175,8 +175,7 @@ public class VplexBackendIngestionContext {
                     }
                 }
                 if (!umvUris.isEmpty()) {
-                    boolean isLocal = isLocal();
-                    if ((isLocal && umvUris.size() == 1) || (!isLocal && umvUris.size() == 2)) {
+                    if ((isLocal() && umvUris.size() == 1) || (isDistributed() && umvUris.size() == 2)) {
                         // only return vols from the database if we have the correct number
                         // of backend volumes for this type of unmanaged vplex virtual volume
                         unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, umvUris, true);
@@ -237,16 +236,36 @@ public class VplexBackendIngestionContext {
 
     /**
      * Sets the VPLEX_BACKEND_VOLUMES information on the virtual UnManagedVolume
-     * as well as the VPLEX_PARENT_VOLUME on each associated UnManagedVolume.
+     * as well as the VPLEX_PARENT_VOLUME and VPLEX_BACKEND_CLUSTER_ID 
+     * on each associated UnManagedVolume.
      */
     private void updateUnmanagedBackendVolumesInParent() {
         if (!getUnmanagedBackendVolumes().isEmpty()) {
             StringSet bvols = new StringSet();
             for (UnManagedVolume backendVol : unmanagedBackendVolumes) {
                 bvols.add(backendVol.getNativeGuid());
+                
+                // set the parent volume native guid on the backend volume
                 StringSet parentVol = new StringSet();
                 parentVol.add(_unmanagedVirtualVolume.getNativeGuid());
                 backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), parentVol);
+                
+                if (isDistributed()) {
+                    // determine cluster location of distributed component storage volume leg
+                    VPlexStorageVolumeInfo storageVolume = 
+                            getBackendVolumeWwnToInfoMap().get(backendVol.getWwn());
+                    if (null != storageVolume) {
+                        String clusterId = getClusterLocationForStorageVolume(storageVolume);
+                        if (null != clusterId && !clusterId.isEmpty()) {
+                            _logger.info("setting VPLEX_BACKEND_CLUSTER_ID: " + clusterId);
+                            StringSet clusterIds = new StringSet();
+                            clusterIds.add(clusterId);
+                            backendVol.putVolumeInfo(
+                                    SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.name(), 
+                                    clusterIds);
+                        }
+                    }
+                }
                 _dbClient.persistObject(backendVol);
             }
             if (bvols != null && !bvols.isEmpty()) {
@@ -285,9 +304,9 @@ public class VplexBackendIngestionContext {
         if (!success) {
             // we didn't succeed the first time, so try again and check for mirrors first
             boolean hasMirror = !getMirrorMap().isEmpty();
-            
+
             if (hasMirror) {
-                // the volume has a mirrored top-level device, so we need to 
+                // the volume has a mirrored top-level device, so we need to
                 // send the hasMirror flag down so that the VPLEX client will
                 // know to look one level deeper in the components tree for
                 // the backend storage volumes
@@ -298,14 +317,14 @@ public class VplexBackendIngestionContext {
                                     _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
                     success = true;
                 } catch (VPlexApiException ex) {
-                    String reason = "could not determine backend storage volumes for " 
+                    String reason = "could not determine backend storage volumes for "
                             + getSupportingDeviceName() + ": " + ex.getLocalizedMessage();
                     _logger.error(reason);
                     throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
                 }
             } else {
-                String reason = "could not determine backend storage volumes for " 
-                        + getSupportingDeviceName() 
+                String reason = "could not determine backend storage volumes for "
+                        + getSupportingDeviceName()
                         + ": failed for both simple and RAID-1 top-level device configurations";
                 _logger.error(reason);
                 throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
@@ -487,15 +506,6 @@ public class VplexBackendIngestionContext {
                 }
                 if (null != unmanagedFullClones && !unmanagedFullClones.isEmpty()) {
                     _logger.info("found full clones: " + unmanagedFullClones);
-                    
-                    // TODO: this is temporary until we can support
-                    // clones on both legs of distributed volumes
-                    // still want to collect the data for testing, though
-                    if (!this.isLocal()) {
-                        throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(
-                                "currently can't ingest clones on distributed volumes, sorry");
-                    }
-                    
                     return unmanagedFullClones;
                 }
             }
@@ -573,15 +583,6 @@ public class VplexBackendIngestionContext {
         _logger.info("unmanaged full clones found: " + unmanagedFullClones);
         _tracker.fetchFullClones = System.currentTimeMillis() - start;
         if (!unmanagedFullClones.isEmpty()) {
-            
-            // TODO: this is temporary until we can support
-            // clones on both legs of distributed volumes
-            // still want to collect the data for testing, though
-            if (!this.isLocal()) {
-                throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(
-                        "currently can't ingest clones on distributed volumes, sorry");
-            }
-            
             StringSet cloneEntries = new StringSet();
             for (Entry<UnManagedVolume, UnManagedVolume> cloneEntry : unmanagedFullClones.entrySet()) {
                 cloneEntries.add(cloneEntry.getKey().getNativeGuid() + "=" + cloneEntry.getValue().getNativeGuid());
@@ -713,15 +714,10 @@ public class VplexBackendIngestionContext {
                         unmanagedMirrors.put(associatedVolumeMirror, slotToDeviceMap.get("1").getPath());
                         
                         // 3. update the source volume with the target mirror information
-                        StringSet set = extractValuesFromStringSet(SupportedVolumeInformation.MIRRORS.toString(), 
-                                associatedVolumeSource.getVolumeInformation());
-                        if (null == set) {
-                            set = new StringSet();
-                        }
+                        StringSet set = new StringSet();
                         set.add(associatedVolumeMirror.getNativeGuid());
                         _logger.info("adding mirror set {} to source unmanaged volume {}", 
                                 set, associatedVolumeSource);
-                        associatedVolumeSource.putVolumeInfo(SupportedVolumeInformation.MIRRORS.toString(), set);
                         associatedVolumeSource.putVolumeInfo(
                                 SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_TARGET_VOLUME.toString(), set);
                         
@@ -794,6 +790,36 @@ public class VplexBackendIngestionContext {
         return null;
     }
 
+    /**
+     * Returns the cluster location (i.e., the cluster name) for a given
+     * VPlexStorageVolumeInfo by searching through each key in the 
+     * DistributedDevicePathToClusterMap for an overlapping VPLEX API
+     * context path.
+     * 
+     * @param storageVolume the storage volume to check
+     * @return a cluster name where the volume is located from the VPLEX
+     */
+    private String getClusterLocationForStorageVolume(VPlexStorageVolumeInfo storageVolume) {
+        String storageVolumePath = storageVolume.getPath();
+        for (Entry<String, String> deviceMapEntry : this.getDistributedDevicePathToClusterMap().entrySet()) {
+            // example storage volume path:
+            //    /distributed-storage/distributed-devices/dd_VAPM00140844986-00904_V000198700412-024D2/
+            //    distributed-device-components/device_V000198700412-024D2/components/
+            //    extent_V000198700412-024D2_1/components/V000198700412-024D2
+            // is overlapped by (startsWith) device path:
+            //    /distributed-storage/distributed-devices/dd_VAPM00140844986-00904_V000198700412-024D2/
+            //    distributed-device-components/device_V000198700412-024D2
+            if (storageVolumePath.startsWith(deviceMapEntry.getKey())) {
+                _logger.info("found cluster {} for distributed component storage volume {}", 
+                        deviceMapEntry.getValue(), storageVolume.getName());
+                // the value here is the cluster-id
+                return deviceMapEntry.getValue();
+            }
+        }
+        
+        return null;
+    }
+    
     /**
      * Creates a Map of cluster name to sorted Map of slot numbers to VPlexDeviceInfos
      * for use in describing the layout of VPLEX native mirrors.
@@ -924,6 +950,15 @@ public class VplexBackendIngestionContext {
      */
     public boolean isLocal() {
         return VPlexApiConstants.LOCAL_VIRTUAL_VOLUME.equals(getLocality());
+    }
+
+    /**
+     * Returns true if the virtual volume is a distributed volume.
+     * 
+     * @return true if the virtual volume is a distributed volume
+     */
+    public boolean isDistributed() {
+        return !isLocal();
     }
 
     /**
@@ -1244,6 +1279,34 @@ public class VplexBackendIngestionContext {
         }
         _logger.info("creating deviceToUnManagedVolumeMap took {} ms", new Date().getTime() - dingleTimer);
         return deviceToUnManagedVolumeMap;
+    }
+
+    /**
+     * Returns a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names.
+     * 
+     * @return  a Map of distributed device component context
+     * paths to VPLEX cluster names
+     */
+    public Map<String, String> getDistributedDevicePathToClusterMap() {
+        if (null == distributedDevicePathToClusterMap) {
+            distributedDevicePathToClusterMap = 
+                VPlexControllerUtils.getDistributedDevicePathToClusterMap(
+                        getUnmanagedVirtualVolume().getStorageSystemUri(), _dbClient);
+        }
+        
+        return distributedDevicePathToClusterMap;
+    }
+
+    /**
+     * Sets the distributed device path to cluster Map. This can be used to
+     * cache this Map from the outside when iterating through a lot of
+     * VplexBackendIngestionContexts (see VPlexCommunicationInterface.discover).
+     * 
+     * @param distributedDevicePathToClusterMap the distributed device path to cluster Map
+     */
+    public void setDistributedDevicePathToClusterMap(Map<String, String> distributedDevicePathToClusterMap) {
+        this.distributedDevicePathToClusterMap = distributedDevicePathToClusterMap;
     }
 
     /**

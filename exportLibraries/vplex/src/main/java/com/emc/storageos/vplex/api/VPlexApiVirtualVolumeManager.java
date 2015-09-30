@@ -69,15 +69,16 @@ public class VPlexApiVirtualVolumeManager {
      * @param winningClusterId Used to set detach rules for distributed volumes.
      * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
      *            clusters.
+     * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
      * 
      * @return The information for the created virtual volume.
      * 
      * @throws VPlexApiException When an error occurs creating the virtual
      *             volume.
      */
-	VPlexVirtualVolumeInfo createVirtualVolume(List<VolumeInfo> nativeVolumeInfoList,
+    VPlexVirtualVolumeInfo createVirtualVolume(List<VolumeInfo> nativeVolumeInfoList,
             boolean isDistributed, boolean discoveryRequired, boolean preserveData,
-            String winningClusterId, List<VPlexClusterInfo> clusterInfoList)
+            String winningClusterId, List<VPlexClusterInfo> clusterInfoList, boolean findVirtualVolume)
             throws VPlexApiException {
 
         s_logger.info("Request to create {} virtual volume.",
@@ -94,10 +95,10 @@ public class VPlexApiVirtualVolumeManager {
         if (null == clusterInfoList) {
             clusterInfoList = new ArrayList<VPlexClusterInfo>();
         }
-        
+
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(nativeVolumeInfoList,
-                    discoveryRequired, clusterInfoList);
-        
+                discoveryRequired, clusterInfoList);
+
         // For a distributed virtual volume, verify logging volumes
         // have been configured on each cluster.
         if (isDistributed) {
@@ -162,14 +163,18 @@ public class VPlexApiVirtualVolumeManager {
             createVirtualVolume(devicePath);
             s_logger.info("Created virtual volume on device {}", devicePath);
 
-            // Find virtual volume and return.
+            VPlexVirtualVolumeInfo virtualVolumeInfo = new VPlexVirtualVolumeInfo();
             StringBuilder volumeNameBuilder = new StringBuilder();
             volumeNameBuilder.append(deviceName);
             volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
-
-            VPlexVirtualVolumeInfo virtualVolumeInfo = new VPlexVirtualVolumeInfo();
-            virtualVolumeInfo.setName(volumeNameBuilder.toString());
-            virtualVolumeInfo.addCluster(clusterId);
+            if (findVirtualVolume) {
+                // For bulk volume creation we shouldn't use findVirtualVolume as true, rather findVirtualVolumes should be called
+                // separately after createVirtualVolumes.
+                virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterId, volumeNameBuilder.toString(), true, true);
+            } else {
+                virtualVolumeInfo.setName(volumeNameBuilder.toString());
+                virtualVolumeInfo.addCluster(clusterId);
+            }
             return virtualVolumeInfo;
         } catch (Exception e) {
             // An error occurred. Clean up any VPLEX artifacts created for
@@ -665,10 +670,10 @@ public class VPlexApiVirtualVolumeManager {
         // the VPlex.
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = null;
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-        
-        //Find if ITL based search needs to be done - Currently Cinder uses this
+
+        // Find if ITL based search needs to be done - Currently Cinder uses this
         boolean isITLBasedLookUp = VPlexApiUtils.isITLBasedSearch(nativeVolumeInfoList.get(0));
-        
+
         if (discoveryRequired) {
             s_logger.info("Storage volume discovery is required.");
             int retryCount = 0;
@@ -678,15 +683,15 @@ public class VPlexApiVirtualVolumeManager {
                     s_logger.info("Executing storage volume discovery try {} of {}",
                             retryCount, VPlexApiConstants.FIND_STORAGE_VOLUME_RETRY_COUNT);
                     List<String> storageSystemGuids = new ArrayList<String>();
-                    for (VolumeInfo nativeVolumeInfo : nativeVolumeInfoList) {         
+                    for (VolumeInfo nativeVolumeInfo : nativeVolumeInfoList) {
                         String storageSystemGuid = nativeVolumeInfo.getStorageSystemNativeGuid();
                         if (!storageSystemGuids.contains(storageSystemGuid)) {
-                            
+
                             s_logger.info("Discover storage volumes on array {}", storageSystemGuid);
                             storageSystemGuids.add(storageSystemGuid);
                         }
                     }
-                    
+
                     discoveryMgr.rediscoverStorageSystems(storageSystemGuids);
                     s_logger.info("Discovery completed");
 
@@ -732,7 +737,6 @@ public class VPlexApiVirtualVolumeManager {
 
         return storageVolumeInfoMap;
     }
-	
 
     /**
      * Claims the VPlex volumes in the passed map.
@@ -828,7 +832,7 @@ public class VPlexApiVirtualVolumeManager {
      * 
      * @throws VPlexApiException When an error occurs creating the extents,
      */
-   void createExtents(List<VPlexStorageVolumeInfo> storageVolumeInfoList)
+    void createExtents(List<VPlexStorageVolumeInfo> storageVolumeInfoList)
             throws VPlexApiException {
         ClientResponse response = null;
         try {
@@ -2211,5 +2215,5 @@ public class VPlexApiVirtualVolumeManager {
                     detachedDeviceName, virtualVolumeName, e);
         }
     }
-    
+
 }

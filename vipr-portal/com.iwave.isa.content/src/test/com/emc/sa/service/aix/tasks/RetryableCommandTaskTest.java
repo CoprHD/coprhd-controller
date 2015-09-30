@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.sa.service.aix.tasks;
 
 import static org.testng.Assert.assertEquals;

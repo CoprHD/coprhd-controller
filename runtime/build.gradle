@@ -53,7 +53,7 @@ task copyBinaryFiles(type: Copy) {
 }
 copyConfs.finalizedBy(copyBinaryFiles)
 
-task generateConfigDefaults(dependsOn: generateMetadata) << {
+task generateConfigDefaults(dependsOn: copyConfs) << {
     def properties = new Properties()
 
     def definitions = ["storageos-properties-config.def","storageos-properties-iterable.def","storageos-properties-ovfenv.def"]

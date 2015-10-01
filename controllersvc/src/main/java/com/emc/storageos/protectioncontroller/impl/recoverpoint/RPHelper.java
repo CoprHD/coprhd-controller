@@ -262,27 +262,25 @@ public class RPHelper {
     }
 
     /**
-     * gets volume descriptors for volumes in an RP protection to be deleted
+     * Gets volume descriptors for volumes in an RP protection to be deleted
      * handles vplex andnon-vplex as well as mixed storage configurations
      * (e.g. vplex source and non-vplex targets)
      * 
      * @param systemURI System that the delete request belongs to
      * @param volumeURIs All volumes to be deleted
      * @param deletionType The type of deletion
-     * @return
+     * @param newVpool Only used when removing protection, the new vpool to move the volume to
+     * @return All descriptors needed to clean up volumes
      */
     public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
-            List<URI> volumeURIs, String deletionType) {
+            List<URI> volumeURIs, String deletionType, VirtualPool newVpool) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         try {
             Set<URI> allVolumeIds = getVolumesToDelete(volumeURIs);
 
-            for (URI volumeURI : allVolumeIds) {
-                
-                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-
+            for (URI volumeURI : allVolumeIds) {                
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);                
                 VolumeDescriptor descriptor = null;
-
                 boolean isSourceVolume = false;
                 
                 // if RP source, add a descriptor for the RP source
@@ -290,15 +288,18 @@ public class RPHelper {
                     isSourceVolume = true;
                     if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
                         _log.info(String.format("Adding RP_VPLEX_VIRT_SOURCE descriptor to delete virtual volume [%s] ", volume.getLabel()));
-                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE, systemURI, volume.getId(), null, null);
+                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE, 
+                                volume.getStorageController(), volume.getId(), null, null);
                     } else {
                         _log.info(String.format("Adding RP_SOURCE descriptor to delete virtual volume [%s] ", volume.getLabel()));
-                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_SOURCE, systemURI, volumeURI, null, null);
+                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_SOURCE, 
+                                volume.getStorageController(), volume.getId(), null, null);
                     }
                     
                     if (REMOVE_PROTECTION.equals(deletionType)) {
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
-                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);                    
+                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE); 
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId()); 
                         descriptor.setParameters(volumeParams);
                     }
                                                             
@@ -344,7 +345,8 @@ public class RPHelper {
                     // the deletion type is Remove Protection
                     if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
-                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);                    
+                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE); 
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
                     volumeDescriptors.add(descriptor);

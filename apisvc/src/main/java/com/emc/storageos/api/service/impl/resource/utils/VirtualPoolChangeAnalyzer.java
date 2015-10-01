@@ -70,10 +70,13 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String HOST_IO_LIMIT_IOPS = "hostIOLimitIOPs";
     private static final String AUTO_CROSS_CONNECT_EXPORT = "autoCrossConnectExport";
     private static final String RP_RPO_VALUE = "rpRpoValue";
+    private static final String RP_RPO_TYPE = "rpRpoType";
+    private static final String RP_COPY_MODE = "rpCopyMode";    
     private static final String HA_CONNECTED_TO_RP = "haVarrayConnectedToRp";
 
     private static final String[] INCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] { AUTO_TIER_POLICY_NAME,
             HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS };
+    
     private static final String[] EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] {
             AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, ARRAY_INFO,
             UNIQUE_AUTO_TIERING_POLICY_NAMES, ASSIGNED_STORAGE_POOLS,
@@ -1321,13 +1324,13 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
             return false;
         }        
-        
+           
         if (volume.checkForRp()
                 && VirtualPool.vPoolSpecifiesProtection(currentVpool)
                 && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {            
             // Check that nothing other than the excluded attributes changed.
             List<String> excluded = new ArrayList<String>();
-            String[] exclude = new String[] { PROTECTION_VARRAY_SETTINGS };
+            String[] exclude = new String[] { PROTECTION_VARRAY_SETTINGS, RP_RPO_VALUE, RP_RPO_TYPE, RP_COPY_MODE, ARRAY_INFO, DRIVE_TYPE };
             excluded.addAll(Arrays.asList(exclude));
             excluded.addAll(Arrays.asList(generallyExcluded));
             Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);

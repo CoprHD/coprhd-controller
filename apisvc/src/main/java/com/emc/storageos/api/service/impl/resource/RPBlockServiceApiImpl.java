@@ -78,7 +78,6 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
@@ -1936,9 +1935,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     && VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
                     && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
                 upgradeToMetroPointVolume(volume, newVpool, vpoolChangeParam, taskId);
-            } else if (volume.checkForRp() 
-                    && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
-                removeProtection(volume, newVpool, vpoolChangeParam, taskId);
             } else {
                 _log.info("Protection VirtualPool change for VPLEX to RP+VPLEX volume.");
                 upgradeToProtectedVolume(volume, newVpool, vpoolChangeParam, taskId);
@@ -1949,13 +1945,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
-        // For now we only support changing the virtual pool for a single volume at a time
-        // until CTRL-1347 and CTRL-5609 are fixed.
-        if (volumes.size() == 1) {
-            changeVolumeVirtualPool(volumes.get(0).getStorageController(), volumes.get(0), vpool, vpoolChangeParam, taskId);
-        } else {
-            throw APIException.methodNotAllowed.notSupportedWithReason(
-                    "Multiple volume change virtual pool is currently not supported for RecoverPoint. Please select one volume at a time.");
+        // We support multi-volume removal of protection, but still not 
+        // multi-volume add protection. Check the first volume in the
+        // list to see if the request is to remove protection.
+        if (volumes.get(0).checkForRp() 
+                && !VirtualPool.vPoolSpecifiesProtection(vpool)) {
+            removeProtection(volumes, vpool, taskId);
+        } else {        
+            // For now we only support changing the virtual pool for a single volume at a time
+            // until CTRL-1347 and CTRL-5609 are fixed.
+            if (volumes.size() == 1) {
+                changeVolumeVirtualPool(volumes.get(0).getStorageController(), volumes.get(0), vpool, vpoolChangeParam, taskId);
+            } else {
+                throw APIException.methodNotAllowed.notSupportedWithReason(
+                        "Multiple volume change virtual pool is currently not supported for RecoverPoint. "
+                        + "Please select one volume at a time.");
+            }
         }
     }
 
@@ -2611,7 +2616,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI, 
             List<URI> volumeURIs, String deletionType) {
 
-        List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs, deletionType);
+        List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs, deletionType, null);
 
         List<VolumeDescriptor> filteredDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA,
@@ -2621,13 +2626,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         for (VolumeDescriptor descriptor : filteredDescriptors) {
             URI volumeURI = descriptor.getDeviceURI();
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-            // Exclude inactive volumes and also Source volumes
-            // when the deletion type is Remove Protection as in that
-            // case we want to keep mirrors.
-            if (volume != null 
-                    && !volume.getInactive()
-                    && !(RPHelper.REMOVE_PROTECTION.equals(deletionType) 
-                            && Volume.PersonalityTypes.SOURCE.name().equals(volume.getPersonality()))) {
+            // Exclude inactive volumes 
+            if (volume != null && !volume.getInactive()) {
                 addDescriptorsForMirrors(volumeDescriptors, volume);
             }
         }
@@ -3267,18 +3267,31 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     /**
      * Removes protection from the volume and leaves it in an unprotected state.
      * 
-     * @param volume the existing volume being protected.
+     * @param volumes the existing volume being protected.
      * @param newVpool the requested virtual pool
-     * @param vpoolChangeParam Param sent down by the API Service
      * @param taskId the task identifier
      * @throws InternalException
      */
-    private void removeProtection(Volume volume, VirtualPool newVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId) 
+    private void removeProtection(List<Volume> volumes, VirtualPool newVpool, String taskId) 
             throws InternalException {
-        List<URI> tempWrapper = new ArrayList<URI>();
-        tempWrapper.add(volume.getId());
-        _log.info(String.format("Request to remove protection from Volume [%s] (%s)"), volume.getLabel(), volume.getId());
-        this.deleteVolumes(volume.getProtectionController(), tempWrapper, RPHelper.REMOVE_PROTECTION, taskId);
-        RPHelper.rollbackProtectionOnVolume(volume, newVpool, _dbClient);
+        try {            
+            List<URI> volumeURIs = new ArrayList<URI>();            
+            for (Volume volume : volumes) {
+                _log.info(String.format("Request to remove protection from Volume [%s] (%s) and move to Virtual Pool [%s] (%s)", 
+                        volume.getLabel(), volume.getId(), newVpool.getLabel(), newVpool.getId()));
+                volumeURIs.add(volume.getId());
+            }
+            
+            // Get volume descriptor for all volumes to be have .
+            List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(
+                    null, volumeURIs, RPHelper.REMOVE_PROTECTION, newVpool);
+
+            BlockOrchestrationController controller = getController(
+                    BlockOrchestrationController.class,
+                    BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+            controller.deleteVolumes(volumeDescriptors, taskId);
+        } catch (Exception e) {
+            throw e;
+        }
     }
 }

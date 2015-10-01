@@ -1525,7 +1525,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         List<VolumeDescriptor> descriptorsToRemove = new ArrayList<VolumeDescriptor>();
         for (VolumeDescriptor descriptor : volumes) {
             if (descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null) {
-                _log.info(String.format("Volume (%s) will not be deleted", descriptor.getVolumeURI()));
+                _log.info(String.format("Volume (%s) has been flagged to not be deleted, skipping delete.", descriptor.getVolumeURI()));
                 descriptorsToRemove.add(descriptor);
             }
         }

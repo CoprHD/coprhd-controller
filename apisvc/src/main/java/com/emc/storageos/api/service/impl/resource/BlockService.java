@@ -3959,7 +3959,7 @@ public class BlockService extends TaskResourceService {
                 notSuppReasonBuff.setLength(0);
                 if (!VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume, currentVpool, newVpool, _dbClient,
                         notSuppReasonBuff)) {
-                    _log.info("VNX/VMAX VirtualPool change for volume is not supported: {}",
+                    _log.info("VirtualPool change to Add RP Protection for volume is not supported: {}",
                             notSuppReasonBuff.toString());
                     throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                             notSuppReasonBuff.toString());
@@ -3967,6 +3967,16 @@ public class BlockService extends TaskResourceService {
                     // Full copies not supported for RP protected volumes.
                     throw APIException.badRequests.volumeForRPVpoolChangeHasFullCopies(volume.getLabel());
                 }
+            } else if (VirtualPool.vPoolSpecifiesProtection(currentVpool)
+                        && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+                notSuppReasonBuff.setLength(0);
+                if (!VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool, 
+                        _dbClient, notSuppReasonBuff)) {
+                    _log.info("VirtualPool change to Remove RP Protection for volume is not supported:: {}",
+                            notSuppReasonBuff.toString());
+                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                            notSuppReasonBuff.toString());
+                }                
             } else if (VirtualPool.vPoolSpecifiesSRDF(newVpool)) {
                 // VMAX import to SRDF cases (currently one)
                 notSuppReasonBuff.setLength(0);

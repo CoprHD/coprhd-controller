@@ -658,8 +658,14 @@ public class RecoverPointClient {
     			for (CreateVolumeParams journalVolume: copyParam.getJournals()) {
     				copyName = journalVolume.getRpCopyName();
     				ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName()); 
-    				ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);    				
-    				DeviceUID journalDevice = RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn());
+    				ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);
+    				String journalWwn = journalVolume.getWwn();
+    				// Code below is specific for Xtremio 4.0 volumes without Vplex front end
+                	// The wwn for these volumes is not exposed in the same format
+    				if (RecoverPointUtils.isXioVolume(journalVolume.getNativeGuid())) {
+                		journalWwn = RecoverPointUtils.getXioNativeGuid(journalVolume.getNativeGuid());
+    				}    				
+    				DeviceUID journalDevice = RecoverPointUtils.getDeviceID(allSites, journalWwn);
     				addedJournalVolumes.put(copyUID, journalDevice);
     				functionalAPI.addJournalVolume(copyUID, journalDevice);        		
     			}    			
@@ -858,7 +864,8 @@ public class RecoverPointClient {
                                 "; CG " + request.getCgName());
                         
                         String journalWwn = journalVolume.getWwn();
-
+                        // Code below is specific for Xtremio 4.0 volumes without Vplex front end
+                    	// The wwn for these volumes is not exposed in the same format
                         if (RecoverPointUtils.isXioVolume(journalVolume.getNativeGuid())) {
                         	journalWwn = RecoverPointUtils.getXioNativeGuid(journalVolume.getNativeGuid());
                         }
@@ -891,7 +898,8 @@ public class RecoverPointClient {
             for (CreateVolumeParams volume : rsetParam.getVolumes()) {
 
             	String volumeWwn = volume.getWwn();
-            	
+            	// Code below is specific for Xtremio 4.0 volumes without Vplex front end
+            	// The wwn for these volumes is not exposed in the same format
             	if (RecoverPointUtils.isXioVolume(volume.getNativeGuid())) {
                 	volumeWwn = RecoverPointUtils.getXioNativeGuid(volume.getNativeGuid());
                 }
@@ -1135,10 +1143,10 @@ public class RecoverPointClient {
                         	                        	
                         	String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
                         	
-                        	// new code
+                        	// Code below is specific for Xtremio 4.0 volumes without Vplex front end
+                        	// The wwn for these volumes is not exposed in the same format 
                         	if (RecoverPointUtils.isXioVolume(volumeParam.getNativeGuid())) {
-                        		String xioNativeGuid = RecoverPointUtils.getXioNativeGuid(volumeParam.getNativeGuid());                        		                        		
-                        		
+                        		String xioNativeGuid = RecoverPointUtils.getXioNativeGuid(volumeParam.getNativeGuid());                          		
                         		if (siteVolUID.equalsIgnoreCase(xioNativeGuid)) {
                         			logger.info("Found site and volume ID for journal: " + xioNativeGuid + " for copy: "
                                             + copy.getName());
@@ -1193,10 +1201,10 @@ public class RecoverPointClient {
                         for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                             String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
                             
-                            // new code
+                            // Code below is specific for Xtremio 4.0 volumes without Vplex front end
+                        	// The wwn for these volumes is not exposed in the same format
                             if (RecoverPointUtils.isXioVolume(volumeParam.getNativeGuid())) {
-                            	String xioNativeGuid = RecoverPointUtils.getXioNativeGuid(volumeParam.getNativeGuid());                        		                        		
-                        		
+                            	String xioNativeGuid = RecoverPointUtils.getXioNativeGuid(volumeParam.getNativeGuid());                        		
                         		if (siteVolUID.equalsIgnoreCase(xioNativeGuid)) {
                                     logger.info(String.format(
                                             "Found site and volume ID for volume: %s for replication set: %s on site: %s (%s)",
@@ -3187,7 +3195,13 @@ public class RecoverPointClient {
         // add journals
         for (CreateVolumeParams journalVolume : copyParams.getJournals()) {
             logger.info("Adding Journal : " + journalVolume.toString() + " for Production copy : " + copyParams.getName());
-            functionalAPI.addJournalVolume(copyUid, RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));
+            String journalWwn = journalVolume.getWwn();
+            // Code below is specific for Xtremio 4.0 volumes without Vplex front end
+        	// The wwn for these volumes is not exposed in the same format
+			if (RecoverPointUtils.isXioVolume(journalVolume.getNativeGuid())) {
+        		journalWwn = RecoverPointUtils.getXioNativeGuid(journalVolume.getNativeGuid());
+			} 
+            functionalAPI.addJournalVolume(copyUid, RecoverPointUtils.getDeviceID(allSites, journalWwn));
         }
 
         if (rSets != null) {
@@ -3206,7 +3220,13 @@ public class RecoverPointClient {
                     for (CreateVolumeParams volume : rSet.getVolumes()) {
                         if ((isProduction && volume.isProduction()) || (!isProduction && !volume.isProduction())) {
                             logger.info(String.format("Adding %s copy volume : %s", copyTypeStr, copyParams.toString()));
-                            functionalAPI.addUserVolume(copyUid, rSetUid, RecoverPointUtils.getDeviceID(allSites, volume.getWwn()));
+                            String volumeWwn = volume.getWwn();
+                            // Code below is specific for Xtremio 4.0 volumes without Vplex front end
+                        	// The wwn for these volumes is not exposed in the same format
+                			if (RecoverPointUtils.isXioVolume(volume.getNativeGuid())) {
+                        		volumeWwn = RecoverPointUtils.getXioNativeGuid(volume.getNativeGuid());
+                			}
+                            functionalAPI.addUserVolume(copyUid, rSetUid, RecoverPointUtils.getDeviceID(allSites, volumeWwn));
                         }
                     }
                 }

@@ -370,28 +370,32 @@ public class DisasterRecoveryService {
         log.info("Begin to pause data sync between standby site from local vdc by uuid: {}", uuid);
         try {
             Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
-            if (config != null) {
-                Site standby = new Site(config);
-
-                standby.setState(SiteState.STANDBY_PAUSED);
-                coordinator.persistServiceConfiguration(uuid, standby.toConfiguration());
-                VirtualDataCenter vdc = queryLocalVDC();
-
-                for (Site standbySite : getStandbySites(vdc.getId())) {
-                    updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
-                }
-                // update the local site last
-                updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
-                return siteMapper.map(standby);
+            if (config == null) {
+                log.warn("Can't find site {} from ZK", uuid);
+                throw new IllegalArgumentException(String.format("Invalid site UUID: %s", uuid));
             }
+
+            Site standby = new Site(config);
+            if (standby.getState().equals(SiteState.ACTIVE)) {
+                throw new IllegalArgumentException("Cannot pause the primary site");
+            }
+
+            standby.setState(SiteState.STANDBY_PAUSED);
+            coordinator.persistServiceConfiguration(uuid, standby.toConfiguration());
+            VirtualDataCenter vdc = queryLocalVDC();
+
+            for (Site standbySite : getStandbySites(vdc.getId())) {
+                updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
+            }
+            // update the local site last
+            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+
+            return siteMapper.map(standby);
         } catch (Exception e) {
             log.error("Error pausing site {}", uuid, e);
             //TODO: throw custom exception for DR
             throw new IllegalStateException(e);
         }
-
-        log.warn("Can't find site {} from ZK", uuid);
-        return null;
     }
 
     private void updateVdcTargetVersion(String siteId, String action) throws Exception {

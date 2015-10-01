@@ -21,7 +21,7 @@
                 <prop key="autopurge.purgeInterval">30</prop> 
                 <prop key="staticConfigFile">coordinator-static.cfg</prop>
                 <prop key="dynamicConfigFile">coordinator-dynamic.cfg</prop>
-                <prop key="server.1">127.0.0.1:2888:2889:participant;2181</prop>
+                <prop key="server.1">localhost:2888:2889:participant;2181</prop>
             </props>
         </property>
     </bean>

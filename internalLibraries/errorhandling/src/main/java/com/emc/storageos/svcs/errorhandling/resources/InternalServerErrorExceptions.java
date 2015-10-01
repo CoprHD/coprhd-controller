@@ -231,5 +231,8 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException configStandbyFailed(String errMsg);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
-    public InternalServerErrorException removeStandbyFailed(String errMsg);
+    public InternalServerErrorException removeStandbyFailed(final String siteId, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_FAILED)
+    public InternalServerErrorException pauseStandbyFailed(final String siteId, String errMsg);
 }

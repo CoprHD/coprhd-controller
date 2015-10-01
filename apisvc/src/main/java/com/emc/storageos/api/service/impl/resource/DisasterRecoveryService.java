@@ -268,26 +268,27 @@ public class DisasterRecoveryService {
     @Path("/{uuid}")
     public SiteRestRep removeStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to remove standby site from local vdc by uuid: {}", uuid);
-        
-        try {
-            Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
-            if (config != null) {
-                Site site = new Site(config);
-                log.info("Find standby site in local VDC and remove it");
-                VirtualDataCenter vdc = queryLocalVDC();
-                coordinator.removeServiceConfiguration(config);
-                
-                updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
-                for (Site standbySite : getStandbySites(vdc.getId())) {
-                    updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
-                }
-                return siteMapper.map(site);
-            }
-        } catch (Exception e) {
-            log.error("Find find site from ZK for UUID {}, {}", uuid, e);
+        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
+        if (config == null) {
+            log.error("Can't find site {} from ZK", uuid);
+            throw APIException.badRequests.siteIdNotFound(uuid);
         }
-        
-        return null;
+
+        try {
+            Site site = new Site(config);
+            log.info("Find standby site in local VDC and remove it");
+            VirtualDataCenter vdc = queryLocalVDC();
+            coordinator.removeServiceConfiguration(config);
+
+            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+            for (Site standbySite : getStandbySites(vdc.getId())) {
+                updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
+            }
+            return siteMapper.map(site);
+        } catch (Exception e) {
+            log.error("Failed to remove site {}", uuid, e);
+            throw APIException.internalServerErrors.removeStandbyFailed(uuid, e.getMessage());
+        }
     }
     
     /**
@@ -368,18 +369,19 @@ public class DisasterRecoveryService {
     @Path("/pause/{uuid}")
     public SiteRestRep pauseStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to pause data sync between standby site from local vdc by uuid: {}", uuid);
+        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
+        if (config == null) {
+            log.error("Can't find site {} from ZK", uuid);
+            throw APIException.badRequests.siteIdNotFound(uuid);
+        }
+
+        Site standby = new Site(config);
+        if (standby.getState().equals(SiteState.ACTIVE)) {
+            log.error("site {} is primary", uuid);
+            throw APIException.badRequests.operationNotAllowedOnPrimarySite(uuid);
+        }
+
         try {
-            Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
-            if (config == null) {
-                log.warn("Can't find site {} from ZK", uuid);
-                throw new IllegalArgumentException(String.format("Invalid site UUID: %s", uuid));
-            }
-
-            Site standby = new Site(config);
-            if (standby.getState().equals(SiteState.ACTIVE)) {
-                throw new IllegalArgumentException("Cannot pause the primary site");
-            }
-
             standby.setState(SiteState.STANDBY_PAUSED);
             coordinator.persistServiceConfiguration(uuid, standby.toConfiguration());
             VirtualDataCenter vdc = queryLocalVDC();
@@ -393,8 +395,7 @@ public class DisasterRecoveryService {
             return siteMapper.map(standby);
         } catch (Exception e) {
             log.error("Error pausing site {}", uuid, e);
-            //TODO: throw custom exception for DR
-            throw new IllegalStateException(e);
+            throw APIException.internalServerErrors.pauseStandbyFailed(uuid, e.getMessage());
         }
     }
 

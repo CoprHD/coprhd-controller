@@ -21,7 +21,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
@@ -174,10 +176,11 @@ public class VdcConfigUtil {
         
         // Sort the sites by creation time - ascending order
         List<Site> siteList = new ArrayList<Site>();
-        for (String siteUUID : vdc.getSiteUUIDs()) {
-            Site site = null;
-            site = coordinator.getTargetInfo(Site.class, siteUUID, Site.CONFIG_KIND);
-            siteList.add(site);
+        for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
+            Site site = new Site(config);
+            if (site.getVdc().equals(vdc.getId()) && site.getState() != SiteState.ACTIVE) {
+                siteList.add(site);
+            }
         }
         Collections.sort(siteList, new Comparator<Site>() {
             @Override

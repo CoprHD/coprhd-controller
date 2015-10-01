@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.service.PropertyInfoUtil;
@@ -443,9 +444,10 @@ public class LocalRepository {
      * Update data revision property
      *
      * @param state
+     * @param committed 
      * @throws LocalRepositoryException
      */
-    public void setDataRevision(String revisionTag) throws LocalRepositoryException {
+    public void setDataRevision(String revisionTag, boolean committed) throws LocalRepositoryException {
         final String prefix = "setDataRevisionTag(): to=" + revisionTag;
         _log.debug(prefix);
 
@@ -453,7 +455,11 @@ public class LocalRepository {
         StringBuilder s = new StringBuilder();
         s.append(KEY_DATA_REVISION);
         s.append(PropertyInfoExt.ENCODING_EQUAL);
-        s.append(revisionTag);
+        s.append(revisionTag == null ? "" : revisionTag);
+        s.append(PropertyInfoExt.ENCODING_NEWLINE);
+        s.append(KEY_DATA_REVISION_COMMITTED);
+        s.append(PropertyInfoExt.ENCODING_EQUAL);
+        s.append(String.valueOf(committed));
         createTmpFile(tmpFilePath, s.toString(), prefix);
 
         try {
@@ -479,7 +485,12 @@ public class LocalRepository {
 
         _log.debug(prefix + "properties={}", Strings.repr(props));
         Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
-        return map.get(KEY_DATA_REVISION);
+        String revision = map.get(KEY_DATA_REVISION);
+        String committed = map.get(KEY_DATA_REVISION_COMMITTED);
+        if (committed != null && Boolean.valueOf(committed)) {
+            return revision;
+        }
+        return SiteInfo.DEFAULT_TARGET_VERSION;
     }
 
     /**

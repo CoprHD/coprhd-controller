@@ -14,6 +14,8 @@ import java.net.URI;
 public class ViPRCoreClient {
     protected RestClient client;
 
+    // for easy mocking in UT
+    public ViPRCoreClient() {}
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host)
      * 

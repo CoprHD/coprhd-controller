@@ -8,8 +8,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -17,12 +19,17 @@ import static org.mockito.Mockito.spy;
 import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
+import org.apache.http.client.utils.URIUtils;
+import org.eclipse.jetty.util.log.Log;
 import org.junit.Before;
 import org.junit.Test;
 import org.omg.PortableServer.POAManagerPackage.State;
@@ -34,11 +41,15 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
+import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
@@ -46,6 +57,8 @@ import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.services.util.SysUtils;
+import com.emc.vipr.client.ClientConfig;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.sys.ClusterInfo;
 
 public class DisasterRecoveryServiceTest {
@@ -63,7 +76,8 @@ public class DisasterRecoveryServiceTest {
     private SiteConfigRestRep standby;
     private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
-
+    private VirtualDataCenter localVDC;
+    
     @Before
     public void setUp() throws Exception {
         
@@ -78,7 +92,8 @@ public class DisasterRecoveryServiceTest {
         RepositoryInfo repositoryInfo = new RepositoryInfo(new SoftwareVersion("vipr-2.4.0.0.100"), available);
         
         // setup local VDC
-        VirtualDataCenter localVDC = new VirtualDataCenter();
+        localVDC = new VirtualDataCenter();
+        localVDC.setId(URIUtil.createId(VirtualDataCenter.class));
         
         standby = new SiteConfigRestRep();
         standby.setClusterStable(true);
@@ -94,15 +109,19 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
         standbySite1.setState(SiteState.ACTIVE);
+        standbySite1.setVdc(localVDC.getId());
+        
 
         standbySite2 = new Site();
         standbySite2.setUuid("site-uuid-2");
         standbySite2.setState(SiteState.ACTIVE);
+        standbySite2.setVdc(localVDC.getId());
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
         standbySite3.setVdc(new URI("fake-vdc-id"));
         standbySite3.setState(SiteState.ACTIVE);
+        standbySite3.setVdc(localVDC.getId());
 
         primarySiteParam = new SiteParam();
         /*primarySiteParam.setUuid("primary-site-uuid");
@@ -155,34 +174,78 @@ public class DisasterRecoveryServiceTest {
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
         doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
     }
-    
+
     @Test
     public void testAddStandby() {
-        //TODO this test case will be add when implement attach standby feature
+        // prepare parameters for adding standby
+        String name = "new-added-standby";
+        String desc = "standby-site-1-description";
+        String vip = "0.0.0.0";
+        String username = "root";
+        String password = "password";
+        String uuid = "new-added-standby-site-1";
+
+        // mock a ViPRCoreClient with specific UUID
+        doReturn(mockViPRCoreClient(uuid)).when(drService).createViPRCoreClient(vip, username, password);
+
+        // mock a local VDC
+        doReturn(localVDC).when(drService).queryLocalVDC();
+        List<Configuration> allConfigs = new ArrayList<Configuration>();
+        allConfigs.add(standbySite1.toConfiguration());
+        allConfigs.add(standbySite2.toConfiguration());
+        doReturn(allConfigs).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
+
+        // mock new added site
+        Site newAdded = new Site();
+        newAdded.setUuid(uuid);
+        newAdded.setVip(vip);
+        newAdded.getHostIPv4AddressMap().put("vipr1", "1.1.1.1");
+        newAdded.setState(SiteState.ACTIVE);
+        doReturn(newAdded.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, newAdded.getUuid());
+
+        // mock checking and validating methods
+        doNothing().when(drService).precheckForStandbyAttach(any(SiteConfigRestRep.class));
+        doNothing().when(drService).validateAddParam(any(SiteAddParam.class), any(List.class));
+
+        // assemble parameters, add standby
+        SiteAddParam params = new SiteAddParam();
+        params.setName(name);
+        params.setDescription(desc);
+        params.setVip(vip);
+        params.setUsername(username);
+        params.setPassword(password);
+        SiteRestRep rep = drService.addStandby(params);
+
+        // verify the REST response
+        assertEquals(name, rep.getName());
+        assertEquals(desc, rep.getDescription());
+        assertEquals(vip, rep.getVip());
     }
 
     @Test
     public void testGetAllStandby() throws Exception {
-        VirtualDataCenter localVDC = new VirtualDataCenter();
-        localVDC.getSiteUUIDs().add(standbySite1.getUuid());
-        localVDC.getSiteUUIDs().add(standbySite2.getUuid());
-        
         doReturn(localVDC).when(drService).queryLocalVDC();
-        doReturn(standbySite1).when(coordinator).getTargetInfo(Site.class, standbySite1.getUuid(), Site.CONFIG_KIND);
-        doReturn(standbySite2).when(coordinator).getTargetInfo(Site.class, standbySite2.getUuid(), Site.CONFIG_KIND);
+        List<Configuration> allConfigs = new ArrayList<Configuration>();
+        allConfigs.add(standbySite1.toConfiguration());
+        allConfigs.add(standbySite2.toConfiguration());
+        doReturn(allConfigs).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
         
         SiteList responseList = drService.getSites();
 
         assertNotNull(responseList.getSites());
         assertEquals(2, responseList.getSites().size());
 
-        compareSiteResponse(responseList.getSites().get(0), standbySite2);
-        compareSiteResponse(responseList.getSites().get(1), standbySite1);
+        compareSiteResponse(responseList.getSites().get(0), standbySite1);
+        compareSiteResponse(responseList.getSites().get(1), standbySite2);
     }
 
     @Test
     public void testGetStandby() throws Exception {
-        doReturn(standbySite1).when(coordinator).getTargetInfo(Site.class, standbySite1.getUuid(), Site.CONFIG_KIND);
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
 
         SiteRestRep response = drService.getSite("site-uuid-1");
         compareSiteResponse(response, standbySite1);
@@ -190,7 +253,7 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testGetStandby_NotBelongLocalVDC() throws Exception {
-        doReturn(null).when(coordinator).getTargetInfo(eq(Site.class), anyString(), anyString());
+        doReturn(null).when(coordinator).queryConfiguration(Site.CONFIG_KIND, "site-uuid-not-exist");
 
         SiteRestRep response = drService.getSite("site-uuid-not-exist");
         assertNull(response);
@@ -243,7 +306,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
         Site site = new Site();
         site.setState(SiteState.ACTIVE);
-        doReturn(site).when(coordinator).getTargetInfo(Site.class);
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, coordinator.getSiteId());
         SiteConfigRestRep response = drService.getStandbyConfig();
         compareSiteResponse(response, standbyConfig);
     }
@@ -349,5 +412,22 @@ public class DisasterRecoveryServiceTest {
             assertNotNull(site.getHostIPv6AddressMap().get(key));
             assertEquals(response.getHostIPv6AddressMap().get(key), site.getHostIPv6AddressMap().get(key));
         }
+    }
+
+    protected ViPRCoreClient mockViPRCoreClient(final String uuid) {
+        class MockViPRCoreClient extends ViPRCoreClient {
+            @Override
+            public com.emc.vipr.client.core.Site site() {
+                com.emc.vipr.client.core.Site site = mock(com.emc.vipr.client.core.Site.class);
+                SiteConfigRestRep config = new SiteConfigRestRep();
+                config.setUuid(uuid);
+                config.setHostIPv4AddressMap(new HashMap<String, String>());
+                config.setHostIPv6AddressMap(new HashMap<String, String>());
+                doReturn(config).when(site).getStandbyConfig();
+                doReturn(null).when(site).syncSite(any(SiteConfigParam.class));
+                return site;
+            }
+        }
+        return new MockViPRCoreClient();
     }
 }

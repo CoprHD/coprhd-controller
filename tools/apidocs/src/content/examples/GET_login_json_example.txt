@@ -1,12 +1,12 @@
 GET https://192.168.0.0:4443/login.json HTTP/1.1  
 
 Content-Type: application/json 
-X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+X-SDS-AUTH-TOKEN: <OPTIONAL_AUTH_TOKEN>
 
 ==Response
 HTTP/1.1 200 OK 
-Content-Type: application/json 
- 
+Content-Type: application/json
+
 {
    "user" : "root"
 }

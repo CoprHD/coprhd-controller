@@ -980,7 +980,9 @@ public class RecoverPointClient {
                     copyPolicy.setCopyPolicy(functionalAPI.getDefaultConsistencyGroupCopyPolicy());
                     copyPolicy.setCopyUID(cgCopyUID);
                     
-                    copyPolicy.getCopyPolicy().getSnapshotsPolicy().setNumOfDesiredSnapshots(getMaxNumberOfSnapShots(copyParam));
+                    if (getMaxNumberOfSnapShots(copyParam) > 0) {
+                    	copyPolicy.getCopyPolicy().getSnapshotsPolicy().setNumOfDesiredSnapshots(getMaxNumberOfSnapShots(copyParam));
+                    }
 
                     fullConsistencyGroupPolicy.getCopiesPolicies().add(copyPolicy);
 

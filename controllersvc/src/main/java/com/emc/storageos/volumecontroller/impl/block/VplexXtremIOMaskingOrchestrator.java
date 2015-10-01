@@ -99,7 +99,17 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts, Map<URI, NetworkLite> networkMap,
             URI varrayURI, int nInitiatorGroups) {
-
+        /**
+         * TODO add detailed info
+         * Number of Port Group for XtremIO is always one.
+         * - If multiple port groups, each VPLEX Director's initiators will be mapped to multiple ports
+         * 
+         * Single Port Group contains different set of storage ports for each network,
+         * so that each VPLEX director's initiators will map to different port set.
+         * 
+         * why allocatePorts() not required:
+         * 
+         */
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
 
         StringSet netNames = new StringSet();
@@ -141,12 +151,6 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         // If all networks have some ports remaining, use the filtered ports.
         // If not, emit a warning and do not use the filtered port configuration.
 
-        /**
-         * Number of Port Group for XtremIO is always one.
-         * 
-         * Single Port Group contains different set of storage ports for each network,
-         * each set to be used for each VPLEX director.
-         */
         // int numPG = minPorts / portsPerNetPerPG;
         int numPG = XTREMIO_NUM_PORT_GROUP;
         _log.info(String.format("Number of Port Groups: %d", numPG));
@@ -156,38 +160,10 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         // get number of X-bricks from selected ports
         xtremIOXbricksCount = getXbricksCount(useablePorts);
 
+        // TODO required?
         // Don't allow this network to have more than twice the number of
         // ports from the network with the fewest ports, i.e. do not exceed 2x portsPerPG.
 
-        // TODO number of ports to select - 4
-
-        // Now call the StoragePortsAllocator for each Network, assigning required number of ports.
-        /*
-         * StoragePortsAllocator allocator = new StoragePortsAllocator();
-         * for (int i = 0; i < numPG; i++) {
-         * Map<URI, List<List<StoragePort>>> portGroup = new HashMap<URI, List<List<StoragePort>>>();
-         * StringSet portNames = new StringSet();
-         * for (URI netURI : allocatablePortsNew.keySet()) {
-         * NetworkLite net = networkMap.get(netURI);
-         * for (List<StoragePort> portSet : allocatablePortsNew.get(netURI)) {
-         * List<StoragePort> allocatedPorts = allocatePorts(allocator, portSet,
-         * portSet.size(), net, varrayURI);
-         * if (portGroup.get(netURI) == null) {
-         * portGroup.put(netURI, new ArrayList<List<StoragePort>>());
-         * }
-         * portGroup.get(netURI).add(allocatedPorts);
-         * portSet.removeAll(allocatedPorts);
-         * for (StoragePort port : allocatedPorts) {
-         * portNames.add(port.getPortName());
-         * }
-         * }
-         * }
-         * portGroups.add(portGroup);
-         * _log.info(String.format("Port Group %d: %s", i, portNames.toString()));
-         * }
-         */
-
-        // TODO add comment why allocatePorts() is not called
         return portGroups;
     }
 

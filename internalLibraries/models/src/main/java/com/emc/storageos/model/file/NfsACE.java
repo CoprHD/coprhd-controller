@@ -41,7 +41,7 @@ public class NfsACE implements Serializable {
         this.user = user;
     }
 
-    @XmlElement(name = "type")
+    @XmlElement(name = "type", required = false)
     public String getType() {
         return type;
     }
@@ -59,7 +59,7 @@ public class NfsACE implements Serializable {
         this.permission = permission;
     }
 
-    @XmlElement(name = "permission_type")
+    @XmlElement(name = "permission_type", required = false)
     public String getPermissionType() {
         return permissionType;
     }

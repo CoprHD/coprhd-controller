@@ -16,6 +16,8 @@ public class NfsACLUpdateParams implements Serializable {
     protected NfsACLs aclsToAdd;
     protected NfsACLs aclsToModify;
     protected NfsACLs aclsToDelete;
+    // Non payload models - for internal use only
+    protected String subDir;
 
     public enum NfsACLOperationType {
         ADD, MODIFY, DELETE
@@ -67,6 +69,14 @@ public class NfsACLUpdateParams implements Serializable {
 
     public void setAclsToDelete(NfsACLs aclsToDelete) {
         this.aclsToDelete = aclsToDelete;
+    }
+
+    public String getSubDir() {
+        return subDir;
+    }
+
+    public void setSubDir(String subDir) {
+        this.subDir = subDir;
     }
 
     @Override

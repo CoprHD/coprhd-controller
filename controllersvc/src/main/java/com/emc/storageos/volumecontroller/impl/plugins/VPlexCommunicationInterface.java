@@ -617,9 +617,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     // this would indicate the volume has been partially ingested (due to outstanding replicas)
                     boolean isPartiallyIngested = false;
                     if (null != managedVolume 
-                            && !managedVolume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)
-                            && !managedVolume.checkInternalFlags(Flag.INTERNAL_OBJECT) 
-                            && !managedVolume.checkInternalFlags(Flag.NO_METERING)) {
+                            && (managedVolume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)
+                            && managedVolume.checkInternalFlags(Flag.INTERNAL_OBJECT) 
+                            && managedVolume.checkInternalFlags(Flag.NO_METERING))) {
                         isPartiallyIngested = true;
                     }
 

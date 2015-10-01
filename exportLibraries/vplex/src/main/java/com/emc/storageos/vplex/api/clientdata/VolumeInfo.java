@@ -16,7 +16,6 @@ import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.clientdata.formatter.CinderVPlexVolumeNameFormatter;
 import com.emc.storageos.vplex.api.clientdata.formatter.DefaultVplexVolumeNameFormatter;
-import com.emc.storageos.vplex.api.clientdata.formatter.XtremioVplexVolumeNameFormatter;
 
 /**
  * Bean specifying native volume information. Is passed from the client to
@@ -45,8 +44,8 @@ public class VolumeInfo implements Serializable {
 
     // Whether or not the volume is thin provisioned.
     private boolean _isThin = false;
-    
-    //ITL List
+
+    // ITL List
     private List<String> _itls = new ArrayList<String>();
 
     /**
@@ -73,6 +72,7 @@ public class VolumeInfo implements Serializable {
     /**
      * Getter for the ITL data
      * ITL item is of the format <Initiator Port WWN>-<Target Port WWN>-<LUN ID>
+     * 
      * @return
      */
     public List<String> getITLs() {
@@ -82,11 +82,12 @@ public class VolumeInfo implements Serializable {
     /**
      * Setter for the ITL data
      * ITL item is of the format <Initiator Port WWN>-<Target Port WWN>-<LUN ID>
+     * 
      * @param iTLs
      */
     public void setITLs(List<String> iTLs) {
         _itls = iTLs;
-    }	
+    }
 
     /**
      * Getter for the storage system native guid.
@@ -176,12 +177,12 @@ public class VolumeInfo implements Serializable {
     public String getVolumeName() {
         if ((_volumeName == null) || (_volumeName.length() == 0)) {
             switch (getSystemType()) {
-                case XTREMIO:
-                    _volumeName = new XtremioVplexVolumeNameFormatter(this).format();
-                    break;
+            // case XTREMIO:
+            // _volumeName = new XtremioVplexVolumeNameFormatter(this).format();
+            // break;
                 case OPENSTACK:
-                	_volumeName = new CinderVPlexVolumeNameFormatter(this).format();
-                	break;
+                    _volumeName = new CinderVPlexVolumeNameFormatter(this).format();
+                    break;
                 default:
                     _volumeName = new DefaultVplexVolumeNameFormatter(this).format();
                     break;

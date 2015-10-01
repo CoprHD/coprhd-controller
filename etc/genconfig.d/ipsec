@@ -14,6 +14,7 @@ PORTS_PROTECTED_ACROSS_SITE="2181 2888"
 PRIMARY_CERTIFICATE_FILE="/opt/storageos/primary_ipsec.crt"
 STANDBY_CERTIFICATE_FILE="/opt/storageos/standby_ipsec.crt"
 IPSEC_CONF_FILE="/etc/ipsec.conf"
+IPSEC_SECRET_FILE="/etc/ipsec.secrets"
 LOCAL_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
 
 
@@ -23,13 +24,12 @@ LOCAL_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1
 COMMON_SECTION=$(cat << EOF
 
 conn %default 
-    authby=publickey
-    keyexchange=ike
-    type=transport
-    esp=aes128gcm16!
-    auto=route
-     
-    leftcert=${PRIMARY_CERTIFICATE_FILE}
+    ikelifetime=60m
+    keylife=20m
+    rekeymargin=3m
+    keyingtries=1
+    keyexchange=ikev2
+    authby=secret
     leftid=@${LOCAL_IP}
 
 EOF
@@ -90,7 +90,6 @@ _get_ips_in_standby() {
 _gen_conn_sections() {
     local ips=$1
     local ports=$2
-    local cert=$3
 
     for ip in ${ips}
     do
@@ -102,7 +101,6 @@ conn ${port}-${LOCAL_IP}-${ip}
     leftsubnet=${LOCAL_IP}[tcp/${port}]
     right=${ip}
     rightid=@${ip}
-    rightcert=${cert}
 EOF
 )
     echo "${conn}"
@@ -113,11 +111,9 @@ EOF
 IPS_IN_CLUSTER=$(_get_ips_in_cluster)
 IPS_OF_STANDBYS=$(_get_ips_in_standby)
 
-
-
 _gen_ipsec_conf() {
-    local conn_in_cluster=$(_gen_conn_sections "${IPS_IN_CLUSTER}" "${PORTS_PROTECTED_IN_CLUSTER}" "${PRIMARY_CERTIFICATE_FILE}")
-    local conn_of_standby=$(_gen_conn_sections "${IPS_IN_CLUSTER}" "${PORTS_PROTECTED_IN_CLUSTER}" "${STANDBY_CERTIFICATE_FILE}")
+    local conn_in_cluster=$(_gen_conn_sections "${IPS_IN_CLUSTER}" "${PORTS_PROTECTED_IN_CLUSTER}")
+    local conn_of_standby=$(_gen_conn_sections "${IPS_OF_STANDBYS}" "${PORTS_PROTECTED_ACROSS_SITE}")
     local content=$(cat << EOF
 ${COMMON_SECTION}
 ${conn_in_cluster}
@@ -125,7 +121,9 @@ ${conn_of_standby}
 EOF
 )
 #    _genconfig_write 400 root:root "${IPSEC_CONF_FILE}" "${content}"
+#    _genconfig_write 400 root:root "${IPSEC_SECRET_FILE}" " : PSK ${_GENCONFIG_ipsec_pre_shared_key}"
     echo "${content}"
+    echo "${_GENCONFIG_ipsec_pre_shared_key}"
 }
 
 _gen_ipsec_conf

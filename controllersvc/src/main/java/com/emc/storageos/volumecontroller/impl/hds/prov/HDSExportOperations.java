@@ -377,8 +377,9 @@ public class HDSExportOperations implements ExportMaskOperations {
         List<HostStorageDomain> fcHsdsToAddInitiators = new ArrayList<HostStorageDomain>();
         List<HostStorageDomain> iSCSIHsdsToAddInitiators = new ArrayList<HostStorageDomain>();
         List<HostStorageDomain> hsdsWithAddIniResponseList = new ArrayList<HostStorageDomain>();
+        // Considers the IVR Networks as well.
         Map<URI, Set<String>> networkInitiatorsMap = NetworkUtil.getNetworkToInitiators(dbClient, initiators);
-        Map<HostStorageDomain, URI> networkToHsdObjectIdMap = getNetworkHostGroupObjectIdMap(storagePorts, createHsdsResponseList, dbClient);
+        Map<HostStorageDomain, URI> networkToHsdObjectIdMap = getHostGroupNetworkIdMap(storagePorts, createHsdsResponseList, dbClient);
         log.info("networkInitiatorsMap: {}", networkInitiatorsMap);
         log.info("networkToHsdObjectIdMap :{}", networkToHsdObjectIdMap);
 
@@ -424,22 +425,28 @@ public class HDSExportOperations implements ExportMaskOperations {
         return hsdsWithAddIniResponseList;
     }
 
-    private static Map<HostStorageDomain, URI> getNetworkHostGroupObjectIdMap(
+    /**
+     * Constructs a map of [Host Group => Network Id] for the given storage ports.
+     * 
+     * @param sports
+     * @param hsds
+     * @param dbClient
+     * @return
+     */
+    private static Map<HostStorageDomain, URI> getHostGroupNetworkIdMap(
             List<StoragePort> sports, List<HostStorageDomain> hsds, DbClient dbClient) {
         Map<HostStorageDomain, URI> networkToHSDMap = new HashMap<HostStorageDomain, URI>();
         for (StoragePort sport : sports) {
-            Set<NetworkLite> networks = NetworkUtil.getEndpointAllNetworksLite(sport.getPortNetworkId(), dbClient);
-            if (null != networks && !networks.isEmpty()) {
-                for (NetworkLite network : networks) {
-                    if (network != null && network.getInactive() == false
-                            && network.getTransportType().equals(sport.getTransportType())) {
-                        HostStorageDomain hsd = findStoragePortOfHSD(hsds, sport);
-                        if (null != hsd) {
-                            log.info("Found a matching network {} for HSD {}", network.getLabel(), sport.getNativeGuid());
-                            networkToHSDMap.put(hsd, network.getId());
-                        } else {
-                            log.error("Couldn't find the HSD configured for port: {}", sport.getNativeGuid());
-                        }
+            NetworkLite network = NetworkUtil.getEndpointNetworkLite(sport.getPortNetworkId(), dbClient);
+            if (null != network) {
+                if (network != null && network.getInactive() == false
+                        && network.getTransportType().equals(sport.getTransportType())) {
+                    HostStorageDomain hsd = findStoragePortOfHSD(hsds, sport);
+                    if (null != hsd) {
+                        log.info("Found a matching network {} for HSD {}", network.getLabel(), sport.getNativeGuid());
+                        networkToHSDMap.put(hsd, network.getId());
+                    } else {
+                        log.error("Couldn't find the HSD configured for port: {}", sport.getNativeGuid());
                     }
                 }
             }

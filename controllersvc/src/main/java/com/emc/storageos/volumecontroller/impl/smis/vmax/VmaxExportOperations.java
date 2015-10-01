@@ -4546,7 +4546,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @param exportMask [IN] - ExportMask that should be excluded from matches. This is the ExportMask that we're checking against.
      * @param newInitiators [OUT] - List of Initiators that need to be added to 'exportMask'. We need to determine if they need to go into
      *                      the existingInitiators list or the userAddedInitiators list.
-     * @return List of Initiators that should added to exportMask's userAddedInitiator list
+     * @return List of Initiators that should added to exportMask's userAddedInitiator list. ExportMasks should be on the same array as
+     * 'exportMask'.
      */
     private List<Initiator> findIfInitiatorsAreUserAddedInAnotherMask(ExportMask exportMask, List<Initiator> newInitiators) {
         List<Initiator> userAddedInitiators = new ArrayList<>();
@@ -4554,8 +4555,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
         // Iterate through the set of ExportMasks that contain 'newInitiators' and find if it has the initiator in its userAddedInitiator
         // list. If it does, we add the initiator to the result list and remove it from 'newInitiator'.
         for (ExportMask matchedMask : ExportMaskUtils.getExportMasksWithInitiators(_dbClient, newInitiators).values()) {
-            // Exclude 'exportMask' from the search
-            if (matchedMask.getId().equals(exportMask.getId())) {
+            // Exclude 'exportMask' and ExportMasks on different arrays from the search
+            if (matchedMask.getId().equals(exportMask.getId()) ||
+                    !matchedMask.getStorageDevice().equals(exportMask.getStorageDevice())) {
                 continue;
             }
             // Iterate through the set of initiators and find if any exist in the ExportMask's userAddedInitiator list

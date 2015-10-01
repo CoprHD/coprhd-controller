@@ -1036,7 +1036,8 @@ public class RecoverPointClient {
                     ConsistencyGroupLinkPolicy linkPolicy = createLinkPolicy(copyType, request.cgPolicy.copyMode, request.cgPolicy.rpoType,
                             request.cgPolicy.rpoValue);
                     
-                    if (copyPolicy.getCopyPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() > 0) {
+                    if (copyPolicy.getCopyPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() != null &&
+                    		copyPolicy.getCopyPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots()	> 0) {
                     	SnapshotShippingPolicy snapPolicy = new SnapshotShippingPolicy();
                     	snapPolicy.setIntervaInMinutes(1L);
                     	snapPolicy.setMode(SnapshotShippingMode.PERIODICALLY);

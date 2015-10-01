@@ -1561,6 +1561,13 @@ public class RPHelper {
         return volume;
     }
     
+    /**
+     * Determine if the volume being protected is provisioned on an Xtremio Storage array
+     * 
+     * @param volume The volume being provisioned
+     * @param dbClient DBClient object
+     * @return boolean indicating if the volume being protected is provisioned on an Xtremio Storage array
+     */
     public static boolean protectXtremioVolume(Volume volume, DbClient dbClient) {    	
     	return dbClient.queryObject(StorageSystem.class, volume.getStorageController()).getSystemType().equalsIgnoreCase(Type.xtremio.toString());
     }

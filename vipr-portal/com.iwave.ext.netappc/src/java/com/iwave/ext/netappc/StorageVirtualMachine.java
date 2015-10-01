@@ -52,12 +52,14 @@ public class StorageVirtualMachine {
                             svmInfo.setUuid(svm.getChildContent("uuid"));
                             svmInfo.setRootVolume(svm.getChildContent("root-volume"));
                             svms.add(svmInfo);
+                            log.info("Found Data SVM : {}" + name);
                         }
                     }
                 }
                 if (tag != null && !tag.isEmpty()) {
                     svmElem = new NaElement("vserver-get-iter");
                     svmElem.addNewChild("tag", tag);
+                    log.info("Updating the tag value as there are one or more svms available");
                 }
             } while (tag != null && !tag.isEmpty());
         } catch (Exception e) {
@@ -95,6 +97,7 @@ public class StorageVirtualMachine {
                                     svmNetInfo.setNetMask(vsnet.getChildContent("netmask"));
                                     svmNetInfo.setRole(vsnet.getChildContent("role"));
                                     netInfo.add(svmNetInfo);
+                                    log.info("Found vserver network interface: {}" + svmNetInfo.getNetInterface());
                                 }
                             }
                         }
@@ -105,6 +108,7 @@ public class StorageVirtualMachine {
                 if (tag != null && !tag.isEmpty()) {
                     intfElem = new NaElement("net-interface-get-iter");
                     intfElem.addNewChild("tag", tag);
+                    log.info("Updating the tag value as there are one or more network interfaces available");
                 }
             } while (tag != null && !tag.isEmpty());
         } catch (Exception e) {

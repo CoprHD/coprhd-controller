@@ -13,7 +13,7 @@ public class CheckForPowerPath extends AixExecutionTask<Boolean> {
     public Boolean executeTask() throws Exception {
         PowermtCheckRegistrationCommand command = new PowermtCheckRegistrationCommand();
         try {
-            executeCommand(command, SHORT_TIMEOUT);
+            executeCommand(command, MEDIUM_TIMEOUT);
             return true;
         } catch (PowerPathException e) {
             return false;

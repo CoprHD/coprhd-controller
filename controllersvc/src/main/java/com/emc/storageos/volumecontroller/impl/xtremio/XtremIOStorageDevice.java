@@ -260,6 +260,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                                 _log.info("Removing the volume {} from consistency group {}", volume.getLabel(),
                                         consistencyGroupObj.getLabel());
                                 client.removeVolumeFromConsistencyGroup(volume.getLabel(), consistencyGroupObj.getLabel(), clusterName);
+                                XtremIOConsistencyGroup xioCG = XtremIOProvUtils.isCGAvailableInArray(client,
+                                        consistencyGroupObj.getLabel(), clusterName);
+                                // Check if there are no volumes in the CG
+                                if (null == xioCG.getVolList() || xioCG.getVolList().isEmpty()) {
+                                    client.removeConsistencyGroup(consistencyGroupObj.getLabel(), clusterName);
+                                }
                             }
                         }
                         _log.info("Deleting the volume {}", volume.getLabel());

@@ -127,7 +127,6 @@ public class DisasterRecoveryService {
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }
-            dbClient.persistObject(vdc);
             coordinator.addSite(standbyConfig.getUuid());
             log.info("Persist standby site to ZK {}", shortId);
             //coordinator.setTargetInfo(standbySite);

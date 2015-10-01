@@ -699,8 +699,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     
     /**
      * Convenience method for retrieving zk node data for a given service matching id at
-     * /service/<serviceRoot>/<id>
-     * 
+     * /sites/<siteId>/service/<serviceRoot>/<id>
+     *
+     * @param siteId
+     *            site uuid. Use current site if it is null
      * @param serviceRoot
      *            service path (includes name and version)
      * @param id

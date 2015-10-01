@@ -298,6 +298,7 @@ public class VdcSiteManager extends AbstractManager {
                 localRepository.reload("firewall");
 
                 // Reconfigure ZK
+                localRepository.reconfigProperties("coordinator");
                 // TODO: support remove a standby site and failover
                 List<String> joiningNodes = getJoiningZKNodes();
                 log.info("Joining nodes={}", joiningNodes);

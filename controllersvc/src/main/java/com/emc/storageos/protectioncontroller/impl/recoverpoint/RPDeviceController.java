@@ -483,7 +483,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             else {
                 _log.info("Adding steps for Update CG...");
                 lastStep = addUpdateCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
-            }
+            }                               
 
         } catch (Exception e) {
             doFailAddStep(volumeDescriptorsTypeFilter, taskId, e);
@@ -575,7 +575,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                 }
             }
-
+            
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
             _log.info(METHOD_RP_VPLEX_REINSTATE_SRC_VVOL_STEP + " is complete.");
@@ -1335,7 +1335,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 rpSystem.getId(),
                 volumeDescriptors);
         Workflow.Method cgCreationExecutionRollbackMethod = new Workflow.Method(METHOD_CG_CREATE_ROLLBACK_STEP,
-                rpSystem.getId());
+                rpSystem.getId(), volumeDescriptors);
 
         workflow.createStep(STEP_CG_CREATION, "Create consistency group subtask for RP CG: " + cgParams.getCgName(),
                 STEP_EXPORT_ORCHESTRATION, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
@@ -1399,7 +1399,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         boolean metropoint = false;
         boolean lockException = false;
         try {
-
             // Get only the RP volumes from the descriptors.
             List<VolumeDescriptor> sourceVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                     new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
@@ -1506,14 +1505,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Set the CG last created time to now.
             rpSystem.setCgLastCreatedTime(Calendar.getInstance());
             _dbClient.persistObject(rpSystem);
-
+            
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
 
             // collect and update the protection system statistics to account for
             // the newly created CG.
             _log.info("Collecting RP statistics post CG create.");
-            collectRPStatistics(rpSystem);
+            collectRPStatistics(rpSystem);                   
         } catch (Exception e) {
             if (lockException) {
                 List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
@@ -1526,6 +1525,36 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
             return false;
         }
+        return true;
+    }
+    
+    /**
+     * Workflow step method for creating a consistency group.
+     *
+     * @param rpSystem RP system
+     * @param params parameters needed to create the CG
+     * @param token the task
+     * @return
+     * @throws WorkflowException
+     */
+    public boolean cgCreateRollbackStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, String token) throws WorkflowException {
+        
+    	_log.info("Start cg rollback step");
+    	WorkflowStepCompleter.stepExecuting(token);    	
+    	 // Get only the RP volumes from the descriptors.
+        List<VolumeDescriptor> sourceVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
+                        VolumeDescriptor.Type.RP_EXISTING_SOURCE,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
+                new VolumeDescriptor.Type[] {});
+        
+    	List<URI> volumeIDs = new ArrayList<URI>();
+    	for (VolumeDescriptor descriptor : sourceVolumeDescriptors) {
+    		volumeIDs.add(descriptor.getVolumeURI());
+    	}
+    	    	
+    	cgDeleteStep(rpSystemId, volumeIDs, token);
+        WorkflowStepCompleter.stepSucceded(token);
         return true;
     }
 
@@ -1625,21 +1654,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         if (VolumeDescriptor.getVirtualPoolChangeVolume(volumeDescriptors) != null) {
             AuditBlockUtil.auditBlock(_dbClient, OperationTypeEnum.CHANGE_VOLUME_VPOOL, true, AuditLogManager.AUDITOP_END, token);
         }
-    }
-
-    /**
-     * Workflow step method for creating a consistency group.
-     *
-     * @param rpSystem RP system
-     * @param params parameters needed to create the CG
-     * @param token the task
-     * @return
-     * @throws WorkflowException
-     */
-    public boolean cgCreateRollbackStep(URI rpSystemId, String token) throws WorkflowException {
-        // nothing to do for now.
-        WorkflowStepCompleter.stepSucceded(token);
-        return true;
     }
 
     /**

@@ -29,6 +29,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.api.mapper.functions.MapNetworkSystem;
@@ -112,6 +115,8 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class NetworkSystemService extends TaskResourceService {
 
+    private static final Logger _log = LoggerFactory.getLogger(NetworkSystemService.class);
+
     // how many times to retry a procedure before returning failure to the user.
     // Is used with "system delete" operation.
     private int _retry_attempts;
@@ -122,6 +127,9 @@ public class NetworkSystemService extends TaskResourceService {
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
+
+    private static final String BROCADE_ZONE_NAME_EXP = "[a-zA-Z0-9_]+";
+    private static final String CISCO_ZONE_NAME_EXP = "[a-zA-Z0-9_\\-]+";
 
     private static class NetworkJobExec implements AsyncTaskExecutorIntf {
 
@@ -813,6 +821,33 @@ public class NetworkSystemService extends TaskResourceService {
     }
 
     /**
+     * Returns true if valid zone name.
+     * Throw exception if zone name is invalid based on device type
+     *
+     * @param name
+     * @return
+     */
+    private boolean validateZoneName(String name, String deviceType) {
+        boolean validZoneName = false;
+        if (deviceType.equalsIgnoreCase(Type.brocade.toString())) {
+            if (name.matches(BROCADE_ZONE_NAME_EXP)) {
+                validZoneName = true;
+            }
+        } else if (deviceType.equalsIgnoreCase(Type.mds.toString())) {
+            if (name.matches(CISCO_ZONE_NAME_EXP)) {
+                validZoneName = true;
+            }
+        }
+
+        if(!validZoneName) {
+            _log.info("Zone name {} is not valid for device type {}", name, deviceType);
+            throw APIException.badRequests.illegalZoneName(name);
+        }
+        _log.info("Zone name {} is valid for device type {}", name, deviceType);
+        return validZoneName;
+    }
+
+    /**
      * Throw exception if alias is invalid
      * 
      * @param alias
@@ -881,13 +916,11 @@ public class NetworkSystemService extends TaskResourceService {
 
         ArgValidator.checkFieldUriType(id, NetworkSystem.class, "id");
         NetworkSystem device = queryResource(id);
-        Operation op = _dbClient.createTaskOpStatus(NetworkSystem.class, device.getId(),
-                task, ResourceOperationTypeEnum.ADD_SAN_ZONE);
 
         List<Zone> zones = new ArrayList<Zone>();
         for (SanZone sz : sanZones.getZones()) {
             Zone zone = new Zone(sz.getName());
-            validateZoneName(sz.getName());
+            validateZoneName(sz.getName(), device.getSystemType());
             zones.add(zone);
             for (String szm : sz.getMembers()) {
                 ZoneMember member = createZoneMember(szm);
@@ -903,6 +936,9 @@ public class NetworkSystemService extends TaskResourceService {
         }
 
         ArgValidator.checkFieldNotEmpty(zones, "zones");
+
+        Operation op = _dbClient.createTaskOpStatus(NetworkSystem.class, device.getId(),
+                task, ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(device.getSystemType());
         controller.addSanZones(device.getId(), fabricId, fabricWwn, zones, false, task);
         return toTask(device, task, op);
@@ -996,13 +1032,11 @@ public class NetworkSystemService extends TaskResourceService {
 
         ArgValidator.checkFieldUriType(id, NetworkSystem.class, "id");
         NetworkSystem device = queryResource(id);
-        Operation op = _dbClient.createTaskOpStatus(NetworkSystem.class, device.getId(),
-                task, ResourceOperationTypeEnum.UPDATE_SAN_ZONE);
 
         List<ZoneUpdate> updateZones = new ArrayList<ZoneUpdate>();
         for (SanZoneUpdateParam sz : updateSanZones.getUpdateZones()) {
             ZoneUpdate updateZone = new ZoneUpdate(sz.getName());
-            validateZoneName(sz.getName());
+            validateZoneName(sz.getName(), device.getSystemType());
 
             for (String szm : sz.getAddMembers()) {
                 if (StringUtils.isEmpty(szm)) {
@@ -1030,6 +1064,9 @@ public class NetworkSystemService extends TaskResourceService {
         }
 
         ArgValidator.checkFieldNotEmpty(updateZones, "zones");
+
+        Operation op = _dbClient.createTaskOpStatus(NetworkSystem.class, device.getId(),
+                task, ResourceOperationTypeEnum.UPDATE_SAN_ZONE);
 
         NetworkController controller = getNetworkController(device.getSystemType());
         controller.updateSanZones(device.getId(), fabricId, fabricWwn, updateZones, false, task);

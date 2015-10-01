@@ -779,6 +779,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             boolean hasReplicas = (null != hasReplicasStr && Boolean.parseBoolean(hasReplicasStr));
             
             if (hasReplicas) {
+                // HAS_REPLICAS was set during backend volume discovery a little earlier
                 StringSet backendfullCopyTargets = unManagedVolume.getVolumeInformation()
                         .get(SupportedVolumeInformation.FULL_COPIES.name());
                 
@@ -1061,6 +1062,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 bvol.getVolumeInformation().get(SupportedVolumeInformation.FULL_COPIES.name());
                         
                         if (fullCopyTargetBvols != null && !fullCopyTargetBvols.isEmpty()) {
+                            // if this backend volume has FULL_COPIES, add them
+                            // to the parent virtual volume's FULL_COPIES
+                            // and make HAS_REPLICAS is set.
                             StringSet parentSet = volume.getVolumeInformation()
                                     .get(SupportedVolumeInformation.FULL_COPIES.name());
                             if (parentSet == null) {

@@ -12,10 +12,8 @@ import netapp.manage.NaServer;
 
 import org.apache.log4j.Logger;
 
-import com.iwave.ext.netappc.NetAppCException;
-
 public class StorageVirtualMachine {
-    private Logger log = Logger.getLogger(getClass());
+    private final Logger log = Logger.getLogger(getClass());
 
     private String name = "";
     private NaServer server = null;
@@ -59,7 +57,7 @@ public class StorageVirtualMachine {
                 }
                 if (tag != null && !tag.isEmpty()) {
                     svmElem = new NaElement("vserver-get-iter");
-                    svmResult.addNewChild("tag", tag);
+                    svmElem.addNewChild("tag", tag);
                 }
             } while (tag != null && !tag.isEmpty());
         } catch (Exception e) {
@@ -106,7 +104,7 @@ public class StorageVirtualMachine {
                 }
                 if (tag != null && !tag.isEmpty()) {
                     intfElem = new NaElement("net-interface-get-iter");
-                    intfResult.addNewChild("tag", tag);
+                    intfElem.addNewChild("tag", tag);
                 }
             } while (tag != null && !tag.isEmpty());
         } catch (Exception e) {

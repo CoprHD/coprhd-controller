@@ -260,12 +260,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
         Workflow.Method createMethod = new Workflow.Method(
                 BlockDeviceController.CREATE_LIST_SNAPSHOT_METHOD, storage, snapshotList, false, false);
-        workflow.createStep(BlockDeviceController.CREATE_SNAPSHOTS_STEP_GROUP,
+        waitFor = workflow.createStep(BlockDeviceController.CREATE_SNAPSHOTS_STEP_GROUP,
                     "Create snapshot", waitFor, storage, storageSystem.getSystemType(),
                     _blockDeviceController.getClass(),
                     createMethod, _blockDeviceController.rollbackMethodNullMethod(), null);
-
-        waitFor = BlockDeviceController.CREATE_SNAPSHOTS_STEP_GROUP;
 
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
@@ -293,10 +291,6 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
         // create clone
         waitFor = _blockDeviceController.createListCloneStep(workflow, storage, storageSystem, cloneList, waitFor);
-
-        // Wait for the complete StepGroup to complete.
-        waitFor = BlockDeviceController.FULL_COPY_WFS_STEP_GROUP;
-
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),
@@ -325,7 +319,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
         snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
                 volume.getLabel(), SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
-
+        snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
         _dbClient.createObject(snapshot);
 
         return snapshot;
@@ -399,10 +393,6 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
 
         waitFor = _blockDeviceController.createListMirrorStep(workflow, waitFor, storage, mirrorList);
-
-        // Wait for the complete StepGroup to complete.
-        waitFor = BlockDeviceController.CREATE_MIRRORS_STEP_GROUP;
-
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),

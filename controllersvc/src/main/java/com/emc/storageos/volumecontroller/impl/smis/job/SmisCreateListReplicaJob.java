@@ -139,7 +139,7 @@ public class SmisCreateListReplicaJob extends SmisReplicaCreationJobs {
                     clone.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, clone));
                     clone.setSyncActive(isSyncActive);
                     if (isSyncActive) {
-                        clone.setReplicaState(ReplicationState.CREATED.name());
+                        clone.setReplicaState(ReplicationState.SYNCHRONIZED.name());
                     } else {
                         clone.setReplicaState(ReplicationState.INACTIVE.name());
                     }

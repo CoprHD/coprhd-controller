@@ -72,7 +72,7 @@ public class BlockConsistencyGroupUpdateCompleter extends BlockConsistencyGroupT
             }
 
             recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(),
-                    eventType(Status.ready), Status.ready, eventMessage(Status.ready,
+                    eventType(status), status, eventMessage(status,
                     consistencyGroup));
         } catch (Exception e) {
             _log.error("Failed updating status. BlockConsistencyGroupUpdate {}, for task "

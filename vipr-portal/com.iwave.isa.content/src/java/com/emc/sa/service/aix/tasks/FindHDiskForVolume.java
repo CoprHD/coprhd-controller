@@ -9,9 +9,10 @@ import java.util.List;
 import com.emc.aix.command.ListHDisksCommand;
 import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.iwave.ext.command.CommandException;
 import com.iwave.ext.linux.model.PowerPathDevice;
 
-public class FindHDiskForVolume extends AixExecutionTask<String> {
+public class FindHDiskForVolume extends RetryableCommandTask<String, CommandException> {
 
     private boolean usePowerPath;
     private BlockObjectRestRep volume;
@@ -22,7 +23,7 @@ public class FindHDiskForVolume extends AixExecutionTask<String> {
     }
 
     @Override
-    public String executeTask() throws Exception {
+    protected String tryExecute() {
         List<PowerPathDevice> devices = executeCommand(new ListHDisksCommand(usePowerPath, false));
         for (PowerPathDevice device : devices) {
             if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume)) {
@@ -37,6 +38,12 @@ public class FindHDiskForVolume extends AixExecutionTask<String> {
             }
         }
 
-        return null;
+        // could not find associated hdisk for volume
+        throw new HDiskNotFoundException(volume.getWwn());
+    }
+
+    @Override
+    protected boolean canRetry(CommandException e) {
+        return e instanceof HDiskNotFoundException;
     }
 }

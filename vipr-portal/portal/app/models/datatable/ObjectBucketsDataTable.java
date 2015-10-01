@@ -27,8 +27,8 @@ public class ObjectBucketsDataTable extends DataTable {
     
     public ObjectBucketsDataTable() {
         addColumn("name");
-        addColumn("hardquota");
-        addColumn("softquota");
+        addColumn("hardquota").setRenderFunction("render.sizeInGb");
+        addColumn("softquota").setRenderFunction("render.sizeInGb");
         addColumn("varray");
         addColumn("vpool");
         addColumn("protocols");
@@ -64,7 +64,6 @@ public class ObjectBucketsDataTable extends DataTable {
         public String varray;
         public String vpool;
         public Set<String> protocols;
-        public boolean srdfTarget;
 
         public Bucket(BucketRestRep bucket, Map<URI, String> varrayMap, Map<URI, String> vpoolMap) {
             id = bucket.getId();

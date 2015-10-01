@@ -35,7 +35,7 @@ public class RemoveBlockSnapshotService extends ViPRService {
     public void precheck() throws Exception {
         super.precheck();
         if (!ConsistencyUtils.isVolumeStorageType(storageType)) {
-            if (ConsistencyUtils.validateConsistencyGroupSnapshots(getClient(), consistencyGroupId)) {
+            if (!ConsistencyUtils.validateConsistencyGroupSnapshots(getClient(), consistencyGroupId)) {
                 ExecutionUtils.fail("failTask.ConsistencyGroup.noSnapshots", consistencyGroupId, consistencyGroupId);
             }
         }

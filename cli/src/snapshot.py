@@ -131,7 +131,7 @@ class Snapshot(object):
         )
 
     def snapshot_create(self, otype, typename, ouri,
-                        snaplabel, inactive, rptype, sync ,readonly):
+                        snaplabel, inactive, rptype, sync ,readonly=False):
         '''new snapshot is created, for a given shares or volumes
             parameters:
                 otype      : either file or block or object
@@ -988,7 +988,7 @@ class Snapshot(object):
                     remove)
             )
 
-        elif(resourceUri.find("Volume") > 0):
+        elif(resourceUri.find("Volume") > 0 or resourceUri.find("BlockConsistencyGroup") > 0):
             return (
                 tag.tag_resource(
                     self.__ipAddr,
@@ -999,17 +999,7 @@ class Snapshot(object):
                     remove)
             )
 
-        elif(resourceUri.find("BlockConsistencyGroup") > 0):
-            return (
-                tag.tag_resource(
-                    self.__ipAddr,
-                    self.__port,
-                    Snapshot.URI_CONSISTENCY_GROUP_TAG,
-                    suri,
-                    add,
-                    remove)
-            )
-
+        
 
 # Snapshot Create routines
 

@@ -52,6 +52,7 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.plugins.common.Constants;
@@ -2847,6 +2848,12 @@ public class FileDeviceController implements FileController {
             default:
                 break;
         }
+
+    }
+
+    @Override
+    public void updateNFSAcl(URI storage, URI fs, FileNfsACLUpdateParams param, String opId) throws InternalException {
+        // TODO Auto-generated method stub
 
     }
 }

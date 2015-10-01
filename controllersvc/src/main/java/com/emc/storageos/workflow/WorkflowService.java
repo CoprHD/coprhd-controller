@@ -1696,7 +1696,7 @@ public class WorkflowService {
                         Workflow parentWorkflow = (Workflow) _dataManager.getData(parentPath, false);
                         // Get the StepStatus for our step.
                         StepStatus status = parentWorkflow.getStepStatus(orchestrationId);
-                        if (status != null) {
+                        if (status != null && status.startTime != null) {
                             timeInSeconds = status.startTime.getTime() / MILLISECONDS_IN_SECOND;
                             ;
                         }

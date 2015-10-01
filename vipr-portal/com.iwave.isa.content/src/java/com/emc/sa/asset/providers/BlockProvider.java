@@ -7,6 +7,7 @@ package com.emc.sa.asset.providers;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalMirrorSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
@@ -1075,7 +1076,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             List<AssetOption> options = Lists.newArrayList();
             for (VolumeDetail detail : volumeDetails) {
-                if (isLocalSnapshotSupported(detail.vpool) || isRPSourceVolume(detail.volume)) {
+                if (isLocalSnapshotSupported(detail.vpool) || isRPSourceVolume(detail.volume) || isRPTargetVolume(detail.volume)) {
                     options.add(createVolumeOption(client, null, detail.volume, volumeNames));
                 }
             }

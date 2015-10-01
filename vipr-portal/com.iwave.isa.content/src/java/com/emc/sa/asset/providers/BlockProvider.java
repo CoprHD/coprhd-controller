@@ -1076,7 +1076,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             List<AssetOption> options = Lists.newArrayList();
             for (VolumeDetail detail : volumeDetails) {
-                if (isLocalSnapshotSupported(detail.vpool) || isRPSourceVolume(detail.volume) || isRPTargetVolume(detail.volume)) {
+
+                if ((isLocalSnapshotSupported(detail.vpool) && (isRPSourceVolume(detail.volume) || isRPTargetVolume(detail.volume)))
+                        || !isInConsistencyGroup(detail.volume)) {
                     options.add(createVolumeOption(client, null, detail.volume, volumeNames));
                 }
             }

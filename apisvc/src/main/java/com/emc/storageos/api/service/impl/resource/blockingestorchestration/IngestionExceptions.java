@@ -105,7 +105,8 @@ public interface IngestionExceptions {
     public IngestionException unmanagedVolumeVolumeTypeNotSet(String unManagedVolume);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
-    public IngestionException unmanagedVolumeRDFGroupMismatch(String unManagedVolume, String umvRDFGroupName, String projectName);
+    public IngestionException unmanagedVolumeRDFGroupMismatch(String unManagedVolume, String umvRDFGroupName, String projectName,
+            String validGroupNames);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException unmanagedVolumeRDFGroupMissing(String unManagedVolume);
@@ -151,4 +152,10 @@ public interface IngestionExceptions {
     
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException validationException(String reason);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException exportedVolumeIsMissingWwn(String unManagedVolume);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException vplexBackendVolumeHasNoParent(String unManagedVolume);
 }

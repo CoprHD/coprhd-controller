@@ -1312,8 +1312,7 @@ def get_cluster_state(args):
 
         if 'removable_versions' in res:
             if(res['removable_versions'] is not None):
-                state["removable_versions"] = res[
-                    'removable_versions']['removable_version']
+                state["removable_versions"] = res['removable_versions']
             else:
                 state["removable_versions"] = ""
 

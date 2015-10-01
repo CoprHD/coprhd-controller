@@ -102,8 +102,7 @@ public class CIMConnectionFactory {
              * Check cimConnection already exist for vnxfile, if not create new one
              */
             if (StorageSystem.Type.vnxfile.name().equals(storageDevice.getSystemType())) {
-                connection = _connectionManager.getConnection(ConnectionManager.generateConnectionCacheKey(
-                        storageDevice.getSmisProviderIP(), storageDevice.getPortNumber()));
+                connection = _connectionManager.getConnection(storageDevice.getSmisProviderIP(), storageDevice.getPortNumber());
             } else {
                 connection = getConnection(storageDevice.getSmisProviderIP(), storageDevice.getSmisPortNumber().toString());
             }
@@ -213,8 +212,7 @@ public class CIMConnectionFactory {
                         storageSystem.setSmisConnectionStatus(ConnectionStatus.NOTCONNECTED.toString());
                         _dbClient.persistObject(storageSystem);
                     }
-                    _connectionManager.removeConnection(ConnectionManager.generateConnectionCacheKey(
-                            storageSystem.getSmisProviderIP(), storageSystem.getPortNumber()));
+                    _connectionManager.removeConnection(storageSystem.getSmisProviderIP(), storageSystem.getPortNumber());
                     _log.info("Removed invalid connection for smis {} from connectionManager",
                             ConnectionManager.generateConnectionCacheKey(storageSystem.getSmisProviderIP(),
                                     storageSystem.getSmisPortNumber()));
@@ -270,8 +268,7 @@ public class CIMConnectionFactory {
                         recordStorageProviderEvent(OperationTypeEnum.STORAGE_PROVIDER_DOWN,
                                 STORAGE_PROVIDER_DOWN_DESCRIPTION, smisProvider.getId());
                     }
-                    _connectionManager.removeConnection(ConnectionManager.generateConnectionCacheKey(
-                            smisProvider.getIPAddress(), smisProvider.getPortNumber()));
+                    _connectionManager.removeConnection(smisProvider.getIPAddress(), smisProvider.getPortNumber());
                     _log.error("Connection Liveness Failed {}",
                             smisProvider.getIPAddress());
                     smisProvider
@@ -287,8 +284,7 @@ public class CIMConnectionFactory {
         } else {
             _log.info("{} is not the active smis provider", smisProvider.getId());
             if (null != connection) {
-                _connectionManager.removeConnection(ConnectionManager.generateConnectionCacheKey(
-                        smisProvider.getIPAddress(), smisProvider.getPortNumber()));
+                _connectionManager.removeConnection(smisProvider.getIPAddress(), smisProvider.getPortNumber());
             }
         }
     }
@@ -360,7 +356,7 @@ public class CIMConnectionFactory {
     public synchronized CimConnection getConnection(String ipAddress, String port) {
         CimConnection connection = null;
         try {
-            connection = _connectionManager.getConnection(ConnectionManager.generateConnectionCacheKey(ipAddress, Integer.parseInt(port)));
+            connection = _connectionManager.getConnection(ipAddress, Integer.parseInt(port));
             if (null == connection) {
                 connection = addConnection(ipAddress, port);
 
@@ -385,7 +381,7 @@ public class CIMConnectionFactory {
         CimConnection connection = null;
         try {
             connection = _connectionManager
-                    .getConnection(ConnectionManager.generateConnectionCacheKey(smisIPAddress, Integer.parseInt(port)));
+                    .getConnection(smisIPAddress, Integer.parseInt(port));
             if (null == connection) {
                 String smisAltId = smisIPAddress + "-" + port;
                 List<StorageProvider> providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient, smisAltId);
@@ -412,7 +408,7 @@ public class CIMConnectionFactory {
 
                 connInfo.setInteropNS(CimConstants.DFLT_CIM_CONNECTION_INTEROP_NS);
                 _connectionManager.addConnection(connInfo);
-                connection = _connectionManager.getConnection(smisIPAddress);
+                connection = _connectionManager.getConnection(smisIPAddress, Integer.parseInt(port));
                 _log.info("Connection Added to Cache {}", ConnectionManager.generateConnectionCacheKey(
                         smisProvider.getIPAddress(), smisProvider.getPortNumber()));
             }

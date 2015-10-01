@@ -146,8 +146,7 @@ public class CimStorageMonitor implements StorageMonitor {
         // the connection manager will check whether or not a connection to the
         // passed provider is currently being managed.
         try {
-            _cimConnectionManager.removeConnection(ConnectionManager.generateConnectionCacheKey(
-                    storageDevice.getSmisProviderIP(), storageDevice.getSmisPortNumber()));
+            _cimConnectionManager.removeConnection(storageDevice.getSmisProviderIP(), storageDevice.getSmisPortNumber());
         } catch (ConnectionManagerException cme) {
             throw new StorageMonitorException(MessageFormatter.format(
                     "Failed attempting to remove the connection to storage provider {}",

@@ -113,7 +113,7 @@ public class Common extends Controller {
 
     @Before(priority = 0)
     public static void xssCheck() {
-        for (String param : paramsToClean) {
+        for (String param : params.all().keySet()) {
             String[] data = params.getAll(param);
 
             if ((data != null) && (data.length > 0)) {

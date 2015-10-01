@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -173,8 +174,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             if (ingestBackend && (null != context) && (null != virtualVolume)) {
                 setFlags(context);
                 createVplexMirrorObjects(context, (Volume) virtualVolume);
-                // disabled for COP-16754, need to revisit
-                // sortOutCloneAssociations(context, (Volume) virtualVolume);
                 _logger.info(context.toStringDebug());
                 _logger.info(context.getPerformanceReport());
             }
@@ -220,9 +219,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         _logger.info("validating the ingestion context for these backend volumes: " + unManagedBackendVolumes);
 
         _logger.info("checking if we have found enough backend volumes for ingestion");
-        boolean isLocal = context.isLocal();
-        if ((isLocal && (unManagedBackendVolumes.isEmpty()))
-                || !isLocal && (unManagedBackendVolumes.size() < 2)) {
+        if ((context.isLocal() && (unManagedBackendVolumes.isEmpty()))
+                || context.isDistributed() && (unManagedBackendVolumes.size() < 2)) {
             String supportingDevice = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),
                     unManagedVirtualVolume.getVolumeInformation());
@@ -266,6 +264,28 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         }
 
+        // validate that there are no array-based backend-only volume clones.
+        // that is, if there's a clone, it should have a virtual volume in 
+        // front of it, otherwise, we can't ingest it.
+        if (context.getUnmanagedBackendOnlyClones().size() > 0) {
+            List<String> cloneInfo = new ArrayList<String>();
+            for (Entry<UnManagedVolume, Set<UnManagedVolume>> cloneEntry : context.getUnmanagedBackendOnlyClones().entrySet()) {
+                String message = cloneEntry.getKey().getLabel() + " has ";
+                List<String> clones = new ArrayList<String>();
+                for (UnManagedVolume clone : cloneEntry.getValue()) {
+                    clones.add(clone.getLabel()); 
+                }
+                message += Joiner.on(", ").join(clones) + ". ";
+                cloneInfo.add(message);
+            }
+            String reason = "cannot currently ingest a clone on the backend array "
+                    + "that doesn't have a virtual volume in front of it. "
+                    + "Backend-only clones found: "
+                    + Joiner.on(", ").join(cloneInfo);
+            _logger.error(reason);
+            throw IngestionException.exceptions.validationException(reason);
+        }
+        
         int mirrorCount = context.getUnmanagedVplexMirrors().size();
         if (mirrorCount > 0) {
             _logger.info("{} native mirror(s) are present, validating vpool", mirrorCount);
@@ -482,6 +502,28 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         processedUnManagedVolume.getLabel(), reason);
             }
 
+            // we need to make sure we're using the correct varray and vpool for this backend volume.
+            // in the case of distributed, it could be the HA array (which would have been determined
+            // by the ingestBackendVolumes method before processing got to this point).
+            // the processedBlockObject here is the ingested backend volume for the leg we're looking at
+            // and it will have the correct virtual array and virtual pool already set on it
+            if (context.isDistributed()) {
+                // a backend volume can only be a Volume BlockObject type, so this is safe
+                Volume backendVolume = ((Volume) processedBlockObject);
+
+                virtualArray = _dbClient.queryObject(VirtualArray.class, backendVolume.getVirtualArray());
+                vPool = _dbClient.queryObject(VirtualPool.class, backendVolume.getVirtualPool());
+
+                if (virtualArray == null) {
+                    throw IngestionException.exceptions.failedToIngestVplexBackend(
+                            "Could not find virtual array for backend volume " + backendVolume.getLabel());
+                }
+                if (vPool == null) {
+                    throw IngestionException.exceptions.failedToIngestVplexBackend(
+                            "Could not find virtual pool for backend volume " + backendVolume.getLabel());
+                }
+            }
+
             try {
                 // assuming only one export mask for this volume between the backend array and VPLEX
                 int uemCount = 0;
@@ -642,85 +684,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * Sort out the clone-parent associations if any full front-end clones are present.
-     * This should be called after the parent virtual volume has already been ingested.
-     * 
-     * @param context the VplexBackendIngestionContext
-     * @param virtualVolume the ingested virtual volume's Volume object.
-     */
-    private void sortOutCloneAssociations(VplexBackendIngestionContext context, Volume virtualVolumeSource) {
-
-        for (Entry<UnManagedVolume, UnManagedVolume> entry : context.getUnmanagedVplexClones().entrySet()) {
-
-            //
-            // TODO: this will currently only work with a clone detected on a vplex local volume.
-            // out of ~4000 existing volumes on our dev vplex i found only one full
-            // front end clone (which i created myself), so i'm delaying this somewhat
-            // complicated work to supported a clone on both legs;
-            // will file a separate JIRA to add support; sorry :(
-            //
-
-            // locate the source backend Volume object
-            UnManagedVolume backendUnmanagedVolumeSource = context.getUnmanagedBackendVolumes().get(0);
-            Volume backendVolumeSource = (Volume) context.getCreatedObjectMap().get(backendUnmanagedVolumeSource.getNativeGuid().replace(
-                    VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME));
-            if (null == backendVolumeSource) {
-                throw IngestionException.exceptions.generalException(
-                        "could not determine source backend volume for clone (full copy)");
-            }
-            if (null == backendVolumeSource.getId()) {
-                // the backend source volume may not have been persisted yet
-                backendVolumeSource.setId(URIUtil.createId(Volume.class));
-            }
-
-            // locate the target virtual Volume object
-            Volume virtualVolumeTarget = (Volume) context.getCreatedObjectMap().get(entry.getValue().getNativeGuid().replace(
-                    VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME));
-
-            // locate the target backend Volume object
-            Volume backendVolumeTarget = null;
-            if (null != virtualVolumeTarget.getAssociatedVolumes() &&
-                    !virtualVolumeTarget.getAssociatedVolumes().isEmpty()) {
-                String targetVvolUri = virtualVolumeTarget.getAssociatedVolumes().iterator().next();
-                backendVolumeTarget = _dbClient.queryObject(Volume.class, URI.create(targetVvolUri));
-            }
-            if (null == backendVolumeTarget) {
-                throw IngestionException.exceptions.generalException(
-                        "could not determine target backend volume for clone (full copy)");
-            }
-
-            // set associations on the backend target Volume
-            backendVolumeTarget.setAssociatedSourceVolume(backendVolumeSource.getId());
-            backendVolumeTarget.setReplicaState(ReplicationState.SYNCHRONIZED.name());
-            backendVolumeTarget.setSyncActive(true);
-            // need to persist this one, but the others will be handled by callers
-            _dbClient.updateAndReindexObject(backendVolumeTarget);
-
-            // set associations on the front-end target Volume
-            NamedURI namedUri = new NamedURI(
-                    context.getFrontendProject().getId(), virtualVolumeTarget.getLabel());
-            virtualVolumeTarget.setProject(namedUri);
-            _logger.info("set project named uri on {} to " + namedUri.toString(), virtualVolumeTarget.getLabel());
-            virtualVolumeTarget.clearInternalFlags(Flag.INTERNAL_OBJECT);
-            virtualVolumeTarget.setAssociatedSourceVolume(virtualVolumeSource.getId());
-            virtualVolumeTarget.setReplicaState(ReplicationState.SYNCHRONIZED.name());
-            virtualVolumeTarget.setSyncActive(true);
-
-            // set full copies and sync state on the backend source Volume
-            StringSet backendFullCopies = new StringSet();
-            backendFullCopies.add(backendVolumeTarget.getId().toString());
-            backendVolumeSource.setFullCopies(backendFullCopies);
-            backendVolumeSource.setSyncActive(true);
-
-            // set full copies and sync state on the front-end source Volume
-            StringSet frontendFullCopies = new StringSet();
-            frontendFullCopies.add(virtualVolumeTarget.getId().toString());
-            virtualVolumeSource.setFullCopies(frontendFullCopies);
-            virtualVolumeSource.setSyncActive(true);
         }
     }
 

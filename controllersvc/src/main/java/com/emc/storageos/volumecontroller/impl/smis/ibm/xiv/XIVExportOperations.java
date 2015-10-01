@@ -1175,4 +1175,9 @@ public class XIVExportOperations implements ExportMaskOperations {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
+
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return Collections.emptyMap();
+    }
 }

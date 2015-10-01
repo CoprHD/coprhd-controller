@@ -99,6 +99,44 @@ public class ControllerLockingUtil {
         log.info("Lock keys: " + lockKeys.toString());
         return lockKeys;
     }
+    
+    /**
+     * Returns a list of lock keys for export of Hosts to StorageSystems.
+     * This is constructed from a list of Initiators.
+     * All the host names are collected from the Initiators.
+     * This method is only invoked by RecoverPoint controller at this point as RP systems are treated as clusters for export,
+     * but they dont have a real host object associated with each initiator. 
+     * The keys are constructed from a concatenation of the host URI and the storage system URI.
+     * 
+     * @param dbClient
+     * @param initiatorURIs -- set of Initiators to consider
+     * @param storageURI -- URI of storage system (could be null in which case only host in key)
+     * @return List<String> where each item in list is a lockKey
+     */
+    static public List<String> getStorageLockKeysByHostName(DbClient dbClient, Collection<URI> initiatorURIs, URI storageURI) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
+        List<String> lockKeys = new ArrayList<String>();
+        // Collect the needed hosts, which can be specified either by URI or string name.
+        Set<String> hostNames = new HashSet<String>();
+        for (URI initiatorURI : initiatorURIs) {
+            Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
+            if (initiator == null || initiator.getInactive()) {
+                continue;
+            }
+            hostNames.add(initiator.getHostName());
+        }
+   
+        // Now make a key for every host / storage pair
+        for (String hostName : hostNames) {
+            String key = hostName +  "::" + storage.getNativeGuid();
+            if (!lockKeys.contains(key)) {
+                lockKeys.add(key);
+            }
+        }
+
+        log.info("Lock keys: " + lockKeys.toString());
+        return lockKeys;
+    }
 
     /**
      * Make a consistencyGroup / storageSystem duple key.
@@ -110,6 +148,10 @@ public class ControllerLockingUtil {
     static public String getConsistencyGroupStorageKey(DbClient dbClient, URI cgURI, URI storageURI)  {
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
-        return consistencyGroup.getLabel() + "::" + storage.getNativeGuid();
+        if (storage == null) {
+            return consistencyGroup.getLabel() + "::" + storageURI.toString();
+        } else {
+            return consistencyGroup.getLabel() + "::" + storage.getNativeGuid();
+        }   
     }
 }

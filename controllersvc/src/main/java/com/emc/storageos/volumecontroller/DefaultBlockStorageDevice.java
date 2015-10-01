@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -681,5 +682,10 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
             List<URI> mirrors, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return Collections.EMPTY_MAP;
     }
 }

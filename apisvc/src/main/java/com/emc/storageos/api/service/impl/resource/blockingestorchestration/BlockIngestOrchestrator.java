@@ -103,10 +103,10 @@ public abstract class BlockIngestOrchestrator {
      * @param vPool the VirtualPool into which it would be ingested.
      */
     protected void validateUnManagedVolume(UnManagedVolume unManagedVolume, VirtualPool vPool) throws IngestionException {
-
         VolumeIngestionUtil.checkUnmanagedVolumeInactive(unManagedVolume);
         VolumeIngestionUtil.checkVPoolValidForUnManagedVolumeInProtectedMode(vPool, unManagedVolume, _dbClient);
         VolumeIngestionUtil.checkUnManagedResourceIngestable(unManagedVolume);
+        VolumeIngestionUtil.checkUnManagedResourceExportWwnPresent(unManagedVolume);
         VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
     }
 
@@ -672,6 +672,14 @@ public abstract class BlockIngestOrchestrator {
                 parentVolumeNativeGUID = getParentVolumeNativeGUIDByRepType(unManagedVolumeInformation);
                 _logger.info("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
                         rootUnManagedVolume.getNativeGuid());
+                
+                // if the parent is null and this is a VPLEX backend volume, then it 
+                // would seem the backend array has been discovered for 
+                // UnManaged Volumes, but the VPLEX device has not.
+                if ((null == parentVolumeNativeGUID) 
+                        && VolumeIngestionUtil.isVplexBackendVolume(rootUnManagedVolume)) {
+                    throw IngestionException.exceptions.vplexBackendVolumeHasNoParent(rootUnManagedVolume.getLabel());
+                }
             } else {
                 _logger.info("unmanagedvolume not found looking for ingested volume {} in vipr db", parentVolumeNativeGUID);
                 // parent might be already ingested
@@ -687,6 +695,14 @@ public abstract class BlockIngestOrchestrator {
                     parentVolumeNativeGUID = getParentVolumeNativeGUIDByRepType(unManagedVolumeInformation);
                     _logger.info("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
                             rootUnManagedVolume.getNativeGuid());
+                    
+                    // if the parent is null and this is a VPLEX backend volume, then it 
+                    // would seem the backend array has been discovered for 
+                    // UnManaged Volumes, but the VPLEX device has not.
+                    if ((null == parentVolumeNativeGUID) 
+                            && VolumeIngestionUtil.isVplexBackendVolume(rootUnManagedVolume)) {
+                        throw IngestionException.exceptions.vplexBackendVolumeHasNoParent(rootUnManagedVolume.getLabel());
+                    }
                 } else {
                     _logger.info("Found a replica {} whose parent is already ingested with PUBLIC_ACCESS=true", parentVolumeNativeGUID);
                     // Find the ViPR object and put the block object and the parent in the map and break
@@ -737,10 +753,11 @@ public abstract class BlockIngestOrchestrator {
             for (BlockObject replica : parentReplicaMap.get(parent)) {
                 if (replica instanceof BlockMirror) {
                     VolumeIngestionUtil.setupMirrorParentRelations(replica, parent, _dbClient);
-                } else if (replica instanceof Volume && isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
-                    VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
                 } else if (replica instanceof Volume) {
-                    if (VolumeIngestionUtil.isVplexVolume(currentUnmanagedVolume)) {
+                    if (isSRDFTargetVolume(replica, processedUnManagedVolumes)) {
+                        VolumeIngestionUtil.setupSRDFParentRelations(replica, parent, _dbClient);
+                    } else if (VolumeIngestionUtil.isVplexVolume(parent, _dbClient)
+                            && VolumeIngestionUtil.isVplexBackendVolume(replica, _dbClient)) {
                         VolumeIngestionUtil.setupVplexParentRelations(replica, parent, _dbClient);
                     } else {
                         VolumeIngestionUtil.setupCloneParentRelations(replica, parent, _dbClient);

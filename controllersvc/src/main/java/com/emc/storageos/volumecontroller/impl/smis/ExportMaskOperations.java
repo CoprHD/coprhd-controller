@@ -86,4 +86,14 @@ public interface ExportMaskOperations {
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception;
+
+    /**
+     * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs
+     *
+     * @param storage the storage system
+     * @param exportMask the ExportMask that represents the masking component of the array
+     *
+     * @return The BlockObject URI to HLU mapping for the ExportMask
+     */
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
 }

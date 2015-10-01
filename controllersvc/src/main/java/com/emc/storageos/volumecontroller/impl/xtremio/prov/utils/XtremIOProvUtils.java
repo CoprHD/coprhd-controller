@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.xtremio.prov.utils;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
+import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
@@ -279,5 +281,23 @@ public class XtremIOProvUtils {
         } catch (Exception e) {
             _log.warn("Deleting root folder {} failed", volumeFolderName, e);
         }
+    }
+
+    /**
+     * Get the XtremIO client for making requests to the system based
+     * on the passed profile.
+     * 
+     * @param accessProfile A reference to the access profile.
+     * @param xtremioRestClientFactory xtremioclientFactory.
+     * 
+     * @return A reference to the xtremio client.
+     */
+    public static XtremIOClient getXtremIOClient(StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
+        xtremioRestClientFactory.setModel(system.getFirmwareVersion());
+        XtremIOClient client = (XtremIOClient) xtremioRestClientFactory
+                .getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
+                                system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword(), true);
+        return client;
     }
 }

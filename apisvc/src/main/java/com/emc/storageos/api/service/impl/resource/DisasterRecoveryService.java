@@ -368,20 +368,20 @@ public class DisasterRecoveryService {
     @Path("/pause/{uuid}")
     public SiteRestRep pauseStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to pause data sync between standby site from local vdc by uuid: {}", uuid);
-
         try {
-            Site standby = coordinator.getTargetInfo(Site.class, uuid, Site.CONFIG_KIND);
-            if (standby != null) {
-                log.info("Find standby site in local VDC and remove it");
+            Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
+            if (config != null) {
+                Site standby = new Site(config);
 
                 standby.setState(SiteState.STANDBY_PAUSED);
-                coordinator.setTargetInfo(uuid, standby);
+                coordinator.persistServiceConfiguration(uuid, standby.toConfiguration());
                 VirtualDataCenter vdc = queryLocalVDC();
 
-                updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
-                for (String standbyUuid : vdc.getSiteUUIDs()) {
-                    updateVdcTargetVersion(standbyUuid, SiteInfo.RECONFIG_RESTART);
+                for (Site standbySite : getStandbySites(vdc.getId())) {
+                    updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
                 }
+                // update the local site last
+                updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
                 return siteMapper.map(standby);
             }
         } catch (Exception e) {
@@ -419,7 +419,7 @@ public class DisasterRecoveryService {
         siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
         coordinator.setTargetInfo(siteInfo);
         log.info("VDC target version updated to {}, revision {}",
-                siteInfo.getVdcConfigVersion(),  targetDataRevision);
+                siteInfo.getVdcConfigVersion(), targetDataRevision);
     }
     
     /*

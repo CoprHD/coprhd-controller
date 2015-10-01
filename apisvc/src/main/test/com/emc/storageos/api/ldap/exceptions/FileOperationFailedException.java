@@ -7,7 +7,7 @@ package com.emc.storageos.api.ldap.exceptions;
 
 /**
  * Signals a failure while creating or deleting or modifying
- * a file ore directory with given in a given path.
+ * a file or directory with given path.
  * Used for the in memory ldap server.
  */
 public class FileOperationFailedException extends Exception {

@@ -1341,14 +1341,17 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         }
 
         //Add all the domains of the AuthnProvider if it is not in disabled state.
+        //We expect only one authn provider here because, we cannot have multiple
+        //authn provider supporting same domain.
         Iterator<URI> it = providers.iterator();
-        while (it.hasNext()) {
+        if (it.hasNext()) {
             URI providerURI = it.next();
             AuthnProvider provider = _dbClient.queryObject(AuthnProvider.class, providerURI);
             if (provider != null && provider.getDisable() == false) {
                 authnProviderDomains.addAll(provider.getDomains());
             }
         }
+
         return authnProviderDomains;
     }
 }

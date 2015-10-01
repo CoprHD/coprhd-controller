@@ -2759,7 +2759,7 @@ public class RecoverPointClient {
      * @param repSetUID ReplicationSet UID to check if it is contained in the rsetUids list.
      * @return
      */
-    public boolean containsRepSetUID(List<ReplicationSetUID> rsetUids, ReplicationSetUID repSetUID) {
+    private boolean containsRepSetUID(List<ReplicationSetUID> rsetUids, ReplicationSetUID repSetUID) {
     	for(ReplicationSetUID rsetUid : rsetUids) {
     		if (rsetUid.getId() == repSetUID.getId()) {
     			return true;    			

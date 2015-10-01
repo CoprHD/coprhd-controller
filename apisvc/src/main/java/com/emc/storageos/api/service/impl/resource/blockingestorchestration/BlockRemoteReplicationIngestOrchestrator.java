@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,7 @@ import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.google.common.base.Joiner;
 
 /**
@@ -95,7 +97,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
             // blockObject already ingested, now just update internalflags &
             // srdf relationships. Run this logic always when volume NO_PUBLIC_ACCESS
             if (markUnManagedVolumeInactive(unManagedVolume, blockObject, unManagedVolumesSuccessfullyProcessed,
-                    createdObjectMap, updatedObjectMap, taskStatusMap)) {
+                    createdObjectMap, updatedObjectMap, taskStatusMap, vplexIngestionMethod)) {
                 _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ",
                         unManagedVolume.getNativeGuid());
                 unManagedVolume.setInactive(true);
@@ -161,12 +163,14 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
             throw IngestionException.exceptions.unmanagedVolumeRDFGroupMissing(unManagedVolume.getNativeGuid());
         }
         RemoteDirectorGroup rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, rdfGroupId);
+        // name check, "V-<projectname>" or "<projectname>"
+        StringSet grpNames = SRDFUtils.getQualifyingRDFGroupNames(project);
         // Validate the project Name with the unmanaged volume rdfGroup name.
-        if (null == rdfGroup.getLabel() || !rdfGroup.getLabel().equalsIgnoreCase(project.getLabel())) {
-            _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {} due to mismatch in rdfgroup name",
+        if (null == rdfGroup.getLabel() || !SRDFUtils.containsRaGroupName(grpNames, rdfGroup.getLabel())) {
+            _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {} due to mismatch in RDF group name",
                     unManagedVolume.getNativeGuid());
             throw IngestionException.exceptions.unmanagedVolumeRDFGroupMismatch(unManagedVolume.getNativeGuid(),
-                    rdfGroup.getLabel(), project.getLabel());
+                    rdfGroup.getLabel(), project.getLabel(), StringUtils.join(grpNames, ","));
         }
 
         String type = PropertySetterUtil.extractValueFromStringSet(

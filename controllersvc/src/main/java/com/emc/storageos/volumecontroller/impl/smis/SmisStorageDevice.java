@@ -2503,4 +2503,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter completer) {
         _srdfOperations.performChangeCopyMode(system, target, completer);
     }
+
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return _exportMaskOperationsHelper.getExportMaskHLUs(storage, exportMask);
+    }
 }

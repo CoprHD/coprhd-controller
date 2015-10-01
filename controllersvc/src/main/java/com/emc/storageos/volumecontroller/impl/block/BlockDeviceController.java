@@ -473,9 +473,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     public String addStepsForCreateMirrors(Workflow workflow, String waitFor,
             URI storage, URI sourceVolume, List<URI> mirrorList, boolean isCG) throws ControllerException {
+        String stepId = waitFor;
         if (!isCG) {
             for (URI mirror : mirrorList) {
-                workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
+                stepId = workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
                         String.format("Creating mirror for %s", sourceVolume), waitFor,
                         storage, getDeviceType(storage),
                         this.getClass(),
@@ -483,14 +484,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMirrorMethod(storage, asList(mirror)), null);
             }
         } else {
-                workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
-                        String.format("Creating mirror for %s", sourceVolume), waitFor,
-                        storage, getDeviceType(storage),
-                        this.getClass(),
-                        createMirrorMethod(storage, mirrorList, isCG, false),
-                        rollbackMirrorMethod(storage, mirrorList), null);
+            stepId = workflow.createStep(CREATE_MIRRORS_STEP_GROUP,
+                    String.format("Creating mirror for %s", sourceVolume), waitFor,
+                    storage, getDeviceType(storage),
+                    this.getClass(),
+                    createMirrorMethod(storage, mirrorList, isCG, false),
+                    rollbackMirrorMethod(storage, mirrorList), null);
         }
-        return CREATE_MIRRORS_STEP_GROUP;
+        return stepId;
     }
 
     /**
@@ -1333,7 +1334,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         // The the list of Volumes that the BlockDeviceController needs to process.
         volumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[]{
+                new VolumeDescriptor.Type[] {
                         VolumeDescriptor.Type.BLOCK_DATA,
                         VolumeDescriptor.Type.RP_SOURCE,
                         VolumeDescriptor.Type.RP_TARGET,
@@ -1506,7 +1507,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
 
         // Add steps for deleting any local mirrors that may be present.
-        //waitFor = addStepsForDeleteMirrors(workflow, waitFor, volumes);
+        // waitFor = addStepsForDeleteMirrors(workflow, waitFor, volumes);
 
         // The the list of Volumes that the BlockDeviceController needs to process.
         volumes = VolumeDescriptor.filterByType(volumes,
@@ -1762,9 +1763,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-
     @Override
-    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId) throws ControllerException {
+    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId)
+            throws ControllerException {
         _log.info("START establishVolumeAndSnapshotGroupRelation workflow");
 
         Workflow workflow = _workflowService.getNewWorkflow(this, ESTABLISH_VOLUME_SNAPSHOT_GROUP_WF_NAME, false, opId);
@@ -1772,7 +1773,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
         try {
-            workflow.createStep("establishStep", "create group relation between Volume group and Snapshot group", null, storage, storageObj.getSystemType(),
+            workflow.createStep("establishStep", "create group relation between Volume group and Snapshot group", null, storage,
+                    storageObj.getSystemType(),
                     this.getClass(), establishVolumeAndSnapshotGroupRelationMethod(storage, sourceVolume, snapshot), null, null);
 
             taskCompleter = new BlockSnapshotEstablishGroupTaskCompleter(snapshot, opId);
@@ -2622,7 +2624,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(consistencyGroup, storage));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, consistencyGroup, storage));
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
 
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -2680,7 +2682,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String detachStep = workflow.createStepId();
             Workflow.Method detach = detachMirrorMethod(storage, mirrorList, isCG);
             workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
-                        storageSystem.getSystemType(), getClass(), detach, null, detachStep);
+                    storageSystem.getSystemType(), getClass(), detach, null, detachStep);
 
             String deleteStep = workflow.createStepId();
             Workflow.Method delete = deleteMirrorMethod(storage, mirrorList, isCG);
@@ -4122,7 +4124,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public String createSingleCloneStep(Workflow workflow, URI storage, StorageSystem storageSystem, Volume volume, URI uri, String waitFor) {
+    public String
+            createSingleCloneStep(Workflow workflow, URI storage, StorageSystem storageSystem, Volume volume, URI uri, String waitFor) {
         Workflow.Method createMethod = createFullCopyVolumeMethod(storage, volume.getId(),
                 Arrays.asList(uri), false, false);
         Workflow.Method rollbackMethod = rollbackFullCopyVolumeMethod(storage, asList(uri));
@@ -4140,7 +4143,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         // detach if storage system is not vmax/vnx/hds
         if (!(storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.hds)
-                || storageSystem.deviceIsType(Type.vnxblock))) {
+        || storageSystem.deviceIsType(Type.vnxblock))) {
             Workflow.Method detachMethod = detachFullCopyMethod(storage, uri);
             waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy",
                     waitFor, storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
@@ -4245,7 +4248,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     public String deleteSnapshotStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem,
-                                     List<URI> snapshotList, boolean isRemoveAll) {
+            List<URI> snapshotList, boolean isRemoveAll) {
         if (isRemoveAll) {
             _log.info("Adding group remove snapshot step");
             Workflow.Method deleteMethod = deleteSnapshotMethod(storage, snapshotList.get(0));
@@ -4259,7 +4262,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         storage, storageSystem.getSystemType(), getClass(), deleteMethod, null, null);
             }
         }
-
 
         return waitFor;
     }

@@ -1,3 +1,8 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.ecs.api;
 
 import java.net.URI;
@@ -37,7 +42,7 @@ public interface ECSExceptions {
     public ECSException errorCreatingServerURL(final String host, final int port, final Throwable e);
 
     @DeclareServiceCode(ServiceCode.ECS_BUCKET_UPDATE_ERROR)
-    public ECSException bucketUpdateFailed(final String bucketName, final String attributeType);
+    public ECSException bucketUpdateFailed(final String bucketName, final String attributeType, final String message);
 
     @DeclareServiceCode(ServiceCode.ECS_BUCKET_DELETE_ERROR)
     public ECSException bucketDeleteFailed(final String bucketName, final String info);

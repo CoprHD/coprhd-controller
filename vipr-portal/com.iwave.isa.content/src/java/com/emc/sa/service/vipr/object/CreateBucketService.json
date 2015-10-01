@@ -27,14 +27,14 @@
     },
     
     softQuota:{
-        type:"number",
+        type:"storageSize",
         validation:{
             min:1
         }
     },
     
     hardQuota:{
-        type:"number",
+        type:"storageSize",
         validation:{
             min:1
         }

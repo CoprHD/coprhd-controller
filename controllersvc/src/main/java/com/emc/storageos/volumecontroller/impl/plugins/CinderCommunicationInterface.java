@@ -87,6 +87,7 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
     private static final String CONFFILE = "/etc/cinder/cinder.conf";
     private static final String VOLUME_BACKEND_NAME = "volume_backend_name";
     private static final String VIPR_THICK_POOL = "vipr:is_thick_pool";
+    private static final long DEFAULT_STORAGE_POOL_SIZE = 10 * 1024 * 1024 * 1024; //10 TB
     static final Integer timeout = 10000;           // in milliseconds
     static final Integer connectTimeout = 10000;    // in milliseconds
 
@@ -610,11 +611,11 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
         if (isThickPool) {
             pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THICK_ONLY
                     .toString());
-            pool.setMaximumThickVolumeSize((long) (1024 * 1024 * 1024));  // 1TB
+            pool.setMaximumThickVolumeSize(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB
         } else {
             pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_ONLY
                     .toString());
-            pool.setMaximumThinVolumeSize((long) (1024 * 1024 * 1024));  // 1TB
+            pool.setMaximumThinVolumeSize(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB
         }
         // UNSYNC_ASSOC -> snapshot, UNSYNC_UNASSOC -> clone
         StringSet copyTypes = new StringSet();
@@ -626,7 +627,7 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
         pool.setLabel(poolName);
 
         /*
-         * TODO: Keeping the total capacity as 1TB as there is no API/CLI
+         * TODO: Keeping the total capacity as 10 TB as there is no API/CLI
          * to know the volume type's capacity from cinder. These values
          * should be updated for actual capacity if in future cinder comes up
          * a way to know these values.
@@ -634,8 +635,8 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
          * Further these values will be adjusted as volume/snapshot gets created/deleted
          */
 
-        pool.setFreeCapacity((1024L * 1024L * 1024L)); // 1TB
-        pool.setTotalCapacity((1024L * 1024L * 1024L));  // 1TB
+        pool.setFreeCapacity(DEFAULT_STORAGE_POOL_SIZE); // 10 TB
+        pool.setTotalCapacity(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB
 
         return pool;
     }

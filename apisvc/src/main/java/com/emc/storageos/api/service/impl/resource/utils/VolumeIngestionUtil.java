@@ -491,6 +491,28 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Checks for the presence of a WWN on a given UnManagedVolume
+     * if the volume is exported. If the WWN is not present, an
+     * IngestionException will be thrown. 
+     * 
+     * @param unManagedVolume the UnMangedVolume to check
+     * @throws IngestionException
+     */
+    public static void checkUnManagedResourceExportWwnPresent(
+            UnManagedVolume unManagedVolume) throws IngestionException {
+        StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
+        String isVolumeExported = unManagedVolumeCharacteristics
+                .get(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString());
+        if (null != isVolumeExported && Boolean.parseBoolean(isVolumeExported)) {
+            String wwn = unManagedVolume.getWwn();
+            if (null == wwn || wwn.isEmpty()) {
+                throw IngestionException.exceptions
+                    .exportedVolumeIsMissingWwn(unManagedVolume.getLabel());
+            }
+        }
+    }
+
+    /**
      * validate Host IO limits
      * 
      * @param vpool
@@ -650,6 +672,17 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Returns true if the BlockObject represents a VPLEX virtual volume.
+     * 
+     * @param blockObject the BlockObject to check
+     * @return true if the block object is a VPLEX virtual volume
+     */
+    public static boolean isVplexVolume(BlockObject blockObject, DbClient dbClient) {
+        UnManagedVolume volume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
+        return isVplexVolume(volume);
+    }
+
+    /**
      * Returns true if the UnManagedVolume represents a VPLEX virtual volume.
      * 
      * @param volume the UnManagedVolume in question
@@ -665,7 +698,17 @@ public class VolumeIngestionUtil {
         return TRUE.equals(status);
     }
 
-    
+    /**
+     * Returns true if the BlockObject represents a VPLEX backend volume.
+     * 
+     * @param blockObject the BlockObject to check
+     * @return true if the block object is a VPLEX backend volume
+     */
+    public static boolean isVplexBackendVolume(BlockObject blockObject, DbClient dbClient) {
+        UnManagedVolume volume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
+        return isVplexBackendVolume(volume);
+    }
+
     /**
      * Returns true if the UnManagedVolume represents a VPLEX backend volume.
      * 
@@ -680,6 +723,28 @@ public class VolumeIngestionUtil {
         String status = volume.getVolumeCharacterstics()
                 .get(SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString());
         return TRUE.equals(status);
+    }
+
+    /**
+     * Returns an UnManagedVolume object if the blockObject has an UnManagedVolume.
+     * Otherwise, returns null;
+     * 
+     * @param blockObject the block object to check
+     * @param dbClient a reference to the database client
+     * @return a UnManagedVolume object
+     */
+    public static UnManagedVolume getUnManagedVolumeForBlockObject(BlockObject blockObject, DbClient dbClient) {
+        String unmanagedVolumeGUID = blockObject.getNativeGuid().replace(VOLUME, UNMANAGEDVOLUME);
+        @SuppressWarnings("deprecation")
+        List<URI> unmanagedVolumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getVolumeInfoNativeIdConstraint(unmanagedVolumeGUID));
+        List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(UnManagedVolume.class, unmanagedVolumeUris);
+        if (unManagedVolumes != null && !unManagedVolumes.isEmpty()) {
+            UnManagedVolume unManagedVolume = unManagedVolumes.get(0);
+            _logger.info("block object {} is UnManagedVolume {}", blockObject.getLabel(), unManagedVolume);
+            return unManagedVolume;
+        }
+        return null;
     }
 
     public static boolean isSnapshot(UnManagedVolume volume) {
@@ -1002,10 +1067,12 @@ public class VolumeIngestionUtil {
 
         List<URI> storagePortUris = new ArrayList<URI>(Collections2.transform(
                 eligibleMask.getKnownStoragePortUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        // update ZoneMappings and HLU's later if needed, now pass null
+
+        Map<String, Integer> wwnToHluMap = extractWwnToHluMap(eligibleMask, dbClient);
+
         ExportMaskUtils.initializeExportMaskWithVolumes(system, exportGroup, eligibleMask.getMaskName(), exportMaskLabel, allInitiators,
                 null, storagePortUris, eligibleMask.getZoningMap(), volume, eligibleMask.getUnmanagedInitiatorNetworkIds(),
-                eligibleMask.getNativeId(), userAddedInis, dbClient);
+                eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap);
 
         // remove unmanaged mask if created if the block object is not marked as internal
         if (!volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
@@ -1015,6 +1082,30 @@ public class VolumeIngestionUtil {
 
         updateExportGroup(exportGroup, volume, dbClient, allInitiators, hosts, cluster);
 
+    }
+
+    /**
+     * Extracts a map of WWNs to HLUs for UnManagedVolumes in a given UnManagedExportMask.
+     * 
+     * @param unManagedExportMask the UnManagedExportMask to check
+     * @param dbClient a reference to the database client
+     * 
+     * @return a map of WWNs to HLUs for UnManagedVolumes in a given UnManagedExportMask
+     */
+    public static Map<String, Integer> extractWwnToHluMap(UnManagedExportMask unManagedExportMask, DbClient dbClient) {
+        // create the volume wwn to hlu map
+        Map<String, Integer> wwnToHluMap = new HashMap<String, Integer>();
+        List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(
+                UnManagedVolume.class, Collections2.transform(
+                unManagedExportMask.getUnmanagedVolumeUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        for (UnManagedVolume vol : unManagedVolumes) {
+            String wwn = vol.getWwn();
+            if (wwn != null) {
+                wwnToHluMap.put(wwn, findHlu(vol, unManagedExportMask.getMaskName()));
+            }
+        }
+        _logger.info("wwn to hlu map for {} is " + wwnToHluMap, unManagedExportMask.getMaskName());
+        return wwnToHluMap;
     }
 
     /**
@@ -2089,8 +2180,13 @@ public class VolumeIngestionUtil {
         List<URI> unmanagedVolumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVolumeInfoNativeIdConstraint(unmanagedVolumeGUID));
         List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(UnManagedVolume.class, unmanagedVolumeUris);
+        boolean isVplexBackendVolume = false;
         if (unManagedVolumes != null && !unManagedVolumes.isEmpty()) {
             UnManagedVolume unManagedVolume = unManagedVolumes.get(0);
+            
+            // Check if this is a VPLEX backend volume, which we need to treat a little differently
+            isVplexBackendVolume = VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume);
+            
             // Get the exportGroupType from the unManagedVolume
             String exportGroupType = unManagedVolume.getVolumeCharacterstics().get(
                     SupportedVolumeCharacterstics.EXPORTGROUP_TYPE.toString());
@@ -2126,6 +2222,9 @@ public class VolumeIngestionUtil {
                     // Remove the block object from existing volumes and add to the user created volumes of the export mask
                     for (ExportMask exportMask : exportMasks) {
                         String normalizedWWN = BlockObject.normalizeWWN(blockObject.getWWN());
+                        if (null == normalizedWWN) {
+                            throw IngestionException.exceptions.exportedVolumeIsMissingWwn(unManagedVolume.getLabel());
+                        }
                         if (exportMask.hasAnyExistingVolumes() && exportMask.getExistingVolumes().containsKey(normalizedWWN)) {
                             _logger.info(
                                     "Removing block object {} from existing volumes and adding to user created volumes of export mask {}",
@@ -2141,9 +2240,11 @@ public class VolumeIngestionUtil {
                     for (ExportGroup exportGroup : exportGroups) {
                         _logger.info("Processing exportGroup {} to add block object", exportGroup.getId());
                         // only add to those export groups whose project and varray matches the block object
+                        boolean exportGroupTypeMatches = (null != exportGroupType) 
+                                && exportGroupType.equalsIgnoreCase(exportGroup.getType());
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
                                 exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
-                                (null != exportGroupType && exportGroupType.equalsIgnoreCase(exportGroup.getType()))) {
+                                (exportGroupTypeMatches || isVplexBackendVolume)) {
                             _logger.info("Adding block object {} to export group {}", blockObject.getNativeGuid(), exportGroup.getLabel());
                             exportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
                         }
@@ -2169,6 +2270,11 @@ public class VolumeIngestionUtil {
         }
 
         blockObject.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+
+        if (isVplexBackendVolume) {
+            // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
+            blockObject.addInternalFlags(Flag.INTERNAL_OBJECT);
+        }
     }
 
     public static BlockObject getBlockObject(String nativeGUID, DbClient dbClient) {
@@ -2336,4 +2442,57 @@ public class VolumeIngestionUtil {
         return clones;
     }
 
+    /**
+     * Find the HLU for the given UnManagedVolume and ExportMask (potentially
+     * an HLU could be different across ExportMasks).  This method will check
+     * the UnManagedVolume's HLU_TO_EXPORT_LABEL_MAP VolumeInformation.  This
+     * should be formatted as a StringSetMap where each StringSet is a collection
+     * of Strings in the format "exportMaskName=hlu".
+     * 
+     * @param unManagedVolume the UnManagedVolume to check
+     * @param exportMaskName the ExportMask to check by maskName
+     * 
+     * @return an Integer representing the LUN number for this volume in this mask
+     */
+    public static Integer findHlu(UnManagedVolume unManagedVolume, String exportMaskName) {
+
+        // TODO currently only the VPLEX discovery process is creating
+        // this HLU_TO_EXPORT_LABEL_MAP --- this should also be added to other 
+        // unmanaged volume discovery services if the HLU is found to be required.
+        // By default, if no mapping is found, a LUN_UNASSIGNED (-1) will be returned.
+
+        StringSet hluMapEntries =  PropertySetterUtil.extractValuesFromStringSet(
+                SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(),
+                unManagedVolume.getVolumeInformation());
+
+        Integer hlu = ExportGroup.LUN_UNASSIGNED;
+        if (null != hluMapEntries) {
+            for (String hluEntry : hluMapEntries) {
+                // should be in the format exportMaskName=hlu
+                // (i.e., mask name to hlu/lun number)
+                if (hluEntry.startsWith(exportMaskName)) {
+                    String[] hluEntryParts = hluEntry.split("=");
+                    if (hluEntryParts.length == 2) {
+                        // double check it matched the full mask name
+                        // just in case there some kind of overlap
+                        if (hluEntryParts[0].equals(exportMaskName)) {
+                            String hluStr = hluEntryParts[1];
+                            if (null != hluStr && !hluStr.isEmpty()) {
+                                try {
+                                    hlu = Integer.valueOf(hluStr);
+                                    _logger.info("found hlu {} for {} in export mask " 
+                                            + exportMaskName, hlu, 
+                                                unManagedVolume.getLabel());
+                                } catch (NumberFormatException ex) {
+                                    _logger.warn("could not parse HLU entry from " + hluEntry);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return hlu;
+    }
 }

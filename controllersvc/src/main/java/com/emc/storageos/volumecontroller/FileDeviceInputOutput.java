@@ -12,18 +12,20 @@ import java.util.List;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.FileExportUpdateParams;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.model.file.NfsACE;
+import com.emc.storageos.model.file.NfsACLUpdateParams;
+import com.emc.storageos.model.file.ShareACL;
 
 /**
  * Class defining input/output from File storage device interface
@@ -70,6 +72,14 @@ public class FileDeviceInputOutput {
     private List<ShareACL> shareAclsToModify = new ArrayList<>();
     private List<ShareACL> shareAclsToDelete = new ArrayList<>();
     private List<ShareACL> existingShareAcls = new ArrayList<>();
+
+    // New additions for NFS ACL work
+    private String fileSystemPath;
+    private NfsACLUpdateParams nfsACLUpdateParams;
+    private List<NfsACE> nfsAclsToAdd = new ArrayList<>();
+    private List<NfsACE> nfsAclsToModify = new ArrayList<>();
+    private List<NfsACE> nfsAclsToDelete = new ArrayList<>();
+    private List<NfsACE> existingNfsAcls = new ArrayList<>();
 
     public String getComments() {
         return comments;
@@ -121,6 +131,12 @@ public class FileDeviceInputOutput {
                 && param.getAclsToDelete().getShareACLs() != null) {
             this.shareAclsToDelete = param.getAclsToDelete().getShareACLs();
         }
+
+    }
+
+    public void setAllNfsAcls(NfsACLUpdateParams param) {
+
+        nfsACLUpdateParams = param;
 
     }
 

@@ -2852,8 +2852,104 @@ public class FileDeviceController implements FileController {
     }
 
     @Override
-    public void updateNFSAcl(URI storage, URI fs, FileNfsACLUpdateParams param, String opId) throws InternalException {
-        // TODO Auto-generated method stub
+    public void updateNFSAcl(URI storage, URI fsURI, FileNfsACLUpdateParams param, String opId) throws InternalException {
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        FileObject fsObj = null;
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        FileShare fs = null;
+        Snapshot snapshotObj = null;
+        boolean isFile = false;
 
+        try {
+
+            StorageSystem storageObj = _dbClient.queryObject(
+                    StorageSystem.class, storage);
+
+            args.setSubDirectory(param.getSubDir());
+            // args.setAllExportRules(param);
+
+            _log.info("Controller Recieved FileExportUpdateParams {}", param);
+
+            // File
+            if (URIUtil.isType(fsURI, FileShare.class)) {
+                isFile = true;
+                fs = _dbClient.queryObject(FileShare.class, fsURI);
+                fsObj = fs;
+                args.addFSFileObject(fs);
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        fs.getPool());
+                args.addStoragePool(pool);
+
+            } else {
+                // Snapshot
+                snapshotObj = _dbClient.queryObject(Snapshot.class, fsURI);
+                fsObj = snapshotObj;
+                fs = _dbClient.queryObject(FileShare.class,
+                        snapshotObj.getParent());
+                args.addFileShare(fs);
+                args.addSnapshotFileObject(snapshotObj);
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        fs.getPool());
+                args.addStoragePool(pool);
+            }
+
+            args.setFileOperation(isFile);
+            args.setOpId(opId);
+
+            // Query & Pass all Existing Exports
+            args.setExistingDBExportRules(queryExports(args));
+
+            // Do the Operation on device.
+            BiosCommandResult result = getDevice(storageObj.getSystemType())
+                    .updateExportRules(storageObj, args);
+
+            if (result.isCommandSuccess()) {
+                // Update Database
+                // doCRUDExports(param, fs, args);
+
+                // Delete the Export Map, if there are no exports.
+                if ((args.getFileObjExports() != null) && (queryExports(args).isEmpty())) {
+                    args.getFileObjExports().clear();
+                    _dbClient.persistObject(args.getFileObj());
+                }
+
+            }
+
+            if (result.getCommandPending()) {
+                return;
+            }
+            // Audit & Update the task status
+            OperationTypeEnum auditType = null;
+            auditType = (isFile) ? OperationTypeEnum.EXPORT_FILE_SYSTEM
+                    : OperationTypeEnum.EXPORT_FILE_SNAPSHOT;
+
+            fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+
+            // Monitoring - Event Processing
+            String eventMsg = result.isCommandSuccess() ? "" : result
+                    .getMessage();
+            //
+            // if (isFile) {
+            // recordFileDeviceOperation(_dbClient,
+            // auditType,
+            // result.isCommandSuccess(),
+            // eventMsg,
+            // // getExportNewClientExtensions(param.retrieveAllExports()),
+            // fs, storageObj);
+            // } else {
+            // recordFileDeviceOperation(_dbClient,
+            // auditType,
+            // result.isCommandSuccess(),
+            // eventMsg,
+            // getExportNewClientExtensions(param.retrieveAllExports()),
+            // snapshotObj, fs, storageObj);
+            // }
+            _dbClient.persistObject(fsObj);
+        } catch (Exception e) {
+            String[] params = { storage.toString(), fsURI.toString() };
+            _log.error("Unable to export file system or snapshot: storage {}, FS/snapshot URI {}", params, e);
+            _log.error("{}, {} ", e.getMessage(), e);
+            updateTaskStatus(opId, fsObj, e);
+        }
     }
 }

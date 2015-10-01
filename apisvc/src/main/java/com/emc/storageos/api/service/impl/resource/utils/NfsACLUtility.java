@@ -21,11 +21,11 @@ import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.model.file.NfsACE;
+import com.emc.storageos.model.file.NfsACE.NfsACLOperationType;
+import com.emc.storageos.model.file.NfsACE.NfsPermission;
 import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
-import com.emc.storageos.model.file.NfsACLUpdateParams.NfsACLOperationType;
-import com.emc.storageos.model.file.NfsACLUpdateParams.NfsPermission;
-import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 
@@ -57,23 +57,7 @@ public class NfsACLUtility {
     }
 
     public void verifyNfsACLs(NfsACLUpdateParams param) {
-
-        NfsACLs nfsAcls = null;
-
-        // Add Payload
-        nfsAcls = param.getAclsToAdd();
-        validateNfsACLs(nfsAcls, NfsACLOperationType.ADD);
-        reportErrors(param, NfsACLOperationType.ADD);
-
-        // Modify Payload
-        nfsAcls = param.getAclsToModify();
-        validateNfsACLs(nfsAcls, NfsACLOperationType.MODIFY);
-        reportErrors(param, NfsACLOperationType.MODIFY);
-
-        // Delete Payload
-        nfsAcls = param.getAclsToDelete();
-        validateNfsACLs(nfsAcls, NfsACLOperationType.DELETE);
-        reportErrors(param, NfsACLOperationType.DELETE);
+        // TODO
 
     }
 
@@ -113,33 +97,8 @@ public class NfsACLUtility {
 
     }
 
-    private void validateNfsACLs(NfsACLs nfsAcls,
+    private void validateNfsACLs(NfsACE nfsAce,
             NfsACLOperationType type) {
-
-        if (nfsAcls == null) {
-            _log.info("Missing ACLs - Ignoring the operation type {} ",
-                    type.name());
-            missingRequestParameterErrorString = "Missing ACLs - Ignoring the operation type "
-                    + type.name();
-            return;
-        }
-
-        switch (type) {
-            case ADD: {
-                verifyAddNfsACLs(nfsAcls.getNfsACLs());
-
-                break;
-            }
-            case MODIFY: {
-                verifyModifyNfsACLs(nfsAcls.getNfsACLs());
-
-                break;
-            }
-            case DELETE: {
-                verifyDeleteNfsACLs(nfsAcls.getNfsACLs());
-                break;
-            }
-        }
 
     }
 

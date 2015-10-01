@@ -23,6 +23,27 @@ public class NfsACE implements Serializable {
     private String permission;
     private String permissionType;
 
+    public enum NfsACLOperationType {
+        ADD, MODIFY, DELETE
+    }
+
+    public enum NfsPermissionType {
+        ALLOW, DENY
+    }
+
+    public enum NfsPermission {
+        READ, CHANGE, FULLCONTROL
+    }
+
+    public enum NfsACLOperationErrorType {
+        INVALID_PERMISSION_TYPE, INVALID_PERMISSION, INVALID_USER,
+        USER_OR_GROUP_NOT_PROVIDED, USER_AND_GROUP_PROVIDED,
+        MULTIPLE_ACES_WITH_SAME_USER_OR_GROUP, INVALID_GROUP,
+        FS_PATH_NOT_FOUND, ACL_EXISTS, ACL_NOT_FOUND, ACCESS_TO_SHARE_DENIED,
+        SNAPSHOT_FS_SHOULD_BE_READ_ONLY,
+        MULTIPLE_DOMAINS_FOUND
+    }
+
     @XmlElement(name = "domain")
     public String getDomain() {
         return domain;

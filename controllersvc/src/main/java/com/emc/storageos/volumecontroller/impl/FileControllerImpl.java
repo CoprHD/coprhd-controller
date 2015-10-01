@@ -212,8 +212,8 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void updateNFSAcl(URI storage, URI fs, FileNfsACLUpdateParams param, String opId) throws InternalException {
-        // TODO Auto-generated method stub
+    public void updateNFSAcl(URI storageURI, URI fsURI, FileNfsACLUpdateParams param, String opId) throws InternalException {
+        execFS("updateNFSAcl", storageURI, fsURI, param, opId);
 
     }
 }

@@ -68,8 +68,6 @@ try:
 
     if (cmd == "create"):
         args = create.parse_args()
-        print "params in bucket file"
-        print args
         ecs_bucket_create(args)
 except:
     raise

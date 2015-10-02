@@ -212,6 +212,11 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_ACTIVATE   = URI_BLOCK_CONSISTENCY_GROUP_SN
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_DEACTIVATE = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/deactivate"
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_RESTORE    = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/restore"
 
+#Object ECS bucket definitions
+URI_ECS_BUCKET                  = URI_SERVICES_BASE         + '/object/buckets/{0}'
+URI_ECS_BUCKET_LIST         = "/object/buckets"
+
+
 URI_NETWORKSYSTEMS              = URI_SERVICES_BASE   + '/vdc/network-systems'
 URI_NETWORKSYSTEM               = URI_NETWORKSYSTEMS  + '/{0}'
 URI_NETWORKSYSTEM_DISCOVER      = URI_NETWORKSYSTEMS  + '/{0}/discover'
@@ -8230,6 +8235,13 @@ class Bourne:
         return result
 
 
+    def bucketcreate_show_task(self, bkt, task):
+        uri_bucket_task = URI_ECS_BUCKET + '/tasks/{1}'
+        print "BOURNE task URI"
+        print uri_bucket_task.format(bkt, task)
+        return self.api('GET', uri_bucket_task.format(bkt, task))
+
+
     #method definition
     def ecs_bucket_create(self, label, project, neighbourhood, cos,
 						soft_quota, hard_quota, owner):
@@ -8242,13 +8254,12 @@ class Bourne:
 			'owner'         : owner
 			}
 
-		URI_ECS_BUCKET_LIST = "/object/buckets"
 		print "ECS BUCKET CREATE Params = " 
 		print  params
 		o = self.api('POST', URI_ECS_BUCKET_LIST, params, {'project': project})
 		self.assert_is_dict(o)
-		#s = self.api_sync_2(o['resource']['id'], o['op_id'], self.fileshare_show_task)
-		return o #s
+		s = self.api_sync_2(o['resource']['id'], o['op_id'], self.bucketcreate_show_task)
+		return s
 
 #method call
 #bourne = Bourne()

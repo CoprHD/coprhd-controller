@@ -50,6 +50,7 @@ public enum ResourceOperationTypeEnum {
     PAUSE_MIGRATION("PAUSE MIGRATION", "puase migration"),
     RESUME_MIGRATION("RESUME MIGRATION", "resume migration"),
     CANCEL_MIGRATION("CANCEL MIGRATION", "cancel migration"),
+    DELETE_MIGRATION("DELETE MIGRATION", "delete migration"),
     CREATE_VOLUME_WORKFLOW_STEP("CREATE VOLUME WF STEP", "create volume workflow step"),
     DELETE_VOLUME_WORKFLOW_STEP("DELETE VOLUME WF STEP", "delete volume workflow step"),
     ADD_INITIATOR_WORKFLOW_STEP("ADD INITIATOR WF STEP", "add initiator workflow step"),

@@ -9997,7 +9997,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _dbClient.persistObject(migration);
             completer.ready(_dbClient);
         } catch (Exception ex) {
-            _log.error("Exception pausing migration: " + ex.getMessage(), ex);
+            _log.error("Exception pausing migration: ", ex);
             String opName = ResourceOperationTypeEnum.PAUSE_MIGRATION.getName();
             ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
             completer.error(_dbClient, serviceError);
@@ -10019,7 +10019,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _dbClient.persistObject(migration);
             completer.ready(_dbClient);
         } catch (Exception ex) {
-            _log.error("Exception resuming migration: " + ex.getMessage(), ex);
+            _log.error("Exception resuming migration: ", ex);
             String opName = ResourceOperationTypeEnum.RESUME_MIGRATION.getName();
             ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
             completer.error(_dbClient, serviceError);
@@ -10041,8 +10041,29 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _dbClient.persistObject(migration);
             completer.ready(_dbClient);
         } catch (Exception ex) {
-            _log.error("Exception resuming migration: " + ex.getMessage(), ex);
+            _log.error("Exception canceling migration: ", ex);
             String opName = ResourceOperationTypeEnum.CANCEL_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
+            completer.error(_dbClient, serviceError);
+        }
+    }
+    
+    @Override
+    public void deleteMigration(URI vplexURI, URI migrationURI, String opId) {
+        MigrationOperationTaskCompleter completer = null;
+        try {
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            URI volId = migration.getVolume();
+            completer = new MigrationOperationTaskCompleter(volId, opId);
+            client.removeMigrations(Arrays.asList(migration.getLabel()));
+            migration.setInactive(true);
+            _dbClient.persistObject(migration);
+            completer.ready(_dbClient);
+        } catch (Exception ex) {
+            _log.error("Exception deleting migration:", ex);
+            String opName = ResourceOperationTypeEnum.DELETE_MIGRATION.getName();
             ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
             completer.error(_dbClient, serviceError);
         }

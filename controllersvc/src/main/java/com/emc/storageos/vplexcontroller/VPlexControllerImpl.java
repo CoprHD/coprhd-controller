@@ -161,4 +161,10 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
         queueRequest("cancelMigration", vplexURI, migrationURI, opId);
         
     }
+    
+    @Override
+    public void deleteMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("deleteMigration", vplexURI, migrationURI, opId);
+        
+    }
 }

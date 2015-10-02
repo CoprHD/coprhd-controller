@@ -273,5 +273,13 @@ public interface VPlexController extends Controller {
      * @param opId the opId for the operation
      */
     public void cancelMigration(URI vplexURI, URI migrationURI, String opId);
+    
+    /**
+     * Delete a migration
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param migrationURI The URI of the migration.
+     * @param opId the opId for the operation
+     */
+    public void deleteMigration(URI vplexURI, URI migrationURI, String opId);
 
 }

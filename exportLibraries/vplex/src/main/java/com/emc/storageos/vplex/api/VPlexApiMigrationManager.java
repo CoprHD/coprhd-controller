@@ -570,13 +570,17 @@ public class VPlexApiMigrationManager {
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         List<VPlexMigrationInfo> migrationInfoList = discoveryMgr
                 .findMigrations(migrationNames);
-
+        if (migrationInfoList.isEmpty()) {
+            s_logger.info("No migration found in the VPLEX");
+            return;
+        }
         // Verify that the migrations are in a state in which they can be removed.
         StringBuilder migrationArgBuilder = new StringBuilder();
         for (VPlexMigrationInfo migrationInfo : migrationInfoList) {
             String migrationStatus = migrationInfo.getStatus();
             if ((!VPlexApiConstants.MIGRATION_COMMITTED.equals(migrationStatus)) &&
-                    (!VPlexApiConstants.MIGRATION_CANCELED.equals(migrationStatus))) {
+                    (!VPlexApiConstants.MIGRATION_CANCELED.equals(migrationStatus)) &&
+                    (!VPlexApiConstants.MIGRATION_ERROR.equals(migrationStatus))) {
                 throw VPlexApiException.exceptions
                         .cantRemoveMigrationInvalidState(migrationInfo.getName());
             }

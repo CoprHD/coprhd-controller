@@ -1216,7 +1216,7 @@ public class VcenterService extends TaskResourceService {
 
         if (DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString().equalsIgnoreCase(vcenter.getDiscoveryStatus()) ||
                 currentSystemTime - lastDiscoveryTime < tolerance * 1000) {
-            throw APIException.badRequests.cannotUpdateACL(vcenter.getLabel(), tolerance);
+            throw APIException.badRequests.cannotEditVcenterOrUpdateACL(vcenter.getLabel(), tolerance);
         }
     }
 }

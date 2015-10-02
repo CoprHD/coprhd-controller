@@ -304,15 +304,15 @@ public class DbsvcTestBase {
         }
         
         @Override
-        protected boolean setStrategyOptions(KeyspaceDefinition keyspace, int replicas) {
+        protected boolean setStrategyOptions(KeyspaceDefinition keyspace) {
             if (!isGeoDbsvc()) {
                 Map<String, String> stratOptions = keyspace.getStrategyOptions();
                 keyspace.setName(this.getKeyspaceName());
                 keyspace.setStrategyClass("SimpleStrategy");
-                stratOptions.put("replication_factor", Integer.toString(replicas));
+                stratOptions.put("replication_factor", "1");
                 return true;
             } 
-            return super.setStrategyOptions(keyspace, replicas);
+            return super.setStrategyOptions(keyspace);
         }
     }
     

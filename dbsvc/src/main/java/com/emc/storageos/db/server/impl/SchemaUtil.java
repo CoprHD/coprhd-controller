@@ -71,7 +71,6 @@ import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
  */
 public class SchemaUtil {
     private static final Logger _log = LoggerFactory.getLogger(SchemaUtil.class);
-    private static final String SOURCE_VERSION = "1.0";
     private static final String COMPARATOR_PACKAGE = "org.apache.cassandra.db.marshal.";
     private static final String REPLICATION_FACTOR = "replication_factor";
     private static final String DB_BOOTSTRAP_LOCK = "dbbootstrap";
@@ -271,7 +270,6 @@ public class SchemaUtil {
             _log.info("try scan and setup db ...");
             retryTimes++;
             try {
-                int replicationFactor = getReplicationFactor();
                 clusterContext = connectCluster();
                 Cluster cluster = clusterContext.getClient();
                 KeyspaceDefinition kd = cluster.describeKeyspace(_keyspaceName);
@@ -287,7 +285,7 @@ public class SchemaUtil {
 
                         // this must be a new cluster - no schema is present so we create keyspace first
                         kd = cluster.makeKeyspaceDefinition();
-                        setStrategyOptions(kd, replicationFactor);
+                        setStrategyOptions(kd);
                         waitForSchemaChange(cluster.addKeyspace(kd).getResult().getSchemaId(), cluster);
                     }
                 } else {
@@ -342,25 +340,41 @@ public class SchemaUtil {
      * _keyspaceName. New keyspace is created if it does exist.
      * 
      * @param keyspace
-     * @param replicas
      * @return true to indicate keyspace strategy option is changed
      */
-    protected boolean setStrategyOptions(KeyspaceDefinition keyspace, int replicas) {
+    protected boolean setStrategyOptions(KeyspaceDefinition keyspace) {
+        boolean changed = false;
         keyspace.setName(_keyspaceName);
 
         // Get existing strategy options if the keyspace exists
         Map<String, String> strategyOptions = keyspace.getStrategyOptions();
+
+        if (!onStandby) {
+            // iterate through all the sites and exclude the paused ones
+            // this should only be done on primary site since the only standby site might be unavailable
+            for(Configuration config : _coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
+                Site site = new Site(config);
+                if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                    strategyOptions.remove(String.format("%s-%s", _vdcShortId, site.getUuid()));
+                    changed = true;
+                }
+            }
+        }
+
         if (isGeoDbsvc() || onStandby) {
             String vdcShortId = generateCassandraDataCenterId();
             _log.info("vdcList={} strategyOptions={}", _vdcList, strategyOptions);
             if (!onStandby && _vdcList.size() == 1) {
                 // the current vdc is removed
                 strategyOptions.clear();
+                changed = true;
             }
 
             if (strategyOptions.containsKey(vdcShortId)) {
                 _log.info("The strategy options contains {}", vdcShortId);
-                return false;
+                if (!changed) {
+                    return false;
+                }
             }
 
             _log.info("The strategy doesn't have {} so set it", vdcShortId);
@@ -370,11 +384,11 @@ public class SchemaUtil {
             }
 
             keyspace.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-            strategyOptions.put(vdcShortId, Integer.toString(replicas));
+            strategyOptions.put(vdcShortId, Integer.toString(getReplicationFactor()));
         } else {
-        	// Todo - add standby to strategy options
+            // initialize the strategy options for fresh install
             keyspace.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-            strategyOptions.put(_vdcShortId, Integer.toString(replicas));
+            strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
         }
 
         keyspace.setStrategyOptions(strategyOptions);
@@ -392,30 +406,17 @@ public class SchemaUtil {
         _log.info("keyspace exist already");
 
         String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
-        if (currentDbSchemaVersion == null) {
-            if (onStandby) {
-                _log.info("set current version for standby {}", _service.getVersion());
-                setCurrentVersion(_service.getVersion());
-            } else {
-                _log.info("missing current version in zk, assuming upgrade from {}", SOURCE_VERSION);
-                setCurrentVersion(SOURCE_VERSION);
-            }
+        if (currentDbSchemaVersion == null && onStandby) {
+            _log.info("set current version for standby {}", _service.getVersion());
+            setCurrentVersion(_service.getVersion());
         }
 
         // Update keyspace strategy option
-        Map<String, String> options = kd.getStrategyOptions();
+        KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
+        boolean changed = setStrategyOptions(update);
 
-        String dcId = generateCassandraDataCenterId();
-        if (isGeoDbsvc() && !options.containsKey(dcId)
-                || onStandby && !options.containsKey(dcId)) {
-            KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
-            update.setStrategyOptions(options);
-
-            boolean changed = setStrategyOptions(update, getReplicationFactor());
-
-            if (changed) {
-                waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
-            }
+        if (changed) {
+            waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
         }
     }
 

@@ -1238,9 +1238,8 @@ public class VPlexApiMigrationManager {
                     VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
                             .findDistributedDevice(distDeviceName);
                     if (distDeviceInfo == null) {
-                        s_logger.info(
-                                "Could not find distributed device {} for the virtual volume {} ",
-                                distDeviceName, virtualVolumeName);
+                        s_logger.info("Could not find distributed device {} for the virtual volume {}, hence distributed "
+                                + "device name will not be updated. ", distDeviceName, virtualVolumeName);
                         return;
                     }
                     String updatedDistDeviceName = distDeviceName.replace(srcVolumeName,
@@ -1270,6 +1269,11 @@ public class VPlexApiMigrationManager {
                         s_logger.info("Updating device {} to reflect new volume {}",
                                 deviceName, tgtVolumeName);
                         VPlexDeviceInfo deviceInfo = discoveryMgr.findLocalDevice(deviceName);
+                        if (deviceInfo == null) {
+                            s_logger.info("Could not find local device {} for the virtual volume {}, hence "
+                                    + "device name will not be updated. ", deviceName, virtualVolumeName);
+                            return;
+                        }
                         String updatedDeviceName = deviceName.replace(srcVolumeName,
                                 tgtVolumeName);
                         _vplexApiClient.getVirtualVolumeManager()

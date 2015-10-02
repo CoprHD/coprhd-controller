@@ -66,6 +66,7 @@ import org.slf4j.LoggerFactory;
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
+import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import java.net.URI;
@@ -517,6 +518,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         MetaVolumeTaskCompleter metaVolumeTaskCompleter = new MetaVolumeTaskCompleter(
                 taskCompleter);
         try {
+            if (!doesStorageSystemSupportVolumeExpand(storageSystem)) {
+                ServiceError error = DeviceControllerErrors.smis.volumeExpandIsNotSupported(storageSystem.getNativeGuid());
+                taskCompleter.error(_dbClient, error);
+                return;
+            }
             _helper.doApplyRecoverPointTag(storageSystem, volume, false);
             CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);
             CIMArgument[] inArgs = _helper.getExpandVolumeInputArguments(storageSystem, pool, volume,
@@ -2546,4 +2552,42 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return _exportMaskOperationsHelper.getExportMaskHLUs(storage, exportMask);
     }
+
+    /**
+     * This method tests if the array represented by 'storageSystem' supports volume expand.
+     *
+     * @param storageSystem [IN] - StorageSystem object to check the volume expand capabilities
+     * @return true iff The array indicates that it supports volume expand.
+     */
+    private boolean doesStorageSystemSupportVolumeExpand(StorageSystem storageSystem) throws WBEMException {
+        boolean expandSupported = false;
+        CloseableIterator<CIMInstance> cimInstances = null;
+        CIMObjectPath storageConfigServicePath = _cimPath.getConfigSvcPath(storageSystem);
+        try {
+            cimInstances = _helper.getAssociatorInstances(storageSystem, storageConfigServicePath, null,
+                    SmisConstants.EMC_STORAGE_CONFIGURATION_CAPABILITIES, null, null,
+                    SmisConstants.PS_SUPPORTED_STORAGE_ELEMENT_FEATURES);
+            if (cimInstances != null) {
+                while (cimInstances.hasNext()) {
+                    CIMInstance capabilitiesInstance = cimInstances.next();
+                    UnsignedInteger16[] supportedFeatures = (UnsignedInteger16[]) capabilitiesInstance
+                            .getPropertyValue(SmisConstants.CP_SUPPORTED_STORAGE_ELEMENT_FEATURES);
+                    for (UnsignedInteger16 supportedFeatureEntry : supportedFeatures) {
+                        if (supportedFeatureEntry.intValue() == SmisConstants.STORAGE_ELEMENT_CAPACITY_EXPANSION_VALUE) {
+                            expandSupported = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        } finally {
+            if (cimInstances != null) {
+                cimInstances.close();
+            }
+        }
+        _log.info(String.format("StorageSystem %s %s volume expand", storageSystem.getNativeGuid(),
+                (expandSupported) ? "supports" : "does not support"));
+        return expandSupported;
+    }
+
 }

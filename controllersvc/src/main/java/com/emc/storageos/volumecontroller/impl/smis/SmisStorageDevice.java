@@ -2537,7 +2537,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     for (UnsignedInteger16 supportedFeatureEntry : supportedFeatures) {
                         if (supportedFeatureEntry.intValue() == SmisConstants.STORAGE_ELEMENT_CAPACITY_EXPANSION_VALUE) {
                             expandSupported = true;
-                            break;
+                            return true;
                         }
                     }
                 }
@@ -2546,10 +2546,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (cimInstances != null) {
                 cimInstances.close();
             }
+            _log.info(String.format("StorageSystem %s %s volume expand", storageSystem.getNativeGuid(),
+                    (expandSupported) ? "supports" : "does not support"));
         }
-        _log.info(String.format("StorageSystem %s %s volume expand", storageSystem.getNativeGuid(),
-                (expandSupported) ? "supports" : "does not support"));
-        return expandSupported;
+        return false;
     }
 
 }

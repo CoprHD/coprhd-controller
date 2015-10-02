@@ -6,9 +6,11 @@ package controllers.compute;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static controllers.Common.backToReferrer;
+
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
 import models.ComputeImageTypes;
@@ -26,17 +28,17 @@ import play.mvc.With;
 import util.ComputeImageUtils;
 import util.MessagesUtils;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.compute.ComputeImageCreate;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
 import com.emc.storageos.model.compute.ComputeImageUpdate;
 import com.emc.vipr.client.Task;
 
+import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
-
-import controllers.Common;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -113,8 +115,9 @@ public class ComputeImages extends ViprResourceController {
         ComputeImageRestRep computeImage = ComputeImageUtils
                 .getComputeImage(id);
         if (computeImage != null) {
-            ComputeImageForm computeImages = new ComputeImageForm(
-                    computeImage);
+            ComputeImageForm computeImages = new ComputeImageForm(computeImage);
+            renderArgs.put("availableImageServersNames", StringUtils.join(computeImages.availableImageServerNames, "\n"));
+            renderArgs.put("failedImageServersNames", StringUtils.join(computeImages.failedImageServerNames, "\n"));
             render("@edit", computeImages);
         }
         else {
@@ -191,6 +194,14 @@ public class ComputeImages extends ViprResourceController {
 
         public String lastImageStatusMessage;
 
+        private List<NamedRelatedResourceRep> availableImageServers;
+
+        private List<NamedRelatedResourceRep> failedImageServers;
+
+        private List<String> availableImageServerNames = new ArrayList<String>();
+
+        private List<String> failedImageServerNames = new ArrayList<String>();
+
         public String cloneName;
         public String cloneExtractedName;
         public String cloneType;;
@@ -207,6 +218,19 @@ public class ComputeImages extends ViprResourceController {
             this.imageUrl = computeImage.getImageUrl();
             this.computeImageStatus = computeImage.getComputeImageStatus();
             this.lastImageStatusMessage = computeImage.getLastImportStatusMessage();
+            this.availableImageServers = computeImage.getAvailableImageServers();
+            this.failedImageServers = computeImage.getFailedImageServers();
+
+            for (NamedRelatedResourceRep availableImageServer : availableImageServers) {
+                if (availableImageServer.getName() != null) {
+                    this.availableImageServerNames.add(availableImageServer.getName());
+                }
+            }
+            for (NamedRelatedResourceRep failedImageServer : failedImageServers) {
+                if (failedImageServer.getName() != null) {
+                    this.failedImageServerNames.add(failedImageServer.getName());
+                }
+            }
         }
 
         public ComputeImageForm(ComputeImageRestRep computeImage, boolean clone) {

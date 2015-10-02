@@ -2342,7 +2342,7 @@ public interface BadRequestExceptions {
     public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException siteIdNotFound(final String siteId);
+    public BadRequestException siteIdNotFound();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnPrimarySite(final String siteId);

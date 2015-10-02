@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.model.uimodels.InitialSetup;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
@@ -59,8 +60,6 @@ import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.sys.ClusterInfo;
-
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.*;
 
 /**
  * APIs implementation to standby sites lifecycle management such as add-standby, remove-standby, failover, pause
@@ -271,7 +270,7 @@ public class DisasterRecoveryService {
         Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
         if (config == null) {
             log.error("Can't find site {} from ZK", uuid);
-            throw APIException.badRequests.siteIdNotFound(uuid);
+            throw APIException.badRequests.siteIdNotFound();
         }
 
         try {
@@ -372,7 +371,7 @@ public class DisasterRecoveryService {
         Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
         if (config == null) {
             log.error("Can't find site {} from ZK", uuid);
-            throw APIException.badRequests.siteIdNotFound(uuid);
+            throw APIException.badRequests.siteIdNotFound();
         }
 
         Site standby = new Site(config);
@@ -538,9 +537,9 @@ public class DisasterRecoveryService {
     }
     
     protected boolean isFreshInstallation() {
-        Configuration setupConfig = coordinator.queryConfiguration(CONFIG_KIND, CONFIG_ID);
+        Configuration setupConfig = coordinator.queryConfiguration(InitialSetup.CONFIG_KIND, InitialSetup.CONFIG_ID);
         
-        boolean freshInstall = (setupConfig == null) || Boolean.parseBoolean(setupConfig.getConfig(COMPLETE)) == false;
+        boolean freshInstall = (setupConfig == null) || !Boolean.parseBoolean(setupConfig.getConfig(InitialSetup.COMPLETE));
         log.info("Fresh installation {}", freshInstall);
         
         boolean hasDataInDB = dbClient.hasUsefulData();

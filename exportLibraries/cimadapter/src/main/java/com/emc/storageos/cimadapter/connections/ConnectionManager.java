@@ -198,7 +198,8 @@ public class ConnectionManager {
      * @throws ConnectionManagerException When a error occurs removing the
      *             connection.
      */
-    public synchronized void removeConnection(String hostAndPort) throws ConnectionManagerException {
+    public synchronized void removeConnection(String host, Integer port) throws ConnectionManagerException {
+        String hostAndPort = ConnectionManager.generateConnectionCacheKey(host, port);
         // Verify the passed host is not null or blank.
         if ((hostAndPort == null) || (hostAndPort.length() == 0)) {
             throw new ConnectionManagerException("Passed host/port is null or blank.");
@@ -279,8 +280,9 @@ public class ConnectionManager {
      * 
      * @throws ConnectionManagerException When the passed host is null or blank.
      */
-    public synchronized CimConnection getConnection(String hostAndPort)
+    public synchronized CimConnection getConnection(String host, Integer port)
             throws ConnectionManagerException {
+        String hostAndPort = generateConnectionCacheKey(host, port);
         // Verify the passed host/port is not null or blank.
         if ((hostAndPort == null) || (hostAndPort.length() == 0)) {
             throw new ConnectionManagerException("Passed host/port is null or blank.");

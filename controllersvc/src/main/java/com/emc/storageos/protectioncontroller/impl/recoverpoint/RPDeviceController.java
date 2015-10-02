@@ -5444,12 +5444,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         WorkflowStepCompleter.stepExecuting(stepId);        
         try {
             for (URI volumeURI : volumeURIs) {
-                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);                
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);            
+                // Rollback protection on the volume
                 VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 _log.info(String.format("Removing protection from Volume [%s] (%s) and moving it to Virtual Pool [%s] (%s)", 
                         volume.getLabel(), volume.getId(), vpool.getLabel(), vpool.getId()));
                 RPHelper.rollbackProtectionOnVolume(volume, vpool, _dbClient);
-            }            
+            }           
+            
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
             stepFailed(stepId, "removeProtection");

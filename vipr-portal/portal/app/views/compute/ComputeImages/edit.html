@@ -53,6 +53,7 @@
             });
         } else {
             $('#imageNameType').hide();
+            $('#successfullImports').hide();
         }
         if (cloneMode) {
             $('#computeImageCloneFields').show();
@@ -129,6 +130,27 @@
       #{/field}
     </div>
   
+    <div id='successfullImports'>
+	    <fieldset>
+		    #{field 'computeImages.availableImageServers'}
+		     %{
+		        field.required = false
+		        field.value = availableImageServersNames
+		        field.helpTextKey = field.name + '.description'
+		      }%
+		      #{Form.textAreaControlGroup field:field /}
+		    #{/field}
+		    #{field 'computeImages.failedImageServers'}
+		     %{
+		        field.required = false
+		        field.value = failedImageServersNames
+		        field.helpTextKey = field.name + '.description'
+		      }%
+		      #{Form.textAreaControlGroup field:field /}
+		    #{/field}
+	    </fieldset>
+    </div>
+
     #{if computeImages?.id}
       #{field 'computeImages.id'}
           <input type="hidden" name="${field.name}" value="${field.value}">
@@ -143,3 +165,5 @@
     #{Form.saveCancel cancelHref:referrer/}
 #{/form}
 </div>
+
+    

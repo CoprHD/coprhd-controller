@@ -1791,8 +1791,8 @@ vplexexport_tests() {
 # All varrays for regular targets
 rp_targets()
 {
-    cos create block rp_targets$1 $POOLS_AUTO_MATCH \
-        --description 'RP Targets' \
+    run cos create block rp_targets$1 $POOLS_AUTO_MATCH \
+        --description 'RP-Targets' \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1803,8 +1803,8 @@ rp_targets()
 # All varrays for RP+VPLEX targets
 rpvplex_targets()
 {
-    cos create block rpvplex_targets$1 true \
-        --description 'RP+VPLEX Targets' \
+    run cos create block rpvplex_targets$1 true \
+        --description 'RP+VPLEX-Targets' \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1816,7 +1816,7 @@ rpvplex_targets()
 # All varrays for HA
 rpvplex_ha()
 {
-    cos create block rpvplex_ha$1 true \
+    run cos create block rpvplex_ha$1 true \
         --description 'HA' \
         --protocols FC \
         --numpaths 2 \
@@ -1828,8 +1828,8 @@ rpvplex_ha()
 # Regular vpool used as base for change vpool tests
 rp_regular()
 {
-    cos create block rp_regular$1 true \
-        --description 'Regular vpool used as base for change vpool tests' \
+    run cos create block rp_regular$1 true \
+        --description 'Regular-vpool-used-as-base-for-change-vpool-tests' \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1840,8 +1840,8 @@ rp_regular()
 # Regular VPLEX local vpool used as base for change vpool tests
 rpvplex_local_regular()
 {
-    cos create block rpvplex_local_regular$1 true \
-        --description 'Regular VPLEX local vpool used as base for change vpool tests' \
+    run cos create block rpvplex_local_regular$1 true \
+        --description 'Regular-VPLEX-local-vpool-used-as-base-for-change-vpool-tests' \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1852,8 +1852,8 @@ rpvplex_local_regular()
 # Regular VPLEX dist vpool used as base for change vpool tests
 rpvplex_dist_regular()
 {
-    cos create block rpvplex_dist_regular$1 true \
-        --description 'Regular VPLEX dist vpool used as base for change vpool tests' \
+    run cos create block rpvplex_dist_regular$1 true \
+        --description 'Regular-VPLEX-dist-vpool-used-as-base-for-change-vpool-tests' \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1866,8 +1866,8 @@ rpvplex_dist_regular()
 # RP CDP
 rp_cdp()
 {
-    cos create block rp_cdp$1 $POOLS_AUTO_MATCH \
-        --description 'RP Source - CDP'  \
+    run cos create block rp_cdp$1 $POOLS_AUTO_MATCH \
+        --description 'RP-Source-CDP'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1882,8 +1882,8 @@ rp_cdp()
 # RP CRR
 rp_crr()
 {
-    cos create block rp_crr$1 true \
-        --description 'RP Source - CRR'  \
+    run cos create block rp_crr$1 true \
+        --description 'RP-Source-CRR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1898,8 +1898,8 @@ rp_crr()
 # RP CLR
 rp_clr()
 {
-    cos create block rp_clr$1 true \
-        --description 'RP Source - CLR'  \
+    run cos create block rp_clr$1 true \
+        --description 'RP-Source-CLR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1914,8 +1914,8 @@ rp_clr()
 # RP+VPLEX CDP
 rpvplex_cdp()
 {
-    cos create block rpvplex_cdp$1 true \
-        --description 'RP+VPLEX Source - CDP'  \
+    run cos create block rpvplex_cdp$1 true \
+        --description 'RP+VPLEX-Source-CDP'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1931,8 +1931,8 @@ rpvplex_cdp()
 # RP+VPLEX CRR
 rpvplex_crr()
 {
-    cos create block rpvplex_crr$1 true \
-        --description 'RP+VPLEX Source - CRR'  \
+    run cos create block rpvplex_crr$1 true \
+        --description 'RP+VPLEX-Source-CRR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1950,8 +1950,8 @@ rpvplex_crr()
 # RP+VPLEX CLR
 rpvplex_clr()
 {
-    cos create block rpvplex_clr$1 true \
-        --description 'RP+VPLEX Source - CLR'  \
+    run cos create block rpvplex_clr$1 true \
+        --description 'RP+VPLEX-Source-CLR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1969,8 +1969,8 @@ rpvplex_clr()
 # MetroPoint CDP
 mp_cdp()
 {
-    cos create block mp_cdp$1 true \
-        --description 'MetroPoint Source - CDP'  \
+    run cos create block mp_cdp$1 true \
+        --description 'MetroPoint-Source-CDP'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1990,8 +1990,8 @@ mp_cdp()
 # MetroPoint CRR
 mp_crr()
 {
-    cos create block mp_crr$1 true \
-        --description 'MetroPoint Source - CRR'  \
+    run cos create block mp_crr$1 true \
+        --description 'MetroPoint-Source-CRR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -2011,8 +2011,8 @@ mp_crr()
 # MetroPoint CLR
 mp_clr()
 {
-    cos create block mp_clr$1 true \
-        --description 'MetroPoint - CLR'  \
+    run cos create block mp_clr$1 true \
+        --description 'MetroPoint-CLR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -2300,13 +2300,6 @@ recoverpoint_ingest_test()
 {
     echo '*** RP ingest tests ***'
 
-    ingestbase=rpingest5vol
-    src_volume=${ingestbase}
-    tgt_volume=${ingestbase}-target-varray1
-    src_journal=${ingestbase}-primary-source-journal
-    tgt_journal=${ingestbase}-target-journal-varray1
-    src_varray=${3}
-
     # Figure out the journal volume spec we would need for import
     
 
@@ -2323,14 +2316,62 @@ recoverpoint_ingest_test()
 
     # Discover unmanaged volumes on the array
     run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+
+    # Especially with the simulator, the previous RP discovery may still be running
+    state=`protectionsystem list | grep ${RP_SIMULATOR} | awk '{print $(NF-1)}'`
+    while [ "$state" = "IN_PROGRESS" ]; do
+	echo "Waiting for RP protection discovery to complete..."
+	sleep 10
+	state=`protectionsystem list | grep ${RP_SIMULATOR} | awk '{print $(NF-1)}'`
+    done
+
+    # Sleep 5 to get past discovery required timeframe
+    sleep 5
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
-    exit;
 
     # Ingest Journals, Target, then Source
-    run unmanagedvolume ingest_unexport varray1 rp_targets $PROJECT --volspec "$src_journal"
-    run unmanagedvolume ingest_unexport varray1 rp_targets $PROJECT --volspec "$tgt_journal"
-    run unmanagedvolume ingest_unexport varray1 rp_targets $PROJECT --volspec "$tgt_volume"
-    run unmanagedvolume ingest_unexport varray1 rp_cdp $PROJECT --volspec "$source_volume"
+    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "$RECOVERPOINT_INGEST_VOL1_TGT"
+    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "$RECOVERPOINT_INGEST_VOL1_TGT_JRNL"
+    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "$RECOVERPOINT_INGEST_VOL1_SRC_JRNL"
+    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_cdp $PROJECT --volspec "$RECOVERPOINT_INGEST_VOL1_SRC"
+
+    # now perform failover tests
+    recoverpoint_failover_test $RECOVERPOINT_INGEST_VOL1_SRC $RECOVERPOINT_INGEST_VOL1_TGT
+
+    # Add a volume to the protection
+    run volume create ${RECOVERPOINT_INGEST_VOL1_SRC}-2 ${PROJECT} ${RECOVERPOINT_VARRAY1} rp_cdp 1GB --consistencyGroup ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
+
+    # Remove a volume from the protection
+    run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC}-2 --wait
+
+    # Inventory-only remove of RP volume
+    run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} --vipronly
+
+    # Recreate unmanaged volumes/protection sets
+    run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+
+    # Re-ingest
+    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "$RECOVERPOINT_INGEST_VOL1_TGT"
+    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "$RECOVERPOINT_INGEST_VOL1_TGT_JRNL"
+    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "$RECOVERPOINT_INGEST_VOL1_SRC_JRNL"
+    run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_cdp $PROJECT --volspec "$RECOVERPOINT_INGEST_VOL1_SRC"
+   
+    # Run snapshot test
+    recoverpoint_auto_snapshot_cleanup_test $RECOVERPOINT_INGEST_VOL1_SRC $RECOVERPOINT_INGEST_VOL1_TGT $RECOVERPOINT_VARRAY1
+
+    # Inventory-only remove of RP volume
+    run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} --vipronly
+}
+
+recoverpoint_ingest_primer()
+{
+    # In order to be able to ingest RP CGs, you need RP CGs to exist out there already.
+    # This method will create those CGs.  For now, it's likely you'll run this, then
+    # kill off your DB and run the ingest test
+    run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_CG}
+    run volume create ${RECOVERPOINT_INGEST_VOL1_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} rp_cdp 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_CG}
+    run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} --vipronly
 }
 
 recoverpoint_failover_test()
@@ -2460,16 +2501,8 @@ recoverpoint_simulator_setup()
      storagedevice discover_all
 #    storagedevice list
 #
-     run storagepool update $VMAX1_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
-     run storagepool update $VMAX2_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY2 --type block
      
      POOLS_AUTO_MATCH=false
-
-     rp_vpool_setup
-
-     # Simulator adjustments to cos (shouldn't be needed but assignment above isn't restricting us to that array in cos)
-     run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
-     run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
 
      RECOVERPOINT=$RP_SIMULATOR
      RECOVERPOINT_IP=$RP_SIMULATOR_IP
@@ -2478,6 +2511,16 @@ recoverpoint_simulator_setup()
      run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_1rp1 --addvarrays $RECOVERPOINT_VARRAY1
      run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_2rp1 --addvarrays $RECOVERPOINT_VARRAY2
      run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_3rp1 --addvarrays $RECOVERPOINT_VARRAY3
+
+     run storagepool update $VMAX1_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
+     run storagepool update $VMAX2_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY2 --type block
+
+     # Simulator adjustments to cos (shouldn't be needed but RP simulator only sees a subset of what's on the network)
+     rp_targets
+     run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
+     rp_cdp
+     run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
+
 #
 #        # VPLEX
 #        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
@@ -2661,6 +2704,9 @@ recoverpoint_tests()
                 echo 'MP change vpool...NOT SUPPORTED YET!!'
             fi
 
+        elif [ "$RP_INGESTPRIMEONLY" = "1" ]; then
+	    echo '*** RP ingest volumes priming only ***'
+	    recoverpoint_ingest_primer
         elif [ "$RP_INGESTTESTS" = "1" ]; then
 	    echo '*** RP ingest volumes ***'
 	    recoverpoint_ingest_test

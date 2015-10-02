@@ -1513,6 +1513,9 @@ class Bourne:
         if (host_io_limit_iops):
             parms['host_io_limit_iops'] = host_io_limit_iops
             
+        if (type == 'object'):
+            del parms['protection']
+
         print "VPOOL CREATE Params = ", parms
         return self.api('POST', URI_VPOOLS.format(type), parms)
 
@@ -8237,8 +8240,6 @@ class Bourne:
 
     def bucketcreate_show_task(self, bkt, task):
         uri_bucket_task = URI_ECS_BUCKET + '/tasks/{1}'
-        print "BOURNE task URI"
-        print uri_bucket_task.format(bkt, task)
         return self.api('GET', uri_bucket_task.format(bkt, task))
 
 

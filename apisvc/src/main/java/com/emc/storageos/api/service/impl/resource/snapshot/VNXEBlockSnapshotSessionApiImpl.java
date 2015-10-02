@@ -51,7 +51,8 @@ public class VNXEBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSession
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, boolean skipInternalCheck,
+            BlockFullCopyManager fcManager) {
         throw APIException.methodNotAllowed.notSupportedForVNXE();
     }
 

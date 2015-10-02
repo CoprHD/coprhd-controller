@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -15,10 +16,14 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexUtil;
 
 /**
  * 
@@ -52,11 +57,31 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager) {
-        // TBD Future - We could support for VPLEX if the backend arrays are
-        // VMAX3 or other platforms that support creation of arrays snapshots
-        // without linked targets.
-        throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, boolean skipInternalCheck,
+            BlockFullCopyManager fcManager) {
+        // We can only create a snapshot session for a VPLEX volume, where the
+        // source side backend volume supports the creation of a snapshot session.
+        for (BlockObject sourceObj : sourceObjList) {
+            URI sourceURI = sourceObj.getId();
+            if (URIUtil.isType(sourceURI, Volume.class)) {
+                // Get the platform specific implementation for the source side
+                // backend storage system and call the validation routine. Currently,
+                // we only support snapshot sessions for VMAX3. Otherwise, it's not
+                // supported.
+                Volume vplexVolume = (Volume) sourceObj;
+                BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+                StorageSystem srcSideBackendSystem = _dbClient.queryObject(StorageSystem.class,
+                        srcSideBackendVolume.getStorageController());
+                BlockSnapshotSessionApi snapshotSessionImpl = _blockSnapshotSessionMgr
+                        .getPlatformSpecificImplForSystem(srcSideBackendSystem);
+                snapshotSessionImpl.validateSnapshotSessionCreateRequest(srcSideBackendVolume, Arrays.asList(srcSideBackendVolume),
+                        project, name, newTargetsCount, newTargetsName, newTargetCopyMode, true, fcManager);
+            } else {
+                // We don't currently support snaps of BlockSnapshot instances
+                // so should not be called.
+                throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+            }
+        }
     }
 
     /**

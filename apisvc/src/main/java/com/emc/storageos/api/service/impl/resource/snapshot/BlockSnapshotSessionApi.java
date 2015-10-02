@@ -41,11 +41,13 @@ public interface BlockSnapshotSessionApi {
      * @param name The requested name for the new block snapshot session.
      * @param newTargetsCount The number of new targets to create and link to the session.
      * @param newTargetsName The requested name for the new linked targets.
+     * @param skipInternalCheck true if the check for INTERNAL source is skipped, otherwise false.
      * @param newTargetCopyMode The copy mode for newly linked targets.
      * @param fcManager A reference to a full copy manager.
      */
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager);
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, boolean skipInternalCheck,
+            BlockFullCopyManager fcManager);
 
     /**
      * Prepare a ViPR BlockSnapshotSession instance for each source. Also, if new linked

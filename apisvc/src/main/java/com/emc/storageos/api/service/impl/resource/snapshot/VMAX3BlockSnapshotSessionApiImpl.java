@@ -59,10 +59,11 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, boolean skipInternalCheck,
+            BlockFullCopyManager fcManager) {
         // Do the super class validation.
         super.validateSnapshotSessionCreateRequest(requestedSourceObj, sourceObjList, project, name, newTargetsCount,
-                newTargetsName, newTargetCopyMode, fcManager);
+                newTargetsName, newTargetCopyMode, skipInternalCheck, fcManager);
 
         // Verify new target copy mode is a valid value.
         verifyNewTargetCopyMode(newTargetCopyMode);

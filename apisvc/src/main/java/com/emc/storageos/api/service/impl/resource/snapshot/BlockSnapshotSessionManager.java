@@ -151,8 +151,44 @@ public class BlockSnapshotSessionManager {
      * 
      * @return The platform specific snapshot session implementation.
      */
-    public BlockSnapshotSessionApi getPlatformSpecificImpl(SnapshotSessionImpl implType) {
+    public BlockSnapshotSessionApi getPlatformSpecificImplOfType(SnapshotSessionImpl implType) {
         return _snapshotSessionImpls.get(implType.name());
+    }
+
+    /**
+     * Get the platform implementation for the passed system.
+     * 
+     * @param system A reference to the storage system.
+     * 
+     * @return A reference to the platform implementation for the passed system.
+     */
+    public BlockSnapshotSessionApi getPlatformSpecificImplForSystem(StorageSystem system) {
+        BlockSnapshotSessionApi snapSessionApi = null;
+        String systemType = system.getSystemType();
+        if (DiscoveredDataObject.Type.vmax.name().equals(systemType)) {
+            if (system.checkIfVmax3()) {
+                snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.vmax3.name());
+            } else {
+                snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.vmax.name());
+            }
+        } else if (DiscoveredDataObject.Type.vnxblock.name().equals(systemType)) {
+            snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.vnx.name());
+        } else if (DiscoveredDataObject.Type.vnxe.name().equals(systemType)) {
+            snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.vnxe.name());
+        } else if (DiscoveredDataObject.Type.hds.name().equals(systemType)) {
+            snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.hds.name());
+        } else if (DiscoveredDataObject.Type.openstack.name().equals(systemType)) {
+            snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.openstack.name());
+        } else if (DiscoveredDataObject.Type.scaleio.name().equals(systemType)) {
+            snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.scaleio.name());
+        } else if (DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
+            snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.xtremio.name());
+        } else if (DiscoveredDataObject.Type.ibmxiv.name().equals(systemType)) {
+            snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.xiv.name());
+        } else {
+            snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.dflt.name());
+        }
+        return snapSessionApi;
     }
 
     /**
@@ -199,7 +235,7 @@ public class BlockSnapshotSessionManager {
 
         // Validate the create snapshot session request.
         snapSessionApiImpl.validateSnapshotSessionCreateRequest(snapSessionSourceObj, snapSessionSourceObjList, project, snapSessionLabel,
-                newLinkedTargetsCount, newTargetsName, newTargetsCopyMode, fcManager);
+                newLinkedTargetsCount, newTargetsName, newTargetsCopyMode, false, fcManager);
 
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
@@ -549,30 +585,7 @@ public class BlockSnapshotSessionManager {
             } else {
                 URI systemURI = sourceObj.getStorageController();
                 StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-                String systemType = system.getSystemType();
-                if (DiscoveredDataObject.Type.vmax.name().equals(systemType)) {
-                    if (system.checkIfVmax3()) {
-                        snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.vmax3.name());
-                    } else {
-                        snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.vmax.name());
-                    }
-                } else if (DiscoveredDataObject.Type.vnxblock.name().equals(systemType)) {
-                    snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.vnx.name());
-                } else if (DiscoveredDataObject.Type.vnxe.name().equals(systemType)) {
-                    snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.vnxe.name());
-                } else if (DiscoveredDataObject.Type.hds.name().equals(systemType)) {
-                    snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.hds.name());
-                } else if (DiscoveredDataObject.Type.openstack.name().equals(systemType)) {
-                    snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.openstack.name());
-                } else if (DiscoveredDataObject.Type.scaleio.name().equals(systemType)) {
-                    snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.scaleio.name());
-                } else if (DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
-                    snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.xtremio.name());
-                } else if (DiscoveredDataObject.Type.ibmxiv.name().equals(systemType)) {
-                    snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.xiv.name());
-                } else {
-                    snapSessionApi = _snapshotSessionImpls.get(SnapshotSessionImpl.dflt.name());
-                }
+                snapSessionApi = getPlatformSpecificImplForSystem(system);
             }
         }
 

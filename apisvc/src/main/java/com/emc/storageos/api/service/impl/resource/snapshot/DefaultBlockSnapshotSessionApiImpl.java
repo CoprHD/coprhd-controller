@@ -108,7 +108,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, boolean skipInternalCheck,
+            BlockFullCopyManager fcManager) {
 
         // Validate the project tenant.
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
@@ -132,7 +133,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                         ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION, _dbClient);
 
                 // Verify the source is not an internal object.
-                BlockServiceUtils.validateNotAnInternalBlockObject(sourceObj, false);
+                if (!skipInternalCheck) {
+                    BlockServiceUtils.validateNotAnInternalBlockObject(sourceObj, false);
+                }
 
                 // Verify that array snapshots are allowed.
                 VirtualPool vpool = BlockSnapshotSessionUtils.querySnapshotSessionSourceVPool(sourceObj, _dbClient);

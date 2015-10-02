@@ -66,6 +66,9 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     // A reference to a scheduler.
     protected Scheduler _scheduler = null;
 
+    // A reference to the full copy manager.
+    protected BlockFullCopyManager _fullCopyMgr;
+
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(AbstractBlockFullCopyApiImpl.class);
 
@@ -75,12 +78,14 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator.
      * @param scheduler A reference to the scheduler.
+     * @param fullCopyMgr A reference to the full copy manager.
      */
     public AbstractBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-            Scheduler scheduler) {
+            Scheduler scheduler, BlockFullCopyManager fullCopyMgr) {
         _dbClient = dbClient;
         _coordinator = coordinator;
         _scheduler = scheduler;
+        _fullCopyMgr = fullCopyMgr;
     }
 
     /**

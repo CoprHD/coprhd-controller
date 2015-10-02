@@ -58,24 +58,22 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager) {
-        // TBD Future - Other platforms that support creation of arrays snapshots
-        // without linked targets. Also RP protected VPLEX volumes backed by VMAX3
-        // and these other platforms.
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, boolean skipInternalCheck,
+            BlockFullCopyManager fcManager) {
+        // TBD Future - RP protected VPLEX volumes backed by a supported platform.
 
-        // If the requested source is a simple VMAX3 volume that is RP protected,
-        // then we simply do VMAX3 platform validation.
+        // If the requested source is a simple volume that is RP protected,
+        // then we simply do platform specific validation for that volume's
+        // platform.
         URI requestedSourceURI = requestedSourceObj.getId();
         URI srcSystemURI = requestedSourceObj.getStorageController();
         StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
         if ((URIUtil.isType(requestedSourceURI, Volume.class))
                 && (!RPBlockServiceApiImpl.isProtectionBasedSnapshot((Volume) requestedSourceObj,
-                        BlockSnapshot.TechnologyType.NATIVE.name()))
-                && (srcSystem.checkIfVmax3())) {
-            BlockSnapshotSessionApi vmax3Impl = _blockSnapshotSessionMgr
-                    .getPlatformSpecificImpl(BlockSnapshotSessionManager.SnapshotSessionImpl.vmax3);
-            vmax3Impl.validateSnapshotSessionCreateRequest(requestedSourceObj, sourceObjList, project, name, newTargetsCount,
-                    newTargetsName, newTargetCopyMode, fcManager);
+                        BlockSnapshot.TechnologyType.NATIVE.name()))) {
+            BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr.getPlatformSpecificImplForSystem(srcSystem);
+            snapSessionImpl.validateSnapshotSessionCreateRequest(requestedSourceObj, sourceObjList, project, name, newTargetsCount,
+                    newTargetsName, newTargetCopyMode, skipInternalCheck, fcManager);
         } else {
             throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();
         }
@@ -109,9 +107,11 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
     @Override
     public void createSnapshotSession(BlockObject sourceObj, List<URI> snapSessionURIs,
             Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
-        BlockSnapshotSessionApi vmax3Impl = _blockSnapshotSessionMgr
-                .getPlatformSpecificImpl(BlockSnapshotSessionManager.SnapshotSessionImpl.vmax3);
-        vmax3Impl.createSnapshotSession(sourceObj, snapSessionURIs, snapSessionSnapshotMap, copyMode, taskId);
+        URI srcSystemURI = sourceObj.getStorageController();
+        StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
+        BlockSnapshotSessionApi snapSessionImpl = _blockSnapshotSessionMgr
+                .getPlatformSpecificImplForSystem(srcSystem);
+        snapSessionImpl.createSnapshotSession(sourceObj, snapSessionURIs, snapSessionSnapshotMap, copyMode, taskId);
     }
 
     /**

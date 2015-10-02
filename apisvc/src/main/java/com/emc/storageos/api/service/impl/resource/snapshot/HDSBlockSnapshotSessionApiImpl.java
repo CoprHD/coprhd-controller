@@ -52,7 +52,8 @@ public class HDSBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, boolean skipInternalCheck,
+            BlockFullCopyManager fcManager) {
         // TBD Future - HDS supports creation of array snapshots without linked
         // targets, so we could support in the future.
         throw APIException.methodNotAllowed.notSupportedForHDS();

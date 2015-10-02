@@ -123,7 +123,7 @@ public class VolumeIngestionUtil {
 
                 if (!isVplexBackendVolume(unManagedVolume)) {
                     checkVPoolValidForGivenUnManagedVolumeUris(unManagedVolumeInformation, unManagedVolume,
-                            vPool.getId());
+                            vPool.getId(), dbClient);
                 }
             } catch (APIException ex) {
                 _logger.error(ex.getLocalizedMessage());
@@ -582,18 +582,43 @@ public class VolumeIngestionUtil {
      * @param vpoolUri
      */
     private static void checkVPoolValidForGivenUnManagedVolumeUris(
-            StringSetMap preExistVolumeInformation, UnManagedVolume unManagedVolume, URI vpoolUri) {
+            StringSetMap preExistVolumeInformation, UnManagedVolume unManagedVolume, 
+            URI vpoolUri, DbClient dbClient) {
         StringSet supportedVPoolUris = unManagedVolume.getSupportedVpoolUris();
+        String spoolName = unManagedVolume.getStoragePoolUri().toString();
+        if (unManagedVolume.getStoragePoolUri() != null) {
+            StoragePool spool = dbClient.queryObject(StoragePool.class, unManagedVolume.getStoragePoolUri());
+            if (spool != null) {
+                spoolName = spool.getLabel();
+            }
+        }
         if (null == supportedVPoolUris) {
             if (isVplexVolume(unManagedVolume)) {
-                throw APIException.internalServerErrors.noMatchingVplexVirtualPool(unManagedVolume.getLabel(), unManagedVolume.getId());
+                throw APIException.internalServerErrors.noMatchingVplexVirtualPool(
+                        unManagedVolume.getLabel(), unManagedVolume.getId());
             }
 
-            throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPool("Volume", unManagedVolume.getId());
+            throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPoolNicer(
+                    spoolName, "Volume", unManagedVolume.getLabel());
         }
         if (!supportedVPoolUris.contains(vpoolUri.toString())) {
-            throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePool(vpoolUri, "Volume", unManagedVolume.getId(),
-                    Joiner.on("\t").join(supportedVPoolUris));
+            VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolUri);
+            String vpoolName = vpool != null ? vpool.getLabel() : vpoolUri.toString();
+            List<VirtualPool> supportedVpools = dbClient.queryObject(
+                    VirtualPool.class, Collections2.transform(supportedVPoolUris, 
+                            CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            String vpoolsString = null;
+            if (supportedVpools != null && !supportedVpools.isEmpty()) {
+                List<String> supportedVpoolNames = new ArrayList<String>();
+                for (VirtualPool svp : supportedVpools) {
+                    supportedVpoolNames.add(svp.getLabel());
+                }
+                vpoolsString = Joiner.on(", ").join(supportedVpoolNames);
+            } else {
+                vpoolsString = Joiner.on(", ").join(supportedVPoolUris);
+            }
+            throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePoolNicer(
+                    vpoolName, spoolName, "Volume", unManagedVolume.getLabel(), vpoolsString);
         }
     }
 
@@ -1158,7 +1183,7 @@ public class VolumeIngestionUtil {
                         errorMessage.append(Joiner.on(", ").join(getStoragePortNames((Collections2.transform(diff,
                                 CommonTransformerFunctions.FCTN_STRING_TO_URI)), dbClient)));
                         errorMessage.append(" in unmanaged export mask ").append(mask.getMaskName());
-                        errorMessage.append(" are not available neither in source Virtual Array ");
+                        errorMessage.append(" are available neither in source Virtual Array ");
                         errorMessage.append(getVarrayName(varray, dbClient));
                         errorMessage.append(" nor in high availability Virtual Array ");
                         errorMessage.append(getVarrayName(haVarray, dbClient));

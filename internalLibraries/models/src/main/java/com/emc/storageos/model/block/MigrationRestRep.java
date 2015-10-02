@@ -73,7 +73,21 @@ public class MigrationRestRep extends DataObjectRestRep {
 
     /**
      * The status of the migration.
-     * 
+     *
+     * @return The migration status.
+     */
+    @XmlElement(name = "status")
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    /**
+     * The target volume for the migration. This is the volume to which
+     * the data on the source volume is migrated.
      * 
      * @return The related resource representation for the migration target.
      */

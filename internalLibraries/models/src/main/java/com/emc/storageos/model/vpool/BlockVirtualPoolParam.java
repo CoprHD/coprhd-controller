@@ -241,6 +241,33 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     /**
      * Virtual Pool (Mirror or RecoverPoint) protection
      * parameters.
+     *
+     */
+    @XmlElement(name = "protection")
+    public BlockVirtualPoolProtectionParam getProtection() {
+        return protection;
+    }
+
+    public void setProtection(BlockVirtualPoolProtectionParam protection) {
+       this.protection = protection;
+    }
+
+    /**
+     * Convenience method for checking for protection
+     * 
+     * @return true if protection exists
+     */
+    public boolean hasRemoteCopyProtection() {
+        if ((getProtection() != null) &&
+                (getProtection().getRemoteCopies() != null) &&
+                (getProtection().getRemoteCopies().getRemoteCopySettings() != null)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * High availability type for the Virtual Pool.
      * 
      */
     @XmlElement(name = "high_availability")

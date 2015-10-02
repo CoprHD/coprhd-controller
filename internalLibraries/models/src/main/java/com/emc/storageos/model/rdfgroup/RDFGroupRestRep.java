@@ -137,6 +137,19 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
      * The connectivity status
      *
      */
+    @XmlElement(name = "connectivity_status")
+	public String getConnectivityStatus() {
+		return connectivityStatus;
+	}
+
+	public void setConnectivityStatus(String connectivityStatus) {
+		this.connectivityStatus = connectivityStatus;
+	}
+	
+	/**
+     * The Copy state
+     *
+     */
     @XmlElement(name = "copy_state")
 	public String getCopyState() {
 		return copyState;

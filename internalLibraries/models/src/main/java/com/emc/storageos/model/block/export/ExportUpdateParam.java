@@ -41,7 +41,20 @@ public class ExportUpdateParam {
     /**
      * Add or remove a list of clusters
      * from the export
-     * 
+     *
+     */
+    @XmlElement(name = "host_changes")
+    public HostsUpdateParam getHosts() {
+        return hosts;
+    }
+
+    public void setHosts(HostsUpdateParam hosts) {
+        this.hosts = hosts;
+    }
+
+    /**
+     * Add or remove a list of initiators
+     * from the export
      */
     @XmlElement(name = "cluster_changes")
     public ClustersUpdateParam getClusters() {

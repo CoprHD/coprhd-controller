@@ -83,6 +83,31 @@ public class SetLogLevelParam {
     /**
      * Required, An int indicating the new log level.
      * Following values are valid:
+     *
+     */
+    @XmlElement(required = true)
+    public Integer getSeverity() {
+        return severity;
+    }
+
+    public void setSeverity(Integer severity) {
+        this.severity = severity;
+    }
+
+    /**
+     * Optional, Expiration time in minutes
+     */
+    @XmlElement(name = "expir_in_min", required = false)
+    public Integer getExpirInMin() {
+        return expirInMin;
+    }
+
+    public void setExpirInMin(Integer expirInMin) {
+        this.expirInMin = expirInMin;
+   }
+
+    /**
+     * Optional, log level scope
      * 
      */
     @XmlElement(name = "scope", required = false)

@@ -37,6 +37,28 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
 
     /**
      * Name of the auto tier policy for the virtual pool.
+     *
+     * 
+     * @return The auto tier policy name.
+     */
+    @XmlElement(name = "auto_tiering_policy_name")
+    public String getAutoTieringPolicyName() {
+        return autoTieringPolicyName;
+    }
+
+    /**
+     * The supported disk drive type for the virtual pool.
+     * 
+     * 
+     * @return The drive type.
+     */
+    @XmlElement(name = "drive_type")
+    public String getDriveType() {
+        return driveType;
+    }
+
+    /**
+     * Specifies whether or not volumes can be expanded.
      * 
      * @return true if volumes are expandable, false otherwise.
      */

@@ -188,6 +188,19 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
      * registered before it can be managed by ViPR.
      * 
      */
+    @XmlElement(name = "registration_status")
+    public String getRegistrationStatus() {
+        return registrationStatus;
+    }
+
+    public void setRegistrationStatus(String registrationStatus) {
+        this.registrationStatus = registrationStatus;
+    }
+
+    /**
+     * Whether or not this system is compatible with ViPR
+     * 
+     */
     @XmlElement(name = "compatibility_status")
     public String getCompatibilityStatus() {
         return compatibilityStatus;

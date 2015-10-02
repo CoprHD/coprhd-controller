@@ -283,6 +283,19 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     /**
      * Username for an optional, secondary credential
+     *
+     */
+    @XmlElement(name = "secondary_username")
+    public String getSecondaryUsername() {
+        return secondaryUsername;
+    }
+
+    public void setSecondaryUsername(String secondaryUsername) {
+        this.secondaryUsername = secondaryUsername;
+    }
+
+    /**
+     * URL of the Element Management system that is associated with the Provider.
      * 
      */
     @XmlElement(name = "element_manager_url")

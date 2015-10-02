@@ -625,11 +625,11 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         List<URI> networkSystemList = _dbClient.queryByType(NetworkSystem.class, true);
         boolean isNetworkSystemConfigured = false;
         if (networkSystemList.iterator().hasNext()) {
-            List<URI> allNetwroks = _dbClient.queryByType(Network.class, true);
+            List<URI> allNetworks = _dbClient.queryByType(Network.class, true);
 
             // Transfer to a reset-able list
             List<URI> networks = new ArrayList<>();
-            for (URI networkURI : allNetwroks) {
+            for (URI networkURI : allNetworks) {
                 networks.add(networkURI);
             }
 
@@ -647,53 +647,57 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 // Check to see if the RP initiator is in any Network - Based on which Network the RP initiator is in,
                 // we can look for the arrays in that Network that are potential candidates for connectivity.
                 for (String wwn : sitesInitiatorWWNS.keySet()) {
+                    _log.info("Examining RP WWN: " + wwn.toUpperCase());
+                    // Find the network associated with this wwn
                     for (URI networkURI : networks) {
                         Network network = _dbClient.queryObject(Network.class, networkURI);
+                        _log.info("Examining Network: " + network.getLabel());
                         StringMap discoveredEndpoints = network.getEndpointsMap();
-
-                        // Insert the initiator into the database and mark as RP
-                        Initiator initiator = new Initiator();
-                        initiator.addInternalFlags(Flag.RECOVERPOINT);
-                        initiator.setHostName(site.getInternalSiteName());
-                        initiator.setInitiatorPort(wwn);
-                        initiator.setInitiatorNode(sitesInitiatorWWNS.get(wwn).replaceAll("[^A-Za-z0-9_]", ""));
-                        initiator.setProtocol("FC");
-                        initiator.setIsManualCreation(false);
-                        initiator = getOrCreateNewInitiator(initiator);
-                        
-                        // Create the storage port object (if it doesn't exist)
-                        String nativeGuid = NativeGUIDGenerator.generateNativeGuid(system,
-                                wwn, NativeGUIDGenerator.PORT);
-                        StoragePort port = checkPortExistsInDB(nativeGuid);
-                        boolean isNew = false;
-                        if (null == port) {
-                            isNew = true;
-                            port = new StoragePort();
-                            port.setId(URIUtil.createId(StoragePort.class));
-                            port.setStorageDevice(system.getId());
-                            port.setStorageHADomain(null);
-                            port.setNativeGuid(nativeGuid);
-                            port.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED
-                                    .toString());
-                        }
-                        port.setPortSpeed(Long.MAX_VALUE);
-                        port.setPortNetworkId(wwn);
-                        port.setPortType(PortType.Unknown.name());
-                        port.setOperationalStatus(OperationalStatus.OK.toString());
-                        port.setTransportType(StoragePort.TransportType.FC.name());
-                        port.setPortGroup(null);
-                        port.setLabel(site + "+" + wwn);
-                        port.setPortName(port.getLabel());
-                        port.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
-                        port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
-                        if (isNew) {
-                            _dbClient.createObject(port);
-                        } else {
-                            _dbClient.persistObject(port);
-                        }
 
                         if (discoveredEndpoints.containsKey(wwn.toUpperCase())) {
                             _log.info("WWN " + wwn + " is in Network : " + network.getLabel());
+
+                            // Insert the initiator into the database and mark as RP
+                            Initiator initiator = new Initiator();
+                            initiator.addInternalFlags(Flag.RECOVERPOINT);
+                            initiator.setHostName(site.getInternalSiteName());
+                            initiator.setInitiatorPort(wwn);
+                            initiator.setInitiatorNode(sitesInitiatorWWNS.get(wwn).replaceAll("[^A-Za-z0-9_]", ""));
+                            initiator.setProtocol("FC");
+                            initiator.setIsManualCreation(false);
+                            initiator = getOrCreateNewInitiator(initiator);
+                            
+                            // Create the storage port object (if it doesn't exist)
+                            String nativeGuid = NativeGUIDGenerator.generateNativeGuid(system,
+                                    wwn, NativeGUIDGenerator.PORT);
+                            StoragePort port = checkPortExistsInDB(nativeGuid);
+                            boolean isNew = false;
+                            if (null == port) {
+                                isNew = true;
+                                port = new StoragePort();
+                                port.setId(URIUtil.createId(StoragePort.class));
+                                port.setStorageDevice(system.getId());
+                                port.setStorageHADomain(null);
+                                port.setNativeGuid(nativeGuid);
+                                port.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED
+                                        .toString());
+                            }
+                            port.setPortSpeed(Long.MAX_VALUE);
+                            port.setPortNetworkId(wwn);
+                            port.setPortType(PortType.Unknown.name());
+                            port.setOperationalStatus(OperationalStatus.OK.toString());
+                            port.setTransportType(StoragePort.TransportType.FC.name());
+                            port.setPortGroup(null);
+                            port.setLabel(site + "+" + wwn);
+                            port.setPortName(port.getLabel());
+                            port.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
+                            port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+                            if (isNew) {
+                                _dbClient.createObject(port);
+                            } else {
+                                _dbClient.persistObject(port);
+                            }
+
                             isNetworkSystemConfigured = true; // Set this to true as we found the RP initiators in a Network on the Network
                                                               // System
                             for (String discoveredEndpoint : discoveredEndpoints.keySet()) {

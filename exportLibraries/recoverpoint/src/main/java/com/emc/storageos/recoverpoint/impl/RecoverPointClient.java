@@ -413,7 +413,8 @@ public class RecoverPointClient {
             List<ConsistencyGroupUID> allCgs = functionalAPI.getAllConsistencyGroups();
             for (ConsistencyGroupUID cg : allCgs) {
                 ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
-                
+                logger.info("Processing CG found on RecoverPoint system: " + settings.getName());
+
                 // First storage attributes about the top-level CG
                 GetCGsResponse ncg = new GetCGsResponse();
                 ncg.setCgName(settings.getName());
@@ -507,7 +508,17 @@ public class RecoverPointClient {
                             rset.setVolumes(new ArrayList<GetVolumeResponse>());
                         }
                         
-                        rset.getVolumes().add(nvolume);
+                        // added this check because the simulator was returning the same volume over and over.
+                        boolean found = false;
+                        for (GetVolumeResponse vol : rset.getVolumes()) {
+                            if (vol.getWwn().equalsIgnoreCase(nvolume.getWwn())) {
+                                found = true;
+                            }
+                        }
+                        
+                        if (!found) {
+                            rset.getVolumes().add(nvolume);
+                        }
                     }
                     
                     if (ncg.getRsets() == null) {

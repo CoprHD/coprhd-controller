@@ -71,6 +71,7 @@ public class RPUnManagedObjectDiscoverer {
         }
         
         for (GetCGsResponse cg : cgs) {
+            log.info("Processing returned CG: " + cg.getCgName());
             boolean newCG = false;
 
             // Not the best UID hash ever.  Really should use CG UID
@@ -87,6 +88,7 @@ public class RPUnManagedObjectDiscoverer {
 
             // TODO: Only update if something actually changed from what's in the DB
             if (null == unManagedProtectionSet) {
+                log.info("Creating new unmanaged protection set for CG: " + cg.getCgName());
                 unManagedProtectionSet = new UnManagedProtectionSet();
                 unManagedProtectionSet.setId(URIUtil.createId(UnManagedProtectionSet.class));
                 unManagedProtectionSet.setNativeGuid(nativeGuid);
@@ -97,6 +99,8 @@ public class RPUnManagedObjectDiscoverer {
                 unManagedProtectionSet.putCGInfo(SupportedCGInformation.PROTECTION_ID.toString(), protectionId);
 
                 newCG = true;
+            } else {
+                log.info("Found existing unmanaged protection set for CG: " + cg.getCgName() + ", using " + unManagedProtectionSet.getId().toString());
             }
 
             // Update the fields for the CG

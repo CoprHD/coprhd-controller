@@ -413,6 +413,7 @@ public class SchemaUtil {
 
         // Update keyspace strategy option
         KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
+        update.setStrategyOptions(kd.getStrategyOptions());
         boolean changed = setStrategyOptions(update);
 
         if (changed) {

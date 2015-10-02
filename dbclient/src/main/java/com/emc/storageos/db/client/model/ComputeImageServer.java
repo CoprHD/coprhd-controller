@@ -31,9 +31,8 @@ public class ComputeImageServer extends DataObject {
     private Integer imageImportTimeoutMs = 1800000;
     private Integer osInstallTimeoutMs = 3600000;
     private Integer jobPollingIntervalMs = 60000;
-
     private StringSet computeImages;
-
+    private StringSet failedComputeImages;
     private String computeImageServerStatus = ComputeImageServerStatus.NOT_AVAILABLE.name();
 
     
@@ -198,5 +197,20 @@ public class ComputeImageServer extends DataObject {
     public void setComputeImageServerStatus(String computeImageServerStatus) {
         this.computeImageServerStatus = computeImageServerStatus;
         setChanged("computeImageServerStatus");
+    }
+
+    /**
+     * @return the failedComputeImages
+     */
+    @Name("failedComputeImages")
+    public StringSet getFailedComputeImages() {
+        return failedComputeImages;
+    }
+
+    /**
+     * @param failedComputeImages the failedComputeImages to set
+     */
+    public void setFailedComputeImages(StringSet failedComputeImages) {
+        this.failedComputeImages = failedComputeImages;
     }
 }

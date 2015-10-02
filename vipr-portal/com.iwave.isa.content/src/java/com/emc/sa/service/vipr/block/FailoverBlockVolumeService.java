@@ -17,11 +17,9 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.FailoverBlockConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.FailoverBlockVolume;
-import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
-import com.emc.vipr.client.Tasks;
 
 @Service("FailoverBlockVolume")
 public class FailoverBlockVolumeService extends ViPRService {
@@ -72,17 +70,12 @@ public class FailoverBlockVolumeService extends ViPRService {
 
     @Override
     public void execute() {
-        Tasks<? extends DataObjectRestRep> tasks;
-
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             // The type selected is volume
-            tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type));
+            execute(new FailoverBlockVolume(protectionSource, protectionTarget, type));
         } else {
             // The type selected is consistency group
-            tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type));
-        }
-        if (tasks != null) {
-            addAffectedResources(tasks);
+            execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type));
         }
     }
 }

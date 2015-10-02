@@ -86,8 +86,6 @@ public class SwapContinuousCopiesService extends ViPRService {
             for (Task<? extends DataObjectRestRep> copy : tasks.getTasks()) {
                 logInfo("swap.continuous.copies.service", copy.getResource().getName(), copy.getResource().getId());
             }
-
-            addAffectedResources(tasks);
         }
     }
 }

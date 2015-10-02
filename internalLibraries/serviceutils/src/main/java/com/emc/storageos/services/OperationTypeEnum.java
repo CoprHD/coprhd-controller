@@ -138,7 +138,7 @@ public enum OperationTypeEnum {
     ASSIGN_FILE_SNAPSHOT_TAG("TAG A FILESYSTEM SNAPSHOT", "", "tag a fileshare snapshot"),
     DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed", "FileSystem snapshot share deleted"),
     RESTORE_FILE_SNAPSHOT("FileSystemRestored", "FileSystemRestoreFailed", "FileSystem restored"),
-    
+
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
     UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),
@@ -391,9 +391,20 @@ public enum OperationTypeEnum {
     DELETE_USERGROUP("DELETE USER GROUP", "", "operation to delete a user group."),
     ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "", "operation to add a journal volume"),
     ArrayGeneric("", "", ""),
-    IMAGESERVER_VERIFY_IMPORT_IMAGES("IMAGESERVER_VERIFY_IMPORT_IMAGES", "", "operation to verify a compute image server and import images."),
-    UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "", "operation to update and verify a compute image server."),
-    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),;
+    IMAGESERVER_VERIFY_IMPORT_IMAGES("IMAGESERVER_VERIFY_IMPORT_IMAGES", "",
+            "operation to verify a compute image server and import images."),
+    UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "",
+            "operation to update and verify a compute image server."),
+    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
+    CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
+    RESTORE_SNAPSHOT_SESSION("BlockSnapshotSessionRestored", "BlockSnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),
+    DELETE_SNAPSHOT_SESSION("BlockSnapshotSessionDeleted", "BlockSnapshotSessionDeleteFailed", "BlockSnapshotSession Delete"),
+    LINK_SNAPSHOT_SESSION_TARGET("LinkBlockSnapshotSessionTargets", "LinkBlockSnapshotSessionTargetsFailed",
+            "Link targets to BlockSnapshotSession"),
+    RELINK_SNAPSHOT_SESSION_TARGET("RelinkBlockSnapshotSessionTargets", "RelinkBlockSnapshotSessionTargetsFailed",
+            "Re-link targets to BlockSnapshotSession"),
+    UNLINK_SNAPSHOT_SESSION_TARGET("UnlinkBlockSnapshotSessionTargets", "UnlinkBlockSnapshotSessionTargetsFailed",
+            "Unlink targets from BlockSnapshotSession");
 
     private final String _evType;
     private final String _fail_evType;

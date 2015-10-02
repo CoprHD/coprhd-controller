@@ -4,7 +4,13 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
+import static com.emc.storageos.db.client.model.BlockMirror.SynchronizationState.FRACTURED;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
+import static com.google.common.collect.Collections2.transform;
+
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -18,18 +24,24 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /**
  * Utility class to hold generic, reusable block service methods
@@ -183,16 +195,133 @@ public class BlockServiceUtils {
                 throw APIException.badRequests.noFullCopiesForVMAX3VolumeWithActiveSnapshot(replicaType);
             }
         }
+
+        // Also check for snapshot sessions.
+        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceVolURI));
+        if (!snapSessions.isEmpty()) {
+            throw APIException.badRequests.noFullCopiesForVMAX3VolumeWithActiveSnapshot(replicaType);
+        }
     }
 
     /**
-     * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or higher
-     *
+     * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or
+     * higher
+     * 
      * @param volume Volume part of the CG
      * @return true if the operation is supported.
      */
     public static boolean checkVolumeCanBeAddedOrRemoved(Volume volume, DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
+    }
+
+    /**
+     * Return a list of active BlockMirror URI's that are known to be active
+     * (in Synchronized state).
+     * 
+     * @param volume Volume to check for mirrors against
+     * @param dbClient A reference to a database client.
+     * 
+     * @return List of active BlockMirror URI's
+     */
+    public static List<URI> getActiveMirrorsForVolume(Volume volume, DbClient dbClient) {
+        List<URI> activeMirrorURIs = new ArrayList<>();
+        if (hasMirrors(volume)) {
+            Collection<URI> mirrorUris = transform(volume.getMirrors(), FCTN_STRING_TO_URI);
+            List<BlockMirror> mirrors = dbClient.queryObject(BlockMirror.class, mirrorUris);
+            for (BlockMirror mirror : mirrors) {
+                if (!FRACTURED.toString().equalsIgnoreCase(mirror.getSyncState())) {
+                    activeMirrorURIs.add(mirror.getId());
+                }
+            }
+        }
+        return activeMirrorURIs;
+    }
+
+    /**
+     * Determines if the passed volume has attached mirrors.
+     * 
+     * @param volume A reference to a Volume.
+     * 
+     * @return true if passed volume has attached mirrors, false otherwise.
+     */
+    public static boolean hasMirrors(Volume volume) {
+        return volume.getMirrors() != null && !volume.getMirrors().isEmpty();
+    }
+
+    /**
+     * Checks if there are any native array snapshots with the requested name.
+     * 
+     * @param requestedName A name requested for a new native array snapshot.
+     * @param sourceURI The URI of the snapshot source.
+     * @param dbClient A reference to a database client.
+     */
+    public static void checkForDuplicateArraySnapshotName(String requestedName, URI sourceURI, DbClient dbClient) {
+        // We need to check the BlockSnapshotSession instances created using
+        // the new Create Snapshot Session service as it creates a native
+        // array snapshot.
+        String modifiedRequestedName = ResourceOnlyNameGenerator.removeSpecialCharsForName(
+                requestedName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
+        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceURI));
+        for (BlockSnapshotSession snapSession : snapSessions) {
+            if (modifiedRequestedName.equals(snapSession.getSessionLabel())) {
+                throw APIException.badRequests.duplicateLabel(requestedName);
+            }
+        }
+
+        // We also need to check BlockSnapshot instances created on the source
+        // using the existing Create Snapshot service. We only need to check
+        // those BlockSnapshot instances which are not a linked target of a
+        // BlockSnapshotSession instance.
+        List<BlockSnapshot> sourceSnapshots = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshot.class, ContainmentConstraint.Factory.getVolumeSnapshotConstraint(sourceURI));
+        for (BlockSnapshot snapshot : sourceSnapshots) {
+            URIQueryResultList queryResults = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(
+                    snapshot.getId()), queryResults);
+            Iterator<URI> queryResultsIter = queryResults.iterator();
+            if ((!queryResultsIter.hasNext()) && (modifiedRequestedName.equals(snapshot.getSnapsetLabel()))) {
+                throw APIException.badRequests.duplicateLabel(requestedName);
+            }
+        }
+    }
+
+    /**
+     * Gets the number of native array snapshots created for the source with
+     * the passed URI.
+     * 
+     * @param sourceURI The URI of the source.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return The number of native array snapshots for the source.
+     */
+    public static int getNumNativeSnapshots(URI sourceURI, DbClient dbClient) {
+        // The number of native array snapshots is determined by the
+        // number of BlockSnapshotSession instances created for the
+        // source using new Create Snapshot Session service.
+        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceURI));
+        int numSnapshots = snapSessions.size();
+
+        // Also, we must account for the native array snapshots associated
+        // with the BlockSnapshot instances created using the existing Create
+        // Block Snapshot service. These will be the BlockSnapshot instances
+        // that are not a linked target for a BlockSnapshotSession instance.
+        List<BlockSnapshot> sourceSnapshots = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshot.class, ContainmentConstraint.Factory.getVolumeSnapshotConstraint(sourceURI));
+        for (BlockSnapshot snapshot : sourceSnapshots) {
+            URIQueryResultList queryResults = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(
+                    snapshot.getId()), queryResults);
+            Iterator<URI> queryResultsIter = queryResults.iterator();
+            if ((!queryResultsIter.hasNext()) &&
+                    (snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString()))) {
+                numSnapshots++;
+            }
+        }
+
+        return numSnapshots;
     }
 }

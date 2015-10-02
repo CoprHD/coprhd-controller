@@ -2525,7 +2525,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      *
      * @return true if this is a protection based snapshot, false otherwise.
      */
-    private boolean isProtectionBasedSnapshot(Volume volume, String snapshotType) {
+    public static boolean isProtectionBasedSnapshot(Volume volume, String snapshotType) {
         // This is a protection based snapshot request if:
         // The volume allows for bookmarking (it's under protection) and
         // - The param either asked for a bookmark, or

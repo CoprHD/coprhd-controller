@@ -229,7 +229,6 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
         // Default: no implementation because not every array needs to support this
         // functionality
     }
-
     @Override
     public void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
             URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {

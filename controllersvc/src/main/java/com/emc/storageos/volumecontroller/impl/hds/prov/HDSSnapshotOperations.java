@@ -228,7 +228,6 @@ public class HDSSnapshotOperations extends DefaultSnapshotOperations {
         }
     }
 
-
     /**
      * 1. Delete ThinImage Pair
      * 2. Delete Dummy lun path from snap volume
@@ -285,7 +284,6 @@ public class HDSSnapshotOperations extends DefaultSnapshotOperations {
             taskCompleter.error(dbClient, serviceError);
         }
     }
-
 
     /**
      * 1. Find pair management server.

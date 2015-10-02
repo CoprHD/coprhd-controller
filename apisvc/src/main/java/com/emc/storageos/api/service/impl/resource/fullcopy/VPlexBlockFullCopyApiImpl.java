@@ -8,6 +8,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,8 +35,10 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -45,8 +48,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -78,10 +79,11 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator client.
      * @param scheduler A reference to a scheduler.
+     * @param fullCopyMgr A reference to the full copy manager.
      */
-    public VPlexBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-            Scheduler scheduler, TenantsService tenantsService) {
-        super(dbClient, coordinator, scheduler);
+    public VPlexBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator, Scheduler scheduler, TenantsService tenantsService,
+            BlockFullCopyManager fullCopyMgr) {
+        super(dbClient, coordinator, scheduler, fullCopyMgr);
         _tenantsService = tenantsService;
     }
 
@@ -179,12 +181,12 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // Call super first.
                 super.validateFullCopyCreateRequest(fcSourceObjList, count);
 
-                // If there are more than one volume in the consistency group, and they are on 
+                // If there are more than one volume in the consistency group, and they are on
                 // different backend storage systems, return error.
-                if (fcSourceObjList.size() >1) {
+                if (fcSourceObjList.size() > 1) {
                     List<Volume> volumes = new ArrayList<Volume>();
                     for (BlockObject fcSource : fcSourceObjList) {
-                        volumes.add((Volume)fcSource);
+                        volumes.add((Volume) fcSource);
                     }
                     if (!VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumes, _dbClient)) {
                         throw APIException.badRequests.fullCopyNotAllowedWhenCGAcrossMultipleSystems();
@@ -482,9 +484,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
                 // Prepare the volume.
                 Volume volume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size,
-                    vplexSystemProject, haVarray, haVpool,
-                    haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
-                    nameBuilder.toString(), null, taskId, _dbClient);
+                        vplexSystemProject, haVarray, haVpool,
+                        haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
+                        nameBuilder.toString(), null, taskId, _dbClient);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                 _dbClient.persistObject(volume);
                 copyHAVolumes.add(volume);
@@ -875,5 +877,26 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
 
         BlockFullCopyUtils.validateActiveFullCopyCount(srcBackendVolume, count, _dbClient);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateSnapshotCreateRequest(Volume requestedVolume, List<Volume> volumesToSnap) {
+        for (Volume volumeToSnap : volumesToSnap) {
+            Volume volumeToValidate = volumeToSnap;
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, volumeToValidate.getStorageController());
+            if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
+                // VPLEX volumes were passed rather than the backend volumes themselves
+                // so get the system for the source side backend volume.
+                volumeToValidate = VPlexUtil.getVPLEXBackendVolume(volumeToSnap, true, _dbClient);
+                system = _dbClient.queryObject(StorageSystem.class, volumeToValidate.getStorageController());
+            }
+
+            // Call the platform specific validation for the backend volume.
+            BlockFullCopyApi fullCopyApiImpl = _fullCopyMgr.getPlatformSpecificFullCopyImplForSystem(system);
+            fullCopyApiImpl.validateSnapshotCreateRequest(volumeToValidate, Arrays.asList(volumeToValidate));
+        }
     }
 }

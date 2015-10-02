@@ -4,11 +4,9 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.RemoteDirectorGroup;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
@@ -16,9 +14,11 @@ import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 
 /**
  * Created by bibbyi1 on 3/3/2015.
@@ -135,6 +135,8 @@ public interface CIMObjectPathFactory extends SmisConstants {
     String getProcessorName(StorageSystem system, String processorName);
 
     CIMObjectPath objectPath(String namespace, String name, CIMProperty[] keys);
+
+    CIMObjectPath objectPath(String instanceId);
 
     CIMObjectPath getStorageHardwareIDManagementService(StorageSystem storage);
 

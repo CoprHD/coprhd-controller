@@ -2490,4 +2490,58 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_PRECONDITION_FAILED)
     public BadRequestException cannotAddImageWithoutImageServer();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidSnapshotSessionSource(final String sourceId);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidCopyModeForLinkedTarget(String copyMode);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNewLinkedTargetsCount(int requestedCount, String sourceId, int validCount);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException createSnapSessionNotSupportForSnapshotSource();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException createSnapSessionNotSupportedForRPProtected();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidZeroLinkedTargetsRequested();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionDoesNotHaveAnyTargets(final String snapSessionId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException targetIsNotLinkedToSnapshotSession(final String targetId, final String snapSessionIdd);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionSourceHasActiveMirrors(final String sourceId, final int mirrorCount);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException relinkTargetNotLinkedToActiveSnapshotSession(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException relinkSnapshotSessionsNotOfSameSource();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException relinkTgtSnapshotSessionHasDifferentSource(final String snapSessionSourceId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException canDeactivateSnapshotSessionWithLinkedTargets();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantUnlinkExportedSnapshotSessionTarget(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException maximumNumberVpoolSnapshotsReached(final String sourceId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException maximumNumberSnapshotsForSourceReached(final String sourceId);
+
+    @DeclareServiceCode(ServiceCode.API_UNSUPPORTED_CHANGE)
+    public BadRequestException cannotImportVolumeWithSnapshotSessions(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_UNSUPPORTED_CHANGE)
+    public BadRequestException volumeForRPVpoolChangeHasSnapshotSessions(final String volumeId);
 }

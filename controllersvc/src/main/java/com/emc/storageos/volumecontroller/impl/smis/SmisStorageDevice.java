@@ -4,13 +4,52 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_REPLICATION_GROUP;
+import static java.text.MessageFormat.format;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.cim.CIMArgument;
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
@@ -57,28 +96,6 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForGroupSynchron
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForSynchronizedJob;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMArgument;
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_REPLICATION_GROUP;
-import static java.text.MessageFormat.format;
 
 /**
  * SMI-S specific block controller implementation.
@@ -356,7 +373,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             + volume.getLabel() + " .", e);
         } finally {
             _log.info(String.format("End of steps to create meta volume: %s, \n   volume ID: %s"
-                            + "\n   type: %s, member count: %s, member size: %s. isThinlyProvisioned: %s",
+                    + "\n   type: %s, member count: %s, member size: %s. isThinlyProvisioned: %s",
                     volume.getLabel(), volume.getId(), metaVolumeType, metaMemberCount,
                     metaMemberCapacity, isThinlyProvisioned));
         }
@@ -834,13 +851,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doCreateSingleSnapshot(final StorageSystem storage, final List<URI> snapshotList,
-                                 final Boolean createInactive, final Boolean readOnly, final TaskCompleter taskCompleter)
+            final Boolean createInactive, final Boolean readOnly, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotList);
             URI snapshot = snapshots.get(0).getId();
-                _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
-                        readOnly, taskCompleter);
+            _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
+                    readOnly, taskCompleter);
         } catch (DatabaseException e) {
             String message = String.format(
                     "IO exception when trying to create snapshot(s) on array %s",
@@ -924,7 +941,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteSelectedSnapshot(final StorageSystem storage, final URI snapshot,
-                                 final TaskCompleter taskCompleter) throws DeviceControllerException {
+            final TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             _snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
         } catch (DatabaseException e) {
@@ -992,7 +1009,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * This interface will return a mapping of the port name to the URI of the ExportMask in which
      * it is contained.
-     *
+     * 
      * @param storage
      *            [in] - StorageSystem object representing the array
      * @param initiatorNames
@@ -1170,7 +1187,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * This method is for adding volumes to a consistency group. Be aware that this method is going
      * to be invoked by the SmisCreateVolumeJob, after there is a successful completion of the
      * volume create.
-     *
+     * 
      * @param storage
      * @param consistencyGroup
      * @param volumes
@@ -1257,7 +1274,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 } else {
                     final CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
                             SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
-                    _log.info("Adding volumes {} to device masking group {}", StringUtils.join(memberNames, ", "), maskingGroupPath.toString());
+                    _log.info("Adding volumes {} to device masking group {}", StringUtils.join(memberNames, ", "),
+                            maskingGroupPath.toString());
                     final CIMArgument[] inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath,
                             volumePaths, true);
                     _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
@@ -1277,7 +1295,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     /**
      * Method will remove the volume from the consistency group to which it currently belongs.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object
      * @param volume
@@ -1365,7 +1383,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * the volume. Typically, on VNX arrays, if there's a restore operation against an 'advanced'
      * snap, there will be backup snapshot created. There isn't any easy way to get to this backup
      * using the SMI-S API, so we'll have to clean them all up when we go to delete the volume.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object
      * @param volume
@@ -1389,7 +1407,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 CIMObjectPath settingsPath = settingsIterator.next();
                 CIMArgument[] outArgs = new CIMArgument[5];
                 _helper.callModifySettingsDefineState(storage,
-                        _helper.getDeleteSettingsForSnapshotInputArguments(settingsPath), outArgs);
+                        _helper.getDeleteSettingsForSnapshotInputArguments(settingsPath, true), outArgs);
             }
         } finally {
             if (settingsIterator != null) {
@@ -1401,7 +1419,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Method will look up backup snapshots that were created when a snapshot restore operation was
      * performed, then clean them up. This would be required in order to do the volume delete.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object representing the array
      * @param volume
@@ -1424,7 +1442,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             groupName, (String) aspectPath.getKey(SmisConstants.CP_INSTANCE_ID)
                                     .getValue());
                     CIMArgument[] deleteSettingsInput = _helper
-                            .getDeleteSettingsForSnapshotInputArguments(settingsPath);
+                            .getDeleteSettingsForSnapshotInputArguments(settingsPath, true);
                     _helper.callModifySettingsDefineState(storage, deleteSettingsInput, outArgs);
                 }
             }
@@ -1440,7 +1458,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Method will look up backup snapshots that were created when a snapshot restore operation was
      * performed, then clean them up. This would be required in order to delete the ReplicationGroup.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object representing the array
      * @param replicationGroupPath
@@ -1454,7 +1472,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     SmisConstants.CLAR_SETTINGS_DEFINE_STATE_RG_SAFS, null);
             while (settings.hasNext()) {
                 CIMObjectPath path = settings.next();
-                CIMArgument[] inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(path);
+                CIMArgument[] inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(path, true);
                 CIMArgument[] outArgs = new CIMArgument[5];
                 _helper.callModifySettingsDefineState(storage, inArgs, outArgs);
             }
@@ -1571,7 +1589,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _dbClient.persistObject(consistencyGroup);
             // This function could be called from doAddToConsistencyGroup() with a null taskCompleter.
             if (taskCompleter != null) {
-                // Set task to ready. 
+                // Set task to ready.
                 taskCompleter.ready(_dbClient);
             }
         } catch (Exception e) {
@@ -1946,7 +1964,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 CIMInstance cgPathInstance = null;
                 boolean isVPlex = consistencyGroup.checkForType(Types.VPLEX);
                 String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
-                //If this is for VPlex, we would create backend consistency group if it does not exist yet.
+                // If this is for VPlex, we would create backend consistency group if it does not exist yet.
                 if (groupName == null || groupName.isEmpty()) {
                     if (isVPlex) {
                         createCG = true;
@@ -1990,9 +2008,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                             consistencyGroupId);
                     groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
-                    cgPath = _cimPath.getReplicationGroupPath(storage, groupName);                
+                    cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
                 }
-                
 
                 CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
                 String[] blockObjectNames = _helper.getBlockObjectAlternateNames(volumes);
@@ -2159,7 +2176,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
     }
-
 
     @Override
     public void doAddToReplicationGroup(final StorageSystem storage, final URI consistencyGroupId, final String replicationGroupName,
@@ -2468,7 +2484,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Before the clone could be deleted, if the clone is from a CG, we will
      * remove the target group, then reset the replicationGroupInstance for the clones in the group.
-     *
+     * 
      * @param storage
      * @param clones
      * @throws Exception
@@ -2507,5 +2523,131 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return _exportMaskOperationsHelper.getExportMaskHLUs(storage, exportMask);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+            throws DeviceControllerException {
+        try {
+            List<BlockSnapshotSession> snapSessions = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIs);
+            if (doGroupSnapshotSessionCreation(snapSessions)) {
+                _snapshotOperations.createGroupSnapshotSession(system, snapSessionURIs, completer);
+            } else {
+                URI snapSessionURI = snapSessionURIs.get(0);
+                _snapshotOperations.createSnapshotSession(system, snapSessionURI, completer);
+            }
+        } catch (Exception e) {
+            _log.error(String.format("Exception trying to create snapshot session(s) on array %s", system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doCreateSnapshotSession", e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+            String copyMode, TaskCompleter completer) throws DeviceControllerException {
+
+        try {
+            _snapshotOperations.linkSnapshotSessionTarget(system, snapSessionURI, snapshotURI, copyMode, completer);
+        } catch (Exception e) {
+            _log.error(String.format("Exception trying to create and link new target to block snapshot session %s on array %s",
+                    snapSessionURI, system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doLinkBlockSnapshotSessionTarget", e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doRelinkBlockSnapshotSessionTarget(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
+            TaskCompleter completer) throws DeviceControllerException {
+
+        try {
+            _snapshotOperations.relinkSnapshotSessionTarget(system, tgtSnapSessionURI, snapshotURI, completer);
+        } catch (Exception e) {
+            _log.error(String.format("Exception trying to re-link target to block snapshot session %s on array %s",
+                    tgtSnapSessionURI, system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doRelinkBlockSnapshotSessionTarget", e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doUnlinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+            Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
+        try {
+            _snapshotOperations.unlinkSnapshotSessionTarget(system, snapSessionURI, snapshotURI, deleteTarget, completer);
+        } catch (Exception e) {
+            _log.error(String.format("Exception trying to unlink target from block snapshot session %s on array %s",
+                    snapSessionURI, system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doUnlinkBlockSnapshotSessionTarget", e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doRestoreBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException {
+        try {
+            _snapshotOperations.restoreSnapshotSession(system, snapSessionURI, completer);
+        } catch (Exception e) {
+            _log.error(String.format("Exception trying to restore block snapshot session %s on array %s",
+                    snapSessionURI, system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doRestoreBlockSnapshotSession", e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException {
+        try {
+            _snapshotOperations.deleteSnapshotSession(system, snapSessionURI, completer);
+        } catch (Exception e) {
+            _log.error(String.format("Exception trying to delete block snapshot session %s on array %s",
+                    snapSessionURI, system.getSerialNumber()), e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doDeleteBlockSnapshotSession", e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
+    /**
+     * Determines whether we do group snapshot session creation on the array.
+     * 
+     * @param snapSessions The session(s) to be created.
+     * 
+     * @return true to do group creation, false otherwise.
+     */
+    private boolean doGroupSnapshotSessionCreation(List<BlockSnapshotSession> snapSessions) {
+        boolean doGroupCreation = false;
+        if (snapSessions.size() > 1) {
+            doGroupCreation = true;
+        } else {
+            BlockSnapshotSession snapSession = snapSessions.get(0);
+            URI sourceObjURI = snapSession.getParent().getURI();
+            BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceObjURI);
+            URI cgURI = sourceObj.getConsistencyGroup();
+            if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                doGroupCreation = true;
+            }
+        }
+        return doGroupCreation;
     }
 }

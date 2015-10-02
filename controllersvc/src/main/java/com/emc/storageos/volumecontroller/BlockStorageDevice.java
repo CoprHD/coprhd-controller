@@ -862,4 +862,90 @@ public interface BlockStorageDevice {
      * @return The BlockObject URI to HLU mapping for the ExportMask
      */
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
+
+    /**
+     * Creates new array snapshots on the passed storage system.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURIs The URIs of the BlockSnapshotSession instances in ViPR
+     *            that will represent these array snapshots.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+            throws DeviceControllerException;
+
+    /**
+     * Creates a new target volume and links it to an array snapshot on the passed storage system.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the array snapshot.
+     * @param snapshotURI The URI of the BlockSnapshot instance in ViPR that will represent
+     *            the new target volume.
+     * @param copyMode The copy mode in which the target is linked to the snapshot.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+            String copyMode, TaskCompleter completer) throws DeviceControllerException;
+
+    /**
+     * Re-links a target volume to an array snapshot on the passed storage system.
+     * 
+     * @param system A reference to the storage system.
+     * @param tgtSnapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the target array snapshot.
+     * @param snapshotURI The URI of the BlockSnapshot instance in ViPR that represents
+     *            the target volume to be re-linked.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doRelinkBlockSnapshotSessionTarget(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
+            TaskCompleter completer) throws DeviceControllerException;
+
+    /**
+     * Creates a new target volume and links it to an array snapshot on the passed storage system.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the array snapshot.
+     * @param snapshotURI The URI of the BlockSnapshot instance in ViPR that represents
+     *            the target volume.
+     * @param deleteTarget True if the target should also be deleted.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doUnlinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
+            Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException;
+
+    /**
+     * Restores the data on a snapshot session to its source.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the array snapshot.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doRestoreBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException;
+
+    /**
+     * Deletes the snapshot session.
+     * 
+     * @param system A reference to the storage system.
+     * @param snapSessionURI The URI of the BlockSnapshotSession instance in ViPR
+     *            that represents the array snapshot.
+     * @param completer A reference to the task completer.
+     * 
+     * @throws DeviceControllerException
+     */
+    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+            throws DeviceControllerException;
 }

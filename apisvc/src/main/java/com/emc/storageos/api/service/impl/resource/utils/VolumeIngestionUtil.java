@@ -2363,6 +2363,7 @@ public class VolumeIngestionUtil {
                 case CREATE_VOLUME_MIRROR:
                 case CHANGE_BLOCK_VOLUME_VARRAY:
                 case UPDATE_CONSISTENCY_GROUP:
+                case CREATE_SNAPSHOT_SESSION:
                     _logger.error("Operation {} is not permitted on ingested volumes.", operation.getName());
                     throw APIException.badRequests.operationNotPermittedOnIngestedVolume(
                             operation.getName(), volume.getLabel());

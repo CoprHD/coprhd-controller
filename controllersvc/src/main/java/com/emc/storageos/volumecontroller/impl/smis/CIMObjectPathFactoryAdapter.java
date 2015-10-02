@@ -4,11 +4,11 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.RemoteDirectorGroup;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
@@ -19,11 +19,11 @@ import javax.wbem.CloseableIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Proxy;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 
 /**
  * This class implements the CIMObjectPathFactory interface and delegates all calls to
@@ -283,6 +283,11 @@ public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     }
 
     @Override
+    public CIMObjectPath objectPath(String instanceId) {
+        return proxy.objectPath(instanceId);
+    }
+
+    @Override
     public CIMObjectPath getStorageHardwareIDManagementService(StorageSystem storage) {
         return proxy.getStorageHardwareIDManagementService(storage);
     }
@@ -306,5 +311,4 @@ public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     public CIMObjectPath getReplicationSettingObjectPathFromDefault(CIMInstance settingInstance) {
         return proxy.getReplicationSettingObjectPathFromDefault(settingInstance);
     }
-
 }

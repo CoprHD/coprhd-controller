@@ -679,6 +679,10 @@ public class VolumeIngestionUtil {
      */
     public static boolean isVplexVolume(BlockObject blockObject, DbClient dbClient) {
         UnManagedVolume volume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
+        if (null == volume) {
+            _logger.warn("could not locate an UnManagedVolume for BlockObject {}", blockObject.getLabel());
+            return false;
+        }
         return isVplexVolume(volume);
     }
 
@@ -689,7 +693,7 @@ public class VolumeIngestionUtil {
      * @return true if the volume is a VPLEX virtual volume
      */
     public static boolean isVplexVolume(UnManagedVolume volume) {
-        if (null == volume.getVolumeCharacterstics()) {
+        if (null == volume || null == volume.getVolumeCharacterstics()) {
             return false;
         }
 
@@ -706,6 +710,10 @@ public class VolumeIngestionUtil {
      */
     public static boolean isVplexBackendVolume(BlockObject blockObject, DbClient dbClient) {
         UnManagedVolume volume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
+        if (null == volume) {
+            _logger.warn("could not locate an UnManagedVolume for BlockObject {}", blockObject.getLabel());
+            return false;
+        }
         return isVplexBackendVolume(volume);
     }
 
@@ -716,7 +724,7 @@ public class VolumeIngestionUtil {
      * @return true if the volume is a VPLEX backend volume
      */
     public static boolean isVplexBackendVolume(UnManagedVolume volume) {
-        if (null == volume.getVolumeCharacterstics()) {
+        if (null == volume || null == volume.getVolumeCharacterstics()) {
             return false;
         }
         

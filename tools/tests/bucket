@@ -16,8 +16,6 @@ from bourne import Bourne
 def ecs_bucket_create(args):
     bourne.connect(args.ip)
     bourne.login( "root", "ChangeMe1!")
-    print "bucket args " 
-    print args
     project_uri = bourne.project_query(args.project)
     cos_uri     = bourne.cos_query('object', args.cos) #take care of 'object'
     nh_uri      = bourne.neighborhood_query(args.neighborhood)
@@ -48,9 +46,9 @@ create.add_argument('label',		help = 'label of bucket')
 create.add_argument('project',		help = 'container project name')
 create.add_argument('neighborhood',	help = 'neighborhood/varray where bucket should be created')
 create.add_argument('cos',		    help = 'cos/vpool name for bucket')
-create.add_argument('soft_quota',	help = 'soft quota for bucket')
-create.add_argument('hard_quota',	help = 'hard quota for bucket')
-create.add_argument('owner',		help = 'owner for bucket')
+create.add_argument('soft_quota',	help = 'soft quota of bucket')
+create.add_argument('hard_quota',	help = 'hard quota of bucket')
+create.add_argument('owner',		help = 'owner of bucket')
 
 
 #----------------------------------------------------------------------
@@ -73,4 +71,9 @@ except:
     raise
 
 
+
+# python bucket create python1 myproj varray vpool 1024 2048 root
+# python bucket create python1 myproj varray vpool 1024 2048 root --ip 10.247.142.254
+# python cos create object ecs_vpool --description 'cos_vpool for ECS' true --protocols S3 --provisionType 'Thick' --neighborhoods nh
+# discoveredsystem create ecs_sanity ecs 10.249.239.35 4443 root ChangeMe
 

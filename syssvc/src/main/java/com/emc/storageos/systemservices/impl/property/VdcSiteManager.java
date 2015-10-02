@@ -34,6 +34,14 @@ import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
 
+/**
+ * Manage configuration properties for multivdc and disaster recovery. It listens on
+ * SiteInfo znode changes. Once getting notified, it fetch vdc config from local db
+ * or standby sites config from zk and update vdcconfig.properties on local disk. Genconfig 
+ * is supposed to be executed later to apply the new config changes.
+ * 
+ * Data revision change and simulatenous cluster poweroff are also managed here
+ */
 public class VdcSiteManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 

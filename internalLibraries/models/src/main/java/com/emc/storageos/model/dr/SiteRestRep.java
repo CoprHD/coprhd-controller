@@ -32,7 +32,7 @@ public class SiteRestRep extends DataObjectRestRep {
         this.uuid = uuid;
     }
 
-    @XmlElement(name = "vdcId")
+    @XmlElement(name = "vdc_id")
     public URI getVdcId() {
         return vdcId;
     }

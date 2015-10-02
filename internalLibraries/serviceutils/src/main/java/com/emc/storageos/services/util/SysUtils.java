@@ -9,7 +9,16 @@ import com.google.common.net.InetAddresses;
 
 public class SysUtils {
     private static final Logger log = LoggerFactory.getLogger(SysUtils.class);
-    
+ 
+    /**
+     * Compare IP addresses that web server is seeing(from X-Forwarded-For) with what client's real address. If
+     * they are different, it means client is behind NAT proxy
+     *
+     * @param ipv4str real ipv4 address of client host
+     * @param ipv6str real client ipv4 address of client host
+     * @param clientIp client ip that server is seeing
+     * @return true to indicate client is behind NAT
+     */   
     public boolean checkIfBehindNat(String ipv4Str, String ipv6Str, String clientIp) throws Exception {
         log.info(String.format("Performing NAT check, client address connecting to VIP: %s. Client reports its IPv4 = %s, IPv6 = %s",
                 clientIp, ipv4Str, ipv6Str));

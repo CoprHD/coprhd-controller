@@ -1817,12 +1817,16 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         String task = UUID.randomUUID().toString();
         Operation status = new Operation();
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
-        _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroupId, task, status);
+        _dbClient.createTaskOpStatus(Volume.class, targetVolume.getId(), task, status);
 
         if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp()) ||
                 op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST.getRestOp())) {
             _dbClient.ready(BlockConsistencyGroup.class, consistencyGroupId, task);
-            return toTask(consistencyGroup, task, status);
+            // Task is associated to the first target volume we find in the target CG.
+            // TODO: Task should reference the BlockConsistencyGroup. This requires several
+            // changes to the SRDF protection completers to handle both volumes and
+            // consistency groups.
+            return toTask(targetVolume, task, status);
         }
 
         /*
@@ -1845,13 +1849,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Create a new duplicate copy of the original copy. Update the copyId field to be the
         // ID of the target volume. Existing SRDF controller logic needs the target volume
-        // to operate off of.
+        // to operate off of, not the virtual array.
         Copy updatedCopy = new Copy(copy.getType(), copy.getSync(), targetVolume.getId(),
                 copy.getName(), copy.getCount());
 
         controller.performProtectionOperation(system.getId(), updatedCopy, op, task);
 
-        return toTask(consistencyGroup, task, status);
+        return toTask(targetVolume, task, status);
     }
 
     /**

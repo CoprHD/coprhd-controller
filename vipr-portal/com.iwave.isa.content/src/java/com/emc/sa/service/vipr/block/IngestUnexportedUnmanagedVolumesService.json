@@ -32,8 +32,7 @@
     
     ingestionMethod:{
       type:"assetType.vipr.unexportedIngestionMethod",
-      lockable: true,
-      required: false
+      lockable: true
     },
 
     volumes: {

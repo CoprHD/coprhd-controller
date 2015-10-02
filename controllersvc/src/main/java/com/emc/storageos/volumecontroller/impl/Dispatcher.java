@@ -1,4 +1,5 @@
 /*
+
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
  */
@@ -502,7 +503,6 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
         } catch (final ClientControllerException e) {
             throw ClientControllerException.retryables.queueToBusy();
         } catch (final KeeperException e) {
-            e.printStackTrace();
             throw ClientControllerException.fatals.unableToQueueJob(item.getDeviceInfo().getURI());
         } catch (final Exception e) {
             throw ClientControllerException.fatals.unableToQueueJob(item.getDeviceInfo().getURI(), e);

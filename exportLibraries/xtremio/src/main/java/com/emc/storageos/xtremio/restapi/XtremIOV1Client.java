@@ -324,7 +324,8 @@ public class XtremIOV1Client extends XtremIOClient {
             XtremIOInitiators initiators = getResponseObject(XtremIOInitiators.class, response);
             return initiators.getContent();
         } catch (Exception e) {
-            log.error(e.getMessage(), e);
+            // No need to log this message at error level.
+            log.warn(e.getMessage(), e);
         }
         log.info("Initiators not registered on Array with name : {}", initiatorName);
         return null;
@@ -480,7 +481,6 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public String getXtremIOXMSVersion() throws Exception {
         log.info("no XMS object in version 1. So get the cluster and send back its version info");
-        String version = "";
         ClientResponse response = get(XtremIOConstants.XTREMIO_BASE_CLUSTERS_URI);
         log.info(response.toString());
         XtremIOClusters xioClusters = getResponseObject(XtremIOClusters.class, response);
@@ -495,7 +495,7 @@ public class XtremIOV1Client extends XtremIOClient {
             return xioSystem.getContent().getVersion();
         }
 
-        return version;
+        return null;
     }
 
     @Override

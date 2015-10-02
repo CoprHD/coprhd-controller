@@ -37,6 +37,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
+import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -987,7 +988,6 @@ public class SmisCommandHelper implements SmisConstants {
             Integer volumeType = isThinlyProvisioned ? STORAGE_VOLUME_TYPE_THIN : STORAGE_VOLUME_VALUE;
 
             // Create array values
-            String[] labelsArray = labels.toArray(new String[]{});  // Convert labels to array
 
             // Adding Goal parameter if volumes need to be FAST Enabled
             list.add(_cimArgument.referenceArray(CP_IN_POOL,
@@ -998,6 +998,7 @@ public class SmisCommandHelper implements SmisConstants {
                     toMultiElementArray(count, SINGLE_DEVICE_FOR_EACH_CONFIG)));
 
             if (labels != null) {
+                String[] labelsArray = labels.toArray(new String[]{});  // Convert labels to array
                 list.add(_cimArgument.stringArray(CP_ELEMENT_NAMES, labelsArray));
             }
             // Add CIMArgument instances to the list
@@ -1297,7 +1298,7 @@ public class SmisCommandHelper implements SmisConstants {
         ArrayList<CIMArgument> list = new ArrayList<CIMArgument>();
         try {
             CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storageDevice, volume);
-            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false, new String[] { CP_THINLY_PROVISIONED });
+            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false, new String[]{CP_THINLY_PROVISIONED});
             String isThinVolume = CIMPropertyFactory.getPropertyValue(volumeInstance, CP_THINLY_PROVISIONED);
             list.add(_cimArgument.reference(CP_THE_ELEMENT, volumePath));
             list.add(_cimArgument.uint64(CP_SIZE, size));
@@ -1548,7 +1549,9 @@ public class SmisCommandHelper implements SmisConstants {
             if (storage.checkIfVmax3()) {
                 CIMInstance instance = getInstance(storage, storageGroupPath, false, true, SmisConstants.PS_HOST_IO);
                 String policyName = SmisUtils.getSLOPolicyName(instance);
-                policies.add(policyName);
+                if (policyName != null) {
+                    policies.add(policyName);
+                }
             } else {
                 tierPolicyRuleItr = getAssociatorNames(storage, storageGroupPath, null,
                         CIM_TIER_POLICY_RULE, null, null);
@@ -1556,7 +1559,9 @@ public class SmisCommandHelper implements SmisConstants {
                     CIMObjectPath tierPolicyRulePath = tierPolicyRuleItr.next();
                     String policyRuleName = tierPolicyRulePath.getKey(Constants.POLICYRULENAME)
                             .getValue().toString();
-                    policies.add(policyRuleName);
+                    if (policyRuleName != null) {
+                        policies.add(policyRuleName);
+                    }
                 }
             }
         } finally {
@@ -1575,26 +1580,22 @@ public class SmisCommandHelper implements SmisConstants {
      * @throws Exception
      */
     public StringSet findTierPoliciesForStorageGroup(StorageSystem storage, String storageGroup) throws Exception {
-        CloseableIterator<CIMObjectPath> tierPolicyRuleItr = null;
-        CloseableIterator<CIMInstance> cimInstanceItr = null;
+        CloseableIterator<CIMInstance> cimInstanceItr;
         StringSet policies = new StringSet();
-        try {
-            CIMObjectPath storageGroupPath = _cimPath.getStorageGroupObjectPath(storageGroup, storage);
-            if (this.isCascadedSG(storage, storageGroupPath)) {
-                cimInstanceItr = getAssociatorInstances(storage, storageGroupPath, null,
-                        SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null,
-                        PS_ELEMENT_NAME);
-                while (cimInstanceItr.hasNext()) {
-                    CIMInstance childGroupInstance = cimInstanceItr.next();
-                    String returnedgroupName = CIMPropertyFactory.getPropertyValue(childGroupInstance,
-                            CP_ELEMENT_NAME);
-                    policies.addAll(findTierPoliciesForSingleStorageGroup(storage, returnedgroupName));
-                }
-            } else {
-                policies.addAll(findTierPoliciesForSingleStorageGroup(storage, storageGroup));
+
+        CIMObjectPath storageGroupPath = _cimPath.getStorageGroupObjectPath(storageGroup, storage);
+        if (this.isCascadedSG(storage, storageGroupPath)) {
+            cimInstanceItr = getAssociatorInstances(storage, storageGroupPath, null,
+                    SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null,
+                    PS_ELEMENT_NAME);
+            while (cimInstanceItr.hasNext()) {
+                CIMInstance childGroupInstance = cimInstanceItr.next();
+                String returnedgroupName = CIMPropertyFactory.getPropertyValue(childGroupInstance,
+                        CP_ELEMENT_NAME);
+                policies.addAll(findTierPoliciesForSingleStorageGroup(storage, returnedgroupName));
             }
-        } finally {
-            closeCIMIterator(tierPolicyRuleItr);
+        } else {
+            policies.addAll(findTierPoliciesForSingleStorageGroup(storage, storageGroup));
         }
 
         return policies;
@@ -5366,8 +5367,11 @@ public class SmisCommandHelper implements SmisConstants {
         try {
             CIMObjectPath maskingViewPath = _cimPath.getMaskingViewPath(storage, exportMask.getMaskName());
             CIMInstance maskingViewInstance = checkExists(storage, maskingViewPath, false, false);
-            int maxVolumesAllowed = Integer.valueOf(CIMPropertyFactory.getPropertyValue(maskingViewInstance, CP_MAX_UNITS_CONTROLLED));
-            policy.setMaxVolumesAllowed(maxVolumesAllowed);
+            String maxUnitsControlled = CIMPropertyFactory.getPropertyValue(maskingViewInstance, CP_MAX_UNITS_CONTROLLED);
+            if (!Strings.isNullOrEmpty(maxUnitsControlled)) {
+                int maxVolumesAllowed = Integer.valueOf(maxUnitsControlled);
+                policy.setMaxVolumesAllowed(maxVolumesAllowed);
+            }
 
             storageGroupName = getStorageGroupForGivenMaskingView(maskingViewInstance,
                     exportMask.getMaskName(), storage);
@@ -6233,6 +6237,24 @@ public class SmisCommandHelper implements SmisConstants {
         return args.toArray(new CIMArgument[args.size()]);
     }
 
+    /*
+     * Construct input arguments for creating list replica.
+     *
+     * @param storageDevice
+     * @param sourceVolumePath
+     * @param labels
+     * @param synType
+     */
+    public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice, CIMObjectPath[] sourceVolumePath, List<String> labels, int syncType) {
+        List<CIMArgument> args = new ArrayList<CIMArgument>();
+        args.add(_cimArgument.referenceArray(CP_SOURCE_ELEMENTS, sourceVolumePath));
+        args.add(_cimArgument.stringArray(CP_ELEMENT_NAMES, labels.toArray(new String[]{})));
+        args.add(_cimArgument.uint16(CP_SYNC_TYPE, syncType));
+        args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, ACTIVATE_VALUE));
+
+        return args.toArray(new CIMArgument[args.size()]);
+    }
+
     public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice,
                                                             CIMObjectPath[] sourceVolumePath,
                                                             CIMObjectPath[] targetVolumePath,
@@ -6582,5 +6604,27 @@ public class SmisCommandHelper implements SmisConstants {
         return storageSystem.getUsingSmis80() ?
                 EMC_CREATE_MULTIPLE_TYPE_ELEMENTS_FROM_STORAGE_POOL :
                 CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
+    }
+
+    /*
+     * Get source object for a replica.
+     *
+     * @param dbClient
+     * @param replica
+     * @return source object
+     */
+    public BlockObject getSource(BlockObject replica) {
+        URI sourceURI;
+        if (replica instanceof BlockSnapshot) {
+            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
+        } else if (replica instanceof BlockMirror) {
+            sourceURI = ((BlockMirror) replica).getSource().getURI();
+        } else if (replica instanceof BlockSnapshot) {
+            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
+        } else {
+            sourceURI = ((Volume) replica).getAssociatedSourceVolume();
+        }
+
+        return BlockObject.fetch(_dbClient, sourceURI);
     }
 }

@@ -23,6 +23,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -33,6 +34,8 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ComputeImage;
+import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
@@ -55,6 +58,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * Service class responsible for serving rest requests of ComputeImageServer
@@ -76,6 +80,7 @@ public class ComputeImageServerService extends TaskResourceService {
     private static final String IMAGESERVER_PASSWORD = "imageServerPassword";
     private static final String IMAGESERVER_USER = "imageServerUser";
     private static final String OS_INSTALL_TIMEOUT_MS = "osInstallTimeoutMs";
+    private static final String IMAGE_SERVER_IMAGEDIR = "image_server_image_directory";
 
     @Override
     protected ComputeImageServer queryResource(URI id) {
@@ -112,7 +117,7 @@ public class ComputeImageServerService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response deleteComputeImageServer(@PathParam("id") URI id) {
         // Validate the imageServer
-        log.info("Delete computeImageServer id {} ",id);
+        log.info("Delete computeImageServer id {} ", id);
         ArgValidator.checkFieldUriType(id, ComputeImageServer.class, "id");
         ComputeImageServer imageServer = _dbClient.queryObject(
                 ComputeImageServer.class, id);
@@ -123,25 +128,38 @@ public class ComputeImageServerService extends TaskResourceService {
 
         // Remove the association with the ComputeSystem and then delete the
         // imageServer
-        List<URI> computeSystemURIList = _dbClient.queryByType(
-                ComputeSystem.class, true);
-        if (computeSystemURIList != null
-                && computeSystemURIList.iterator().hasNext()) {
-            List<ComputeSystem> computeSystems = _dbClient.queryObject(
-                    ComputeSystem.class, computeSystemURIList);
-            if (!CollectionUtils.isEmpty(computeSystems)) {
-                for (ComputeSystem computeSystem : computeSystems) {
-                    if (computeSystem.getComputeImageServer() != null
-                            && computeSystem.getComputeImageServer().equals(id)) {
-                        computeSystem
-                                .setComputeImageServer(NullColumnValueGetter
-                                        .getNullURI());
-                        _dbClient.persistObject(computeSystem);
-                        log.info(
-                                "Disassociating imageServer {} from ComputeSystem id {} ",
-                                id, computeSystem.getId());
-                    }
+        List<URI> imageServerURIList = _dbClient.queryByType(
+                ComputeImageServer.class, true);
+        ArrayList<URI> tempList = Lists.newArrayList(imageServerURIList
+                .iterator());
+
+        if (tempList.size() > 1) {
+            removeImageServerFromComputeSystem(id);
+        } else if (tempList.size() == 1) {
+
+            // If the imageServer being deleted is the last one,
+            // then check if there are any valid AVAILABLE images, if so
+            // throw exception because user cannot delete all imageServers when
+            // there are valid images available.
+            boolean hasValidImages = false;
+            List<URI> imageURIList = _dbClient.queryByType(ComputeImage.class,
+                    true);
+            Iterator<ComputeImage> imageItr = _dbClient.queryIterativeObjects(
+                    ComputeImage.class, imageURIList);
+
+            while (imageItr.hasNext()) {
+                ComputeImage computeImage = (ComputeImage) imageItr.next();
+                if (ComputeImageStatus.AVAILABLE.name().equals(
+                        computeImage.getComputeImageStatus())) {
+                    hasValidImages = true;
+                    break;
                 }
+            }
+
+            if (hasValidImages) {
+                throw APIException.badRequests.cannotDeleteImageServer();
+            } else {
+                removeImageServerFromComputeSystem(id);
             }
         }
 
@@ -197,6 +215,7 @@ public class ComputeImageServerService extends TaskResourceService {
         imageServer.setImageServerPassword(password);
         imageServer.setOsInstallTimeoutMs((int) installTimeout);
         imageServer.setImageServerSecondIp(osInstallAddress);
+        imageServer.setImageDir(_coordinator.getPropertyInfo().getProperty(IMAGE_SERVER_IMAGEDIR));
 
         auditOp(OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES, true, null,
                 imageServer.getId().toString(), imageServer.getImageServerIp());
@@ -234,7 +253,7 @@ public class ComputeImageServerService extends TaskResourceService {
             @PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, ComputeImageServer.class, "id");
         ComputeImageServer imageServer = queryResource(id);
-        return map(imageServer);
+        return map(_dbClient, imageServer);
     }
 
     /**
@@ -293,7 +312,6 @@ public class ComputeImageServerService extends TaskResourceService {
             ArgValidator.checkFieldNotEmpty(osInstallAddress,
                     IMAGESERVER_SECONDARY_IP);
             ArgValidator.checkFieldNotEmpty(username, IMAGESERVER_USER);
-            ArgValidator.checkFieldNotEmpty(password, IMAGESERVER_PASSWORD);
             ArgValidator.checkFieldNotNull(installTimeout,
                     OS_INSTALL_TIMEOUT_MS);
             // make sure there are no active jobs associated with this imageserver
@@ -302,7 +320,9 @@ public class ComputeImageServerService extends TaskResourceService {
             imageServer.setImageServerIp(imageServerAddress);
             imageServer.setTftpBootDir(bootDir);
             imageServer.setImageServerUser(username);
-            imageServer.setImageServerPassword(password);
+            if(StringUtils.isNotBlank(password)){
+                imageServer.setImageServerPassword(password);
+            }
             imageServer.setOsInstallTimeoutMs((int) installTimeout);
             imageServer.setImageServerSecondIp(osInstallAddress);
 
@@ -327,7 +347,7 @@ public class ComputeImageServerService extends TaskResourceService {
             controller.verifyImageServerAndImportExistingImages(task,
                     op.getName());
         }
-        return map(imageServer);
+        return map(_dbClient, imageServer);
     }
 
     /**
@@ -364,7 +384,7 @@ public class ComputeImageServerService extends TaskResourceService {
         @Override
         public ComputeImageServerRestRep apply(
                 final ComputeImageServer imageserver) {
-            return ComputeMapper.map(imageserver);
+            return ComputeMapper.map(_dbClient, imageserver);
         }
     }
 
@@ -408,4 +428,36 @@ public class ComputeImageServerService extends TaskResourceService {
         }
     }
 
+    /**
+     * Removes the given imageServerId from each ComputeSystem present,
+     * if the computeSystem has the given imageServerId as it association or relation.
+     * Disassociate's  the imageServer from the computeSystem.
+     * @param imageServerID {@link URI} computeImageServer id
+     */
+    private void removeImageServerFromComputeSystem(URI imageServerID) {
+        // Remove the association with the ComputeSystem and then delete
+        // the imageServer
+        List<URI> computeSystemURIList = _dbClient.queryByType(
+                ComputeSystem.class, true);
+        if (computeSystemURIList != null
+                && computeSystemURIList.iterator().hasNext()) {
+            List<ComputeSystem> computeSystems = _dbClient.queryObject(
+                    ComputeSystem.class, computeSystemURIList);
+            if (!CollectionUtils.isEmpty(computeSystems)) {
+                for (ComputeSystem computeSystem : computeSystems) {
+                    if (computeSystem.getComputeImageServer() != null
+                            && computeSystem.getComputeImageServer()
+                                    .equals(imageServerID)) {
+                        computeSystem
+                                .setComputeImageServer(NullColumnValueGetter
+                                        .getNullURI());
+                        _dbClient.persistObject(computeSystem);
+                        log.info(
+                                "Disassociating imageServer {} from ComputeSystem id {} ",
+                                imageServerID, computeSystem.getId());
+                    }
+                }
+            }
+        }
+    }
 }

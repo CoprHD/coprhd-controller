@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.xtremio.prov.utils;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
+import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
@@ -26,6 +28,8 @@ import com.google.common.base.Joiner;
 public class XtremIOProvUtils {
 
     private static final Logger _log = LoggerFactory.getLogger(XtremIOProvUtils.class);
+
+    private static final int SLEEP_TIME = 10000; // 10 seconds
 
     public static void updateStoragePoolCapacity(XtremIOClient client, DbClient dbClient, StoragePool storagePool) {
         try {
@@ -156,12 +160,26 @@ public class XtremIOProvUtils {
         } else {
             _log.info("Found {} folder on the Array.", rootFolderName);
         }
-
+        long waitTime = 30000; // 30 sec
+        int count = 0;
+        // @TODO this is a temporary workaround to retry volume folder verification.
+        // Actually we should create workflow steps for this.
+        while (waitTime > 0) {
+            count++;
+            _log.debug("Retrying {} time to find the volume folders", count);
+            if (!folderNames.contains(volumesFolderName)) {
+                _log.debug("sleeping time {} remaining time: {}", SLEEP_TIME, (waitTime - SLEEP_TIME));
+                Thread.sleep(SLEEP_TIME);
+                waitTime = waitTime - SLEEP_TIME;
+                folderNames = client.getVolumeFolderNames();
+            } else {
+                _log.info("Found {} folder on the Array.", volumesFolderName);
+                break;
+            }
+        }
         if (!folderNames.contains(volumesFolderName)) {
             _log.info("Sending create volume folder request {}", volumesFolderName);
             client.createTag("volumes", rootFolderName, XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name(), null);
-        } else {
-            _log.info("Found {} folder on the Array.", volumesFolderName);
         }
 
         if (!folderNames.contains(snapshotsFolderName)) {
@@ -193,12 +211,27 @@ public class XtremIOProvUtils {
         String snapshotsTagName = XtremIOConstants.V2_SNAPSHOT_ROOT_FOLDER.concat(rootTagName);
         tagNamesMap.put(XtremIOConstants.VOLUME_KEY, volumesTagName);
         tagNamesMap.put(XtremIOConstants.SNAPSHOT_KEY, snapshotsTagName);
+        long waitTime = 30000; // 30 sec
+        int count = 0;
+        // @TODO this is a temporary workaround to retry volume tag verification.
+        // Actually we should create workflow steps for this.
+        while (waitTime > 0) {
+            count++;
+            _log.debug("Retrying {} time to find the volume tag", count);
+            if (!tagNames.contains(volumesTagName)) {
+                _log.debug("sleeping time {} remaining time: {}", SLEEP_TIME, (waitTime - SLEEP_TIME));
+                Thread.sleep(SLEEP_TIME);
+                waitTime = waitTime - SLEEP_TIME;
+                tagNames = client.getTagNames(clusterName);
+            } else {
+                _log.info("Found {} tag on the Array.", volumesTagName);
+                break;
+            }
 
+        }
         if (!tagNames.contains(volumesTagName)) {
             _log.info("Sending create volume tag request {}", volumesTagName);
             client.createTag(volumesTagName, null, XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name(), clusterName);
-        } else {
-            _log.info("Found {} tag on the Array.", volumesTagName);
         }
 
         if (!tagNames.contains(snapshotsTagName)) {
@@ -248,5 +281,23 @@ public class XtremIOProvUtils {
         } catch (Exception e) {
             _log.warn("Deleting root folder {} failed", volumeFolderName, e);
         }
+    }
+
+    /**
+     * Get the XtremIO client for making requests to the system based
+     * on the passed profile.
+     * 
+     * @param accessProfile A reference to the access profile.
+     * @param xtremioRestClientFactory xtremioclientFactory.
+     * 
+     * @return A reference to the xtremio client.
+     */
+    public static XtremIOClient getXtremIOClient(StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
+        xtremioRestClientFactory.setModel(system.getFirmwareVersion());
+        XtremIOClient client = (XtremIOClient) xtremioRestClientFactory
+                .getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
+                                system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword(), true);
+        return client;
     }
 }

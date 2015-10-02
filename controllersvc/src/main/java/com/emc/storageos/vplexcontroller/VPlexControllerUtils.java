@@ -7,9 +7,10 @@ package com.emc.storageos.vplexcontroller;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -19,6 +20,8 @@ import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -27,11 +30,11 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
@@ -41,6 +44,8 @@ public class VPlexControllerUtils {
     private static final Logger log = LoggerFactory
             .getLogger(VPlexControllerUtils.class);
 
+    private static final String VPLEX = "vplex";
+    
     /**
      * Get a DataObject. Throw exception if not found or inactive.
      * 
@@ -359,5 +364,56 @@ public class VPlexControllerUtils {
         }
 
         return itlList;
+    }
+    
+    /**
+     * Returns true if the Initiator object represents a VPLEX StoragePort.
+     * 
+     * @param initiator the Initiator to test
+     * @param dbClient a reference to the database client
+     * 
+     * @return true if the Initiator object represents a VPLEX StoragePort
+     */
+    public static boolean isVplexInitiator(Initiator initiator, DbClient dbClient) {
+        StoragePort port = NetworkUtil.getStoragePort(initiator.getInitiatorPort(), dbClient);
+        if (null != port) {
+            StorageSystem vplex = dbClient.queryObject(StorageSystem.class, port.getStorageDevice());
+            if (null != vplex && VPLEX.equals(vplex.getSystemType())) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Returns a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names.
+     * 
+     * @param vplexUri the VPLEX to query
+     * @param dbClient a reference to the database client
+     * @return  a Map of distributed device component context
+     * paths from the VPLEX API to VPLEX cluster names
+     * 
+     * @throws VPlexApiException
+     */
+    public static Map<String, String> getDistributedDevicePathToClusterMap(
+            URI vplexUri, DbClient dbClient) throws VPlexApiException {
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        Map<String, String> distributedDevicePathToClusterMap = Collections.emptyMap();
+        if (null != client) {
+            distributedDevicePathToClusterMap = 
+                    client.getDistributedDevicePathToClusterMap();
+        }
+
+        return distributedDevicePathToClusterMap;
     }
 }

@@ -468,6 +468,31 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             }
 
             if (!foundASystemCreatedMask) {
+                List<String> volumeURIsWithoutHLUs = ExportUtils.findVolumesWithoutHLUs(exportGroup);
+                if (!volumeURIsWithoutHLUs.isEmpty()) {
+                    // COP-16874. The following situation can happen if the ExportMasks are ingested.
+                    // There are volumes in the ExportGroup that do not have an HLU assigned.
+                    // For each ExportMask in the ExportGroup, get the Volume to HLU mapping, then reconcile the
+                    // HLUs that are in the ExportGroup. Also take the discovered HLU mapping and update
+                    // volumeMap so that it's populated with proper HLUs. This way new nodes that are added
+                    // will get consistent HLUs applied for their volumes
+                    for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {
+                        Map<URI, Integer> refreshedVolumeMap = device.getExportMaskHLUs(storage, exportMask);
+                        if (!refreshedVolumeMap.isEmpty()) {
+                            ExportUtils.reconcileHLUs(_dbClient, exportGroup, exportMask, volumeMap);
+                            _dbClient.persistObject(exportGroup);
+                            for (URI uri : refreshedVolumeMap.keySet()) {
+                                Integer hlu = refreshedVolumeMap.get(uri);
+                                if (volumeMap.containsKey(uri)) {
+                                    volumeMap.put(uri, hlu);
+                                }
+                            }
+                            _log.info(String.format("ExportMask %s (%s) will be updated with these volumes %s", exportMask.getMaskName(),
+                                    exportMask.getId(), CommonTransformerFunctions.collectionString(volumeMap.entrySet())));
+                            break; // Do the reconciliation once, based on the first non-empty refreshedVolumeMap that's found
+                        }
+                    }
+                }
                 _log.info("There are no masks for this export. Need to create anew.");
 
                 for (String host : hostInitiatorMap.keySet()) {

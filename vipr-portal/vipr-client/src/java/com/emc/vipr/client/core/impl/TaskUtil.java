@@ -4,6 +4,9 @@
  */
 package com.emc.vipr.client.core.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
@@ -13,9 +16,6 @@ import com.emc.vipr.client.exceptions.ServiceErrorsException;
 import com.emc.vipr.client.exceptions.TimeoutException;
 import com.emc.vipr.client.exceptions.ViPRException;
 import com.emc.vipr.client.impl.RestClient;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class TaskUtil {
 
@@ -70,7 +70,7 @@ public class TaskUtil {
     }
 
     public static boolean isError(TaskResourceRep task) {
-        return task.getState() == null || State.error.name().equalsIgnoreCase(task.getState());
+        return task == null || task.getState() == null || State.error.name().equalsIgnoreCase(task.getState());
     }
 
     /**
@@ -101,6 +101,12 @@ public class TaskUtil {
     }
 
     private static ServiceErrorRestRep taskToError(TaskResourceRep task) {
+        if (task == null) {
+            ServiceErrorRestRep serviceError = new ServiceErrorRestRep();
+            serviceError.setCodeDescription("Task object is null. Unable to determine success of task");
+            serviceError.setDetailedMessage("");
+            return serviceError;
+        }
         ServiceErrorRestRep serviceError = task.getServiceError();
         if (task.getState() == null) {
             serviceError = new ServiceErrorRestRep();

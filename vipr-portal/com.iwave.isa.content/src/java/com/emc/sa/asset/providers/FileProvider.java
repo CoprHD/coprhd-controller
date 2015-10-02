@@ -459,7 +459,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("fileIngestExportType")
-    public List<AssetOption> getBlockSnapshotTypeLockable(AssetOptionsContext ctx) {
+    public List<AssetOption> getFileIngestExportType(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
         options.add(newAssetOption(EXPORTED_TYPE, "file.ingest.export.type.exported"));
         options.add(newAssetOption(UNEXPORTED_TYPE, "file.ingest.export.type.unexported"));

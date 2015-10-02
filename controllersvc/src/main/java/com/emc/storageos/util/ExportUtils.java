@@ -575,7 +575,6 @@ public class ExportUtils {
         List<ExportMask> results =
                 CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
                         ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
-        int count = 0;
         for (ExportMask exportMask : results) {
             if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) && 
                     exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
@@ -584,10 +583,10 @@ public class ExportUtils {
                             StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators())) {
                 _log.info(String.format("Initiator %s is shared with mask %s.", 
                         initiatorUri, exportMask.getMaskName()));
-                count++;
+                return true;
             }
         }
-        return count > 0;
+        return false;
     }
 
     static public int getNumberOfExportGroupsWithVolume(Initiator initiator, URI blockObjectId, DbClient dbClient) {

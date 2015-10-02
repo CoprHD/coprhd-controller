@@ -7,6 +7,7 @@ package com.emc.sa.asset.providers;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalMirrorSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
@@ -778,7 +779,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private List<AssetOption> getBlockVolumesForHost(ViPRCoreClient client, URI tenant, URI host, boolean mounted) {
         return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumes(client, tenant, host, mounted));
     }
-    
+
     private List<AssetOption> getBlockVolumesForHostDatastore(ViPRCoreClient client, URI tenant, URI host, String datastore) {
         return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumesForDatastore(client, tenant, host, datastore));
     }
@@ -875,9 +876,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getMountedBlockVolumesForEsxHost(AssetOptionsContext context, URI host) {
         return getBlockVolumesForHost(api(context), context.getTenant(), host, true);
     }
-    
+
     @Asset("mountedBlockVolumeDatastore")
-    @AssetDependencies({"esxHost", "blockdatastore"})
+    @AssetDependencies({ "esxHost", "blockdatastore" })
     public List<AssetOption> getMountedBlockVolumesForEsxHostDatastore(AssetOptionsContext context, URI host, String datastore) {
         return getBlockVolumesForHostDatastore(api(context), context.getTenant(), host, datastore);
     }
@@ -1069,16 +1070,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getSnapshotBlockVolumes(AssetOptionsContext context, URI project, String type) {
         final ViPRCoreClient client = api(context);
         if (isVolumeType(type)) {
-            List<VolumeRestRep> volumes = listVolumesWithoutConsistencyGroup(client, project);
+            List<VolumeRestRep> volumes = listVolumes(client, project);
             List<VolumeDetail> volumeDetails = getVolumeDetails(client, volumes);
             Map<URI, VolumeRestRep> volumeNames = ResourceUtils.mapById(volumes);
 
             List<AssetOption> options = Lists.newArrayList();
             for (VolumeDetail detail : volumeDetails) {
-                if (isLocalSnapshotSupported(detail.vpool) || isRPSourceVolume(detail.volume)) {
-                    if (!isInConsistencyGroup(detail.volume)) {
-                        options.add(createVolumeOption(client, null, detail.volume, volumeNames));
-                    }
+
+                if ((isLocalSnapshotSupported(detail.vpool) && (isRPSourceVolume(detail.volume) || isRPTargetVolume(detail.volume)))
+                        || !isInConsistencyGroup(detail.volume)) {
+                    options.add(createVolumeOption(client, null, detail.volume, volumeNames));
                 }
             }
             return options;

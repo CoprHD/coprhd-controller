@@ -2486,6 +2486,10 @@ computeImages.imageUrl.help=URL can be HTTP or FTP. If credentials are required 
 computeImages.computeImageStatus=Status
 computeImages.discoveryStatus=Status
 computeImages.lastImportStatusMessage=Import Status Message
+computeImages.availableImageServers=Available Image Server(s)
+computeImages.availableImageServers.description=Compute Image Servers that this Compute Image successfully imported to.
+computeImages.failedImageServers=Server(s) Import Failed
+computeImages.failedImageServerNames.description=Compute Image Servers that this Compute Image failed to import to.
 computeImages.url.not.valid=Image URL is not valid format
 computeImages.urls.pattern=^((ldaps?|ldap)://|(ldaps|ldap)\.)[a-z0-9-]+(\.[a-z0-9-]+)+([/?].*)?$
 computeImages.searchFilter.equalsRequired=An equals sign (=) is required.

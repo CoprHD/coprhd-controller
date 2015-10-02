@@ -654,6 +654,9 @@
 <target name="sshpass"                             depends="sshpass-1.05-2.1_1"/>
 <target name="stax-api"                            depends="stax-api-1.0.1-2"/>
 <target name="strace"                              depends="strace-4.8-6.15_1"/>
+<target name="strongswan"                          depends="strongswan-5.1.3-4.1_1"/>
+<target name="strongswan-ipsec"                    depends="strongswan-ipsec-5.1.3-4.1_1"/>
+<target name="strongswan-libs0"                    depends="strongswan-libs0-5.1.3-4.1_1"/>
 <target name="subscription-tools"                  depends="subscription-tools-1.1.5-1.39_1"/>
 <target name="subversion"                          depends="subversion-1.8.10-1.25_1"/>
 <target name="sudo"                                depends="sudo-1.8.10p3-1.62_1"/>

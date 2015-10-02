@@ -1172,6 +1172,13 @@ public class VPlexApiMigrationManager {
                 // Strip the extent prefix and suffix from the
                 // migration source.
                 String migrationSrcName = migrationInfo.getSource();
+                if (!migrationSrcName.startsWith(VPlexApiConstants.EXTENT_PREFIX)
+                        && !migrationSrcName.endsWith(VPlexApiConstants.EXTENT_SUFFIX)) {
+                    // This is mostly going to be the case ingestion case with non-default names.
+                    s_logger.info("Migration source {} does not follow the default naming convention hence the volume name"
+                            + " will not be updated.", migrationSrcName);
+                    return;
+                }
                 String srcVolumeName = migrationSrcName.substring(
                         VPlexApiConstants.EXTENT_PREFIX.length(),
                         migrationSrcName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
@@ -1224,11 +1231,18 @@ public class VPlexApiMigrationManager {
                 // Now update the distributed device after the virtual volume
                 // name has been updated if the virtual volume is a distributed
                 // virtual volume.
-                if (virtualVolumeName.startsWith(VPlexApiConstants.DIST_DEVICE_PREFIX)) {
+                if (virtualVolumeName.startsWith(VPlexApiConstants.DIST_DEVICE_PREFIX)
+                        && virtualVolumeName.endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
                     String distDeviceName = virtualVolumeName.substring(0,
                             virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
                     VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
                             .findDistributedDevice(distDeviceName);
+                    if (distDeviceInfo == null) {
+                        s_logger.info(
+                                "Could not find distributed device {} for the virtual volume {} ",
+                                distDeviceName, virtualVolumeName);
+                        return;
+                    }
                     String updatedDistDeviceName = distDeviceName.replace(srcVolumeName,
                             tgtVolumeName);
                     distDeviceInfo = _vplexApiClient.getVirtualVolumeManager()
@@ -1250,15 +1264,17 @@ public class VPlexApiMigrationManager {
 
                 } else {
                     // Update the local device name.
-                    String deviceName = virtualVolumeName.substring(0, virtualVolumeName
-                            .indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
-                    s_logger.info("Updating device {} to reflect new volume {}",
-                            deviceName, tgtVolumeName);
-                    VPlexDeviceInfo deviceInfo = discoveryMgr.findLocalDevice(deviceName);
-                    String updatedDeviceName = deviceName.replace(srcVolumeName,
-                            tgtVolumeName);
-                    _vplexApiClient.getVirtualVolumeManager()
-                            .renameVPlexResource(deviceInfo, updatedDeviceName);
+                    if (virtualVolumeName.endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
+                        String deviceName = virtualVolumeName.substring(0, virtualVolumeName
+                                .indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+                        s_logger.info("Updating device {} to reflect new volume {}",
+                                deviceName, tgtVolumeName);
+                        VPlexDeviceInfo deviceInfo = discoveryMgr.findLocalDevice(deviceName);
+                        String updatedDeviceName = deviceName.replace(srcVolumeName,
+                                tgtVolumeName);
+                        _vplexApiClient.getVirtualVolumeManager()
+                                .renameVPlexResource(deviceInfo, updatedDeviceName);
+                    }
 
                 }
             }

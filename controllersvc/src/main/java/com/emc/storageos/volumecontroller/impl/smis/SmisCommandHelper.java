@@ -988,7 +988,6 @@ public class SmisCommandHelper implements SmisConstants {
             Integer volumeType = isThinlyProvisioned ? STORAGE_VOLUME_TYPE_THIN : STORAGE_VOLUME_VALUE;
 
             // Create array values
-            String[] labelsArray = labels.toArray(new String[]{});  // Convert labels to array
 
             // Adding Goal parameter if volumes need to be FAST Enabled
             list.add(_cimArgument.referenceArray(CP_IN_POOL,
@@ -999,6 +998,7 @@ public class SmisCommandHelper implements SmisConstants {
                     toMultiElementArray(count, SINGLE_DEVICE_FOR_EACH_CONFIG)));
 
             if (labels != null) {
+                String[] labelsArray = labels.toArray(new String[]{});  // Convert labels to array
                 list.add(_cimArgument.stringArray(CP_ELEMENT_NAMES, labelsArray));
             }
             // Add CIMArgument instances to the list
@@ -6237,6 +6237,24 @@ public class SmisCommandHelper implements SmisConstants {
         return args.toArray(new CIMArgument[args.size()]);
     }
 
+    /*
+     * Construct input arguments for creating list replica.
+     *
+     * @param storageDevice
+     * @param sourceVolumePath
+     * @param labels
+     * @param synType
+     */
+    public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice, CIMObjectPath[] sourceVolumePath, List<String> labels, int syncType) {
+        List<CIMArgument> args = new ArrayList<CIMArgument>();
+        args.add(_cimArgument.referenceArray(CP_SOURCE_ELEMENTS, sourceVolumePath));
+        args.add(_cimArgument.stringArray(CP_ELEMENT_NAMES, labels.toArray(new String[]{})));
+        args.add(_cimArgument.uint16(CP_SYNC_TYPE, syncType));
+        args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, ACTIVATE_VALUE));
+
+        return args.toArray(new CIMArgument[args.size()]);
+    }
+
     public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice,
                                                             CIMObjectPath[] sourceVolumePath,
                                                             CIMObjectPath[] targetVolumePath,
@@ -6586,5 +6604,27 @@ public class SmisCommandHelper implements SmisConstants {
         return storageSystem.getUsingSmis80() ?
                 EMC_CREATE_MULTIPLE_TYPE_ELEMENTS_FROM_STORAGE_POOL :
                 CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
+    }
+
+    /*
+     * Get source object for a replica.
+     *
+     * @param dbClient
+     * @param replica
+     * @return source object
+     */
+    public BlockObject getSource(BlockObject replica) {
+        URI sourceURI;
+        if (replica instanceof BlockSnapshot) {
+            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
+        } else if (replica instanceof BlockMirror) {
+            sourceURI = ((BlockMirror) replica).getSource().getURI();
+        } else if (replica instanceof BlockSnapshot) {
+            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
+        } else {
+            sourceURI = ((Volume) replica).getAssociatedSourceVolume();
+        }
+
+        return BlockObject.fetch(_dbClient, sourceURI);
     }
 }

@@ -411,8 +411,8 @@ public class StoragePoolProcessor extends PoolProcessor {
         pool.setMaxThinPoolSubscriptionPercentageFromArray(newMaxSubscriptionPercentFromArray);
     }
 
-    private boolean isArrayLimitDefined(Integer maxSubscribtionPercentFromArray) {
-        return (maxSubscribtionPercentFromArray != null && maxSubscribtionPercentFromArray != 0);
+    private boolean isArrayLimitDefined(Integer maxSubscriptionPercentFromArray) {
+        return (maxSubscriptionPercentFromArray != null && maxSubscriptionPercentFromArray != 0);
     }
 
     /*

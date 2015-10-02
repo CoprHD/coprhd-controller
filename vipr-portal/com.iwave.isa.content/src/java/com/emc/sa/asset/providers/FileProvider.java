@@ -43,6 +43,8 @@ import com.google.common.collect.Sets;
 public class FileProvider extends BaseAssetOptionsProvider {
     public static final String CIFS = "CIFS";
     public static final String NFS = "NFS";
+    public static final String EXPORTED_TYPE = "exported";
+    public static final String UNEXPORTED_TYPE = "unexported";
 
     @Asset("fileNfsVirtualPool")
     @AssetDependencies("fileVirtualArray")
@@ -453,6 +455,14 @@ public class FileProvider extends BaseAssetOptionsProvider {
         options.add(newAssetOption(FileControllerConstants.DeleteTypeEnum.FULL.toString(), "file.deletion.type.full"));
         options.add(newAssetOption(FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString(), "file.deletion.type.vipr_only"));
 
+        return options;
+    }
+
+    @Asset("fileIngestExportType")
+    public List<AssetOption> getBlockSnapshotTypeLockable(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(newAssetOption(EXPORTED_TYPE, "file.ingest.export.type.exported"));
+        options.add(newAssetOption(UNEXPORTED_TYPE, "file.ingest.export.type.unexported"));
         return options;
     }
 }

@@ -2271,6 +2271,27 @@ recoverpoint_exports_tests()
     echo 'done with recoverpoint exports cleanup'
 }
 
+LAST_RP_DISCOVERY=0
+discover_rp()
+{
+    # this should match the initialDiscoveryDelay in DataCollectionJobScheduler.java
+    rp_discovery_interval=90
+
+    current_time=`date +%s`
+    diff=$((${current_time}-${LAST_RP_DISCOVERY}))
+
+    sleeptime=$(($rp_discovery_interval-$diff))
+    if [[ $sleeptime > 0 ]]
+    then
+       echo sleeping $sleeptime seconds before next rp discovery
+       sleep $sleeptime
+    fi
+
+    echo running rp discovery at  `date`
+    run protectionsystem discover $RECOVERPOINT
+    LAST_RP_DISCOVERY=`date +%s`
+}
+
 recoverpoint_auto_snapshot_cleanup_test()
 {
     echo '*** RP snapshot tests ***'
@@ -2285,7 +2306,7 @@ recoverpoint_auto_snapshot_cleanup_test()
     echo 'Create snapshot'
     run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
     run blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${src_varray} | grep inactive | grep false
-    run protectionsystem discover $RECOVERPOINT
+    discover_rp
 
     echo 'Unaffected RP bookmark is being checked after RP discovery to ensure it is still active'
     run blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${src_varray} | grep inactive | grep false
@@ -2296,8 +2317,8 @@ recoverpoint_auto_snapshot_cleanup_test()
     run volume change_link ${PROJECT}/${src_volume} start ${PROJECT}/${tgt_volume} rp
 
     echo 'Re-run discovery, RP bookmark should be cleaned up automatically'
-    sleep 10
-    run protectionsystem discover $RECOVERPOINT
+
+    discover_rp
 
     echo 'Removed RP bookmark is being checked after RP discovery to ensure it is no longer active'
     # Use "fail" instead of run because we expect this bookmark to fail.

@@ -1540,14 +1540,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     public boolean cgCreateRollbackStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, String token) throws WorkflowException {
         
-    	_log.info("Start cg rollback step");
+    	_log.info("Start cg create rollback step");
     	WorkflowStepCompleter.stepExecuting(token);    	
-    	 // Get only the RP volumes from the descriptors.
+    	 // Get only the RP source volumes from the descriptors.
         List<VolumeDescriptor> sourceVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
                         VolumeDescriptor.Type.RP_EXISTING_SOURCE,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
                 new VolumeDescriptor.Type[] {});
+        
+        if (sourceVolumeDescriptors == null || sourceVolumeDescriptors.isEmpty()) {
+            WorkflowStepCompleter.stepSucceded(token);
+            return true;
+        }
         
     	List<URI> volumeIDs = new ArrayList<URI>();
     	for (VolumeDescriptor descriptor : sourceVolumeDescriptors) {

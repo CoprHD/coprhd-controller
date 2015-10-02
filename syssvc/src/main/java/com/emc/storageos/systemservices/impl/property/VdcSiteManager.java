@@ -11,13 +11,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
-
 
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
@@ -25,6 +25,7 @@ import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.services.util.Exec;
@@ -59,8 +60,11 @@ public class VdcSiteManager extends AbstractManager {
     // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
     private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
     
+    // data revision time out - 11 minutes
+    private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
+    
     private SiteInfo targetSiteInfo;
-
+    
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
@@ -181,11 +185,18 @@ public class VdcSiteManager extends AbstractManager {
             }
 
             // Step3: change data revision
-            log.info("Step3: check if target data revision is changed - {}", targetSiteInfo.getTargetDataRevision());
+            String targetDataRevision = targetSiteInfo.getTargetDataRevision();
+            log.info("Step3: check if target data revision is changed - {}", targetDataRevision);
             try {
-                updateDataRevision();
+                String localRevision = localRepository.getDataRevision();
+                log.info("Step3: local data revision is {}", localRevision);
+                if (!targetSiteInfo.isNullTargetDataRevision() && !targetDataRevision.equals(localRevision)) {
+                    updateDataRevision();
+                    continue;
+                }
             } catch (Exception e) {
                 log.error("Step3: Failed to update data revision. {}", e);
+                continue;
             }
             
             // Step4: sleep
@@ -468,37 +479,32 @@ public class VdcSiteManager extends AbstractManager {
      * Check if data revision is same as local one. If not, switch to target revision and reboot the whole cluster
      * simultaneously.
      * 
-     * The data revision switch is implemented as 2-phase commit protocol to ensure 
+     * The data revision switch is implemented as 2-phase commit protocol to ensure no partial commit
      * 
      * @throws Exception
      */
     private void updateDataRevision() throws Exception {
         String targetDataRevision = targetSiteInfo.getTargetDataRevision();
-        String localRevision = localRepository.getDataRevision();
-        log.info("Step3: local data revision is {}", localRevision);
-        if (!targetSiteInfo.isNullTargetDataRevision() && !targetDataRevision.equals(localRevision)) {
-            log.info("Step3: Trying to reach agreement with timeout for data revision change");
-            if (checkAllNodesAgreeToPowerOff(false)) { 
-                log.info("Step3: Reach agreement for data revision change");
-                // Phase 1 - make sure all nodes agreed and write changes to local - uncommitted
+        log.info("Step3: Trying to reach agreement with timeout for data revision change");
+        String barrierPath = String.format("%s/%s/DataRevisionBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
+        DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, coordinator.getNodeCount());
+        try {
+            boolean phase1Agreed = barrier.enter(DATA_REVISION_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (phase1Agreed) {
+                // reach phase 1 agreement, we can start write to local property file
+                log.info("Step3: Reach phase 1 agreement for data revision change");
                 localRepository.setDataRevision(targetDataRevision, false);
-                resetTargetPowerOffState();
-                // Phase 2 - check if all nodes successfully write new revision to local
-                if (initiatePoweroff(false)) {
-                    // commit - if all nodes successfully write the change to local, write commit flag file at local 
+                boolean phase2Agreed = barrier.leave(DATA_REVISION_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                if (phase2Agreed) {
+                    // phase 2 agreement is received, we can make sure data revision change is written to local property file
+                    log.info("Step3: Reach phase 2 agreement for data revision change");
                     localRepository.setDataRevision(targetDataRevision, true);
                     reboot();
-                } else {
-                    // rollback - if all nodes successfully write the change to local, rollback the commit at local
-                    log.warn("Step3: Failed to receive confirmation from other nodes. Rollback data revision change");
-                    publishNodePowerOffState(PowerOffState.State.NONE);
-                    localRepository.setDataRevision(localRevision, true);
-                }
-            } else {
-                log.warn("Step3: Failed to reach agreement among all the nodes. Delay data revision change until next run");
-                publishNodePowerOffState(PowerOffState.State.NONE);
-                resetTargetPowerOffState();
-            }
+                } 
+            } 
+            log.warn("Step3: Failed to reach agreement among all the nodes. Delay data revision change until next run");
+        } catch (Exception ex) {
+            log.warn("Step3. Internal error happens when negotiating data revision change", ex);
         }
     }    
    

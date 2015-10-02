@@ -17,6 +17,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.ClusterInfo;
 
+import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -559,4 +560,13 @@ public interface CoordinatorClient {
      * This should only be used by the sync site API
      */
     public void setPrimarySite(String siteId) throws Exception;
+    
+    /**
+     * Create a Curator recipe - double barrier 
+     * 
+     * @param barrierPath Znode path for this barrier
+     * @param memberQty - number of members that plan to wait on the barrier
+     * @return
+     */
+    public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty);
 }

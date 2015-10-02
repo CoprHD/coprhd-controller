@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
@@ -1682,4 +1683,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 	    Configuration config = queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
 	    return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
 	}  
+	
+	@Override
+	public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty) {
+	    return new DistributedDoubleBarrier(_zkConnection.curator(), barrierPath, memberQty);
+	}
 }

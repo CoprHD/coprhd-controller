@@ -26,7 +26,7 @@ public class GetUnmanagedFilesystems extends ViPRExecutionTask<List<UnManagedFil
         this.storageSystem = storageSystem;
         this.virtualPool = virtualPool;
         this.type = type;
-        provideDetailArgs(storageSystem, virtualPool);
+        provideDetailArgs(storageSystem, virtualPool, type);
     }
 
     @Override

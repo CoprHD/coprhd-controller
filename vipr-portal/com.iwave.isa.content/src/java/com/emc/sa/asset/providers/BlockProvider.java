@@ -661,7 +661,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 debug("getting failoverTargets for consistency group %s", protectedBlockVolume);
                 BlockConsistencyGroupRestRep cg = client.blockConsistencyGroups().get(protectedBlockVolume);
 
-                List<VolumeRestRep> srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), RecoverPointPersonalityFilter.SOURCE);
+                List<VolumeRestRep> srcVolumes = null;
+                // Get RP source volumes
+                if (cg.getTypes().contains(BlockConsistencyGroup.Types.RP.name())) {
+                    srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), RecoverPointPersonalityFilter.SOURCE);
+                }
+                // Get SRDF source volumes
+                if (cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name())) {
+                    srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), new SRDFSourceFilter());
+                }
 
                 if (srcVolumes != null && !srcVolumes.isEmpty()) {
                     // Get the first source volume and obtain its target references

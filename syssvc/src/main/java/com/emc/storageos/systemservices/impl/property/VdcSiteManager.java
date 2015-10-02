@@ -484,6 +484,7 @@ public class VdcSiteManager extends AbstractManager {
      * @throws Exception
      */
     private void updateDataRevision() throws Exception {
+        String localRevision = localRepository.getDataRevision();
         String targetDataRevision = targetSiteInfo.getTargetDataRevision();
         log.info("Step3: Trying to reach agreement with timeout for data revision change");
         String barrierPath = String.format("%s/%s/DataRevisionBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
@@ -500,7 +501,10 @@ public class VdcSiteManager extends AbstractManager {
                     log.info("Step3: Reach phase 2 agreement for data revision change");
                     localRepository.setDataRevision(targetDataRevision, true);
                     reboot();
-                } 
+                } else {
+                    log.info("Step3: Failed to reach phase 2 agreement. Rollback revision change");
+                    localRepository.setDataRevision(localRevision, true);
+                }
             } 
             log.warn("Step3: Failed to reach agreement among all the nodes. Delay data revision change until next run");
         } catch (Exception ex) {

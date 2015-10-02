@@ -51,11 +51,11 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     }
     
     public SiteConfigRestRep getStandbyConfig() {
-        return client.get(SiteConfigRestRep.class, PathConstants.SITE_URL + "/standby/config");
+        return client.get(SiteConfigRestRep.class, PathConstants.SITE_URL + "/localconfig");
     }
     
     public DRNatCheckResponse checkIfBehindNat(DRNatCheckParam checkParam) {
-        return client.post(DRNatCheckResponse.class, checkParam, PathConstants.SITE_URL + "/standby/natcheck");
+        return client.post(DRNatCheckResponse.class, checkParam, PathConstants.SITE_URL + "/natcheck");
     }
 
     @Override

@@ -294,7 +294,7 @@ public class DisasterRecoveryService {
     @GET
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/standby/config")
+    @Path("/localconfig")
     public SiteConfigRestRep getStandbyConfig() {
         log.info("Begin to get standby config");
         String siteId = coordinator.getSiteId();
@@ -359,7 +359,7 @@ public class DisasterRecoveryService {
     
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/standby/natcheck")
+    @Path("/natcheck")
     @ExcludeLicenseCheck
     public DRNatCheckResponse checkIfBehindNat(DRNatCheckParam checkParam, @HeaderParam("X-Forwarded-For") String clientIp) {
         if (checkParam == null) {

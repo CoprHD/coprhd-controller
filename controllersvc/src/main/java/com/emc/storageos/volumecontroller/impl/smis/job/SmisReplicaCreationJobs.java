@@ -194,6 +194,16 @@ public class SmisReplicaCreationJobs extends SmisJob {
         }
     }
 
+    /*
+     * Construct target native ID to source native ID mapping using getReplicationRelationships SMI-S call.
+     *
+     * @param dbClient DBClient
+     * @param helper SmisCommandHelper
+     * @param storage StorageSystem
+     * @param srcDevIds Collection of source native IDs
+     * @param syncType integer value of sync type to query (clone, mirror, snapshot)
+     * @return the target native ID to source native ID mapping
+     */
     protected Map<String, String> getConsistencyGroupSyncPairs(DbClient dbClient, SmisCommandHelper helper,
             StorageSystem storage, Collection<String> srcDevIds, int syncType) throws WBEMException {
         Map<String, String> tgtToSrcMap = new HashMap<String, String>();

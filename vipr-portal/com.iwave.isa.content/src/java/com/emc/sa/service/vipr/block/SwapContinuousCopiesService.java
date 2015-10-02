@@ -42,14 +42,14 @@ public class SwapContinuousCopiesService extends ViPRService {
             ExecutionUtils.fail("failTask.SwapContinuousCopiesService", args(stringId(targetVolume)), args());
         }
 
-        logInfo("swap.continuous.copes.service.precheck", type.toUpperCase(), targetVolume.getName());
+        logInfo("swap.continuous.copies.service.precheck", type.toUpperCase(), targetVolume.getName());
     }
 
     @Override
     public void execute() throws Exception {
         Tasks<VolumeRestRep> copies = BlockStorageUtils.swapContinuousCopy(failoverTarget, type);
         for (Task<VolumeRestRep> copy : copies.getTasks()) {
-            logInfo("swap.continuous.copes.service", copy.getResource().getName(), copy.getResource().getId());
+            logInfo("swap.continuous.copies.service", copy.getResource().getName(), copy.getResource().getId());
         }
     }
 }

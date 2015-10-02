@@ -1446,6 +1446,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             RecoverPointCGResponse response = null;
             // The CG already exists if it contains volumes and is of type RP
             _log.info("Submitting RP Request: " + cgParams);
+                 
             if (cg.nameExistsForStorageSystem(rpSystem.getId(), cgParams.getCgName()) && rp.doesCgExist(cgParams.getCgName())) {
                 // cg exists in both the ViPR db and on the RP system
                 response = rp.addReplicationSetsToCG(cgParams, metropoint, attachAsClean);
@@ -1887,8 +1888,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Validate that all volumes belong to one protection set. In the meantime, figure out the protection set for future use.
             ProtectionSet protectionSet = null;
             for (Volume volume : volumes) {
-                if (protectionSet == null) {
-                    protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                if (protectionSet == null) {   
+                	if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
+            			protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                	}
                 } else if (!protectionSet.getId().equals(volume.getProtectionSet().getURI())) {
                     _log.error("Not all volumes belong to the same protection set.");
                     throw DeviceControllerExceptions.recoverpoint.cgDeleteStepInvalidParam("volumes from different protection sets");
@@ -1898,7 +1901,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // TODO: Check to make sure there are no other non-journal volumes in that copy
             // Check to see if there are any more volumes in this protection set.
             if (protectionSet == null || protectionSet.getInactive()) {
-                _log.info("Protection Set was already deleted.  Not performing RP CG operation");
+                _log.info("Protection set does not exist for volume or it has been already cleaned up.  Not performing RP CG operation");
                 WorkflowStepCompleter.stepSucceded(token);
                 return true;
             }

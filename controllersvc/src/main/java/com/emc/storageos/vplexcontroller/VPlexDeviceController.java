@@ -398,6 +398,38 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             try {
                 _log.info("Completing", _opId);
                 super.setStatus(dbClient, status, coded);
+
+                // When importing volume to VPLEX, the operation is on the
+                // the volume being imported. However, when importing a
+                // snapshot, execution is on an internal volume created to
+                // represent the snapshot, but the operation is on the snapshot
+                // itself, so we want to be sure an update the status on the
+                // snapshot.
+                List<URI> ids = getIds();
+                for (URI id : ids) {
+                    if (URIUtil.isType(id, Volume.class)) {
+                        Volume volume = dbClient.queryObject(Volume.class, id);
+                        String nativeGuid = volume.getNativeGuid();
+                        if (NullColumnValueGetter.isNotNullValue(nativeGuid)) {
+                            List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(dbClient, nativeGuid);
+                            if (!snapshots.isEmpty()) {
+                                // There should only be one.
+                                switch (status) {
+                                    case error:
+                                        super.setErrorOnDataObject(dbClient, BlockSnapshot.class, snapshots.get(0), coded);
+                                        break;
+                                    case ready:
+                                        super.setReadyOnDataObject(dbClient, BlockSnapshot.class, snapshots.get(0));
+                                        break;
+                                    default:
+                                        _log.error("Unexpected status {} on completer", status.name());
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 updateWorkflowStatus(status, coded);
             } catch (DatabaseException ex) {
                 _log.error("Unable to complete task: " + getOpId());
@@ -5775,7 +5807,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     vplexVolume.setNativeGuid(virtvinfo.getPath());
                     vplexVolume.setDeviceLabel(virtvinfo.getName());
                     _dbClient.persistObject(vplexVolume);
-
                 }
             } else {
                 virtvinfo = new VPlexVirtualVolumeInfo();

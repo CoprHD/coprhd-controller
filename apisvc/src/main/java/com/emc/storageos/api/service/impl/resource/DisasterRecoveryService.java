@@ -270,7 +270,7 @@ public class DisasterRecoveryService {
         Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
         if (config == null) {
             log.error("Can't find site {} from ZK", uuid);
-            throw APIException.badRequests.siteIdNotFound(uuid);
+            throw APIException.badRequests.siteIdNotFound();
         }
 
         try {
@@ -371,7 +371,7 @@ public class DisasterRecoveryService {
         Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
         if (config == null) {
             log.error("Can't find site {} from ZK", uuid);
-            throw APIException.badRequests.siteIdNotFound(uuid);
+            throw APIException.badRequests.siteIdNotFound();
         }
 
         Site standby = new Site(config);

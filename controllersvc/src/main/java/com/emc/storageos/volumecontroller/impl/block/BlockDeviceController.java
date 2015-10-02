@@ -4121,47 +4121,38 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public String createListCloneStep(Workflow workflow, URI storage, StorageSystem storageSystem, List<URI> cloneList, String waitFor) {
-        Workflow.Method createMethod = createListCloneMethod(storage, cloneList, false);
-        Workflow.Method rollbackMethod = rollbackFullCopyVolumeMethod(storage, cloneList);
-        waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", waitFor, storage,
-                storageSystem.getSystemType(), getClass(), createMethod, rollbackMethod, null);
-
-        return waitFor;
-    }
-
     public String detachCloneStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> cloneList,
             boolean isRemoveAll) {
         URI storage = storageSystem.getId();
         if (isRemoveAll) {
             Workflow.Method detachMethod = detachFullCopyMethod(storage, cloneList.get(0));
-            waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", waitFor,
+            waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching group clone", waitFor,
                     storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
         } else {
-            Workflow.Method detachMethod = detachListFullCopyMethod(storage, cloneList);
-            waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", waitFor,
+            Workflow.Method detachMethod = detachListCloneMethod(storage, cloneList);
+            waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching list clone", waitFor,
                     storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
         }
 
         return waitFor;
     }
 
-    public Workflow.Method detachListFullCopyMethod(URI storage, List<URI> fullCopyVolume) {
-        return new Workflow.Method("detachListFullCopy", storage, fullCopyVolume);
+    public Workflow.Method detachListCloneMethod(URI storage, List<URI> cloneList) {
+        return new Workflow.Method("detachListClone", storage, cloneList);
     }
 
-    public void detachListFullCopy(URI storage, List<URI> fullCopyVolume, String taskId)
+    public void detachListClone(URI storage, List<URI> cloneList, String taskId)
             throws ControllerException {
-        _log.info("START detachListFullCopy: {}", fullCopyVolume);
+        _log.info("START detachListClone: {}", Joiner.on("\t").join(cloneList));
 
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            TaskCompleter taskCompleter = new VolumeDetachCloneCompleter(fullCopyVolume, taskId);
-            getDevice(storageSystem.getSystemType()).doDetachListReplica(storageSystem, fullCopyVolume, taskCompleter);
+            TaskCompleter taskCompleter = new VolumeDetachCloneCompleter(cloneList, taskId);
+            getDevice(storageSystem.getSystemType()).doDetachListReplica(storageSystem, cloneList, taskCompleter);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
-            doFailTask(Volume.class, fullCopyVolume, taskId, serviceError);
+            doFailTask(Volume.class, cloneList, taskId, serviceError);
         }
     }
 
@@ -4262,6 +4253,25 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
+    /**
+     * Add step to create list clone.
+     *
+     * @param workflow The Workflow being built
+     * @param storageSystem Storage system
+     * @param waitFor Previous step to waitFor
+     * @param cloneList List of URIs for clones to be created
+     * @return last step added to waitFor
+     */
+    public String createListCloneStep(Workflow workflow, StorageSystem storageSystem, List<URI> cloneList, String waitFor) {
+        URI storage = storageSystem.getId();
+        Workflow.Method createMethod = createListCloneMethod(storage, cloneList, false);
+        Workflow.Method rollbackMethod = rollbackListCloneMethod(storage, cloneList);
+        waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", waitFor, storage,
+                storageSystem.getSystemType(), getClass(), createMethod, rollbackMethod, null);
+
+        return waitFor;
+    }
+
     public Workflow.Method createListCloneMethod(URI storage, List<URI> cloneList, Boolean createInactive) {
         return new Workflow.Method("createListClone", storage, cloneList, createInactive);
     }
@@ -4279,17 +4289,60 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
+    public Workflow.Method rollbackListCloneMethod(URI storage, List<URI> cloneList) {
+        return new Workflow.Method("rollbackListClone", storage, cloneList);
+    }
+
+    public void rollbackListClone(URI storage, List<URI> cloneList, String taskId) {
+        WorkflowStepCompleter.stepExecuting(taskId);
+        _log.info("Rollback list clone");
+        List<Volume> clones = _dbClient.queryObject(Volume.class, cloneList);
+        List<Volume> clonesNoRollback = new ArrayList<Volume>();
+        try {
+            for (Volume clone : clones) {
+                if (isNullOrEmpty(clone.getNativeId())) {
+                    clone.setInactive(true);
+                    clonesNoRollback.add(clone);
+                }
+            }
+
+            if (!clonesNoRollback.isEmpty()) {
+                _dbClient.persistObject(clonesNoRollback);
+                clones.removeAll(clonesNoRollback);
+            }
+
+            if (!clones.isEmpty()) {
+                _log.info("Detach list clone for rollback");
+                detachListClone(storage, cloneList, taskId);
+                _log.info("Delete clones for rollback");
+                deleteVolumes(storage, cloneList, taskId);
+            }
+
+            WorkflowStepCompleter.stepSucceded(taskId);
+        } catch (InternalException ie) {
+            _log.error(String.format("rollbackListClone failed - Array: %s, clones: %s", storage, Joiner.on("\t").join(cloneList)));
+            doFailTask(Volume.class, cloneList, taskId, ie);
+            WorkflowStepCompleter.stepFailed(taskId, ie);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(taskId, serviceError);
+            doFailTask(Volume.class, cloneList, taskId, serviceError);
+        }
+    }
+
     /**
      * Add Steps to create list mirror.
      *
      * @param workflow The Workflow being built
-     * @param waitFor Previous steps to waitFor
+     * @param storageSystem Storage system
+     * @param waitFor Previous step to waitFor
      * @param mirrorList List of URIs for mirrors to be created
      * @return last step added to waitFor
      */
-    public String createListMirrorStep(Workflow workflow, String waitFor,  URI storage, List<URI> mirrorList) throws ControllerException {
+    public String createListMirrorStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> mirrorList) throws ControllerException {
+        URI storage = storageSystem.getId();
         waitFor = workflow.createStep(CREATE_MIRRORS_STEP_GROUP, "Creating list mirror", waitFor,
-                storage, getDeviceType(storage),
+                storage, storageSystem.getSystemType(),
                 this.getClass(),
                 createListMirrorMethod(storage, mirrorList, false),
                 rollbackListMirrorMethod(storage, mirrorList), null);

@@ -568,12 +568,15 @@ public class VPlexApiMigrationManager {
         // Find the requested migrations. An exception will be thrown if
         // they are not all found.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-        List<VPlexMigrationInfo> migrationInfoList = discoveryMgr
-                .findMigrations(migrationNames);
-        if (migrationInfoList.isEmpty()) {
-            s_logger.info("No migration found in the VPLEX");
+        List<VPlexMigrationInfo> migrationInfoList = null;
+        try {
+            migrationInfoList = discoveryMgr.findMigrations(migrationNames);
+        } catch (VPlexApiException vae) {
+            // migrations might have deleted from VPLEX, then we just need to delete them from ViPR DB.
+            s_logger.info("No migration found in the VPLEX", vae);
             return;
         }
+        
         // Verify that the migrations are in a state in which they can be removed.
         StringBuilder migrationArgBuilder = new StringBuilder();
         for (VPlexMigrationInfo migrationInfo : migrationInfoList) {

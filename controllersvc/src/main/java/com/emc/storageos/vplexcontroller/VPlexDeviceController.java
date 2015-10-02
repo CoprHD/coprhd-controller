@@ -10036,7 +10036,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
             URI volId = migration.getVolume();
             completer = new MigrationOperationTaskCompleter(volId, opId);
-            client.cancelMigrations(Arrays.asList(migration.getLabel()), false, false);
+            client.cancelMigrations(Arrays.asList(migration.getLabel()), true, true);
             migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.CANCELLED.name());
             _dbClient.persistObject(migration);
             completer.ready(_dbClient);

@@ -164,7 +164,7 @@ public class ControllerLockingUtil {
      */
     static private String getStorageKey(DbClient dbClient, URI storageURI) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
-        if (storageURI != null) {
+        if (storage != null) {
             return storage.getNativeGuid();
         }
         ProtectionSystem protection = dbClient.queryObject(ProtectionSystem.class, storageURI);

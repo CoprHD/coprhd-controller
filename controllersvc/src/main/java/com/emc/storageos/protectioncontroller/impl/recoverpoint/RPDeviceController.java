@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -141,6 +142,8 @@ import com.emc.storageos.volumecontroller.impl.plugins.RPStatisticsHelper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
+import com.emc.storageos.vplexcontroller.ConsistencyGroupManager;
+import com.emc.storageos.vplexcontroller.RPVplexConsistencyGroupManager;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -5443,8 +5446,26 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public void removeProtection(List<URI> volumeURIs, URI newVpoolURI, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);        
         try {
+            ConsistencyGroupManager consistencyGroupManager = null;
             for (URI volumeURI : volumeURIs) {
-                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);            
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI); 
+                
+                // Remove the volume from it's VPLEX CG if it's a VPLEX volume
+                if (RPHelper.isVPlexVolume(volume)) {
+                    if (consistencyGroupManager == null) {
+                        consistencyGroupManager = new RPVplexConsistencyGroupManager();
+                    }
+                    BlockConsistencyGroup cg = null;
+                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                        cg = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+                    }
+                    if (cg != null) {                    
+                        _log.info(String.format("Volume [%s] (%s) is a VPLEX Virtual Volume, removing volume from CG [%s] (%s) on VPLEX.", 
+                                volume.getLabel(), volume.getId(), cg.getLabel(), cg.getId()));
+                        consistencyGroupManager.deleteConsistencyGroupVolume(volume.getStorageController(), volume, cg.getLabel());                        
+                    }                    
+                }
+                
                 // Rollback protection on the volume
                 VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 _log.info(String.format("Removing protection from Volume [%s] (%s) and moving it to Virtual Pool [%s] (%s)", 

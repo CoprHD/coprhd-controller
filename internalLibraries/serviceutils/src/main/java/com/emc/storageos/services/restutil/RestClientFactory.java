@@ -191,7 +191,7 @@ abstract public class RestClientFactory {
     }
 
     public RestClientItf getRESTClient(URI endpoint, String username, String password, boolean authFilter) {
-        RestClientItf clientApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
+        RestClientItf clientApi = _clientMap.get(getRestClientKey(endpoint, username, password));
         if (clientApi == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
             if (authFilter) {
@@ -199,7 +199,7 @@ abstract public class RestClientFactory {
             }
             clientApi = createNewRestClient(endpoint, username, password, jerseyClient);
 
-            _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, clientApi);
+            _clientMap.putIfAbsent(getRestClientKey(endpoint, username, password), clientApi);
         }
         return clientApi;
     }
@@ -217,12 +217,85 @@ abstract public class RestClientFactory {
     abstract protected RestClientItf createNewRestClient(URI endpoint, String username, String password,
             com.sun.jersey.api.client.Client client);
 
+    /**
+     * Returns the baseClient for the given endpoint & its credentials.
+     * 
+     * @param endpoint
+     * @param username
+     * @param password
+     * @param authFilter
+     * @return
+     */
     protected Client getBaseClient(URI endpoint, String username, String password, boolean authFilter) {
         Client jerseyClient = new ApacheHttpClient(_clientHandler);
         if (authFilter) {
             jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
         }
         return jerseyClient;
+    }
+
+    /**
+     * Remove the client from cache & its credentials.
+     * 
+     * @param endpoint
+     * @param username
+     * @param password
+     */
+    public void removeClientFromCache(URI endpoint, String username, String password) {
+        String cacheKey = getRestClientKey(endpoint, username, password);
+        if (_clientMap.containsKey(cacheKey)) {
+            _log.debug("Found endpoint {} {} in cache and removing.", endpoint.toString(), username);
+            _clientMap.remove(cacheKey);
+        }
+    }
+
+    /**
+     * Get the client from cache for given endpoint & its credentials
+     * 
+     * @param endpoint
+     * @param username
+     * @param password
+     * @return
+     */
+    public RestClientItf getClientFromCache(URI endpoint, String username, String password) {
+        String cacheKey = getRestClientKey(endpoint, username, password);
+        if (_clientMap.containsKey(cacheKey)) {
+            _log.debug("Found endpoint {} {} in cache and removing.", endpoint.toString(), username);
+            return _clientMap.get(cacheKey);
+        }
+        return null;
+    }
+
+    /**
+     * Create a new Connection and add it to cache.
+     * 
+     * @param endpoint
+     * @param username
+     * @param password
+     * @param authFilter
+     * @return
+     */
+    public RestClientItf createAndAddClientToCache(URI endpoint, String username, String password, boolean authFilter) {
+        Client jerseyClient = new ApacheHttpClient(_clientHandler);
+        if (authFilter) {
+            jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
+        }
+        RestClientItf clientApi = createNewRestClient(endpoint, username, password, jerseyClient);
+
+        _clientMap.putIfAbsent(getRestClientKey(endpoint, username, password), clientApi);
+        return clientApi;
+    }
+
+    /**
+     * Return the CacheKey for the given credentials.
+     * 
+     * @param endpoint
+     * @param username
+     * @param password
+     * @return
+     */
+    private String getRestClientKey(URI endpoint, String username, String password) {
+        return endpoint.toString() + ":" + username + ":" + password;
     }
 
 }

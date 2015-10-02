@@ -40,4 +40,5 @@ public class XtremIOClientFactory extends RestClientFactory {
         Client jerseyClient = super.getBaseClient(endpoint, username, password, authFilter);
         return new XtremIOV1Client(endpoint, username, password, jerseyClient);
     }
+
 }

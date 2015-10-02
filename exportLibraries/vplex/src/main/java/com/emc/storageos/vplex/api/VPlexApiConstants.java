@@ -40,7 +40,7 @@ public class VPlexApiConstants {
     public static final String ACCEPT_JSON_FORMAT_1 = ";format=1";
     public static final String CACHE_CONTROL_HEADER = "Cache-control";
     public static final String CACHE_CONTROL_MAXAGE_KEY = "max-age=";
-    public static final String CACHE_CONTROL_MAXAGE_DEFAULT_VALUE = "600";
+    public static final String CACHE_CONTROL_MAXAGE_DEFAULT_VALUE = "0";
     public static final String CACHE_CONTROL_MAXAGE_ZERO = "0";
 
     // Constants defining HTTP resource paths.

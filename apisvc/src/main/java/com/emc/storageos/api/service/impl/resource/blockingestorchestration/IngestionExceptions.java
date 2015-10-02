@@ -151,4 +151,33 @@ public interface IngestionExceptions {
     
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException validationException(String reason);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unManagedProtectionSetNotFound(String nativeGuid);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException rpIngestingNonVolumeObject(String nativeGuid);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noManagedTargetVolumeFound(String nativeGuid, String rpManagedTargetVolumeIdStr);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noUnManagedTargetVolumeFound(String nativeGuid, String rpUnManagedTargetVolumeIdStr);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noManagedSourceVolumeFound(String nativeGuid, String rpManagedSourceVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noUnManagedSourceVolumeFound(String nativeGuid);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noUnManagedSourceVolumeFound2(String nativeGuid, String rpUnManagedSourceVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noVolumesFoundInProtectionSet(String label);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noUnManagedExportMaskFound(String nativeGuid);
+
+
 }

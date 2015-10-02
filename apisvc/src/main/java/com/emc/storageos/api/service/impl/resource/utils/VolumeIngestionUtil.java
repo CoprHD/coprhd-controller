@@ -1410,10 +1410,20 @@ public class VolumeIngestionUtil {
             URI vPoolURI, DbClient dbClient) {
         DbModelClientImpl dbModelClient = new DbModelClientImpl(dbClient);
         ExportPathParams pathParams = BlockStorageScheduler.getExportPathParam(block, vPoolURI, dbClient);
-        for (Set<String> hostInitiatorsUri : initiatorUris) {
+        for (Set<String> hostInitiatorUris : initiatorUris) {
             List<Initiator> initiators = CustomQueryUtility.iteratorToList(dbModelClient.find(Initiator.class,
-                    StringSetUtil.stringSetToUriList(hostInitiatorsUri)));
-            if (hasFCInitiators(initiators)) {
+                    StringSetUtil.stringSetToUriList(hostInitiatorUris)));
+
+            // If this an RP initiator, do not validate num path against the vpool; it's a back-end mask with different 
+            // pathing rules.
+            boolean avoidNumPathCheck = false;
+            for (Initiator initiator : initiators) {
+                if (initiator.checkInternalFlags(Flag.RECOVERPOINT)) {
+                    avoidNumPathCheck = true;
+                }
+            }
+            
+            if (hasFCInitiators(initiators) && !avoidNumPathCheck) {
                 return verifyHostNumPath(pathParams, initiators, zoningMap);
             }
         }
@@ -1468,7 +1478,7 @@ public class VolumeIngestionUtil {
                        + "so no need to validate against virtual pool path params");
             return true;
         }
-        URI hostURI = initiators.get(0).getHost();
+        URI hostURI = initiators.get(0).getHost() == null ? URIUtil.NULL_URI : initiators.get(0).getHost();
         _logger.info("Checking numpath for host {}", hostName);
         for (Initiator initiator : initiators) {
             if (initiator.getHostName() != null) {
@@ -1656,6 +1666,43 @@ public class VolumeIngestionUtil {
         return null;
     }
 
+    /**
+     * Get the export group associated with initiator URIs
+     * 
+     * @param project project
+     * @param knownInitiatorUris initiator list (currently only the first is used)
+     * @param vArray virtual array
+     * @param dbClient dbclient
+     * @return export group
+     */
+    public static ExportGroup verifyExportGroupExists(URI project, StringSet knownInitiatorUris, URI vArray, DbClient dbClient) {
+        for (String initiatorIdStr : knownInitiatorUris) {
+            AlternateIdConstraint constraint = AlternateIdConstraint.Factory.
+                    getExportGroupInitiatorConstraint(initiatorIdStr);
+            URIQueryResultList egUris = new URIQueryResultList();
+            dbClient.queryByConstraint(constraint, egUris);
+            List<ExportGroup> queryExportGroups = dbClient.queryObject(ExportGroup.class, egUris);
+            for (ExportGroup exportGroup : queryExportGroups) {
+                if (!exportGroup.getProject().getURI().equals(project)) {
+                    continue;
+                }
+                
+                if (!exportGroup.getVirtualArray().equals(vArray)) {
+                    continue;
+                }
+                
+                // TODO: This code will likely need to be rethought when we consider multiple masks to RP (VMAX2)
+                if (queryExportGroups.size() > 1) {
+                    _logger.error("More than one export group contains the initiator(s) requested.  Choosing the first one: " + exportGroup.getId().toString());
+                }
+                return exportGroup;
+            }
+        
+        }
+        return null;
+    }
+    
+    
     /**
      * Get UnManaged Volumes associated with Host
      * 
@@ -2302,5 +2349,6 @@ public class VolumeIngestionUtil {
 
         return clones;
     }
+
 
 }

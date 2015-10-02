@@ -17,8 +17,8 @@ public class GetCGsResponse implements Serializable {
     private boolean isJunitTest;
     // Name of the CG Group
     private String cgName;
-    // CG URI
-    private URI cgUri;
+    // CG ID
+    private long cgId;
     // Project of the source volume
     private URI project;
     // Tenant making request
@@ -50,12 +50,12 @@ public class GetCGsResponse implements Serializable {
         this.cgName = cgName;
     }
 
-    public URI getCgUri() {
-        return cgUri;
+    public long getCgId() {
+        return cgId;
     }
 
-    public void setCgUri(URI cgUri) {
-        this.cgUri = cgUri;
+    public void setCgId(long cgId) {
+        this.cgId = cgId;
     }
 
     public URI getProject() {

@@ -623,6 +623,12 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedProtectionSet.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
-}
+
+        public static AlternateIdConstraint getUnManagedProtectionSetByUnManagedVolumeConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedProtectionSet.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("unManagedVolumeIds"), altId);
+        }
+
+    }
 
 }

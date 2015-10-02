@@ -84,8 +84,8 @@ public class RecoverPointClientIntegrationTest {
 
     private static final String RP_USERNAME = "admin"; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RP_USERNAME");
     private static final String RP_PASSWORD = "admin"; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RP_PASSWORD");
-    private static final String RPSiteToUse = "lrmb016.lss.emc.com"; // EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSiteToUse");
-    private static final String RPSystemName = "lrmb016"; // EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSystemName");
+    private static final String RPSiteToUse = "lglw1044.lss.emc.com"; // EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSiteToUse");
+    private static final String RPSystemName = "lglw1044"; // EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSystemName");
     private static final String SITE_MGMT_IPV4 = "10.247.169.83";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.SITE_MGMT_IPV4");
 
     private static final String FAKE_WWN = "6006016018C12D00";

@@ -686,7 +686,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             // Set the attributes for new smis version.
             if (keyMap.containsKey(Constants.IS_NEW_SMIS_PROVIDER)
                     && Boolean.valueOf(keyMap.get(Constants.IS_NEW_SMIS_PROVIDER).toString())) {
-                unManagedVolume.setLabel(getCIMPropertyValue(volumeInstance, NAME));
+                // DO NOT CHECK-IN WJEIV
+                unManagedVolume.setLabel(getCIMPropertyValue(volumeInstance, "ElementName"));
                 raidLevelObj = volumeInstance.getPropertyValue(SupportedVolumeInformation.RAID_LEVEL
                         .getAlternateKey());
                 isBound = getCIMPropertyValue(volumeInstance,

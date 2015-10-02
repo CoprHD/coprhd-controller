@@ -4028,9 +4028,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
             WorkflowStepCompleter.stepSucceded(token);
         } catch (RecoverPointException e) {
+            _log.error("create bookmark step failed with a RecoverPoint exception: ", e);
             WorkflowStepCompleter.stepFailed(token, e);
             return false;
         } catch (Exception e) {
+            _log.error("create bookmark step failed with an unchecked exception: ", e);
             WorkflowStepCompleter.stepFailed(token, DeviceControllerException.errors.jobFailed(e));
             return false;
         }

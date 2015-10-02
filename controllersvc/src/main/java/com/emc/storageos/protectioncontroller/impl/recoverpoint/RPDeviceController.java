@@ -1888,7 +1888,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Validate that all volumes belong to one protection set. In the meantime, figure out the protection set for future use.
             ProtectionSet protectionSet = null;
             for (Volume volume : volumes) {
-                if (protectionSet == null) {   
+                if (protectionSet == null) {
+                	//Check if the volumes' protection set is valid. This method is called on rollback of cgCreate. 
+                	//It is possible that the failure can happen before we got to creating the CG and updating the protection 
+                	//set on the volume. 
                 	if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
             			protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
                 	}

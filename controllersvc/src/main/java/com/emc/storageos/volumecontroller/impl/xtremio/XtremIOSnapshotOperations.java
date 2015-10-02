@@ -62,6 +62,13 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 createdSnap = createV1Snapshot(client, storage, snap, generatedLabel, readOnly, taskCompleter);
             }
 
+            if (client.isVersion2()) {
+                XtremIOProvUtils.createTagsForVolumeAndSnaps(client,
+                        getVolumeFolderName(snap.getProject().getURI(), storage),
+                        xioClusterName).
+                        get(XtremIOConstants.SNAPSHOT_KEY);
+            }
+
             if (createdSnap != null) {
                 processSnapshot(createdSnap, snap, storage);
             }

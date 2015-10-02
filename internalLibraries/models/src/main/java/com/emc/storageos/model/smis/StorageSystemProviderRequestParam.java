@@ -19,22 +19,6 @@ public class StorageSystemProviderRequestParam {
     /**
      * Type of the storage system
      * 
-     * @valid isilon
-     * @valid vnxblock
-     * @valid vnxfile
-     * @valid vmax
-     * @valid netapp
-     * @valid vplex
-     * @valid mds
-     * @valid brocade
-     * @valid rp
-     * @valid srdf,
-     * @valid host,
-     * @valid vcenter,
-     * @valid hds,
-     * @valid rpvplex,
-     * @valid openstack,
-     * @valid scaleio;
      */
 
     @XmlElement(name = "system_type", required = true)
@@ -49,7 +33,6 @@ public class StorageSystemProviderRequestParam {
     /**
      * Serial ID of the storage system
      * 
-     * @valid none
      */
     @XmlElement(name = "serial_number", required = true)
     public String getSerialNumber() {

@@ -26,7 +26,6 @@ public class Tags {
     /**
      * A set of tags
      * 
-     * @valid none
      */
     @XmlElement(name = "tag")
     public Set<String> getTag() {

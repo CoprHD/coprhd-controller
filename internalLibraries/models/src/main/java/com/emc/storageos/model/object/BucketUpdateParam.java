@@ -30,7 +30,6 @@ public class BucketUpdateParam {
     /**
      * Soft Quota of Bucket in Bytes.
      * 
-     * @valid none
      */
     @XmlElement(required = false, name = "soft_quota")
     public String getSoftQuota() {
@@ -44,7 +43,6 @@ public class BucketUpdateParam {
     /**
      * Hard Quota of Bucket in Bytes.
      * 
-     * @valid none
      */
     @XmlElement(required = false, name = "hard_quota")
     public String getHardQuota() {
@@ -58,7 +56,6 @@ public class BucketUpdateParam {
     /**
      * Retention period for a Bucket
      * 
-     * @valid none
      */
     @XmlElement(name = "retention", required = false)
     public String getRetention() {

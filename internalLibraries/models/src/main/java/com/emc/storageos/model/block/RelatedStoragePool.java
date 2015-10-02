@@ -25,7 +25,6 @@ public class RelatedStoragePool {
     /**
      * The name and URI of the storage pool
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_pool")
     public NamedRelatedResourceRep getStoragePool() {

@@ -34,7 +34,6 @@ public class FCZoneReferenceRestRep {
     /**
      * The VSAN (Virtual Storage Area Network) ID used for zoning.
      * 
-     * @valid none
      */
     @XmlElement
     public String getFabricId() {
@@ -48,7 +47,6 @@ public class FCZoneReferenceRestRep {
     /**
      * The URI of the export group.
      * 
-     * @valid none
      */
     @XmlElement
     public URI getGroupUri() {
@@ -62,7 +60,6 @@ public class FCZoneReferenceRestRep {
     /**
      * The URI of the FC (Fibre Channel) switch last used for zoning.
      * 
-     * @valid none
      */
     @XmlElement
     public URI getNetworkSystemUri() {
@@ -76,7 +73,6 @@ public class FCZoneReferenceRestRep {
     /**
      * The port WWPN (World Wide Port Name) key.
      * 
-     * @valid none
      */
     @XmlElement
     public String getPwwnKey() {
@@ -90,7 +86,6 @@ public class FCZoneReferenceRestRep {
     /**
      * The URI of the volume used by the export group.
      * 
-     * @valid none
      */
     @XmlElement
     public URI getVolumeUri() {
@@ -104,7 +99,6 @@ public class FCZoneReferenceRestRep {
     /**
      * The name of the zone.
      * 
-     * @valid none
      */
     @XmlElement
     public String getZoneName() {
@@ -121,8 +115,6 @@ public class FCZoneReferenceRestRep {
      * created by the user, and re-used by the system, false when the zone is created
      * by the system
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement
     public boolean getCreatedByUser() {

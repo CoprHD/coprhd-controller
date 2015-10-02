@@ -23,7 +23,6 @@ public class ExportRules implements Serializable {
     /**
      * List of exportRules to be modified
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "exportRules")
     @XmlElement(name = "exportRule")

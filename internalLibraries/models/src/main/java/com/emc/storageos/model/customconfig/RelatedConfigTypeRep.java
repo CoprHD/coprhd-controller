@@ -17,7 +17,6 @@ public class RelatedConfigTypeRep {
     /**
      * The config type name
      * 
-     * @valid none
      */
     @XmlElement(name = "name")
     public String getConfigName() {
@@ -31,7 +30,6 @@ public class RelatedConfigTypeRep {
     /**
      * The link to the config type object
      * 
-     * @valid none
      */
     @XmlElement(name = "link")
     public RestLinkRep getSelfLink() {

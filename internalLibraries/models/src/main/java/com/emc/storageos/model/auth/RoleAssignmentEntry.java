@@ -14,29 +14,18 @@ public class RoleAssignmentEntry {
     /**
      * Roles to that are part of this assignment.
      * 
-     * @valid SYSTEM_ADMIN (virtual data center role)
-     * @valid SECURITY_ADMIN (virtual data center role)
-     * @valid SYSTEM_MONITOR (virtual data center role)
-     * @valid SYSTEM_AUDITOR (virtual data center role)
-     * @valid TENANT_ADMIN (tenant role)
-     * @valid PROJECT_ADMIN (tenant role)
-     * @valid TENANT_APPROVER (tenant role)
      */
     private List<String> roles;
 
     /**
      * Subject to whom the role is assigned or being assigned/revoked.
      * 
-     * @valid Only one of subject_id or group can be supplied.
-     * @valid user@company.com
      */
     private String subjectId;
 
     /**
      * Group to whom the role is assigned or being assigned/revoked
      * 
-     * @valid Only one of subject_id or group can be supplied.
-     * @valid group@company.com
      */
     private String group;
 

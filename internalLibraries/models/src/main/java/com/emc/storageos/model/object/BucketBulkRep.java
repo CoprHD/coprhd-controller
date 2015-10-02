@@ -19,7 +19,6 @@ public class BucketBulkRep extends BulkRestRep {
      * The list of buckets, returned as response to bulk
      * queries.
      * 
-     * @valid none
      */
     @XmlElement(name = "buckets")
     public List<BucketRestRep> getBuckets() {

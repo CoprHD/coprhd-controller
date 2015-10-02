@@ -148,7 +148,7 @@ public class HealthMonitor {
      * <p>
      * API Call: GET /monitor/storage
      * 
-     * @return Storage stats for controller (file & block) and object.
+     * @return Storage stats for controller (file , block) and object.
      */
     public StorageStats getStorageStats() {
         return client.get(StorageStats.class, MONITOR_STORAGE_URL);

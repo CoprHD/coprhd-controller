@@ -30,7 +30,6 @@ public abstract class ClusterParam {
     /**
      * The name of data center in vCenter for an ESX cluster.
      * 
-     * @valid none
      */
     @XmlElement(name = "vcenter_data_center")
     @JsonProperty("vcenter_data_center")
@@ -45,7 +44,6 @@ public abstract class ClusterParam {
     /**
      * This field is currently not used. Any values passed into it will be ignored.
      * 
-     * @valid none
      */
     @XmlElement()
     public URI getProject() {

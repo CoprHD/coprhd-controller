@@ -34,8 +34,6 @@ public class NetworkCreate {
     /**
      * Name of the network; must be unique.
      * 
-     * @valid must be unique within all existing networks
-     * @valid example: network1
      */
     @XmlElement(required = true, name = "name")
     @Length(min = 2, max = 128)
@@ -50,9 +48,6 @@ public class NetworkCreate {
     /**
      * Transport type of the network.
      * 
-     * @valid FC = Fibre Channel
-     * @valid IP
-     * @valid Ethernet
      */
     @XmlElement(required = true, name = "transport_type")
     public String getTransportType() {

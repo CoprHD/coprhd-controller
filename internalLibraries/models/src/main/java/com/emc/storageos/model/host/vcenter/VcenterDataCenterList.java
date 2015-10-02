@@ -28,7 +28,6 @@ public class VcenterDataCenterList {
     /**
      * List of vCenter data center instances that exists in ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "vcenter_data_center")
     public List<NamedRelatedResourceRep> getDataCenters() {

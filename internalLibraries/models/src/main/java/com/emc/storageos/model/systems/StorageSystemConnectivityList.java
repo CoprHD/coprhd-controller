@@ -26,7 +26,6 @@ public class StorageSystemConnectivityList {
     /**
      * List of storage systems connected to protection system
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_connectivity")
     public List<StorageSystemConnectivityRestRep> getConnections() {

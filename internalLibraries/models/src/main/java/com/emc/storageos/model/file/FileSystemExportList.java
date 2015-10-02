@@ -27,7 +27,6 @@ public class FileSystemExportList {
     /**
      * List of file system exports
      * 
-     * @valid none
      */
     @XmlElement(name = "filesystem_export")
     public List<FileSystemExportParam> getExportList() {

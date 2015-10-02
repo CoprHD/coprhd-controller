@@ -44,8 +44,6 @@ public class VirtualPoolChangeRep extends NamedRelatedVirtualPoolRep {
     /**
      * Specifies whether or not a virtual pool change is allowed.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "allowed")
     public Boolean getAllowed() {
@@ -59,7 +57,6 @@ public class VirtualPoolChangeRep extends NamedRelatedVirtualPoolRep {
     /**
      * When not allowed, the reason the virtual pool change is not allowed.
      * 
-     * @valid none
      */
     @XmlElement(name = "not_allowed_reason")
     public String getNotAllowedReason() {

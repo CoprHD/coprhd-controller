@@ -32,7 +32,6 @@ public class ProtectionSystemConnectivityRestRep {
     /**
      * The Protection System ID for the connectivity
      * 
-     * @valid example: urn:storageos:ProtectionSystem:4379693c-c2f9-4e8e-ac4f-c67789cf1934:
      */
     @XmlElement(name = "protection_system")
     public NamedRelatedResourceRep getProtectionSystem() {
@@ -46,7 +45,6 @@ public class ProtectionSystemConnectivityRestRep {
     /**
      * The Protection Sites for this Protection System.
      * 
-     * @valid 0 or more Protection Sites
      */
     // TODO possibly add XmlElementWrapper(name="protection_sites") since this is a list
     @XmlElement(name = "protection_site")

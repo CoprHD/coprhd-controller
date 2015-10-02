@@ -28,7 +28,6 @@ public class TenantUpdateParam extends TenantParam {
     /**
      * Name change for the tenant
      * 
-     * @valid any string within length limits
      */
     @XmlElement(required = false, name = "name")
     @Length(min = 2, max = 128)
@@ -43,7 +42,6 @@ public class TenantUpdateParam extends TenantParam {
     /**
      * Changes of user mappings for this tenant
      * 
-     * @valid There can be at most one add element and at most one remove element
      */
     @XmlElement(name = "user_mapping_changes")
     @JsonProperty("user_mapping_changes")

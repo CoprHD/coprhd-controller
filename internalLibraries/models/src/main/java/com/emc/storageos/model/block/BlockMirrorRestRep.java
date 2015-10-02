@@ -20,7 +20,6 @@ public class BlockMirrorRestRep extends VolumeRestRep {
     /**
      * Volume representing the source in a mirror relationship.
      * 
-     * @valid none
      */
     @XmlElement
     public NamedRelatedResourceRep getSource() {
@@ -34,10 +33,6 @@ public class BlockMirrorRestRep extends VolumeRestRep {
     /**
      * Synchronization state.
      * 
-     * @valid UNKNOWN
-     * @valid RESYNCHRONIZING
-     * @valid SYNCHRONIZED
-     * @valid FRACTURED
      */
     @XmlElement
     public String getSyncState() {
@@ -51,7 +46,6 @@ public class BlockMirrorRestRep extends VolumeRestRep {
     /**
      * Synchronization type.
      * 
-     * @valid none
      */
     @XmlElement
     public String getSyncType() {

@@ -32,7 +32,6 @@ public class VolumeFullCopyCreateParam {
      * Type of copy requested. Currently
      * only a full-copy is supported.
      * 
-     * @valid full_copy
      */
     @XmlElement(required = false)
     public String getType() {
@@ -46,7 +45,6 @@ public class VolumeFullCopyCreateParam {
     /**
      * Name of the copy.
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public String getName() {
@@ -60,7 +58,6 @@ public class VolumeFullCopyCreateParam {
     /**
      * Number of copies requested.
      * 
-     * @valid none
      */
     @XmlElement(required = false)
     public Integer getCount() {
@@ -80,8 +77,6 @@ public class VolumeFullCopyCreateParam {
      * The default value for the parameter is false. That is, the operation
      * will create and activate the synchronization for the full copy.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "create_inactive", required = false, defaultValue = "false")
     public Boolean getCreateInactive() {

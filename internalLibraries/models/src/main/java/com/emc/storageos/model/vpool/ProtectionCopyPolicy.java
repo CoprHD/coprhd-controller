@@ -30,7 +30,6 @@ public class ProtectionCopyPolicy {
     /**
      * The journal size for a protection copy.
      * 
-     * @valid none
      */
     @XmlElement(name = "journal_size", required = false)
     public String getJournalSize() {
@@ -44,7 +43,6 @@ public class ProtectionCopyPolicy {
     /**
      * The journal virtual array for a protection copy.
      * 
-     * @valid none
      */
     @XmlElement(name = "journal_varray", required = false)
     public URI getJournalVarray() {
@@ -58,7 +56,6 @@ public class ProtectionCopyPolicy {
     /**
      * The journal virtual pool for a protection copy.
      * 
-     * @valid none
      */
     @XmlElement(name = "journal_vpool", required = false)
     public URI getJournalVpool() {

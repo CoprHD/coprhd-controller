@@ -31,7 +31,6 @@ public class AttributeList {
     /**
      * A list of virtual pool available attribute response instances.
      * 
-     * @valid none
      * 
      * @return A list of virtual pool available attribute response instances.
      */
@@ -50,7 +49,6 @@ public class AttributeList {
     /**
      * ID of the VArray for this Attributes
      * 
-     * @valid none
      * 
      * @return A list of virtual pool available attribute response instances.
      */

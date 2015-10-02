@@ -30,12 +30,6 @@ public class ProtocolAssignments {
     /**
      * The set of protocols.
      * 
-     * @valid FC = Fibre Channel (block)
-     * @valid ISCSI = Internet Small Computer System Interface (block)
-     * @valid FCoE = Fibre Channel over Ethernet (block)
-     * @valid NFS = Network File System (file)
-     * @valid NFSv4 = Network File System Version 4 (file)
-     * @valid CIFS = Common Internet File System (file)
      */
     @XmlElement(name = "protocol")
     @JsonProperty("protocol")

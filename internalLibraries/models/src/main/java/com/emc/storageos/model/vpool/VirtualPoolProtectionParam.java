@@ -23,7 +23,6 @@ public class VirtualPoolProtectionParam {
     /**
      * The protection snapshot settings for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "snapshots")
     public VirtualPoolProtectionSnapshotsParam getSnapshots() {

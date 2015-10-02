@@ -19,7 +19,6 @@ public class VirtualPoolRemoteMirrorProtectionParam {
     /**
      * The remote protection virtual array settings for a virtual pool.
      * 
-     * @valid none
      */
     private List<VirtualPoolRemoteProtectionVirtualArraySettingsParam> remoteCopySettings;
 

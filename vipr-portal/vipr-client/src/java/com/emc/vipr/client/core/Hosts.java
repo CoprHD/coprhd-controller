@@ -266,7 +266,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
     /**
      * Deactivates a host.
      * <p>
-     * API Call: <tt>POST /compute/hosts/{id}/deactivate?detach_storage={detachStorage}&deactivate_boot_volume={deactivateBootVolume}</tt>
+     * API Call: <tt>POST /compute/hosts/{id}/deactivate?detach_storage={detachStorage} deactivate_boot_volume={deactivateBootVolume}</tt>
      * 
      * @param id
      *            the ID of the host to deactivate.

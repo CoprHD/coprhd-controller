@@ -28,7 +28,6 @@ public class ApprovalBulkRep extends BulkRestRep {
     /**
      * List of approvals
      * 
-     * @valid none
      * @return
      */
     @XmlElement(name = "approval")

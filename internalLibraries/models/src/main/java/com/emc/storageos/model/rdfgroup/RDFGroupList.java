@@ -23,7 +23,6 @@ public class RDFGroupList {
     /**
      * List of RDF Groups
      * 
-     * @valid none
      */
     @XmlElement(name = "rdf_group")
 	public List<NamedRelatedResourceRep> getRdfGroups() {

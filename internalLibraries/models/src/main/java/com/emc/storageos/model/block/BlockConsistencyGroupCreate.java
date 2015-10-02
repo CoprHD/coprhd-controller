@@ -17,14 +17,12 @@ public class BlockConsistencyGroupCreate {
     /**
      * Name of the block consistency group
      * 
-     * @valid none
      */
     private String name;
 
     /**
      * Related Project URI
      * 
-     * @valid none
      */
     private URI project;
 

@@ -32,7 +32,6 @@ public class ComputeVirtualPoolList {
     /**
      * The list of virtual pool response instances.
      * 
-     * @valid none
      */
     @XmlElement(name = "computevirtualpool")
     @JsonProperty("computevirtualpool")
@@ -51,7 +50,8 @@ public class ComputeVirtualPoolList {
      * Determines whether or not the list contains a virtual pool resource with the
      * passed id.
      * 
-     * @param virtualPoolId The virtual pool id to check.
+     * @param computeVirtualPoolId 
+     *         The virtual pool id to check.
      * 
      * @return true if the list contains a virtual pool resource with the passed id,
      *         false otherwise.

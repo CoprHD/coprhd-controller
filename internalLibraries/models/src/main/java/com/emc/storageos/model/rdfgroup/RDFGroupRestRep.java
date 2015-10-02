@@ -47,7 +47,6 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
     /**
      * The source group id
      *
-     * @valid none
      */
     @XmlElement(name = "source_group_id")
 	public String getSourceGroupId() {
@@ -60,7 +59,6 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
 	/**
      * The remote group id
      *
-     * @valid none
      */
     @XmlElement(name = "remote_group_id")
 	public String getRemoteGroupId() {
@@ -97,7 +95,6 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
     /**
      * The list of optional parameters
      * 
-     * @valid none
      */
     @XmlElement(name = "volume")
 	public List<URI> getVolumes() {
@@ -126,11 +123,6 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
 	/**
      * Supported copy mode
      *
-     * @valid SYNCHRONOUS 
-     * @valid ASYNCHRONOUS 
-     * @valid UNKNOWN
-     * @valid ADAPTIVECOPY
-     * @valid ALL
      */
 	@XmlElement(name = "supported_copy_mode")
 	public String getSupportedCopyMode() {
@@ -144,25 +136,6 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
 	/**
      * The connectivity status
      *
-     * @valid UP 
-     * @valid DOWN 
-     * @valid PARTITIONED
-     * @valid UNKNOWN
-     */
-    @XmlElement(name = "connectivity_status")
-	public String getConnectivityStatus() {
-		return connectivityStatus;
-	}
-
-	public void setConnectivityStatus(String connectivityStatus) {
-		this.connectivityStatus = connectivityStatus;
-	}
-	
-	/**
-     * The Copy state
-     *
-     * @valid CONSISTENT 
-     * @valid IN_CONSISTENT 
      */
     @XmlElement(name = "copy_state")
 	public String getCopyState() {

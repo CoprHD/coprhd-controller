@@ -26,7 +26,6 @@ public class ClusterCreateParam extends ClusterParam {
      * The name label for this cluster. It must be unique
      * within the tenant.
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public String getName() {

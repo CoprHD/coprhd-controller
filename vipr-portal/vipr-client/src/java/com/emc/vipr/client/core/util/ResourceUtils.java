@@ -273,7 +273,7 @@ public class ResourceUtils {
      * 
      * @param resources
      *            the resources to map.
-     * @return the map of ID->resource.
+     * @return the map of ID resource.
      */
     public static <T extends DataObjectRestRep> Map<URI, T> mapById(Collection<T> resources) {
         Map<URI, T> map = new LinkedHashMap<URI, T>();
@@ -288,7 +288,7 @@ public class ResourceUtils {
      * 
      * @param references
      *            the references to map.
-     * @return the map of ID->name.
+     * @return the map of ID name.
      */
     public static Map<URI, String> mapNames(Collection<? extends NamedRelatedResourceRep> references) {
         Map<URI, String> map = new LinkedHashMap<URI, String>();

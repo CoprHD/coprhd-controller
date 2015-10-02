@@ -21,7 +21,6 @@ public class ObjectVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     /**
      * The maximum retention settings for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "max_retention")
     public Integer getMaxRetention() {

@@ -44,7 +44,6 @@ public class QuotaDirectoryCreateParam {
     /**
      * User provided name of the quota directory.
      * 
-     * @valid none
      */
     @XmlElement(name = "name", required = true)
     public String getQuotaDirName() {
@@ -58,7 +57,6 @@ public class QuotaDirectoryCreateParam {
     /**
      * Limit total space usage within this quota directory (in Bytes)
      * 
-     * @valid none
      */
     @XmlElement(name = "size")
     public String getSize() {
@@ -72,8 +70,6 @@ public class QuotaDirectoryCreateParam {
     /**
      * Flag to specify Read/Write cache enable for this quota directory.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "oplock")
     public Boolean getOpLock() {
@@ -88,9 +84,6 @@ public class QuotaDirectoryCreateParam {
      * Security style for the quota directory.
      * Default is "UNIX".
      * 
-     * @valid "UNIX" = Security style by default
-     * @valid "NTFS"
-     * @valid "Mixed"
      */
     @XmlElement(name = "security_style")
     public String getSecurityStyle() {

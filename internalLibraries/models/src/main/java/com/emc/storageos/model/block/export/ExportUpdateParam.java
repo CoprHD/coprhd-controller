@@ -42,7 +42,6 @@ public class ExportUpdateParam {
      * Add or remove a list of clusters
      * from the export
      * 
-     * @valid none
      */
     @XmlElement(name = "cluster_changes")
     public ClustersUpdateParam getClusters() {
@@ -57,22 +56,6 @@ public class ExportUpdateParam {
      * Add or remove a list of hosts
      * from the export
      * 
-     * @valid none
-     */
-    @XmlElement(name = "host_changes")
-    public HostsUpdateParam getHosts() {
-        return hosts;
-    }
-
-    public void setHosts(HostsUpdateParam hosts) {
-        this.hosts = hosts;
-    }
-
-    /**
-     * Add or remove a list of initiators
-     * from the export
-     * 
-     * @valid none
      */
     @XmlElement(name = "initiator_changes")
     public InitiatorsUpdateParam getInitiators() {
@@ -87,7 +70,6 @@ public class ExportUpdateParam {
      * Add or remove a list of volume or
      * volume snapshots from the export
      * 
-     * @valid none
      */
     @XmlElement(name = "volume_changes")
     public VolumeUpdateParam getVolumes() {

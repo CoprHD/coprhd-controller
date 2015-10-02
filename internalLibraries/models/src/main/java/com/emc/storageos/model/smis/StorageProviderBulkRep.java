@@ -26,7 +26,6 @@ public class StorageProviderBulkRep extends BulkRestRep {
     /**
      * List of Storage Providers.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_provider")
     public List<StorageProviderRestRep> getStorageProviders() {

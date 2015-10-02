@@ -57,10 +57,6 @@ public class FileSystemExportParam {
     /**
      * Security type for the file export
      * 
-     * @valid sys = Default UNIX security
-     * @valid krb5 = Kerberos security option
-     * @valid krb5i = Kerberos security option
-     * @valid krb5p = Kerberos security option
      */
     @XmlElement(name = "type")
     public String getSecurityType() {
@@ -89,9 +85,6 @@ public class FileSystemExportParam {
     /**
      * Permissions for the file export
      * 
-     * @valid ro = read only
-     * @valid rw = read and write
-     * @valid root = full permission
      */
     @XmlElement(name = "permissions")
     public String getPermissions() {
@@ -105,8 +98,6 @@ public class FileSystemExportParam {
     /**
      * User with root permissions
      * 
-     * @valid root = only root has special access permissions
-     * @valid nobody = nobody has special access permissions
      */
     @XmlElement(name = "root_user")
     public String getRootUserMapping() {
@@ -120,8 +111,6 @@ public class FileSystemExportParam {
     /**
      * File system export protocol.
      * 
-     * @valid CIFS = Common Internet File System
-     * @valid NFS = Network File System
      */
     @XmlElement(name = "protocol", required = true)
     public String getProtocol() {
@@ -136,7 +125,6 @@ public class FileSystemExportParam {
      * The path representing the point in the file system where
      * the file share being exported is mounted.
      * 
-     * @valid none
      */
     @XmlElement(name = "mount_point")
     public String getMountPoint() {
@@ -150,7 +138,6 @@ public class FileSystemExportParam {
     @XmlElementWrapper(required = true, name = "endpoints")
     /**
      * List of endpoints the file system is exported to.
-     * @valid none 
      */
     @XmlElement(name = "endpoint")
     public List<String> getEndpoints() {
@@ -169,7 +156,6 @@ public class FileSystemExportParam {
      * is being exported. If sub-directory is "null", entire
      * file system is exported.
      * 
-     * @valid none
      */
     @XmlElement(name = "sub_directory")
     public String getSubDirectory() {

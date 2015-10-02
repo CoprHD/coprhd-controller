@@ -16,7 +16,6 @@ import java.util.List;
  * Class for the REST response for the GET List API
  * of the UserGroup
  * 
- * @valid none
  */
 
 @XmlRootElement(name = "user_groups")

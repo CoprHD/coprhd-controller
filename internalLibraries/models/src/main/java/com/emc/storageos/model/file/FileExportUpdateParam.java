@@ -34,7 +34,6 @@ public class FileExportUpdateParam {
     @XmlElementWrapper(required = false)
     /**
      * List of endpoints to be added
-     * @valid none
      */
     @XmlElement(name = "add")
     public List<String> getAdd() {
@@ -51,7 +50,6 @@ public class FileExportUpdateParam {
     @XmlElementWrapper(required = false)
     /**
      * List of endpoints to be removed
-     * @valid none
      */
     @XmlElement(name = "remove")
     public List<String> getRemove() {

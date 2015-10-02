@@ -40,8 +40,6 @@ public class StorageSystemConnectivityRestRep {
     /**
      * The type of connection that exists between two storage systems
      * 
-     * @valid rp
-     * @valid vplex
      * 
      */
     @XmlElement(name = "connection_type")
@@ -59,7 +57,6 @@ public class StorageSystemConnectivityRestRep {
     /**
      * The system protecting the primary storage system
      * 
-     * @valid none
      */
     @XmlElement(name = "protection_system")
     public NamedRelatedResourceRep getProtectionSystem() {
@@ -73,7 +70,6 @@ public class StorageSystemConnectivityRestRep {
     /**
      * The storage system , to which the protection system is connected.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_system")
     public NamedRelatedResourceRep getStorageSystem() {

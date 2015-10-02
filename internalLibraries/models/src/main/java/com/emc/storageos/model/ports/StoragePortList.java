@@ -30,7 +30,6 @@ public class StoragePortList {
      * List of Storage ports. A Storage port represents a
      * port of a storage device.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_port")
     public List<NamedRelatedResourceRep> getPorts() {

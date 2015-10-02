@@ -30,7 +30,6 @@ public class VcenterDataCenterUpdate extends VcenterDataCenterParam {
     /**
      * The tenant URI for the vCenterDataCenter.
      *
-     * @valid none
      */
     @XmlElement(name = "tenant")
     public URI getTenant() {

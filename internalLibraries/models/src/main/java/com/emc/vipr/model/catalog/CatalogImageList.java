@@ -27,7 +27,6 @@ public class CatalogImageList {
     /**
      * List of catalog images
      * 
-     * @valid none
      */
     @XmlElement(name = "catalog_image")
     public List<NamedRelatedResourceRep> getCatalogImages() {

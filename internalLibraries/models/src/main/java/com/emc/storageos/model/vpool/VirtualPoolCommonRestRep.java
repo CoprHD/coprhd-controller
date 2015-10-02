@@ -33,9 +33,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
     /**
      * Virtual pool storage resource type
      * 
-     * @valid block = Volume
-     * @valid file = File System
-     * @valid object = Object Store
      */
     @XmlElement
     public String getType() {
@@ -50,7 +47,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
      * 
      * User defined description for this virtual pool.
      * 
-     * @valid none
      */
     @XmlElement
     public String getDescription() {
@@ -64,9 +60,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
     /**
      * Storage type provisioned for this virtual pool.
      * 
-     * @valid NONE
-     * @valid Thick
-     * @valid Thin
      */
     @XmlElement(name = "provisioning_type")
     public String getProvisioningType() {
@@ -81,12 +74,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
     /**
      * The set of supported protocols for the virtual pool.
      * 
-     * @valid FC = Fibre Channel (block)
-     * @valid ISCSI =  Internet Small Computer System Interface (block)
-     * @valid FCoE = Fibre Channel over Ethernet (block)
-     * @valid NFS = Network File System (file)
-     * @valid NFSv4 = Network File System Version 4 (file)
-     * @valid CIFS = Common Internet File System (file)
      */
     @XmlElement(name = "protocol")
     public Set<String> getProtocols() {
@@ -103,12 +90,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
     /**
      * The supported system type for the virtual pool.
      * 
-     * @valid NONE
-     * @valid vnxblock (Block)
-     * @valid vmax (Block)
-     * @valid vnxfile (File)
-     * @valid isilon (File)
-     * @valid netapp (File)
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {
@@ -121,7 +102,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
 
     /**
      * @deprecated use getMaxPaths from BlockVirtualPoolRestRep instead of getNumPaths
-     * @See BlockVirtualPoolRestRep.getMaxPaths()
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
@@ -132,7 +112,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
 
     /**
      * @deprecated use setMaxPaths from BlockVirtualPoolRestRep instead of setNumPaths
-     * @See BlockVirtualPoolRestRep.setMaxPaths()
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
@@ -144,7 +123,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
      * Number of resources provisioned to this ViPR using this
      * virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "num_resources")
     public Integer getNumResources() {
@@ -159,7 +137,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
     /**
      * The virtual arrays assigned to this virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varrays")
@@ -178,8 +155,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
      * Determines if matched or valid assigned pools are returned from
      * command to retrieve the list of storage pools.
      * 
-     * @valid false
-     * @valid true
      */
     @XmlElement(name = "use_matched_pools")
     public Boolean getUseMatchedPools() {
@@ -198,7 +173,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
      * Previously assigned storage pools which are no longer matching
      * to this virtual pool, are not listed.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_pool")
     public List<RelatedResourceRep> getAssignedStoragePools() {
@@ -217,7 +191,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
      * List of storage pools that once were part of the matched pool but 
      * whose attributes no longer match.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_pool")
     public List<RelatedResourceRep> getInvalidMatchedStoragePools() {
@@ -236,7 +209,6 @@ public class VirtualPoolCommonRestRep extends DataObjectRestRep {
      * Set of storage pools which has attributes that match the criteria for 
      * selecting the auto-generated list of storage pools.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_pool")
     public List<RelatedResourceRep> getMatchedStoragePools() {

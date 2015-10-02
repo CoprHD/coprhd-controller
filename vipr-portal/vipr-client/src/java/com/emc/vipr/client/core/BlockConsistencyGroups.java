@@ -69,7 +69,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies</tt>
      * 
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param input
      *            the create configuration.

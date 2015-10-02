@@ -19,7 +19,6 @@ public class AutoTieringPolicyBulkRep extends BulkRestRep {
     /**
      * List of auto tiering policies
      * 
-     * @valid none
      * 
      */
     @XmlElement(name = "auto_tiering_policy")

@@ -26,7 +26,6 @@ public class VirtualArrayConnectivityList {
     /**
      * A list of connected virtual arrays.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray_connectivity")
     public List<VirtualArrayConnectivityRestRep> getConnections() {

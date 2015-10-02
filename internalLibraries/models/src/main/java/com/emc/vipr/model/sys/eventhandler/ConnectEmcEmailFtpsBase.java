@@ -15,8 +15,6 @@ public class ConnectEmcEmailFtpsBase {
     /**
      * Optional, Encrypt ConnectEMC Service data using RSA BSAFE
      * 
-     * @valid Yes
-     * @valid No
      */
     @XmlElement(name = "bsafe_encryption_ind")
     public String getSafeEncryption() {

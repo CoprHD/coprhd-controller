@@ -25,7 +25,6 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
      * The native GUID of a discovered unmanaged volume which
      * has not yet been ingested into ViPR.
      * 
-     * @valid none
      */
     private String nativeGuid;
 
@@ -34,7 +33,6 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
      * provisioned capacity, disk technology, and whether or not the volume is
      * thinly provisioned.
      * 
-     * @valid none
      */
     private List<StringSetMapAdapter.Entry> volumeInformation;
 
@@ -42,7 +40,6 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
      * Characteristics of the unmanaged volume, such as is it mapped,
      * is it a composite, and is it a snapshot.
      * 
-     * @valid none
      */
     private List<StringHashMapEntry> volumeCharacteristics;
 
@@ -74,14 +71,12 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
     /**
      * The storage system to which this volume belongs.
      * 
-     * @valid none
      */
     private RelatedResourceRep storageSystem;
 
     /**
      * The storage pool to which this volume belongs.
      * 
-     * @valid none
      */
     private RelatedResourceRep storagePool;
 

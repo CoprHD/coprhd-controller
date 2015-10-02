@@ -65,7 +65,6 @@ public class TaskResourceRep extends DataObjectRestRep {
     /**
      * The task operation id
      * 
-     * @valid none
      */
     @XmlElement(name = "op_id")
     public String getOpId() {
@@ -90,7 +89,6 @@ public class TaskResourceRep extends DataObjectRestRep {
     /**
      * Resource link representative with name and id attached
      * 
-     * @valid none
      */
     @XmlElement(name = "resource")
     public NamedRelatedResourceRep getResource() {
@@ -116,7 +114,6 @@ public class TaskResourceRep extends DataObjectRestRep {
     /**
      * A list of links for associated resources
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "associated_resources")
     @XmlElement(name = "associated_resource")
@@ -134,10 +131,6 @@ public class TaskResourceRep extends DataObjectRestRep {
     /**
      * The state of the task
      *
-     * @valid queued = task is queued
-     * @valid pending = task is pending
-     * @valid ready = task succeed
-     * @valid error = task fails
      */
     @XmlElement(name = "state")
     public String getState() {
@@ -151,7 +144,6 @@ public class TaskResourceRep extends DataObjectRestRep {
     /**
      * The task detail message
      * 
-     * @valid none
      */
     @XmlElement(name = "message")
     public String getMessage() {
@@ -165,7 +157,6 @@ public class TaskResourceRep extends DataObjectRestRep {
     /**
      * The description of the task
      * 
-     * @valid none
      */
     @XmlElement(name = "description")
     public String getDescription() {
@@ -179,7 +170,6 @@ public class TaskResourceRep extends DataObjectRestRep {
     /**
      * The service error code when a problem was encountered while processing a request
      * 
-     * @valid none
      */
     @XmlElement(name = "service_error")
     public ServiceErrorRestRep getServiceError() {
@@ -193,7 +183,6 @@ public class TaskResourceRep extends DataObjectRestRep {
     /**
      * The date and time of when the task was started
      * 
-     * @valid none
      */
     @XmlElement(name = "start_time")
     @XmlJavaTypeAdapter(CalendarAdapter.class)
@@ -208,7 +197,6 @@ public class TaskResourceRep extends DataObjectRestRep {
     /**
      * The date and time of when the task ended
      * 
-     * @valid none
      */
     @XmlElement(name = "end_time")
     @XmlJavaTypeAdapter(CalendarAdapter.class)

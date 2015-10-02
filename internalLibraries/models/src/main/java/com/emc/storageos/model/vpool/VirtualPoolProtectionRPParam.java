@@ -30,7 +30,6 @@ public class VirtualPoolProtectionRPParam {
     /**
      * The Recoverpoint protection virtual array settings for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "protection_varray_vpool", required = false)
     public Set<VirtualPoolProtectionVirtualArraySettingsParam> getCopies() {
@@ -47,7 +46,6 @@ public class VirtualPoolProtectionRPParam {
     /**
      * The Recoverpoint protection source policy for a virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "source_policy")
     public ProtectionSourcePolicy getSourcePolicy() {

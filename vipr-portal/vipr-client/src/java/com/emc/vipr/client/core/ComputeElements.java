@@ -96,8 +96,6 @@ public class ComputeElements extends AbstractCoreBulkResources<ComputeElementRes
      * 
      * @param computeElementId
      *            the ID of the compute element.
-     * @param computeSystemId
-     *            the ID of the compute system.
      * @return the compute element.
      */
     public ComputeElementRestRep register(URI computeElementId) {

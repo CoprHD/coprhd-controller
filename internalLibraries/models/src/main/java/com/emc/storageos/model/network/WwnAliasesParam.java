@@ -32,7 +32,6 @@ public class WwnAliasesParam {
      * <p>
      * This field applies to Brocade network systems only.
      * 
-     * @valid none
      */
     @XmlElement(name = "fabric_id")
     public String getFabricId() {
@@ -51,7 +50,6 @@ public class WwnAliasesParam {
     /**
      * A list of alias. Each alias has a name and a WWN address
      * 
-     * @valid none
      */
     @XmlElement(name = "wwn_alias")
     public List<WwnAliasParam> getAliases() {

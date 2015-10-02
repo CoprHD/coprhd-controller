@@ -32,7 +32,6 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     /**
      * The system's management IP address
      * 
-     * @valid none
      */
     @XmlElement(name = "ip_address")
     public String getIpAddress() {
@@ -46,7 +45,6 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     /**
      * The system's management port
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "port_number")
     public Integer getPortNumber() {
@@ -60,7 +58,6 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     /**
      * The system's backup management IP address
      * 
-     * @valid none
      */
     @XmlElement(name = "secondary_ip")
     public String getSecondaryIP() {
@@ -74,7 +71,6 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     /**
      * The system's serial number
      * 
-     * @valid none
      */
     @XmlElement(name = "serial_number")
     public String getSerialNumber() {
@@ -88,7 +84,6 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     /**
      * The SMI-S management port
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "smis_port_number")
     public Integer getSmisPortNumber() {
@@ -102,7 +97,6 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     /**
      * The IP address of the SMI-S manager for this system
      * 
-     * @valid none
      */
     @XmlElement(name = "smis_provider_ip")
     public String getSmisProviderIP() {
@@ -116,7 +110,6 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     /**
      * The login name for SMI-S management
      * 
-     * @valid none
      */
     @XmlElement(name = "smis_user_name")
     public String getSmisUserName() {
@@ -131,8 +124,6 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
      * Whether or not to use SSL when communicating with the SMI-S
      * manager
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "smis_use_ssl")
     public Boolean getSmisUseSSL() {
@@ -146,7 +137,6 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     /**
      * How long the system has been running
      * 
-     * @valid none
      */
     @XmlElement(name = "uptime")
     public String getUptime() {
@@ -160,7 +150,6 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     /**
      * The login name for managing the system through its console
      * 
-     * @valid none
      */
     @XmlElement(name = "user_name")
     public String getUsername() {
@@ -174,7 +163,6 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     /**
      * The system's software version
      * 
-     * @valid none
      */
     @XmlElement(name = "version")
     public String getVersion() {

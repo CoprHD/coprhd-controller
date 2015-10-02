@@ -29,7 +29,6 @@ public class BlockVirtualPoolProtectionUpdateParam extends VirtualPoolProtection
     /**
      * The new mirror protection settings for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "continuous_copies", required = false)
     public VirtualPoolProtectionMirrorParam getContinuousCopies() {
@@ -44,7 +43,6 @@ public class BlockVirtualPoolProtectionUpdateParam extends VirtualPoolProtection
     /**
      * The new Recoverpoint protection settings for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "recoverpoint", required = false)
     public VirtualPoolProtectionRPChanges getRecoverPoint() {

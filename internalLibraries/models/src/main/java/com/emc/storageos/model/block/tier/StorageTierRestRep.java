@@ -26,7 +26,6 @@ public class StorageTierRestRep extends DiscoveredDataObjectRestRep {
     /**
      * List of auto tiering policies, to which the storage tier is associated.
      * 
-     * @valid none
      */
     @XmlElement(name = "auto_tier_policy")
     public Set<String> getAutoTieringPolicies() {
@@ -43,7 +42,6 @@ public class StorageTierRestRep extends DiscoveredDataObjectRestRep {
     /**
      * The underlying disk drive associated to this storage tier
      * 
-     * @valid none
      */
     @XmlElement(name = "disk_drive_technology")
     public String getDiskDriveTechnology() {
@@ -57,7 +55,6 @@ public class StorageTierRestRep extends DiscoveredDataObjectRestRep {
     /**
      * The operational state of the storage tier
      * 
-     * @valid none
      */
     @XmlElement(name = "enabled_state")
     public String getEnabledState() {
@@ -72,7 +69,6 @@ public class StorageTierRestRep extends DiscoveredDataObjectRestRep {
      * The percentage of storage group space allocated for this storage tier
      * which can be used for auto tiering.
      * 
-     * @valid none
      */
     @XmlElement(name = "percentage")
     public String getPercentage() {
@@ -86,7 +82,6 @@ public class StorageTierRestRep extends DiscoveredDataObjectRestRep {
     /**
      * Total Capacity of the storage tier
      * 
-     * @valid none
      */
     @XmlElement(name = "total_capacity")
     public Long getTotalCapacity() {

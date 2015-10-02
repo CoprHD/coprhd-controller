@@ -96,7 +96,7 @@ public class ComputeImageServerUpdate {
     }
 
     /**
-     * @param password
+     * @param imageServerPassword
      *            the password to set
      */
     public void setImageServerPassword(String imageServerPassword) {

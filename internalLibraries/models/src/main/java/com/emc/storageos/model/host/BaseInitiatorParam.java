@@ -30,8 +30,6 @@ public class BaseInitiatorParam {
     /**
      * The protocols supported by the initiator which should be FC or iSCSI
      * 
-     * @valid FC = Fibre Channel
-     * @valid iSCSI
      */
     // @EnumType(HostInterface.Protocol.class)
     @XmlElement()
@@ -46,7 +44,6 @@ public class BaseInitiatorParam {
     /**
      * The FC (Fibre Channel) initiator WWN (World Wide Name) of the initiator node
      * 
-     * @valid none
      */
     @XmlElement(name = "initiator_node")
     @Endpoint(type = Endpoint.EndpointType.SAN)
@@ -61,7 +58,6 @@ public class BaseInitiatorParam {
     /**
      * The initiator port which can be the WWN of an FC port or the IQN or EUI of an iSCSI port
      * 
-     * @valid none
      */
     @XmlElement(name = "initiator_port", required = true)
     @Endpoint(type = Endpoint.EndpointType.SAN)
@@ -76,7 +72,6 @@ public class BaseInitiatorParam {
     /**
      * The label of the initiator
      * 
-     * @valid none
      */
     @XmlElement()
     public String getName() {

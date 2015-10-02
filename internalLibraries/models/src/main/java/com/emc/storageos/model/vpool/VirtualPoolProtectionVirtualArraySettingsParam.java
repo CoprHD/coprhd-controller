@@ -32,7 +32,6 @@ public class VirtualPoolProtectionVirtualArraySettingsParam {
     /**
      * The virtual array.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     public URI getVarray() {
@@ -46,7 +45,6 @@ public class VirtualPoolProtectionVirtualArraySettingsParam {
     /**
      * The virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "vpool")
     public URI getVpool() {
@@ -60,7 +58,6 @@ public class VirtualPoolProtectionVirtualArraySettingsParam {
     /**
      * The copy policy.
      * 
-     * @valid none
      */
     @XmlElement(name = "policy")
     public ProtectionCopyPolicy getCopyPolicy() {

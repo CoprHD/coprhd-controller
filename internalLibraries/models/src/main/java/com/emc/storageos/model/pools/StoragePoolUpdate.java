@@ -34,7 +34,6 @@ public class StoragePoolUpdate extends VirtualArrayResourceUpdateParam {
     /**
      * The user-defined limit for this pool's utilization
      * 
-     * @valid none
      */
     @XmlElement(name = "max_pool_utilization_percentage")
     public Integer getMaxPoolUtilizationPercentage() {
@@ -48,7 +47,6 @@ public class StoragePoolUpdate extends VirtualArrayResourceUpdateParam {
     /**
      * The maximum percentage of usable space that can be assigned to thin volumes
      * 
-     * @valid none
      */
     @XmlElement(name = "max_thin_pool_subscription_percentage")
     public Integer getMaxThinPoolSubscriptionPercentage() {
@@ -64,7 +62,6 @@ public class StoragePoolUpdate extends VirtualArrayResourceUpdateParam {
      * The maximum number of ViPR storage resources that
      * can exist in this pool
      * 
-     * @valid none
      */
     @XmlElement(name = "max_resources")
     @Range(min = 0, max = Integer.MAX_VALUE)
@@ -79,7 +76,6 @@ public class StoragePoolUpdate extends VirtualArrayResourceUpdateParam {
     /**
      * Whether limit on number of Resources has been set
      * 
-     * @valid none
      */
     @XmlElement(name = "unlimited_resources")
     public Boolean getIsUnlimitedResourcesSet() {

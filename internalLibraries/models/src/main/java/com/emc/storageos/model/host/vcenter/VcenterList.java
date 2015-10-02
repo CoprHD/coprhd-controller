@@ -28,7 +28,6 @@ public class VcenterList {
     /**
      * List of vCenter objects that exists in ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "vcenter")
     public List<NamedRelatedResourceRep> getVcenters() {

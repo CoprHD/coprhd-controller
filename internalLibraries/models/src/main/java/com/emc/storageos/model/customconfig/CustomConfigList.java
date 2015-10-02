@@ -31,7 +31,6 @@ public class CustomConfigList {
      * List of custom config objects that exist in ViPR. Each
      * custom config contains an id, name, and link.
      * 
-     * @valid none
      */
     @XmlElement(name = "config")
     public List<NamedRelatedResourceRep> getCustomConfigs() {

@@ -26,7 +26,6 @@ public class NetworkSystemList {
      * List of network system objects that exist in ViPR. Each
      * network system contains an id, name, and link.
      * 
-     * @valid none
      */
     @XmlElement(name = "network_system")
     public List<NamedRelatedResourceRep> getSystems() {

@@ -24,7 +24,6 @@ public class FileVirtualPoolBulkRep extends BulkRestRep {
     /**
      * List of all virtual pools of File System type.
      * 
-     * @valid none
      */
     @XmlElement(name = "file_vpool")
     @JsonProperty("file_vpool")

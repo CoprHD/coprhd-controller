@@ -25,7 +25,6 @@ public class ComputeElementList {
     /**
      * List of compute element URLs with name
      * 
-     * @valid none
      */
     @XmlElement(name = "compute_element")
     public List<NamedRelatedResourceRep> getComputeElements() {

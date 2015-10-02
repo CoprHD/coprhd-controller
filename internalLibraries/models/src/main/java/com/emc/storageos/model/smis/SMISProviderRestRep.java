@@ -40,8 +40,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * Status of the connection.
      * 
-     * @valid CONNECTED
-     * @valid NOTCONNECTED
      */
     @XmlElement(name = "connection_status")
     public String getConnectionStatus() {
@@ -55,7 +53,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * Information relevant to the SMIS provider software.
      * 
-     * @valid none
      */
     @XmlElement(name = "description")
     public String getDescription() {
@@ -69,7 +66,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * SMIS provider's IP address.
      * 
-     * @valid none
      */
     @XmlElement(name = "ip_address")
     public String getIPAddress() {
@@ -83,7 +79,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * Name of the manufacturer.
      * 
-     * @valid none
      */
     @XmlElement(name = "manufacturer")
     public String getManufacturer() {
@@ -98,7 +93,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
      * The port number used to connect with the SMIS
      * provider, typically 5988 or 5989.
      * 
-     * @valid none
      */
     @XmlElement(name = "port_number")
     public Integer getPortNumber() {
@@ -113,7 +107,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
      * A combination of the provider's IP address and the port
      * number, used as an ID.
      * 
-     * @valid none
      */
     @XmlElement(name = "provider_id")
     public String getProviderID() {
@@ -128,7 +121,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * List of URIs representing the storage systems accessible 
      * through this provider.
-     * @valid none
      */
     @XmlElement(name = "storage_system")
     public List<RelatedResourceRep> getStorageSystems() {
@@ -145,7 +137,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * Login credential at the provider.
      * 
-     * @valid none
      */
     @XmlElement(name = "user_name")
     public String getUserName() {
@@ -159,8 +150,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * Whether or not secure SSL connection is used.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSSL() {
@@ -174,7 +163,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * SMIS provider software revision number.
      * 
-     * @valid none
      */
     @XmlElement(name = "version_string")
     public String getVersionString() {
@@ -188,10 +176,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * Status of the provider scan job.
      * 
-     * @valid CREATED
-     * @valid IN_PROGRESS
-     * @valid COMPLETE
-     * @valid ERROR
      */
     @XmlElement(name = "job_scan_status")
     public String getScanStatus() {
@@ -205,7 +189,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * Status message from the last scan.
      * 
-     * @valid none
      */
     @XmlElement(name = "last_scan_status_message")
     public String getLastScanStatusMessage() {
@@ -219,7 +202,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * Time the last scan occurred.
      * 
-     * @valid none
      */
     @XmlElement(name = "last_scan_time")
     public Long getLastScanTime() {
@@ -233,7 +215,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * Time for which the next scan job is scheduled.
      * 
-     * @valid none
      */
     @XmlElement(name = "next_scan_time")
     public Long getNextScanTime() {
@@ -247,7 +228,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * The latest timestamp when the system run scanning successfully
      * 
-     * @valid none
      */
     @XmlElement(name = "success_scan_time")
     public Long getSuccessScanTime() {
@@ -261,8 +241,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
     /**
      * Registration status of the provider
      * 
-     * @valid REGISTERED
-     * @valid UNREGISTERED
      */
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {
@@ -277,9 +255,6 @@ public class SMISProviderRestRep extends DataObjectRestRep {
      * Whether or not the provider software is compatible with
      * ViPR.
      * 
-     * @valid COMPATIBLE
-     * @valid INCOMPATIBLE
-     * @valid UNKNOWN
      */
     @XmlElement(name = "compatibility_status")
     public String getCompatibilityStatus() {

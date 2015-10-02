@@ -35,7 +35,6 @@ public class VolumeVirtualArrayChangeParam {
     @XmlElementWrapper(required = true, name = "volumes")
     /**
      * List of Volume IDs.
-     * @valid example:  list of valid URIs
      */
     @XmlElement(required = true, name = "volume")
     public List<URI> getVolumes() {

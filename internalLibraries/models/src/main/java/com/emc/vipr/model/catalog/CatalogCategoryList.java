@@ -27,7 +27,6 @@ public class CatalogCategoryList {
     /**
      * List of catalog categories
      * 
-     * @valid none
      */
     @XmlElement(name = "catalog_category")
     public List<NamedRelatedResourceRep> getCatalogCategories() {

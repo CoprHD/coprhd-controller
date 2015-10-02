@@ -30,7 +30,6 @@ public class Metering {
      *            the date to format as an hour time bucket.
      * @return the stream containing the statistics as XML.
      * 
-     * @see #getStatisticsForTimeBucketAsStream(String)
      * @see TimeBucketUtils#forHour(Date)
      */
     public InputStream getStatisticsForHourAsStream(Date date) {
@@ -46,7 +45,6 @@ public class Metering {
      *            the date to format as a minute time bucket.
      * @return the stream containing the statistics as XML.
      * 
-     * @see #getStatisticsForTimeBucketAsStream(String)
      * @see TimeBucketUtils#forMinute(Date)
      */
     public InputStream getStatisticsForMinuteAsStream(Date date) {
@@ -56,8 +54,7 @@ public class Metering {
 
     /**
      * Gets the statistics for the given time bucket, as a stream. A time bucket can be either an hour or a minute of
-     * any day, in the form of <tt>yyyy-MM-dd'T'HH</tt> for hour or <tt>yy-MM-dd'T'HH:mm for minute.
-     * <p>
+     * any day, in the form of <tt>yyyy-MM-dd'T'HH</tt> for hour or <tt>yy-MM-dd'T'HH:mm for minute.</tt>
      * API Call: <tt>GET /metering/stats?time_bucket={timeBucket}</tt>
      * 
      * @param timeBucket

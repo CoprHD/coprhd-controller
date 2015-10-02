@@ -84,43 +84,6 @@ public class SetLogLevelParam {
      * Required, An int indicating the new log level.
      * Following values are valid:
      * 
-     * @valid 0 (FATAL)
-     * @valid 1 (EMERG)
-     * @valid 2 (ALERT)
-     * @valid 3 (CRIT)
-     * @valid 4 (ERROR)
-     * @valid 5 (WARN)
-     * @valid 6 (NOTICE)
-     * @valid 7 (INFO)
-     * @valid 8 (DEBUG)
-     * @valid 9 (TRACE)
-     */
-    @XmlElement(required = true)
-    public Integer getSeverity() {
-        return severity;
-    }
-
-    public void setSeverity(Integer severity) {
-        this.severity = severity;
-    }
-
-    /**
-     * Optional, Expiration time in minutes
-     */
-    @XmlElement(name = "expir_in_min", required = false)
-    public Integer getExpirInMin() {
-        return expirInMin;
-    }
-
-    public void setExpirInMin(Integer expirInMin) {
-        this.expirInMin = expirInMin;
-    }
-
-    /**
-     * Optional, log level scope
-     * 
-     * @valid SCOPE_DEFAULT
-     * @valid SCOPE_DEPENDENCY
      */
     @XmlElement(name = "scope", required = false)
     public String getScope() {

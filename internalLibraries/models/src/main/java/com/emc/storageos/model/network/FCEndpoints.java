@@ -29,7 +29,6 @@ public class FCEndpoints {
     /**
      * List of FC (Fibre Channel) endpoints discovered by a network system.
      * 
-     * @valid none
      */
     @XmlElement(name = "fc_endpoint")
     public List<FCEndpointRestRep> getConnections() {

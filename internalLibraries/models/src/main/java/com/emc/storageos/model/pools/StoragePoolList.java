@@ -25,7 +25,6 @@ public class StoragePoolList {
     /**
      * List of storage pool
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_pool")
     public List<NamedRelatedResourceRep> getPools() {

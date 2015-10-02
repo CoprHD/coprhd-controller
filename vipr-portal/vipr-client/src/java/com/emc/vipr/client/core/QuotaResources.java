@@ -16,7 +16,7 @@ public interface QuotaResources {
     /**
      * Gets the quota information for a given resource by ID.
      * <p>
-     * API Call: GET <tt><i>baseUrl</i>/{id}/quota
+     * API Call: GET <tt><i>baseUrl</i>/{id}/quota </tt>
      * 
      * @param id
      *            the resource ID.
@@ -27,7 +27,7 @@ public interface QuotaResources {
     /**
      * Updates the quota information for a given resource by ID.
      * <p>
-     * API Call: PUT <tt><i>baseUrl</i>/{id}/quota
+     * API Call: PUT <tt><i>baseUrl</i>/{id}/quota </tt>
      * 
      * @param id
      *            the resource ID.

@@ -19,7 +19,6 @@ public class VirtualArrayBulkRep extends BulkRestRep {
     /**
      * A list of virtual arrays.
      * 
-     * @valid none
      * 
      * @return A list of virtual arrays.
      */

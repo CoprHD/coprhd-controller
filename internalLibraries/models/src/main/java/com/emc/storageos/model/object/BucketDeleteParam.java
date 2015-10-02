@@ -10,8 +10,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 /**
  * Whether or not the Bucket should be forcibly deleted. If set to yes, Bucket will be deleted
  * 
- * @valid true
- * @valid false
  */
 @XmlRootElement(name = "bucket_deactivate")
 public class BucketDeleteParam {

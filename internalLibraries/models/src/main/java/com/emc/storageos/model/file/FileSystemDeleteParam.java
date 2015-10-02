@@ -15,8 +15,6 @@ import javax.xml.bind.annotation.XmlRootElement;
  * valid only for vnxfiles. Other file systems are
  * always force deleted.
  * 
- * @valid true
- * @valid false
  */
 @XmlRootElement(name = "filesystem_deactivate")
 public class FileSystemDeleteParam {

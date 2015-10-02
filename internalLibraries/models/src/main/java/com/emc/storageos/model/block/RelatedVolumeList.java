@@ -29,7 +29,6 @@ public class RelatedVolumeList {
     /**
      * List of volumes.
      * 
-     * @valid none
      */
     @XmlElement(name = "consistent_volume")
     public List<NamedRelatedResourceRep> getVolumeList() {

@@ -28,7 +28,6 @@ public class VirtualPoolProtectionMirrorRestRep {
     /**
      * The mirror protection type.
      * 
-     * @valid none
      * 
      * @return The mirror protection type.
      */
@@ -40,7 +39,6 @@ public class VirtualPoolProtectionMirrorRestRep {
     /**
      * The mirror protection virtual pool.
      * 
-     * @valid none
      * 
      * @return The mirror protection virtual pool.
      */
@@ -56,7 +54,6 @@ public class VirtualPoolProtectionMirrorRestRep {
     /**
      * The High Availability mirror protection virtual pool.
      * 
-     * @valid none
      * 
      * @return The High Availability mirror protection virtual pool.
      */

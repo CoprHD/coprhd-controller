@@ -109,7 +109,7 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
      * <p>
      * API Call: <tt>GET /catalog/categories</tt>
      * 
-     * @param String tenantId
+     * @param tenantId
      * @return the root catalog category.
      */
     public CatalogCategoryRestRep getRootCatalogCategory(String tenantId) {
@@ -157,7 +157,7 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
      * <p>
      * API Call: <tt>POST /catalog/categories/reset</tt>
      * 
-     * @param id
+     * @param tenantId 
      *            the ID of the tenant
      */
     public void resetCatalog(URI tenantId) {
@@ -173,7 +173,7 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
      * <p>
      * API Call: <tt>POST /catalog/categories/{id}/categories</tt>
      * 
-     * @param id
+     * @param catalogCategoryId
      *            the ID of the catalog category
      */
     public List<CatalogCategoryRestRep> getSubCategories(URI catalogCategoryId) {
@@ -186,7 +186,7 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
      * <p>
      * API Call: <tt>GET /catalog/upgrade</tt>
      * 
-     * @param id
+     * @param tenantId
      *            the ID of the tenant
      */
     public boolean upgradeAvailable(URI tenantId) {
@@ -203,7 +203,7 @@ public class CatalogCategories extends AbstractCatalogBulkResources<CatalogCateg
      * <p>
      * API Call: <tt>POST /catalog/upgrade</tt>
      * 
-     * @param id
+     * @param tenantId
      *            the ID of the tenant
      */
     public void upgradeCatalog(URI tenantId) {

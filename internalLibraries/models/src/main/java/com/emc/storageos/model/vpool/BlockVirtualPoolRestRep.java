@@ -38,37 +38,6 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /**
      * Name of the auto tier policy for the virtual pool.
      * 
-     * @valid none
-     * 
-     * @return The auto tier policy name.
-     */
-    @XmlElement(name = "auto_tiering_policy_name")
-    public String getAutoTieringPolicyName() {
-        return autoTieringPolicyName;
-    }
-
-    /**
-     * The supported disk drive type for the virtual pool.
-     * 
-     * @valid NONE = No specific drive type
-     * @valid SSD = Solid State Drive
-     * @valid FC = Fibre Channel
-     * @valid SAS = Serial Attached SCSI
-     * @valid SATA = Serial Advanced Technology Attachment
-     * 
-     * @return The drive type.
-     */
-    @XmlElement(name = "drive_type")
-    public String getDriveType() {
-        return driveType;
-    }
-
-    /**
-     * Specifies whether or not volumes can be expanded.
-     * 
-     * @valid true
-     * @valid false
-     * 
      * @return true if volumes are expandable, false otherwise.
      */
     @XmlElement(name = "expandable")
@@ -80,8 +49,6 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
      * Indicates that virtual pool volumes should use concatenated meta volumes,
      * not striped.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "fast_expansion")
     public Boolean getFastExpansion() {
@@ -95,7 +62,6 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /**
      * The high availability settings for the virtual pool.
      * 
-     * @valid none
      * 
      * @return The high availability settings for the virtual pool.
      */
@@ -107,7 +73,6 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /**
      * The preallocation size for VMAX thin volumes.
      * 
-     * @valid none
      * 
      * @return The preallocation size for VMAX thin volumes.
      */
@@ -120,8 +85,6 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
      * Specifies whether or not multi-volume consistency is supported for the
      * virtual pool.
      * 
-     * @valid true
-     * @valid false
      * 
      * @return true if multi-volume consistency is supported, false otherwise.
      */
@@ -133,7 +96,6 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /**
      * The protection settings for the virtual pool.
      * 
-     * @valid none
      * 
      * @return The protection settings for the virtual pool.
      */
@@ -158,14 +120,6 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
      * thus it uses block level striping with two parity blocks.
      * RAID 10 is a stripe of mirrors, i.e. a RAID 0 combination of RAID 1 drives.
      * 
-     * @valid RAID0
-     * @valid RAID1
-     * @valid RAID2
-     * @valid RAID3
-     * @valid RAID4
-     * @valid RAID5
-     * @valid RAID6
-     * @valid RAID10
      * 
      * @return the supported RAID levels.
      */
@@ -212,8 +166,6 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /**
      * Specifies whether or not unique auto tier policy names are required.
      * 
-     * @valid true
-     * @valid false
      * 
      * @return true if unique auto tier policy names are required.
      */
@@ -229,7 +181,6 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /**
      * Number of max paths supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "max_paths")
     public Integer getMaxPaths() {
@@ -243,7 +194,6 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /*
      * Minimum number of paths to be exported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "min_paths")
     public Integer getMinPaths() {
@@ -257,7 +207,6 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /**
      * Number of paths to be provisioned per initiator.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "paths_per_initiator")
     public Integer getPathsPerInitiator() {

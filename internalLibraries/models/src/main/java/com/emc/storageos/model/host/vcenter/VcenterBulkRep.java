@@ -26,7 +26,6 @@ public class VcenterBulkRep extends BulkRestRep {
     /**
      * List of vCenter objects that exists in ViPR.
      * 
-     * @valid none
      */
     @XmlElement(name = "vcenter")
     public List<VcenterRestRep> getVcenters() {

@@ -30,7 +30,6 @@ public class CatalogCategoryRestRep extends SortedIndexRestRep {
     /**
      * Catalog Category's Tenant
      * 
-     * @valid none
      */
     @XmlElement(name = "tenant")
     public RelatedResourceRep getTenant() {
@@ -44,7 +43,6 @@ public class CatalogCategoryRestRep extends SortedIndexRestRep {
     /**
      * Catalog Category's parent category
      * 
-     * @valid none
      */
     @XmlElement(name = "catalog_category")
     public RelatedResourceRep getCatalogCategory() {
@@ -58,7 +56,6 @@ public class CatalogCategoryRestRep extends SortedIndexRestRep {
     /**
      * Catalog Category's title
      * 
-     * @valid none
      */
     @XmlElement(name = "title")
     public String getTitle() {
@@ -72,7 +69,6 @@ public class CatalogCategoryRestRep extends SortedIndexRestRep {
     /**
      * Catalog Category's description
      * 
-     * @valid none
      */
     @XmlElement(name = "description")
     public String getDescription() {
@@ -86,7 +82,6 @@ public class CatalogCategoryRestRep extends SortedIndexRestRep {
     /**
      * Catalog Category's image url
      * 
-     * @valid none
      */
     @XmlElement(name = "image")
     public String getImage() {
@@ -100,7 +95,6 @@ public class CatalogCategoryRestRep extends SortedIndexRestRep {
     /**
      * Catalog Category's version. Used when preforming catalog upgrades.
      * 
-     * @valid none
      */
     @XmlElement(name = "version")
     public String getVersion() {

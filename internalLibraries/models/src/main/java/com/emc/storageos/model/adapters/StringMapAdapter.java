@@ -15,13 +15,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * An JAXB XML adapter from Map<String,String> into List<StringHashMapEntry>
+ * An JAXB XML adapter from Map (String,String) into List (StringHashMapEntry)
  * 
  * JAXB automatically converts a Map into a list to marshal it into an XML file.
  * The elements of a HashMap are "entry" pairs of key/value. If we want to replace the
  * HashMap elements with names "entry", "key", "value" into elements consistent with our
  * definition of REST guidelines, we need to translate Maps into Lists ourselves.
- * This class provide an adapter from Map<String,String>> into List<StringHashMapEntry>
+ * This class provide an adapter from Map (String,String) into List (StringHashMapEntry)
  * This class should be used in conjuction with XML annotation "XmlJavaTypeAdapter"
  */
 public class StringMapAdapter extends XmlAdapter<List<StringHashMapEntry>, Map<String, String>>

@@ -25,7 +25,6 @@ public class UnManagedFileBulkRep extends BulkRestRep {
      * provides an ingest capability that enables users to bring the unmanaged
      * file systems under ViPR management.
      * 
-     * @valid none
      */
     @XmlElement(name = "unmanaged-filesystems")
     public List<UnManagedFileSystemRestRep> getUnManagedFileSystems() {

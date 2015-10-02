@@ -45,8 +45,6 @@ public class VirtualArrayRestRep extends DataObjectRestRep {
      * virtualstorage array. This will allow the exported
      * volume to be visible on the specified hosts.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "auto_san_zoning")
     @Deprecated

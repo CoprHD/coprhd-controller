@@ -41,14 +41,6 @@ public class RaidLevelAssignments {
      * thus it uses block level striping with two parity blocks.
      * RAID 10 is a stripe of mirrors, i.e. a RAID 0 combination of RAID 1 drives.
      * 
-     * @valid RAID0
-     * @valid RAID1
-     * @valid RAID2
-     * @valid RAID3
-     * @valid RAID4
-     * @valid RAID5
-     * @valid RAID6
-     * @valid RAID10
      */
     @XmlElement(name = "raid_levels")
     @JsonProperty("raid_level")

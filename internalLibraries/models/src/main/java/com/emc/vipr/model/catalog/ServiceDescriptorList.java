@@ -25,7 +25,6 @@ public class ServiceDescriptorList {
     /**
      * List of service descriptors
      * 
-     * @valid none
      */
     @XmlElement(name = "service_descriptor")
     public List<ServiceDescriptorRestRep> getServiceDescriptors() {

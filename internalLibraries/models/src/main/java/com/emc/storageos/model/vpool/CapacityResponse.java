@@ -27,7 +27,6 @@ public class CapacityResponse {
      * The free storage capacity of the specified VirtualPool
      * or VirtualArray.
      * 
-     * @valid none
      */
     @XmlElement(name = "free_gb")
     public String getFreeGb() {
@@ -55,7 +54,6 @@ public class CapacityResponse {
      * The used storage capacity of the specified VirtualPool
      * or VirtualArray.
      * 
-     * @valid none
      */
     @XmlElement(name = "used_gb")
     public String getUsedGb() {
@@ -70,7 +68,6 @@ public class CapacityResponse {
      * The subscribed storage capacity of the specified
      * VirtualPool or VirtualArray.
      * 
-     * @valid none
      */
     @XmlElement(name = "provisioned_gb")
     public String getProvissionedGb() {
@@ -85,7 +82,6 @@ public class CapacityResponse {
      * The actual used percent of the usable capacity of the
      * specified VirtualPool or VirtualArray.
      * 
-     * @valid none
      */
     @XmlElement(name = "percent_used")
     public String getPercentUsed() {
@@ -100,7 +96,6 @@ public class CapacityResponse {
      * The provisioned percent of the usable capacity of the
      * specified VirtualPool or VirtualArray.
      * 
-     * @valid none
      */
     @XmlElement(name = "percent_provisioned")
     public String getPercentProvisioned() {

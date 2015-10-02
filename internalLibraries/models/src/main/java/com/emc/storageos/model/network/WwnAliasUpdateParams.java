@@ -28,7 +28,6 @@ public class WwnAliasUpdateParams {
      * <p>
      * This field is required for Brocade only. If provided for Cisco it will ignored.
      * 
-     * @valid none
      */
     @XmlElement(name = "fabric_id")
     public String getFabricId() {
@@ -47,7 +46,6 @@ public class WwnAliasUpdateParams {
     /**
      * A list of updating aliases.
      * 
-     * @valid none
      */
     @XmlElement(name = "wwn_alias_update")
     public List<WwnAliasUpdateParam> getUpdateAliases() {

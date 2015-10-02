@@ -80,7 +80,6 @@ public class VirtualDataCenterModifyParam {
     }
 
     /**
-     * @deprecated GEO command endpoints have moved to {@link com.emc.vipr.model.object.zone.VdcRestRep#getCmdEndPoints()}
      */
     @Deprecated
     @XmlElement(name = "geo_command_endpoint")
@@ -89,7 +88,6 @@ public class VirtualDataCenterModifyParam {
     }
 
     /**
-     * @deprecated GEO command endpoints have moved to {@link com.emc.vipr.model.object.zone.VdcRestRep#setCmdEndPoints(String)}
      */
     @Deprecated
     public void setGeoCommandEndpoint(String geoCommandEndpoint) {
@@ -97,7 +95,6 @@ public class VirtualDataCenterModifyParam {
     }
 
     /**
-     * @deprecated GEO data endpoints have moved to {@link com.emc.vipr.model.object.zone.VdcRestRep#getDataEndPoints()}
      */
     @Deprecated
     @XmlElement(name = "geo_data_endpoint")
@@ -106,7 +103,6 @@ public class VirtualDataCenterModifyParam {
     }
 
     /**
-     * @deprecated GEO data endpoints have moved to {@link com.emc.vipr.model.object.zone.VdcRestRep#setDataEndPoints(String)}
      */
     @Deprecated
     public void setGeoDataEndpoint(String geoDataEndpoint) {

@@ -25,7 +25,6 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
     /**
      * The remote virtual array.
      * 
-     * @valid none
      */
 
     private URI varray;
@@ -33,14 +32,12 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
     /**
      * The remote virtual pool.
      * 
-     * @valid none
      */
     private URI vpool;
 
     /**
      * remote copy modes
      * 
-     * @valid Synchronous,Asynchronous
      */
     private String remoteCopyMode;
 

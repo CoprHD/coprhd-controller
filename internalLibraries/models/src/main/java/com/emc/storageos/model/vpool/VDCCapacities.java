@@ -28,7 +28,6 @@ public class VDCCapacities {
     /**
      * The list of Virtual Pool capacity
      * attributes of a Virtual Array. 
-     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varrays")

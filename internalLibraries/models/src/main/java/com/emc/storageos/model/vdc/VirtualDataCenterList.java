@@ -25,7 +25,6 @@ public class VirtualDataCenterList {
     /**
      * List of storage system URLs with name
      * 
-     * @valid none
      */
     @XmlElement(name = "virtual_data_center")
     public List<NamedRelatedResourceRep> getVirtualDataCenters() {

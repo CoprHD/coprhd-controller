@@ -27,7 +27,6 @@ public class OrderList {
     /**
      * List of orders
      * 
-     * @valid none
      */
     @XmlElement(name = "order")
     public List<NamedRelatedResourceRep> getOrders() {

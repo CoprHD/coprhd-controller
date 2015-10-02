@@ -49,7 +49,6 @@ public class FileExportUpdateParams implements Serializable {
     /**
      * List of exportRules to be added
      * 
-     * @param exportRulesToAdd
      */
 
     public void setExportRulesToAdd(ExportRules exportRulesToAdd) {
@@ -64,7 +63,6 @@ public class FileExportUpdateParams implements Serializable {
     /**
      * List of exportRules to be deleted
      * 
-     * @param exportRulesToAdd
      */
     public void setExportRulesToDelete(ExportRules exportRulesToDelete) {
         this.exportRulesToDelete = exportRulesToDelete;
@@ -78,7 +76,6 @@ public class FileExportUpdateParams implements Serializable {
     /**
      * List of exportRules to be modified
      * 
-     * @param exportRulesToAdd
      */
     public void setExportRulesToModify(ExportRules exportRulesToModify) {
         this.exportRulesToModify = exportRulesToModify;

@@ -56,7 +56,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      * <p>
      * The Storage Pool matcher will not match pools where the array containing the pool has less usable ports than max_paths.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "max_paths")
     @Range(min = 1, max = 65535)
@@ -72,7 +71,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      * The minimum number of paths that can be used between a host and a storage volume.
      * If this many paths cannot be configured, Export requests will fail.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "min_paths")
     @Range(min = 1, max = 65535)
@@ -86,7 +84,7 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
 
     /**
      * @deprecated use getMaxPaths instead of getNumPaths
-     * @See getMaxPaths()
+     * getMaxPaths()
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
@@ -98,7 +96,7 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
 
     /**
      * @deprecated use setMaxPaths instead of setNumPaths
-     * @See setMaxPaths()
+     * setMaxPaths()
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
@@ -113,7 +111,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      * number of ports because max_paths is too low,
      * the excess initiators are not provisioned.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "paths_per_initiator")
     @Range(min = 1, max = 65535)
@@ -145,14 +142,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      * thus it uses block level striping with two parity blocks.
      * RAID 10 is a stripe of mirrors, i.e. a RAID 0 combination of RAID 1 drives.
      * 
-     * @valid RAID0
-     * @valid RAID1
-     * @valid RAID2
-     * @valid RAID3
-     * @valid RAID4
-     * @valid RAID5
-     * @valid RAID6
-     * @valid RAID10
      */
     @XmlElement(name = "raid_level")
     public Set<String> getRaidLevels() {
@@ -171,7 +160,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      * AutoTiering Policy Name can be specified, only if System Type is specified.
      * AutoTiering Policy Name is supported only for System Types: vmax, vnxblock
      * 
-     * @valid none
      */
     @XmlElement(name = "auto_tiering_policy_name")
     public String getAutoTieringPolicyName() {
@@ -185,11 +173,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     /**
      * Supported Drive Type.
      * 
-     * @valid NONE = No specific drive type
-     * @valid SSD = Solid State Drive
-     * @valid FC = Fibre Channel
-     * @valid SAS = Serial Attached SCSI
-     * @valid SATA = Serial Advanced Technology Attachment
      */
     @XmlElement(name = "drive_type")
     public String getDriveType() {
@@ -203,7 +186,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     /**
      * PreAllocation size for VMAX Thin volumes.
      * 
-     * @valid none
      */
     @XmlElement(name = "thin_volume_preallocation_percentage")
     public Integer getThinVolumePreAllocationPercentage() {
@@ -219,8 +201,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      * Flag to specify whether a volume created in this pool could
      * be added to a Consistency Group.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "multi_volume_consistency")
     public Boolean getMultiVolumeConsistency() {
@@ -235,8 +215,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      * Indicates that virtual pool volumes should use concatenated meta volumes,
      * not striped.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "fast_expansion", required = false)
     public Boolean getFastExpansion() {
@@ -250,8 +228,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     /**
      * Indicates if volume expansion is supported.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "expandable", required = false)
     public Boolean getExpandable() {
@@ -266,35 +242,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      * Virtual Pool (Mirror or RecoverPoint) protection
      * parameters.
      * 
-     * @valid none
-     */
-    @XmlElement(name = "protection")
-    public BlockVirtualPoolProtectionParam getProtection() {
-        return protection;
-    }
-
-    public void setProtection(BlockVirtualPoolProtectionParam protection) {
-        this.protection = protection;
-    }
-
-    /**
-     * Convenience method for checking for protection
-     * 
-     * @return true if protection exists
-     */
-    public boolean hasRemoteCopyProtection() {
-        if ((getProtection() != null) &&
-                (getProtection().getRemoteCopies() != null) &&
-                (getProtection().getRemoteCopies().getRemoteCopySettings() != null)) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * High availability type for the Virtual Pool.
-     * 
-     * @valid none
      */
     @XmlElement(name = "high_availability")
     public VirtualPoolHighAvailabilityParam getHighAvailability() {
@@ -310,8 +257,6 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
      * If set to true, then only unique Auto Tiering Policy Names
      * will be returned else all policies will be returned.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "unique_auto_tier_policy_names", required = false)
     public Boolean getUniquePolicyNames() {

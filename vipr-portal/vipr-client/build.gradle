@@ -16,12 +16,13 @@ task docs(type: Javadoc, dependsOn: ":models:compileJava") {
     classpath = sourceSets.main.compileClasspath
 
     // Exclude impl directory that only contains internal tools
-    exclude '**/impl/**'
+    // exclude '**/impl/**'
 
     // Only include public methods in the generated docs
     options.memberLevel = JavadocMemberLevel.PUBLIC
     options.quiet()
 }
+
 
 task docsJar(type: Jar, dependsOn: docs) {
     classifier = 'javadoc'
@@ -29,7 +30,7 @@ task docsJar(type: Jar, dependsOn: docs) {
 }
 
 artifacts {
-    archives docsJar
+   archives docsJar
 }
 
 def createLabConfigTask(name, path) {

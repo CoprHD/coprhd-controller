@@ -55,7 +55,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
      * 
      * User defined description for this virtual pool.
      * 
-     * @valid none
      */
     @XmlElement
     public String getDescription() {
@@ -69,9 +68,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * The supported system type for the virtual pool.
      * 
-     * @valid Cisco_UCSM
-     * @valid Cisco_CSeries
-     * @valid Generic
      * 
      * @return The system type.
      */
@@ -89,7 +85,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
      * Set of compute elements which have attributes that match the criteria for 
      * selecting the auto-generated list of compute elements.
      * 
-     * @valid none
      */
     @XmlElement(name = "compute_element")
     public List<RelatedResourceRep> getMatchedComputeElements() {
@@ -108,7 +103,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
      * Set of compute elements which have attributes that match the criteria for 
      * selecting the auto-generated list of compute elements, and are available
      * 
-     * @valid none
      */
     @XmlElement(name = "compute_element")
     public List<RelatedResourceRep> getAvailableMatchedComputeElements() {
@@ -125,7 +119,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Minimum Number of processors supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "min_processors")
     public Integer getMinProcessors() {
@@ -139,7 +132,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Maximum Number of processors supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "max_processors")
     public Integer getMaxProcessors() {
@@ -153,7 +145,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Minimum Number of cores supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "min_total_cores")
     public Integer getMinTotalCores() {
@@ -167,7 +158,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Maximum Number of cores supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "max_total_cores")
     public Integer getMaxTotalCores() {
@@ -181,7 +171,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Minimum Number of threads supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "min_total_threads")
     public Integer getMinTotalThreads() {
@@ -195,7 +184,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Maximum Number of threads supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "max_total_threads")
     public Integer getMaxTotalThreads() {
@@ -209,7 +197,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Minimum CPU speed supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "min_cpu_speed")
     public Integer getMinCpuSpeed() {
@@ -223,7 +210,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Maximum CPU speed supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "max_cpu_speed")
     public Integer getMaxCpuSpeed() {
@@ -237,7 +223,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Minimum memory supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "min_memory")
     public Integer getMinMemory() {
@@ -251,7 +236,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Maximum memory supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "max_memory")
     public Integer getMaxMemory() {
@@ -265,7 +249,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Minimum number of NICs supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "min_nics")
     public Integer getMinNics() {
@@ -279,7 +262,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Maximum number of NICs supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "max_nics")
     public Integer getMaxNics() {
@@ -293,7 +275,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Minimum number of HBAs supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "min_hbas")
     public Integer getMinHbas() {
@@ -307,7 +288,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Maximum number of HBAs supported by this virtual pool.
      * 
-     * @valid 1-65535
      */
     @XmlElement(name = "max_hbas")
     public Integer getMaxHbas() {
@@ -322,7 +302,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * The virtual arrays assigned to this virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varrays")
@@ -341,8 +320,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
      * Determines if matched or valid assigned compute elements are returned from
      * command to retrieve the list of compute elements.
      * 
-     * @valid false
-     * @valid true
      */
     @XmlElement(name = "use_matched_elements")
     public Boolean getUseMatchedElements() {
@@ -356,7 +333,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * The service profile templates assigned to this virtual pool.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "service_profile_templates")
     @XmlElement(name = "service_profile_template")
@@ -374,8 +350,6 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     /**
      * Is the compute virtual pool in use
      * 
-     * @valid false
-     * @valid true
      */
     @XmlElement(name = "in_use")
     public Boolean getInUse() {

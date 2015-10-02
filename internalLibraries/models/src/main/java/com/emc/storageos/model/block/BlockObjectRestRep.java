@@ -33,7 +33,6 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
      * Label assigned to the Block object.
      * An example of a block object is a volume.
      * 
-     * @valid none
      */
     @XmlElement(name = "device_label")
     public String getDeviceLabel() {
@@ -47,7 +46,6 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
     /**
      * Native ID for this Block object.
      * 
-     * @valid none
      */
     @XmlElement(name = "native_id")
     public String getNativeId() {
@@ -61,7 +59,6 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
     /**
      * Virtual array where this Block object exists.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varray")
@@ -76,7 +73,6 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
     @XmlElementWrapper(name = "protocols")
     /**
      * Storage protocols supported by this Block object.
-     * @valid none
      */
     @XmlElement(name = "protocol")
     public Set<String> getProtocols() {
@@ -93,7 +89,6 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
     /**
      * Storage controller where this Block object is located.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_controller")
     public URI getStorageController() {
@@ -107,7 +102,6 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
     /**
      * World Wide name of this Block object.
      * 
-     * @valid none
      */
     @XmlElement(name = "wwn")
     public String getWwn() {
@@ -122,7 +116,6 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
      * Tag for grouping Block objects that need to have consistent
      * snapshots.
      * 
-     * @valid none
      */
     @XmlElement(name = "consistency_group")
     public RelatedResourceRep getConsistencyGroup() {

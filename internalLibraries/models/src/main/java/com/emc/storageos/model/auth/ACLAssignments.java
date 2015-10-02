@@ -17,7 +17,6 @@ public class ACLAssignments {
     /**
      * The returned list of ACL assignments.
      * 
-     * @valid none
      */
     private List<ACLEntry> assignments;
 

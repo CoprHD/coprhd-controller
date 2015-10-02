@@ -26,7 +26,6 @@ public class ComputeImageServerBulkRep extends BulkRestRep {
     /**
      * List of compute image server objects that exist in ViPR.
      *
-     * @valid none
      */
     @XmlElement(name = "compute_imageserver")
     public List<ComputeImageServerRestRep> getComputeImageServers() {

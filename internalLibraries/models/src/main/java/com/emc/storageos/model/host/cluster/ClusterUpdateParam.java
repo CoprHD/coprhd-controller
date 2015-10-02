@@ -34,7 +34,6 @@ public class ClusterUpdateParam extends ClusterParam {
     /**
      * The name label for this cluster. It must be unique to the tenant.
      * 
-     * @valid none
      */
     @XmlElement()
     public String getName() {

@@ -32,7 +32,6 @@ public class VirtualPoolProtectionRPChanges {
     /**
      * Protection virtual array settings to add to the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "protection_varray_vpool", required = false)
     public Set<VirtualPoolProtectionVirtualArraySettingsParam> getAdd() {
@@ -50,7 +49,6 @@ public class VirtualPoolProtectionRPChanges {
     /**
      * Protection virtual array settings to remove from the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "protection_varray_vpool", required = false)
     public Set<VirtualPoolProtectionVirtualArraySettingsParam> getRemove() {
@@ -67,7 +65,6 @@ public class VirtualPoolProtectionRPChanges {
     /**
      * The protection source policy for the virtual pool.
      * 
-     * @valid none
      */
     @XmlElement(name = "source_policy")
     public ProtectionSourcePolicy getSourcePolicy() {

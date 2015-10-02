@@ -33,7 +33,6 @@ public class CustomConfigCreateParam {
     /**
      * The config type name
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "config_type")
     public String getConfigType() {
@@ -47,7 +46,6 @@ public class CustomConfigCreateParam {
     /**
      * The config value
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public String getValue() {
@@ -61,7 +59,6 @@ public class CustomConfigCreateParam {
     /**
      * The scope that the config applies to
      * 
-     * @valid none
      */
     @XmlElement
     public ScopeParam getScope() {
@@ -76,8 +73,6 @@ public class CustomConfigCreateParam {
      * Whether or not the config is registered when the config is created. the default
      * is true
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement
     public Boolean getRegistered() {

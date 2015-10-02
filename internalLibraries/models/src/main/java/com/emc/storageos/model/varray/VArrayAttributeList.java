@@ -24,7 +24,6 @@ public class VArrayAttributeList {
     /**
      * A list of virtual pool available attribute response instances.
      * 
-     * @valid none
      * 
      * @return A list of virtual pool available attribute response instances.
      */

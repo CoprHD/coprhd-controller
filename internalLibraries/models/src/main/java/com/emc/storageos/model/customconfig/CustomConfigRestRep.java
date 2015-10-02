@@ -28,7 +28,6 @@ public class CustomConfigRestRep extends DataObjectRestRep {
     /**
      * The scope of this config applies to
      * 
-     * @valid none
      */
     @XmlElement
     public ScopeParam getScope() {
@@ -42,7 +41,6 @@ public class CustomConfigRestRep extends DataObjectRestRep {
     /**
      * The config value
      * 
-     * @valid none
      */
     @XmlElement
     public String getValue() {
@@ -57,8 +55,6 @@ public class CustomConfigRestRep extends DataObjectRestRep {
      * Whether or not the config is registered. When a config is not
      * registered, the config is not usable.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement
     public Boolean getRegistered() {
@@ -72,8 +68,6 @@ public class CustomConfigRestRep extends DataObjectRestRep {
     /**
      * Whether or not the config is system generated.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "system_default")
     public Boolean getSystemDefault() {
@@ -87,7 +81,6 @@ public class CustomConfigRestRep extends DataObjectRestRep {
     /**
      * The related config type
      * 
-     * @valid none
      */
     @XmlElement(name = "config_type")
     public RelatedConfigTypeRep getConfigType() {

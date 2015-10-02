@@ -31,7 +31,6 @@ public class MirrorList {
     /**
      * The list of all the volume mirrors.
      * 
-     * @valid none
      */
     @XmlElement(name = "mirror")
     public List<NamedRelatedResourceRep> getMirrorList() {

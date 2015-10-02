@@ -31,7 +31,6 @@ public class VolumeMigrationInfo {
      * This parameter specifies the id of the
      * volume to be migrated.
      * 
-     * @valid example: URI of the volume to be migrated
      */
     @XmlElement(required = true, name = "volume")
     public URI getVolume() {
@@ -47,7 +46,6 @@ public class VolumeMigrationInfo {
      * storage system to which the volume is to
      * be migrated.
      * 
-     * @valid example: URI of the storage system
      */
     @XmlElement(required = true, name = "storage_system")
     public URI getStorageSystem() {
@@ -62,7 +60,6 @@ public class VolumeMigrationInfo {
      * This parameter specifies (optional) the id of the
      * virtual pool to which the volume is to be migrated.
      * 
-     * @valid example: URI of the virtual pool
      */
     @XmlElement(name = "vpool")
     @JsonProperty("vpool")

@@ -125,7 +125,7 @@ public class CatalogServices extends AbstractCatalogBulkResources<CatalogService
      * <p>
      * API Call: <tt>POST /catalog/categories/{id}/services</tt>
      * 
-     * @param id
+     * @param catalogCategoryId
      *            the ID of the catalog service
      */
     public List<CatalogServiceRestRep> findByCatalogCategory(URI catalogCategoryId) {

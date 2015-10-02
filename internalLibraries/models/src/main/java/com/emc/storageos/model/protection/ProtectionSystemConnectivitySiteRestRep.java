@@ -28,7 +28,6 @@ public class ProtectionSystemConnectivitySiteRestRep {
     /**
      * The Site ID
      * 
-     * @valid example: lrmb017
      */
     @XmlElement(name = "site_id")
     public String getSiteID() {
@@ -42,8 +41,6 @@ public class ProtectionSystemConnectivitySiteRestRep {
     /**
      * The Storage Systems associated to with this Site
      * 
-     * @valid 0 or more Storage Systems
-     * @valid example: urn:storageos:StorageSystem:f468a1c5-3fe8-4aa9-886f-abc6c6963ebc:
      */
     @XmlElementWrapper(name = "storage_systems")
     @XmlElement(name = "storage_system")

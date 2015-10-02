@@ -30,7 +30,6 @@ public class StoragePoolResources {
     /**
      * List of volumes and file shares created from this storage pool
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_resource")
     public List<TypedRelatedResourceRep> getResources() {

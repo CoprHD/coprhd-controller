@@ -35,9 +35,6 @@ public class SubTenantRoles {
     @XmlElementWrapper(name = "roles")
     /**
      * Roles that the user has.
-     * @valid TENANT_ADMIN (tenant role)
-     * @valid PROJECT_ADMIN (tenant role)
-     * @valid TENANT_APPROVER (tenant role)
      */
     @XmlElement(name = "role")
     public List<String> getRoles() {

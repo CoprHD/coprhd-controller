@@ -6,6 +6,8 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -127,8 +129,14 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         for (BlockObject sourceObj : sourceObjList) {
             URI sourceURI = sourceObj.getId();
             if (URIUtil.isType(sourceURI, Volume.class)) {
-                // Verify the operation is supported for ingested volumes.
                 Volume sourceVolume = (Volume) sourceObj;
+
+                // Make sure that we don't have some pending
+                // operation against the volume
+                BlockServiceUtils.checkForPendingTasks(Arrays.asList(sourceVolume.getTenant().getURI()),
+                        Arrays.asList(sourceVolume), _dbClient);
+
+                // Verify the operation is supported for ingested volumes.
                 VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(sourceVolume,
                         ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION, _dbClient);
 
@@ -262,7 +270,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             // If new targets are to be created and linked to the snapshot session, prepare
             // the BlockSnapshot instances to represent those targets.
             if (newTargetCount > 0) {
-                List<URI> snapshotURIs = prepareSnapshotsForSession(sourceObj, sourceCount, newTargetCount, newTargetsName);
+                Map<URI, BlockSnapshot> snapshotMap = prepareSnapshotsForSession(sourceObj, sourceCount, newTargetCount, newTargetsName);
+                List<URI> snapshotURIs = new ArrayList<URI>();
+                snapshotURIs.addAll(snapshotMap.keySet());
                 snapSessionSnapshotMap.put(snapSession.getId(), snapshotURIs);
             } else {
                 snapSessionSnapshotMap.put(snapSession.getId(), new ArrayList<URI>());
@@ -286,9 +296,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * @param instanceLabel The unique snapshot session instance label.
      * @param taskId The unique task identifier.
      * 
-     * @return
+     * @return A ViPR BlockSnapshotSession instance for the passed source object
      */
-    private BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
+    protected BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
             String taskId) {
         BlockSnapshotSession snapSession = new BlockSnapshotSession();
         snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
@@ -309,10 +319,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public List<URI> prepareSnapshotsForSession(BlockObject sourceObj, int sourceCount, int newTargetCount, String newTargetsName) {
+    public Map<URI, BlockSnapshot> prepareSnapshotsForSession(BlockObject sourceObj, int sourceCount, int newTargetCount,
+            String newTargetsName) {
 
-        List<URI> snapshotURIs = new ArrayList<URI>();
-        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        Map<URI, BlockSnapshot> snapshotMap = new HashMap<URI, BlockSnapshot>();
         for (int i = 1; i <= newTargetCount; i++) {
             // Create distinct snapset and instance labels for each snapshot
             String snapsetLabel = newTargetsName;
@@ -339,11 +349,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
                     snapsetLabel, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
             snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
-            snapshotURIs.add(snapshot.getId());
-            snapshots.add(snapshot);
+            snapshotMap.put(snapshot.getId(), snapshot);
         }
-        _dbClient.createObject(snapshots);
-        return snapshotURIs;
+        _dbClient.createObject(snapshotMap.values());
+        return snapshotMap;
     }
 
     /**

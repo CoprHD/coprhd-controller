@@ -13,6 +13,7 @@ import javax.ws.rs.core.UriInfo;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 
@@ -76,9 +77,10 @@ public interface BlockSnapshotSessionApi {
      * @param newTargetCount The number of new targets to be created.
      * @param newTargetsName The requested name for the new linked targets.
      * 
-     * @return A list of the URIs of the prepared BlockSnapshot instances.
+     * @return A map containing the prepared BlockSnapshot instances, keyed by the snapshot URI.
      */
-    public List<URI> prepareSnapshotsForSession(BlockObject sourceObj, int sessionCount, int newTargetCount, String newTargetsName);
+    public Map<URI, BlockSnapshot> prepareSnapshotsForSession(BlockObject sourceObj, int sessionCount, int newTargetCount,
+            String newTargetsName);
 
     /**
      * Creates a new block snapshot session.

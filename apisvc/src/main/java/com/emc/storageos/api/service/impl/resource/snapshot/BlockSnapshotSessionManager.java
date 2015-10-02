@@ -30,6 +30,7 @@ import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.BlockSnapshotSession.CopyMode;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -302,7 +303,7 @@ public class BlockSnapshotSessionManager {
                 newTargetsCopyMode);
 
         // Prepare the BlockSnapshot instances to represent the new linked targets.
-        List<URI> snapshotURIs = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObj, 0, newLinkedTargetsCount,
+        Map<URI, BlockSnapshot> snapshotMap = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObj, 0, newLinkedTargetsCount,
                 newTargetsName);
 
         // Create a unique task identifier.
@@ -316,6 +317,8 @@ public class BlockSnapshotSessionManager {
         TaskResourceRep response = toTask(snapSession, taskId);
 
         // Create and link new targets to the snapshot session.
+        List<URI> snapshotURIs = new ArrayList<URI>();
+        snapshotURIs.addAll(snapshotMap.keySet());
         snapSessionApiImpl.linkNewTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, snapshotURIs,
                 newTargetsCopyMode, taskId);
 

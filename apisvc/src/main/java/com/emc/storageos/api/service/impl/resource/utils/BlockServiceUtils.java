@@ -11,6 +11,7 @@ import static com.google.common.collect.Collections2.transform;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -18,6 +19,9 @@ import java.util.Set;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
@@ -29,12 +33,15 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -42,11 +49,14 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.google.common.base.Joiner;
 
 /**
  * Utility class to hold generic, reusable block service methods
  */
 public class BlockServiceUtils {
+
+    private static Logger _log = LoggerFactory.getLogger(BlockServiceUtils.class);
 
     /**
      * Validate that the passed block object is not an internal block object,
@@ -323,5 +333,70 @@ public class BlockServiceUtils {
         }
 
         return numSnapshots;
+    }
+
+    /**
+     * Given a list of Tenants and DataObject references, check if any of the DataObjects have pending
+     * Tasks against them. If so, generate an error that this cannot be deleted.
+     * 
+     * @param tenants - in] List or Tenant URIs
+     * @param dataObjects - [in] List of DataObjects to check
+     * @param dbClient - Reference to a database client
+     */
+    public static void checkForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects, DbClient dbClient) {
+        Set<URI> objectURIsThatHavePendingTasks = getObjectURIsThatHavePendingTasks(tenants, dbClient);
+
+        // Search through the list of Volumes to see if any are in the pending list
+        List<String> pendingObjectLabels = new ArrayList<>();
+        for (DataObject dataObject : dataObjects) {
+            if (dataObject.getInactive()) {
+                continue;
+            }
+            String label = dataObject.getLabel();
+            if (label == null) {
+                label = dataObject.getId().toString();
+            }
+            if (objectURIsThatHavePendingTasks.contains(dataObject.getId())) {
+                pendingObjectLabels.add(label);
+                // Remove entry, since we already found it was matched.
+                objectURIsThatHavePendingTasks.remove(dataObject.getId());
+            }
+        }
+
+        // If there are an pendingObjectLabels, then we found some objects that have
+        // a pending task against them. Need to signal an error
+        if (!pendingObjectLabels.isEmpty()) {
+            String pendingListStr = Joiner.on(',').join(pendingObjectLabels);
+            _log.warn(String.format(
+                    "Attempted to execute operation against these resources while there are tasks pending against them: %s",
+                    pendingListStr));
+            throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(pendingListStr);
+        }
+    }
+
+    /**
+     * Return a set of URIs referencing DataObject associated to the list of Tenants that have pending Tasks.
+     * 
+     * @param tenants - [in] List or Tenant URIs
+     * @return Set or URIs referencing DataObjects that have pending Tasks against them
+     * @param dbClient - Reference to a database client
+     */
+    public static Set<URI> getObjectURIsThatHavePendingTasks(Collection<URI> tenants, DbClient dbClient) {
+        // Generate a set of Resource URIs that have pending Tasks against them
+        Set<URI> urisHavingPendingTasks = new HashSet<>();
+        for (URI tenant : tenants) {
+            TaskUtils.ObjectQueryResult<Task> queryResult = TaskUtils.findTenantTasks(dbClient, tenant);
+            while (queryResult.hasNext()) {
+                Task task = queryResult.next();
+                if (task == null || task.getCompletedFlag() || task.getInactive()) {
+                    continue;
+                }
+                if (task.isPending()) {
+                    urisHavingPendingTasks.add(task.getResource().getURI());
+                }
+            }
+        }
+
+        return urisHavingPendingTasks;
     }
 }

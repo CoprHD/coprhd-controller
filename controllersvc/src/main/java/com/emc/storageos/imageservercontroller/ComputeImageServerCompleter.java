@@ -6,8 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageServer;
+import com.emc.storageos.db.client.model.ComputeImageServer.ComputeImageServerStatus;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -48,10 +48,6 @@ public class ComputeImageServerCompleter extends TaskCompleter{
         AuditLogManager auditMgr = new AuditLogManager();
         auditMgr.setDbClient(dbClient);
         if (status == Status.error) {
-            if (opType == OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES) {
-                imageServer.setComputeImageServerStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-                dbClient.persistObject(imageServer);
-            }
             dbClient.error(ComputeImageServer.class, getId(), getOpId(), coded);
             auditMgr.recordAuditLog(null, null, serviceType,
                     opType, System.currentTimeMillis(),
@@ -61,8 +57,7 @@ public class ComputeImageServerCompleter extends TaskCompleter{
             if (opType == OperationTypeEnum.DELETE_COMPUTE_IMAGESERVER) {
                 dbClient.markForDeletion(imageServer);
             } else if (opType == OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES) {
-                imageServer.setComputeImageServerStatus(ComputeImageStatus.AVAILABLE.name());
-
+                imageServer.setComputeImageServerStatus(ComputeImageServerStatus.AVAILABLE.name());
                 dbClient.persistObject(imageServer);
             }
             dbClient.ready(ComputeImageServer.class, getId(), getOpId());

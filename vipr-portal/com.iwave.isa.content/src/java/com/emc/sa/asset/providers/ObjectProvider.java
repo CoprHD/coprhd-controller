@@ -52,22 +52,48 @@ public class ObjectProvider extends BaseAssetOptionsProvider {
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
-    
+
     protected static AssetOption createBucketOption(ViPRCoreClient client, URI hostId, DataObjectRestRep bucketObject,
             Map<URI, BucketRestRep> bucketNames) {
-        String label = getBucketObjectLabel(client, bucketObject, bucketNames);
-        
+        String name = getBucketObjectLabel(client, bucketObject, bucketNames);
+        String hardQuota = getBucketObjectHardQuota(bucketObject);
+        String softQuota = getBucketObjectSoftQuota(bucketObject);
+        String retention = getBucketObjectRetention(bucketObject);
+        String label = getMessage("object.bucket.label", name, hardQuota, softQuota, retention);
         return new AssetOption(bucketObject.getId(), label);
     }
-    
+
     protected static Map<URI, BucketRestRep> getProjectBucketNames(ViPRCoreClient client, URI project) {
         if (project == null) {
             return Collections.emptyMap();
         }
         return ResourceUtils.mapById(client.objectBuckets().findByProject(project));
     }
-    
-    
+
+    private static String getBucketObjectHardQuota(DataObjectRestRep bucketObject) {
+        if (bucketObject instanceof BucketRestRep) {
+            BucketRestRep bucket = (BucketRestRep) bucketObject;
+            return bucket.getHardQuota();
+        }
+        return "N/A";
+    }
+
+    private static String getBucketObjectSoftQuota(DataObjectRestRep bucketObject) {
+        if (bucketObject instanceof BucketRestRep) {
+            BucketRestRep bucket = (BucketRestRep) bucketObject;
+            return bucket.getSoftQuota();
+        }
+        return "N/A";
+    }
+
+    private static String getBucketObjectRetention(DataObjectRestRep bucketObject) {
+        if (bucketObject instanceof BucketRestRep) {
+            BucketRestRep bucket = (BucketRestRep) bucketObject;
+            return bucket.getRetention();
+        }
+        return "N/A";
+    }
+
     private static String getBucketObjectLabel(ViPRCoreClient client, DataObjectRestRep bucketObject, Map<URI, BucketRestRep> volumeNames) {
         if (bucketObject instanceof BucketRestRep) {
             BucketRestRep bucket = (BucketRestRep) bucketObject;

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.vipr.client.core;
 
 import java.util.List;
@@ -11,6 +15,11 @@ import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
+/**
+ * Disaster recovery primary/standby sites 
+ * <p>
+ * Base URL: <tt>/site</tt>
+ */
 public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevelResources<SiteRestRep> {
 
     public Site(ViPRCoreClient parent, RestClient client) {
@@ -42,11 +51,11 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     }
     
     public SiteConfigRestRep getStandbyConfig() {
-        return client.get(SiteConfigRestRep.class, PathConstants.SITE_URL + "/standby/config");
+        return client.get(SiteConfigRestRep.class, PathConstants.SITE_URL + "/localconfig");
     }
     
     public DRNatCheckResponse checkIfBehindNat(DRNatCheckParam checkParam) {
-        return client.post(DRNatCheckResponse.class, checkParam, PathConstants.SITE_URL + "/standby/natcheck");
+        return client.post(DRNatCheckResponse.class, checkParam, PathConstants.SITE_URL + "/natcheck");
     }
 
     @Override

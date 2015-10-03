@@ -8,7 +8,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.vipr.model.sys.NatCheckParam;
 
-@XmlRootElement(name = "dr-nat-check")
+@XmlRootElement(name = "dr_nat_check")
 public class DRNatCheckParam extends NatCheckParam {
 
 }

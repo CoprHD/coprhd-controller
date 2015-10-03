@@ -448,7 +448,7 @@ public class LocalRepository {
      * @throws LocalRepositoryException
      */
     public void setDataRevision(String revisionTag, boolean committed) throws LocalRepositoryException {
-        final String prefix = "setDataRevisionTag(): to=" + revisionTag;
+        final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , revisionTag, committed);
         _log.debug(prefix);
 
         final Path tmpFilePath = FileSystems.getDefault().getPath(DATA_REVISION_TMP);
@@ -465,7 +465,7 @@ public class LocalRepository {
         try {
             final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_DATA_REVISION, DATA_REVISION_TMP };
             exec(prefix, cmd);
-            _log.info(prefix + "Success");
+            _log.info(prefix + " Success");
         } finally {
             cleanupTmpFile(tmpFilePath);
         }

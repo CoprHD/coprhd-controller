@@ -99,6 +99,7 @@ MonitoringService
 MeteringService
 WorkflowService
 TaskService
+DisasterRecoveryService
 
 =API Differences
 Block Services

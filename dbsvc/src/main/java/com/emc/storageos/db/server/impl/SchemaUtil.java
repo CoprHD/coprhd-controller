@@ -285,6 +285,7 @@ public class SchemaUtil {
 
                         // this must be a new cluster - no schema is present so we create keyspace first
                         kd = cluster.makeKeyspaceDefinition();
+                        kd.setName(_keyspaceName);
                         kd.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
                         Map<String, String> strategyOptions = kd.getStrategyOptions();
                         strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));

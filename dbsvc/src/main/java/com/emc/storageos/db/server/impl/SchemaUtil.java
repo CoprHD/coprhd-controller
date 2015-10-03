@@ -285,10 +285,21 @@ public class SchemaUtil {
 
                         // this must be a new cluster - no schema is present so we create keyspace first
                         kd = cluster.makeKeyspaceDefinition();
-                        setStrategyOptions(kd);
+                        kd.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
+                        Map<String, String> strategyOptions = kd.getStrategyOptions();
+                        strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
+                        kd.setStrategyOptions(strategyOptions);
                         waitForSchemaChange(cluster.addKeyspace(kd).getResult().getSchemaId(), cluster);
                     }
                 } else {
+                    _log.info("keyspace exist already");
+
+                    String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
+                    if (currentDbSchemaVersion == null && onStandby) {
+                        _log.info("set current version for standby {}", _service.getVersion());
+                        setCurrentVersion(_service.getVersion());
+                    }
+
                     checkStrategyOptions(kd, cluster);
                 }
 
@@ -325,75 +336,89 @@ public class SchemaUtil {
     }
 
     /**
-     * Generate Cassandra data center id. 
-     * Primary site - we use vdc short id
-     * Standby site - we use vdc short id + standby short id
-     * 
-     * @return
-     */
-    private String generateCassandraDataCenterId() {
-        return onStandby ? String.format("%s-%s",_vdcShortId,_standbyId) : _vdcShortId;
-    }
-    
-    /**
-     * Set keyspace strategy class and options for a keyspace whose name specified by
-     * _keyspaceName. New keyspace is created if it does exist.
-     * 
-     * @param keyspace
+     * Remove paused sites from db/geodb strategy options on the primary site.
+     *
+     * @param strategyOptions
      * @return true to indicate keyspace strategy option is changed
      */
-    protected boolean setStrategyOptions(KeyspaceDefinition keyspace) {
+    private boolean excludePausedSites(Map<String, String> strategyOptions) {
         boolean changed = false;
-        keyspace.setName(_keyspaceName);
 
-        // Get existing strategy options if the keyspace exists
-        Map<String, String> strategyOptions = keyspace.getStrategyOptions();
-
-        if (!onStandby) {
-            _log.info("strategyOptions={}", strategyOptions);
-            // iterate through all the sites and exclude the paused ones
-            // this should only be done on primary site since the only standby site might be unavailable
-            for(Configuration config : _coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
-                Site site = new Site(config);
-                if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
-                    _log.info("Remove paused site {} from strategy options", site.getStandbyShortId());
-                    strategyOptions.remove(String.format("%s-%s", _vdcShortId, site.getStandbyShortId()));
-                    changed = true;
-                }
-            }
+        // this should only be done on primary site since the only standby site might be unavailable
+        // and we want the paused site to be able to resume without extra operations
+        if (onStandby) {
+            return changed;
         }
 
-        if (isGeoDbsvc() || onStandby) {
-            String vdcShortId = generateCassandraDataCenterId();
-            _log.info("vdcList={} strategyOptions={}", _vdcList, strategyOptions);
-            if (!onStandby && _vdcList.size() == 1) {
-                // the current vdc is removed
-                strategyOptions.clear();
+        // iterate through all the sites and exclude the paused ones
+        for(Configuration config : _coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
+            Site site = new Site(config);
+            String dcId = String.format("%s-%s", _vdcShortId, site.getStandbyShortId());
+            if (site.getState().equals(SiteState.STANDBY_PAUSED) && strategyOptions.containsKey(dcId)) {
+                _log.info("Remove dc {} from strategy options", dcId);
+                strategyOptions.remove(dcId);
                 changed = true;
             }
+        }
+        return changed;
+    }
 
-            if (strategyOptions.containsKey(vdcShortId)) {
-                _log.info("The strategy options contains {}", vdcShortId);
-                if (!changed) {
-                    return false;
-                }
-            }
-
-            _log.info("The strategy doesn't have {} so set it", vdcShortId);
-            if (_vdcShortId == null) {
-                _log.error("No vdc id specified for geodbsvc");
-                throw new IllegalStateException("Unexpected error. No vdc short id specified");
-            }
-
-            keyspace.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-            strategyOptions.put(vdcShortId, Integer.toString(getReplicationFactor()));
-        } else {
-            // initialize the strategy options for fresh install
-            keyspace.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-            strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
+    /**
+     * Add new standby site into the db/geodb strategy options on each new standby site
+     *
+     * @param strategyOptions
+     * @return true to indicate keyspace strategy option is changed
+     */
+    private boolean addNewSite(Map<String, String> strategyOptions) {
+        // no need to add new site on primary site, since dbsvc/geodbsvc are not restarted
+        if (!onStandby) {
+            return false;
         }
 
-        keyspace.setStrategyOptions(strategyOptions);
+        String dcId = String.format("%s-%s", _vdcShortId, _standbyId);
+
+        if (strategyOptions.containsKey(dcId)) {
+            return false;
+        }
+
+        Configuration config = _coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId());
+        Site localSite = new Site(config);
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
+            // don't add back the paused site
+            _log.warn("local standby site has been paused and removed from strategy options. Do nothing");
+            return false;
+        }
+
+        _log.info("Add {} to strategy options", dcId);
+        strategyOptions.put(dcId, Integer.toString(getReplicationFactor()));
+        return true;
+    }
+
+    /**
+     * Add new VDC into the geodb strategy options
+     *
+     * @param strategyOptions
+     * @return true to indicate keyspace strategy option is changed
+     */
+    private boolean addNewVdc(Map<String, String> strategyOptions) {
+        // no need to add new vdc for local db
+        // TODO: need to consider DR in future
+        if (!isGeoDbsvc()) {
+            return false;
+        }
+
+        _log.info("vdcList={}", _vdcList);
+        if (_vdcList.size() == 1) {
+            // the current vdc is removed
+            strategyOptions.clear();
+        }
+
+        if (strategyOptions.containsKey(_vdcShortId)) {
+            return false;
+        }
+
+        _log.info("Add {} to strategy options", _vdcShortId);
+        strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
         return true;
     }
 
@@ -405,20 +430,19 @@ public class SchemaUtil {
      */
     private void checkStrategyOptions(KeyspaceDefinition kd, Cluster cluster)
             throws ConnectionException, InterruptedException {
-        _log.info("keyspace exist already");
+        Map<String, String> strategyOptions = kd.getStrategyOptions();
+        _log.info("strategyOptions={}", strategyOptions);
 
-        String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
-        if (currentDbSchemaVersion == null && onStandby) {
-            _log.info("set current version for standby {}", _service.getVersion());
-            setCurrentVersion(_service.getVersion());
-        }
-
-        // Update keyspace strategy option
-        KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
-        update.setStrategyOptions(kd.getStrategyOptions());
-        boolean changed = setStrategyOptions(update);
+        boolean changed = excludePausedSites(strategyOptions);
+        changed |= addNewSite(strategyOptions);
+        changed |= addNewVdc(strategyOptions);
 
         if (changed) {
+            _log.info("strategyOptions changed to {}", strategyOptions);
+            KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
+            update.setName(_keyspaceName);
+            update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
+            update.setStrategyOptions(strategyOptions);
             waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
         }
     }

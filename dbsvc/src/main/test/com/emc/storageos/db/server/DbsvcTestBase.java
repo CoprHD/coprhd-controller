@@ -302,18 +302,6 @@ public class DbsvcTestBase {
         public void insertVdcVersion(final DbClient dbClient) {
             // Do nothing
         }
-        
-        @Override
-        protected boolean setStrategyOptions(KeyspaceDefinition keyspace) {
-            if (!isGeoDbsvc()) {
-                Map<String, String> stratOptions = keyspace.getStrategyOptions();
-                keyspace.setName(this.getKeyspaceName());
-                keyspace.setStrategyClass("SimpleStrategy");
-                stratOptions.put("replication_factor", "1");
-                return true;
-            } 
-            return super.setStrategyOptions(keyspace);
-        }
     }
     
     protected static class TestMockDbServiceImpl extends DbServiceImpl {

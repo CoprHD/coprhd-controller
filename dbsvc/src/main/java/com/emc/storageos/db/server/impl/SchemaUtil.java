@@ -409,7 +409,7 @@ public class SchemaUtil {
         }
 
         _log.info("vdcList={}", _vdcList);
-        if (_vdcList.size() == 1) {
+        if (!onStandby && _vdcList.size() == 1) {
             // the current vdc is removed
             strategyOptions.clear();
         }

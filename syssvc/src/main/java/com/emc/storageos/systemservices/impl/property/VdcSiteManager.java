@@ -316,7 +316,6 @@ public class VdcSiteManager extends AbstractManager {
                 break;
             case SiteInfo.PAUSE_STANDBY:
                 log.info("Step3: Acquiring vdc lock for strategy options change.");
-                // only one node needs to update the strategy options, so there's no need to retry
                 if (getVdcLock(svcId)) {
                     try {
                         if (!isQuorumMaintained()) {
@@ -336,6 +335,8 @@ public class VdcSiteManager extends AbstractManager {
                     } finally {
                         coordinator.releasePersistentLock(svcId, vdcLockId);
                     }
+                } else {
+                    retrySleep();
                 }
                 break;
             default:

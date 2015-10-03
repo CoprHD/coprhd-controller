@@ -284,12 +284,10 @@ public class SchemaUtil {
                         setCurrentVersion(_service.getVersion());
 
                         // this must be a new cluster - no schema is present so we create keyspace first
-                        kd = cluster.makeKeyspaceDefinition();
-                        kd.setName(_keyspaceName);
-                        kd.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-                        Map<String, String> strategyOptions = kd.getStrategyOptions();
-                        strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
-                        kd.setStrategyOptions(strategyOptions);
+                        Map<String, String> strategyOptions = new HashMap<String, String>(){{
+                            put(_vdcShortId, Integer.toString(getReplicationFactor()));
+                        }};
+                        kd = setStrategyOptions(cluster, strategyOptions);
                         waitForSchemaChange(cluster.addKeyspace(kd).getResult().getSchemaId(), cluster);
                     }
                 } else {
@@ -440,12 +438,17 @@ public class SchemaUtil {
 
         if (changed) {
             _log.info("strategyOptions changed to {}", strategyOptions);
-            KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
-            update.setName(_keyspaceName);
-            update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-            update.setStrategyOptions(strategyOptions);
+            KeyspaceDefinition update = setStrategyOptions(cluster, strategyOptions);
             waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
         }
+    }
+
+    private KeyspaceDefinition setStrategyOptions(Cluster cluster, Map<String, String> strategyOptions) {
+        KeyspaceDefinition kd = cluster.makeKeyspaceDefinition();
+        kd.setName(_keyspaceName);
+        kd.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
+        kd.setStrategyOptions(strategyOptions);
+        return kd;
     }
 
     private Integer getIntProperty(String key, Integer defValue) {

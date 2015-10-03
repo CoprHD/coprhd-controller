@@ -382,8 +382,9 @@ public class DisasterRecoveryService {
             for (Site standbySite : getStandbySites(vdc.getId())) {
                 updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
-            // update the local site last
-            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+            // in order to pause standby, the local site (primary) needs to restart dbsvc/geodbsvc
+            // on one of the nodes to update the strategy options
+            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.PAUSE_STANDBY);
 
             return siteMapper.map(standby);
         } catch (Exception e) {

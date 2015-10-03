@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
@@ -260,7 +261,7 @@ public class VdcSiteManager extends AbstractManager {
         VdcConfigUtil vdcConfigUtil = new VdcConfigUtil();
         vdcConfigUtil.setDbclient(dbClient);
         vdcConfigUtil.setCoordinator(coordinator.getCoordinatorClient());
-        return new PropertyInfoExt((Map) vdcConfigUtil.genVdcProperties());
+        return new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
     }
 
     /**
@@ -300,47 +301,78 @@ public class VdcSiteManager extends AbstractManager {
                 }
                 retrySleep();
             } else {
-                log.info("Step2: Setting vdc properties and reboot");
+                log.info("Step3: Setting vdc properties and reboot");
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
                 reboot();
             }
-        } else {
-            log.info("Step3: Setting vdc properties not rebooting for single VDC change");
-
-            if (action.equals(SiteInfo.RECONFIG_RESTART)) {
-                PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-                // set the vdc_config_version to an invalid value so that it always gets retried on failure.
-                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
-                localRepository.setVdcPropertyInfo(vdcProperty);
-
-                localRepository.reconfigProperties("firewall");
-                localRepository.reload("firewall");
-
-                // Reconfigure ZK
-                localRepository.reconfigProperties("coordinator");
-                // TODO: support remove a standby site and failover
-                List<String> joiningNodes = getJoiningZKNodes();
-                log.info("Joining nodes={}", joiningNodes);
-
-                CoordinatorClientImpl coordinatorClient = (CoordinatorClientImpl)coordinator.getCoordinatorClient();
-                ZooKeeper zooKeeper = coordinatorClient.getZkConnection().curator().getZookeeperClient().getZooKeeper();
-                zooKeeper.reconfig(joiningNodes, null, null, -1, new Stat());
-
-                log.info("The ZK dynamic reconfig success");
-
-                localRepository.reconfigProperties("db");
-                //localRepository.restart("dbsvc");
-
-                localRepository.reconfigProperties("geodb");
-                //localRepository.restart("geodbsvc");
-
-                log.info("Step2: Updating the hash code for local vdc properties");
-                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
-                localRepository.setVdcPropertyInfo(vdcProperty);
-            } else {
-                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
-            }
+            return;
         }
+
+        log.info("Step3: Setting vdc properties not rebooting for single VDC change");
+
+        switch (action) {
+            case SiteInfo.RECONFIG_RESTART:
+                reconfigRestartSvcs();
+                break;
+            case SiteInfo.PAUSE_STANDBY:
+                log.info("Step3: Acquiring vdc lock for strategy options change.");
+                // only one node needs to update the strategy options, so there's no need to retry
+                if (getVdcLock(svcId)) {
+                    try {
+                        if (!isQuorumMaintained()) {
+                            return;
+                        }
+                        // restart dbsvc and geodbsvc to exclude the paused site from strategy options
+                        localRepository.restart("dbsvc");
+                        localRepository.restart("geodbsvc");
+
+                        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
+                        SiteInfo currentSiteInfo = coordinatorClient.getTargetInfo(coordinatorClient.getSiteId(),
+                                SiteInfo.class);
+                        SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.RECONFIG_RESTART,
+                                    currentSiteInfo.getTargetDataRevision());
+                        coordinatorClient.setTargetInfo(coordinatorClient.getSiteId(), siteInfo);
+                        log.info("VDC target version updated to {} for local site", siteInfo.getVdcConfigVersion());
+                    } finally {
+                        coordinator.releasePersistentLock(svcId, vdcLockId);
+                    }
+                }
+                break;
+            default:
+                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+        }
+    }
+
+    private void reconfigRestartSvcs() throws Exception {
+        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+        // set the vdc_config_version to an invalid value so that it always gets retried on failure.
+        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
+        localRepository.setVdcPropertyInfo(vdcProperty);
+
+        localRepository.reconfigProperties("firewall");
+        localRepository.reload("firewall");
+
+        // Reconfigure ZK
+        localRepository.reconfigProperties("coordinator");
+        // TODO: support remove a standby site and failover
+        List<String> joiningNodes = getJoiningZKNodes();
+        log.info("Joining nodes={}", joiningNodes);
+
+        CoordinatorClientImpl coordinatorClient = (CoordinatorClientImpl)coordinator.getCoordinatorClient();
+        ZooKeeper zooKeeper = coordinatorClient.getZkConnection().curator().getZookeeperClient().getZooKeeper();
+        zooKeeper.reconfig(joiningNodes, null, null, -1, new Stat());
+
+        log.info("The ZK dynamic reconfig success");
+
+        localRepository.reconfigProperties("db");
+        //localRepository.restart("dbsvc");
+
+        localRepository.reconfigProperties("geodb");
+        //localRepository.restart("geodbsvc");
+
+        log.info("Step2: Updating the hash code for local vdc properties");
+        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+        localRepository.setVdcPropertyInfo(vdcProperty);
     }
 
     private List<String> getJoiningZKNodes() {
@@ -352,7 +384,7 @@ public class VdcSiteManager extends AbstractManager {
 
         // key=server ID e.g. 1, 2 ..
         // value = IPv4 address | [ IPv6 address]
-        Map<Integer, String> ipaddresses = new HashMap();
+        Map<Integer, String> ipaddresses = new HashMap<>();
 
         String myVdcId = propertyInfo.getProperty(Constants.MY_VDC_ID_KEY);
         String nodeCountProperty=String.format(Constants.VDC_NODECOUNT_KEY_TEMPLATE, myVdcId);
@@ -379,7 +411,7 @@ public class VdcSiteManager extends AbstractManager {
             }
         }
 
-        List<String> servers = new ArrayList(ipaddresses.size());
+        List<String> servers = new ArrayList<>(ipaddresses.size());
 
         for (Map.Entry<Integer, String> entry : ipaddresses.entrySet()) {
             int serverId = startCount+entry.getKey();

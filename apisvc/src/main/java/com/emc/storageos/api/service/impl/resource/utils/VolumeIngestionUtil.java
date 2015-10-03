@@ -585,13 +585,13 @@ public class VolumeIngestionUtil {
             StringSetMap preExistVolumeInformation, UnManagedVolume unManagedVolume, 
             URI vpoolUri, DbClient dbClient) {
         StringSet supportedVPoolUris = unManagedVolume.getSupportedVpoolUris();
-        String spoolName = unManagedVolume.getStoragePoolUri().toString();
+        String spoolName = "(not set)";
         if (unManagedVolume.getStoragePoolUri() != null) {
             StoragePool spool = dbClient.queryObject(StoragePool.class, unManagedVolume.getStoragePoolUri());
             if (spool != null) {
                 spoolName = spool.getLabel();
             }
-        }
+        } 
         if (null == supportedVPoolUris) {
             if (isVplexVolume(unManagedVolume)) {
                 throw APIException.internalServerErrors.noMatchingVplexVirtualPool(

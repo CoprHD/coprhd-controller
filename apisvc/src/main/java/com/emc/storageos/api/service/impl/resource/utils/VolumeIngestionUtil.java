@@ -706,8 +706,9 @@ public class VolumeIngestionUtil {
     public static boolean isVplexVolume(BlockObject blockObject, DbClient dbClient) {
         UnManagedVolume volume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
         if (null == volume) {
-            _logger.warn("could not locate an UnManagedVolume for BlockObject {}", blockObject.getLabel());
-            return false;
+            String message = "could not locate an UnManagedVolume for BlockObject " + blockObject.getLabel();
+            _logger.error(message);
+            throw IngestionException.exceptions.generalException(message);
         }
         return isVplexVolume(volume);
     }
@@ -737,8 +738,9 @@ public class VolumeIngestionUtil {
     public static boolean isVplexBackendVolume(BlockObject blockObject, DbClient dbClient) {
         UnManagedVolume volume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
         if (null == volume) {
-            _logger.warn("could not locate an UnManagedVolume for BlockObject {}", blockObject.getLabel());
-            return false;
+            String message = "could not locate an UnManagedVolume for BlockObject " + blockObject.getLabel();
+            _logger.error(message);
+            throw IngestionException.exceptions.generalException(message);
         }
         return isVplexBackendVolume(volume);
     }

@@ -318,6 +318,12 @@ public class VdcSiteManager extends AbstractManager {
                 log.info("Step3: Acquiring vdc lock for strategy options change.");
                 if (getVdcLock(svcId)) {
                     try {
+                        targetSiteInfo = coordinator.getTargetInfo(SiteInfo.class);
+                        if (!targetSiteInfo.getActionRequired().equals(SiteInfo.PAUSE_STANDBY)) {
+                            log.info("strategy options already changed. Do nothing");
+                            return;
+                        }
+                        
                         if (!isQuorumMaintained()) {
                             return;
                         }
@@ -335,8 +341,6 @@ public class VdcSiteManager extends AbstractManager {
                     } finally {
                         coordinator.releasePersistentLock(svcId, vdcLockId);
                     }
-                } else {
-                    retrySleep();
                 }
                 break;
             default:

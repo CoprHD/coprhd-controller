@@ -52,7 +52,7 @@ public class SiteParam {
         this.vip = vip;
     }
 
-    @XmlElement(name = "secretKey")
+    @XmlElement(name = "secret_key")
     public String getSecretKey() {
         return secretKey;
     }
@@ -61,7 +61,7 @@ public class SiteParam {
         this.secretKey = secretKey;
     }
 
-    @XmlElement(name = "hostIPv4AddressMap")
+    @XmlElement(name = "host_ipv4_addressmap")
     public Map<String, String> getHostIPv4AddressMap() {
         return hostIPv4AddressMap;
     }
@@ -70,7 +70,7 @@ public class SiteParam {
         this.hostIPv4AddressMap = hostIPv4AddressMap;
     }
 
-    @XmlElement(name = "hostIPv6AddressMap")
+    @XmlElement(name = "host_ipv6_addressmap")
     public Map<String, String> getHostIPv6AddressMap() {
         return hostIPv6AddressMap;
     }
@@ -79,7 +79,7 @@ public class SiteParam {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
     };
     
-    @XmlElement(name = "softwareVersion")
+    @XmlElement(name = "software_version")
     public String getSoftwareVersion() {
         return softwareVersion;
     }
@@ -88,7 +88,7 @@ public class SiteParam {
         this.softwareVersion = softwareVersion;
     }
 
-    @XmlElement(name = "dbSchemaVersion")
+    @XmlElement(name = "dbschema_version")
     public String getDbSchemaVersion() {
         return dbSchemaVersion;
     }
@@ -97,7 +97,7 @@ public class SiteParam {
         this.dbSchemaVersion = dbSchemaVersion;
     }
 
-    @XmlElement(name = "freshInstallation")
+    @XmlElement(name = "fresh_installation")
     public boolean isFreshInstallation() {
         return freshInstallation;
     }
@@ -106,7 +106,7 @@ public class SiteParam {
         this.freshInstallation = freshInstallation;
     }
 
-    @XmlElement(name = "shortId")
+    @XmlElement(name = "short_id")
     public String getShortId() {
         return shortId;
     }

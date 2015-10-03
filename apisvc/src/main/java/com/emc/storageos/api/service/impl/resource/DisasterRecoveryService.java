@@ -124,7 +124,6 @@ public class DisasterRecoveryService {
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }
-            dbClient.persistObject(vdc);
             coordinator.addSite(standbyConfig.getUuid());
             log.info("Persist standby site to ZK {}", shortId);
             //coordinator.setTargetInfo(standbySite);
@@ -175,21 +174,16 @@ public class DisasterRecoveryService {
     @ExcludeLicenseCheck
     public Response syncSites(SiteConfigParam configParam) {
         try {
-            // Recreate the primary site
-            VirtualDataCenter exisingVdc = queryLocalVDC();
-            String currentShortId = exisingVdc.getShortId();
-            dbClient.markForDeletion(exisingVdc);
+            // update vdc
+            VirtualDataCenter vdc = queryLocalVDC();
             
             SiteParam primary = configParam.getPrimarySite();
-            URI vdcId = URIUtil.createId(VirtualDataCenter.class);
-            VirtualDataCenter vdc = new VirtualDataCenter();
-            vdc.setId(vdcId);
             vdc.setApiEndpoint(primary.getVip());
+            vdc.getHostIPv4AddressesMap().clear();
             vdc.getHostIPv4AddressesMap().putAll(new StringMap(primary.getHostIPv4AddressMap()));
+            vdc.getHostIPv6AddressesMap().clear();
             vdc.getHostIPv6AddressesMap().putAll(new StringMap(primary.getHostIPv6AddressMap()));
             vdc.setSecretKey(primary.getSecretKey());
-            vdc.setLocal(true);
-            vdc.setShortId(currentShortId);
             int hostCount = primary.getHostIPv4AddressMap().size();
             if (primary.getHostIPv6AddressMap().size() > hostCount) {
                 hostCount = primary.getHostIPv6AddressMap().size();
@@ -204,14 +198,14 @@ public class DisasterRecoveryService {
                 Site site = new Site();
                 site.setCreationTime((new Date()).getTime());
                 siteMapper.map(standby, site);
-                site.setVdc(vdcId);
+                site.setVdc(vdc.getId());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
                 coordinator.addSite(standby.getUuid());
                 log.info("Persist standby site {} to ZK", standby.getVip());
             }
             
             log.info("Persist primary site to DB");
-            dbClient.createObject(vdc);
+            dbClient.persistObject(vdc);
             
             updateVdcTargetVersionAndDataRevision(SiteInfo.UPDATE_DATA_REVISION);
             return Response.status(Response.Status.ACCEPTED).build();
@@ -298,7 +292,7 @@ public class DisasterRecoveryService {
     @GET
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/standby/config")
+    @Path("/localconfig")
     public SiteConfigRestRep getStandbyConfig() {
         log.info("Begin to get standby config");
         String siteId = coordinator.getSiteId();
@@ -335,7 +329,7 @@ public class DisasterRecoveryService {
     
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/standby/natcheck")
+    @Path("/natcheck")
     @ExcludeLicenseCheck
     public DRNatCheckResponse checkIfBehindNat(DRNatCheckParam checkParam, @HeaderParam("X-Forwarded-For") String clientIp) {
         if (checkParam == null) {

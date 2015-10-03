@@ -350,12 +350,14 @@ public class SchemaUtil {
         Map<String, String> strategyOptions = keyspace.getStrategyOptions();
 
         if (!onStandby) {
+            _log.info("strategyOptions={}", strategyOptions);
             // iterate through all the sites and exclude the paused ones
             // this should only be done on primary site since the only standby site might be unavailable
             for(Configuration config : _coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
                 Site site = new Site(config);
                 if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
-                    strategyOptions.remove(String.format("%s-%s", _vdcShortId, site.getUuid()));
+                    _log.info("Remove paused site {} from strategy options", site.getStandbyShortId());
+                    strategyOptions.remove(String.format("%s-%s", _vdcShortId, site.getStandbyShortId()));
                     changed = true;
                 }
             }

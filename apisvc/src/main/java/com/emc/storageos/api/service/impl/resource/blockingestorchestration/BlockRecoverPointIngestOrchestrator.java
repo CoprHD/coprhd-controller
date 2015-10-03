@@ -132,14 +132,11 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
 
         // Test ingestion status message
+        _logger.info("Printing Ingestion Report before Ingestion Attempt");
         _logger.info(getRPIngestionStatus(umpset));
-        /*
-        if (umpset.getLabel() != null) 
-            throw IngestionException.exceptions.rpIngestingNonVolumeObject(unManagedVolume.getNativeGuid());
-        */
         
         // This ingestion orchestrator only deals with Volume objects.  (snapshots, mirrors, clones aren't protected by RP)
-        if (!(blockObject instanceof Volume)) {
+        if (blockObject != null && !(blockObject instanceof Volume)) {
             _logger.error("Ingesting a non-volume object in RecoverPoint is not allowed: " + blockObject.getId().toString());
             throw IngestionException.exceptions.rpIngestingNonVolumeObject(unManagedVolume.getNativeGuid());
         }
@@ -159,6 +156,10 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // Perform RP-specific export ingestion
         performRPExportIngestion(project, virtualArray, vPool, unManagedVolume, volume); 
 
+        // Print post-ingestion report
+        _logger.info("Printing Ingestion Report After Ingestion");
+        _logger.info(getRPIngestionStatus(umpset));
+
         // Create the managed protection set/CG objects when we have all of the volumes ingested
         if (validateAllVolumesInCGIngested(unManagedVolume, umpset)) {
             _logger.info("Successfully ingested all volumes associated with RP consistency group");
@@ -173,7 +174,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             _dbClient.removeObject(umpset);
         }
         
-        return clazz.cast(blockObject);
+        return clazz.cast(volume);
     }
 
     /**

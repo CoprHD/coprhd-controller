@@ -963,8 +963,8 @@ public abstract class BlockIngestOrchestrator {
                 taskStatus = new StringBuffer();
                 taskStatusMap.put(currentUnManagedVolume.getNativeGuid(), taskStatus);
             }
-            taskStatus.append(String.format("The umanaged volume %s has been partially ingested, but all replicas "
-                    + "have not yet been ingested. Uningested replicas: %s.", currentUnManagedVolume.getLabel(), 
+            taskStatus.append(String.format("The umanaged volume %s has been partially ingested, but not all replicas "
+                    + "have been ingested. Uningested replicas: %s.", currentUnManagedVolume.getLabel(), 
                     Joiner.on("\t").join(unIngestedReplicas)));
             // clear the map and stop traversing
             parentReplicaMap.clear();

@@ -3006,7 +3006,7 @@ ecs_setup_once()
     storagepool update ECS+0123456789 --nhadd nh
     storageport update ECS+0123456789 IP --addvarrays nh
 
-    ecs_cos_setup()
+    ecs_cos_setup
     
     tenant update_namespace $TENANT provider
     project create $PROJECT --tenant $TENANT  

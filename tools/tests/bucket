@@ -15,7 +15,6 @@ from bourne import Bourne
 
 def ecs_bucket_create(args):
     bourne.connect(args.ip)
-    bourne.login( "root", "ChangeMe1!")
     project_uri = bourne.project_query(args.project)
     cos_uri     = bourne.cos_query('object', args.cos) #take care of 'object'
     nh_uri      = bourne.neighborhood_query(args.neighborhood)
@@ -24,7 +23,13 @@ def ecs_bucket_create(args):
         print 'ECS bucket created with id ' + s['resource']['id']
     else:
         print 'ECS bucket create failed.'
+        return
 
+    return s['resource']['id']
+
+def ecs_bucket_delete(args):
+    bourne.connect(args.ip)
+    bourne.ecs_bucket_delete(args.uri)
     
 #----------------------------------------------------------------------
 # command-line parsing
@@ -50,6 +55,10 @@ create.add_argument('soft_quota',	help = 'soft quota of bucket')
 create.add_argument('hard_quota',	help = 'hard quota of bucket')
 create.add_argument('owner',		help = 'owner of bucket')
 
+# bucket delete uri
+# TODO currently this uses URI, future label should be accepted
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('uri',		help = 'URI of bucket')
 
 #----------------------------------------------------------------------
 # Main script
@@ -67,6 +76,11 @@ try:
     if (cmd == "create"):
         args = create.parse_args()
         ecs_bucket_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        ecs_bucket_delete(args)
+    else:
+        parser.print_help()
 except:
     raise
 

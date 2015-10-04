@@ -213,8 +213,8 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_DEACTIVATE = URI_BLOCK_CONSISTENCY_GROUP_SN
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_RESTORE    = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/restore"
 
 #Object ECS bucket definitions
+URI_ECS_BUCKET_LIST             = URI_SERVICES_BASE         + '/object/buckets'
 URI_ECS_BUCKET                  = URI_SERVICES_BASE         + '/object/buckets/{0}'
-URI_ECS_BUCKET_LIST         = "/object/buckets"
 
 
 URI_NETWORKSYSTEMS              = URI_SERVICES_BASE   + '/vdc/network-systems'
@@ -1928,6 +1928,19 @@ class Bourne:
                      }]}
                  }
         print parms
+        self.api('PUT', URI_TENANTS.format(uri), parms)
+
+    def tenant_update_namespace(self, tenant, namespace):
+        if( 'urn:storageos:' in tenant ):
+            print "URI passed in Tenant Namespace = ", tenant
+            uri = tenant
+        else:
+            uri = self.__tenant_id_from_label(tenant)
+            print "URI mapped in tenant namespace = ", uri
+
+        parms = {
+                 'namespace' : namespace
+                 }
         self.api('PUT', URI_TENANTS.format(uri), parms)
 
     def project_list(self, tenant):
@@ -8237,13 +8250,13 @@ class Bourne:
            result.append(tr['id'])
         return result
 
-
-    def bucketcreate_show_task(self, bkt, task):
+    #
+    # ECS Bucket oprations
+    #
+    def ecs_bucket_show_task(self, bkt, task):
         uri_bucket_task = URI_ECS_BUCKET + '/tasks/{1}'
         return self.api('GET', uri_bucket_task.format(bkt, task))
 
-
-    #method definition
     def ecs_bucket_create(self, label, project, neighbourhood, cos,
 						soft_quota, hard_quota, owner):
 		params = {
@@ -8255,12 +8268,23 @@ class Bourne:
 			'owner'         : owner
 			}
 
-		print "ECS BUCKET CREATE Params = " 
-		print  params
+		print "ECS BUCKET CREATE Params = ", params
 		o = self.api('POST', URI_ECS_BUCKET_LIST, params, {'project': project})
 		self.assert_is_dict(o)
-		s = self.api_sync_2(o['resource']['id'], o['op_id'], self.bucketcreate_show_task)
+		s = self.api_sync_2(o['resource']['id'], o['op_id'], self.ecs_bucket_show_task)
 		return s
+
+    # input param to be changed to label
+    def ecs_bucket_delete(self, uri):
+        params = {
+        'forceDelete'   : 'false'
+        }
+
+        print "BOURNE bucket delete = ", URI_RESOURCE_DEACTIVATE.format(URI_ECS_BUCKET.format(uri), params)
+        o = self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_ECS_BUCKET.format(uri)), params)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.ecs_bucket_show_task)
+        return (o, s)
 
 #method call
 #bourne = Bourne()

@@ -90,6 +90,10 @@ def tenant_display_hdr():
 def tenant_display(tenant):
     print tenant_display_fmt.format(tenant['name'], 'NO' if tenant['inactive'] else 'YES', tenant['user_mappings'], tenant['id'])
 
+def tenant_update_namespace(args):
+    bourne.connect(args.ip)
+    bourne.tenant_update_namespace(args.name, args.namespace)
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -168,6 +172,11 @@ remove_group.add_argument('--tenant',    help = 'tenant to remove group mapping 
 bulkpost = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 bulkpost.add_argument('ids',       help = 'comma separated list of tenant ids', default=None)
 
+# tenant update namesapce
+update_namespace = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update_namespace.add_argument('name',	help = 'name of tenant')
+update_namespace.add_argument('namespace', help = 'name of ECS namespace')
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -216,6 +225,9 @@ try:
     elif (cmd == "remove_group"):
         args = remove_group.parse_args()
         tenant_remove_group(args)
+    elif (cmd == "update_namespace"):
+        args = update_namespace.parse_args()
+        tenant_update_namespace (args)
     else:
         parser.print_help()
 except:

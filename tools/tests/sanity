@@ -4551,8 +4551,8 @@ isilon_tests()
 ecs_tests()
 {
     echo "in ecs_tests"
-    bucket create bucket1 sanity nh ecs_vpool 1024 2048 root bkt_id
-    bucket delete bkt_id
+    bucket create bucket1 sanity nh ecs_vpool 1024 2048 root
+    #bucket delete bkt_id
 }
 
 

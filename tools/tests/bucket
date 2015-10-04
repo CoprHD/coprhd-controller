@@ -21,13 +21,13 @@ def ecs_bucket_create(args):
     s = bourne.ecs_bucket_create(args.label, project_uri, nh_uri, cos_uri, args.soft_quota, args.hard_quota, args.owner)
     if (s['state'] == 'ready'):
         print 'ECS bucket created with id ' + s['resource']['id']
-        args.bkt_id = s['resource']['id']
+        bourne.ecs_bucket_delete(s['resource']['id'])
     else:
         print 'ECS bucket create failed.'
     
 
 def ecs_bucket_delete(args):
-    bourne.connect(args.ip)
+    bourne.connect(args.ip) 
     bourne.ecs_bucket_delete(args.uri)
     
 #----------------------------------------------------------------------
@@ -53,7 +53,7 @@ create.add_argument('cos',		help = 'cos/vpool name for bucket')
 create.add_argument('soft_quota',	help = 'soft quota of bucket')
 create.add_argument('hard_quota',	help = 'hard quota of bucket')
 create.add_argument('owner',		help = 'owner of bucket')
-create.add_argument('bkt_id',           help = 'URI of bucket returned')
+
 
 # bucket delete uri
 # TODO currently this uses URI, future label should be accepted

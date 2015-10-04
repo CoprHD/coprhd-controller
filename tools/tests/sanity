@@ -4552,7 +4552,7 @@ ecs_tests()
 {
     echo "in ecs_tests"
     bkt =  bucket create bucket1 sanity nh ecs_vpool 1024 2048 root
-    bucket delete bkt
+    bucket delete $bkt
 }
 
 

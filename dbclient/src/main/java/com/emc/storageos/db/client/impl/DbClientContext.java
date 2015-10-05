@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import org.apache.cassandra.cli.CliMain;
 import org.apache.cassandra.cli.CliOptions;
 import org.apache.thrift.TException;
@@ -49,7 +50,8 @@ public class DbClientContext {
     private static final int QUERY_RETRY_SLEEP_SECONDS = 1000;
     public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
     public static final String LOCAL_HOST = "127.0.0.1";
-    public static final int DEFAULTTHRIFTPORT = 9260;
+    public static final int DB_THRIFT_PORT = 9260;
+    public static final int GEODB_THRIFT_PORT = 9260;
 
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
@@ -185,7 +187,7 @@ public class DbClientContext {
             log.info(String.format("number of hosts in the hostsupplier for %s is %d", svcName, hostCount));
         }
         Partitioner murmur3partitioner = Murmur3Partitioner.get();
-        Map<String, Partitioner> partitioners = new HashMap<String, Partitioner>();
+        Map<String, Partitioner> partitioners = new HashMap<>();
         partitioners.put("org.apache.cassandra.dht.Murmur3Partitioner.class.getCanonicalName()",
                 murmur3partitioner);
 
@@ -240,6 +242,7 @@ public class DbClientContext {
     public void setCassandraStrategyOptions(Map<String, String> options, boolean wait)
             throws CharacterCodingException, TException, NoSuchFieldException, IllegalAccessException, InstantiationException,
             InterruptedException, ConnectionException, ClassNotFoundException {
+        int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
         log.info("The dbclient encrypted={}", isClientToNodeEncrypted);
 
         if (isClientToNodeEncrypted) {
@@ -250,7 +253,7 @@ public class DbClientContext {
             args.add(LOCAL_HOST);
 
             args.add("-p");
-            args.add(Integer.toString(DEFAULTTHRIFTPORT));
+            args.add(Integer.toString(port));
 
             args.add("-ts");
             String trustStoreFile = getTrustStoreFile();
@@ -268,7 +271,7 @@ public class DbClientContext {
             cliOptions.processArgs(CliMain.sessionState, cmdArgs);
         }
 
-        CliMain.connect(LOCAL_HOST, DEFAULTTHRIFTPORT);
+        CliMain.connect(LOCAL_HOST, port);
 
         String useKeySpaceCmd = "use " + getKeyspaceName() + ";";
         CliMain.processStatement(useKeySpaceCmd);

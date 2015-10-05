@@ -363,9 +363,11 @@ public class VdcSiteManager extends AbstractManager {
         List<String> joiningNodes = getJoiningZKNodes();
         log.info("Joining nodes={}", joiningNodes);
 
-        CoordinatorClientImpl coordinatorClient = (CoordinatorClientImpl)coordinator.getCoordinatorClient();
-        ZooKeeper zooKeeper = coordinatorClient.getZkConnection().curator().getZookeeperClient().getZooKeeper();
-        zooKeeper.reconfig(joiningNodes, null, null, -1, new Stat());
+        if (!joiningNodes.isEmpty()) {
+            CoordinatorClientImpl coordinatorClient = (CoordinatorClientImpl) coordinator.getCoordinatorClient();
+            ZooKeeper zooKeeper = coordinatorClient.getZkConnection().curator().getZookeeperClient().getZooKeeper();
+            zooKeeper.reconfig(joiningNodes, null, null, -1, new Stat());
+        }
 
         log.info("The ZK dynamic reconfig success");
 

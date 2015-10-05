@@ -37,7 +37,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -276,6 +275,11 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
             throw APIException.badRequests.unexpectedValueForProperty("VPool type", VirtualPool.Type.object.name(), cos.getType());
         }
         VirtualPoolUtil.validateObjectVirtualPoolUpdateParams(cos, param, _dbClient);
+        
+        // Validate the attributes that could be change if resource is created.
+        if (!cos.getInactive() && checkAttributeValuesChanged(param, cos)) {
+            throw APIException.badRequests.vPoolUpdateNotAllowed("Bucket");
+        }
 
         // set common update VirtualPool Params here.
         populateCommonVirtualPoolUpdateParams(cos, param);
@@ -507,5 +511,40 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     
     private static Integer getNumResources(VirtualPool vpool, DbClient dbClient) {
         return dbClient.countObjects(Bucket.class, "virtualPool", vpool.getId());
+    }
+    
+    /**
+     * 
+     * Check if any VirtualPool attribute values (including max retention days) have changed.
+     * 
+     * @param param
+     * @param vpool : VirtualPool in DB.
+     * @return : flag to check whether to update VirtualPool or not.
+     */
+    private boolean checkAttributeValuesChanged(ObjectVirtualPoolUpdateParam param, VirtualPool vpool) {
+        return super.checkAttributeValuesChanged(param, vpool)
+                || checkMaxRetentionDaysChanged(param.getMaxRetention(), vpool.getMaxRetention());
+    }
+    
+    /**
+     * check for any change in Max Retention days
+     * 
+     * @param newRetention
+     * @param originalRetention
+     */
+    private boolean checkMaxRetentionDaysChanged(Integer newRetention, Integer originalRetention) {
+        boolean isModified = false;
+        if (null != originalRetention) {
+            if (newRetention == null) {
+                isModified = false;
+            } else if (newRetention > originalRetention) {
+                isModified = true;
+            }
+        } else {
+            if (null != newRetention) {
+                isModified = true;
+            }
+        }
+        return isModified;
     }
 }

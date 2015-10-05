@@ -12,6 +12,7 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.*;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueTaskConsumer;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -99,6 +100,11 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     public <T> DistributedQueue<T>
             getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer, int maxThreads)
                     throws CoordinatorException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <T> DistributedLockQueueManager getLockQueue(DistributedLockQueueTaskConsumer<T> consumer) throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
@@ -395,6 +401,21 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
 
     @Override
     public void removeNodeListener(NodeListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DistributedAroundHook getDistributedOwnerLockAroundHook() {
         throw new UnsupportedOperationException();
     }
 

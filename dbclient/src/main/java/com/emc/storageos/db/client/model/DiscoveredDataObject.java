@@ -28,12 +28,12 @@ public class DiscoveredDataObject extends DataObject {
         vcenter,
         hds,
         ucs,
-        rpvplex,
         ibmxiv,
         openstack,
         vnxe,
         scaleio,
-        xtremio;
+        xtremio,
+        ecs;
 
         static public boolean isFileStorageSystem(Type type) {
             return (type == isilon || type == vnxfile || type == netapp || type == netappc || type == vnxe || type == datadomain);
@@ -65,6 +65,11 @@ public class DiscoveredDataObject extends DataObject {
         static public boolean isHDSStorageSystem(Type type) {
             return (type == hds);
         }
+
+        static public boolean isObjectStorageSystem(Type type) {
+            return (type == ecs);
+        }
+
     }
 
     public static enum DataCollectionJobStatus {

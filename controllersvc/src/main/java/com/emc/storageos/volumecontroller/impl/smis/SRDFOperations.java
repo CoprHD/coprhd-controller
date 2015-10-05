@@ -4,30 +4,71 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.model.Volume.PersonalityTypes.SOURCE;
+import static com.emc.storageos.db.client.model.Volume.PersonalityTypes.TARGET;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeGuid;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefresh;
+import static com.google.common.base.Predicates.and;
+import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
+import static java.lang.String.format;
+import static java.util.Arrays.asList;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.cim.CIMArgument;
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.cim.CIMProperty;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFChangeCopyModeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailOverCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStartCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStopCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFTaskCompleter;
@@ -48,37 +89,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMArgument;
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.cim.CIMProperty;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
-import static com.emc.storageos.db.client.model.Volume.PersonalityTypes.SOURCE;
-import static com.emc.storageos.db.client.model.Volume.PersonalityTypes.TARGET;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeGuid;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
-import static com.google.common.base.Predicates.and;
-import static com.google.common.collect.Collections2.filter;
-import static com.google.common.collect.Collections2.transform;
-import static com.google.common.collect.Lists.newArrayList;
-import static java.lang.String.format;
-import static java.util.Arrays.asList;
+import com.google.common.collect.Sets;
 
 public class SRDFOperations implements SmisConstants {
     private static final Logger log = LoggerFactory.getLogger(SRDFOperations.class);
@@ -91,6 +102,7 @@ public class SRDFOperations implements SmisConstants {
     private static final int RESUME_AFTER_SWAP_MAX_ATTEMPTS = 15;
     private static final int RESUME_AFTER_SWAP_SLEEP = 30000; // 30 seconds
     private static final String RESUME_AFTER_SWAP_EXCEPTION_MSG = "Failed to resume link after swap, attempt %d/%d...";
+    private static final int SLEEP_TIME = 30000; // 30 seconds
 
     private DbClient dbClient;
     private CIMObjectPathFactory cimPath;
@@ -99,7 +111,8 @@ public class SRDFOperations implements SmisConstants {
     private FindProviderFactory findProviderFactory;
 
     public enum Mode {
-        SYNCHRONOUS(2), ASYNCHRONOUS(3);
+        SYNCHRONOUS(2), ASYNCHRONOUS(3), ADAPTIVECOPY(32768);
+        ;
         int mode;
 
         Mode(final int mode) {
@@ -132,48 +145,62 @@ public class SRDFOperations implements SmisConstants {
         this.findProviderFactory = findProviderFactory;
     }
 
-    public void createSRDFMirror(final StorageSystem sourceSystem, final URI sourceURI,
-            final URI targetURI, final TaskCompleter completer) {
+    public void createSRDFMirror(final StorageSystem systemWithCg, final List<Volume> srcVolumes,
+            final List<Volume> targetVolumes, final boolean storSyncAvailable, final TaskCompleter completer) {
         log.info("START createSRDFMirror");
         CIMObjectPath srcCGPath = null;
         CIMObjectPath tgtCGPath = null;
-        SRDFMirrorCreateCompleter comp = null;
-        try {
-            Volume source = dbClient.queryObject(Volume.class, sourceURI);
-            Volume target = dbClient.queryObject(Volume.class, targetURI);
-            RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
-            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, group.getRemoteStorageSystemUri());
-            int modeValue = Mode.valueOf(target.getSrdfCopyMode()).getMode();
-            CIMObjectPath srcRepSvcPath = cimPath.getControllerReplicationSvcPath(sourceSystem);
 
-            srcCGPath = createDeviceGroup(sourceSystem, sourceSystem, source, dbClient);
+        try {
+            Volume firstSource = srcVolumes.iterator().next();
+            Volume firstTarget = targetVolumes.iterator().next();
+            RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, firstTarget.getSrdfGroup());
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, firstTarget.getStorageController());
+            StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, firstSource.getStorageController());
+            int modeValue = Mode.valueOf(firstTarget.getSrdfCopyMode()).getMode();
+            CIMObjectPath srcRepSvcPath = cimPath.getControllerReplicationSvcPath(systemWithCg);
+
+            srcCGPath = createDeviceGroup(sourceSystem, systemWithCg, srcVolumes, dbClient);
             String sourceGroupName = (String) srcCGPath.getKey(CP_INSTANCE_ID).getValue();
-            log.info("Source placed into replication group: {}", srcCGPath);
+            log.info("Source Volumes placed into replication group: {}", srcCGPath);
 
             // Note: We switch to the appropriate targetSystem but use sourceSystem for the provider call
-            tgtCGPath = createDeviceGroup(targetSystem, sourceSystem, target, dbClient);
+            tgtCGPath = createDeviceGroup(targetSystem, systemWithCg, targetVolumes, dbClient);
             String targetGroupName = (String) tgtCGPath.getKey(CP_INSTANCE_ID).getValue();
-            log.info("Target placed into replication group: {}", tgtCGPath);
+            log.info("Target Volumes placed into replication group: {}", tgtCGPath);
 
-            CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(sourceSystem,
-                    group);
-            // look for existing volumes, if found then use AddSyncPair
-            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue);
-            CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(srcCGPath,
-                    tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
+            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(systemWithCg, modeValue);
+            CIMArgument[] inArgs = null;
             CIMArgument[] outArgs = new CIMArgument[5];
-            if (completer instanceof SRDFMirrorCreateCompleter) {
-                comp = (SRDFMirrorCreateCompleter) completer;
-                comp.setCGName(sourceGroupName, targetGroupName,
-                        source.getConsistencyGroup());
+            if (completer instanceof SRDFLinkStartCompleter) {
+                ((SRDFLinkStartCompleter) completer).setCGName(sourceGroupName, targetGroupName,
+                        firstSource.getConsistencyGroup());
             }
-            helper.invokeMethodSynchronously(sourceSystem, srcRepSvcPath,
-                    SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
-                    new SmisSRDFCreateMirrorJob(null, sourceSystem.getId(), completer));
+            if (storSyncAvailable) {
+                log.info("Creating Group synchronization between source volume group and target volume group");
+                // there are storage synchronizations available for these pairs
+                Collection<CIMObjectPath> elementSynchronizations = utils
+                        .getSynchronizations(systemWithCg, firstSource, firstTarget);
+                inArgs = helper.getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(srcCGPath,
+                        tgtCGPath, elementSynchronizations);
+                helper.invokeMethod(systemWithCg, srcRepSvcPath,
+                        SmisConstants.CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS, inArgs, outArgs);
+                // No Job returned
+                completer.ready(dbClient);
+            } else {
+                CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(systemWithCg,
+                        group);
+                inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(srcCGPath,
+                        tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
+                helper.invokeMethodSynchronously(systemWithCg, srcRepSvcPath,
+                        SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
+                        new SmisSRDFCreateMirrorJob(null, systemWithCg.getId(), completer));
+            }
+
         } catch (WBEMException wbeme) {
-            log.error("SMI-S error creating mirror for {}", sourceURI, wbeme);
+            log.error("SMI-S error creating mirror group synchronization", wbeme);
             // check whether synchronization really succeeds in Array
-            if (verifyGroupSynchronizationCreatedinArray(srcCGPath, tgtCGPath, sourceSystem)) {
+            if (verifyGroupSynchronizationCreatedinArray(srcCGPath, tgtCGPath, systemWithCg)) {
                 completer.ready(dbClient);
             } else {
                 ServiceError error = SmisException.errors.jobFailed(wbeme.getMessage());
@@ -181,14 +208,14 @@ public class SRDFOperations implements SmisConstants {
                 completer.error(dbClient, error);
             }
         } catch (Exception e) {
-            log.error("Error creating mirror for {}", sourceURI, e);
-            if (verifyGroupSynchronizationCreatedinArray(srcCGPath, tgtCGPath, sourceSystem)) {
+            log.error("Error creating mirror group synchronization", e);
+            if (verifyGroupSynchronizationCreatedinArray(srcCGPath, tgtCGPath, systemWithCg)) {
                 completer.ready(dbClient);
             } else {
                 if (e.getMessage().contains("Replication Control Succeeded")) {
                     log.info(
-                            "Replication Succeeded but save to DB failed exception leaves the SRDF relationship to get established properly after some time. Hence for now succeeding this operation. for {}",
-                            sourceURI, e);
+                            "Replication Succeeded but save to DB failed exception leaves the SRDF relationship to get established properly after some time. Hence for now succeeding this operation.",
+                            e);
                     completer.ready(dbClient);
                     return;
                 }
@@ -365,7 +392,7 @@ public class SRDFOperations implements SmisConstants {
             performDetach(system, target, isGrouprollback, new TaskCompleter() {
                 @Override
                 protected void complete(DbClient dbClient,
-                        Operation.Status status, ServiceCoded coded)
+                                        Operation.Status status, ServiceCoded coded)
                         throws DeviceControllerException {
                     // ignore
                 }
@@ -489,41 +516,101 @@ public class SRDFOperations implements SmisConstants {
      * @param system
      * @param sourceURIs
      * @param remoteDirectorGroupURI
+     * @param forceAdd
      * @param completer
      */
-    public void addVolumePairsToCg(StorageSystem system, List<URI> sourceURIs, URI remoteDirectorGroupURI,
+    public void addVolumePairsToCg(StorageSystem system, List<URI> sourceURIs, URI remoteDirectorGroupURI, boolean forceAdd,
             TaskCompleter completer) {
 
         RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, remoteDirectorGroupURI);
         List<CIMObjectPath> syncPairs = newArrayList();
         List<Volume> sources = dbClient.queryObject(Volume.class, sourceURIs);
+        List<Volume> targets = new ArrayList<>();
 
-        for (Volume source : sources) {
-            for (String targetStr : source.getSrdfTargets()) {
-                URI targetURI = URI.create(targetStr);
-                Volume target = dbClient.queryObject(Volume.class, targetURI);
-                CIMObjectPath syncPair = utils.getStorageSynchronizedObject(system, source, target, null);
-                syncPairs.add(syncPair);
-            }
-        }
-
-        CIMObjectPath groupSynchronized = getGroupSyncObject(system, sources.get(0),
-                group.getSourceReplicationGroupName(), group.getTargetReplicationGroupName());
-
-        if (groupSynchronized == null || syncPairs.isEmpty()) {
-            log.warn("Expected Group Synchronized not found");
-            log.error("Expected Group Synchronized not found for volumes {}", sources.get(0).getNativeId());
-            ServiceError error = SmisException.errors
-                    .jobFailed("Expected Group Synchronized not found");
-            WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
-            completer.error(dbClient, error);
-            return;
-        }
-
-        @SuppressWarnings("rawtypes")
-        CIMArgument[] inArgs = helper.getAddSyncPairInputArguments(groupSynchronized,
-                syncPairs.toArray(new CIMObjectPath[syncPairs.size()]));
         try {
+            // Build list of sources and targets
+            for (Volume source : sources) {
+                for (String targetStr : source.getSrdfTargets()) {
+                    URI targetURI = URI.create(targetStr);
+                    Volume target = dbClient.queryObject(Volume.class, targetURI);
+                    targets.add(target);
+                }
+            }
+
+            StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, sources.get(0).getStorageController());
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targets.get(0).getStorageController());
+            // Transform to list of their respective device ID's
+            Collection<String> srcDevIds = transform(filter(sources, hasNativeID()), fctnBlockObjectToNativeID());
+            Collection<String> tgtDevIds = transform(filter(targets, hasNativeID()), fctnBlockObjectToNativeID());
+
+            int attempts = 0;
+            final int MAX_ATTEMPTS = 12;
+            final int DELAY_TIME_IN_MS = 5000;
+            do {
+                log.info("Attempt {}/{}...", attempts+1, MAX_ATTEMPTS);
+                // Get all remote mirror relationships from provider
+                List<CIMObjectPath> repPaths = helper.getReplicationRelationships(system,
+                        REMOTE_LOCALITY_VALUE, MIRROR_VALUE,
+                        Mode.valueOf(targets.get(0).getSrdfCopyMode()).getMode(),
+                        STORAGE_SYNCHRONIZED_VALUE);
+
+                log.info("Found {} relationships", repPaths.size());
+                log.info("Looking for System elements on {} with IDs {}", sourceSystem.getNativeGuid(),
+                        Joiner.on(',').join(srcDevIds));
+                log.info("Looking for Synced elements on {} with IDs {}", targetSystem.getNativeGuid(),
+                        Joiner.on(',').join(tgtDevIds));
+
+                // Filter the relationships on known source ID's that must match with some known target ID.
+                Collection<CIMObjectPath> syncPaths = filter(repPaths, and(
+                        cgSyncPairsPredicate(sourceSystem.getNativeGuid(), srcDevIds, CP_SYSTEM_ELEMENT),
+                        cgSyncPairsPredicate(targetSystem.getNativeGuid(), tgtDevIds, CP_SYNCED_ELEMENT)));
+
+                log.info("Need {} paths / Found {} paths", syncPaths.size(), sources.size());
+
+                // We're done if the filtered list contains <sources-size> relationships.
+                if (syncPaths.size() == sources.size()) {
+                    // Add these pairs to the result list
+                    syncPairs.addAll(syncPaths);
+                } else {
+                    try {
+                        Thread.sleep(DELAY_TIME_IN_MS);
+                    } catch (InterruptedException ie) {
+                        log.warn("Error:", ie);
+                    }
+                }
+            } while (syncPairs.isEmpty() && (attempts++) < MAX_ATTEMPTS);
+
+            if (syncPairs.isEmpty()) {
+                throw new IllegalStateException("Failed to find synchronization paths");
+            }
+
+            // Update targets with the existing target SRDF CG
+            findOrCreateTargetBlockConsistencyGroup(targets);
+
+            CIMObjectPath groupSynchronized = getGroupSyncObject(system, sources.get(0),
+                    group.getSourceReplicationGroupName(), group.getTargetReplicationGroupName());
+
+            if (groupSynchronized == null || syncPairs.isEmpty()) {
+                log.warn("Expected Group Synchronized not found");
+                log.error("Expected Group Synchronized not found for volumes {}", sources.get(0).getNativeId());
+                ServiceError error = SmisException.errors
+                        .jobFailed("Expected Group Synchronized not found");
+                WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
+                completer.error(dbClient, error);
+                return;
+            }
+
+            Mode mode = Mode.valueOf(targets.get(0).getSrdfCopyMode());
+            CIMInstance settingInstance = getReplicationSettingDataInstance(system, mode.getMode());
+
+            @SuppressWarnings("rawtypes")
+            CIMArgument[] inArgs = helper.getAddSyncPairInputArguments(groupSynchronized, forceAdd, settingInstance,
+                    syncPairs.toArray(new CIMObjectPath[syncPairs.size()]));
+
+            if (forceAdd) {
+                log.info("There are replicas available for R1/R2, hence adding new volume pair(s) to CG with Force flag");
+            }
+
             helper.callModifyReplica(system, inArgs);
             completer.ready(dbClient);
         } catch (WBEMException wbeme) {
@@ -632,13 +719,103 @@ public class SRDFOperations implements SmisConstants {
         }
     }
 
-    public void refreshStorageSystem(final URI storageSystemURI) {
-        StorageSystem targetSystem = null;
+    public void createListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
         try {
-            targetSystem = utils.getStorageSystem(storageSystemURI);
-            callEMCRefresh(helper, targetSystem);
+            List<Volume> sourceVolumes = dbClient.queryObject(Volume.class, sources);
+            List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targets);
+
+            Volume firstTarget = targetVolumes.get(0);
+            RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, firstTarget.getSrdfGroup());
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, firstTarget.getStorageController());
+            int modeValue = Mode.valueOf(firstTarget.getSrdfCopyMode()).getMode();
+            CIMObjectPath srcRepSvcPath = cimPath.getControllerReplicationSvcPath(system);
+            CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(system, group);
+            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(system, modeValue);
+
+            List<CIMObjectPath> sourcePaths = new ArrayList<>();
+            List<CIMObjectPath> targetPaths = new ArrayList<>();
+            for (Volume sourceVolume : sourceVolumes) {
+                sourcePaths.add(cimPath.getVolumePath(system, sourceVolume.getNativeId()));
+            }
+            for (Volume targetVolume : targetVolumes) {
+                targetPaths.add(cimPath.getVolumePath(targetSystem, targetVolume.getNativeId()));
+            }
+
+            CIMArgument[] inArgs = helper.getCreateListReplicaInputArguments(system,
+                    sourcePaths.toArray(new CIMObjectPath[]{}),
+                    targetPaths.toArray(new CIMObjectPath[]{}),
+                    modeValue, repCollectionPath, replicationSettingDataInstance);
+            CIMArgument[] outArgs = new CIMArgument[5];
+
+            helper.invokeMethodSynchronously(system, srcRepSvcPath,
+                    SmisConstants.CREATE_LIST_REPLICA, inArgs, outArgs,
+                    new SmisSRDFCreateMirrorJob(null, system.getId(), completer));
+        } catch (WBEMException wbeme) {
+            log.error("SMI-S error creating mirrors for {}", Joiner.on(',').join(sources), wbeme);
+            ServiceError error = SmisException.errors.jobFailed(wbeme.getMessage());
+            WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
+            completer.error(dbClient, error);
+
+        } catch (Exception e) {
+            log.error("Error creating mirrors for {}", Joiner.on(',').join(sources), e);
+            ServiceError error = SmisException.errors.jobFailed(e.getMessage());
+            WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
+            completer.error(dbClient, error);
+        }
+    }
+
+    public void refreshStorageSystem(final URI storageSystemURI, List<URI> volumeURIs) {
+        StorageSystem system = null;
+        try {
+            system = utils.getStorageSystem(storageSystemURI);
+            long waitTime = 60000; // 60 sec
+            if (null != volumeURIs && !volumeURIs.isEmpty()) {
+                List<Volume> volumes = dbClient.queryObject(Volume.class, volumeURIs);
+                if (null == volumes || volumes.isEmpty()) {
+                    return;
+                }
+                Collection<String> nativeGuids = transform(volumes, fctnBlockObjectToNativeGuid());
+                NamedURI sourceVolumeURI = volumes.get(0).getSrdfParent();
+                if (NullColumnValueGetter.isNullURI(sourceVolumeURI.getURI())) {
+                    return;
+                }
+                Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolumeURI);
+                BlockConsistencyGroup cgObj = dbClient.queryObject(BlockConsistencyGroup.class,
+                        sourceVolume.getConsistencyGroup());
+
+                String cgName = cgObj.getAlternateLabel();
+                if (null == cgName) {
+                    cgName = cgObj.getLabel();
+                }
+
+                while (waitTime > 0) {
+                    log.debug("Entering loop to check volume exists on replication group.");
+                    CIMObjectPath groupPath = helper.checkDeviceGroupExists(cgName, system, system);
+                    if (null == groupPath) {
+                        log.info("No group found with name {}", cgName);
+                        break;
+                    }
+                    Set<String> commonElements = new HashSet<String>();
+                    Set<String> deviceNativeGuids = getVolumesPartOfRG(groupPath, system, system);
+                    log.info("Found volumes {} in RG {}", deviceNativeGuids, cgName);
+                    if (null == deviceNativeGuids) {
+                        log.info("No volumes found in the RG");
+                        break;
+                    }
+                    Sets.intersection(new HashSet<String>(nativeGuids), deviceNativeGuids).copyInto(commonElements);
+                    if (!commonElements.isEmpty()) {
+                        log.info("Volumes {} still exists in RG {}.", Arrays.toString(commonElements.toArray()), cgName);
+                        Thread.sleep(SLEEP_TIME);
+                        waitTime = waitTime - SLEEP_TIME;
+                    } else {
+                        log.debug("Volumes not exist in RG {}", cgName);
+                        break;
+                    }
+                }
+            }
+            callEMCRefresh(helper, system);
         } catch (Exception ex) {
-            log.error("SMI-S error while refreshing target system {}", targetSystem.getId(), ex);
+            log.error("SMI-S error while refreshing target system {}", storageSystemURI, ex);
         }
     }
 
@@ -662,14 +839,10 @@ public class SRDFOperations implements SmisConstants {
 
             // for 4.6.x CG, only failback and swap are at group level. Failover has to be called at ModifyListSync.
             StorageSystem activeSystem = findProviderWithGroup(target);
-            Collection<CIMObjectPath> syncPaths = utils.getSynchronizations(
-                    activeSystem, sourceVolume, target, false);
-            CIMInstance firstSync = getInstance(syncPaths.iterator().next(), activeSystem);
-
             AbstractSRDFOperationContextFactory ctxFactory = getContextFactory(activeSystem);
             SRDFOperationContext ctx = null;
 
-            if (!system.getUsingSmis80() && !isFailedOver(firstSync)) {
+            if (!system.getUsingSmis80() && !isFailedOver(activeSystem, sourceVolume, target)) {
                 log.info("Failing over link");
                 ctx = ctxFactory.build(SRDFOperation.FAIL_OVER, target);
                 ctx.perform();
@@ -678,7 +851,14 @@ public class SRDFOperations implements SmisConstants {
             }
 
             if (completer instanceof SRDFLinkFailOverCompleter) {
-                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(Volume.LinkStatus.IN_SYNC);
+                // Re-check the fail over status.
+                LinkStatus status = null;
+                if (isFailedOver(activeSystem, sourceVolume, target)) {
+                    status = LinkStatus.FAILED_OVER;
+                } else {
+                    status = sourceVolume.hasConsistencyGroup() ? LinkStatus.CONSISTENT : LinkStatus.IN_SYNC;
+                }
+                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(status);
             }
         } catch (Exception e) {
             log.error("Failed to failover srdf link {}", target.getSrdfParent().getURI(), e);
@@ -841,6 +1021,10 @@ public class SRDFOperations implements SmisConstants {
             final DbClient dbClient)
             throws Exception {
         URI cgUri = volumes.get(0).getConsistencyGroup();
+        if (cgUri == null) {
+            findOrCreateTargetBlockConsistencyGroup(volumes);
+            cgUri = volumes.get(0).getConsistencyGroup();
+        }
         BlockConsistencyGroup cgObj = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
 
         String cgName = cgObj.getAlternateLabel();
@@ -856,15 +1040,25 @@ public class SRDFOperations implements SmisConstants {
             /**
              * Stale RG exists with same name.
              * If empty group is found, add these volumes and return the group.
+             * else
+             * check if requested volumes are already part of this RG
+             * (for expand volume where we try to re-add volumes)
              * else throw exception, because it has other volumes.
              */
-            if (getVolumesPartOfRG(groupPath, forProvider, system).isEmpty()) {
+            Set<String> deviceNativeGuids = getVolumesPartOfRG(groupPath, forProvider, system);
+            if (deviceNativeGuids.isEmpty()) {
                 log.info("Found empty group with same name, adding Volumes to it.");
                 CIMArgument[] inArgs = helper.getAddMembersInputArguments(groupPath,
                         cimPath.getVolumePaths(system, nativeIds.toArray(new String[nativeIds.size()])));
                 helper.invokeMethod(forProvider, repSvcPath, ADD_MEMBERS, inArgs, cgOutArgs);
             } else {
-                throw DeviceControllerException.exceptions.srdfConsistencyGroupAlreadyExistsWithVolume(cgName);
+                Collection<String> nativeGuids = transform(volumes, fctnBlockObjectToNativeGuid());
+                if (deviceNativeGuids.containsAll(nativeGuids)) {
+                    log.info("Requested volumes {} are already part of the group {}",
+                            Joiner.on(", ").join(nativeGuids), cgName);
+                } else {
+                    throw DeviceControllerException.exceptions.srdfConsistencyGroupAlreadyExistsWithVolume(cgName);
+                }
             }
         } else {
             CIMArgument[] cgInArgs = helper.getCreateReplicationGroupCreateInputArguments(system, cgName,
@@ -1017,13 +1211,13 @@ public class SRDFOperations implements SmisConstants {
         try {
             StorageSystem activeSystem = findProviderWithGroup(targetVolume);
 
-            SRDFOperationContext ctx = null;
             SRDFOperationContext failBackCtx = getContextFactory(activeSystem).build(SRDFOperation.FAIL_BACK, targetVolume);
             failBackCtx.perform();
 
             // this hack is needed, as currently triggering fail over twice invokes failback
             if (completer instanceof SRDFLinkFailOverCompleter) {
-                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(Volume.LinkStatus.IN_SYNC);
+                LinkStatus status = sourceVolume.hasConsistencyGroup() ? LinkStatus.CONSISTENT : LinkStatus.IN_SYNC;
+                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(status);
             }
             completer.ready(dbClient);
         } catch (Exception e) {
@@ -1248,48 +1442,66 @@ public class SRDFOperations implements SmisConstants {
             Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolUri);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class,
                     sourceVolume.getStorageController());
-            CIMObjectPath synchronizedPath = null;
+            StorageSystem systemWithCg = findProviderWithGroup(targetVolume);
             if (!sourceVolume.hasConsistencyGroup()) {
                 // construct Storage synchronized Object
-                synchronizedPath = cimPath.getStorageSynchronized(sourceSystem, sourceVolume,
+                CIMObjectPath storSynchronizedPath = cimPath.getStorageSynchronized(sourceSystem, sourceVolume,
                         targetSystem, targetVolume);
-                if (null == synchronizedPath) {
+                if (null == storSynchronizedPath) {
                     log.error(
-                            "Failed to fail back source volume {}, as expected storage synchronized association not found ",
-                            targetVolume.getSrdfParent().getURI());
+                            "Failed to start SRDF link for source volume {}, as expected storage synchronized association not found",
+                            sourceVolUri);
                     ServiceError error = SmisException.errors.jobFailed(format(
                             STORAGE_SYNCHRONIZATION_NOT_FOUND, targetVolume.getSrdfParent()
                                     .getURI()));
                     completer.error(dbClient, error);
                     return;
                 }
-                log.info("Establishing SRDF Link in Sync Mode");
-            } else {
-                // construct group synchronized object
-                synchronizedPath = utils.getGroupSynchronized(targetVolume, sourceSystem);
-                if (null == synchronizedPath) {
-                    log.error(
-                            "Failed to fail back source volume {}, as expected replication Group Names are not found in RA Group ",
-                            targetVolume.getSrdfParent().getURI());
-                    ServiceError error = SmisException.errors.jobFailed(format(
-                            REPLICATION_GROUP_NAMES_NOT_FOUND, targetVolume.getSrdfGroup()));
-                    completer.error(dbClient, error);
-                    return;
-                }
-                log.info("Establishing SRDF Link in Async Mode");
-            }
-            StorageSystem systemWithCg = findProviderWithGroup(targetVolume);
+                log.info("Establishing SRDF Link");
 
-            CIMInstance syncInstance = getInstance(synchronizedPath, systemWithCg);
-            if (null == syncInstance) {
-                log.info("No valid synchronization found, hence restablishing link");
-                createSRDFMirror(sourceSystem, sourceVolUri, targetVolume.getId(), completer);
+                CIMInstance syncInstance = getInstance(storSynchronizedPath, systemWithCg);
+                if (null == syncInstance) {
+                    log.info("No valid synchronization found, hence re-establishing link");
+                    createSRDFVolumePair(systemWithCg, sourceVolUri, targetVolume.getId(), completer);
+                } else {
+                    log.info("Link already established..");
+                }
             } else {
-                log.info("Link already established..");
+                CIMObjectPath groupSynchronizedPath = utils.getGroupSynchronized(targetVolume, systemWithCg);
+                // groupSyncPath will be null as replication group names will be cleared from RA group during stop()
+                if (null == groupSynchronizedPath) {
+                    log.info(
+                            "Expected replication Group Names are not found in RA Group for source volume {}",
+                            sourceVolUri);
+                }
+                log.info("Establishing SRDF Link");
+
+                CIMInstance syncInstance = getInstance(groupSynchronizedPath, systemWithCg);
+                if (null == syncInstance) {
+                    log.info("No valid synchronization found, hence re-establishing link");
+                    // get source volumes part of this CG
+                    List<Volume> srcVolumes = ControllerUtils.
+                            getVolumesPartOfCG(sourceVolume.getConsistencyGroup(), dbClient);
+                    // get target volumes part of this CG
+                    List<Volume> targetVolumes = ControllerUtils.
+                            getVolumesPartOfCG(targetVolume.getConsistencyGroup(), dbClient);
+
+                    // if there is a storage sync available for the given pair, then
+                    // we need to call new method CreateGroupReplicaFromElementSynchronizations
+                    CIMObjectPath storSynchronizedPath = cimPath.getStorageSynchronized(sourceSystem, sourceVolume,
+                            targetSystem, targetVolume);
+                    boolean storSyncAvailable = false;
+                    if (getInstance(storSynchronizedPath, systemWithCg) != null) {
+                        storSyncAvailable = true;
+                    }
+                    createSRDFMirror(systemWithCg, srcVolumes, targetVolumes, storSyncAvailable, completer);
+                } else {
+                    log.info("Link already established..");
+                }
             }
             completer.ready(dbClient);
         } catch (Exception e) {
-            log.error("Failed to start srdf link {}", targetVolume.getSrdfParent().getURI(), e);
+            log.error("Failed to start SRDF link {}", targetVolume.getSrdfParent().getURI(), e);
             ServiceError error = SmisException.errors.jobFailed(e.getMessage());
             completer.error(dbClient, error);
         }
@@ -1338,12 +1550,15 @@ public class SRDFOperations implements SmisConstants {
         }
     }
 
+    private boolean isFailedOver(StorageSystem system, Volume source, Volume target) throws WBEMException {
+        Collection<CIMObjectPath> syncPaths = utils.getSynchronizations(system, source, target, false);
+        CIMInstance firstSync = getInstance(syncPaths.iterator().next(), system);
+        return isFailedOver(firstSync);
+    }
+
     private boolean isFailedOver(final CIMInstance syncInstance) {
         String copyState = syncInstance.getPropertyValue(CP_COPY_STATE).toString();
-        if (String.valueOf(FAILOVER_SYNC_PAIR).equalsIgnoreCase(copyState)) {
-            return true;
-        }
-        return false;
+        return String.valueOf(FAILOVER_SYNC_PAIR).equalsIgnoreCase(copyState);
     }
 
     private Set<CIMObjectPath> getDeviceGroup(final StorageSystem system,
@@ -1668,11 +1883,11 @@ public class SRDFOperations implements SmisConstants {
             StorageSystem targetSystem, Volume target) throws WBEMException {
         List<URI> srcVolumeUris = dbClient.queryByConstraint(getVolumesByConsistencyGroup(source.getConsistencyGroup()));
         List<Volume> cgSrcVolumes = dbClient.queryObject(Volume.class, srcVolumeUris);
-        Collection<String> srcDevIds = transform(cgSrcVolumes, fctnBlockObjectToNativeID());
+        Collection<String> srcDevIds = transform(filter(cgSrcVolumes, hasNativeID()), fctnBlockObjectToNativeID());
 
         List<URI> tgtVolumeUris = dbClient.queryByConstraint(getVolumesByConsistencyGroup(target.getConsistencyGroup()));
         List<Volume> cgTgtVolumes = dbClient.queryObject(Volume.class, tgtVolumeUris);
-        Collection<String> tgtDevIds = transform(cgTgtVolumes, fctnBlockObjectToNativeID());
+        Collection<String> tgtDevIds = transform(filter(cgTgtVolumes, hasNativeID()), fctnBlockObjectToNativeID());
 
         // Get the storagesync instances for remote sync/async mirrors
         List<CIMObjectPath> repPaths = helper.getReplicationRelationships(sourceSystem,
@@ -1701,6 +1916,15 @@ public class SRDFOperations implements SmisConstants {
                         replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
 
                 return elSysName.equalsIgnoreCase(systemNativeGuid) && nativeIds.contains(elDevId);
+            }
+        };
+    }
+
+    private Predicate<Volume> hasNativeID() {
+        return new Predicate<Volume>() {
+            @Override
+            public boolean apply(Volume input) {
+                return input.getNativeId() != null;
             }
         };
     }
@@ -1784,4 +2008,122 @@ public class SRDFOperations implements SmisConstants {
         }
         return activeProviderSystem;
     }
+
+    public void performChangeCopyMode(StorageSystem system, Volume target,
+            TaskCompleter completer) {
+
+        log.info("START performChangeCopyMode");
+        checkTargetHasParentOrFail(target);
+
+        AbstractSRDFOperationContextFactory ctxFactory = getContextFactory(system);
+        ServiceError error = null;
+        try {
+            if (target.hasConsistencyGroup()) {
+                URIQueryResultList tgtVolumeUris = new URIQueryResultList();
+                dbClient.queryByConstraint(
+                        getVolumesByConsistencyGroup(target.getConsistencyGroup()), tgtVolumeUris);
+                Iterator<URI> tgtVolIterator = tgtVolumeUris.iterator();
+                List<Volume> tgtVolumes = new ArrayList<>();
+                while (tgtVolIterator.hasNext()) {
+                    tgtVolumes.add(dbClient.queryObject(Volume.class, tgtVolIterator.next()));
+                }
+
+                log.info("Targets: {}", Joiner.on(", ").join(transform(tgtVolumes, fctnBlockObjectToNativeGuid())));
+                ((SRDFChangeCopyModeTaskCompleter) completer).setTgtVolumes(tgtVolumes);
+            }
+
+            String copyMode = ((SRDFChangeCopyModeTaskCompleter) completer).getNewCopyMode();
+            if (RemoteDirectorGroup.SupportedCopyModes.ADAPTIVECOPY.name().equalsIgnoreCase(copyMode)) {
+                ctxFactory.build(SRDFOperation.RESET_TO_ADAPTIVE, target).perform();
+            } else if (RemoteDirectorGroup.SupportedCopyModes.SYNCHRONOUS.name().equalsIgnoreCase(copyMode)) {
+                ctxFactory.build(SRDFOperation.RESET_TO_SYNC, target).perform();
+            } else if (RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name().equalsIgnoreCase(copyMode)) {
+                ctxFactory.build(SRDFOperation.RESET_TO_ASYNC, target).perform();
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to change copy mode for srdf link {}", target.getSrdfParent().getURI(), e);
+            error = SmisException.errors.jobFailed(e.getMessage());
+        } finally {
+            if (error == null) {
+                completer.ready(dbClient);
+            } else {
+                completer.error(dbClient, error);
+            }
+        }
+
+    }
+
+    /**
+     * Given a list of target volumes, find a source volume and its associated BlockConsistencyGroup.
+     *
+     * Using this BlockConsistencyGroup, find or create a group for the targets and apply to it all
+     * targets.
+     *
+     * @param targetVolumes List of target volumes
+     */
+    private void findOrCreateTargetBlockConsistencyGroup(List<? extends BlockObject> targetVolumes) {
+        log.info("Find or create target BlockConsistencyGroup...");
+        final String LABEL_SUFFIX_FOR_46X = "T";
+        // Get a target
+        Volume target = (Volume) targetVolumes.get(0);
+        // Get its SRDF parent
+        Volume source = dbClient.queryObject(Volume.class, target.getSrdfParent().getURI());
+        // Get source system
+        StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, source.getStorageController());
+        // Get the SRDF parents' BlockConsistencyGroup
+        BlockConsistencyGroup sourceGroup = dbClient.queryObject(BlockConsistencyGroup.class,
+                source.getConsistencyGroup());
+        // Get the VirtualArray associated with the target volume
+        VirtualArray virtualArray = dbClient.queryObject(VirtualArray.class, target.getVirtualArray());
+
+        // Get the Project
+        Project project = dbClient.queryObject(Project.class, target.getProject().getURI());
+
+        // Generate the target BlockConsistencyGroup name
+        String CG_NAME_FORMAT = "%s-Target-%s";
+        String cgName = String.format(CG_NAME_FORMAT, sourceGroup.getLabel(), virtualArray.getLabel());
+
+        // Check for existing target group
+        List<BlockConsistencyGroup> groups = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient,
+                        BlockConsistencyGroup.class, PrefixConstraint.Factory
+                                .getFullMatchConstraint(
+                                        BlockConsistencyGroup.class, "label",
+                                        cgName));
+
+        BlockConsistencyGroup newConsistencyGroup = null;
+
+        if (groups.isEmpty()) {
+            log.info("Creating target group: {}", cgName);
+            // create CG
+            newConsistencyGroup = new BlockConsistencyGroup();
+            newConsistencyGroup
+                    .setId(URIUtil.createId(BlockConsistencyGroup.class));
+            newConsistencyGroup.setLabel(cgName);
+            newConsistencyGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
+            newConsistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(),
+                    project.getTenantOrg().getName()));
+            // ModifyReplica on GroupSync for swap operation will try to create CG with same name on target provider.
+            // For 4.6.x, better to use a different name for target CG.
+            StringBuffer label = new StringBuffer(sourceGroup.getLabel());
+            if (!sourceSystem.getUsingSmis80()) {
+                label.append(LABEL_SUFFIX_FOR_46X);
+            }
+            newConsistencyGroup.setAlternateLabel(label.toString());
+
+            // Persist the new BCG
+            dbClient.createObject(newConsistencyGroup);
+        } else {
+            newConsistencyGroup = groups.get(0);
+            log.info("Using existing target group: {}", newConsistencyGroup.getLabel());
+        }
+
+        // Update and persist target volumes with BCG
+        for (BlockObject targetObj : targetVolumes) {
+            targetObj.setConsistencyGroup(newConsistencyGroup.getId());
+        }
+        dbClient.persistObject(targetVolumes);
+    }
+
 }

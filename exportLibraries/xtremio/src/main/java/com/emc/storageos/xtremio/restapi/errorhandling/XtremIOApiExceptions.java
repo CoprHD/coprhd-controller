@@ -27,6 +27,15 @@ public interface XtremIOApiExceptions {
     XtremIOApiException discoveryFailed(String xtremIO);
 
     @DeclareServiceCode(ServiceCode.XTREMIO_DISCOVERY_ERROR)
+    XtremIOApiException scanFailed(String xtremIO);
+
+    @DeclareServiceCode(ServiceCode.XTREMIO_DISCOVERY_ERROR)
     XtremIOApiException moreThanOneClusterNotSupported(String xtremIO);
+
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+    XtremIOApiException operationNotSupportedForVersion(String operationName);
+
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+    XtremIOApiException noConnectionFound(String operationName);
 
 }

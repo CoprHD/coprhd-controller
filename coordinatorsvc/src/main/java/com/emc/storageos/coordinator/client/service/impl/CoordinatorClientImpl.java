@@ -127,6 +127,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private NodeCacheWatcher nodeWatcher = new NodeCacheWatcher();
 
     private String siteId;
+    private DistributedAroundHook ownerLockAroundHook;
 
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
@@ -809,6 +810,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 serializer, name, maxThreads);
         queue.start();
         return queue;
+    }
+
+    @Override
+    public <T> DistributedLockQueueManager getLockQueue(DistributedLockQueueTaskConsumer<T> consumer)
+            throws CoordinatorException {
+        DistributedLockQueueManager<T> lockQueue = new DistributedLockQueueManagerImpl<>(_zkConnection,
+                ZkPath.LOCKQUEUE.toString(), consumer);
+        lockQueue.start();
+        return lockQueue;
     }
 
     @Override
@@ -1543,6 +1553,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         nodeWatcher.removeListener(listener);
     }
 
+    @Override
+    public boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception {
+        Stat stat = _zkConnection.curator().checkExists().forPath(lockPath);
+        return stat == null;
+    }
+
     /**
      * To share NodeCache for listeners listening same path.
      * The empty NodeCache (counter zero) means the NodeCache should be closed.
@@ -1688,4 +1704,25 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 	public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty) {
 	    return new DistributedDoubleBarrier(_zkConnection.curator(), barrierPath, memberQty);
 	}
+
+	/**
+     * Set an instance of {@link DistributedAroundHook} that exposes the ability to wrap arbitrary code
+     * with before and after hooks that lock and unlock the owner locks "globalLock", respectively.
+     *
+     * @param ownerLockAroundHook An instance to help with owner lock management.
+     */
+    @Override
+    public void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook) {
+        this.ownerLockAroundHook = ownerLockAroundHook;
+    }
+
+    /**
+     * Gets the instance of {@link DistributedAroundHook} for owner lock management.
+     *
+     * @return An instance to help with owner lock management.
+     */
+    @Override
+    public DistributedAroundHook getDistributedOwnerLockAroundHook() {
+        return ownerLockAroundHook;
+    }
 }

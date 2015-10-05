@@ -339,6 +339,14 @@ public class CustomConfigHandler {
     }
 
     /**
+     * Short cut to getting the value as a boolean.
+     */
+    public Boolean getComputedCustomConfigBooleanValue(String name, String scope,
+            DataSource sources) throws CustomConfigControllerException {
+        return Boolean.valueOf(getComputedCustomConfigValue(name, scope, sources));
+    }
+
+    /**
      * Build the unique and fully qualified name of the configuration
      * that includes the configuration name and its full scope. Example:
      * systemtype.mds.ZoneName

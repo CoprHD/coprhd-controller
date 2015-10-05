@@ -1,0 +1,35 @@
+{
+  baseKey:"ObjectStorageService.EditBucket",
+  serviceId:"EditBucket",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    bucket:{
+      type:"assetType.vipr.sourceBuckets"
+    }, 
+    
+    softQuota:{
+        type:"storageSize",
+        validation:{
+            min:1
+        }
+    },
+    
+    hardQuota:{
+        type:"storageSize",
+        validation:{
+            min:1
+        }
+    },
+    
+    retention:{
+        type:"number",
+        validation:{
+            min:0
+        }
+    }
+  }
+}

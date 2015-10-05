@@ -69,6 +69,7 @@ public class VPlexApiVirtualVolumeManager {
      * @param winningClusterId Used to set detach rules for distributed volumes.
      * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
      *            clusters.
+     * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
      * 
      * @return The information for the created virtual volume.
      * 
@@ -77,7 +78,7 @@ public class VPlexApiVirtualVolumeManager {
      */
     VPlexVirtualVolumeInfo createVirtualVolume(List<VolumeInfo> nativeVolumeInfoList,
             boolean isDistributed, boolean discoveryRequired, boolean preserveData,
-            String winningClusterId, List<VPlexClusterInfo> clusterInfoList)
+            String winningClusterId, List<VPlexClusterInfo> clusterInfoList, boolean findVirtualVolume)
             throws VPlexApiException {
 
         s_logger.info("Request to create {} virtual volume.",
@@ -95,15 +96,15 @@ public class VPlexApiVirtualVolumeManager {
             clusterInfoList = new ArrayList<VPlexClusterInfo>();
         }
 
-        Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(
-                nativeVolumeInfoList, discoveryRequired, clusterInfoList);
+        Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(nativeVolumeInfoList,
+                discoveryRequired, clusterInfoList);
+
         // For a distributed virtual volume, verify logging volumes
         // have been configured on each cluster.
         if (isDistributed) {
             for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                 if (!clusterInfo.hasLoggingVolume()) {
-                    throw VPlexApiException.exceptions
-                            .clusterHasNoLoggingVolumes(clusterInfo.getName());
+                    throw VPlexApiException.exceptions.clusterHasNoLoggingVolumes(clusterInfo.getName());
                 }
             }
             s_logger.info("Verified logging volumes");
@@ -153,7 +154,7 @@ public class VPlexApiVirtualVolumeManager {
             } else {
                 // Should only be a single local device.
                 VPlexDeviceInfo deviceInfo = localDevices.get(0);
-                clusterId = deviceInfo.getClusterId();
+                clusterId = deviceInfo.getCluster();
                 deviceName = deviceInfo.getName();
                 devicePath = deviceInfo.getPath();
             }
@@ -162,14 +163,18 @@ public class VPlexApiVirtualVolumeManager {
             createVirtualVolume(devicePath);
             s_logger.info("Created virtual volume on device {}", devicePath);
 
-            // Find virtual volume and return.
+            VPlexVirtualVolumeInfo virtualVolumeInfo = new VPlexVirtualVolumeInfo();
             StringBuilder volumeNameBuilder = new StringBuilder();
             volumeNameBuilder.append(deviceName);
             volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
-
-            VPlexVirtualVolumeInfo virtualVolumeInfo = new VPlexVirtualVolumeInfo();
-            virtualVolumeInfo.setName(volumeNameBuilder.toString());
-            virtualVolumeInfo.addCluster(clusterId);
+            if (findVirtualVolume) {
+                // For bulk volume creation we shouldn't use findVirtualVolume as true, rather findVirtualVolumes should be called
+                // separately after createVirtualVolumes.
+                virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterId, volumeNameBuilder.toString(), true, true);
+            } else {
+                virtualVolumeInfo.setName(volumeNameBuilder.toString());
+                virtualVolumeInfo.addCluster(clusterId);
+            }
             return virtualVolumeInfo;
         } catch (Exception e) {
             // An error occurred. Clean up any VPLEX artifacts created for
@@ -272,7 +277,7 @@ public class VPlexApiVirtualVolumeManager {
                         .getDistributedDeviceComponents(distributedDeviceInfo);
                 for (VPlexDistributedDeviceComponentInfo ddComponent : ddComponents) {
                     discoveryMgr.updateDistributedDeviceComponent(ddComponent);
-                    if (ddComponent.getCluster().equals(localDevices.get(0).getClusterId())) {
+                    if (ddComponent.getCluster().equals(localDevices.get(0).getCluster())) {
                         sourceDevicePath = ddComponent.getPath();
                         break;
                     }
@@ -280,7 +285,7 @@ public class VPlexApiVirtualVolumeManager {
                 if (sourceDevicePath == null) {
                     throw VPlexApiException.exceptions.couldNotFindComponentForDistDevice(
                             distributedDeviceInfo.getName(), localDevices.get(0)
-                                    .getClusterId());
+                                    .getCluster());
                 }
 
                 // Attach mirror device to one of the device in the distributed device where
@@ -342,14 +347,14 @@ public class VPlexApiVirtualVolumeManager {
                     .getDistributedDeviceComponents(distributedDeviceInfo);
             for (VPlexDistributedDeviceComponentInfo ddComponent : ddComponents) {
                 discoveryMgr.updateDistributedDeviceComponent(ddComponent);
-                if (ddComponent.getCluster().equals(mirrorLocalDevice.getClusterId())) {
+                if (ddComponent.getCluster().equals(mirrorLocalDevice.getCluster())) {
                     sourceDevicePath = ddComponent.getPath();
                     break;
                 }
             }
             if (sourceDevicePath == null) {
                 throw VPlexApiException.exceptions.couldNotFindComponentForDistDevice(
-                        distributedDeviceInfo.getName(), mirrorLocalDevice.getClusterId());
+                        distributedDeviceInfo.getName(), mirrorLocalDevice.getCluster());
             }
         }
 
@@ -654,8 +659,7 @@ public class VPlexApiVirtualVolumeManager {
      * @throws VPlexApiException When an error occurs finding the storage
      *             volumes or the storage volumes are not all found.
      */
-    Map<VolumeInfo, VPlexStorageVolumeInfo> findStorageVolumes(
-            List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired,
+    Map<VolumeInfo, VPlexStorageVolumeInfo> findStorageVolumes(List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired,
             List<VPlexClusterInfo> clusterInfoList) throws VPlexApiException {
 
         // If the volume(s) passed are newly exported to the VPlex, they may
@@ -666,6 +670,10 @@ public class VPlexApiVirtualVolumeManager {
         // the VPlex.
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = null;
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+
+        // Find if ITL based search needs to be done - Currently Cinder uses this
+        boolean isITLBasedLookUp = VPlexApiUtils.isITLBasedSearch(nativeVolumeInfoList.get(0));
+
         if (discoveryRequired) {
             s_logger.info("Storage volume discovery is required.");
             int retryCount = 0;
@@ -676,25 +684,24 @@ public class VPlexApiVirtualVolumeManager {
                             retryCount, VPlexApiConstants.FIND_STORAGE_VOLUME_RETRY_COUNT);
                     List<String> storageSystemGuids = new ArrayList<String>();
                     for (VolumeInfo nativeVolumeInfo : nativeVolumeInfoList) {
-                        String storageSystemGuid = nativeVolumeInfo
-                                .getStorageSystemNativeGuid();
+                        String storageSystemGuid = nativeVolumeInfo.getStorageSystemNativeGuid();
                         if (!storageSystemGuids.contains(storageSystemGuid)) {
-                            s_logger.info("Discover storage volumes on array {}",
-                                    storageSystemGuid);
+
+                            s_logger.info("Discover storage volumes on array {}", storageSystemGuid);
                             storageSystemGuids.add(storageSystemGuid);
                         }
                     }
+
                     discoveryMgr.rediscoverStorageSystems(storageSystemGuids);
                     s_logger.info("Discovery completed");
 
                     // Get the cluster information.
-                    clusterInfoList.addAll(discoveryMgr.getClusterInfo(false));
+                    clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, isITLBasedLookUp));
                     s_logger.info("Retrieved storage volume info for VPlex clusters");
 
-                    // Find the backend storage volumes. If a volume cannot be
+                    // Find the back-end storage volumes. If a volume cannot be
                     // found, an exception is thrown.
-                    storageVolumeInfoMap = discoveryMgr.findStorageVolumes(
-                            nativeVolumeInfoList, clusterInfoList);
+                    storageVolumeInfoMap = discoveryMgr.findStorageVolumes(nativeVolumeInfoList, clusterInfoList);
                     s_logger.info("Found storage volumes to use for virtual volume");
 
                     // Exit, no exceptions means all volumes found.
@@ -718,14 +725,13 @@ public class VPlexApiVirtualVolumeManager {
 
             // Get the cluster information.
             if (clusterInfoList.isEmpty()) {
-                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false));
+                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, isITLBasedLookUp));
                 s_logger.info("Retrieved storage volume info for VPlex clusters");
             }
 
             // Find the backend storage volumes. If a volume cannot be
             // found, then an exception will be thrown.
-            storageVolumeInfoMap = discoveryMgr.findStorageVolumes(nativeVolumeInfoList,
-                    clusterInfoList);
+            storageVolumeInfoMap = discoveryMgr.findStorageVolumes(nativeVolumeInfoList, clusterInfoList);
             s_logger.info("Found storage volumes");
         }
 
@@ -1444,7 +1450,7 @@ public class VPlexApiVirtualVolumeManager {
             volumeNameBuilder.append(localDeviceName);
             volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
             VPlexVirtualVolumeInfo vvInfo = discoveryMgr.findVirtualVolume(
-                    localDevice.getClusterId(), volumeNameBuilder.toString(), false);
+                    localDevice.getCluster(), volumeNameBuilder.toString(), false);
 
             // Compute updated name and rename the distributed virtual volume.
             if (rename) {
@@ -2209,4 +2215,5 @@ public class VPlexApiVirtualVolumeManager {
                     detachedDeviceName, virtualVolumeName, e);
         }
     }
+
 }

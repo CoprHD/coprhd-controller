@@ -10,15 +10,15 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.Controller;
-import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.impl.AbstractDiscoveredSystemController;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
-import com.emc.storageos.services.OperationTypeEnum;
 
 /**
  * South bound API implementation - a singleton instance of this class services
@@ -43,6 +43,7 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
         _dbClient = dbClient;
     }
 
+    @Override
     protected Controller lookupDeviceController(DiscoveredSystemObject system) {
         return _deviceImpl.iterator().next();
     }

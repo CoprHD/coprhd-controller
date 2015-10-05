@@ -77,7 +77,7 @@
   #{/deadbolt.restrict}      
   
   *{ PHSYICAL ASSETS }*
-  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'],['TENANT_ADMIN']]}
+  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['TENANT_ADMIN']]}
       #{nav.menu 'assets', icon:'vipricon-physicalassets'}
         #{nav.menuSection 'nav.assets'}  
           #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
@@ -100,6 +100,8 @@
             #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
               #{nav.item 'hosts', href: @compute.Hosts.list()/}
               #{nav.item 'hostClusters', href: @compute.HostClusters.list()/}
+            #{/deadbolt.restrict}
+            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['TENANT_ADMIN']]}
               #{nav.item 'vcenters', href: @compute.VCenters.list()/}
             #{/deadbolt.restrict}
           #{/license.ifController}
@@ -121,6 +123,7 @@
             #{nav.separator/}
             #{nav.item 'block.virtualPools', href: @arrays.BlockVirtualPools.list()/}
             #{nav.item 'file.virtualPools', href: @arrays.FileVirtualPools.list()/}
+            #{nav.item 'object.virtualPools', href: @arrays.ObjectVirtualPools.list()/}
             #{nav.item 'computeVirtualPools', href: @compute.ComputeVirtualPools.list()/}
           #{/license.ifController}
         #{/deadbolt.restrict}
@@ -160,6 +163,9 @@
         #{nav.separator/}
         #{nav.item 'file.filesystems', href: @resources.FileSystems.fileSystems()/}
         #{nav.item 'file.snapshots', href: @resources.FileSnapshots.snapshots()/}
+         #{nav.item 'file.vnasservers', href: @resources.VirtualNasServers.vNasServers()/}
+        #{nav.separator/}
+        #{nav.item 'object.buckets', href: @resources.ObjectBuckets.buckets()/}
         #{nav.separator /}
         #{nav.item 'tasks', href: @Tasks.listAll()/}
       #{/nav.menuSection}

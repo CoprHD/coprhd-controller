@@ -212,14 +212,14 @@ public class SRDFTaskCompleter extends TaskCompleter {
             getDbClient().queryByConstraint(ContainmentConstraint.
                     Factory.getBlockObjectExportGroupConstraint(v.getId()), exportGroups);
             if (exportGroups != null && exportGroups.iterator().hasNext()) {
-                // A source volume that is in an export group is write-disabled.
-                return Volume.VolumeAccessState.READABLE;
-            } else {
+                // A source volume that is in an export group is write-disabled or not-ready.
                 return Volume.VolumeAccessState.NOT_READY;
+            } else {
+                return Volume.VolumeAccessState.READWRITE;
             }
         } else if (v.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())
                 && !v.getLinkStatus().equals(Volume.LinkStatus.FAILED_OVER.name())) {
-            // A target volume in any state other than FAILED_OVER is NOT_READY.
+            // A target volume in any state other than FAILED_OVER is write-disabled or not-ready.
             return Volume.VolumeAccessState.NOT_READY;
         }
 

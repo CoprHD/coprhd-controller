@@ -9,7 +9,6 @@ import play.jobs.Job;
 import com.emc.vipr.client.core.Keystore;
 import com.emc.vipr.model.keystore.KeyAndCertificateChain;
 
-
 public class UpdateCertificateJob extends Job {
     private final Keystore api;
     private final KeyAndCertificateChain keyAndCert;

@@ -174,7 +174,7 @@ bulkpost.add_argument('ids',       help = 'comma separated list of tenant ids', 
 
 # tenant update namesapce
 update_namespace = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-update_namespace.add_argument('name',	help = 'name of tenant')
+update_namespace.add_argument('name',	help = 'name of CoprHD tenant')
 update_namespace.add_argument('namespace', help = 'name of ECS namespace')
 
 #----------------------------------------------------------------------

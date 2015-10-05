@@ -18,6 +18,7 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -25,6 +26,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VPlexUtil;
 
@@ -67,6 +69,8 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         for (BlockObject sourceObj : sourceObjList) {
             URI sourceURI = sourceObj.getId();
             if (URIUtil.isType(sourceURI, Volume.class)) {
+                // TBD - Add a check in case this is called with a backend volume.
+
                 // Get the platform specific implementation for the source side
                 // backend storage system and call the validation routine. Currently,
                 // we only support snapshot sessions for VMAX3. Otherwise, it's not
@@ -160,7 +164,20 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public List<BlockSnapshotSession> getSnapshotSessionsForSource(BlockObject sourceObj) {
-        throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+        List<BlockSnapshotSession> snapSessions;
+        if (URIUtil.isType(sourceObj.getId(), Volume.class)) {
+            Volume vplexVolume = (Volume) sourceObj;
+            Volume srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            URI parentURI = srcSideBackendVolume.getId();
+            snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                    ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(parentURI));
+        } else {
+            // We don't currently support snaps of BlockSnapshot instances
+            // so should not be called.
+            throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+        }
+
+        return snapSessions;
     }
 
     /**

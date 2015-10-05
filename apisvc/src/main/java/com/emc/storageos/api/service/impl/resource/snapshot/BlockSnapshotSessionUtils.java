@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
@@ -37,18 +38,30 @@ public class BlockSnapshotSessionUtils {
      * 
      * @param sourceURI The URI for the Volume or BlockSnapshot instance.
      * @param uriInfo A reference to the URI information.
+     * @param checkAssociatedVolumes check if the passed source is an associated volume for another volume.
      * @param dbClient A reference to a database client.
      * 
      * @return A reference to the block object.
      */
-    public static BlockObject validateSnapshotSessionSource(URI sourceURI, UriInfo uriInfo, DbClient dbClient) {
+    public static BlockObject querySnapshotSessionSource(URI sourceURI, UriInfo uriInfo, boolean checkAssociatedVolumes, DbClient dbClient) {
         ArgValidator.checkUri(sourceURI);
         if ((!URIUtil.isType(sourceURI, Volume.class)) && (!URIUtil.isType(sourceURI, BlockSnapshot.class))) {
             throw APIException.badRequests.invalidSnapshotSessionSource(sourceURI.toString());
         }
-
         BlockObject sourceObj = BlockObject.fetch(dbClient, sourceURI);
         ArgValidator.checkEntity(sourceObj, sourceURI, BlockServiceUtils.isIdEmbeddedInURL(sourceURI, uriInfo), true);
+
+        // This essentially checks if the passed snapshot session source is
+        // a backend volume for a VPLEX volume, in which case the VPLEX volume
+        // is returned.
+        if (URIUtil.isType(sourceURI, Volume.class) && (checkAssociatedVolumes)) {
+            List<Volume> volumes = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
+                    AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(sourceURI.toString()));
+            if (!volumes.isEmpty()) {
+                sourceObj = volumes.get(0);
+            }
+        }
+
         return sourceObj;
     }
 

@@ -219,7 +219,7 @@ public class BlockSnapshotSessionManager {
         }
 
         // Get the source Volume or BlockSnapshot.
-        BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.validateSnapshotSessionSource(sourceURI, _uriInfo, _dbClient);
+        BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(sourceURI, _uriInfo, false, _dbClient);
 
         // Get the project for the snapshot session source object.
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
@@ -509,7 +509,7 @@ public class BlockSnapshotSessionManager {
      */
     public BlockSnapshotSessionList getSnapshotSessionsForSource(URI sourceURI) {
         // Get the snapshot session source object.
-        BlockObject sourceObj = BlockSnapshotSessionUtils.validateSnapshotSessionSource(sourceURI, _uriInfo, _dbClient);
+        BlockObject sourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(sourceURI, _uriInfo, true, _dbClient);
 
         // Get the platform specific block snapshot session implementation.
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(sourceObj);

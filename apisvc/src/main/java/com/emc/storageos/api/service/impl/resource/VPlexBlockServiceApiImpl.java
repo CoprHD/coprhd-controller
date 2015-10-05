@@ -2799,7 +2799,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * name for the passed volume.
      * 
      * @param volume The volume for which the snapshot is being created.
-     * @param snapsetLabel The snapset label for grouping this snapshot.
+     * @param snapsetLabel The snapset label for grouping this snapshot.k
      * @param label The label for the new snapshot.
      * 
      * @return A reference to the new BlockSnapshot instance.
@@ -3303,5 +3303,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             throw APIException.badRequests.cantDeleteSnapshotExportedToVPLEX(snapshot.getId().toString(), vplexVolumes.get(0).getLabel());
         }
         super.deleteSnapshot(snapshot, taskId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
+        VPlexController controller = getController();
+        controller.resyncSnapshot(snapshot.getId(), taskId);
     }
 }

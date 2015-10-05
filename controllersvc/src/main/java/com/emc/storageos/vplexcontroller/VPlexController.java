@@ -10,8 +10,8 @@ import java.util.Map;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 public interface VPlexController extends Controller {
 
@@ -249,4 +249,13 @@ public interface VPlexController extends Controller {
      */
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber);
 
+    /**
+     * Resynchronizes a snapshot of a VPLEX volume.
+     * 
+     * @param snapshotURI The URI of the snapshot.
+     * @param opId The unique operation identifier.
+     * 
+     * @throws InternalException
+     */
+    public void resyncSnapshot(URI snapshotURI, String opId) throws InternalException;
 }

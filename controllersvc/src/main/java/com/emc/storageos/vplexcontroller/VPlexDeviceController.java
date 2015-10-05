@@ -10050,4 +10050,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             throw VPlexApiException.exceptions.addStepsForChangeVirtualPoolFailed(ex);
         }
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void resyncSnapshot(URI snapshotURI, String opId) throws InternalException {
+        // The snapshot target volume could be the source side backend volume for
+        // a VPLEX volume if a VPLEX volume was created on the snapshot target volume
+        // for the purpose of exporting the snapshot through the VPLEX rather directly
+        // through the backend storage system. If this is the case, and that snapshot
+        // is resynchronized, then we need do some additional steps because the data
+        // on the VPLEX backend volume will have changed, and the VPLEX volume needs
+        // to know about that.
+
+    }
 }

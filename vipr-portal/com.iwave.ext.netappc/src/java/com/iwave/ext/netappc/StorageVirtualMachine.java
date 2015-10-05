@@ -85,6 +85,7 @@ public class StorageVirtualMachine {
                                     if (dataProtocol != null) {
                                         if (dataProtocol.getContent().equalsIgnoreCase(FIBRE_CHANNEL_CONNECTIONS)) {
                                             invalid = true;
+                                            break;
                                         }
                                     }
                                 }
@@ -102,7 +103,7 @@ public class StorageVirtualMachine {
                             }
                         }
 
-                        svmInfo.setInterfaces(netInfo);
+                        svmInfo.getInterfaces().addAll(netInfo);
                     }
                 }
                 if (tag != null && !tag.isEmpty()) {

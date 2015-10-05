@@ -7,21 +7,24 @@ package com.emc.storageos.db.server.impl;
 
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
-import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.security.password.PasswordUtils;
-import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.Cluster;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.SSLConnectionContext;
-
+import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-
-import com.netflix.astyanax.*;
+import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.Cluster;
+import com.netflix.astyanax.CassandraOperationType;
+import com.netflix.astyanax.KeyspaceTracerFactory;
+import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 import com.netflix.astyanax.connectionpool.ConnectionContext;
 import com.netflix.astyanax.connectionpool.ConnectionPool;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -35,36 +38,46 @@ import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
-
-import org.apache.cassandra.service.StorageService;
-import org.apache.cassandra.thrift.Cassandra;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.emc.storageos.db.client.impl.QueryRetryPolicy;
+import com.emc.storageos.db.client.impl.TimeSeriesType;
+import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.LongMap;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.PasswordHistory;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VdcVersion;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.db.client.DbClient;
-
-import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
+import com.emc.storageos.security.password.PasswordUtils;
 
 /**
  * Utility class for initializing DB schema from model classes
@@ -79,7 +92,6 @@ public class SchemaUtil {
 
     private static final int DEFAULT_REPLICATION_FACTOR = 1;
     private static final int MAX_REPLICATION_FACTOR = 5;
-    public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
     private static final int DBINIT_RETRY_INTERVAL = 2;
     private static final int DBINIT_RETRY_MAX = 5;
 
@@ -1104,7 +1116,7 @@ public class SchemaUtil {
      */
     private void waitForSchemaChange(String schemaVersion, Cluster cluster) throws InterruptedException {
         long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
+        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
             Map<String, List<String>> versions;
             try {
                 versions = cluster.describeSchemaVersions();
@@ -1146,7 +1158,7 @@ public class SchemaUtil {
         AstyanaxContext<Cluster> clusterContext = connectCluster();
 
         long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
+        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
             Map<String, String> options;
             try {
                 Cluster cluster = clusterContext.getClient();

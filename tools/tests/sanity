@@ -326,6 +326,7 @@ COS_HDS=coshds
 COS_VNXEBLOCK_CG=cosvnxe_cg
 COS_VNXEBLOCK_FC=cosvnxe_fc
 COS_VNXEBLOCK_ISCSI=cosvnxe_iscsi
+COS_ECS=ecs_vpool
 
 #
 # Isilon configuration
@@ -337,6 +338,15 @@ ISI_SMBFILESHARE1=smbfileshare1$(date +%Y%m%d%H%M%S)
 ISI_SMBFILESHARE2=smbfileshare2$(date +%Y%m%d%H%M%S)
 ISI_SMBSNAPSHARE1=smbsnapshare1$(date +%Y%m%d%H%M%S)
 ISI_SMBSNAPSHARE2=smbsnapshare2$(date +%Y%m%d%H%M%S) 
+
+#
+# ECS configuration
+#
+ECS_DEV=ecs_device
+ECS_NATIVEGUID=ECS+$ECS_SN
+ECS_SOFT_QUOTA=1024
+ECS_HARD_QUOTA=2048
+ECS_BUCKET=bucket-${RANDOM}
 
 #
 # VNX file device configuration
@@ -825,7 +835,7 @@ isilon_cos_setup()
 ecs_cos_setup()
 {
     echo "setting up ECS cos-vpool"
-    cos create object ecs_vpool --description 'cos_vpool for ECS' true --protocols S3 --provisionType 'Thick' --neighborhoods nh
+    cos create object $COS_ECS --description 'cos_vpool for ECS' true --protocols S3 --provisionType 'Thick' --neighborhoods $NH
 }
 
 vnxfile_cos_setup()
@@ -3001,21 +3011,20 @@ isilon_setup()
 #
 ecs_setup_once()
 {
-    discoveredsystem create ecs_sanity ecs 10.249.239.35 4443 root ChangeMe
+    discoveredsystem create $ECS_DEV ecs $ECS_IP 4443 $ECS_USER $ECS_PASSWD
 
-    storagepool update ECS+0123456789 --nhadd nh
-    storageport update ECS+0123456789 IP --addvarrays nh
+    storagepool update $ECS_NATIVEGUID --nhadd $NH
+    storageport update $ECS_NATIVEGUID IP --addvarrays $NH
 
     ecs_cos_setup
     
-    tenant update_namespace $TENANT provider
-    project create $PROJECT --tenant $TENANT  
-
+    tenant update_namespace $TENANT  $ECS_NAMESPACE
+    project create $PROJECT --tenant $TENANT 
 }
 
 ecs_setup()
 {
-    echo "in ecs_setup"
+    echo "Performing ecs_setup"
     ecs_setup_once
 }
 
@@ -4550,9 +4559,9 @@ isilon_tests()
 
 ecs_tests()
 {
-    echo "in ecs_tests"
-    bucket create bucket1 sanity nh ecs_vpool 1024 2048 root
-    #bucket delete bkt_id
+    echo "Performing ecs_tests"
+    bucket create $ECS_BUCKET $PROJECT $NH $COS_ECS $ECS_SOFT_QUOTA $ECS_HARD_QUOTA $ECS_BUCKET_OWNER
+    #bucket delete bkt_id  #currently create itself deletes bucket
 }
 
 

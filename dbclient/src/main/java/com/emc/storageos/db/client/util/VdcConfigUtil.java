@@ -175,7 +175,7 @@ public class VdcConfigUtil {
         String primarySiteId = coordinator.getPrimarySiteId();
         
         // Sort the sites by creation time - ascending order
-        List<Site> siteList = new ArrayList<Site>();
+        List<Site> siteList = new ArrayList<>();
         for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
             if (site.getVdc().equals(vdc.getId()) && site.getState() != SiteState.ACTIVE) {
@@ -189,10 +189,16 @@ public class VdcConfigUtil {
             }
         });
         
-        List<String> shortIds = new ArrayList<String>();
+        List<String> shortIds = new ArrayList<>();
         for (Site site : siteList) {
             if (site.getUuid().equals(primarySiteId)) {
                 continue; // ignore primary site 
+            }
+
+            // exclude the paused sites from the standby site list on every site except the paused site
+            // this will make it easier to resume the data replication.
+            if (site.getState().equals(SiteState.STANDBY_PAUSED) && !isLocalSite(site)) {
+                continue;
             }
             
             int standbyNodeCnt = 0;
@@ -213,7 +219,7 @@ public class VdcConfigUtil {
                         address == null ? "" : address);
             }
             vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, shortId, standbyShortId), String.valueOf(standbyNodeCnt));
-            if (coordinator.getSiteId().equals(site.getUuid())) {
+            if (isLocalSite(site)) {
                 vdcConfig.put(SITE_MYID, standbyShortId);
             }
             
@@ -225,6 +231,10 @@ public class VdcConfigUtil {
         String currentSiteId = coordinator.getSiteId();
         boolean isStandby = !currentSiteId.equals(primarySiteId);
         vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
+    }
+
+    private boolean isLocalSite(Site site) {
+        return site.getUuid().equals(coordinator.getSiteId());
     }
 
     private List<String> getHostsFromIPAddrMap(Map<String, String> IPv4Addresses, Map<String, String> IPv6Addresses) {

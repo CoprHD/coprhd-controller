@@ -1848,9 +1848,6 @@ public interface BadRequestExceptions {
     public BadRequestException volumeNotExpandable(final String volumeName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException unsupportedVolumeExpansion();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unsupportedUnManagedVolumeDiscovery(final String systemSerialNumber);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2348,9 +2345,6 @@ public interface BadRequestExceptions {
     public BadRequestException noSnapshotsForVMAX3VolumeWithActiveFullCopy();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException expansionNotSupportedForVMAX3Volumes();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notSupportedSnapshotWithMixedArrays(URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2440,6 +2434,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToFindSuitableJournalRecommendation();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToFindJournalRecommendation(final String rpSiteName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToFindTheSpecifiedCopy(final String copy);
@@ -2478,4 +2475,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cgReferencesInvalidProtectionSystem(final URI cgUri, final URI protectionSystemUri);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotAddSRDFProtectionToPartialCG(String msg);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDeleteImageServer();
+    
+    @DeclareServiceCode(ServiceCode.API_PRECONDITION_FAILED)
+    public BadRequestException cannotAddImageWithoutImageServer();
 }

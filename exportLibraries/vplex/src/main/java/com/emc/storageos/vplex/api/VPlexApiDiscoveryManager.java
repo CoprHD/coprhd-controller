@@ -2148,6 +2148,7 @@ public class VPlexApiDiscoveryManager {
                     String initWwn = initInfoMap.get(initName);
                     sv.getInitiatorPwwns().add(initWwn);
                 }
+                sv.refreshMaps();
             }
 
             return storageViews;

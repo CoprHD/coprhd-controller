@@ -1530,7 +1530,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
     
     /**
-     * Workflow step method for creating a consistency group.
+     * Workflow step method for cg create rollback
      *
      * @param rpSystem RP system
      * @param params parameters needed to create the CG

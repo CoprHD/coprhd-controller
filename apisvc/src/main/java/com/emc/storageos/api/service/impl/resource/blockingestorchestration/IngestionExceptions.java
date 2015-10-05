@@ -5,6 +5,8 @@
 
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
+import java.net.URI;
+
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -186,5 +188,12 @@ public interface IngestionExceptions {
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException noUnManagedExportMaskFound(String nativeGuid);
 
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException rpObjectNotSet(String fieldName, URI objectId);
 
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException rpObjectNotFound(URI objectId);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException noUnManagedVolumesFound(String cgName);
 }

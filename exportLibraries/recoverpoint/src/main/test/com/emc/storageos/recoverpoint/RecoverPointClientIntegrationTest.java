@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.recoverpoint;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.net.URI;
@@ -35,6 +37,9 @@ import com.emc.storageos.recoverpoint.requests.MultiCopyEnableImageRequestParams
 import com.emc.storageos.recoverpoint.requests.MultiCopyRestoreImageRequestParams;
 import com.emc.storageos.recoverpoint.requests.RPCopyRequestParams;
 import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
+import com.emc.storageos.recoverpoint.responses.GetCopyResponse;
+import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
+import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
@@ -169,8 +174,44 @@ public class RecoverPointClientIntegrationTest {
         Set<GetCGsResponse> cgs;
         try {
             cgs = rpClient.getAllCGs();
+            Set<String> wwns = new HashSet<String>();
             for (GetCGsResponse cg : cgs) {
                 logger.info("CG: " + cg);
+     
+                assertNotNull(cg.getCgName());
+                assertNotNull(cg.getCgId());
+                assertNotNull(cg.getCopies());
+                assertNotNull(cg.getRsets());
+                
+                // Make sure certain fields are filled-in
+                for (GetCopyResponse copy : cg.getCopies()) {
+                    assertNotNull(copy.getJournals());
+                    assertNotNull(copy.getName());
+                    for (GetVolumeResponse volume : copy.getJournals()) {
+                        assertNotNull(volume.getInternalSiteName());
+                        assertNotNull(volume.getRpCopyName());
+                        assertNotNull(volume.getWwn());
+                        // Make sure the same volume isn't in more than one place in the list.
+                        assertFalse(wwns.contains(volume.getWwn()));
+                        wwns.add(volume.getWwn());
+                    }
+                }
+                
+                for (GetRSetResponse rset : cg.getRsets()) {
+                    assertNotNull(rset.getName());
+                    assertNotNull(rset.getVolumes());
+                    for (GetVolumeResponse volume : rset.getVolumes()) {
+                        assertNotNull(volume.getInternalSiteName());
+                        assertNotNull(volume.getRpCopyName());
+                        assertNotNull(volume.getWwn());
+                        // Make sure the same volume isn't in more than one place in the list.
+                        assertFalse(wwns.contains(volume.getWwn()));
+                        wwns.add(volume.getWwn());
+                    }
+                }
+                
+                
+                // Make sure you have journals, sources, and targets
             }
         } catch (RecoverPointException e) {
             fail(e.getMessage());

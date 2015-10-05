@@ -1131,6 +1131,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // Add volumes to the export group
                 Map<URI, Integer> volumesToAdd = new HashMap<URI, Integer>();
                 for (URI volumeID : volumes) {
+                    // WJEIV DO NOT CHECK IN!  Email out to Ameer on why -1 is causing a conflict
                     exportGroup.addVolume(volumeID, ExportGroup.LUN_UNASSIGNED);
                     volumesToAdd.put(volumeID, ExportGroup.LUN_UNASSIGNED);
                 }

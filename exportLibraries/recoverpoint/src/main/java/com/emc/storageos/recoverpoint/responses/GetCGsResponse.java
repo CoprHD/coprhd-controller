@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.recoverpoint.responses;
 import java.io.Serializable;
-import java.net.URI;
 import java.util.List;
 
 /**
@@ -19,10 +18,6 @@ public class GetCGsResponse implements Serializable {
     private String cgName;
     // CG ID
     private long cgId;
-    // Project of the source volume
-    private URI project;
-    // Tenant making request
-    private URI tenant;
     // Top-level policy for the CG
     public GetPolicyResponse cgPolicy;
     // List of copies
@@ -58,22 +53,6 @@ public class GetCGsResponse implements Serializable {
         this.cgId = cgId;
     }
 
-    public URI getProject() {
-        return project;
-    }
-
-    public void setProject(URI project) {
-        this.project = project;
-    }
-
-    public URI getTenant() {
-        return tenant;
-    }
-
-    public void setTenant(URI tenant) {
-        this.tenant = tenant;
-    }
-
     public List<GetCopyResponse> getCopies() {
         return copies;
     }
@@ -101,8 +80,6 @@ public class GetCGsResponse implements Serializable {
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("\ncgName: " + cgName);
-        sb.append("\nproject: " + project);
-        sb.append("\ntenant: " + tenant);
         sb.append("\n---------------\n");
         if (copies != null) {
             for (GetCopyResponse copy : copies) {

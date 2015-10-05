@@ -17,6 +17,7 @@ import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
+import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.vipr.client.Task;
@@ -29,7 +30,7 @@ import com.emc.vipr.client.impl.RestClient;
  * Block Consistency Group resources.
  * <p>
  * Base URL: <tt>/block/consistency-groups</tt>
- * 
+ *
  * @see BlockConsistencyGroupRestRep
  */
 public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGroupRestRep> implements
@@ -68,7 +69,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Begins creating a full copy of the given block volume.
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies</tt>
-     * 
+     *
      * @param id
      *            the ID of the consistency group.
      * @param input
@@ -84,7 +85,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * List full copies for a consistency group
      * <p>
      * API Call: <tt>GET /block/consistency-groups/{id}/protection/full-copies</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group
      * @return The list of full copies for the consistency group
@@ -99,7 +100,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Activate consistency group full copy
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies/{fcid}/activate</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param fullCopyId
@@ -115,7 +116,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Detach consistency group full copy
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies/{fcid}/detach</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param fullCopyId
@@ -131,7 +132,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Restore consistency group full copy
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies/{fcid}/restore</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param fullCopyId
@@ -147,7 +148,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Resynchronize consistency group full copy
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies/{fcid}/resynchronize</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param fullCopyId
@@ -163,7 +164,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Deactivate consistency group full copy
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies/{fcid}/deactivate</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param fullCopyId
@@ -179,7 +180,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * List snapshots in the consistency group
      * <p>
      * API Call: <tt>GET /block/consistency-groups/{id}/protection/snapshots</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group
      * @return The list of snapshots in the consistency group
@@ -194,7 +195,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Create consistency group snapshot
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshots</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group
      * @param input
@@ -210,7 +211,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Activate consistency group snapshot
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshots/{sid}/activate</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group
      * @param snapshotId
@@ -226,7 +227,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Deactivate consistency group snapshot
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshots/{sid}/deactivate</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group
      * @param snapshotId
@@ -242,7 +243,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Restore consistency group snapshot
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshots/{sid}/restore</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group
      * @param snapshotId
@@ -255,10 +256,58 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
     }
 
     /**
+     * Begins initiating failover for a given consistency group.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/continuous-copies/failover</tt>
+     *
+     * @param id
+     *            the ID of the consistency group.
+     * @param input
+     *            the input configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Tasks<BlockConsistencyGroupRestRep> failover(URI consistencyGroupId, CopiesParam input) {
+        final String url = getIdUrl() + "/protection/continuous-copies/failover";
+        return postTasks(input, url, consistencyGroupId);
+    }
+
+    /**
+     * Begins initiating failover cancel for a given consistency group.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/continuous-copies/failover-cancel</tt>
+     *
+     * @param id
+     *            the ID of the consistency group.
+     * @param input
+     *            the input configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Tasks<BlockConsistencyGroupRestRep> failoverCancel(URI consistencyGroupId, CopiesParam input) {
+        final String url = getIdUrl() + "/protection/continuous-copies/failover-cancel";
+        return postTasks(input, url, consistencyGroupId);
+    }
+
+    /**
+     * Begins initiating swap for a given consistency group.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/continuous-copies/swap</tt>
+     *
+     * @param id
+     *            the ID of the consistency group.
+     * @param input
+     *            the input configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Tasks<BlockConsistencyGroupRestRep> swap(URI consistencyGroupId, CopiesParam input) {
+        final String url = getIdUrl() + "/protection/continuous-copies/swap";
+        return postTasks(input, url, consistencyGroupId);
+    }
+
+    /**
      * Creates a block consistency group.
      * <p>
      * API Call: <tt>POST /block/consistency-groups</tt>
-     * 
+     *
      * @param input
      *            the create configuration.
      * @return the created block consistency group.
@@ -271,7 +320,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Begins updating a block consistency group.
      * <p>
      * API Call: <tt>PUT /block/consistency-groups/{id}</tt>
-     * 
+     *
      * @param id
      *            the ID of the block consistency group to update.
      * @param input
@@ -286,11 +335,11 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Begins deactivating a block consistency group.
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/deactivate</tt>
-     * 
+     *
      * @param id
      *            the ID of the block consistency group to deactivate.
      * @return a task for monitoring the progres of the deactivate operation.
-     * 
+     *
      * @see #doDeactivateWithTask(URI)
      */
     public Task<BlockConsistencyGroupRestRep> deactivate(URI id) {

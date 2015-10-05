@@ -77,10 +77,12 @@ import com.emc.sa.service.vipr.block.tasks.RestoreFromFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ResynchronizeFullCopy;
 import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
+import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
+import com.emc.sa.service.vipr.tasks.GetVirtualArray;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Cluster;
@@ -102,6 +104,7 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -187,6 +190,10 @@ public class BlockStorageUtils {
 
     public static BlockConsistencyGroupRestRep getBlockConsistencyGroup(URI resourceId) {
         return execute(new GetBlockConsistencyGroup(resourceId));
+    }
+
+    public static VirtualArrayRestRep getVirtualArray(URI id) {
+        return execute(new GetVirtualArray(id));
     }
 
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
@@ -385,9 +392,9 @@ public class BlockStorageUtils {
         removeExportIfEmpty(exportId);
     }
 
-    static final int MAX_RETRY_COUNT =30;
+    static final int MAX_RETRY_COUNT = 30;
     static final int RETRY_DELAY_MSEC = 60000;
-    
+
     public static void removeExportIfEmpty(URI exportId) {
         boolean retryNeeded = false;
         int retryCount = 0;
@@ -401,22 +408,22 @@ public class BlockStorageUtils {
                     addAffectedResource(response);
                 } catch (ExecutionException e) {
                     if (e.getCause() instanceof ServiceErrorException) {
-                        ServiceErrorException svcexp =(ServiceErrorException) e.getCause();
-                        if (retryCount++ < MAX_RETRY_COUNT 
+                        ServiceErrorException svcexp = (ServiceErrorException) e.getCause();
+                        if (retryCount++ < MAX_RETRY_COUNT
                                 && ServiceCode.toServiceCode(svcexp.getCode()) == ServiceCode.API_TASK_EXECUTION_IN_PROGRESS) {
                             log.info(String.format("ExportGroup %s deletion waiting on pending task execution", export.getId()));
                             retryNeeded = true;
                             try {
                                 Thread.sleep(RETRY_DELAY_MSEC);
                             } catch (InterruptedException ex) {
-                            	log.debug("Sleep interrupted");
+                                log.debug("Sleep interrupted");
                             }
                         } else {
                             throw e;
                         }
                     }
                 }
-            } 
+            }
         } while (retryNeeded);
     }
 
@@ -731,6 +738,12 @@ public class BlockStorageUtils {
         return copies;
     }
 
+    public static Tasks<BlockConsistencyGroupRestRep> swapCGContinuousCopy(URI protectionSource, URI protectionTarget, String type) {
+        Tasks<BlockConsistencyGroupRestRep> copies = execute(new SwapCGContinuousCopies(protectionSource, protectionTarget, type));
+        addAffectedResources(copies);
+        return copies;
+    }
+
     public static Task<BlockConsistencyGroupRestRep> addVolumesToConsistencyGroup(URI consistencyGroupId, List<URI> volumeIds) {
         Task<BlockConsistencyGroupRestRep> task = execute(new AddVolumesToConsistencyGroup(consistencyGroupId, volumeIds));
         addAffectedResource(task);
@@ -739,7 +752,7 @@ public class BlockStorageUtils {
 
     /**
      * Finds the exports (itl) for the given initiators.
-     * 
+     *
      * @param exports
      *            the list of all exports (itl)
      * @param initiators
@@ -899,7 +912,7 @@ public class BlockStorageUtils {
 
     /**
      * Helper method for creating a list of all the params for the createBlockVolumesHelper.
-     * 
+     *
      * @param table volume table
      * @param params for volume creation
      * @return map of all params

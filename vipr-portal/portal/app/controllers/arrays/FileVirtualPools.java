@@ -120,7 +120,7 @@ public class FileVirtualPools extends ViprResourceController {
     public static void create() {
         FileVirtualPoolForm form = new FileVirtualPoolForm();
         // Set default values
-        form.protocols = Sets.newHashSet(FileProtocols.CIFS, FileProtocols.NFS);
+        form.protocols = Sets.newHashSet(FileProtocols.CIFS, FileProtocols.NFS, FileProtocols.NFSV4);
         edit(form);
     }
 

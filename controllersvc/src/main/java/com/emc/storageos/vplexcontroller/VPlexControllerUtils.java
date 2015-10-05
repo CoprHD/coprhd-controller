@@ -321,6 +321,7 @@ public class VPlexControllerUtils {
      * @return the name of the top level device for the given storage volume
      * @throws VPlexApiException
      */
+    @Deprecated
     public static String getDeviceNameForStorageVolume(String volumeNativeId,
             String wwn, String backendArraySerialNum, URI vplexUri, DbClient dbClient) 
                     throws VPlexApiException {

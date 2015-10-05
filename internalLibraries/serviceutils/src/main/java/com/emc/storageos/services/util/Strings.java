@@ -16,7 +16,12 @@ public class Strings {
             if (i > 0) {
                 s.append(sep);
             }
-            s.append(objs[i].toString());
+            
+            if (objs[i] == null) {
+                s.append("null");
+            } else {
+                s.append(objs[i].toString());
+            }
         }
         return s.toString();
     }

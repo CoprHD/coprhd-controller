@@ -217,4 +217,19 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_IPRECONFIG_TRIGGER_FAILED)
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_PRECHECK_FAILED)
+    public InternalServerErrorException addStandbyPrecheckFailed(String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_NAT_CHECK_FAILED)
+    public InternalServerErrorException invalidNatCheckCall(String clientIP, String directClientIp);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_FAILED)
+    public InternalServerErrorException addStandbyFailed(String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_CONFIG_STANDBY_FAILED)
+    public InternalServerErrorException configStandbyFailed(String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
+    public InternalServerErrorException removeStandbyFailed(String errMsg);
 }

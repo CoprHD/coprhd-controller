@@ -32,6 +32,8 @@
         </property>
         <property name="dbCommonInfo" ref="dbcommoninfo"/>
         <property name="passwordUtils" ref="passwordUtils"/>
+        <property name="onStandby" value="${site_is_standby}"/>
+        <property name="standbyId" value="${site_myid}"/>
     </bean>
 
     <bean id="passwordUtils" class="com.emc.storageos.security.password.PasswordUtils">

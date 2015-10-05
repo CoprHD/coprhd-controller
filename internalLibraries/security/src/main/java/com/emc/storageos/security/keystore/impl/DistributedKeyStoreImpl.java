@@ -18,10 +18,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.keystore.DistributedKeyStore;
 import com.emc.storageos.services.util.AlertsLogger;
+
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 /**
@@ -30,7 +32,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
 public class DistributedKeyStoreImpl implements DistributedKeyStore {
 
     static final String KEY_CERTIFICATE_PAIR_LOCK = "keyCertificatePairLock";
-    static final String KEY_CERTIFICATE_PAIR_CONFIG_KIND = "keyCertificatePairConfig";
+    static final String KEY_CERTIFICATE_PAIR_CONFIG_KIND = Constants.KEY_CERTIFICATE_PAIR_CONFIG_KIND;
     static final String KEY_CERTIFICATE_PAIR_ID = "keyCertificatePairId";
     static final String KEY_CERTIFICATE_PAIR_KEY = "keyCertificatePairEntry";
     static final String IS_SELF_GENERATED_KEY = "isSelfGeneratedKeyCertificatePairEntry";

@@ -21,13 +21,15 @@ dependencies {
             library(perf4j),
             project(":controllersvc"),
             project(":security"),
-            project(":processmonitor")
-            project(":serviceutils")
+            project(":processmonitor"),
+            project(":serviceutils"),
+            project(":vipr-client")
 
     testCompile library(enunciate),
             rootProject.toolsJar,
             project(":coordinatorsvc"),
-            "org.testng:testng:6.7"
+            "org.testng:testng:6.7",
+            "org.mockito:mockito-all:1.9.5"
     testRuntime library(log4j)
     testRuntime library(commons_logging)
 }

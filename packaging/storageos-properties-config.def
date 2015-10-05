@@ -2173,6 +2173,7 @@
         value : "",
         controlNodeOnly : true,
         notifiers : ( "backupscheduler" ),
+        siteSpecific : true,
     },
     {
         key : "backup_external_location_username",
@@ -2187,6 +2188,7 @@
         rebootRequired : false,
         value : "",
         controlNodeOnly : true,
+        siteSpecific : true,
     },
     {
         key : "backup_external_location_password",
@@ -2201,6 +2203,7 @@
         rebootRequired : false,
         value : "",
         controlNodeOnly : true,
+        siteSpecific: true,
     },
     {
         key : "backup_scheduler_enable",
@@ -2214,6 +2217,7 @@
         rebootRequired : false,
         value : "true",
         controlNodeOnly : true,
+        siteSpecific: true,
         notifiers : ( "backupscheduler" ),
     },
     {
@@ -2231,6 +2235,7 @@
         value : "1day",
         controlNodeOnly : true,
         notifiers : ( "backupscheduler" ),
+        siteSpecific : true,
     },
     {
         key : "backup_scheduler_time",
@@ -2246,6 +2251,7 @@
         value : "100",
         controlNodeOnly : true,
         notifiers : ( "backupscheduler" ),
+        siteSpecific : true,
     },
     {
         key : "backup_scheduler_copies_to_keep",
@@ -2260,6 +2266,7 @@
         rebootRequired : false,
         value : "5",
         controlNodeOnly : true,
+        siteSpecific : true,
     },
     {
         key : "backup_max_used_disk_percentage",
@@ -2274,6 +2281,7 @@
         rebootRequired : false,
         value : "30",
         controlNodeOnly : true,
+        siteSpecific : true,
     },
     {
         key : "backup_threshold_disk_percentage",
@@ -2288,6 +2296,7 @@
         rebootRequired : false,
         value : "80",
         controlNodeOnly : true,
+        siteSpecific: true,
     },
     {
         key : "password_change_interval",
@@ -2506,5 +2515,6 @@
      rebootRequired : true,
      value : "false",
      controlNodeOnly : true,
-    }
+     siteSpecific : true,
+    },
 ]

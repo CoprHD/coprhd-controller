@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2014-2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.util;
@@ -8,13 +8,22 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
@@ -27,21 +36,32 @@ public class VdcConfigUtil {
 
     // It's no longer a version since it's not incremental, but it serves the same
     // purpose
-    public static final String VDC_CONFIG_HASHCODE = "vdc_config_hashcode";
+    public static final String VDC_CONFIG_VERSION = "vdc_config_version";
     public static final String VDC_MYID = "vdc_myid";
     public static final String VDC_IDS = "vdc_ids";
     public static final String VDC_NODE_COUNT_PTN = "vdc_%s_node_count";
     public static final String VDC_IPADDR_PTN = "vdc_%s_network_%d_ipaddr";
-
     public static final String VDC_IPADDR6_PTN = "vdc_%s_network_%d_ipaddr6";
+    public static final String VDC_STANDBY_NODE_COUNT_PTN = "vdc_%s_%s_node_count";
+    public static final String VDC_STANDBY_IPADDR6_PTN = "vdc_%s_%s_network_%d_ipaddr6";
+    public static final String VDC_STANDBY_IPADDR_PTN = "vdc_%s_%s_network_%d_ipaddr";
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
     public static final String VDC_VIP6_PTN = "vdc_%s_network_vip6";
+    public static final String SITE_IS_STANDBY="site_is_standby";
+    public static final String SITE_MYID="site_myid";
+    public static final String SITE_IDS="site_ids";
 
     private DbClient dbclient;
+    private CoordinatorClient coordinator;
 
     @Autowired
     public void setDbclient(DbClient dbclient) {
         this.dbclient = dbclient;
+    }
+
+    @Autowired
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
     }
 
     /**
@@ -77,13 +97,7 @@ public class VdcConfigUtil {
             String address;
             StringMap IPv4Addresses = vdc.getHostIPv4AddressesMap();
             StringMap IPv6Addresses = vdc.getHostIPv6AddressesMap();
-            List<String> hostNameListV4 = new ArrayList<>(IPv4Addresses.keySet());
-            List<String> hostNameListV6 = new ArrayList<>(IPv6Addresses.keySet());
-            List<String> hostNameList = hostNameListV4;
-
-            if (hostNameListV4.isEmpty()) {
-                hostNameList = hostNameListV6;
-            }
+            List<String> hostNameList = getHostsFromIPAddrMap(IPv4Addresses, IPv6Addresses);
 
             // sort the host names (node1, node2, node3 ...), 5 nodes tops so it's
             // simpler than sorting vdc short ids below
@@ -129,6 +143,8 @@ public class VdcConfigUtil {
                 throw new IllegalStateException(String.format("Mismatched node counts." +
                         "%d from hostCount, %d from hostList", vdc.getHostCount(), i));
             }
+
+            genSiteProperties(vdcConfig, vdc);
         }
 
         if (cnt == 0) {
@@ -147,11 +163,79 @@ public class VdcConfigUtil {
         });
         vdcConfig.put(VDC_IDS, StringUtils.join(vdcShortIdList, ","));
 
-        setVdcConfigVersion(vdcConfig);
-
         log.info("vdc config property: \n{}", vdcConfig.toString());
 
         return vdcConfig;
+    }
+
+    private void genSiteProperties(Map<String, String> vdcConfig, VirtualDataCenter vdc) {
+        String address;
+
+        String shortId = vdc.getShortId();
+        String primarySiteId = coordinator.getPrimarySiteId();
+        
+        // Sort the sites by creation time - ascending order
+        List<Site> siteList = new ArrayList<Site>();
+        for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
+            Site site = new Site(config);
+            if (site.getVdc().equals(vdc.getId()) && site.getState() != SiteState.ACTIVE) {
+                siteList.add(site);
+            }
+        }
+        Collections.sort(siteList, new Comparator<Site>() {
+            @Override
+            public int compare(Site a, Site b) {
+                return (int)(a.getCreationTime() - b.getCreationTime());
+            }
+        });
+        
+        List<String> shortIds = new ArrayList<String>();
+        for (Site site : siteList) {
+            if (site.getUuid().equals(primarySiteId)) {
+                continue; // ignore primary site 
+            }
+            
+            int standbyNodeCnt = 0;
+            Map<String, String> standbyIPv4Addrs = site.getHostIPv4AddressMap();
+            Map<String, String> standbyIPv6Addrs = site.getHostIPv6AddressMap();
+
+            List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
+            String standbyShortId = site.getStandbyShortId();
+            
+            for (String hostName : standbyHosts) {
+                standbyNodeCnt++;
+                address = standbyIPv4Addrs.get(hostName);
+                vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, shortId, standbyShortId, standbyNodeCnt),
+                        address == null ? "" : address);
+
+                address = standbyIPv6Addrs.get(hostName);
+                vdcConfig.put(String.format(VDC_STANDBY_IPADDR6_PTN, shortId, standbyShortId, standbyNodeCnt),
+                        address == null ? "" : address);
+            }
+            vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, shortId, standbyShortId), String.valueOf(standbyNodeCnt));
+            if (coordinator.getSiteId().equals(site.getUuid())) {
+                vdcConfig.put(SITE_MYID, standbyShortId);
+            }
+            
+            shortIds.add(standbyShortId);
+        }
+        Collections.sort(shortIds);
+        vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
+        
+        String currentSiteId = coordinator.getSiteId();
+        boolean isStandby = !currentSiteId.equals(primarySiteId);
+        vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
+    }
+
+    private List<String> getHostsFromIPAddrMap(Map<String, String> IPv4Addresses, Map<String, String> IPv6Addresses) {
+        List<String> hostNameListV4 = new ArrayList<>(IPv4Addresses.keySet());
+        List<String> hostNameListV6 = new ArrayList<>(IPv6Addresses.keySet());
+        List<String> hostNameList = hostNameListV4;
+
+        if (hostNameListV4.isEmpty()) {
+            hostNameList = hostNameListV6;
+        }
+        return hostNameList;
     }
 
     /**
@@ -166,26 +250,5 @@ public class VdcConfigUtil {
             return true;
         }
         return false;
-    }
-
-    private void setVdcConfigVersion(Map<String, String> vdcConfig) {
-        List<String> propertyValues = new ArrayList<>();
-        propertyValues.add(vdcConfig.get(VDC_MYID));
-        propertyValues.add(vdcConfig.get(VDC_IDS));
-        for (String vdcShortId : vdcConfig.get(VDC_IDS).split(",")) {
-            String nodeCountStr = vdcConfig.get(String.format(VDC_NODE_COUNT_PTN,
-                    vdcShortId));
-            propertyValues.add(nodeCountStr);
-
-            int nodeCount = Integer.valueOf(nodeCountStr);
-            for (int i = 1; i <= nodeCount; i++) {
-                propertyValues.add(vdcConfig.get(String.format(VDC_IPADDR_PTN,
-                        vdcShortId, i)));
-            }
-        }
-
-        int hashCode = Arrays.hashCode(propertyValues.toArray(new String[propertyValues.size()]));
-        log.info("the current vdc config hashcode is {}", hashCode);
-        vdcConfig.put(VDC_CONFIG_HASHCODE, String.valueOf(hashCode));
     }
 }

@@ -5,21 +5,27 @@
     <bean id="config" class="com.emc.storageos.coordinator.service.impl.SpringQuorumPeerConfig"
           init-method="init">
         <!-- each node in cluster must have unique id starting from 1 -->
-        <property name="machineId" value="${node_index}"/>
+        <property name="machineId" value="${coordinator_node_index}"/>
         <property name="properties">
             <props>
                 <!-- see zk configuration guide -->
                 <prop key="tickTime">2000</prop>
                 <prop key="dataDir">/data/zk</prop>
-                <prop key="clientPort">2181</prop>
+                <prop key="standaloneEnabled">false</prop>
                 <prop key="initLimit">5</prop>
                 <prop key="syncLimit">2</prop>
                 <!-- auto purge zookeeper snapshot and transaction logs -->
                 <prop key="autopurge.snapRetainCount">16</prop>
                 <!-- auto purge interval (minutes) -->
-                <prop key="autopurge.purgeInterval">30</prop> 
-		<foreach iterator="iter">
-                <prop key="server.${iter}">${network_${iter}_ipaddr_service},2888,2889</prop>
+                <prop key="autopurge.purgeInterval">30</prop>
+                <prop key="staticConfigFile">coordinator-static.cfg</prop>
+                <prop key="dynamicConfigFile">coordinator-dynamic.cfg</prop>
+                <prop key="peerType">${peer_type}</prop>
+                <foreach iterator="iter_primary">
+                <prop key="server.${iter_primary}">${primary_${iter_primary}_ipaddr_service}:2888:2889:participant;2181</prop>
+                </foreach>
+                <foreach iterator="iter_standby">
+                <prop key="server.${iter_standby}">${standby_${iter_standby}_ipaddr_service}:2888:2889:observer;2181</prop>
                 </foreach>
             </props>
         </property>

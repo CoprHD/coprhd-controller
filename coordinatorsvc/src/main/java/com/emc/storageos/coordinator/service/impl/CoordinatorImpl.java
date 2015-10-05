@@ -16,6 +16,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.zookeeper.server.PurgeTxnLog;
 import org.apache.zookeeper.server.ServerConfig;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
+import org.apache.zookeeper.server.admin.AdminServer;
 import org.apache.zookeeper.server.quorum.QuorumPeerMain;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -40,7 +41,7 @@ public class CoordinatorImpl implements Coordinator {
     // runs periodic snapshot cleanup
     private static final String PURGER_POOL = "SnapshotPurger";
     private ScheduledExecutorService _exe = new NamedScheduledThreadPoolExecutor(PURGER_POOL, 1);
-
+    private static final String UNCOMMITTED_DATA_REVISION_FLAG = "/data/UNCOMMITTED_DATA_REVISION";
     /**
      * Set node / cluster config
      * 
@@ -70,6 +71,10 @@ public class CoordinatorImpl implements Coordinator {
 
     @Override
     public synchronized void start() throws IOException {
+        if (new File(UNCOMMITTED_DATA_REVISION_FLAG).exists()) {
+            _log.error("Uncommitted data revision detected. Manual relink db/zk data directory");
+            throw new RuntimeException("Uncommited data revision");
+        }
         // snapshot clean up runs at regular interval and leaves desired snapshots
         // behind
         _exe.scheduleWithFixedDelay(
@@ -78,8 +83,8 @@ public class CoordinatorImpl implements Coordinator {
                     public void run() {
                         try {
                             PurgeTxnLog.purge(
-                                    new File(_config.getDataDir()),
-                                    new File(_config.getDataDir()), _config.getSnapRetainCount());
+                                    _config.getDataDir(),
+                                    _config.getDataDir(), _config.getSnapRetainCount());
                         } catch (Exception e) {
                             _log.debug("Exception is throwed when purging snapshots and logs", e);
                         }
@@ -98,16 +103,21 @@ public class CoordinatorImpl implements Coordinator {
             throw new IllegalStateException(ex);
         }
 
-        if (_config.getServers().size() == 0) {
-            // standalone
-            ServerConfig config = new ServerConfig();
-            config.readFrom(_config);
-            server = new ZKMain();
-            server.runFromConfig(config);
-        } else {
-            // cluster
-            QuorumPeerMain main = new QuorumPeerMain();
-            main.runFromConfig(_config);
+        try {
+            if (_config.getServers().size() == 0) {
+                // standalone
+                ServerConfig config = new ServerConfig();
+                config.readFrom(_config);
+                server = new ZKMain();
+                server.runFromConfig(config);
+            } else {
+                // cluster
+                QuorumPeerMain main = new QuorumPeerMain();
+                main.runFromConfig(_config);
+            }
+        }catch(AdminServer.AdminServerException e) {
+            _log.info("Fail to start ZK server e:", e);
+            throw new RuntimeException(e);
         }
     }
 

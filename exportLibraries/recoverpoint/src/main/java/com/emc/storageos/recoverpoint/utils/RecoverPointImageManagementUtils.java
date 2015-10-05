@@ -14,14 +14,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.fapiclient.ws.ClusterUID;
+import com.emc.fapiclient.ws.ConsistencyGroupCopySettings;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySnapshots;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyState;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyUID;
+import com.emc.fapiclient.ws.ConsistencyGroupLinkSettings;
 import com.emc.fapiclient.ws.ConsistencyGroupLinkState;
 import com.emc.fapiclient.ws.ConsistencyGroupSettings;
 import com.emc.fapiclient.ws.ConsistencyGroupState;
 import com.emc.fapiclient.ws.ConsistencyGroupUID;
 import com.emc.fapiclient.ws.ExecutionState;
+import com.emc.fapiclient.ws.FullConsistencyGroupPolicy;
 import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIImpl;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
@@ -77,10 +80,13 @@ public class RecoverPointImageManagementUtils {
         try {
             cgCopyName = impl.getGroupCopyName(cgCopy);
             cgName = impl.getGroupName(cgCopy.getGroupUID());
-
+            PipeState pipeState = PipeState.ACTIVE;
+			if (RecoverPointUtils.isSnapShotTechnologyEnabled(impl, cgCopy.getGroupUID())) {
+	            pipeState = PipeState.SNAP_IDLE;
+	        }
 			if (waitForLinkState) {
 				// Make sure the CG is ready for enable
-				waitForCGLinkState(impl, cgCopy.getGroupUID(), PipeState.ACTIVE);
+				waitForCGLinkState(impl, cgCopy.getGroupUID(), pipeState);
 			}
 
             if (bookmarkName == null) {
@@ -346,8 +352,12 @@ public class RecoverPointImageManagementUtils {
 			cgName = impl.getGroupName(cgCopyUID.getGroupUID());
 			logger.info("Restore the image to copy name: " + cgCopyName + " for CG Name: " + cgName);
 			recoverProductionAndWait(impl, cgCopyUID);
+			PipeState pipeState = PipeState.ACTIVE;
+			if (RecoverPointUtils.isSnapShotTechnologyEnabled(impl, cgCopyUID.getGroupUID())) {
+	            pipeState = PipeState.SNAP_IDLE;
+	        }
         	// For restore, just wait for link state of the copy being restored
-			waitForCGLinkState(impl, cgCopyUID.getGroupUID(), PipeState.ACTIVE);
+			waitForCGLinkState(impl, cgCopyUID.getGroupUID(), pipeState);
 			logger.info("Successful restore to copy name: " + cgCopyName + " for CG Name: " + cgName);
 		} catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToFailoverCopy(cgCopyName, cgName, e);
@@ -1174,5 +1184,5 @@ public class RecoverPointImageManagementUtils {
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
         }
-    }
+    }    
 }

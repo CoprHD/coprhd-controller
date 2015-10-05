@@ -21,6 +21,7 @@ import com.emc.fapiclient.ws.ClusterSANVolumes;
 import com.emc.fapiclient.ws.ClusterSplittersSettings;
 import com.emc.fapiclient.ws.ClusterUID;
 import com.emc.fapiclient.ws.ConnectionOutThroughput;
+import com.emc.fapiclient.ws.ConsistencyGroupCopySettings;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyUID;
 import com.emc.fapiclient.ws.ConsistencyGroupSettings;
 import com.emc.fapiclient.ws.ConsistencyGroupUID;
@@ -138,7 +139,11 @@ public class RecoverPointUtils {
         impl.enableConsistencyGroup(cgUID, true);
         // Make sure the CG is ready
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-        imageManager.waitForCGLinkState(impl, cgUID, PipeState.ACTIVE);
+        PipeState pipeState = PipeState.ACTIVE;
+		if (isSnapShotTechnologyEnabled(impl, cgUID)) {
+            pipeState = PipeState.SNAP_IDLE;
+        }
+        imageManager.waitForCGLinkState(impl, cgUID, pipeState);
         logger.info("End enableNewConsistencyGroup.");
     }
 
@@ -587,5 +592,33 @@ public class RecoverPointUtils {
     public static boolean isXioVolume(String nativeGuid) {    	
     	// nativeGuid coming in XTREMIO+APM00142114518+VOLUME+ea85e053e92a4076bc7c6b76935e14a2
     	return nativeGuid.contains("XTREMIO");
+    }
+    
+    /**
+     * 
+     * 
+     * @param impl the FAPI reference.
+     * @param cgCopyUID the copy to be set as the production copy.
+     * @throws RecoverPointException
+     */
+    public static boolean isSnapShotTechnologyEnabled(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID) throws RecoverPointException {       
+    	String cgName = "unknown";
+    	try {
+        	cgName = impl.getGroupName(cgUID);
+            ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgUID);                       
+            List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();                                  
+            for (ConsistencyGroupCopySettings copySetting  : copySettings) {
+            	if (copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() != null &&
+            			copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots()	> 0) {
+            		logger.info("Setting link state for snapshot technology.");
+            		return true;
+            	}            	
+            }
+        } catch (FunctionalAPIActionFailedException_Exception e) {
+            throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
+        } catch (FunctionalAPIInternalError_Exception e) {
+            throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
+        }
+		return false; 
     }
 }

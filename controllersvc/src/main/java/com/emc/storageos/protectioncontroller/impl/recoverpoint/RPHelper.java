@@ -1563,8 +1563,8 @@ public class RPHelper {
     }
     
     public static String getRPWWn(URI volumeURI, DbClient dbClient) {
-    	Volume volume = dbClient.queryObject(Volume.class, volumeURI);
-    	if (RecoverPointUtils.isXioVolume(volume.getNativeGuid())) {
+    	Volume volume = dbClient.queryObject(Volume.class, volumeURI);    	
+    	if (volume.getNativeGuid() != null && RecoverPointUtils.isXioVolume(volume.getNativeGuid())) {
     		return RecoverPointUtils.getXioNativeGuid(volume.getNativeGuid());
     	}    	    	    	
     	return volume.getWWN();

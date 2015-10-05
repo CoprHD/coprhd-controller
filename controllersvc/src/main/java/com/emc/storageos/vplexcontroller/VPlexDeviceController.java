@@ -228,6 +228,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
     private static final String CREATE_VIRTUAL_VOLUMES_METHOD_NAME = "createVirtualVolumes";
     private static final String RB_CREATE_VIRTUAL_VOLUMES_METHOD_NAME = "rollbackCreateVirtualVolumes";
+    private static final String RB_UPGRADE_VIRTUAL_VOLUME_LOCAL_TO_DISTRIBUUTED_METHOD_NAME = "rollbackUpgradeVirtualVolumeLocalToDistributed";
     private static final String CREATE_MIRRORS_METHOD_NAME = "createMirrors";
     private static final String RB_CREATE_MIRRORS_METHOD_NAME = "rollbackCreateMirrors";
     private static final String DELETE_MIRROR_DEVICE_METHOD_NAME = "deleteMirrorDevice";
@@ -5608,7 +5609,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // If rolling back an upgrade from local to distributed, there
                 // should be no rollback necessary here. We will restore the
                 // VPlex local volume.
-                vplexRollbackMethod = rollbackMethodNullMethod();
+                vplexRollbackMethod = rollbackUpgradeVirtualVolumeLocalToDistributedMethod(vplexURI, vplexVolume.getLabel(), stepId);
             }
             workflow.createStep(
                     VPLEX_STEP,
@@ -5670,6 +5671,51 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         @Override
         public void rollbackComplete(Workflow workflow, Object[] args) {
             VPlexDeviceController.getInstance().importRollbackHandler(args);
+        }
+    }
+
+    private Workflow.Method rollbackUpgradeVirtualVolumeLocalToDistributedMethod(
+            URI vplexURI, String virtualVolumeName, String executeStepId) {
+        return new Workflow.Method(RB_UPGRADE_VIRTUAL_VOLUME_LOCAL_TO_DISTRIBUUTED_METHOD_NAME, vplexURI, virtualVolumeName, executeStepId);
+    }
+
+    /**
+     * Rollback any virtual volumes previously created.
+     * 
+     * @param vplexURI
+     * @param vplexVolumeURIs
+     * @param executeStepId - step Id of the execute step; used to retrieve rollback data.
+     * @param stepId
+     * @throws WorkflowException
+     */
+    public void rollbackUpgradeVirtualVolumeLocalToDistributed(URI vplexURI, String virtualVolumeName, String executeStepId, String stepId)
+            throws WorkflowException {
+        try {
+            VolumeInfo mirrorInfo = (VolumeInfo) _workflowService.loadStepData(executeStepId);
+            if (mirrorInfo != null) {
+                WorkflowStepCompleter.stepExecuting(stepId);
+
+                // Get the API client.
+                StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+                VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+
+                // Get the cluster id for this storage volume.
+                String clusterId = client.getClaimedStorageVolumeClusterName(mirrorInfo);
+
+                client.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
+
+                // For each virtual volume attempted, try and rollback.
+                client.deleteVirtualVolume(new ArrayList<VolumeInfo>(Arrays.asList(mirrorInfo)));
+            }
+
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (VPlexApiException vae) {
+            _log.error("Exception rollback VPlex Virtual Volume create: " + vae.getLocalizedMessage(), vae);
+            WorkflowStepCompleter.stepFailed(stepId, vae);
+        } catch (Exception ex) {
+            _log.error("Exception rollback VPlex Virtual Volume create: " + ex.getLocalizedMessage(), ex);
+            ServiceError serviceError = VPlexApiException.errors.createVirtualVolumesRollbackFailed(stepId, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
 
@@ -5794,6 +5840,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vinfo = new VolumeInfo(array.getNativeGuid(), array.getSystemType(),
                         newVolume.getWWN().toUpperCase().replaceAll(":", ""),
                         newVolume.getNativeId(), newVolume.getThinlyProvisioned().booleanValue(), itls);
+                // Add rollback data.
+                _workflowService.storeStepData(stepId, vinfo);
                 virtvinfo = client.upgradeVirtualVolumeToDistributed(virtvinfo, vinfo, true, true, clusterId);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED.getName();

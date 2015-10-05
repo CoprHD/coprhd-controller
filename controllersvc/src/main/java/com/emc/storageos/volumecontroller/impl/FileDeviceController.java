@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -254,6 +255,11 @@ public class FileDeviceController implements FileController {
 
             Project proj = _dbClient.queryObject(Project.class, fsObj.getProject());
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fsObj.getTenant());
+            VirtualNAS vNAS = getVirtualNasForStoragePort(fsObj.getStoragePort());
+            
+            if(vNAS != null) {
+            	args.setvNAS(vNAS);
+            }
 
             args.setTenantOrg(tenant);
             args.setProject(proj);
@@ -480,6 +486,7 @@ public class FileDeviceController implements FileController {
         FileShare fs = null;
         Snapshot snapshotObj = null;
         StorageSystem storageObj = null;
+        
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
@@ -504,6 +511,11 @@ public class FileDeviceController implements FileController {
 
             args.setFileOperation(isFile);
             args.setOpId(opId);
+            VirtualNAS vNAS = getVirtualNasForStoragePort(fs.getStoragePort());
+            
+            if(vNAS != null) {
+            	args.setvNAS(vNAS);
+            }
             _log.info("Export details...  ");
             List<FileExport> fileExports = new ArrayList<FileExport>();
             if (exports != null) {
@@ -842,11 +854,15 @@ public class FileDeviceController implements FileController {
             SMBFileShare smbFileShare = smbShare.getSMBFileShare();
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             args.setOpId(opId);
+            VirtualNAS vNAS = null;
+            
             if (URIUtil.isType(uri, FileShare.class)) {
                 fsObj = _dbClient.queryObject(FileShare.class, uri);
                 fileObject = fsObj;
                 args.addFSFileObject(fsObj);
                 args.setFileOperation(true);
+                vNAS = getVirtualNasForStoragePort(fsObj.getStoragePort());
+                args.setvNAS(vNAS);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -873,6 +889,8 @@ public class FileDeviceController implements FileController {
                 fsObj = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
                 args.addFileShare(fsObj);
                 args.setFileOperation(false);
+                vNAS = getVirtualNasForStoragePort(fsObj.getStoragePort());
+                args.setvNAS(vNAS);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -2847,6 +2865,29 @@ public class FileDeviceController implements FileController {
             default:
                 break;
         }
+
+    }
+    
+    /**
+     * Returns VirtualNAS for a given StoragePort
+     * 
+     * @param storagePortURI urn of the storage port
+     * @return VirtualNAS associated with the  storage Port
+     */
+    private VirtualNAS getVirtualNasForStoragePort(URI storagePortURI) {
+
+        URIQueryResultList vNasUriList = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getVirtualNASContainStoragePortConstraint(storagePortURI), vNasUriList);
+
+        Iterator<URI> vNasIter = vNasUriList.iterator();
+        while (vNasIter.hasNext()) {
+            VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class, vNasIter.next());
+            if (vNas != null && !vNas.getInactive()) {
+                return vNas;
+            }
+        }
+        return null;
 
     }
 }

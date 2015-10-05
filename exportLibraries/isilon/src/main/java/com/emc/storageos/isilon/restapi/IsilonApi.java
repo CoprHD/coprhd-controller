@@ -612,6 +612,21 @@ public class IsilonApi {
 
         return create(_baseUrl.resolve(URI_NFS_EXPORTS), "Export", exp);
     }
+    
+    /**
+     * Create export on access zone
+     * 
+     * @param exp IsilonExport object with paths and clients set
+     * @return String identifier for the export created
+     * @throws IsilonException
+     */
+    public String createExport(IsilonExport exp, String zoneName) throws IsilonException {
+    	
+    	StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_NFS_EXPORTS).toString());
+    	URLBuffer.append("?zone=").append(zoneName);
+    	URI uri = URI.create(URLBuffer.toString());
+        return create(uri, "Export", exp);
+    }
 
     /**
      * Modify export
@@ -839,6 +854,21 @@ public class IsilonApi {
      */
     public String createShare(IsilonSMBShare smbFileShare) throws IsilonException {
         return create(_baseUrl.resolve(URI_SMB_SHARES), "share", smbFileShare);
+    }
+    
+    /**
+     * Create Isilon SMB share on access zone.
+     * 
+     * @param smbFileShare
+     * @return Identifier of the SMB share created
+     * @throws IsilonException
+     */
+    public String createShare(IsilonSMBShare smbFileShare, String zoneName) throws IsilonException {
+    	
+    	StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_SMB_SHARES).toString());
+    	URLBuffer.append("?zone=").append(zoneName);
+    	URI uri = URI.create(URLBuffer.toString());
+        return create(uri, "share", smbFileShare);
     }
 
     /**
@@ -1209,4 +1239,11 @@ public class IsilonApi {
                     objectKey, httpStatus, _baseUrl);
         }
     }
+    
+    public static void main(String[] args) {
+    	StringBuffer URLBuffer = new StringBuffer(URI_NFS_EXPORTS.toString());
+    	URLBuffer.append("?zone=").append("amit");
+    	URI uri = URI.create(URLBuffer.toString());
+    	System.out.println(uri.toString());
+	}
 }

@@ -1119,8 +1119,8 @@ public class ExportMaskUtils {
 
         // Find all the ExportMasks that contain the 'initiators'
         HashMap<URI, ExportMask> exportMasksWithInitiator = new HashMap<>();
-        Joiner joiner = new Joiner(dbClient);
         for (Initiator initiator : initiators) {
+            Joiner joiner = new Joiner(dbClient);
             Joiner query = joiner.join(Initiator.class, initiatorAliasStr).match(portNameAliasStr, initiator.getInitiatorPort())
                     .join(initiatorAliasStr, ExportMask.class, exportMaskAliasStr, initiatorStr).go();
             Set<ExportMask> matchedMasks = query.set(exportMaskAliasStr);

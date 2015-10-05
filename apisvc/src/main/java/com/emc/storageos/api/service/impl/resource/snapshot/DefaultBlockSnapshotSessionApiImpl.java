@@ -552,7 +552,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, Project project) {
+    public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project) {
         // Validate the project tenant.
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
         ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
@@ -562,8 +562,6 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
 
         // Verify the snapshot session has no linked targets.
-        // TBD - Future lift this restriction and just delete them. Maybe a passed
-        // parameter controls this automatic deletion of targets.
         StringSet linkedTargetIds = snapSession.getLinkedTargets();
         if ((linkedTargetIds != null) && (!linkedTargetIds.isEmpty())) {
             List<URI> linkedTargetURIs = URIUtil.toURIList(linkedTargetIds);

@@ -539,7 +539,8 @@ public class BlockSnapshotSessionManager {
 
         // Get the snapshot session source object.
         URI snapSessionSourceURI = snapSession.getParent().getURI();
-        BlockObject snapSessionSourceObj = BlockObject.fetch(_dbClient, snapSessionSourceURI);
+        BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSessionSourceURI, _uriInfo, true,
+                _dbClient);
 
         // Get the project for the snapshot session source object.
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);
@@ -548,7 +549,7 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
 
         // Validate that the snapshot session can be deleted.
-        snapSessionApiImpl.validateDeleteSnapshotSession(snapSession, project);
+        snapSessionApiImpl.validateDeleteSnapshotSession(snapSession, snapSessionSourceObj, project);
 
         // Create the task identifier.
         String taskId = UUID.randomUUID().toString();

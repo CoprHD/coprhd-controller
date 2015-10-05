@@ -193,9 +193,10 @@ public interface BlockSnapshotSessionApi {
      * Validates a delete snapshot session request.
      * 
      * @param snapSession A reference to a BlockSnapshotSession instance.
+     * @param snapSessionSourceObj A reference to the snapshot session source.
      * @param project A reference to the source project.
      */
-    public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, Project project);
+    public void validateDeleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project);
 
     /**
      * Deletes the array snapshot point-in-time copy represented by the passed

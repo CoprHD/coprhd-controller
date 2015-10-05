@@ -248,21 +248,7 @@ public class VPlexApiVirtualVolumeManager {
             // Find the local devices just created.There will be only one local device
             List<VPlexDeviceInfo> localDevices = discoveryMgr.findLocalDevices(extentInfoList);
 
-            VPlexVirtualVolumeInfo vplexVolumeInfo = null;
-            String virtualVolumeName = virtualVolume.getName();
-            for (VPlexClusterInfo clusterInfo : clusterInfoList) {
-                vplexVolumeInfo = discoveryMgr.findVirtualVolume(clusterInfo.getName(),
-                        virtualVolumeName, false);
-                if (vplexVolumeInfo != null) {
-                    // Update the virtual volume info with the attribute information.
-                    discoveryMgr.updateVirtualVolumeInfo(clusterInfo.getName(), vplexVolumeInfo);
-                    break;
-                }
-            }
-
-            if (vplexVolumeInfo == null) {
-                throw VPlexApiException.exceptions.cantFindRequestedVolume(virtualVolumeName);
-            }
+            VPlexVirtualVolumeInfo vplexVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolume.getName(), discoveryMgr);
 
             String sourceDeviceName = vplexVolumeInfo.getSupportingDevice();
 
@@ -1870,22 +1856,9 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-            // Find the virtual volume.
-            VPlexVirtualVolumeInfo virtualVolumeInfo = null;
-            List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
-            for (VPlexClusterInfo clusterInfo : clusterInfoList) {
-                String clusterName = clusterInfo.getName();
-                virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterName,
-                        virtualVolumeName, false);
-                if (virtualVolumeInfo != null) {
-                    discoveryMgr.updateVirtualVolumeInfo(clusterName, virtualVolumeInfo);
-                    break;
-                }
-            }
 
-            if (virtualVolumeInfo == null) {
-                throw VPlexApiException.exceptions.cantFindRequestedVolume(virtualVolumeName);
-            }
+            // Find the virtual volume.
+            VPlexVirtualVolumeInfo virtualVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName, discoveryMgr);
 
             // Find the source device for the virtual volume.
             String sourceDeviceName = virtualVolumeInfo.getSupportingDevice();
@@ -1974,21 +1947,7 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-            VPlexVirtualVolumeInfo virtualVolumeInfo = null;
-            List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
-            for (VPlexClusterInfo clusterInfo : clusterInfoList) {
-                String clusterName = clusterInfo.getName();
-                virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterName,
-                        virtualVolumeName, false);
-                if (virtualVolumeInfo != null) {
-                    discoveryMgr.updateVirtualVolumeInfo(clusterName, virtualVolumeInfo);
-                    break;
-                }
-            }
-
-            if (virtualVolumeInfo == null) {
-                throw VPlexApiException.exceptions.cantFindRequestedVolume(virtualVolumeName);
-            }
+            VPlexVirtualVolumeInfo virtualVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName, discoveryMgr);
 
             // Find the source device for the virtual volume.
             String sourceDeviceName = virtualVolumeInfo.getSupportingDevice();
@@ -2256,6 +2215,32 @@ public class VPlexApiVirtualVolumeManager {
             throw VPlexApiException.exceptions.failedAttachingVPlexVolumeMirror(
                     detachedDeviceName, virtualVolumeName, e);
         }
+    }
+
+    /**
+     * This method finds virtual volume on the VPLEX and then updates virtual volume info.
+     * 
+     * @param virtualVolumeName virtual volume name
+     * @param discoveryMgr reference to VPlexApiDiscoveryManager
+     * @return VPlexVirtualVolumeInfo object with updated info.
+     */
+    private VPlexVirtualVolumeInfo findVirtualVolumeAndUpdateInfo(String virtualVolumeName, VPlexApiDiscoveryManager discoveryMgr) {
+        VPlexVirtualVolumeInfo virtualVolumeInfo = null;
+        List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
+        for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+            String clusterName = clusterInfo.getName();
+            virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterName,
+                    virtualVolumeName, false);
+            if (virtualVolumeInfo != null) {
+                discoveryMgr.updateVirtualVolumeInfo(clusterName, virtualVolumeInfo);
+                break;
+            }
+        }
+
+        if (virtualVolumeInfo == null) {
+            throw VPlexApiException.exceptions.cantFindRequestedVolume(virtualVolumeName);
+        }
+        return virtualVolumeInfo;
     }
 
 }

@@ -8280,27 +8280,9 @@ class Bourne:
         'forceDelete'   : 'false'
         }
 
-        print "BOURNE bucket delete = ", URI_RESOURCE_DEACTIVATE.format(URI_ECS_BUCKET.format(uri), params)
+        print "ECS bucket delete = ", URI_RESOURCE_DEACTIVATE.format(URI_ECS_BUCKET.format(uri), params)
         o = self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_ECS_BUCKET.format(uri)), params)
         self.assert_is_dict(o)
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.ecs_bucket_show_task)
         return (o, s)
-
-#method call
-#bourne = Bourne()
-#bourne.connect("10.247.142.254")
-#bourne.login( "root", "ChangeMe1!")
-#s = bourne.ecs_bucket_create("python2", #label=name
-#                      "urn:storageos:Project:11483dc6-0a5c-4bce-ac2a-8a7a18177778:global", #project
-#                      "urn:storageos:VirtualArray:1bf90272-d4f4-4154-ac8c-4ed34aea1531:vdc1", #nh or varray
-#                      "urn:storageos:VirtualPool:a0f1e0b9-a473-4bee-bf5c-194106ef65d2:vdc1", #cos or vpool
-#                      "1", #sq
-#                      "2", #hq
-#                      "root" #owner
-#                      )
-#if (s['state'] == 'ready'):
-#    print 'ECS Bucket created with id ' + s['resource']['id']
-#else:
-#    print 'ECS Bucket create failed.'
-
 

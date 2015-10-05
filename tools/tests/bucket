@@ -84,10 +84,3 @@ try:
 except:
     raise
 
-
-
-# python bucket create python1 myproj varray vpool 1024 2048 root
-# python bucket create python1 myproj varray vpool 1024 2048 root --ip 10.247.142.254
-# python cos create object ecs_vpool --description 'cos_vpool for ECS' true --protocols S3 --provisionType 'Thick' --neighborhoods nh
-# discoveredsystem create ecs_sanity ecs 10.249.239.35 4443 root ChangeMe
-

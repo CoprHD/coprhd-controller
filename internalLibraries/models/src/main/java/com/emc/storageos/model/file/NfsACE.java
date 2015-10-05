@@ -113,8 +113,9 @@ public class NfsACE implements Serializable {
         if (permission != null) {
             builder.append("permission=");
             builder.append(permission);
+            builder.append(", ");
         }
-        if (permission != null) {
+        if (permissionType != null) {
             builder.append("permission_type=");
             builder.append(permissionType);
         }

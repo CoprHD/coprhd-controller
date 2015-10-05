@@ -258,7 +258,7 @@ public class VNXeStorageDevice extends VNXeOperations
      * ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", "No Job returned from deleteFileSystem");
      * return BiosCommandResult.createErrorResult(error);
      * }
-     *
+     * 
      * }catch (VNXeException e) {
      * _logger.error("Delete file system got the exception", e);
      * if (completer != null) {
@@ -1035,7 +1035,7 @@ public class VNXeStorageDevice extends VNXeOperations
      * MetaVolumeRecommendation recommendation,
      * TaskCompleter volumeCompleter) throws DeviceControllerException {
      * // TODO Auto-generated method stub
-     *
+     * 
      * }
      */
 
@@ -1219,7 +1219,8 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void doCreateSingleSnapshot(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         _logger.info("{} doCreateSingleSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient
                 .queryObject(BlockSnapshot.class, snapshotList);
@@ -1242,7 +1243,7 @@ public class VNXeStorageDevice extends VNXeOperations
         } else {
             URI snapshot = snapshots.get(0).getId();
             _snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
-            		readOnly, taskCompleter);
+                    readOnly, taskCompleter);
 
         }
         _logger.info("{} doCreateSnapshot END ...", storage.getSerialNumber());
@@ -2410,7 +2411,7 @@ public class VNXeStorageDevice extends VNXeOperations
     public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
@@ -2448,10 +2449,22 @@ public class VNXeStorageDevice extends VNXeOperations
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
-	@Override
+    @Override
     public void doRemoveMirrorFromDeviceMaskingGroup(StorageSystem system,
             List<URI> mirrors, TaskCompleter completer)
             throws DeviceControllerException {
-		throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-	}
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

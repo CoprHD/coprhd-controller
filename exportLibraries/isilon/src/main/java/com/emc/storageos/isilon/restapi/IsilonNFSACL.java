@@ -1,0 +1,188 @@
+package com.emc.storageos.isilon.restapi;
+
+import java.util.ArrayList;
+
+/*
+ * Class representing the isilon nfs acl  object
+ * member names should match the key names in json object
+ */
+public class IsilonNFSACL {
+
+    public class Persona {
+        private String type;   // optional
+        private String id;     // optional
+        private String name;
+
+        public Persona(String account_type, String i, String n) {
+            this.type = account_type;
+            id = i;
+            name = n;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder str = new StringBuilder();
+            str.append("( account type: " + type);
+            str.append(", account id: " + id);
+            str.append(", account name: " + name);
+            str.append(")");
+            return str.toString();
+        }
+    }
+
+    public class Acl {
+        private Persona trustee;
+
+        private String accesstype;
+        private ArrayList<String> inherit_flags;
+        private ArrayList<String> accessrights;
+        private String op;
+
+        public Persona getTrustee() {
+            return trustee;
+        }
+
+        public void setTrustee(Persona trustee) {
+            this.trustee = trustee;
+        }
+
+        public String getAccesstype() {
+            return accesstype;
+        }
+
+        public void setAccesstype(String accesstype) {
+            this.accesstype = accesstype;
+        }
+
+        public ArrayList<String> getInherit_flags() {
+            return inherit_flags;
+        }
+
+        public void setInherit_flags(ArrayList<String> inherit_flags) {
+            this.inherit_flags = inherit_flags;
+        }
+
+        public ArrayList<String> getAccessrights() {
+            return accessrights;
+        }
+
+        public void setAccessrights(ArrayList<String> accessrights) {
+            this.accessrights = accessrights;
+        }
+
+        public String getOp() {
+            return op;
+        }
+
+        public void setOp(String op) {
+            this.op = op;
+        }
+
+        public void Acl()
+        {
+            this.inherit_flags = new ArrayList<String>();
+            this.accessrights = new ArrayList<String>();
+
+            this.inherit_flags.add("object_inherit");
+            this.inherit_flags.add("inherit_only");
+            this.accessrights.add("std_write_dac");
+
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder str = new StringBuilder();
+            str.append("( trustee: " + trustee);
+            str.append(", access type: " + accesstype);
+            str.append(", inherit flags: " + inherit_flags);
+            str.append(", access type: " + accesstype);
+            str.append(", access rights: " + accessrights);
+            str.append(", operation: " + op);
+            str.append(")");
+            return str.toString();
+
+        }
+    }
+
+    private ArrayList<Acl> acl;
+    private Persona owner;
+    private Persona group;
+    private String authoritative;
+    private String mode;
+    private String action;
+
+    public ArrayList<Acl> getAcl() {
+        return acl;
+    }
+
+    public void setAcl(ArrayList<Acl> acl) {
+        this.acl = acl;
+    }
+
+    public Persona getOwner() {
+        return owner;
+    }
+
+    public void setOwner(Persona owner) {
+        this.owner = owner;
+    }
+
+    public Persona getGroup() {
+        return group;
+    }
+
+    public void setGroup(Persona group) {
+        this.group = group;
+    }
+
+    public String getAuthoritative() {
+        return authoritative;
+    }
+
+    public void setAuthoritative(String authoritative) {
+        this.authoritative = authoritative;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
+    }
+
+    public String getAction() {
+        return action;
+    }
+
+    public void setAction(String action) {
+        this.action = action;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        str.append("( acl: " + acl);
+        str.append(", owner: " + owner);
+        str.append(", group: " + group);
+        str.append(", authoritative: " + authoritative);
+        str.append(", mode: " + mode);
+        str.append(", action: " + action);
+        str.append(")");
+        return str.toString();
+
+    }
+
+}

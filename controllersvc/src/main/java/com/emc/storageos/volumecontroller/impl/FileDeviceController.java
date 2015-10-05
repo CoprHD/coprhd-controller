@@ -2897,11 +2897,11 @@ public class FileDeviceController implements FileController {
             args.setOpId(opId);
 
             // Query & Pass all Existing Exports
-            args.setExistingDBExportRules(queryExports(args));
+            // args.setExistingDBExportRules(queryExports(args));
 
             // Do the Operation on device.
             BiosCommandResult result = getDevice(storageObj.getSystemType())
-                    .updateExportRules(storageObj, args);
+                    .updateNfsACLs(storageObj, args);
 
             if (result.isCommandSuccess()) {
                 // Update Database

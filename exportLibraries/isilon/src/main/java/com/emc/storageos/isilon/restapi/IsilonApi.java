@@ -870,6 +870,28 @@ public class IsilonApi {
     }
 
     /**
+     * Modify NFS ACL
+     * 
+     * @param path path for the directory or file system to set ACL
+     * @param s IsilonSMBShare object with the modified values set
+     * @throws IsilonException
+     */
+    public void modifyNFSACL(String path, IsilonNFSACL acl) throws IsilonException {
+        modify(_baseUrl.resolve(URI_IFS), path, "ACL", acl);
+    }
+
+    /**
+     * Get NFS ACL properties
+     * 
+     * @param path Identifier of the SMB share to get
+     * @return IsilonNFSACL object
+     * @throws IsilonException
+     */
+    public IsilonNFSACL getNFSACL(String path) throws IsilonException {
+        return get(_baseUrl.resolve(URI_IFS), path, "ACL", IsilonNFSACL.class);
+    }
+
+    /**
      * Get storage pools.
      * 
      * @return storage pools

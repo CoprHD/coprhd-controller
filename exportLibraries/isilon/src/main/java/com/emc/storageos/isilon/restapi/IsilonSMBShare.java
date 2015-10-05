@@ -34,6 +34,7 @@ public class IsilonSMBShare {
             return name;
         }
 
+        @Override
         public String toString() {
             StringBuilder str = new StringBuilder();
             str.append("( account type: " + type);
@@ -80,6 +81,7 @@ public class IsilonSMBShare {
             return permission;
         }
 
+        @Override
         public String toString() {
             StringBuilder str = new StringBuilder();
             str.append("( permission type: " + permission_type);
@@ -204,6 +206,7 @@ public class IsilonSMBShare {
         return this.path;
     }
 
+    @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("Share ( id: " + id);

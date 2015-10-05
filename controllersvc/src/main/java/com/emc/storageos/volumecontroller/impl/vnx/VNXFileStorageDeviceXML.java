@@ -299,7 +299,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -949,7 +949,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
@@ -1374,5 +1374,17 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
 
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

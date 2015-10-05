@@ -36,11 +36,13 @@ import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
+import com.emc.storageos.isilon.restapi.IsilonNFSACL;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare.Permission;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
+import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -106,7 +108,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
      * @return IsilonApi object
      * @throws IsilonException
      */
-            IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
+    IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
         IsilonApi isilonAPI;
         URI deviceURI;
         try {
@@ -907,7 +909,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
@@ -1178,7 +1180,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
         // Requested Export Rules
         List<ExportRule> exportAdd = args.getExportRulesToAdd();
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
@@ -1773,6 +1775,62 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         isi.modifyShare(args.getShareName(), isilonSMBShare);
 
         _log.info("End processAclsForShare");
+    }
+
+    @Override
+    public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
+
+        IsilonNFSACL isilonAcl = new IsilonNFSACL();
+        ArrayList<IsilonNFSACL.Acl> aclAddList = new ArrayList<IsilonNFSACL.Acl>();
+        List<NfsACE> aceToAdd = args.getNfsAclsToAdd();
+        for (NfsACE nfsACE : aceToAdd) {
+            IsilonNFSACL.Acl acl = isilonAcl.new Acl();
+            acl.setOp("add");
+            acl.setAccesstype(nfsACE.getPermissionType());
+            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
+            acl.setTrustee(trustee);
+            aclAddList.add(acl);
+        }
+
+        ArrayList<IsilonNFSACL.Acl> aclModifyList = new ArrayList<IsilonNFSACL.Acl>();
+        List<NfsACE> aceToModify = args.getNfsAclsToAdd();
+        for (NfsACE nfsACE : aceToModify) {
+            IsilonNFSACL.Acl acl = isilonAcl.new Acl();
+            acl.setOp("replace");
+            acl.setAccesstype(nfsACE.getPermissionType());
+            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
+            acl.setTrustee(trustee);
+            aclModifyList.add(acl);
+        }
+
+        ArrayList<IsilonNFSACL.Acl> aclDeleteList = new ArrayList<IsilonNFSACL.Acl>();
+        List<NfsACE> aceToDelete = args.getNfsAclsToAdd();
+        for (NfsACE nfsACE : aceToDelete) {
+            IsilonNFSACL.Acl acl = isilonAcl.new Acl();
+            acl.setOp("delete");
+            acl.setAccesstype(nfsACE.getPermissionType());
+            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
+            acl.setTrustee(trustee);
+            aclDeleteList.add(acl);
+        }
+
+        isilonAcl.setAction("update");
+        isilonAcl.setAuthoritative("acl");
+        isilonAcl.setAcl(aclAddList);
+
+        // Process new ACLs
+        IsilonApi isi = getIsilonDevice(storage);
+        _log.info("Calling Isilon API: modify NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
+        isi.modifyNFSACL(args.getFileSystemPath(), isilonAcl);
+        _log.info("End updateNfsACLs");
+        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
+        return result;
+    }
+
+    @Override
+    public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 }

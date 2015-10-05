@@ -156,6 +156,8 @@ ETCFILES_COMMON = \
     $(ETCDIR)/systemd/system/syncntp.service \
     $(ETCDIR)/systemd/system/ipchecktool.service \
     $(ETCDIR)/systemd/system/storageos-installer.service
+    $(ETCDIR)/systemd/system/ipsec.service
+
 
 SYSTEMD_DIR = ${BUILD_BASE}/etc/systemd/system
 SYSTEMD_TMPL = $(SYSTEMD_DIR)/storageos-template.service

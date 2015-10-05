@@ -155,7 +155,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/systemd/system/connectemc.service \
     $(ETCDIR)/systemd/system/syncntp.service \
     $(ETCDIR)/systemd/system/ipchecktool.service \
-    $(ETCDIR)/systemd/system/storageos-installer.service
+    $(ETCDIR)/systemd/system/storageos-installer.service \
     $(ETCDIR)/systemd/system/ipsec.service
 
 
@@ -175,6 +175,7 @@ ETCFILES_APPLIANCE = diskresizetool \
     genconfig.d/security \
     genconfig.d/system \
     genconfig.d/vasa \
+    genconfig.d/ipsec \
     genconfig.d/boot/10connectemc \
     genconfig.d/boot/00dns \
     genconfig.d/boot/00firewall \

@@ -624,7 +624,7 @@
       	<property name="workflowService" ref="workflowService" />
       	<property name="rpStatsHelper" ref="rpStatsHelper" />
         <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
-        <property name="consistencyGroupManager" ref="rpVplexConsistencyGroupManager" />        
+        <property name="rpVPlexConsistencyGroupManager" ref="rpVplexConsistencyGroupManager" />        
     </bean>
 
     <bean id="rpcontroller" class="com.emc.storageos.protectioncontroller.impl.RPControllerImpl">

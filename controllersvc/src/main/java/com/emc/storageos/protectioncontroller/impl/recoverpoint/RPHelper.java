@@ -52,6 +52,7 @@ import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
+import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkLite;
@@ -1559,6 +1560,14 @@ public class RPHelper {
         }
 
         return volume;
+    }
+    
+    public static String getRPWWn(URI volumeURI, DbClient dbClient) {
+    	Volume volume = dbClient.queryObject(Volume.class, volumeURI);
+    	if (RecoverPointUtils.isXioVolume(volume.getNativeGuid())) {
+    		return RecoverPointUtils.getXioNativeGuid(volume.getNativeGuid());
+    	}    	    	    	
+    	return volume.getWWN();
     }
     
     /**

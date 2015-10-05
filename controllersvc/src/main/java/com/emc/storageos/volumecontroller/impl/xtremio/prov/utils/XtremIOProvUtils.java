@@ -255,14 +255,11 @@ public class XtremIOProvUtils {
      * @return map of volume tag name and snapshot tag name
      * @throws Exception
      */
-    public static Map<String, String> createTagsForConsistencyGroup(XtremIOClient client, String rootTagName, String clusterName)
+    public static String createTagsForConsistencyGroup(XtremIOClient client, String rootTagName, String clusterName)
             throws Exception {
         List<String> tagNames = client.getTagNames(clusterName);
         _log.info("Tag Names found on Array : {}", Joiner.on("; ").join(tagNames));
-        Map<String, String> tagNamesMap = new HashMap<String, String>();
         String cgTagName = XtremIOConstants.V2_CONSISTENCY_GROUP_ROOT_FOLDER.concat(rootTagName);
-
-        tagNamesMap.put(XtremIOConstants.CONSISTENCY_GROUP_KEY, cgTagName);
 
         long waitTime = 30000; // 30 sec
         int count = 0;
@@ -287,7 +284,7 @@ public class XtremIOProvUtils {
             _log.info("Found {} cg tag on the Array.", cgTagName);
         }
 
-        return tagNamesMap;
+        return cgTagName;
 
     }
 

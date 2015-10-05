@@ -120,7 +120,7 @@ public class FileVirtualPools extends ViprResourceController {
     public static void create() {
         FileVirtualPoolForm form = new FileVirtualPoolForm();
         // Set default values
-        form.protocols = Sets.newHashSet(FileProtocols.CIFS, FileProtocols.NFS, FileProtocols.NFSV4);
+        form.protocols = Sets.newHashSet(FileProtocols.CIFS, FileProtocols.NFS);
         edit(form);
     }
 
@@ -248,7 +248,7 @@ public class FileVirtualPools extends ViprResourceController {
     private static void addStaticOptions() {
         renderArgs.put("provisioningTypeOptions",
                 ProvisioningTypes.options(ProvisioningTypes.THICK, ProvisioningTypes.THIN));
-        renderArgs.put("protocolOptions", FileProtocols.options(FileProtocols.CIFS, FileProtocols.NFS));
+        renderArgs.put("protocolOptions", FileProtocols.options(FileProtocols.CIFS, FileProtocols.NFS, FileProtocols.NFSV4));
         renderArgs.put("systemTypeOptions",
                 StorageSystemTypes.options(
                         StorageSystemTypes.NONE,

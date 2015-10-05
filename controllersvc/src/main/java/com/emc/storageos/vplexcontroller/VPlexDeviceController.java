@@ -5606,10 +5606,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // We will restore the original volume.
                 vplexRollbackMethod = deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs);
             } else {
-                // If rolling back an upgrade from local to distributed, there
-                // should be no rollback necessary here. We will restore the
-                // VPlex local volume.
-                vplexRollbackMethod = rollbackUpgradeVirtualVolumeLocalToDistributedMethod(vplexURI, vplexVolume.getLabel(), stepId);
+                // If rolling back an upgrade from local to distributed, then
+                // try to detach remote mirror and delete new artifacts creatted on VPLEX.
+                // We will restore the VPlex local volume.
+                vplexRollbackMethod = rollbackUpgradeVirtualVolumeLocalToDistributedMethod(vplexURI, vplexVolume.getDeviceLabel(), stepId);
             }
             workflow.createStep(
                     VPLEX_STEP,
@@ -5702,8 +5702,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Get the cluster id for this storage volume.
                 String clusterId = client.getClaimedStorageVolumeClusterName(mirrorInfo);
 
-                client.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
-
+                try {
+                    client.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
+                } catch (Exception e) {
+                    _log.info(String
+                            .format("Couldn't detach mirror corresponding to the backend volume %s from the VPLEX volume %s on VPLEX cluster %s during rollback. "
+                                    + "Its possible mirror was never attached, so just move on to delete backend volume artifacts from the VPLEX",
+                                    mirrorInfo.getVolumeName(), virtualVolumeName, clusterId));
+                }
                 // For each virtual volume attempted, try and rollback.
                 client.deleteVirtualVolume(new ArrayList<VolumeInfo>(Arrays.asList(mirrorInfo)));
             }

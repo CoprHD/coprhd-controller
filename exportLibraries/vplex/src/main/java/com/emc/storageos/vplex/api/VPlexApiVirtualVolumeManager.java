@@ -1432,15 +1432,6 @@ public class VPlexApiVirtualVolumeManager {
             // the mirror and unclaim the storage volume.
             s_logger.info("Exception occurred creating and attaching remote mirror " +
                     " to local VPLEX volume, attempting to cleanup VPLEX artifacts");
-            try {
-                // This will look for any artifacts, starting with a virtual
-                // volume, that use the passed native volume info and destroy
-                // them and then unclaim the volume.
-                deleteVirtualVolume(Collections.singletonList(newRemoteVolume));
-            } catch (Exception ex) {
-                s_logger.error("Failed attempting to cleanup VPLEX after failed attempt " +
-                        "to attach a remote mirror to virtual volume {}", virtualVolume.getPath(), ex);
-            }
             throw e;
         }
 
@@ -2041,11 +2032,10 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-            discoveryMgr.findVirtualVolume(virtualVolumeName, false);
+            VPlexVirtualVolumeInfo virtualVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName, discoveryMgr);
 
             // Find the distributed device for the virtual volume.
-            String ddName = virtualVolumeName.substring(0,
-                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+            String ddName = virtualVolumeInfo.getSupportingDevice();
             VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(ddName);
             if (ddInfo == null) {
                 throw VPlexApiException.exceptions

@@ -397,7 +397,8 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapSessionURI, _uriInfo, _dbClient, true);
 
         // Get the snapshot session source object.
-        BlockObject snapSessionSourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
+        BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
+                _uriInfo, true, _dbClient);
 
         // Get the project for the snapshot session source object.
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(snapSessionSourceObj, _dbClient);

@@ -72,9 +72,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
                 // TBD - Add a check in case this is called with a backend volume.
 
                 // Get the platform specific implementation for the source side
-                // backend storage system and call the validation routine. Currently,
-                // we only support snapshot sessions for VMAX3. Otherwise, it's not
-                // supported.
+                // backend storage system and call the validation routine.
                 Volume vplexVolume = (Volume) sourceObj;
                 BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
                 StorageSystem srcSideBackendSystem = _dbClient.queryObject(StorageSystem.class,
@@ -85,7 +83,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
                         project, name, newTargetsCount, newTargetsName, newTargetCopyMode, true, fcManager);
             } else {
                 // We don't currently support snaps of BlockSnapshot instances
-                // so should not be called.
+                // so should never be called.
                 throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
             }
         }
@@ -99,9 +97,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             Map<URI, List<URI>> snapSessionSnapshotMap, String copyMode, String taskId) {
         if (URIUtil.isType(sourceObj.getId(), Volume.class)) {
             // Get the platform specific implementation for the source side
-            // backend storage system and call the validation routine. Currently,
-            // we only support snapshot sessions for VMAX3. Otherwise, it's not
-            // supported.
+            // backend storage system and call the create method.
             Volume vplexVolume = (Volume) sourceObj;
             BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
             StorageSystem srcSideBackendSystem = _dbClient.queryObject(StorageSystem.class,
@@ -111,7 +107,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             snapshotSessionImpl.createSnapshotSession(srcSideBackendVolume, snapSessionURIs, snapSessionSnapshotMap, copyMode, taskId);
         } else {
             // We don't currently support snaps of BlockSnapshot instances
-            // so should not be called.
+            // so should never be called.
             throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
         }
     }
@@ -140,7 +136,45 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
     @Override
     public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
             Set<URI> snapshotURIs, UriInfo uriInfo) {
-        throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+        URI sourceURI = snapSessionSourceObj.getId();
+        if (URIUtil.isType(sourceURI, Volume.class)) {
+            // Get the platform specific implementation for the source side
+            // backend storage system and call the validation routine.
+            Volume vplexVolume = (Volume) snapSessionSourceObj;
+            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            StorageSystem srcSideBackendSystem = _dbClient.queryObject(StorageSystem.class,
+                    srcSideBackendVolume.getStorageController());
+            BlockSnapshotSessionApi snapshotSessionImpl = _blockSnapshotSessionMgr
+                    .getPlatformSpecificImplForSystem(srcSideBackendSystem);
+            snapshotSessionImpl.validateUnlinkSnapshotSessionTargets(snapSession, srcSideBackendVolume, project, snapshotURIs, uriInfo);
+        } else {
+            // We don't currently support snaps of BlockSnapshot instances
+            // so should never be called.
+            throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void unlinkTargetVolumesFromSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
+            Map<URI, Boolean> snapshotDeletionMap, String taskId) {
+        if (URIUtil.isType(snapSessionSourceObj.getId(), Volume.class)) {
+            // Get the platform specific implementation for the source side
+            // backend storage system and call the unlink target method.
+            Volume vplexVolume = (Volume) snapSessionSourceObj;
+            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            StorageSystem srcSideBackendSystem = _dbClient.queryObject(StorageSystem.class,
+                    srcSideBackendVolume.getStorageController());
+            BlockSnapshotSessionApi snapshotSessionImpl = _blockSnapshotSessionMgr
+                    .getPlatformSpecificImplForSystem(srcSideBackendSystem);
+            snapshotSessionImpl.unlinkTargetVolumesFromSnapshotSession(srcSideBackendVolume, snapSession, snapshotDeletionMap, taskId);
+        } else {
+            // We don't currently support snaps of BlockSnapshot instances
+            // so should never be called.
+            throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+        }
     }
 
     /**

@@ -359,15 +359,7 @@ public class VdcSiteManager extends AbstractManager {
 
         // Reconfigure ZK
         localRepository.reconfigProperties("coordinator");
-        // TODO: support remove a standby site and failover
-        List<String> joiningNodes = getJoiningZKNodes();
-        log.info("Joining nodes={}", joiningNodes);
-
-        if (!joiningNodes.isEmpty()) {
-            CoordinatorClientImpl coordinatorClient = (CoordinatorClientImpl) coordinator.getCoordinatorClient();
-            ZooKeeper zooKeeper = coordinatorClient.getZkConnection().curator().getZookeeperClient().getZooKeeper();
-            zooKeeper.reconfig(joiningNodes, null, null, -1, new Stat());
-        }
+        localRepository.restart("coordinatorsvc");
 
         log.info("The ZK dynamic reconfig success");
 

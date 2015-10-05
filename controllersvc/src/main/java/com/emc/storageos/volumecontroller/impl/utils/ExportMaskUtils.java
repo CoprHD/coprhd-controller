@@ -1160,4 +1160,33 @@ public class ExportMaskUtils {
         }
         return backend;
     }
+
+    /**
+     * Find a set of ExportMasks to which the given Initiators belong.
+     * 
+     * @param dbClient [IN] - For accessing DB
+     * @param initiators [IN] - List of initiators to search for among the ExportMasks found in the DB.
+     * @return HashMap of ExportMask URI to ExportMask object (Using HashMap, since URI is Comparable)
+     */
+    public static HashMap<URI, ExportMask> getExportMasksWithInitiators(DbClient dbClient, List<Initiator> initiators) {
+        final String initiatorAliasStr = "initiator";
+        final String portNameAliasStr = "iniport";
+        final String exportMaskAliasStr = "em";
+        final String initiatorStr = "initiators";
+
+        // Find all the ExportMasks that contain the 'initiators'
+        HashMap<URI, ExportMask> exportMasksWithInitiator = new HashMap<>();
+        Joiner joiner = new Joiner(dbClient);
+        for (Initiator initiator : initiators) {
+            Joiner query = joiner.join(Initiator.class, initiatorAliasStr).match(portNameAliasStr, initiator.getInitiatorPort())
+                    .join(initiatorAliasStr, ExportMask.class, exportMaskAliasStr, initiatorStr).go();
+            Set<ExportMask> matchedMasks = query.set(exportMaskAliasStr);
+            for (ExportMask exportMask : matchedMasks) {
+                exportMasksWithInitiator.put(exportMask.getId(), exportMask);
+            }
+        }
+
+        return exportMasksWithInitiator;
+    }
+
 }

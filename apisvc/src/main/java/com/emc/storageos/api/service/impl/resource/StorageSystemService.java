@@ -1666,10 +1666,14 @@ public class StorageSystemService extends TaskResourceService {
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedFileSystemSupportedVPoolConstraint(vPoolId.toString()), result);
+        if(result != null && !result.isEmpty()) {
+            _log.info("Ignoring unmanaged filesystem: {}", result.size());
+        }
         Iterator<UnManagedFileSystem> unmanagedFileSystemItr = _dbClient.queryIterativeObjects(
                 UnManagedFileSystem.class, result, true);
         while (unmanagedFileSystemItr.hasNext()) {
             UnManagedFileSystem umfs = unmanagedFileSystemItr.next();
+            _log.info(" unmanaged filesystem name : {}", umfs.getLabel());
             String umfsExportStatus = umfs.getFileSystemCharacterstics().get(
                     SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString());
             if (umfs.getStorageSystemUri().equals(id) && null != umfsExportStatus

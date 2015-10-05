@@ -194,6 +194,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // get usage stats from quotas
             IsilonStatsRecorder recorder = new IsilonStatsRecorder(zeroRecordGenerator, statsColumnInjector);
             _keyMap.put(Constants._TimeCollected, System.currentTimeMillis());
+           
+           //compute stat processor code 
+           List<IsilonAccessZone> accessZoneList = api.getAccessZones();
+           Map<String, Long> azTotalObj = new HashMap<String, Long> ();
+           Map<String, Long> azTotalCap = new HashMap<String, Long> ();
+           List<String> azBaseDirPaths = new ArrayList<String>();
+           for(IsilonAccessZone isilonAccessZone: accessZoneList) {
+               azBaseDirPaths.add(isilonAccessZone.getPath());
+           }
+
 
             // get first page of quota data, process and insert to database
             IsilonApi.IsilonList<IsilonSmartQuota> quotas = api.listQuotas(null);
@@ -216,10 +226,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             persistStatsInDB(stats);
             statsCount = statsCount + quotas.size();
             _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
+            
+            //compute statics
+            computeStaticLoadProcesser(quotas, azBaseDirPaths, azTotalObj, azTotalCap);
 
             // get all other pages of quota data, process and insert to database page by page
             while (quotas.getToken() != null && !quotas.getToken().isEmpty()) {
                 quotas = api.listQuotas(quotas.getToken());
+                //compute stats
+                computeStaticLoadProcesser(quotas, azBaseDirPaths, azTotalObj, azTotalCap);
                 for (IsilonSmartQuota quota : quotas.getList()) {
                     String fsNativeId = quota.getPath();
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
@@ -239,10 +254,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 statsCount = statsCount + quotas.size();
                 _log.info("Processed {} file system stats for device {} ", quotas.size(), storageSystemId);
             }
+            
             zeroRecordGenerator.identifyRecordstobeZeroed(_keyMap, stats, FileShare.class);
             persistStatsInDB(stats);
             latestSampleTime = System.currentTimeMillis();
             accessProfile.setLastSampleTime(latestSampleTime);
+            
+            //compute store it db
+            computePersistDbMetrics(storageSystemId, accessZoneList, azTotalObj, azTotalCap);
             _log.info("Done metering device {}, processed {} file system stats ", storageSystemId, statsCount);
         } catch (Exception e) {
             if (isilonCluster != null) {
@@ -252,7 +271,90 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             throw (new IsilonCollectionException(e.getMessage()));
         }
     }
-
+    
+    void computeStaticLoadProcesser(final IsilonApi.IsilonList<IsilonSmartQuota> quotas, 
+                                    final List<String> accessZones, 
+                                    Map<String, Long> azTotalObj, Map<String, Long> azTotalCap){
+        Long value = 0L;
+        for (IsilonSmartQuota quota : quotas.getList()) {
+            String fsPath = quota.getPath();
+            long provisioned = quota.getThresholds().getHard();
+            if(null != accessZones && !accessZones.isEmpty()) {
+                for(String path : accessZones) {
+                    if(fsPath.startsWith(path)) {
+                        value = azTotalObj.get(path);
+                        azTotalObj.put(path, value + 1);
+                        value = azTotalCap.get(path);
+                        azTotalCap.put(path, value + provisioned);
+                    }
+                }
+            } else {
+                //
+                if(fsPath.startsWith(IFS_ROOT)) {
+                    value = azTotalObj.get(IFS_ROOT);
+                    azTotalObj.put(IFS_ROOT, value +1);
+                    value = azTotalCap.get(IFS_ROOT);
+                    azTotalCap.put(IFS_ROOT, value + provisioned);
+                }
+            }
+        }
+        return;
+    }
+    
+    void computePersistDbMetrics(final URI storageSystemId, final List<IsilonAccessZone> accessZoneList, 
+                                    final Map<String, Long> azTotalObj, final Map<String, Long> azTotalCap) {
+        PhysicalNAS physicalNAS = null;
+        VirtualNAS virtualNAS = null;
+        StringMap dbMetrics = null;
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+        //process each access zone
+        for(IsilonAccessZone isAccessZone: accessZoneList) {
+            Long totalCap = azTotalCap.get(isAccessZone.getPath());
+            Long totalObjs = azTotalObj.get(isAccessZone.getPath());
+            //prepare the db metrics
+            if( isAccessZone.isSystem() != true) {
+                 physicalNAS = findPhysicalNasByNativeId(storageSystem, isAccessZone.getZone_id().toString());
+                if(physicalNAS != null) {
+                    dbMetrics = physicalNAS.getMetrics();
+                    if(dbMetrics == null) {
+                        dbMetrics = new StringMap();
+                    }
+                    dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalObjs));
+                    dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalCap));
+                    physicalNAS.setMetrics(dbMetrics);
+                    _dbClient.persistObject(physicalNAS);
+                } else {
+                    continue;
+                }
+                
+            } else {
+                
+                virtualNAS = findvNasByNativeId(storageSystem, isAccessZone.getZone_id().toString());
+                if(virtualNAS != null) {
+                    dbMetrics = virtualNAS.getMetrics();
+                    if(dbMetrics == null) {
+                        dbMetrics = new StringMap();
+                    }
+                    
+                    dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalObjs + azTotalObj.get(IFS_ROOT)));
+                    dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalCap + azTotalCap.get(IFS_ROOT)));
+                    
+                    long maxObjects = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
+                    //long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
+                    //double percentageLoad = ((double) totalDmObjects / maxObjects) * 100;
+                    //pNasDbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
+                    virtualNAS.setMetrics(dbMetrics);
+                    //store metrics information in db
+                    _dbClient.persistObject(virtualNAS);
+                } else {
+                    continue;
+                }
+            }
+        }
+        
+    }
+    
+    
     /**
      * Dump records on disk & persist the records in db.
      */
@@ -491,10 +593,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             
          // Persist the vNAS servers!!!
             if (newvNasList != null && !newvNasList.isEmpty()) {
-                //add the parent system access zone to user defined access zones
+                //add the parent system access zone to us   er defined access zones
+                StringSet portset = new StringSet();
+                List<StoragePort> ports = discoverPorts(storageSystem).get(NEW);
+                for(StoragePort portName: ports) {
+                    portset.add(portName.getPortName());
+                }
                 if(physicalNAS != null) {
                      for(VirtualNAS virNas: newvNasList) {
                         virNas.setParentNasUri(physicalNAS.getId());
+                        ////set tempory code should be removed
+                        
+                        virNas.setStoragePorts(portset);
+                        ////
                     }
                 }
                 _log.info("discoverAccessZones - new Virtual NAS servers size {}", newvNasList.size());

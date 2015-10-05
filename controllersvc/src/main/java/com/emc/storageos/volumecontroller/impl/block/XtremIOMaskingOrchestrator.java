@@ -289,10 +289,10 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 List<ExportMask> exportMaskstoRemoveVolume = new ArrayList<ExportMask>();
                 String previousStep = null;
                 for (ExportMask exportMask : exportMasks) {
-                    if (exportMask.getVolumes() != null && exportMask.getVolumes().size() != volumes.size()) {
-                        exportMaskstoRemoveVolume.add(exportMask);
-                    } else {
+                    if (isRemoveAllVolumes(exportMask, volumes)) {
                         exportMaskstoDelete.add(exportMask);
+                    } else {
+                        exportMaskstoRemoveVolume.add(exportMask);
                     }
                 }
                 if (!exportMaskstoRemoveVolume.isEmpty()) {
@@ -553,7 +553,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                                     computeResourceToInitiators.get(computeKey));
                             log.info("Processing export mask  {} with initiators {}", storageURI, Joiner.on(",").join(initiators));
                             maskToInitiatorsMap.put(exportMask.getId(), computeResourceToInitiators.get(computeKey));
-                            if (removeAllInitiators(exportMask, initiators)) {
+                            if (isRemoveAllInitiators(exportMask, initiators)) {
                                 exportMaskDelete.add(exportMask);
                             } else {
                                 exportMaskRemoveInitiator.add(exportMask);
@@ -603,11 +603,20 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     /**
      * Returns true if the request is to remove all the initiators in the ExportMask.
      */
-    private boolean removeAllInitiators(ExportMask exportMask, List<Initiator> initiators) {
+    private boolean isRemoveAllInitiators(ExportMask exportMask, List<Initiator> initiators) {
         StringSet initiatorsInMask = exportMask.getInitiators();
         StringSet initiatorsToRemove = StringSetUtil.objCollectionToStringSet(initiators);
         return initiatorsInMask == null ||
                 (initiatorsInMask.containsAll(initiatorsToRemove) && (initiatorsInMask.size() == initiatorsToRemove.size()));
+    }
+
+    /**
+     * Returns true if the request is to remove all the volumes in the ExportMask.
+     */
+    private boolean isRemoveAllVolumes(ExportMask exportMask, List<URI> volumesToRemove) {
+        List<URI> volumesInMask = ExportMaskUtils.getVolumeURIs(exportMask);
+        return volumesInMask.isEmpty() ||
+                (volumesInMask.containsAll(volumesToRemove) && (volumesInMask.size() == volumesToRemove.size()));
     }
 
     @Override

@@ -991,7 +991,7 @@ public abstract class BlockIngestOrchestrator {
                 runReplicasIngestedCheck(replica, replicaBlockObject, currentUnManagedVolume, currentBlockObject, unManagedVolumeGUIDs,
                         createdObjectMap, parentReplicaMap, taskStatusMap);
                 if (parentReplicaMap.isEmpty()) {
-                    _logger.info("Parent replica map is empty. So need to traverse the replica tree further");
+                    _logger.info("Parent replica map is empty. So no need to traverse the replica tree further");
                     break;
                 }
             }

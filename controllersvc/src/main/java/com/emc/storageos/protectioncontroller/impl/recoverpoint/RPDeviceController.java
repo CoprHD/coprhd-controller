@@ -255,6 +255,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private RPStatisticsHelper _rpStatsHelper;
     private RecordableEventManager _eventManager;
     private ControllerLockingService _locker;
+    private RPVplexConsistencyGroupManager rpVPlexConsistencyGroupManager;
 
     @Autowired
     private AuditLogManager _auditMgr;
@@ -5445,16 +5446,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     public void removeProtection(List<URI> volumeURIs, URI newVpoolURI, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);        
-        try {
-            ConsistencyGroupManager consistencyGroupManager = null;
+        try {           
             for (URI volumeURI : volumeURIs) {
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI); 
                 
                 // Remove the volume from it's VPLEX CG if it's a VPLEX volume
-                if (RPHelper.isVPlexVolume(volume)) {
-                    if (consistencyGroupManager == null) {
-                        consistencyGroupManager = new RPVplexConsistencyGroupManager();
-                    }
+                if (RPHelper.isVPlexVolume(volume)) {             
                     BlockConsistencyGroup cg = null;
                     if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                         cg = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
@@ -5462,7 +5459,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     if (cg != null) {                    
                         _log.info(String.format("Volume [%s] (%s) is a VPLEX Virtual Volume, removing volume from CG [%s] (%s) on VPLEX.", 
                                 volume.getLabel(), volume.getId(), cg.getLabel(), cg.getId()));
-                        consistencyGroupManager.deleteConsistencyGroupVolume(volume.getStorageController(), volume, cg.getLabel());                        
+                        rpVPlexConsistencyGroupManager.deleteConsistencyGroupVolume(volume.getStorageController(), volume, cg.getLabel());                        
                     }                    
                 }
                 
@@ -5475,7 +5472,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception e) {
-            stepFailed(stepId, "removeProtection");
+            stepFailed(stepId, e, "removeProtection operation failed.");
         }
     }
 }

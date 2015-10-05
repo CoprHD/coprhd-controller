@@ -22,7 +22,6 @@ import org.springframework.util.StringUtils;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;

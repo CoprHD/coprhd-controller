@@ -21,7 +21,7 @@ import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
-import com.emc.storageos.model.file.FileNfsACLUpdateParams;
+import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -212,7 +212,7 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void updateNFSAcl(URI storageURI, URI fsURI, FileNfsACLUpdateParams param, String opId) throws InternalException {
+    public void updateNFSAcl(URI storageURI, URI fsURI, NfsACLUpdateParams param, String opId) throws InternalException {
         execFS("updateNFSAcl", storageURI, fsURI, param, opId);
 
     }

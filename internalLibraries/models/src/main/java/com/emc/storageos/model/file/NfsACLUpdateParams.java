@@ -54,7 +54,7 @@ public class NfsACLUpdateParams implements Serializable {
         this.acesToDelete = acesToDelete;
     }
 
-    @XmlElement(name = "subDir")
+    @XmlElement(name = "subDir", required = false)
     public String getSubDir() {
         return subDir;
     }
@@ -66,7 +66,9 @@ public class NfsACLUpdateParams implements Serializable {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("NfsACLUpdateParams [acesToAdd=");
+        builder.append("NfsACLUpdateParams [Subdirectory=");
+        builder.append(subDir);
+        builder.append(", acesToAdd=");
         builder.append(acesToAdd);
         builder.append(", acesToModify=");
         builder.append(acesToModify);

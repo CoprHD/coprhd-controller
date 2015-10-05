@@ -138,6 +138,16 @@ public class FileDeviceInputOutput {
 
         nfsACLUpdateParams = param;
 
+        if (param.getAcesToAdd() != null && !param.getAcesToAdd().isEmpty()) {
+            this.nfsAclsToAdd = param.getAcesToAdd();
+        }
+        if (param.getAcesToModify() != null && !param.getAcesToModify().isEmpty()) {
+            this.nfsAclsToAdd = param.getAcesToAdd();
+        }
+        if (param.getAcesToDelete() != null && !param.getAcesToDelete().isEmpty()) {
+            this.nfsAclsToAdd = param.getAcesToAdd();
+        }
+
     }
 
     public void setShareName(String shareName) {

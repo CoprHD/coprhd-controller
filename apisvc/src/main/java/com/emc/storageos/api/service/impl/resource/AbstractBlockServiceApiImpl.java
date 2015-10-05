@@ -714,13 +714,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void verifyVolumeExpansionRequest(Volume volume, long newSize) {
-        // VMAX3 arrays do not support volume expansion as of Q2-2015. They
-        // will be able to support this later in 2015. Until then, we shall
-        // return that this is not supported.
-        if (isVMAX3Volume(volume)) {
-            throw APIException.badRequests.expansionNotSupportedForVMAX3Volumes();
-        }
-
         // Verify the passed volume is not a meta volume w/mirrors.
         // Expansion is not supported in this case.
         if (isMetaVolumeWithMirrors(volume)) {

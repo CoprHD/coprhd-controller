@@ -21,6 +21,7 @@
     name:{
         type:"text",
         validation:{
+            regEx:"[a-zA-Z0-9_]+",
             min:2,
             max:128
         }
@@ -49,6 +50,7 @@
     
     owner:{
         type:"text",
+        required: "false",
         validation:{
             min:2,
             max:128

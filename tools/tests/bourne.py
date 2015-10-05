@@ -227,7 +227,7 @@ URI_NETWORKSYSTEM_ALIASES_FABRIC       = URI_NETWORKSYSTEM_ALIASES  + '?fabric-i
 URI_NETWORKSYSTEM_ALIASES_REMOVE       = URI_NETWORKSYSTEM_ALIASES  + '/remove'
 
 URI_NETWORKSYSTEM_ZONES           	   = URI_NETWORKSYSTEM  + '/san-fabrics/{1}/san-zones'
-URI_NETWORKSYSTEM_ZONES_QUERY      	   = URI_NETWORKSYSTEM_ZONES  + '?zone-name={2}&exclude-members={3}'
+URI_NETWORKSYSTEM_ZONES_QUERY      	   = URI_NETWORKSYSTEM_ZONES  + '?zone-name={2}&exclude-members={3}&exclude-aliases={4}'
 URI_NETWORKSYSTEM_ZONES_REMOVE         = URI_NETWORKSYSTEM_ZONES  + '/remove'
 URI_NETWORKSYSTEM_ZONES_ACTIVATE       = URI_NETWORKSYSTEM_ZONES  + '/activate'
 
@@ -2804,11 +2804,11 @@ class Bourne:
                     
                 return self.api_sync_2(o['resource']['id'], o['op_id'], self.networksystem_show_task)
 
-    def zone_list(self, uri, fabricId,zoneName, excludeMembers):
+    def zone_list(self, uri, fabricId,zoneName, excludeMembers, excludeAliases):
         if (fabricId):
             if ( zoneName == None ):
                 zoneName = ""
-            return self.api('GET', URI_NETWORKSYSTEM_ZONES_QUERY.format(uri, fabricId, zoneName,excludeMembers))     
+            return self.api('GET', URI_NETWORKSYSTEM_ZONES_QUERY.format(uri, fabricId, zoneName,excludeMembers, excludeAliases))     
         else:
             raise Exception('fabricid was not provided')
 

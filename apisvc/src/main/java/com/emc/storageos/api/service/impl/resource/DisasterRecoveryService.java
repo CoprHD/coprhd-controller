@@ -369,9 +369,9 @@ public class DisasterRecoveryService {
         }
 
         Site standby = new Site(config);
-        if (standby.getState().equals(SiteState.ACTIVE)) {
-            log.error("site {} is primary", uuid);
-            throw APIException.badRequests.operationNotAllowedOnPrimarySite(uuid);
+        if (!standby.getState().equals(SiteState.STANDBY_SYNCED)) {
+            log.error("site {} is in state {}, should be STANDBY_SYNCED", uuid, standby.getState());
+            throw APIException.badRequests.operationOnlyAllowedOnSyncedSite(uuid, standby.getState().toString());
         }
 
         try {

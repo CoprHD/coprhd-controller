@@ -2345,5 +2345,5 @@ public interface BadRequestExceptions {
     public BadRequestException siteIdNotFound();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException operationNotAllowedOnPrimarySite(final String siteId);
+    public BadRequestException operationOnlyAllowedOnSyncedSite(final String siteId, final String siteState);
 }

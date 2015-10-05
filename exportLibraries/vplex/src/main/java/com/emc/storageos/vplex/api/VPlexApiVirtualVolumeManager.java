@@ -248,9 +248,9 @@ public class VPlexApiVirtualVolumeManager {
             // Find the local devices just created.There will be only one local device
             List<VPlexDeviceInfo> localDevices = discoveryMgr.findLocalDevices(extentInfoList);
 
-            String virtualVolumeName = virtualVolume.getName();
-            String sourceDeviceName = virtualVolumeName.substring(0,
-                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+            VPlexVirtualVolumeInfo vplexVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolume.getName(), discoveryMgr);
+
+            String sourceDeviceName = vplexVolumeInfo.getSupportingDevice();
 
             if (virtualVolume.getLocality().equals(VPlexApiConstants.LOCAL_VIRTUAL_VOLUME)) {
                 // Find the source local device.
@@ -1856,11 +1856,13 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-            discoveryMgr.findVirtualVolume(virtualVolumeName, false);
+
+            // Find the virtual volume.
+            VPlexVirtualVolumeInfo virtualVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName, discoveryMgr);
 
             // Find the source device for the virtual volume.
-            String sourceDeviceName = virtualVolumeName.substring(0,
-                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+            String sourceDeviceName = virtualVolumeInfo.getSupportingDevice();
+
             VPlexDeviceInfo sourceDeviceInfo = discoveryMgr.findLocalDevice(sourceDeviceName);
             if (sourceDeviceInfo == null) {
                 throw VPlexApiException.exceptions
@@ -1945,11 +1947,10 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-            discoveryMgr.findVirtualVolume(virtualVolumeName, false);
+            VPlexVirtualVolumeInfo virtualVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName, discoveryMgr);
 
             // Find the source device for the virtual volume.
-            String sourceDeviceName = virtualVolumeName.substring(0,
-                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+            String sourceDeviceName = virtualVolumeInfo.getSupportingDevice();
             // Find the distributed device
             VPlexDistributedDeviceInfo distributedDeviceInfo = discoveryMgr.findDistributedDevice(sourceDeviceName);
             if (distributedDeviceInfo == null) {
@@ -2214,6 +2215,32 @@ public class VPlexApiVirtualVolumeManager {
             throw VPlexApiException.exceptions.failedAttachingVPlexVolumeMirror(
                     detachedDeviceName, virtualVolumeName, e);
         }
+    }
+
+    /**
+     * This method finds virtual volume on the VPLEX and then updates virtual volume info.
+     * 
+     * @param virtualVolumeName virtual volume name
+     * @param discoveryMgr reference to VPlexApiDiscoveryManager
+     * @return VPlexVirtualVolumeInfo object with updated info.
+     */
+    private VPlexVirtualVolumeInfo findVirtualVolumeAndUpdateInfo(String virtualVolumeName, VPlexApiDiscoveryManager discoveryMgr) {
+        VPlexVirtualVolumeInfo virtualVolumeInfo = null;
+        List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
+        for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+            String clusterName = clusterInfo.getName();
+            virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterName,
+                    virtualVolumeName, false);
+            if (virtualVolumeInfo != null) {
+                discoveryMgr.updateVirtualVolumeInfo(clusterName, virtualVolumeInfo);
+                break;
+            }
+        }
+
+        if (virtualVolumeInfo == null) {
+            throw VPlexApiException.exceptions.cantFindRequestedVolume(virtualVolumeName);
+        }
+        return virtualVolumeInfo;
     }
 
 }

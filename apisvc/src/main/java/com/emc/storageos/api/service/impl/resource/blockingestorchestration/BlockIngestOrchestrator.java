@@ -622,21 +622,21 @@ public abstract class BlockIngestOrchestrator {
      * @return
      */
     @SuppressWarnings("deprecation")
-    protected boolean markUnManagedVolumeInactive(UnManagedVolume currentUnmanagedVolume, 
+    protected boolean markUnManagedVolumeInactive(UnManagedVolume currentUnmanagedVolume,
             BlockObject currentBlockObject, List<UnManagedVolume> unManagedVolumes,
-            Map<String, BlockObject> createdObjects, Map<String, List<DataObject>> updatedObjects, 
+            Map<String, BlockObject> createdObjects, Map<String, List<DataObject>> updatedObjects,
             Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) {
         _logger.info("Running unmanagedvolume {} replica ingestion status", currentUnmanagedVolume.getNativeGuid());
         boolean markUnManagedVolumeInactive = false;
 
-        // if the vplex ingestion method is vvol-only, we don't need to check replicas 
+        // if the vplex ingestion method is vvol-only, we don't need to check replicas
         if (VolumeIngestionUtil.isVplexVolume(currentUnmanagedVolume) &&
                 VplexBackendIngestionContext.INGESTION_METHOD_VVOL_ONLY.equals(vplexIngestionMethod)) {
             _logger.info("This is a VPLEX virtual volume and the ingestion method is "
                     + "virtual volume only. Skipping replica ingestion algorithm.");
             return true;
         }
-        
+
         Map<BlockObject, List<BlockObject>> parentReplicaMap = new HashMap<BlockObject, List<BlockObject>>();
         StringSet processedUnManagedGUIDS = new StringSet();
         UnManagedVolume rootUnManagedVolume = currentUnmanagedVolume;
@@ -672,11 +672,11 @@ public abstract class BlockIngestOrchestrator {
                 parentVolumeNativeGUID = getParentVolumeNativeGUIDByRepType(unManagedVolumeInformation);
                 _logger.info("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
                         rootUnManagedVolume.getNativeGuid());
-                
-                // if the parent is null and this is a VPLEX backend volume, then it 
-                // would seem the backend array has been discovered for 
+
+                // if the parent is null and this is a VPLEX backend volume, then it
+                // would seem the backend array has been discovered for
                 // UnManaged Volumes, but the VPLEX device has not.
-                if ((null == parentVolumeNativeGUID) 
+                if ((null == parentVolumeNativeGUID)
                         && VolumeIngestionUtil.isVplexBackendVolume(rootUnManagedVolume)) {
                     throw IngestionException.exceptions.vplexBackendVolumeHasNoParent(rootUnManagedVolume.getLabel());
                 }
@@ -695,11 +695,11 @@ public abstract class BlockIngestOrchestrator {
                     parentVolumeNativeGUID = getParentVolumeNativeGUIDByRepType(unManagedVolumeInformation);
                     _logger.info("Found the parent {} for current unmanagedvolume {}", parentVolumeNativeGUID,
                             rootUnManagedVolume.getNativeGuid());
-                    
-                    // if the parent is null and this is a VPLEX backend volume, then it 
-                    // would seem the backend array has been discovered for 
+
+                    // if the parent is null and this is a VPLEX backend volume, then it
+                    // would seem the backend array has been discovered for
                     // UnManaged Volumes, but the VPLEX device has not.
-                    if ((null == parentVolumeNativeGUID) 
+                    if ((null == parentVolumeNativeGUID)
                             && VolumeIngestionUtil.isVplexBackendVolume(rootUnManagedVolume)) {
                         throw IngestionException.exceptions.vplexBackendVolumeHasNoParent(rootUnManagedVolume.getLabel());
                     }
@@ -929,7 +929,7 @@ public abstract class BlockIngestOrchestrator {
         }
 
         StringSet vplexBackendVolumes = PropertySetterUtil.extractValuesFromStringSet(
-            SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
+                SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
                 unManagedVolumeInformation);
         if (vplexBackendVolumes != null && !vplexBackendVolumes.isEmpty()) {
             unmanagedReplicaGUIDs.addAll(vplexBackendVolumes);
@@ -990,7 +990,10 @@ public abstract class BlockIngestOrchestrator {
 
                 runReplicasIngestedCheck(replica, replicaBlockObject, currentUnManagedVolume, currentBlockObject, unManagedVolumeGUIDs,
                         createdObjectMap, parentReplicaMap, taskStatusMap);
-                // TODO- break out if the parent-replica map is empty
+                if (parentReplicaMap.isEmpty()) {
+                    _logger.info("Parent replica map is empty. So need to traverse the replica tree further");
+                    break;
+                }
             }
         }
     }

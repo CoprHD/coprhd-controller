@@ -120,10 +120,8 @@ ${conn_in_cluster}
 ${conn_of_standby}
 EOF
 )
-#    _genconfig_write 400 root:root "${IPSEC_CONF_FILE}" "${content}"
-#    _genconfig_write 400 root:root "${IPSEC_SECRET_FILE}" " : PSK ${_GENCONFIG_ipsec_pre_shared_key}"
-    echo "${content}"
-    echo "${_GENCONFIG_ipsec_pre_shared_key}"
+    _genconfig_write 400 root:root "${IPSEC_CONF_FILE}" "${content}"
+    _genconfig_write 400 root:root "${IPSEC_SECRET_FILE}" " : PSK ${_GENCONFIG_ipsec_pre_shared_key}"
 }
 
 _gen_ipsec_conf

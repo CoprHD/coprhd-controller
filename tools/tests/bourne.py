@@ -212,9 +212,9 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_ACTIVATE   = URI_BLOCK_CONSISTENCY_GROUP_SN
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_DEACTIVATE = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/deactivate"
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_RESTORE    = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/restore"
 
-#Object ECS bucket definitions
-URI_ECS_BUCKET_LIST             = URI_SERVICES_BASE         + '/object/buckets'
-URI_ECS_BUCKET                  = URI_SERVICES_BASE         + '/object/buckets/{0}'
+#Object Platform ECS bucket definitions
+URI_ECS_BUCKET_LIST                     = URI_SERVICES_BASE             + '/object/buckets'
+URI_ECS_BUCKET                          = URI_SERVICES_BASE             + '/object/buckets/{0}'
 
 
 URI_NETWORKSYSTEMS              = URI_SERVICES_BASE   + '/vdc/network-systems'

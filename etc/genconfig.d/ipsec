@@ -9,10 +9,8 @@
 # limited to the terms and conditions of the License Agreement under which
 # it is provided by or on behalf of EMC.
 
-PORTS_PROTECTED_IN_CLUSTER="2181 2888"
-PORTS_PROTECTED_ACROSS_SITE="2181 2888"
-PRIMARY_CERTIFICATE_FILE="/opt/storageos/primary_ipsec.crt"
-STANDBY_CERTIFICATE_FILE="/opt/storageos/standby_ipsec.crt"
+PORTS_PROTECTED_IN_CLUSTER="tcp/2181 tcp/2888 tcp/2889"
+PORTS_PROTECTED_ACROSS_SITE="tcp/2181 tcp/2888 tcp/2889"
 IPSEC_CONF_FILE="/etc/ipsec.conf"
 IPSEC_SECRET_FILE="/etc/ipsec.secrets"
 LOCAL_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
@@ -30,7 +28,10 @@ conn %default
     keyingtries=1
     keyexchange=ikev2
     authby=secret
-    leftid=@${LOCAL_IP}
+    auto=route
+    type=transport
+    esp=aes128gcm16!
+    left=${LOCAL_IP}
 
 EOF
 )
@@ -50,6 +51,18 @@ _get_ips_in_cluster() {
             ips="${ips} ${ipaddr}"
         fi
     done
+
+
+    # add vip into ips
+    local vip="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_vip"
+    local vip6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_vip6"
+    local ipaddr="${!vip}"
+    [ -z "${ipaddr}" ] && ipaddr="[${!vip6}]"
+    if [ "${ipaddr}" != "${LOCAL_IP}" ] ; then
+        ips="${ips} ${ipaddr}"
+    fi
+
+
     echo "${ips}"
 }
 
@@ -97,10 +110,14 @@ _gen_conn_sections() {
         do
             conn=$(cat << EOF
 
-conn ${port}-${LOCAL_IP}-${ip}
-    leftsubnet=${LOCAL_IP}[tcp/${port}]
+conn ${LOCAL_IP}-${ip}-${port}
     right=${ip}
-    rightid=@${ip}
+    rightprotoport=${port}
+
+conn ${ip}-${LOCAL_IP}-${port}
+    right=${ip}
+    leftprotoport=${port}
+
 EOF
 )
     echo "${conn}"

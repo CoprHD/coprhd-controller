@@ -133,6 +133,7 @@ fi
 /etc/genconfig.d/system
 /etc/genconfig.d/syssvc
 /etc/genconfig.d/vasa
+/etc/genconfig.d/ipsec
 /etc/genconfig.d/test
 /etc/genconfig.d/boot/10connectemc
 /etc/genconfig.d/boot/00dns

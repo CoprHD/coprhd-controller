@@ -92,6 +92,7 @@ fi
 /etc/genconfig.d/ssh_auth_key
 /etc/genconfig.d/ssl
 /etc/genconfig.d/syssvc
+/etc/genconfig.d/ipsec
 /etc/genconfig.d/test
 /etc/genconfig.d/boot/10api
 /etc/genconfig.d/boot/10auth

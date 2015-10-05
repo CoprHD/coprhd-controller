@@ -5,6 +5,7 @@
 
 package com.emc.storageos.isilon.restapi;
 
+import java.io.BufferedReader;
 import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.URI;
@@ -1196,40 +1197,43 @@ public class IsilonApi {
         }
     }
     
-    /**
-     * Checks to see if the NFSv4 service is enabled on the isilon device
-     * 
-     * @param fspath directory path to chek
-     * @return boolean true if exists, false otherwise
-     */
-    public boolean nfsv4Enabled() throws IsilonException {
-        ClientResponse resp = null;
-        boolean result=false;
-        try {
-            sLogger.debug("IsilonApi check nfsV4 support retrive global status - start");
-            resp = _client.head(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS));
-            sLogger.debug("IsilonApi check nfsV4 support retrive global status - complete");
-            
-            JSONObject jsonResp = resp.getEntity(JSONObject.class);
-            
-            
-            String enabled = jsonResp.getJSONObject("settings").getString("nfsv4_enabled");
-            
-            result = Boolean.getBoolean(enabled);
-            
-            sLogger.debug("IsilonApi  nfsv4 is enable/disable is set to {}",enabled);
-            
-        } catch (Exception e) {
-            if (e.getCause() instanceof ConnectException) {
-                throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
-            }
-            final Status status = resp != null ? resp.getClientResponseStatus() : Status.NOT_FOUND;
-        } finally {
-            if (resp != null) {
-                resp.close();
-            }
-        }
-        
-        return result;
-    }
+	/**
+	 * Checks to see if the NFSv4 service is enabled on the isilon device
+	 * 
+	 * @param fspath
+	 *            directory path to chek
+	 * @return boolean true if exists, false otherwise
+	 */
+	public boolean nfsv4Enabled() throws IsilonException {
+		ClientResponse resp = null;
+		boolean isNfsv4Enabled = false;
+		try {
+			sLogger.debug("IsilonApi check nfsV4 support retrive global status - start");
+
+			resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS));
+			sLogger.debug("IsilonApi check nfsV4 support retrive global status - complete");
+
+			JSONObject jsonResp = resp.getEntity(JSONObject.class);
+
+			isNfsv4Enabled = Boolean.parseBoolean(jsonResp.getJSONObject(
+					"settings").getString("nfsv4_enabled"));
+
+			sLogger.debug("IsilonApi  nfsv4 is enable/disable is set to {}",
+					isNfsv4Enabled);
+
+		} catch (Exception e) {
+			if (e.getCause() instanceof ConnectException) {
+				throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+			}
+			final Status status = resp != null ? resp.getClientResponseStatus()
+					: Status.NOT_FOUND;
+		} finally {
+			if (resp != null) {
+				resp.close();
+			}
+		}
+
+		return isNfsv4Enabled;
+	}
+
 }

@@ -2828,9 +2828,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         Volume cloneVol = _dbClient.queryObject(Volume.class, uri);
                         BlockObject sourceObj = BlockObject.fetch(_dbClient, cloneVol.getAssociatedSourceVolume());
                         // detach if source is snapshot, or storage system is not vmax/vnx/hds
-                        if (sourceObj instanceof BlockSnapshot
+                    	if (storageSystem.deviceIsType(Type.openstack)){
+                    		setCloneReplicaStateStep(workflow, storageSystem, asList(uri), waitForSyncStep, ReplicationState.SYNCHRONIZED);
+                    	}
+                        else if (sourceObj instanceof BlockSnapshot
                                 || !(storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.hds)
                                 || storageSystem.deviceIsType(Type.vnxblock))) {
+			    
                             Workflow.Method detachMethod = detachFullCopyMethod(storage, uri);
                             workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", waitForSyncStep,
                                     storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);

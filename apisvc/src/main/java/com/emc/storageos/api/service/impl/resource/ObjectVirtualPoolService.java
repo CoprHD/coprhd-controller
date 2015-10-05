@@ -282,7 +282,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         if (null != param.getMaxRetention()) {
             cos.setMaxRetention(param.getMaxRetention());
         }
-
+        
         if (null != param.getSystemType()) {
             if (cos.getArrayInfo().containsKey(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                 for (String systemType : cos.getArrayInfo().get(
@@ -409,7 +409,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     private class mapObjectVirtualPoolWithResources implements Function<VirtualPool, ObjectVirtualPoolRestRep> {
         @Override
         public ObjectVirtualPoolRestRep apply(VirtualPool vpool) {
-            return VirtualPoolMapper.toObjectVirtualPool(vpool);
+            ObjectVirtualPoolRestRep resp = VirtualPoolMapper.toObjectVirtualPool(vpool);
+            resp.setNumResources(getNumResources(vpool, _dbClient));
+            return resp;
         }
     }
 

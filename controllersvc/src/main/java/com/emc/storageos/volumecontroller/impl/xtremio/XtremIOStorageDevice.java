@@ -505,6 +505,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
 
             if (null != XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroup.getLabel(), clusterName)) {
                 client.removeConsistencyGroup(consistencyGroup.getLabel(), clusterName);
@@ -513,6 +514,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             URI systemURI = storage.getId();
             consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
                     consistencyGroup.getLabel());
+            client.deleteTag(cgProject.getLabel(), XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
             if (markInactive) {
                 consistencyGroup.setInactive(true);
             }
@@ -534,10 +536,13 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-
+            Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
+            String cgTagName = XtremIOProvUtils.createTagsForConsistencyGroup(client, cgProject.getLabel(), clusterName).get(
+                    XtremIOConstants.CONSISTENCY_GROUP_KEY);
             client.createConsistencyGroup(consistencyGroup.getLabel(), clusterName);
             consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), consistencyGroup.getLabel());
             consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
+            client.tagObject(cgTagName, XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), consistencyGroup.getLabel(), clusterName);
             if (NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
                 consistencyGroup.setStorageController(storage.getId());
             }

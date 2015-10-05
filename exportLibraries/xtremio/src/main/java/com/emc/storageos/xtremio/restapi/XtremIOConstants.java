@@ -16,6 +16,7 @@ public class XtremIOConstants {
     public static final String V1_ROOT_FOLDER = "/";
     public static final String V2_VOLUME_ROOT_FOLDER = "/Volume/";
     public static final String V2_SNAPSHOT_ROOT_FOLDER = "/SnapshotSet/";
+    public static final String V2_CONSISTENCY_GROUP_ROOT_FOLDER = "/ConsistencyGroup/";
     public static final String V2_INITIATOR_GROUP_ROOT_FOLDER = "/InitiatorGroup/";
     public static final String UNDERSCORE = "_";
     public static final String EMPTY_STRING = "";
@@ -24,6 +25,7 @@ public class XtremIOConstants {
     public static final String SNAPSHOT_KEY = "snapshot";
     public static final String VOLUMES_SUBFOLDER = "/volumes";
     public static final String SNAPSHOTS_SUBFOLDER = "/snapshots";
+    public static final String CONSISTENCY_GROUP_KEY = "consistencygroup";
 
     public static final String XTREMIO_BASE_STR = "/api/json/types";
     public static final String XTREMIO_VOLUMES_STR = XTREMIO_BASE_STR.concat("/volumes");
@@ -126,6 +128,8 @@ public class XtremIOConstants {
         String rootFolder = "";
         if (XTREMIO_ENTITY_TYPE.Volume.name().equals(entityType)) {
             return V2_VOLUME_ROOT_FOLDER;
+        } else if (XTREMIO_ENTITY_TYPE.ConsistencyGroup.name().equals(entityType)) {
+            return V2_CONSISTENCY_GROUP_ROOT_FOLDER;
         } else if (XTREMIO_ENTITY_TYPE.SnapshotSet.name().equals(entityType)) {
             return V2_SNAPSHOT_ROOT_FOLDER;
         } else if (XTREMIO_ENTITY_TYPE.InitiatorGroup.name().equals(entityType)) {

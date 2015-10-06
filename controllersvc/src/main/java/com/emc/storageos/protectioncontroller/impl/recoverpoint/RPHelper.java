@@ -305,8 +305,8 @@ public class RPHelper {
                         descriptor.setParameters(volumeParams);
                     }
                                                         
-                    _log.info(String.format("Adding %s descriptor to %s virtual volume [%s] ", 
-                            volumeType, operationType, volume.getLabel()));
+                    _log.info(String.format("Adding %s descriptor to %s virtual volume [%s] (%s)", 
+                            volumeType, operationType, volume.getLabel(), volume.getId()));
                     volumeDescriptors.add(descriptor);                                        
                 }
                 
@@ -315,7 +315,8 @@ public class RPHelper {
                     // VPLEX virtual volume, no descriptor needed if this is a Source volume and the deletion type
                     // is Remove Protection.
                     if (!(isSourceVolume && REMOVE_PROTECTION.equals(deletionType))) {
-                        _log.info(String.format("Adding VPLEX_VIRT_VOLUME descriptor to delete virtual volume [%s] ", volume.getLabel()));
+                        _log.info(String.format("Adding VPLEX_VIRT_VOLUME descriptor to delete virtual volume [%s] (%s)", 
+                                volume.getLabel(), volume.getId()));
                         descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(),
                                 volume.getId(), null, null);
                         volumeDescriptors.add(descriptor);
@@ -337,8 +338,8 @@ public class RPHelper {
                                 volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);                    
                                 descriptor.setParameters(volumeParams);
                             }
-                            _log.info(String.format("Adding BLOCK_DATA descriptor to %s virtual volume backing volume [%s] ",
-                                    operationType, associatedVolume.getLabel()));
+                            _log.info(String.format("Adding BLOCK_DATA descriptor to %s virtual volume backing volume [%s] (%s)",
+                                    operationType, associatedVolume.getLabel(), associatedVolume.getId()));
                             volumeDescriptors.add(descriptor);
                         }
                     }
@@ -355,7 +356,8 @@ public class RPHelper {
                         volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
-                    _log.info(String.format("Adding BLOCK_DATA descriptor to %s volume [%s] ", operationType, volume.getLabel()));
+                    _log.info(String.format("Adding BLOCK_DATA descriptor to %s volume [%s] (%s)", 
+                            operationType, volume.getLabel(), volume.getId()));
                     volumeDescriptors.add(descriptor);
                 }
             }

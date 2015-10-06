@@ -2037,6 +2037,46 @@ mp_clr()
         --activeProtectionAtHASite false
 }
 
+# RP - NO PROTECTION
+rp_noprotection()
+{
+    cos create block rp_noprotection$1 true \
+        --description 'RP - NO PROTECTION'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency
+}
+
+# RP+VPLEX LOCAL - NO PROTECTION
+rpvplexlocal_noprotection()
+{
+    cos create block rpvplexlocal_noprotection$1 true \
+        --description 'RP+VPLEX LOCAL - NO PROTECTION'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --highavailability vplex_local
+}
+
+# RP+VPLEX DIST - NO PROTECTION
+rpvplexdist_noprotection()
+{
+    cos create block rpvplexdist_noprotection$1 true \
+        --description 'RP+VPLEX DIST - NO PROTECTION'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha
+}
+
 rp_vpool_setup()
 {
     rp_targets
@@ -2054,6 +2094,9 @@ rp_vpool_setup()
     mp_cdp
     mp_crr
     mp_clr
+    rp_noprotection
+    rpvplexlocal_noprotection
+    rpvplexdist_noprotection
 }
 
 rp_varray_setup()

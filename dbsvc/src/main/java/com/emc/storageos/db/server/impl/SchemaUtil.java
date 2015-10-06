@@ -539,7 +539,7 @@ public class SchemaUtil {
         }
 
         if (latestSchemaVersion != null) {
-            clientContext.waitForSchemaChange(latestSchemaVersion, cluster);
+            clientContext.waitForSchemaChange(latestSchemaVersion);
         }
     }
 
@@ -1161,7 +1161,7 @@ public class SchemaUtil {
                 if (cfd != null) {
             	    _log.info("drop cf {} from db", cfName);
             	    String schemaVersion = dropColumnFamily(cfName, context);
-                    clientContext.waitForSchemaChange(schemaVersion, context.getClient());
+                    clientContext.waitForSchemaChange(schemaVersion);
                 }
             }
         } catch (Exception e){

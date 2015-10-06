@@ -10,7 +10,6 @@ import static controllers.Common.backToReferrer;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 
 import models.ComputeImageTypes;
@@ -116,8 +115,8 @@ public class ComputeImages extends ViprResourceController {
                 .getComputeImage(id);
         if (computeImage != null) {
             ComputeImageForm computeImages = new ComputeImageForm(computeImage);
-            renderArgs.put("availableImageServersNames", StringUtils.join(computeImages.availableImageServerNames, "\n"));
-            renderArgs.put("failedImageServersNames", StringUtils.join(computeImages.failedImageServerNames, "\n"));
+            renderArgs.put("availableImageServersNames", computeImages.availableImageServerNames);
+            renderArgs.put("failedImageServersNames", computeImages.failedImageServerNames);
             render("@edit", computeImages);
         }
         else {
@@ -194,13 +193,13 @@ public class ComputeImages extends ViprResourceController {
 
         public String lastImageStatusMessage;
 
+        public String availableImageServerNames = "";
+
+        public String failedImageServerNames = "";
+
         private List<NamedRelatedResourceRep> availableImageServers;
 
         private List<NamedRelatedResourceRep> failedImageServers;
-
-        private List<String> availableImageServerNames = new ArrayList<String>();
-
-        private List<String> failedImageServerNames = new ArrayList<String>();
 
         public String cloneName;
         public String cloneExtractedName;
@@ -223,12 +222,12 @@ public class ComputeImages extends ViprResourceController {
 
             for (NamedRelatedResourceRep availableImageServer : availableImageServers) {
                 if (availableImageServer.getName() != null) {
-                    this.availableImageServerNames.add(availableImageServer.getName());
+                    this.availableImageServerNames = availableImageServerNames.concat(availableImageServer.getName() + ",   ");
                 }
             }
             for (NamedRelatedResourceRep failedImageServer : failedImageServers) {
                 if (failedImageServer.getName() != null) {
-                    this.failedImageServerNames.add(failedImageServer.getName());
+                    this.failedImageServerNames = failedImageServerNames.concat(failedImageServer.getName() + ",   ");
                 }
             }
         }

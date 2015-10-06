@@ -28,8 +28,9 @@ dependencies {
             library(commons_codec),
 
             project(":dbsvc"),
-            project(":security")
-            project(":serviceutils")
+            project(":security"),
+            project(":serviceutils"),
+            project(":keystone")
 
     testCompile project(path:":apisvc", configuration:'testRuntime')
     testCompile project(path:":geodbsvc", configuration:'testRuntime')

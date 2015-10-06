@@ -2481,4 +2481,19 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cgReferencesInvalidProtectionSystem(final URI cgUri, final URI protectionSystemUri);
+	
+	@DeclareServiceCode(ServiceCode.API_AUTH_KEYSTONE_PROVIDER_CREATE_NOT_ALLOWED)
+    public BadRequestException keystoneProviderAlreadyPresent();
+    
+	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException managerDNMustcontainUserNameAndTenantName();
+    
+	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException managerDNMustcontainEqualTo();
+    
+	@DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException managerDNInvalid();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException projectWithTagNonexistent(final String openstackTenantId);
 }

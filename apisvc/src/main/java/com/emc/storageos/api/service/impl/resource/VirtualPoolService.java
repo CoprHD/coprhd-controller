@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -94,7 +95,7 @@ public abstract class VirtualPoolService extends TaggedResource {
 
     protected static final String VPOOL_PROTOCOL_NFS = "NFS";
     protected static final String VPOOL_PROTOCOL_CIFS = "CIFS";
-    protected static final String VPOOL_PROTOCOL_NFSv4 = "NFSV4";
+    protected static final String VPOOL_PROTOCOL_NFSv4 = "NFSv4";
     protected static final String VPOOL_PROTOCOL_FC = "FC";
     protected static final String VPOOL_PROTOCOL_ISCSI = "iSCSI";
     protected static final String VPOOL_PROTOCOL_SCALEIO = "ScaleIO";

@@ -675,8 +675,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         String deviceName = devicePathParts[devicePathParts.length - 1];
                         vplexMirror.setDeviceLabel(deviceName);
 
-                        // save the new VplexMirror
+                        // save the new VplexMirror & persist backend
                         _dbClient.createObject(vplexMirror);
+                        _dbClient.updateAndReindexObject(mirrorVolume);
 
                         // set mirrors property on the parent virtual volume
                         StringSet mirrors = virtualVolume.getMirrors();

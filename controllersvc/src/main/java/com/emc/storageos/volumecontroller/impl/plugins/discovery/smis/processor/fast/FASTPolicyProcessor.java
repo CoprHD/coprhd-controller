@@ -126,7 +126,7 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
                  */
                 if (!Constants.SYMMETRIX.equalsIgnoreCase(array[0])
                         && !Constants.CLARIION.equalsIgnoreCase(array[0])) {
-                    _logger.info("Unsupported FAST Policy :" + policyID);
+                    _logger.info("Unsupported FAST Policy :{}", policyID);
                     return;
                 }
                 String fastPolicyServiceConstant = getFASTPolicyServiceConstant(array[0], policyRuleName);
@@ -201,6 +201,8 @@ public class FASTPolicyProcessor extends AbstractFASTPolicyProcessor {
                 policyObject.setPolicyEnabled(false);
                 if (policyObject.getPools() != null) {
                     policyObject.getPools().clear();
+                } else {
+                    _logger.info("Policy {} does not have pools", policyObject.getId());
                 }
                 policyObject.setInactive(true);
                 _dbClient.updateAndReindexObject(policyObject);

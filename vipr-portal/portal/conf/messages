@@ -2489,7 +2489,7 @@ computeImages.lastImportStatusMessage=Import Status Message
 computeImages.availableImageServers=Available Image Server(s)
 computeImages.availableImageServers.description=Compute Image Servers that this Compute Image successfully imported to.
 computeImages.failedImageServers=Server(s) Import Failed
-computeImages.failedImageServerNames.description=Compute Image Servers that this Compute Image failed to import to.
+computeImages.failedImageServers.description=Compute Image Servers that this Compute Image failed to import to.
 computeImages.url.not.valid=Image URL is not valid format
 computeImages.urls.pattern=^((ldaps?|ldap)://|(ldaps|ldap)\.)[a-z0-9-]+(\.[a-z0-9-]+)+([/?].*)?$
 computeImages.searchFilter.equalsRequired=An equals sign (=) is required.
@@ -2523,6 +2523,8 @@ computeImageServers.tftpBootDir=TFTPBOOT Directory
 computeImageServers.computeImageServerStatus=Image Server Status
 computeImageServers.osInstallNetworkAddress=OS Install Network Address
 computeImageServers.osInstallTimeOut=OS Install Timeout
+computeImageServers.availableComputeImages=Available Images
+computeImageServers.failedComputeImages=Images Failed to import
 computeImageServers.imageUrl.help=URL can be HTTP or FTP. If credentials are required for FTP, they must be specified in the URL. Example: ftp://username:password@hostname/ESX/VMware-Installer-5.0-20.x86_64.iso
 computeImageServers.url.not.valid=Image URL is not valid format
 computeImageServers.urls.pattern=^((ldaps?|ldap)://|(ldaps|ldap)\.)[a-z0-9-]+(\.[a-z0-9-]+)+([/?].*)?$

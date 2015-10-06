@@ -512,39 +512,4 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     private static Integer getNumResources(VirtualPool vpool, DbClient dbClient) {
         return dbClient.countObjects(Bucket.class, "virtualPool", vpool.getId());
     }
-    
-    /**
-     * 
-     * Check if any VirtualPool attribute values (including max retention days) have changed.
-     * 
-     * @param param
-     * @param vpool : VirtualPool in DB.
-     * @return : flag to check whether to update VirtualPool or not.
-     */
-    private boolean checkAttributeValuesChanged(ObjectVirtualPoolUpdateParam param, VirtualPool vpool) {
-        return super.checkAttributeValuesChanged(param, vpool)
-                || checkMaxRetentionDaysChanged(param.getMaxRetention(), vpool.getMaxRetention());
-    }
-    
-    /**
-     * check for any change in Max Retention days
-     * 
-     * @param newRetention
-     * @param originalRetention
-     */
-    private boolean checkMaxRetentionDaysChanged(Integer newRetention, Integer originalRetention) {
-        boolean isModified = false;
-        if (null != originalRetention) {
-            if (newRetention == null) {
-                isModified = false;
-            } else if (newRetention > originalRetention) {
-                isModified = true;
-            }
-        } else {
-            if (null != newRetention) {
-                isModified = true;
-            }
-        }
-        return isModified;
-    }
 }

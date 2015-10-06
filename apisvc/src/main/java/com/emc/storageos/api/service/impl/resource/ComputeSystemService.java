@@ -69,6 +69,7 @@ import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -700,15 +701,8 @@ public class ComputeSystemService extends TaskResourceService {
         if (param.getOsInstallNetwork() != null) {
             cs.setOsInstallNetwork(param.getOsInstallNetwork());
         }
-        if (param.getComputeImageServer() != null) {
-        	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class, param.getComputeImageServer());
-        	if (imageServer!=null){
-        		cs.setComputeImageServer(param.getComputeImageServer());
-        	}else{
-        		throw APIException.badRequests.
-        			invalidParameter("compute image server", param.getComputeImageServer().toString());
-        	}
-        }
+        URI imageServerURI = param.getComputeImageServer();
+        associateImageServerToComputeSystem(imageServerURI, cs);
         cs.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(cs));
         cs.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.name());
 
@@ -805,16 +799,8 @@ public class ComputeSystemService extends TaskResourceService {
                 }
             }
         }
-        
-        if (param.getComputeImageServer() != null) {
-        	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class, param.getComputeImageServer());
-        	if (imageServer!=null){
-        		cs.setComputeImageServer(param.getComputeImageServer());
-        	}else{
-        		throw APIException.badRequests.
-        			invalidParameter("compute image server", param.getComputeImageServer().toString());
-        	}        	        	
-        }
+        URI imageServerURI = param.getComputeImageServer();
+        associateImageServerToComputeSystem(imageServerURI, cs);
 
         cs.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(cs));
         _dbClient.persistObject(cs);
@@ -1170,5 +1156,27 @@ public class ComputeSystemService extends TaskResourceService {
 
         auditOp(typeEnum, status, operationalStage,
                 cs.getId().toString(), cs.getLabel(), cs.getPortNumber(), cs.getUsername(), cs.getIpAddress());
+    }
+
+    /**
+     * Associate's a given imageServer URI to the computeSystem.
+     * @param imageServerURI
+     * @param cs
+     */
+    private void associateImageServerToComputeSystem(URI imageServerURI,
+            ComputeSystem cs) {
+        if (imageServerURI != null
+                && StringUtils.isNotBlank(imageServerURI.toString())) {
+            ComputeImageServer imageServer = _dbClient.queryObject(
+                    ComputeImageServer.class, imageServerURI);
+            if (imageServer != null) {
+                cs.setComputeImageServer(imageServerURI);
+            } else {
+                throw APIException.badRequests.invalidParameter(
+                        "compute image server", imageServerURI.toString());
+            }
+        } else {
+            cs.setComputeImageServer(NullColumnValueGetter.getNullURI());
+        }
     }
 }

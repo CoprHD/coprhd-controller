@@ -2148,6 +2148,7 @@ public class VPlexApiDiscoveryManager {
                     String initWwn = initInfoMap.get(initName);
                     sv.getInitiatorPwwns().add(initWwn);
                 }
+                sv.refreshMaps();
             }
 
             return storageViews;
@@ -3427,6 +3428,7 @@ public class VPlexApiDiscoveryManager {
      * @return the name of the top level device for the given storage volume
      * @throws VPlexApiException
      */
+    @Deprecated
     public String getDeviceForStorageVolume(String volumeNativeId,
             String wwn, String backendArraySerialNum) throws VPlexApiException {
 
@@ -3524,6 +3526,7 @@ public class VPlexApiDiscoveryManager {
      * @param backendArraySerialNum the backend array serial number
      * @return
      */
+    @Deprecated
     private String getVolumeNamePattern(int i, String volumeNativeId,
             String wwn, String backendArraySerialNum) {
         String pattern = "";

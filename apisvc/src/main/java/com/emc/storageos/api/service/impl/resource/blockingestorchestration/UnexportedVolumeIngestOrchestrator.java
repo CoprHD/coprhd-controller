@@ -23,7 +23,8 @@ public class UnexportedVolumeIngestOrchestrator extends BlockIngestExportOrchest
     @Override
     public <T extends BlockObject> void ingestExportMasks(UnManagedVolume unManagedVolume, List<UnManagedExportMask> unManagedMasks,
             VolumeExportIngestParam param, ExportGroup exportGroup, T volume, StorageSystem system,
-            boolean exportGroupCreated, MutableInt masksIngestedCount, List<Initiator> deviceInitiators) throws IngestionException {
+            boolean exportGroupCreated, MutableInt masksIngestedCount, 
+            List<Initiator> deviceInitiators, List<String> errorMessages ) throws IngestionException {
         return;
     }
 

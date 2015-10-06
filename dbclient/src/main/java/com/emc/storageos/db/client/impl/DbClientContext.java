@@ -50,7 +50,7 @@ public class DbClientContext {
     private static final int QUERY_RETRY_SLEEP_SECONDS = 1000;
     public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
     public static final String LOCAL_HOST = "127.0.0.1";
-    public static final int DB_THRIFT_PORT = 9260;
+    public static final int DB_THRIFT_PORT = 9160;
     public static final int GEODB_THRIFT_PORT = 9260;
 
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";

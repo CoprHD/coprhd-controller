@@ -5,19 +5,16 @@
 
 package com.emc.storageos.db.client.impl;
 
-import java.nio.charset.CharacterCodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.cassandra.cli.CliMain;
-import org.apache.cassandra.cli.CliOptions;
-import org.apache.thrift.TException;
 import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.Host;
@@ -32,7 +29,7 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.common.DbConfigConstants;
+import com.emc.storageos.db.exceptions.DatabaseException;
 
 public class DbClientContext {
 
@@ -51,6 +48,7 @@ public class DbClientContext {
     public static final String LOCAL_HOST = "127.0.0.1";
     public static final int DB_THRIFT_PORT = 9160;
     public static final int GEODB_THRIFT_PORT = 9260;
+    public static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
 
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
@@ -65,8 +63,10 @@ public class DbClientContext {
     private String keyspaceName = LOCAL_KEYSPACE_NAME;
     private String clusterName = LOCAL_CLUSTER_NAME;
 
-    private AstyanaxContext<Keyspace> context;
+    private AstyanaxContext<Keyspace> keyspaceContext;
     private Keyspace keyspace;
+    private AstyanaxContext<Cluster> clusterContext;
+    private Cluster cluster;
 
     private boolean initDone = false;
     private String cipherSuite;
@@ -96,21 +96,32 @@ public class DbClientContext {
     }
 
     public Keyspace getKeyspace() {
-        if (context == null) {
+        if (keyspaceContext == null) {
             throw new IllegalStateException();
         }
         return keyspace;
     }
 
-    public void setHosts(Collection<Host> hosts) {
-        if (context == null) {
+    public AstyanaxContext<Cluster> getClusterContext() {
+        return clusterContext;
+    }
+
+    public Cluster getCluster() {
+        if (clusterContext == null) {
             throw new IllegalStateException();
         }
-        context.getConnectionPool().setHosts(hosts);
+        return cluster;
+    }
+
+    public void setHosts(Collection<Host> hosts) {
+        if (keyspaceContext == null) {
+            throw new IllegalStateException();
+        }
+        keyspaceContext.getConnectionPool().setHosts(hosts);
     }
 
     public int getPort() {
-        return context.getConnectionPoolConfiguration().getPort();
+        return keyspaceContext.getConnectionPoolConfiguration().getPort();
     }
 
     /**
@@ -203,8 +214,18 @@ public class DbClientContext {
             cfg.setSSLConnectionContext(sslContext);
         }
 
+        clusterContext = new AstyanaxContext.Builder()
+                .forCluster(clusterName)
+                .forKeyspace(getKeyspaceName())
+                .withAstyanaxConfiguration(new AstyanaxConfigurationImpl()
+                        .setRetryPolicy(new QueryRetryPolicy(10, 1000)))
+                .withConnectionPoolConfiguration(cfg)
+                .buildCluster(ThriftFamilyFactory.getInstance());
+        clusterContext.start();
+        cluster = clusterContext.getClient();
+
         // TODO revisit it to see if we need set different retry policy, timeout, discovery delay etc for geodb
-        context = new AstyanaxContext.Builder().withHostSupplier(hostSupplier)
+        keyspaceContext = new AstyanaxContext.Builder().withHostSupplier(hostSupplier)
                 .forCluster(clusterName)
                 .forKeyspace(keyspaceName)
                 .withAstyanaxConfiguration(
@@ -217,8 +238,8 @@ public class DbClientContext {
                 .withConnectionPoolConfiguration(cfg)
                 .withConnectionPoolMonitor(new CustomConnectionPoolMonitor(monitorIntervalSecs))
                 .buildKeyspace(ThriftFamilyFactory.getInstance());
-        context.start();
-        keyspace = context.getClient();
+        keyspaceContext.start();
+        keyspace = keyspaceContext.getClient();
         initDone = true;
     }
 
@@ -230,96 +251,77 @@ public class DbClientContext {
     }
 
     public synchronized void stop() {
-        if (context == null) {
+        if (keyspaceContext == null || clusterContext == null) {
             throw new IllegalStateException();
         }
 
-        context.shutdown();
-        context = null;
+        keyspaceContext.shutdown();
+        keyspaceContext = null;
+
+        clusterContext.shutdown();
+        clusterContext = null;
     }
 
-    public void setCassandraStrategyOptions(Map<String, String> options, boolean wait)
-            throws CharacterCodingException, TException, NoSuchFieldException, IllegalAccessException, InstantiationException,
-            InterruptedException, ConnectionException, ClassNotFoundException {
-        int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
-        log.info("The dbclient encrypted={}", isClientToNodeEncrypted);
+    public void setCassandraStrategyOptions(Map<String, String> strategyOptions, boolean wait) throws Exception {
+        /*int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
 
-        if (isClientToNodeEncrypted) {
-            CliOptions cliOptions = new CliOptions();
-            List<String> args = new ArrayList<>();
+        ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(clusterName)
+                .setMaxConnsPerHost(1)
+                .setSeeds(String.format("%1$s:%2$d", LOCAL_HOST, port));
 
-            args.add("-h");
-            args.add(LOCAL_HOST);
+        if (isClientToNodeEncrypted()) {
+            SSLConnectionContext sslContext = getSSLConnectionContext();
+            cfg.setSSLConnectionContext(sslContext);
+        }*/
+        KeyspaceDefinition kd = keyspace.describeKeyspace();
+        String schemaVersion;
 
-            args.add("-p");
-            args.add(Integer.toString(port));
+        if (kd != null) {
+            kd.setStrategyOptions(strategyOptions);
 
-            args.add("-ts");
-            String trustStoreFile = getTrustStoreFile();
-            String trustStorePassword = getTrustStorePassword();
-            args.add(trustStoreFile);
+            schemaVersion = cluster.updateKeyspace(kd).getResult().getSchemaId();
+        } else {
+            kd = cluster.makeKeyspaceDefinition();
+            kd.setName(getKeyspaceName());
+            kd.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
+            kd.setStrategyOptions(strategyOptions);
 
-            args.add("-tspw");
-            args.add(trustStorePassword);
-
-            args.add("-tf");
-            args.add(DbConfigConstants.SSLTransportFactoryName);
-
-            String[] cmdArgs = args.toArray(new String[args.size()]);
-
-            cliOptions.processArgs(CliMain.sessionState, cmdArgs);
+            schemaVersion = cluster.addKeyspace(kd).getResult().getSchemaId();
         }
-
-        CliMain.connect(LOCAL_HOST, port);
-
-        String useKeySpaceCmd = "use " + getKeyspaceName() + ";";
-        CliMain.processStatement(useKeySpaceCmd);
-
-        String command = genUpdateStrategyOptionCmd(options);
-        CliMain.processStatement(command);
-        CliMain.disconnect();
 
         if (wait) {
-            waitForStrategyOptionsSynced();
+            waitForSchemaChange(schemaVersion, cluster);
         }
     }
 
-    private void waitForStrategyOptionsSynced() throws InterruptedException, ConnectionException {
+    /**
+     * Waits for schema change to propagate through cluster
+     *
+     * @param schemaVersion version we are waiting for
+     * @param cluster
+     * @throws InterruptedException
+     */
+    public void waitForSchemaChange(String schemaVersion, Cluster cluster) throws InterruptedException {
         long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
-            Map<String, List<String>> versions = getKeyspace().describeSchemaVersions();
+        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
+            Map<String, List<String>> versions;
+            try {
+                versions = cluster.describeSchemaVersions();
+            } catch (final ConnectionException e) {
+                throw DatabaseException.retryables.connectionFailed(e);
+            }
 
-            if (versions.size() == 1) {
-                break;
+            log.info("schema version to sync to: {}", schemaVersion);
+            log.info("schema versions found: {}", versions);
+
+            if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
+                log.info("schema version sync to: {} done", schemaVersion);
+                return;
             }
 
             log.info("waiting for schema change ...");
             Thread.sleep(1000);
         }
-    }
-
-    private String genUpdateStrategyOptionCmd(Map<String, String> strategyOptions) {
-        // prepare update command
-        Set<Map.Entry<String, String>> options = strategyOptions.entrySet();
-        StringBuilder updateKeySpaceCmd = new StringBuilder("update keyspace ");
-        updateKeySpaceCmd.append(getKeyspaceName());
-        updateKeySpaceCmd.append(" with strategy_options={");
-        boolean isFirst = true;
-        for (Map.Entry<String, String> option : options) {
-            if (isFirst) {
-                isFirst = false;
-            } else {
-                updateKeySpaceCmd.append(",");
-            }
-
-            updateKeySpaceCmd.append(option.getKey());
-            updateKeySpaceCmd.append(":");
-            updateKeySpaceCmd.append(option.getValue());
-        }
-        updateKeySpaceCmd.append("};");
-
-        String cmd = updateKeySpaceCmd.toString();
-        log.info("update keyspace cmd={}", cmd);
-        return cmd;
+        log.warn("Unable to sync schema version {}", schemaVersion);
     }
 }

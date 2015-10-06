@@ -358,8 +358,7 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private void updateStrategyOptions(CoordinatorClient coordinatorClient, DbClientContext dbContext) throws Exception {
-        Map<String, String> strategyOptions = dbContext.getKeyspace()
-                .describeKeyspace().getStrategyOptions();
+        Map<String, String> strategyOptions = dbContext.getKeyspace().describeKeyspace().getStrategyOptions();
 
         for(Configuration config : coordinatorClient.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);

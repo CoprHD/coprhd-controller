@@ -103,6 +103,10 @@ public class StorageVirtualMachine {
                             }
                         }
 
+                        if (svmInfo.getInterfaces() == null) {
+                            List<SVMNetInfo> interfaces = new ArrayList<SVMNetInfo>();
+                            svmInfo.setInterfaces(interfaces);
+                        }
                         svmInfo.getInterfaces().addAll(netInfo);
                     }
                 }

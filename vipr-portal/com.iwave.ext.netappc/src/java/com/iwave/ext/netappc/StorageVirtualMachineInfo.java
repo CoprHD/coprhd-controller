@@ -4,7 +4,6 @@
  */
 package com.iwave.ext.netappc;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class StorageVirtualMachineInfo {
@@ -38,9 +37,6 @@ public class StorageVirtualMachineInfo {
     }
 
     public List<SVMNetInfo> getInterfaces() {
-        if (interfaces == null) {
-            interfaces = new ArrayList<SVMNetInfo>();
-        }
         return interfaces;
     }
 

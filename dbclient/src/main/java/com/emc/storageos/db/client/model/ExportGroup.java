@@ -48,6 +48,8 @@ public class ExportGroup extends DataObject implements ProjectResource {
     private Boolean _zoneAllInitiators = Boolean.FALSE;     // if true all initiators are zoned.
 
     private StringMap _altVirtualArrays;    // alternate virtual arrays in this ExportGroup (VPlex)
+    // map from ExportPathParam id to set of BlockObject ids paths are applied to
+    private StringSetMap pathParameters;
 
     public static final int LUN_UNASSIGNED = -1;
     public static final String LUN_UNASSIGNED_STR = Integer.toHexString(LUN_UNASSIGNED);
@@ -505,5 +507,17 @@ public class ExportGroup extends DataObject implements ProjectResource {
                 collectionString(getHosts()),
                 collectionString(getInitiators()),
                 collectionString(getExportMasks()));
+    }
+
+    @Name("pathParam")
+    public StringSetMap getPathParameters() {
+        if (pathParameters == null) {
+            return new StringSetMap();
+        }
+        return pathParameters;
+    }
+
+    public void setPathParameters(StringSetMap pathParameters) {
+        this.pathParameters = pathParameters;
     }
 }

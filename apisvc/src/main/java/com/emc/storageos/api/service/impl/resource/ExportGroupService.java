@@ -66,6 +66,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParam;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -95,6 +96,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupBulkRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.block.export.VolumeParam;
@@ -2464,5 +2466,46 @@ public class ExportGroupService extends TaskResourceService {
             }
             BlockService.validateNoInternalBlockObjects(_dbClient, param.getVolumes().getRemove(), false);
         }
+    }
+    
+    /**
+     * Validate the the optional path parameters are valid for the ExportGroup.
+     * 
+     * @param param -- ExportPathParameters block
+     * @param exportGroup -- ExportGroup
+     * @return ExportPathParam suitable for persistence
+     */
+    private ExportPathParam validateAndCreateExportPathParam(ExportPathParameters param, ExportGroup exportGroup) {
+        // If minPaths is specified, or pathsPerInitiator is specified, maxPaths must be specified
+        if ((param.getMinPaths() != null || param.getPathsPerInitiator() != null) && param.getMaxPaths() == null) {
+            throw APIException.badRequests.maxPathsRequired();
+        }
+        if (param.getMaxPaths() != null) {
+            ArgValidator.checkFieldMinimum(param.getMaxPaths(), 1, "max_paths");
+        }
+        if (param.getMinPaths() != null) {
+            ArgValidator.checkFieldMinimum(param.getMinPaths(), 1, "min_paths");
+        }
+        if (param.getPathsPerInitiator() != null) {
+            ArgValidator.checkFieldMinimum(param.getPathsPerInitiator(), 1, "paths_per_initiator");
+        }
+        // minPaths must be <= than maxPaths.
+        if (param.getMinPaths() > param.getMaxPaths()) {
+            throw APIException.badRequests.minPathsGreaterThanMaxPaths();
+        }
+        // pathsPerInitiator must be <= maxPaths.
+        if (param.getPathsPerInitiator() > param.getMaxPaths()) {
+            throw APIException.badRequests.pathsPerInitiatorGreaterThanMaxPaths();
+        }
+        // TODO: validate if ports are supplied, they are in the ExportGroup varray
+
+        ExportPathParam pathParam = new ExportPathParam();
+        pathParam.setId(URIUtil.createId(ExportPathParam.class));
+        pathParam.setLabel(exportGroup.getLabel());
+        pathParam.setMaxPaths(param.getMaxPaths());
+        pathParam.setMinPaths(param.getMinPaths());
+        pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
+        pathParam.getStoragePorts().addAll(param.getStoragePorts());
+        return pathParam;
     }
 }

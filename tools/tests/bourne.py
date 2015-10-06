@@ -4544,7 +4544,7 @@ class Bourne:
             exportgroups.append(resource['id'])
         return exportgroups
 
-    def export_group_create(self, name, project, neighborhood, type, volspec, initList, hostList, clusterList):
+    def export_group_create(self, name, project, neighborhood, type, volspec, initList, hostList, clusterList, pathParam):
         projectURI = self.project_query(project).strip()
         nhuri = self.neighborhood_query(neighborhood).strip()
 
@@ -4553,6 +4553,13 @@ class Bourne:
             'project' : projectURI,
             'varray' : nhuri,
         }
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_param'] = path_param
+        else:
+            print 'No path parameters'
 
         # Build volume parameter, if specified
         if (volspec):

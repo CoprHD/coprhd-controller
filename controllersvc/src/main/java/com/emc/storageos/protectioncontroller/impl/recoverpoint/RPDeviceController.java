@@ -372,6 +372,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         this._nameGenerator = _nameGenerator;
     }
 
+    public RPVplexConsistencyGroupManager getRpVPlexConsistencyGroupManager() {
+        return rpVPlexConsistencyGroupManager;
+    }
+
+    public void setRpVPlexConsistencyGroupManager(RPVplexConsistencyGroupManager rpVPlexConsistencyGroupManager) {
+        this.rpVPlexConsistencyGroupManager = rpVPlexConsistencyGroupManager;
+    }
+
     @Override
     public void connect(URI systemId) throws InternalException {
         _log.debug("BEGIN RPDeviceController.connect()");
@@ -5147,10 +5155,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void updateVPlexBackingVolumeVpools(Volume volume, URI srcVpoolURI) {
         // Check to see if this is a VPLEX virtual volume
-        if (volume.getAssociatedVolumes() != null
-                && !volume.getAssociatedVolumes().isEmpty()) {
-
-            _log.info("Update the virtual pool on backing volume(s) for virtual volume [{}].", volume.getLabel());
+        if (RPHelper.isVPlexVolume(volume)) {
+            _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).", 
+                    volume.getLabel(), volume.getId()));
             VirtualPool srcVpool = _dbClient.queryObject(VirtualPool.class, srcVpoolURI);
             String srcVpoolName = srcVpool.getLabel();
             URI haVpoolURI = null;
@@ -5183,7 +5190,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     vpoolName = haVpoolName;
                 }
 
-                _log.info("Update backing volume [{}] virtual pool to [{}].", associatedVol.getLabel(), vpoolName);
+                VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, associatedVol.getVirtualPool());                
+                _log.info(String.format("Update backing volume [%s] (%s) virtual pool from [%s] (%s) to [%s] (%s).", 
+                        associatedVol.getLabel(), associatedVol.getId(), oldVpool.getLabel(), oldVpool.getId(), vpoolName, vpoolURI));
                 associatedVol.setVirtualPool(vpoolURI);
                 // Update the backing volume
                 _dbClient.persistObject(associatedVol);
@@ -5460,7 +5469,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         _log.info(String.format("Volume [%s] (%s) is a VPLEX Virtual Volume, removing volume from CG [%s] (%s) on VPLEX.", 
                                 volume.getLabel(), volume.getId(), cg.getLabel(), cg.getId()));
                         rpVPlexConsistencyGroupManager.deleteConsistencyGroupVolume(volume.getStorageController(), volume, cg.getLabel());                        
-                    }                    
+                    }
+                    
+                    // We might need to update the vpools of the backing volumes after the
+                    // change vpool operation to remove protection
+                    updateVPlexBackingVolumeVpools(volume, newVpoolURI);
                 }
                 
                 // Rollback protection on the volume

@@ -15,8 +15,6 @@ public class ComputeImagesDataTable extends DataTable {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("imageName");
         addColumn("imageType");
-        addColumn("importedServers");// Servers the image succesfully imported to
-        addColumn("nonImportedServers");// Servers the image failed to import to
         addColumn("discoveryStatus").setRenderFunction("render.discoveryStatusIcon");
         sortAll();
         setDefaultSort("name", "asc");
@@ -30,8 +28,7 @@ public class ComputeImagesDataTable extends DataTable {
         public String imageUrl;
         public String computeImageStatus;
         public String discoveryStatus;
-        public String importedServers;
-        public String nonImportedServers;
+        public String failedImageServers;// Image Servers that the compute image failed to import to
 
         public ComputeImagesInfo() {
         }
@@ -42,12 +39,13 @@ public class ComputeImagesDataTable extends DataTable {
             this.imageName = computeImage.getImageName();
             this.imageType = ComputeImageTypes.getDisplayValue(computeImage.getImageType());
             this.imageUrl = computeImage.getImageUrl();
+            this.failedImageServers = computeImage.getFailedImageServers().toString();
             this.computeImageStatus = computeImage.getComputeImageStatus();
-            this.importedServers = "lgly7185,lgly6195";
-            this.nonImportedServers = "lgly6186";
             String displayStatus = computeImage.getComputeImageStatus();
-            if (displayStatus.equalsIgnoreCase("AVAILABLE")) {
+            if (displayStatus.equalsIgnoreCase("AVAILABLE") && this.failedImageServers == null) {
                 this.discoveryStatus = "COMPLETE";
+            } else if (displayStatus.equalsIgnoreCase("AVAILABLE") && this.failedImageServers != null) {
+                this.discoveryStatus = "PARTIAL_SUCCESS";
             } else if (displayStatus.equalsIgnoreCase("NOT_AVAILABLE")) {
                 this.discoveryStatus = "ERROR";
             } else {

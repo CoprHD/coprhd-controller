@@ -1068,7 +1068,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
                     // do not unexport volumes from exclusive exports if the host has a boot volume id
                     boolean isBootVolumeExport = export.forHost() && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
-                            && exportContainsVolume(host.getBootVolumeId(), export.getId());
+                            && export.getVolumes().containsKey(host.getBootVolumeId().toString());
                     if (!isBootVolumeExport) {
                         ExportGroupState egh = getExportGroupState(exportGroups, export);
                         egh.removeHost(host.getId());
@@ -1111,11 +1111,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             completer.error(_dbClient, serviceError);
         }
-    }
-
-    private boolean exportContainsVolume(URI volumeId, URI exportId) {
-        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportId);
-        return exportGroup.getVolumes().containsKey(volumeId.toString());
     }
 
     private String generateSteps(ExportGroupState export, String waitFor, Workflow workflow, boolean add) {

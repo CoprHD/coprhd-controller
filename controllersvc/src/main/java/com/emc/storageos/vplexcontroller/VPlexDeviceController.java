@@ -106,6 +106,7 @@ import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowUtils;
 import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddInitiatorCompleter;
@@ -196,6 +197,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FULL_COPY_WF_NAME = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_WF_NAME = "detachFullCopy";
     private static final String EXPORT_GROUP_REMOVE_VOLUMES = "exportGroupRemoveVolumes";
+    private static final String RESYNC_SNAPSHOT_WF_NAME = "ResyncSnapshot";
 
     // Workflow step identifiers
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
@@ -223,6 +225,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FULL_COPY_STEP = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_STEP = "detachFullCopy";
     private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
+    private static final String RESYNC_SNAPSHOT_STEP = "ResyncSnapshotStep";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
@@ -265,6 +268,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FC_METHOD_NAME = "resyncFullCopy";
     private static final String DETACH_FC_METHOD_NAME = "detachFullCopy";
     private static final String ROLLBACK_FULL_COPY_METHOD = "rollbackFullCopyVolume";
+    private static final String RESYNC_SNAPSHOT_METHOD_NAME = "resyncSnapshot";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -10063,6 +10067,172 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // is resynchronized, then we need do some additional steps because the data
         // on the VPLEX backend volume will have changed, and the VPLEX volume needs
         // to know about that.
+        BlockSnapshot snapshot = getDataObject(BlockSnapshot.class, snapshotURI, _dbClient);
+        try {
+            // Create a new the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    RESYNC_SNAPSHOT_WF_NAME, false, opId);
+            _log.info("Created resync snapshot workflow with operation id {}", opId);
 
+            // Get all snapshots that will be resync'd.
+            List<BlockSnapshot> snapshotsToResync = new ArrayList<BlockSnapshot>();
+            URI cgURI = snapshot.getConsistencyGroup();
+            if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                snapshotsToResync = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+            } else {
+                snapshotsToResync.add(snapshot);
+            }
+
+            // Get a list of the VPLEX volumes, if any, that are built
+            // using the snapshot target volume. Also get a reference to
+            // the VPLEX system.
+            StorageSystem vplexSystem = null;
+            List<Volume> vplexVolumes = new ArrayList<Volume>();
+            for (BlockSnapshot snapshotToResync : snapshotsToResync) {
+                String nativeGuid = snapshotToResync.getNativeGuid();
+                List<Volume> volumes = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, nativeGuid);
+                if (!volumes.isEmpty()) {
+                    // If we find a volume instance with the same native GUID as the
+                    // snapshot, then this volume represents the snapshot target volume
+                    // and a VPLEX volume must have been built on top of it. Note that
+                    // for a given snapshot, I should only ever find 0 or 1 volumes with
+                    // the nativeGuid of the snapshot. Get the VPLEX volume built on
+                    // this volume.
+                    Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, volumes.get(0));
+                    vplexVolumes.add(vplexVolume);
+                    if (vplexSystem == null) {
+                        vplexSystem = getDataObject(StorageSystem.class, vplexVolume.getStorageController(), _dbClient);
+                    }
+                }
+            }
+
+            // Create the workflow steps.
+            if (vplexVolumes.isEmpty()) {
+                // If there are no VPLEX volumes built on the snapshots to be resynchronized,
+                // then we just need a single step to invoke the block device controller to
+                // resync the snapshots.
+                createWorkflowStepForResyncNativeSnapshot(workflow, snapshot, null, null);
+            } else {
+                // The workflow depends on if the VPLEX volumes are local
+                // or distributed.
+                String waitFor = null;
+                boolean isLocal = vplexVolumes.get(0).getAssociatedVolumes().size() == 1;
+                if (isLocal) {
+                    // Create a step to invalidate the read cache for each
+                    // VPLEX volume.
+                    for (Volume vplexVolume : vplexVolumes) {
+                        waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
+                                vplexVolume.getId(), null, null);
+                    }
+
+                    // Now create a workflow step to natively resync the snapshot.
+                    // Note that if the snapshot is associated with a CG, then block
+                    // controller will resync all snapshots in the snapshot set. We
+                    // execute this after the invalidate cache. We could execute these
+                    // in parallel for a little better efficiency, but what if the
+                    // invalidate cache fails, but the resync succeeds, the cache now
+                    // has invalid data and a cache read hit could return invalid data.
+                    createWorkflowStepForResyncNativeSnapshot(workflow, snapshot, waitFor, null);
+                } else {
+                    for (Volume vplexVolume : vplexVolumes) {
+                        // For distributed volumes, before we can do the resync, we need
+                        // to detach the HA mirror of the distributed volume. So,
+                        // determine the HA backend volume and create a workflow step
+                        // to detach it from the source.
+                        URI vplexVolumeURI = vplexVolume.getId();
+                        Volume haVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, false, _dbClient);
+                        URI haVolumeURI = haVolume.getId();
+                        String detachStepId = workflow.createStepId();
+                        Workflow.Method resyncSnapRollbackMethod = createRestoreResyncRollbackMethod(
+                                vplexSystem.getId(), vplexVolumeURI, haVolumeURI,
+                                vplexVolume.getConsistencyGroup(), detachStepId);
+                        waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem,
+                                vplexVolume, haVolumeURI, detachStepId, null,
+                                resyncSnapRollbackMethod);
+
+                        // We now create a step to invalidate the cache for the
+                        // VPLEX volume. Note that if this step fails we need to
+                        // rollback and reattach the HA mirror.
+                        createWorkflowStepForInvalidateCache(workflow, vplexSystem,
+                                vplexVolumeURI, waitFor, rollbackMethodNullMethod());
+
+                        // Now create a workflow step to reattach the mirror to initiate
+                        // a rebuild of the HA mirror for the distributed volume. Note that
+                        // these steps will not run until after the native snapshot resync,
+                        // which only gets executed once, not for every VPLEX volume.
+                        waitFor = createWorkflowStepForAttachMirror(workflow, vplexSystem, vplexVolume,
+                                haVolumeURI, detachStepId, RESYNC_SNAPSHOT_STEP,
+                                rollbackMethodNullMethod());
+
+                        // Create a step to wait for rebuild of the HA volume to
+                        // complete. This should not do any rollback if the step
+                        // fails because at this point the restore is really
+                        // complete.
+                        createWorkflowStepForWaitOnRebuild(workflow, vplexSystem, vplexVolumeURI, waitFor);
+                    }
+
+                    // Create a workflow step to native resync the backend snapshot
+                    // This step is executed after the cache has been invalidated for
+                    // each VPLEX volume. Note that if the snapshot is associated with
+                    // a CG, then block controller will resync all snapshots in the
+                    // snapshot set form their corresponding source volumes. We could
+                    // execute this step in parallel with the cache invalidate for a
+                    // little better efficiency, but what if the invalidate cache fails,
+                    // but the resync succeeds, the cache now has invalid data and a
+                    // cache read hit could return invalid data. If this step fails,
+                    // then again, we need to be sure and rollback and reattach the HA
+                    // mirror. There is nothing to rollback for the cache invalidate
+                    // step. It just means there will be no read cache hits on the volume
+                    // for a while until the cache is repopulated.
+                    createWorkflowStepForResyncNativeSnapshot(workflow, snapshot,
+                            INVALIDATE_CACHE_STEP, rollbackMethodNullMethod());
+                }
+            }
+
+            // Execute the workflow.
+            _log.info("Executing workflow plan");
+            TaskCompleter completer = new BlockSnapshotResyncCompleter(snapshot, opId);
+            String successMsg = String.format("Resynchronize VPLEX native snapshot %s from volume %s "
+                    + "completed successfully", snapshotURI, snapshot.getParent().getURI());
+            workflow.executePlan(completer, successMsg);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {
+            String failMsg = String.format("Resynchronize VPLEX native snapshot %s failed", snapshotURI);
+            _log.error(failMsg, e);
+            TaskCompleter completer = new BlockSnapshotResyncCompleter(snapshot, opId);
+            ServiceError serviceError = VPlexApiException.errors.restoreVolumeFailed(snapshotURI.toString(), e);
+            completer.error(_dbClient, serviceError);
+        }
+    }
+
+    /**
+     * Create a step in the passed workflow to restore the backend
+     * full copy volumes with the passed URIs.
+     * 
+     * @param workflow A reference to a workflow.
+     * @param snapshot A reference to the snapshot.
+     * @param waitFor The step to wait for or null.
+     * @param rollbackMethod A reference to a rollback method or null.
+     * 
+     * @return RESYNC_SNAPSHOT_STEP
+     */
+    private String createWorkflowStepForResyncNativeSnapshot(Workflow workflow,
+            BlockSnapshot snapshot, String waitFor, Workflow.Method rollbackMethod) {
+        URI snapshotURI = snapshot.getId();
+        URI parentSystemURI = snapshot.getStorageController();
+        StorageSystem parentSystem = getDataObject(StorageSystem.class, parentSystemURI, _dbClient);
+        URI parentVolumeURI = snapshot.getParent().getURI();
+        Workflow.Method resyncSnapshotMethod = new Workflow.Method(
+                RESYNC_SNAPSHOT_METHOD_NAME, parentSystemURI,
+                parentVolumeURI, snapshotURI, Boolean.FALSE);
+        workflow.createStep(RESYNC_SNAPSHOT_STEP, String.format(
+                "Resynchronize VPLEX backend snapshot %s from source %s",
+                snapshotURI, parentVolumeURI), waitFor,
+                parentSystemURI, parentSystem.getSystemType(),
+                BlockDeviceController.class, resyncSnapshotMethod, rollbackMethod, null);
+        _log.info("Created workflow step to resync VPLEX backend snapshot {} from source {}",
+                snapshotURI, parentVolumeURI);
+
+        return RESYNC_SNAPSHOT_STEP;
     }
 }

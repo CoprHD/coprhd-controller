@@ -233,6 +233,10 @@ public class DbClientContext {
                 .buildKeyspace(ThriftFamilyFactory.getInstance());
         keyspaceContext.start();
         keyspace = keyspaceContext.getClient();
+
+        if (clusterContext == null) {
+            initClusterContext();
+        }
         initDone = true;
     }
 
@@ -279,6 +283,7 @@ public class DbClientContext {
     }
 
     public void setCassandraStrategyOptions(Map<String, String> strategyOptions, boolean wait) throws Exception {
+        Cluster cluster = getCluster();
         KeyspaceDefinition kd = cluster.describeKeyspace(keyspaceName);
 
         KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
@@ -294,7 +299,7 @@ public class DbClientContext {
         }
 
         if (wait) {
-            waitForSchemaChange(schemaVersion, cluster);
+            waitForSchemaChange(schemaVersion);
         }
     }
 
@@ -302,15 +307,14 @@ public class DbClientContext {
      * Waits for schema change to propagate through cluster
      *
      * @param schemaVersion version we are waiting for
-     * @param cluster
      * @throws InterruptedException
      */
-    public void waitForSchemaChange(String schemaVersion, Cluster cluster) throws InterruptedException {
+    public void waitForSchemaChange(String schemaVersion) throws InterruptedException {
         long start = System.currentTimeMillis();
         while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
             Map<String, List<String>> versions;
             try {
-                versions = cluster.describeSchemaVersions();
+                versions = getCluster().describeSchemaVersions();
             } catch (final ConnectionException e) {
                 throw DatabaseException.retryables.connectionFailed(e);
             }

@@ -382,10 +382,10 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.reload("firewall");
 
         // Reconfigure ZK
+        // TODO: think again how to make use of the dynamic zookeeper configuration
+        // The previous approach disconnects all the clients, no different than a service restart.
         localRepository.reconfigProperties("coordinator");
         localRepository.restart("coordinatorsvc");
-
-        log.info("The ZK dynamic reconfig success");
 
         localRepository.reconfigProperties("db");
         //localRepository.restart("dbsvc");

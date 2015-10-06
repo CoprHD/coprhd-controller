@@ -252,10 +252,11 @@ public interface VPlexController extends Controller {
     /**
      * Resynchronizes a snapshot of a VPLEX volume.
      * 
+     * @param vplexURI The URI of the VPLEX storage system.
      * @param snapshotURI The URI of the snapshot.
      * @param opId The unique operation identifier.
      * 
      * @throws InternalException
      */
-    public void resyncSnapshot(URI snapshotURI, String opId) throws InternalException;
+    public void resyncSnapshot(URI vplexURI, URI snapshotURI, String opId) throws InternalException;
 }

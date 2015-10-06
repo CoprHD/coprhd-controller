@@ -10059,7 +10059,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * {@inheritDoc}
      */
     @Override
-    public void resyncSnapshot(URI snapshotURI, String opId) throws InternalException {
+    public void resyncSnapshot(URI vplexURI, URI snapshotURI, String opId) throws InternalException {
         // The snapshot target volume could be the source side backend volume for
         // a VPLEX volume if a VPLEX volume was created on the snapshot target volume
         // for the purpose of exporting the snapshot through the VPLEX rather directly
@@ -10084,9 +10084,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // Get a list of the VPLEX volumes, if any, that are built
-            // using the snapshot target volume. Also get a reference to
-            // the VPLEX system.
-            StorageSystem vplexSystem = null;
+            // using the snapshot target volume.
             List<Volume> vplexVolumes = new ArrayList<Volume>();
             for (BlockSnapshot snapshotToResync : snapshotsToResync) {
                 String nativeGuid = snapshotToResync.getNativeGuid();
@@ -10100,9 +10098,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // this volume.
                     Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, volumes.get(0));
                     vplexVolumes.add(vplexVolume);
-                    if (vplexSystem == null) {
-                        vplexSystem = getDataObject(StorageSystem.class, vplexVolume.getStorageController(), _dbClient);
-                    }
                 }
             }
 
@@ -10117,6 +10112,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // or distributed.
                 String waitFor = null;
                 boolean isLocal = vplexVolumes.get(0).getAssociatedVolumes().size() == 1;
+                StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
                 if (isLocal) {
                     // Create a step to invalidate the read cache for each
                     // VPLEX volume.

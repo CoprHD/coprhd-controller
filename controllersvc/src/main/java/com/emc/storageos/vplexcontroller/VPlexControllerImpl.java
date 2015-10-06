@@ -145,7 +145,7 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void resyncSnapshot(URI snapshotURI, String opId) throws InternalException {
-        queueRequest("resyncSnapshot", snapshotURI, opId);
+    public void resyncSnapshot(URI vplexURI, URI snapshotURI, String opId) throws InternalException {
+        queueRequest("resyncSnapshot", vplexURI, snapshotURI, opId);
     }
 }

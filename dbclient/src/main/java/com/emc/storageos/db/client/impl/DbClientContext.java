@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.coordinator.client.model.Constants;
 import org.apache.cassandra.cli.CliMain;
 import org.apache.cassandra.cli.CliOptions;
 import org.apache.thrift.TException;
@@ -290,7 +289,7 @@ public class DbClientContext {
         while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
             Map<String, List<String>> versions = getKeyspace().describeSchemaVersions();
 
-            if (versions.size() == 2) {
+            if (versions.size() == 1) {
                 break;
             }
 

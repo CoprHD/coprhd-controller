@@ -159,7 +159,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return true;
     }
 
-    private static boolean isInConsistencyGroup(BlockObjectRestRep volume) {
+    protected static boolean isInConsistencyGroup(BlockObjectRestRep volume) {
         return volume.getConsistencyGroup() != null;
     }
 
@@ -1372,7 +1372,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return client.blockVolumes().findByProject(project, filter);
     }
 
-    protected List<VolumeRestRep> listVolumes(ViPRCoreClient client, URI project) {
+    protected static List<VolumeRestRep> listVolumes(ViPRCoreClient client, URI project) {
         return client.blockVolumes().findByProject(project);
     }
 

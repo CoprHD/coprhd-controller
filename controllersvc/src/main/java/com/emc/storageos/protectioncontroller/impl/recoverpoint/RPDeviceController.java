@@ -1445,7 +1445,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             RecoverPointCGResponse response = null;
             // The CG already exists if it contains volumes and is of type RP
-            _log.info("Submitting RP Request: " + cgParams);
+            _log.info("Submitting RP Request: " + cgParams);            
                  
             if (cg.nameExistsForStorageSystem(rpSystem.getId(), cgParams.getCgName()) && rp.doesCgExist(cgParams.getCgName())) {
                 // cg exists in both the ViPR db and on the RP system
@@ -1506,7 +1506,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Set the CG last created time to now.
             rpSystem.setCgLastCreatedTime(Calendar.getInstance());
             _dbClient.persistObject(rpSystem);
-            
+          
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
 
@@ -1558,10 +1558,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     	for (VolumeDescriptor descriptor : sourceVolumeDescriptors) {
     		volumeIDs.add(descriptor.getVolumeURI());
     	}
-    	    	
-    	cgDeleteStep(rpSystemId, volumeIDs, token);
-        WorkflowStepCompleter.stepSucceded(token);
-        return true;
+    	    	    	
+        return cgDeleteStep(rpSystemId, volumeIDs, token);
     }
 
     /**

@@ -9,9 +9,8 @@ ConditionPathExists=/var/run/storageos/bootmode_normal
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
-ExecStart=ipsec start
-RestartSec=0
+ExecStart=/usr/sbin/ipsec start
+ExecStop=/usr/sbin/ipsec stop
 Restart=no
 
 [Install]

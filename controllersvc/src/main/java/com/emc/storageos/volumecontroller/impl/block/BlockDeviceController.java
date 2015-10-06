@@ -2835,7 +2835,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                 || !(storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.hds)
                                 || storageSystem.deviceIsType(Type.vnxblock))) {
 			    
-                            Workflow.Method detachMethod = detachFullCopyMethod(storage, uri);
+                            Workflow.Method detachMethod = detachFullCopyMethod(storage, asList(uri));
                             workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", waitForSyncStep,
                                     storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
                         } else if (storageSystem.deviceIsType(Type.vnxblock)) {
@@ -2996,8 +2996,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public Workflow.Method detachFullCopyMethod(URI storage, URI fullCopyVolume) {
-        return new Workflow.Method("detachFullCopy", storage, Arrays.asList(fullCopyVolume));
+    public Workflow.Method detachFullCopyMethod(URI storage, List<URI> fullCopyVolume) {
+        return new Workflow.Method("detachFullCopy", storage, fullCopyVolume);
     }
 
     @Override
@@ -4129,7 +4129,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             boolean isRemoveAll) {
         URI storage = storageSystem.getId();
         if (isRemoveAll) {
-            Workflow.Method detachMethod = detachFullCopyMethod(storage, cloneList.get(0));
+            Workflow.Method detachMethod = detachFullCopyMethod(storage, cloneList);
             waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching group clone", waitFor,
                     storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
         } else {

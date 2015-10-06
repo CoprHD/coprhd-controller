@@ -1597,6 +1597,7 @@ public class VPlexApiClient {
      * @return the name of the top level device for the given storage volume
      * @throws VPlexApiException
      */
+    @Deprecated
     public String getDeviceForStorageVolume(String volumeNativeId,
             String wwn, String backendArraySerialNum) throws VPlexApiException {
 

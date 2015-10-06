@@ -706,7 +706,8 @@ public class VolumeIngestionUtil {
     public static boolean isVplexVolume(BlockObject blockObject, DbClient dbClient) {
         UnManagedVolume volume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
         if (null == volume) {
-            String message = "could not locate an UnManagedVolume for BlockObject " + blockObject.getLabel();
+            String message = "could not locate an UnManagedVolume for BlockObject " + blockObject.getLabel()
+                    + ". This means that the volume was marked ingested before all its replicas were ingested.";
             _logger.error(message);
             throw IngestionException.exceptions.generalException(message);
         }
@@ -738,7 +739,8 @@ public class VolumeIngestionUtil {
     public static boolean isVplexBackendVolume(BlockObject blockObject, DbClient dbClient) {
         UnManagedVolume volume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
         if (null == volume) {
-            String message = "could not locate an UnManagedVolume for BlockObject " + blockObject.getLabel();
+            String message = "could not locate an UnManagedVolume for BlockObject " + blockObject.getLabel()
+                    + ". This means that the volume was marked ingested before all its replicas were ingested.";
             _logger.error(message);
             throw IngestionException.exceptions.generalException(message);
         }
@@ -2185,7 +2187,9 @@ public class VolumeIngestionUtil {
     }
 
     public static void setupSnapParentRelations(BlockObject snapshot, BlockObject parentVolume, DbClient dbClient) {
-        _logger.info("Setting up relationship between snapshot {} and parent {}", snapshot.getId(), parentVolume.getId());
+        _logger.info("Setting up relationship between snapshot {} ({}) and parent {} ({})",
+                new Object[] { snapshot.getLabel(), snapshot.getId(), 
+                               parentVolume.getLabel(), parentVolume.getId()});
         ((BlockSnapshot) snapshot).setSourceNativeId(parentVolume.getNativeId());
         ((BlockSnapshot) snapshot).setParent(new NamedURI(parentVolume.getId(), parentVolume.getLabel()));
         snapshot.setProtocol(new StringSet());
@@ -2198,7 +2202,9 @@ public class VolumeIngestionUtil {
     }
 
     public static void setupMirrorParentRelations(BlockObject mirror, BlockObject parent, DbClient dbClient) {
-        _logger.info("Setting up relationship between mirror {} and parent {}", mirror.getId(), parent.getId());
+        _logger.info("Setting up relationship between mirror {} ({}) and parent {} ({})",
+                new Object[] { mirror.getLabel(), mirror.getId(), 
+                               parent.getLabel(), parent.getId()});
         ((BlockMirror) mirror).setSource(new NamedURI(parent.getId(), parent.getLabel()));
         if (parent instanceof Volume) {
             StringSet mirrors = ((Volume) parent).getMirrors();
@@ -2211,7 +2217,9 @@ public class VolumeIngestionUtil {
     }
 
     public static void setupSRDFParentRelations(BlockObject targetBlockObj, BlockObject sourceBlockObj, DbClient dbClient) {
-        _logger.info("Setting up relationship between mirror {} and parent {}", targetBlockObj.getId(), sourceBlockObj.getId());
+        _logger.info("Setting up relationship between SRDF mirror {} ({}) and parent {} ({})",
+                new Object[] { targetBlockObj.getLabel(), targetBlockObj.getId(), 
+                               sourceBlockObj.getLabel(), sourceBlockObj.getId()});
         Volume targetVolume = (Volume) targetBlockObj;
         Volume sourceVolume = (Volume) sourceBlockObj;
         targetVolume.setSrdfParent(new NamedURI(sourceBlockObj.getId(), sourceBlockObj.getLabel()));
@@ -2228,7 +2236,9 @@ public class VolumeIngestionUtil {
     }
 
     public static void setupCloneParentRelations(BlockObject clone, BlockObject parent, DbClient dbClient) {
-        _logger.info("Setting up relationship between clone {} and parent {}", clone.getId(), parent.getId());
+        _logger.info("Setting up relationship between clone {} ({}) and parent {} ({})",
+                new Object[] { clone.getLabel(), clone.getId(), 
+                               parent.getLabel(), parent.getId()});
         ((Volume) clone).setAssociatedSourceVolume(parent.getId());
         if (parent instanceof Volume) {
             Volume sourceVolume = (Volume) parent;
@@ -2242,8 +2252,9 @@ public class VolumeIngestionUtil {
     }
 
     public static void setupVplexParentRelations(BlockObject child, BlockObject parent, DbClient dbClient) {
-        _logger.info("Setting up relationship between VPLEX backend volume {} and parent {}", 
-                child.getId(), parent.getId());
+        _logger.info("Setting up relationship between VPLEX backend volume {} ({}) and virtual volume {} ({})",
+                new Object[] { child.getLabel(), child.getId(), 
+                               parent.getLabel(), parent.getId()});
         if (parent instanceof Volume) {
             Volume parentVolume = (Volume) parent;
             StringSet associatedVolumes = parentVolume.getAssociatedVolumes();

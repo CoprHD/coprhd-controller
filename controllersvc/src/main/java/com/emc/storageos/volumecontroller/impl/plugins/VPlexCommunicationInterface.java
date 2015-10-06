@@ -1049,7 +1049,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                     Boolean.TRUE.toString());
                         }
                     }
-                    
+
                     // check if this backend volume has a replica (and is source of clone)
                     // if so, write this volume's GUID to the parent vvol's FULL_COPIES
                     // so that we can swap it out for the backend parent vvol's GUID 
@@ -1079,6 +1079,42 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                     SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), 
                                     Boolean.TRUE.toString());
                         }
+                    }
+
+                    // set replica state on parent if found in backend volume
+                    String replicaState = VplexBackendIngestionContext
+                            .extractValueFromStringSet(
+                                    SupportedVolumeInformation.REPLICA_STATE.name(), 
+                                    bvol.getVolumeInformation());
+                    if (replicaState != null && !replicaState.isEmpty()) {
+                        StringSet set = new StringSet();
+                        set.add(replicaState);
+                        volume.putVolumeInfo(
+                                SupportedVolumeInformation.REPLICA_STATE.name(), set);
+                    }
+
+                    // set sync active state on parent if found in backend volume
+                    String syncActive = VplexBackendIngestionContext
+                            .extractValueFromStringSet(
+                                    SupportedVolumeInformation.IS_SYNC_ACTIVE.name(), 
+                                    bvol.getVolumeInformation());
+                    if (syncActive != null && !syncActive.isEmpty()) {
+                        StringSet set = new StringSet();
+                        set.add(syncActive);
+                        volume.putVolumeInfo(
+                                SupportedVolumeInformation.IS_SYNC_ACTIVE.name(), set);
+                    }
+
+                    // set thin provisioning state on parent if found in backend volume
+                    String thinlyProvisioned = VplexBackendIngestionContext
+                            .extractValueFromStringSet(
+                                    SupportedVolumeInformation.IS_THINLY_PROVISIONED.name(), 
+                                    bvol.getVolumeInformation());
+                    if (thinlyProvisioned != null && !thinlyProvisioned.isEmpty()) {
+                        StringSet set = new StringSet();
+                        set.add(thinlyProvisioned);
+                        volume.putVolumeInfo(
+                                SupportedVolumeInformation.IS_THINLY_PROVISIONED.name(), set);
                     }
                 }
                 

@@ -3312,6 +3312,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
         VPlexController controller = getController();
         Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
-        controller.resyncSnapshot(vplexVolume.getId(), snapshot.getId(), taskId);
+        StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexVolume.getStorageController());
+        controller.resyncSnapshot(vplexSystem.getId(), snapshot.getId(), taskId);
     }
 }

@@ -3738,6 +3738,7 @@ renderFunctions.discovery.status.pending=Pending
 renderFunctions.discovery.status.scheduled=Scheduled
 renderFunctions.discovery.status.progress=In Progress
 renderFunctions.discovery.status.complete=Completed
+renderFunctions.discovery.status.importFailed=The image failed to import to at least one Image Server
 renderFunctions.discovery.status.failed=Failed
 renderFunctions.discovery.status.unknown=Unknown
 

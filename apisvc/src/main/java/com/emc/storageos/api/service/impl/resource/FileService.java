@@ -2009,7 +2009,7 @@ public class FileService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/acls")
+    @Path("/{id}/acl")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public NfsACLs getFileSahreACLs(@PathParam("id") URI id,
             @QueryParam("allDirs") boolean allDirs,

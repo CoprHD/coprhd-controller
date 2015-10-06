@@ -92,12 +92,6 @@ public class IsilonNFSACL {
 
         public void Acl()
         {
-            this.inherit_flags = new ArrayList<String>();
-            this.accessrights = new ArrayList<String>();
-
-            this.inherit_flags.add("object_inherit");
-            this.inherit_flags.add("inherit_only");
-            this.accessrights.add("std_write_dac");
 
         }
 

@@ -1785,6 +1785,13 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         List<NfsACE> aceToAdd = args.getNfsAclsToAdd();
         for (NfsACE nfsACE : aceToAdd) {
             IsilonNFSACL.Acl acl = isilonAcl.new Acl();
+            ArrayList<String> inheritFlags = new ArrayList<String>();
+            ArrayList<String> accessRights = new ArrayList<String>();
+            inheritFlags.add("object_inherit");
+            inheritFlags.add("inherit_only");
+            accessRights.add("std_write_dac");
+            acl.setInherit_flags(inheritFlags);
+            acl.setAccessrights(accessRights);
             acl.setOp("add");
             acl.setAccesstype(nfsACE.getPermissionType());
             IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
@@ -1796,6 +1803,13 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         List<NfsACE> aceToModify = args.getNfsAclsToAdd();
         for (NfsACE nfsACE : aceToModify) {
             IsilonNFSACL.Acl acl = isilonAcl.new Acl();
+            ArrayList<String> inheritFlags = new ArrayList<String>();
+            ArrayList<String> accessRights = new ArrayList<String>();
+            inheritFlags.add("object_inherit");
+            inheritFlags.add("inherit_only");
+            accessRights.add("std_write_dac");
+            acl.setInherit_flags(inheritFlags);
+            acl.setAccessrights(accessRights);
             acl.setOp("replace");
             acl.setAccesstype(nfsACE.getPermissionType());
             IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
@@ -1807,6 +1821,13 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         List<NfsACE> aceToDelete = args.getNfsAclsToAdd();
         for (NfsACE nfsACE : aceToDelete) {
             IsilonNFSACL.Acl acl = isilonAcl.new Acl();
+            ArrayList<String> inheritFlags = new ArrayList<String>();
+            ArrayList<String> accessRights = new ArrayList<String>();
+            inheritFlags.add("object_inherit");
+            inheritFlags.add("inherit_only");
+            accessRights.add("std_write_dac");
+            acl.setInherit_flags(inheritFlags);
+            acl.setAccessrights(accessRights);
             acl.setOp("delete");
             acl.setAccesstype(nfsACE.getPermissionType());
             IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());

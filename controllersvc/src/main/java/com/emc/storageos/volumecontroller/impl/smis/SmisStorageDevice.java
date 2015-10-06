@@ -55,6 +55,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVolumeExpandJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForGroupSynchronizedJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForSynchronizedJob;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 import org.apache.commons.lang.StringUtils;
@@ -858,7 +859,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotList);
-            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive,
                         readOnly, taskCompleter);
             } else {
@@ -884,7 +885,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             List<BlockSnapshot> snapshots = _dbClient
                     .queryObject(BlockSnapshot.class, snapshotList);
             URI snapshot = snapshots.get(0).getId();
-            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations.activateGroupSnapshots(storage, snapshot, taskCompleter);
             } else {
                 _snapshotOperations.activateSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -906,7 +907,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class,
                     Arrays.asList(snapshot));
-            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
             } else {
                 _snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -944,7 +945,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class,
                     Arrays.asList(snapshot));
-            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
             } else {
                 _snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot,
@@ -972,7 +973,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class,
                     Arrays.asList(snapshot));
-            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations.resyncGroupSnapshots(storage, volume, snapshot, taskCompleter);
             } else {
                 _snapshotOperations.resyncSingleVolumeSnapshot(storage, volume, snapshot,
@@ -1036,7 +1037,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
             CIMObjectPath syncObject = null;
             if (storageSystem.deviceIsType(Type.vmax) &&
-                    BlockDeviceController.isCloneInConsistencyGroup(targetObject.getId(), _dbClient)) {
+                    ConsistencyUtils.isCloneInConsistencyGroup(targetObject.getId(), _dbClient)) {
                 String consistencyGroupName = _helper.getConsistencyGroupName(sourceObj, storageSystem);
                 String replicationGroupName = targetObject.getReplicationGroupInstance();
                 syncObject = _cimPath.getGroupSynchronizedPath(storageSystem, consistencyGroupName, replicationGroupName);
@@ -1509,7 +1510,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient
                     .queryObject(BlockSnapshot.class, snapshotList);
-            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations
                         .copyGroupSnapshotsToTarget(storage, snapshotList, taskCompleter);
             } else {

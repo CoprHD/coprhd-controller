@@ -30,6 +30,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.api.mapper.TaskMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -494,6 +495,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         for (BlockSnapshot snapshot : snapshotList) {
             response.getTaskList().add(toTask(snapshot, taskId));
         }
+
+        addConsistencyGroupTask(consistencyGroup, response, taskId,
+                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT);
+
         blockServiceApiImpl.createSnapshot(snapVolume, snapIdList, snapshotType, createInactive, readOnly, taskId);
 
         auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
@@ -708,9 +713,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         for (BlockSnapshot snap : snapshots) {
             Operation snapOp = _dbClient.createTaskOpStatus(BlockSnapshot.class, snap.getId(), task,
-                    ResourceOperationTypeEnum.DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT);
+                    ResourceOperationTypeEnum.DEACTIVATE_VOLUME_SNAPSHOT);
             response.getTaskList().add(toTask(snap, task, snapOp));
         }
+
+        addConsistencyGroupTask(consistencyGroup, response, task,
+                ResourceOperationTypeEnum.DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT);
 
         Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
         BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
@@ -1560,5 +1568,21 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     .fullCopyOperationNotAllowedSourceNotInCG(fullCopyVolume.getLabel());
         }
         return fcSourceURI;
+    }
+
+    /**
+     * Creates tasks against consistency groups associated with a request and adds them to the given task list.
+     *
+     * @param group
+     * @param taskList
+     * @param taskId
+     * @param operationTypeEnum
+     */
+    protected void addConsistencyGroupTask(BlockConsistencyGroup group, TaskList taskList,
+                                                                    String taskId,
+                                                                    ResourceOperationTypeEnum operationTypeEnum) {
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
+                operationTypeEnum);
+        taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
     }
 }

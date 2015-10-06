@@ -1817,11 +1817,16 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         isilonAcl.setAction("update");
         isilonAcl.setAuthoritative("acl");
         isilonAcl.setAcl(aclAddList);
+        String path = args.getFileSystemPath();
+        if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
+            path = path.concat(args.getSubDirectory());
+
+        }
 
         // Process new ACLs
         IsilonApi isi = getIsilonDevice(storage);
         _log.info("Calling Isilon API: modify NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
-        isi.modifyNFSACL(args.getFileSystemPath(), isilonAcl);
+        isi.modifyNFSACL(path, isilonAcl);
         _log.info("End updateNfsACLs");
         BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
         return result;

@@ -34,9 +34,9 @@ public class IsilonNFSACL {
         @Override
         public String toString() {
             StringBuilder str = new StringBuilder();
-            str.append("( account type: " + type);
-            str.append(", account id: " + id);
-            str.append(", account name: " + name);
+            str.append("(type: " + type);
+            str.append(", id: " + id);
+            str.append(", name: " + name);
             str.append(")");
             return str.toString();
         }

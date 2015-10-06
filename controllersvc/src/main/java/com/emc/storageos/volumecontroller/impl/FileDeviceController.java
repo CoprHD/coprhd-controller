@@ -2876,6 +2876,7 @@ public class FileDeviceController implements FileController {
                 fs = _dbClient.queryObject(FileShare.class, fsURI);
                 fsObj = fs;
                 args.addFSFileObject(fs);
+                args.setFileSystemPath(fs.getPath());
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
                         fs.getPool());
                 args.addStoragePool(pool);
@@ -2887,6 +2888,7 @@ public class FileDeviceController implements FileController {
                 fs = _dbClient.queryObject(FileShare.class,
                         snapshotObj.getParent());
                 args.addFileShare(fs);
+                args.setFileSystemPath(fs.getPath());
                 args.addSnapshotFileObject(snapshotObj);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
                         fs.getPool());

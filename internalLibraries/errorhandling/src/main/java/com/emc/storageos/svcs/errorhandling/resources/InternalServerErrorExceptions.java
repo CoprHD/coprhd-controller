@@ -157,6 +157,14 @@ public interface InternalServerErrorExceptions {
             final String uris);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException storagePoolNotMatchingVirtualPoolNicer(final String storagePool, 
+            final String type, final String volume);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException virtualPoolNotMatchingStoragePoolNicer(final String virtualPool, 
+            final String storagePool, final String type, final String volume, final String vpoolList);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException objectAlreadyManaged(final String parameter, final String guid);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)

@@ -1077,6 +1077,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 if (URIUtil.isType(volumeURI, Volume.class)) {
                     Volume volume = _permissionsHelper.getObjectById(volumeURI, Volume.class);
                     ArgValidator.checkEntity(volume, volumeURI, false);
+                    /**
+                     * Remove SRDF volume from CG is not supported.
+                     */
+                    if (volume.checkForSRDF()) {
+                        throw APIException.badRequests.notAllowedOnSRDFConsistencyGroups();
+                    }
                     if (!BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) {
                         blockServiceApiImpl.verifyRemoveVolumeFromCG(volume, cgVolumes);
                     }

@@ -2003,5 +2003,6 @@ public class HostService extends TaskResourceService {
                                 imageServer.getLabel());
             }
         }
+        _log.info("Verified that selected image {} exists on imageServer {}", img.getLabel(), imageServerURI);
     }
 }

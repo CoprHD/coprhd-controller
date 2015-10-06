@@ -699,7 +699,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             persistUnManagedExportMasks(null, unmanagedExportMasksToUpdate, true);
             cleanUpOrphanedVolumes(vplex.getId(), allUnmanagedVolumes);
 
-            // this has to happen at the very end to that the map is complete
+            // this has to happen at the very end so that the map is complete,
+            // and by supplying the vplex id, we'll re-fetch all the volumes
+            // now that everything has been persisted and orphans cleared out
             processBackendClones(vplex.getId(), backendVolumeGuidToVvolGuidMap);
 
         } catch (Exception ex) {

@@ -279,30 +279,18 @@ public class DbClientContext {
     }
 
     public void setCassandraStrategyOptions(Map<String, String> strategyOptions, boolean wait) throws Exception {
-        /*int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
-
-        ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(clusterName)
-                .setMaxConnsPerHost(1)
-                .setSeeds(String.format("%1$s:%2$d", LOCAL_HOST, port));
-
-        if (isClientToNodeEncrypted()) {
-            SSLConnectionContext sslContext = getSSLConnectionContext();
-            cfg.setSSLConnectionContext(sslContext);
-        }*/
         KeyspaceDefinition kd = cluster.describeKeyspace(keyspaceName);
+
+        KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
+        update.setName(getKeyspaceName());
+        update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
+        update.setStrategyOptions(strategyOptions);
+
         String schemaVersion;
-
         if (kd != null) {
-            kd.setStrategyOptions(strategyOptions);
-
-            schemaVersion = cluster.updateKeyspace(kd).getResult().getSchemaId();
+            schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
         } else {
-            kd = cluster.makeKeyspaceDefinition();
-            kd.setName(getKeyspaceName());
-            kd.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-            kd.setStrategyOptions(strategyOptions);
-
-            schemaVersion = cluster.addKeyspace(kd).getResult().getSchemaId();
+            schemaVersion = cluster.addKeyspace(update).getResult().getSchemaId();
         }
 
         if (wait) {

@@ -52,6 +52,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/boot/10portal \
     $(ETCDIR)/genconfig.d/boot/00ssl \
     $(ETCDIR)/genconfig.d/boot/10syssvc \
+    $(ETCDIR)/genconfig.d/boot/10ipsec \
     $(ETCDIR)/gentmpl \
     $(ETCDIR)/diagtool \
     $(ETCDIR)/powerofftool \

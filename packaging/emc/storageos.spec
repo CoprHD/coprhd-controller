@@ -151,6 +151,7 @@ fi
 /etc/genconfig.d/boot/10geo
 /etc/genconfig.d/boot/10geodb
 /etc/genconfig.d/boot/10nginx
+/etc/genconfig.d/boot/10ipsec
 /etc/genconfig.d/boot/10portal
 /etc/genconfig.d/boot/00ssl
 /etc/genconfig.d/boot/10syssvc

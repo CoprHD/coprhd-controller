@@ -106,6 +106,7 @@ fi
 /etc/genconfig.d/boot/10portal
 /etc/genconfig.d/boot/00ssl
 /etc/genconfig.d/boot/10syssvc
+/etc/genconfig.d/boot/10ipsec
 /etc/gentmpl
 /etc/systool
 /etc/diagtool

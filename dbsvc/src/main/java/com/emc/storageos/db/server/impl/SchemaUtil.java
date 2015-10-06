@@ -270,7 +270,7 @@ public class SchemaUtil {
             _log.info("try scan and setup db ...");
             retryTimes++;
             try {
-                KeyspaceDefinition kd = clientContext.getKeyspace().describeKeyspace();
+                KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
                 if (kd == null) {
                     _log.info("keyspace not exist yet");
 
@@ -418,7 +418,7 @@ public class SchemaUtil {
      * Check keyspace strategy options for an existing keyspace and update if necessary
      */
     private void checkStrategyOptions() throws Exception {
-        KeyspaceDefinition kd = clientContext.getKeyspace().describeKeyspace();
+        KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
         Map<String, String> strategyOptions = kd.getStrategyOptions();
         _log.info("strategyOptions={}", strategyOptions);
 
@@ -447,7 +447,7 @@ public class SchemaUtil {
      *
      */
     private void checkCf() throws InterruptedException, ConnectionException {
-        KeyspaceDefinition kd = clientContext.getKeyspace().describeKeyspace();
+        KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
         Cluster cluster = clientContext.getCluster();
 
         // Get default GC grace period for all index CFs in local DB
@@ -1051,8 +1051,7 @@ public class SchemaUtil {
      * @return
      */
     @SuppressWarnings("unchecked")
-    public String dropColumnFamily(final String cfName,
-            AstyanaxContext<Cluster> context) {
+    public String dropColumnFamily(final String cfName, AstyanaxContext<Cluster> context) {
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
         _log.info("Dropping CF: {}", cfName);

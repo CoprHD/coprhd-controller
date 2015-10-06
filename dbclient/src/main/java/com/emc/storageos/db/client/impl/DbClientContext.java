@@ -103,12 +103,15 @@ public class DbClientContext {
     }
 
     public AstyanaxContext<Cluster> getClusterContext() {
+        if (clusterContext == null) {
+            initClusterContext();
+        }
         return clusterContext;
     }
 
     public Cluster getCluster() {
         if (clusterContext == null) {
-            throw new IllegalStateException();
+            initClusterContext();
         }
         return cluster;
     }
@@ -214,16 +217,6 @@ public class DbClientContext {
             cfg.setSSLConnectionContext(sslContext);
         }
 
-        clusterContext = new AstyanaxContext.Builder()
-                .forCluster(clusterName)
-                .forKeyspace(getKeyspaceName())
-                .withAstyanaxConfiguration(new AstyanaxConfigurationImpl()
-                        .setRetryPolicy(new QueryRetryPolicy(10, 1000)))
-                .withConnectionPoolConfiguration(cfg)
-                .buildCluster(ThriftFamilyFactory.getInstance());
-        clusterContext.start();
-        cluster = clusterContext.getClient();
-
         // TODO revisit it to see if we need set different retry policy, timeout, discovery delay etc for geodb
         keyspaceContext = new AstyanaxContext.Builder().withHostSupplier(hostSupplier)
                 .forCluster(clusterName)
@@ -241,6 +234,29 @@ public class DbClientContext {
         keyspaceContext.start();
         keyspace = keyspaceContext.getClient();
         initDone = true;
+    }
+
+    private void initClusterContext() {
+        int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
+
+        ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(clusterName)
+                .setMaxConnsPerHost(1)
+                .setSeeds(String.format("%1$s:%2$d", LOCAL_HOST, port));
+
+        if (isClientToNodeEncrypted()) {
+            SSLConnectionContext sslContext = getSSLConnectionContext();
+            cfg.setSSLConnectionContext(sslContext);
+        }
+
+        clusterContext = new AstyanaxContext.Builder()
+                .forCluster(clusterName)
+                .forKeyspace(getKeyspaceName())
+                .withAstyanaxConfiguration(new AstyanaxConfigurationImpl()
+                        .setRetryPolicy(new QueryRetryPolicy(10, 1000)))
+                .withConnectionPoolConfiguration(cfg)
+                .buildCluster(ThriftFamilyFactory.getInstance());
+        clusterContext.start();
+        cluster = clusterContext.getClient();
     }
 
     public SSLConnectionContext getSSLConnectionContext() {

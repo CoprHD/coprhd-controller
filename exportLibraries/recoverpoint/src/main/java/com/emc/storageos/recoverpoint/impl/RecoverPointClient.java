@@ -511,15 +511,10 @@ public class RecoverPointClient {
             // starts initializing before we check the link states
             waitForRpOperation();
             
-            RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
-            PipeState pipeState = PipeState.ACTIVE;
-            if (RecoverPointUtils.isSnapShotTechnologyEnabled(functionalAPI, cgUID)) {
-                pipeState = PipeState.SNAP_IDLE;
-            } 
-
+            RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();            
             logger.info("Waiting for links to become active for CG " + request.getCgName());
             
-            rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, pipeState);
+            rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
             logger.info(String.format("Replication sets have been added to consistency group %s.", request.getCgName()));
                    
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
@@ -599,14 +594,10 @@ public class RecoverPointClient {
             logger.info("Adding journals and rsets for CG " + request.getCgName());
             functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
 
-            RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
-            PipeState pipeState = PipeState.ACTIVE;
-            if (RecoverPointUtils.isSnapShotTechnologyEnabled(functionalAPI, cgUID)) {
-                pipeState = PipeState.SNAP_IDLE;
-            }       
+            RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();                
             
             logger.info("Waiting for links to become active for CG " + request.getCgName());
-            rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, pipeState);
+            rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
             logger.info(String.format("Consistency group %s has been created.", request.getCgName()));
 
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
@@ -1603,12 +1594,8 @@ public class RecoverPointClient {
             for (RPConsistencyGroup rpcg : cgSetToEnable) {
                 Set<RPCopy> copies = rpcg.getCopies();
                 for (RPCopy copy : copies) {
-                    // For restore, just wait for link state of the copy being restored
-                	PipeState pipeState = PipeState.ACTIVE;
-                    if (RecoverPointUtils.isSnapShotTechnologyEnabled(functionalAPI, rpcg.getCGUID())) {
-                        pipeState = PipeState.SNAP_IDLE;
-                    }
-                    imageManager.waitForCGLinkState(functionalAPI, copy.getCGGroupCopyUID().getGroupUID(), pipeState);
+                    // For restore, just wait for link state of the copy being restored                	
+                    imageManager.waitForCGLinkState(functionalAPI, copy.getCGGroupCopyUID().getGroupUID(), RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, rpcg.getCGUID()));
                     boolean waitForLinkState = false;
                     imageManager.enableCGCopy(functionalAPI, copy.getCGGroupCopyUID(), waitForLinkState, ImageAccessMode.LOGGED_ACCESS,
                             request.getBookmark(), request.getAPITTime());
@@ -1855,12 +1842,8 @@ public class RecoverPointClient {
                 functionalAPI.enableConsistencyGroupCopy(cgCopyUID, true);
             }
             // Make sure the CG is ready
-            RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-            PipeState pipeState = PipeState.ACTIVE;
-            if (RecoverPointUtils.isSnapShotTechnologyEnabled(functionalAPI, cgUID)) {
-                pipeState = PipeState.SNAP_IDLE;
-            }
-            imageManager.waitForCGLinkState(functionalAPI, cgUID, pipeState);
+            RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();            
+            imageManager.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
             logger.info("Protection enabled on CG copy " + cgCopyName + " on CG " + cgName);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToEnableProtection(
@@ -2149,13 +2132,8 @@ public class RecoverPointClient {
         }
 
         logger.info("Waiting for links to become active for CG " + (cgName == null ? "unknown CG name" : cgName));
-        RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
-        PipeState pipeState = PipeState.ACTIVE;
-        if (RecoverPointUtils.isSnapShotTechnologyEnabled(functionalAPI, cgUID)) {
-            pipeState = PipeState.SNAP_IDLE;
-        }
-        
-        rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, pipeState);
+        RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();        
+        rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
         logger.info(String.format("Replication sets have been added to consistency group %s.",
                 (cgName == null ? "unknown CG name" : cgName)));
     }
@@ -3227,12 +3205,8 @@ public class RecoverPointClient {
             logger.info("enable CG " + cgName + " after standby copies added");
             functionalAPI.startGroupTransfer(cgUID);                        
 
-            RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
-            PipeState pipeState = PipeState.ACTIVE;
-            if (RecoverPointUtils.isSnapShotTechnologyEnabled(functionalAPI, cgUID)) {
-                pipeState = PipeState.SNAP_IDLE;
-            }
-            rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, pipeState);
+            RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();            
+            rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
 
         } catch (Exception e) {
             throw RecoverPointException.exceptions.failedToFailoverCopy(activeCgCopyName, cgName, e);

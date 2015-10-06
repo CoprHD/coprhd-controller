@@ -138,12 +138,8 @@ public class RecoverPointUtils {
         }
         impl.enableConsistencyGroup(cgUID, true);
         // Make sure the CG is ready
-        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-        PipeState pipeState = PipeState.ACTIVE;
-		if (isSnapShotTechnologyEnabled(impl, cgUID)) {
-            pipeState = PipeState.SNAP_IDLE;
-        }
-        imageManager.waitForCGLinkState(impl, cgUID, pipeState);
+        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();        
+        imageManager.waitForCGLinkState(impl, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(impl, cgUID));
         logger.info("End enableNewConsistencyGroup.");
     }
 
@@ -594,31 +590,4 @@ public class RecoverPointUtils {
     	return nativeGuid.contains("XTREMIO");
     }
     
-    /**
-     * 
-     * 
-     * @param impl the FAPI reference.
-     * @param cgCopyUID the copy to be set as the production copy.
-     * @throws RecoverPointException
-     */
-    public static boolean isSnapShotTechnologyEnabled(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID) throws RecoverPointException {       
-    	String cgName = "unknown";
-    	try {
-        	cgName = impl.getGroupName(cgUID);
-            ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgUID);                       
-            List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();                                  
-            for (ConsistencyGroupCopySettings copySetting  : copySettings) {
-            	if (copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() != null &&
-            			copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots()	> 0) {
-            		logger.info("Setting link state for snapshot technology.");
-            		return true;
-            	}            	
-            }
-        } catch (FunctionalAPIActionFailedException_Exception e) {
-            throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
-        } catch (FunctionalAPIInternalError_Exception e) {
-            throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
-        }
-		return false; 
-    }
 }

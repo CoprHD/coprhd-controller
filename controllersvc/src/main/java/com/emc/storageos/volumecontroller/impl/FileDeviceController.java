@@ -2868,7 +2868,7 @@ public class FileDeviceController implements FileController {
             args.setSubDirectory(param.getSubDir());
             args.setAllNfsAcls(param);
 
-            _log.info("Controller Recieved FileExportUpdateParams {}", param);
+            _log.info("Controller Recieved NfsACLUpdateParams {}", param);
 
             // File
             if (URIUtil.isType(fsURI, FileShare.class)) {
@@ -2896,9 +2896,6 @@ public class FileDeviceController implements FileController {
             args.setFileOperation(isFile);
             args.setOpId(opId);
 
-            // Query & Pass all Existing Exports
-            // args.setExistingDBExportRules(queryExports(args));
-
             // Do the Operation on device.
             BiosCommandResult result = getDevice(storageObj.getSystemType())
                     .updateNfsACLs(storageObj, args);
@@ -2907,12 +2904,6 @@ public class FileDeviceController implements FileController {
                 // Update Database
                 // doCRUDExports(param, fs, args);
 
-                // Delete the Export Map, if there are no exports.
-                if ((args.getFileObjExports() != null) && (queryExports(args).isEmpty())) {
-                    args.getFileObjExports().clear();
-                    _dbClient.persistObject(args.getFileObj());
-                }
-
             }
 
             if (result.getCommandPending()) {
@@ -2920,8 +2911,8 @@ public class FileDeviceController implements FileController {
             }
             // Audit & Update the task status
             OperationTypeEnum auditType = null;
-            auditType = (isFile) ? OperationTypeEnum.EXPORT_FILE_SYSTEM
-                    : OperationTypeEnum.EXPORT_FILE_SNAPSHOT;
+            auditType = (isFile) ? OperationTypeEnum.UPDATE_FILE_SYSTEM_NFS_ACL
+                    : OperationTypeEnum.UPDATE_FILE_SNAPSHOT_NFS_ACL;
 
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
@@ -2947,7 +2938,7 @@ public class FileDeviceController implements FileController {
             _dbClient.persistObject(fsObj);
         } catch (Exception e) {
             String[] params = { storage.toString(), fsURI.toString() };
-            _log.error("Unable to export file system or snapshot: storage {}, FS/snapshot URI {}", params, e);
+            _log.error("Unable to set ACL on  file system or snapshot: storage {}, FS/snapshot URI {}", params, e);
             _log.error("{}, {} ", e.getMessage(), e);
             updateTaskStatus(opId, fsObj, e);
         }

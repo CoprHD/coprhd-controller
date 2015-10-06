@@ -2143,17 +2143,17 @@ public class FileService extends TaskResourceService {
 
             controller.updateNFSAcl(device.getId(), fs.getId(), param, task);
 
-            auditOp(OperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
+            auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_NFS_ACL, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), param);
 
         } catch (InternalException e) {
             _log.error("Error Processing File System  ACL Updates {}, {}", e.getMessage(), e);
         } catch (BadRequestException e) {
             op = _dbClient.error(FileShare.class, fs.getId(), task, e);
-            _log.error("Error Processing File System Updates {}, {}", e.getMessage(), e);
+            _log.error("Error Processing File System ACL Updates {}, {}", e.getMessage(), e);
             throw e;
         } catch (Exception e) {
-            // _log.error("Error Processing Export Updates {}, {}", e.getMessage(), e);
+            _log.error("Error Processing File System ACL Updates  {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
 

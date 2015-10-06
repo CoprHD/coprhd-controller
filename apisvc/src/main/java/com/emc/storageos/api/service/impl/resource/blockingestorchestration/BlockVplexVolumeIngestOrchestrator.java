@@ -665,6 +665,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         mirrorVolume.setProject(new NamedURI(
                                 context.getBackendProject().getId(), mirrorVolume.getLabel()));
 
+                        // update flags on mirror volume
+                        mirrorVolume.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+                        // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
+                        mirrorVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
+
                         // deviceLabel will be the very last part of the native guid
                         String[] devicePathParts = entry.getValue().split("/");
                         String deviceName = devicePathParts[devicePathParts.length - 1];

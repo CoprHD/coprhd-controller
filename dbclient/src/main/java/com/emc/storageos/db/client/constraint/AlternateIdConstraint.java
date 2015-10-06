@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
@@ -300,6 +301,11 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getVirtualArrayFileSharesConstraint(String varrayId) {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("varray"), varrayId);
+        }
+        
+        public static AlternateIdConstraint getVirtualArrayBucketsConstraint(String varrayId) {
+            DataObjectType doType = TypeMap.getDoType(Bucket.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("varray"), varrayId);
         }
 

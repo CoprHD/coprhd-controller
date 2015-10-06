@@ -277,7 +277,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         VirtualPoolUtil.validateObjectVirtualPoolUpdateParams(cos, param, _dbClient);
         
         // Validate the attributes that could be change if resource is created.
-        if (!cos.getInactive() && checkAttributeValuesChanged(param, cos)) {
+        if (getNumResources(cos, _dbClient) > 0 && checkAttributeValuesChanged(param, cos)) {
             throw APIException.badRequests.vPoolUpdateNotAllowed("Bucket");
         }
 

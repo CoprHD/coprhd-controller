@@ -39,6 +39,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/ssl \
     $(ETCDIR)/genconfig.d/syssvc \
     $(ETCDIR)/genconfig.d/test \
+    $(ETCDIR)/genconfig.d/ipsec \
     $(ETCDIR)/genconfig.d/boot/10api \
     $(ETCDIR)/genconfig.d/boot/10auth \
     $(ETCDIR)/genconfig.d/boot/10controller \
@@ -175,7 +176,6 @@ ETCFILES_APPLIANCE = diskresizetool \
     genconfig.d/security \
     genconfig.d/system \
     genconfig.d/vasa \
-    genconfig.d/ipsec \
     genconfig.d/boot/10connectemc \
     genconfig.d/boot/00dns \
     genconfig.d/boot/00firewall \

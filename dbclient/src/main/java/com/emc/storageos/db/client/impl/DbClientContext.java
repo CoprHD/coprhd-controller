@@ -289,7 +289,7 @@ public class DbClientContext {
             SSLConnectionContext sslContext = getSSLConnectionContext();
             cfg.setSSLConnectionContext(sslContext);
         }*/
-        KeyspaceDefinition kd = keyspace.describeKeyspace();
+        KeyspaceDefinition kd = cluster.describeKeyspace(keyspaceName);
         String schemaVersion;
 
         if (kd != null) {

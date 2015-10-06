@@ -14,7 +14,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
@@ -24,19 +23,15 @@ import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.KeyspaceTracerFactory;
-import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 import com.netflix.astyanax.connectionpool.ConnectionContext;
 import com.netflix.astyanax.connectionpool.ConnectionPool;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.exceptions.OperationException;
-import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.ddl.ColumnFamilyDefinition;
 import com.netflix.astyanax.ddl.KeyspaceDefinition;
-import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
-import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +56,6 @@ import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
-import com.emc.storageos.db.client.impl.QueryRetryPolicy;
 import com.emc.storageos.db.client.impl.TimeSeriesType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.LongMap;
@@ -85,7 +79,6 @@ import com.emc.storageos.security.password.PasswordUtils;
 public class SchemaUtil {
     private static final Logger _log = LoggerFactory.getLogger(SchemaUtil.class);
     private static final String COMPARATOR_PACKAGE = "org.apache.cassandra.db.marshal.";
-    private static final String REPLICATION_FACTOR = "replication_factor";
     private static final String DB_BOOTSTRAP_LOCK = "dbbootstrap";
     private static final String VDC_NODE_PREFIX = "node";
     private static final String GEODB_BOOTSTRAP_LOCK = "geodbbootstrap";
@@ -97,10 +90,6 @@ public class SchemaUtil {
 
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
-
-    private static final String KEYSPACE_SIMPLE_STRATEGY = "SimpleStrategy";
-    private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
-    private static final String DEFAULT_VDC_DB_VERSION = "2.2";
 
     private CoordinatorClient _coordinator;
     private Service _service;
@@ -274,17 +263,14 @@ public class SchemaUtil {
      * @param waitForSchema - indicate we should wait from schema from other site.
      *            false to create keyspace by our own
      */
-    public void scanAndSetupDb(boolean waitForSchema) {
+    public void scanAndSetupDb(boolean waitForSchema) throws Exception{
         int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
         int retryTimes = 0;
         while (true) {
-            AstyanaxContext<Cluster> clusterContext = null;
             _log.info("try scan and setup db ...");
             retryTimes++;
             try {
-                clusterContext = connectCluster();
-                Cluster cluster = clusterContext.getClient();
-                KeyspaceDefinition kd = cluster.describeKeyspace(_keyspaceName);
+                KeyspaceDefinition kd = clientContext.getKeyspace().describeKeyspace();
                 if (kd == null) {
                     _log.info("keyspace not exist yet");
 
@@ -299,8 +285,7 @@ public class SchemaUtil {
                         Map<String, String> strategyOptions = new HashMap<String, String>(){{
                             put(_vdcShortId, Integer.toString(getReplicationFactor()));
                         }};
-                        kd = setStrategyOptions(cluster, strategyOptions);
-                        waitForSchemaChange(cluster.addKeyspace(kd).getResult().getSchemaId(), cluster);
+                        clientContext.setCassandraStrategyOptions(strategyOptions, true);
                     }
                 } else {
                     _log.info("keyspace exist already");
@@ -311,13 +296,13 @@ public class SchemaUtil {
                         setCurrentVersion(_service.getVersion());
                     }
 
-                    checkStrategyOptions(kd, cluster);
+                    checkStrategyOptions();
                 }
 
                 // create CF's
                 if (kd != null) {
                     if (!onStandby)
-                        checkCf(kd, clusterContext);
+                        checkCf();
                     _log.info("scan and setup db schema succeed");
                     return;
                 }
@@ -328,10 +313,6 @@ public class SchemaUtil {
             } catch (IllegalStateException e) {
                 _log.warn("IllegalStateException: ", e);
                 throw e;
-            } finally {
-                if (clusterContext != null) {
-                    clusterContext.shutdown();
-                }
             }
 
             if (retryTimes > DBINIT_RETRY_MAX) {
@@ -435,12 +416,9 @@ public class SchemaUtil {
 
     /**
      * Check keyspace strategy options for an existing keyspace and update if necessary
-     * 
-     * @param kd
-     * @param cluster
      */
-    private void checkStrategyOptions(KeyspaceDefinition kd, Cluster cluster)
-            throws ConnectionException, InterruptedException {
+    private void checkStrategyOptions() throws Exception {
+        KeyspaceDefinition kd = clientContext.getKeyspace().describeKeyspace();
         Map<String, String> strategyOptions = kd.getStrategyOptions();
         _log.info("strategyOptions={}", strategyOptions);
 
@@ -450,17 +428,8 @@ public class SchemaUtil {
 
         if (changed) {
             _log.info("strategyOptions changed to {}", strategyOptions);
-            KeyspaceDefinition update = setStrategyOptions(cluster, strategyOptions);
-            waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
+            clientContext.setCassandraStrategyOptions(strategyOptions, true);
         }
-    }
-
-    private KeyspaceDefinition setStrategyOptions(Cluster cluster, Map<String, String> strategyOptions) {
-        KeyspaceDefinition kd = cluster.makeKeyspaceDefinition();
-        kd.setName(_keyspaceName);
-        kd.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-        kd.setStrategyOptions(strategyOptions);
-        return kd;
     }
 
     private Integer getIntProperty(String key, Integer defValue) {
@@ -475,13 +444,11 @@ public class SchemaUtil {
     /**
      * Checks all required CF's against keyspace definition. Any missing
      * CF's are created on the fly.
-     * 
-     * @param kd
-     * @param clusterContext
+     *
      */
-    private void checkCf(KeyspaceDefinition kd, AstyanaxContext<Cluster> clusterContext)
-            throws InterruptedException, ConnectionException {
-        Cluster cluster = clusterContext.getClient();
+    private void checkCf() throws InterruptedException, ConnectionException {
+        KeyspaceDefinition kd = clientContext.getKeyspace().describeKeyspace();
+        Cluster cluster = clientContext.getCluster();
 
         // Get default GC grace period for all index CFs in local DB
         Integer indexGcGrace = isGeoDbsvc() ? null : getIntProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD, null);
@@ -531,7 +498,7 @@ public class SchemaUtil {
                     _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace.intValue());
                     cfd.setGcGraceSeconds(cfGcGrace.intValue());
                 }
-                latestSchemaVersion = addColumnFamily(cfd, clusterContext);
+                latestSchemaVersion = addColumnFamily(cfd);
             } else {
                 boolean modified = false;
                 String existingComparator = cfd.getComparatorType();
@@ -566,13 +533,13 @@ public class SchemaUtil {
                     modified = true;
                 }
                 if (modified) {
-                    latestSchemaVersion = updateColumnFamily(cfd, clusterContext);
+                    latestSchemaVersion = updateColumnFamily(cfd);
                 }
             }
         }
 
         if (latestSchemaVersion != null) {
-            waitForSchemaChange(latestSchemaVersion, cluster);
+            clientContext.waitForSchemaChange(latestSchemaVersion, cluster);
         }
     }
 
@@ -1020,11 +987,11 @@ public class SchemaUtil {
      * Adds CF to keyspace
      * 
      * @param def
-     * @param context
      * @return
      */
     @SuppressWarnings("unchecked")
-    public String addColumnFamily(final ColumnFamilyDefinition def, AstyanaxContext<Cluster> context) {
+    public String addColumnFamily(final ColumnFamilyDefinition def) {
+        AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
         _log.info("Adding CF: {}", def.getName());
@@ -1050,12 +1017,11 @@ public class SchemaUtil {
      * Updates CF
      * 
      * @param def
-     * @param context
      * @return
      */
     @SuppressWarnings("unchecked")
-    public String updateColumnFamily(final ColumnFamilyDefinition def,
-            AstyanaxContext<Cluster> context) {
+    public String updateColumnFamily(final ColumnFamilyDefinition def) {
+        AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
         _log.info("Updating CF: {}", def.getName());
@@ -1105,123 +1071,6 @@ public class SchemaUtil {
         } catch (final ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
-    }
-
-    /**
-     * Waits for schema change to propagate through cluster
-     * 
-     * @param schemaVersion version we are waiting for
-     * @param cluster
-     * @throws InterruptedException
-     */
-    private void waitForSchemaChange(String schemaVersion, Cluster cluster) throws InterruptedException {
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
-            Map<String, List<String>> versions;
-            try {
-                versions = cluster.describeSchemaVersions();
-            } catch (final ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
-            }
-
-            _log.info("schema version to sync to: {}", schemaVersion);
-            _log.info("schema versions found: {}", versions);
-
-            if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
-                _log.info("schema version sync to: {} done", schemaVersion);
-                return;
-            }
-
-            _log.info("waiting for schema change ...");
-            Thread.sleep(1000);
-        }
-        _log.warn("Unable to sync schema version {}", schemaVersion);
-    }
-
-    public void removeVdcFromStrageOption(String shortVdcId) throws Exception {
-        AstyanaxContext<Cluster> clusterContext = null;
-        clusterContext = connectCluster();
-        Cluster cluster = clusterContext.getClient();
-        KeyspaceDefinition kd = cluster.describeKeyspace(_keyspaceName);
-        Map<String, String> strategyOptions = kd.getStrategyOptions();
-        strategyOptions.remove(shortVdcId);
-        Map<String, Object> options = new HashMap(strategyOptions.size());
-        Set<Map.Entry<String, String>> strategyOpts = strategyOptions.entrySet();
-        for (Map.Entry<String, String> opt : strategyOpts) {
-            options.put(opt.getKey(), opt.getValue());
-        }
-
-        waitForSchemaChange(cluster.updateKeyspace(options).getResult().getSchemaId(), cluster);
-    }
-
-    public void waitForStrategyOptionChange(String shortVdcId, boolean isDisconnect) throws InterruptedException {
-        AstyanaxContext<Cluster> clusterContext = connectCluster();
-
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
-            Map<String, String> options;
-            try {
-                Cluster cluster = clusterContext.getClient();
-                KeyspaceDefinition ksd = cluster.describeKeyspace(DbClientContext.GEO_KEYSPACE_NAME);
-                options = ksd.getStrategyOptions();
-
-                if (isDisconnect) {
-                    if (!options.containsKey(shortVdcId)) {
-                        _log.info("The strategy option has been changed");
-                        return;
-                    }
-                } else {
-                    // this is reconnect operation
-                    if (options.containsKey(shortVdcId)) {
-                        _log.info("The strategy option has been changed");
-                        return;
-                    }
-                }
-            } catch (final ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
-            } finally {
-                if (clusterContext != null) {
-                    clusterContext.shutdown();
-                }
-            }
-
-            _log.info("waiting for strategy option change: {}", options);
-            Thread.sleep(1000);
-        }
-    }
-
-    /**
-     * Connects to local dbsvc
-     * 
-     * @return
-     */
-    private AstyanaxContext<Cluster> connectCluster() {
-        String host = _service.getEndpoint().getHost();
-        _log.info("host: " + host);
-        CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
-        _log.info("nodeMap: " + nodeMap);
-        URI uri = nodeMap.expandURI(_service.getEndpoint());
-        _log.info("uri: " + uri);
-
-        ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(_clusterName)
-                .setMaxConnsPerHost(1)
-                .setSeeds(String.format("%1$s:%2$d", uri.getHost(),
-                        uri.getPort()));
-
-        if (clientContext.isClientToNodeEncrypted()) {
-            SSLConnectionContext sslContext = clientContext.getSSLConnectionContext();
-            cfg.setSSLConnectionContext(sslContext);
-        }
-
-        AstyanaxContext<Cluster> clusterContext = new AstyanaxContext.Builder()
-                .forCluster(_clusterName)
-                .forKeyspace(_keyspaceName)
-                .withAstyanaxConfiguration(new AstyanaxConfigurationImpl()
-                        .setRetryPolicy(new QueryRetryPolicy(10, 1000)))
-                .withConnectionPoolConfiguration(cfg)
-                .buildCluster(ThriftFamilyFactory.getInstance());
-        clusterContext.start();
-        return clusterContext;
     }
 
     /**
@@ -1300,7 +1149,7 @@ public class SchemaUtil {
     }
     
     public boolean dropUnusedCfsIfExists() {
-        AstyanaxContext<Cluster> context =  connectCluster();
+        AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         try {
             KeyspaceDefinition kd = context.getClient().describeKeyspace(_clusterName);
             if (kd == null) {
@@ -1313,7 +1162,7 @@ public class SchemaUtil {
                 if (cfd != null) {
             	    _log.info("drop cf {} from db", cfName);
             	    String schemaVersion = dropColumnFamily(cfName, context);
-                    waitForSchemaChange(schemaVersion, context.getClient());
+                    clientContext.waitForSchemaChange(schemaVersion, context.getClient());
                 }
             }
         } catch (Exception e){

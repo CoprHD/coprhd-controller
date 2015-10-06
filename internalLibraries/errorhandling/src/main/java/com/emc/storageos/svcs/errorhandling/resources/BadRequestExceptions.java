@@ -2484,4 +2484,10 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_PRECONDITION_FAILED)
     public BadRequestException cannotAddImageWithoutImageServer();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantUpdateCGWithMixedBlockObjects(final String cgName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantUpdateCGWithReplicaFromMultipleSystems(final String cgName);
 }

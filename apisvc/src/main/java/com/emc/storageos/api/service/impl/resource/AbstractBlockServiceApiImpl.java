@@ -6,6 +6,8 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolChangeRep;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.TaskMapper.toCompletedTask;
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.model.BlockMirror.SynchronizationState.FRACTURED;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
@@ -309,7 +311,32 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             List<Volume> cgVolumes, BlockConsistencyGroup consistencyGroup,
             List<URI> addVolumesList, List<URI> removeVolumesList, String taskId)
             throws ControllerException {
-        throw APIException.methodNotAllowed.notSupported();
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class,
+                consistencyGroup.getId(), taskId,
+                ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
+
+        if (!cgStorageSystem.getSystemType().equals(DiscoveredDataObject.Type.scaleio.name())) {
+            BlockController controller = getController(BlockController.class,
+                    cgStorageSystem.getSystemType());
+            controller.updateConsistencyGroup(cgStorageSystem.getId(), consistencyGroup.getId(),
+                    addVolumesList, removeVolumesList, taskId);
+            return toTask(consistencyGroup, taskId, op);
+        } else {
+            // ScaleIO does not have explicit CGs, so we can just update the database and complete
+            List<Volume> addVolumes = _dbClient.queryObject(Volume.class, addVolumesList, true);
+            for (Volume volume : addVolumes) {
+                volume.setConsistencyGroup(consistencyGroup.getId());
+            }
+
+            List<Volume> removeVolumes = _dbClient.queryObject(Volume.class, removeVolumesList, true);
+            for (Volume volume : removeVolumes) {
+                volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+            }
+
+            _dbClient.updateAndReindexObject(addVolumes);
+            _dbClient.updateAndReindexObject(removeVolumes);
+            return toCompletedTask(consistencyGroup, taskId, op);
+        }
     }
 
     /**

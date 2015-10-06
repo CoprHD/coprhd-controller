@@ -435,6 +435,37 @@ public class BlockFullCopyUtils {
 
         return isFullCopySource;
     }
+    
+    /**
+     * Determine if the passed volume is a source volume
+     * for any consistency group full copies.
+     * 
+     * @param volume A reference to a volume.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return true if the volume is a full copy source, false otherwise.
+     */
+    public static boolean isVolumeCGFullCopySource(Volume volume, DbClient dbClient) {
+        boolean isFullCopySource = false;
+        StringSet fullCopyIds = volume.getFullCopies();
+        if ((fullCopyIds != null) && (!fullCopyIds.isEmpty())) {
+            Iterator<String> fullCopyIdsIter = fullCopyIds.iterator();
+            while (fullCopyIdsIter.hasNext()) {
+                URI fullCopyURI = URI.create(fullCopyIdsIter.next());
+                Volume fullCopyVolume = dbClient.queryObject(Volume.class, fullCopyURI);
+                if ((fullCopyVolume != null) && (!fullCopyVolume.getInactive())) {
+                    String groupName = fullCopyVolume.getReplicationGroupInstance();
+                    if (NullColumnValueGetter.isNotNullValue(groupName)) {
+                        isFullCopySource = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return isFullCopySource;
+    }
+
 
     /**
      * Determines if the passed volume has an active full copy session.

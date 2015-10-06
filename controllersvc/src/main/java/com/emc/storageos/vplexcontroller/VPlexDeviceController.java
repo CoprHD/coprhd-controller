@@ -108,6 +108,7 @@ import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
@@ -196,6 +197,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FULL_COPY_WF_NAME = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_WF_NAME = "detachFullCopy";
     private static final String EXPORT_GROUP_REMOVE_VOLUMES = "exportGroupRemoveVolumes";
+    private static final String VOLUME_FULLCOPY_GROUP_RELATION_WF = "volumeFullCopyGroupRelation";
 
     // Workflow step identifiers
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
@@ -265,6 +267,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FC_METHOD_NAME = "resyncFullCopy";
     private static final String DETACH_FC_METHOD_NAME = "detachFullCopy";
     private static final String ROLLBACK_FULL_COPY_METHOD = "rollbackFullCopyVolume";
+    private static final String VOLUME_FULLCOPY_RELATION_METHOD = "establishVolumeFullCopyGroupRelation";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -10018,5 +10021,47 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         } catch (Exception ex) {
             throw VPlexApiException.exceptions.addStepsForChangeVirtualPoolFailed(ex);
         }
+    }
+    
+    @Override
+    public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId)
+            throws InternalException {
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    VOLUME_FULLCOPY_GROUP_RELATION_WF, false, opId);
+            _log.info("Created establish volume  and full copy group relation workflow with operation id {}", opId);
+            // Get the VPLEX and backend full copy volumes.
+            Volume fullCopyVolume = getDataObject(Volume.class, fullCopy, _dbClient);
+            Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+            URI nativeSourceVolumeURI = nativeFullCopyVolume.getAssociatedSourceVolume();
+            URI nativeSystemURI = nativeFullCopyVolume.getStorageController();
+            StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
+
+            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD, 
+                    nativeSystemURI, nativeSourceVolumeURI, nativeFullCopyVolume.getId());
+            workflow.createStep(RESTORE_VOLUME_STEP,
+                    "create group relation between Volume group and Full copy group", null,
+                    nativeSystemURI, nativeSystem.getSystemType(), BlockDeviceController.class,
+                    establishRelationMethod, rollbackMethodNullMethod(), null);
+            _log.info("Executing workflow plan");
+            TaskCompleter completer = new CloneTaskCompleter(fullCopy, opId);
+            String successMsg = String.format(
+                    "Establish volume and full copy %s group relation completed successfully", fullCopy);
+            FullCopyOperationCompleteCallback wfCompleteCB = new FullCopyOperationCompleteCallback();
+            workflow.executePlan(completer, successMsg, wfCompleteCB,
+                    new Object[] { Arrays.asList(fullCopy) }, null, null);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {
+            String failMsg = String.format(
+                    "Establish volume and full copy %s group relation failed", fullCopy);
+            _log.error(failMsg, e);
+            TaskCompleter completer = new CloneTaskCompleter(fullCopy, opId);
+            ServiceCoded sc = VPlexApiException.exceptions.establishVolumeFullCopyGroupRelationFailed(
+                    fullCopy.toString(), e);
+            completer.error(_dbClient, sc);
+        }
+            
+        
     }
 }

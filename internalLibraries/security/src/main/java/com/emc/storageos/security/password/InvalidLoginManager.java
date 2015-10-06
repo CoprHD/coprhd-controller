@@ -58,6 +58,9 @@ public class InvalidLoginManager {
         return _maxAuthnLoginAttemtsCount;
     }
 
+    public void setMaxAuthnLoginAttemtsCount(int maxAuthnLoginAttemtsCount) {
+        this._maxAuthnLoginAttemtsCount = maxAuthnLoginAttemtsCount;
+    }
     public int getMaxAuthnLoginAttemtsLifeTimeInMins() {
         return _maxAuthnLoginAttemtsLifeTimeInMins;
     }

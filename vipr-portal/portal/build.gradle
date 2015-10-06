@@ -78,12 +78,17 @@ play {
     compileArgs = "-DINSTALL_HOME=${project.buildDir.absolutePath}"
     testArgs = "-DINSTALL_HOME=${project.buildDir.absolutePath}"
    
-	// version of play framework
+    // version of play framework
     version = "1.3.1"
-	mavenRepo = artifactoryUrl
 
-    contributedModulesDescriptor = "${artifactoryUrl}/play/[module]/[revision]/dependencies.yml"
-    contributedModulesArtifact = "${artifactoryUrl}/play/[module]/[revision]/[module]-[revision].zip"
+    // make sure play modules are resolved from the proper repo for the build type
+    if (ext.has('buildType') && ext.get('buildType') == "emc") {
+        mavenRepo = artifactoryUrl
+    } else {
+        mavenRepo = coprHD_aux_repo
+    }
+    contributedModulesDescriptor = "${mavenRepo}/play/[module]/[revision]/dependencies.yml"
+    contributedModulesArtifact = "${mavenRepo}/play/[module]/[revision]/[module]-[revision].zip"
 
     launchers {
         portalOnly {

@@ -16,6 +16,28 @@
     #{/else}  
 #{/breadcrumb.container}
 
+<script>
+function accessStatus(){
+	var state = '${volume.accessState}';
+	if (isNaN(state)) {
+		return state;
+	} else if (state == '0') {
+		state = "&{'volume.accessState.unknown'}";
+	} else if (state == '1') {
+		state = "&{'volume.accessState.read'}";
+	} else if (state == '2') {
+		state = "&{'volume.accessState.write'}";
+	} else if (state == '3') {
+		state = "&{'volume.accessState.readwrite'}";
+	} else if (state == '4') {
+		state = "&{'volume.accessState.writeonce'}";
+	} else if (state == '5') {
+		state = "&{'volume.accessState.notready'}";
+	}
+	return state;
+}
+</script>
+
 <div class="clear"></div>
 <div id="volumeDetails" class="container" style="margin-bottom: 2em;">
 
@@ -112,7 +134,12 @@
       <dd class="moreDetails">#{spaceForNull volume.nativeId/}</dd>
       #{if !isAccessStateEmpty}
       <dt class="moreDetails">&{'resources.volume.accessstate'}:</dt>
-      <dd class="moreDetails">#{spaceForNull volume.accessState/}</dd>
+      <dd class="moreDetails" id="accessState"></dd>
+
+      <script>
+		$('#accessState').append(accessStatus());
+      </script>
+
       #{/if}
       #{Resources.commonAttributes resource:volume /}
     </dl>

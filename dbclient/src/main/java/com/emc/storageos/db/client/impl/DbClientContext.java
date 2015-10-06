@@ -240,6 +240,11 @@ public class DbClientContext {
         initDone = true;
     }
 
+    /**
+     * Initialize the cluster context and cluster instances.
+     * This has to be separated from init() because dbsvc need this to start
+     * while init() depends on dbclient which in turn depends on dbsvc.
+     */
     private void initClusterContext() {
         int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
 
@@ -282,6 +287,13 @@ public class DbClientContext {
         clusterContext = null;
     }
 
+    /**
+     * Update the strategy options for db or geodb service, depending on the content of this context instance.
+     *
+     * @param strategyOptions new strategy options to be updated
+     * @param wait whether need to wait until schema agreement is reached.
+     * @throws Exception
+     */
     public void setCassandraStrategyOptions(Map<String, String> strategyOptions, boolean wait) throws Exception {
         Cluster cluster = getCluster();
         KeyspaceDefinition kd = cluster.describeKeyspace(keyspaceName);

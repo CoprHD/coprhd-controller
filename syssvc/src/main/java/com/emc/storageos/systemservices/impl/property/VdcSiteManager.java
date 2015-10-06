@@ -186,7 +186,7 @@ public class VdcSiteManager extends AbstractManager {
                 try {
                     updateVdcProperties(svcId);
                 } catch (Exception e) {
-                    log.info("Step2: VDC properties update failed and will be retried: {}", e.getMessage());
+                    log.info("Step2: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
                     continue;
                 }

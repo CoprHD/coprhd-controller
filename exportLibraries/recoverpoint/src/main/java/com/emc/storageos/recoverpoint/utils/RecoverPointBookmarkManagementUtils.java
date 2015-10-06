@@ -246,13 +246,9 @@ public class RecoverPointBookmarkManagementUtils {
 
         // Make sure the CG is in a good state before we make bookmarks
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-        PipeState pipeState = PipeState.ACTIVE;        
-        for (ConsistencyGroupUID cgID : uniqueCGUIDlist) {
-        	if (RecoverPointUtils.isSnapShotTechnologyEnabled(impl, cgID)) {
-                pipeState = PipeState.SNAP_IDLE;
-            }
+        for (ConsistencyGroupUID cgID : uniqueCGUIDlist) {        	
             // Make sure the CG is ready for enable
-        	imageManager.waitForCGLinkState(impl, cgID, pipeState);
+        	imageManager.waitForCGLinkState(impl, cgID, RecoverPointImageManagementUtils.getPipeActiveState(impl, cgID));
         }
 
         try {

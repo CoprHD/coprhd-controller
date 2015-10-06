@@ -48,7 +48,7 @@ public class RemoveFullCopyService extends ViPRService {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             BlockStorageUtils.removeFullCopies(uris(copyIds));
         } else {
-            ConsistencyUtils.removeFullCopy(volumeOrConsistencyGroupId);
+            ConsistencyUtils.removeFullCopy(getClient(), volumeOrConsistencyGroupId);
         }
     }
 }

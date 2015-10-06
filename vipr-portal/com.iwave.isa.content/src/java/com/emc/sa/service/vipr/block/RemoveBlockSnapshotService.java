@@ -50,7 +50,7 @@ public class RemoveBlockSnapshotService extends ViPRService {
                 addAffectedResources(tasks);
             }
         } else {
-            tasks = ConsistencyUtils.removeSnapshot(consistencyGroupId);
+            tasks = ConsistencyUtils.removeSnapshot(getClient(), consistencyGroupId);
             addAffectedResources(tasks);
         }
     }

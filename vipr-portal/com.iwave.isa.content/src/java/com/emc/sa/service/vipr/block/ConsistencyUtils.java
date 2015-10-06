@@ -8,6 +8,8 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResources;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.emc.sa.service.vipr.block.consistency.tasks.ActivateConsistencyGroupFullCopy;
 import com.emc.sa.service.vipr.block.consistency.tasks.CreateConsistencyGroupFullCopy;
@@ -18,7 +20,9 @@ import com.emc.sa.service.vipr.block.consistency.tasks.DetachConsistencyGroupFul
 import com.emc.sa.service.vipr.block.consistency.tasks.RestoreConsistencyGroupFullCopy;
 import com.emc.sa.service.vipr.block.consistency.tasks.RestoreConsistencyGroupSnapshot;
 import com.emc.sa.service.vipr.block.consistency.tasks.ResynchronizeConsistencyGroupFullCopy;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -55,8 +59,9 @@ final class ConsistencyUtils {
         return copies;
     }
 
-    static Tasks<BlockConsistencyGroupRestRep> removeFullCopy(URI consistencyGroupId) {
+    static Tasks<BlockConsistencyGroupRestRep> removeFullCopy(final ViPRCoreClient client, URI consistencyGroupId) {
         Tasks<BlockConsistencyGroupRestRep> tasks = execute(new DetachConsistencyGroupFullCopy(consistencyGroupId));
+        removeChildVolumes(client, client.blockConsistencyGroups().getFullCopies(consistencyGroupId));
         return tasks;
     }
 
@@ -88,7 +93,19 @@ final class ConsistencyUtils {
         return execute(new RestoreConsistencyGroupSnapshot(consistencyGroupId));
     }
 
-    static Tasks<BlockConsistencyGroupRestRep> removeSnapshot(URI consistencyGroupId) {
-        return execute(new DeactivateConsistencyGroupSnapshot(consistencyGroupId));
+    static Tasks<BlockConsistencyGroupRestRep> removeSnapshot(final ViPRCoreClient client, URI consistencyGroupId) {
+        Tasks<BlockConsistencyGroupRestRep> tasks = execute(new DeactivateConsistencyGroupSnapshot(consistencyGroupId));
+        removeChildVolumes(client, client.blockConsistencyGroups().getSnapshots(consistencyGroupId));
+        return tasks;
+    }
+
+    private static void removeChildVolumes(final ViPRCoreClient client, final List<NamedRelatedResourceRep> volumes) {
+        List<URI> toRemove = new ArrayList<URI>();
+        for (NamedRelatedResourceRep volume : volumes) {
+            toRemove.add(volume.getId());
+        }
+        if (!toRemove.isEmpty()) {
+            BlockStorageUtils.removeBlockResources(toRemove, VolumeDeleteTypeEnum.FULL);
+        }
     }
 }

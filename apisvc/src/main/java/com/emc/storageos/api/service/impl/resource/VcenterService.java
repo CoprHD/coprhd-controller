@@ -134,6 +134,9 @@ public class VcenterService extends TaskResourceService {
         verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
 
         populateVcenterData(vcenter, updateParam);
+
+        validateVcenterLastDiscoveryJobStatus(vcenter);
+
         _dbClient.persistObject(vcenter);
         auditOp(OperationTypeEnum.UPDATE_VCENTER, true, null,
                 vcenter.auditParameters());
@@ -598,6 +601,7 @@ public class VcenterService extends TaskResourceService {
     /**
      * Creates a new vCenter. Discovery is initiated after the vCenter is created.
      *
+     * @brief Creates a vCenter.
      * @param createParam the parameter that has the attributes of the vCenter
      *                    to be created.
      * @param validateConnection specifies if the connection to the vCenter to be
@@ -638,7 +642,8 @@ public class VcenterService extends TaskResourceService {
      * vCenters of the tenant query param will be returned otherwise
      * returned only the vCenters that the user's tenant shares.
      *
-     * @param tid tenant to filter the vCenters.
+     * @brief Lists vCenters.
+     * @param tid Tenant to filter the vCenters.
      *            "No-Filter" or "null" indicates, listing all the vCenters in the system.
      *            "Not-Assigned" indicates, list all the vCenters with no tenants assigned to it.
      *
@@ -687,9 +692,9 @@ public class VcenterService extends TaskResourceService {
     /**
      * Get vCenter Access Control List (ACLs)
      *
+     * @brief Shows vCenter Access Control List
      * @param id the URN of a ViPR vCenter
      * @prereq none
-     * @brief Show vCenter Access Control List
      *
      * @return Access Control List Assignment details
      */
@@ -705,6 +710,7 @@ public class VcenterService extends TaskResourceService {
      * with no shared access (Vcenter.shared = Boolean.FALSE), there cannot
      * be multiple Access Control List Entries associated with this vCenter.
      *
+     * @brief Updates vCenter Access Control List
      * @param changes Access Control List assignment changes. Request body must include
      *                at least one add or remove operation
      * @param id the URN of a ViPR Project.
@@ -1210,7 +1216,7 @@ public class VcenterService extends TaskResourceService {
 
         if (DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString().equalsIgnoreCase(vcenter.getDiscoveryStatus()) ||
                 currentSystemTime - lastDiscoveryTime < tolerance * 1000) {
-            throw APIException.badRequests.cannotUpdateACL(vcenter.getLabel(), tolerance);
+            throw APIException.badRequests.cannotEditVcenterOrUpdateACL(vcenter.getLabel(), tolerance);
         }
     }
 }

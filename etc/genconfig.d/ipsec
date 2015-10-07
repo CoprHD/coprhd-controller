@@ -13,28 +13,19 @@ PORTS_PROTECTED_IN_CLUSTER="tcp/2181 tcp/2888 tcp/2889"
 PORTS_PROTECTED_ACROSS_SITE="tcp/2181 tcp/2888 tcp/2889"
 IPSEC_CONF_FILE="/etc/ipsec.conf"
 IPSEC_SECRET_FILE="/etc/ipsec.secrets"
-LOCAL_IP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
 
 
-#
-# common section for all connnections in ipsec.conf
-#
-COMMON_SECTION=$(cat << EOF
+# This method returns the configured ip address of this machine
+_get_local_ip() {
+    local nodeid="${_GENCONFIG_node_id}"
+    local nodenum=${nodeid#vipr}
+    local var="_GENCONFIG_network_${nodenum}_ipaddr"
+    local var6="_GENCONFIG_network_${nodenum}_ipaddr6"
+    local ipaddr="${!var}"
+    [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
+    echo "${ipaddr}"
+}
 
-conn %default 
-    ikelifetime=60m
-    keylife=20m
-    rekeymargin=3m
-    keyingtries=1
-    keyexchange=ikev2
-    authby=secret
-    auto=route
-    type=transport
-    esp=aes128gcm16!
-    left=${LOCAL_IP}
-
-EOF
-)
 
 _get_ips_in_cluster() {
     # generate participants for nodes in primary site 
@@ -68,7 +59,7 @@ _get_ips_in_cluster() {
 
 _get_ips_in_standby() {
     # generate observers for standby sites
-    ips=""
+    local ips=""
     if [ -n "${_GENCONFIG_site_ids}" ] ; then
         local begin="${primary_cnt}" # begin index in all node list
         local total="0"              # total number of all standby nodes
@@ -95,11 +86,38 @@ _get_ips_in_standby() {
         done
     else
         # no standby defined
-	echo ""
+	    echo ""
     fi
     echo "$ips"
 }
 
+LOCAL_IP=$(_get_local_ip)
+IPS_IN_CLUSTER=$(_get_ips_in_cluster)
+IPS_OF_STANDBYS=$(_get_ips_in_standby)
+
+#
+# common section for all connnections in ipsec.conf
+#
+COMMON_SECTION=$(cat << EOF
+
+conn %default
+    ikelifetime=60m
+    keylife=20m
+    rekeymargin=3m
+    keyingtries=1
+    keyexchange=ikev2
+    authby=secret
+    auto=route
+    type=transport
+    esp=aes128gcm16!
+    left=${LOCAL_IP}
+
+EOF
+)
+
+#
+# section specific to each connection
+#
 _gen_conn_sections() {
     local ips=$1
     local ports=$2
@@ -125,9 +143,12 @@ EOF
     done
 }
 
-IPS_IN_CLUSTER=$(_get_ips_in_cluster)
-IPS_OF_STANDBYS=$(_get_ips_in_standby)
 
+
+
+#
+# generate ipsec.conf and ipsec.secrets
+#
 _gen_ipsec_conf() {
 
     # based on ipsec_enabled to decide if need to generate ipsec config files
@@ -146,6 +167,8 @@ _gen_ipsec_conf() {
     local conn_in_cluster=$(_gen_conn_sections "${IPS_IN_CLUSTER}" "${PORTS_PROTECTED_IN_CLUSTER}")
     local conn_of_standby=$(_gen_conn_sections "${IPS_OF_STANDBYS}" "${PORTS_PROTECTED_ACROSS_SITE}")
     local content=$(cat << EOF
+# ips in cluster: ${IPS_IN_CLUSTER}
+# ips in standby: ${IPS_OF_STANDBYS}
 ${COMMON_SECTION}
 ${conn_in_cluster}
 ${conn_of_standby}

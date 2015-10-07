@@ -504,6 +504,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
         try {            
+        	// Check if the consistency group exists
+            BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
@@ -519,6 +521,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             if (markInactive) {
                 consistencyGroup.setInactive(true);
             }
+            dbClient.persistObject(consistencyGroup);
             taskCompleter.ready(dbClient);
             _log.info("{} doDeleteConsistencyGroup END ...", storage.getSerialNumber());
         } catch (Exception e) {
@@ -533,7 +536,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doCreateConsistencyGroup START ...", storage.getSerialNumber());
         try {
-            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+        	XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
@@ -545,6 +548,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             if (NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
                 consistencyGroup.setStorageController(storage.getId());
             }
+            dbClient.persistObject(consistencyGroup);
             taskCompleter.ready(dbClient);
             _log.info("{} doCreateConsistencyGroup END ...", storage.getSerialNumber());
         } catch (Exception e) {

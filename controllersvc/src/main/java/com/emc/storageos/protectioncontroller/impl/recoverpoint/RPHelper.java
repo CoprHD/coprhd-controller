@@ -1548,7 +1548,7 @@ public class RPHelper {
                
                 _log.info("Rollback the secondary journal");
                 // Rollback the secondary journal volume if it was created
-                volume.setRpJournalVolume(NullColumnValueGetter.getNullURI());
+                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
                 if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
                     rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
                 }

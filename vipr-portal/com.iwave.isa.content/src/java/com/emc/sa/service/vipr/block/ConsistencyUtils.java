@@ -93,10 +93,8 @@ final class ConsistencyUtils {
         return execute(new RestoreConsistencyGroupSnapshot(consistencyGroupId));
     }
 
-    static Tasks<BlockConsistencyGroupRestRep> removeSnapshot(final ViPRCoreClient client, URI consistencyGroupId) {
-        Tasks<BlockConsistencyGroupRestRep> tasks = execute(new DeactivateConsistencyGroupSnapshot(consistencyGroupId));
-        removeChildVolumes(client, client.blockConsistencyGroups().getSnapshots(consistencyGroupId));
-        return tasks;
+    static Tasks<BlockConsistencyGroupRestRep> removeSnapshot(URI consistencyGroupId) {
+        return execute(new DeactivateConsistencyGroupSnapshot(consistencyGroupId));
     }
 
     private static void removeChildVolumes(final ViPRCoreClient client, final List<NamedRelatedResourceRep> volumes) {

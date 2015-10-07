@@ -761,7 +761,7 @@ public class BlockSnapshotService extends TaskResourceService {
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/import-to-vplex")
+    @Path("/{id}/create-vplex-volume")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskResourceRep importSnapshotToVplex(@PathParam("id") URI id) {
 

@@ -1066,9 +1066,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
 
                 for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
-                    ExportGroupState egh = getExportGroupState(exportGroups, export);
-                    egh.removeHost(host.getId());
-                    egh.removeInitiators(hostInitiatorIds);
+                    // do not unexport volumes from exclusive exports if the host has a boot volume id
+                    boolean isBootVolumeExport = export.forHost() && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
+                            && export.hasBlockObject(host.getBootVolumeId());
+                    if (!isBootVolumeExport) {
+                        ExportGroupState egh = getExportGroupState(exportGroups, export);
+                        egh.removeHost(host.getId());
+                        egh.removeInitiators(hostInitiatorIds);
+                    }
                 }
 
             }

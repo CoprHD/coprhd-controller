@@ -15,7 +15,9 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.vipr.client.Tasks;
 
 @Service("RemoveFullCopy")
 public class RemoveFullCopyService extends ViPRService {
@@ -45,10 +47,12 @@ public class RemoveFullCopyService extends ViPRService {
 
     @Override
     public void execute() {
+        Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             BlockStorageUtils.removeFullCopies(uris(copyIds));
         } else {
-            ConsistencyUtils.removeFullCopy(volumeOrConsistencyGroupId);
+            tasks = ConsistencyUtils.removeFullCopy(volumeOrConsistencyGroupId);
+            addAffectedResources(tasks);
         }
     }
 }

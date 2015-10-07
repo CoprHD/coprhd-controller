@@ -328,6 +328,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * 
      * @throws Exception
      */
+    @Override
     public boolean determineExportGroupCreateSteps(Workflow workflow, String previousStep,
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token) throws Exception {
@@ -473,6 +474,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             Integer requestedHLU = volumeMap.get(bo.getId());
                             StringMap existingVolumesInMask = mask.getExistingVolumes();
                             if (existingVolumesInMask != null &&
+                                    !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);

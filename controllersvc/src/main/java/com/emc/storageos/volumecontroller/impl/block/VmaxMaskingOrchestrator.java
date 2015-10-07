@@ -18,13 +18,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
@@ -54,6 +53,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCom
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeUpdateCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -77,6 +77,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         INITIATOR_FIELDS.add("iniport");
     }
 
+    @Override
     public BlockStorageDevice getDevice() {
         BlockStorageDevice device = VMAX_BLOCK_DEVICE.get();
         synchronized (VMAX_BLOCK_DEVICE) {
@@ -882,6 +883,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * @param token - Identifier for the operation
      * @throws Exception
      */
+    @Override
     public boolean determineExportGroupCreateSteps(Workflow workflow, String previousStep,
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token) throws Exception {
@@ -1410,6 +1412,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             Integer requestedHLU = volumesWithNoMask.get(initiatorId).get(boURI);
                             StringMap existingVolumesInMask = mask.getExistingVolumes();
                             if (existingVolumesInMask != null &&
+                                    !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);

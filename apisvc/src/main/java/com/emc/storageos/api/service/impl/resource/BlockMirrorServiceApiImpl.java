@@ -305,11 +305,10 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             List<BlockMirror> blockMirrors, Boolean sync,
             String taskId) throws ControllerException {
         TaskList taskList = new TaskList();
-        // Operation op = null;
-        List<URI> mirrorUris = new ArrayList<URI>();
+        List<URI> mirrorUris = new ArrayList<>();
 
         // Assume all continuous copies are to be paused
-        List<BlockMirror> pausedMirrors = new ArrayList<BlockMirror>();
+        List<BlockMirror> pausedMirrors = new ArrayList<>();
         Map<BlockMirror, Volume> groupMirrorSourceMap = null;
         List<BlockMirror> mirrorsToProcess = null;
         boolean isCG = sourceVolume.isInCG();
@@ -748,10 +747,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         for (Entry<BlockMirror, Volume> entry : groupMirrorSourceMap.entrySet()) {
             BlockMirror mirror = entry.getKey();
             Volume source = entry.getValue();
-            // @TODO if the source volume is part of a consistency group, we should return tasks for all mirrors one should be fine.
-            // This is temporary fix but this should handle at CG level not at the volume level.
-            if (!NullColumnValueGetter.isNullURI(source.getConsistencyGroup())
-                    && null != taskList.getTaskList() && taskList.getTaskList().isEmpty()) {
+
+            if (source.isInCG() && null != taskList.getTaskList()) {
                 Operation operation = _dbClient.createTaskOpStatus(Volume.class, source.getId(), taskId,
                         operationType, mirror.getId().toString());
                 taskList.getTaskList().add(toTask(source, Arrays.asList(mirror), taskId, operation));

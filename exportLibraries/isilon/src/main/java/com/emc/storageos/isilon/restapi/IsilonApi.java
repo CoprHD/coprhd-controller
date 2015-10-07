@@ -533,7 +533,7 @@ public class IsilonApi {
     }
 
     /**
-     * Generic modify resource
+     * Generic modify resource with 204 as HTTP response code.
      * 
      * @param url url to PUT the modify request
      * @param id identifier for the object to modify
@@ -547,6 +547,43 @@ public class IsilonApi {
             String body = new Gson().toJson(obj);
             resp = _client.put(url.resolve(id), null, body);
             if (resp.getStatus() != 204) {
+                // error
+                if (resp.hasEntity()) {
+                    JSONObject jObj = resp.getEntity(JSONObject.class);
+                    processErrorResponse("modify", key + ": " + id, resp.getStatus(), jObj);
+                } else {
+                    // no entity
+                    processErrorResponse("modify", key + ": " + id, resp.getStatus(), null);
+                }
+            }
+        } catch (IsilonException ie) {
+            throw ie;
+        } catch (Exception e) {
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.modifyResourceFailedOnIsilonArray(key, id,
+                    response, e);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+    }
+
+    /**
+     * Generic modify resource with 200 as HTTP response code.
+     * 
+     * @param url url to PUT the modify request
+     * @param id identifier for the object to modify
+     * @param key object type represented as string for error reporting
+     * @param obj modified object to put
+     * @throws IsilonException
+     */
+    private <T> void put(URI url, String id, String key, T obj) throws IsilonException {
+        ClientResponse resp = null;
+        try {
+            String body = new Gson().toJson(obj);
+            resp = _client.put(url.resolve(id), null, body);
+            if (resp.getStatus() != 200) {
                 // error
                 if (resp.hasEntity()) {
                     JSONObject jObj = resp.getEntity(JSONObject.class);
@@ -877,7 +914,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyNFSACL(String path, IsilonNFSACL acl) throws IsilonException {
-        modify(_baseUrl.resolve(URI_IFS), path, "ACL", acl);
+        String aclUrl = path.concat("?acl").substring(1);// remove '/' prefix and suffix ?acl
+        put(_baseUrl.resolve(URI_IFS), aclUrl, "ACL", acl);
     }
 
     /**

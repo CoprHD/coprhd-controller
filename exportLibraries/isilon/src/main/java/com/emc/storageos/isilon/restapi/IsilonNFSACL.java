@@ -45,7 +45,7 @@ public class IsilonNFSACL {
     public class Acl {
         private Persona trustee;
 
-        private String accesstype;
+        private String accesstype = "allow";
         private ArrayList<String> inherit_flags;
         private ArrayList<String> accessrights;
         private String op;

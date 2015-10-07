@@ -80,7 +80,7 @@ public class NfsACE implements Serializable {
         this.permission = permission;
     }
 
-    @XmlElement(name = "permission_type", required = false)
+    @XmlElement(name = "permission_type")
     public String getPermissionType() {
         return permissionType;
     }

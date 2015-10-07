@@ -5731,14 +5731,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     client.setDeviceVisibility(sourceDeviceName);
 
                 } catch (Exception e) {
-                    _log.error("Exception restoring virtiual volume " + virtualVolumeName + " to its original state." + e);
+                    _log.error("Exception restoring virtual volume " + virtualVolumeName + " to its original state." + e);
                     _log.info(String
                             .format("Couldn't detach mirror corresponding to the backend volume %s from the VPLEX volume %s on VPLEX cluster %s during rollback. "
                                     + "Its possible mirror was never attached, so just move on to delete backend volume artifacts from the VPLEX",
                                     mirrorInfo.getVolumeName(), virtualVolumeName, clusterId));
                 }
                 // Its possible that mirror was never attached so we will try to delete the device even if we fail to detach a mirror.
-                // If mirror device is still attached this will any ways fails, so its safe to make this call.
+                // If mirror device is still attached this will anyway fail, so its safe to make this call.
                 client.deleteLocalDevice(mirrorInfo);
             }
 

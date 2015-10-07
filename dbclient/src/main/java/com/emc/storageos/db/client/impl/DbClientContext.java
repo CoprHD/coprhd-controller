@@ -234,9 +234,6 @@ public class DbClientContext {
         keyspaceContext.start();
         keyspace = keyspaceContext.getClient();
 
-        if (clusterContext == null) {
-            initClusterContext();
-        }
         initDone = true;
     }
 
@@ -276,15 +273,17 @@ public class DbClientContext {
     }
 
     public synchronized void stop() {
-        if (keyspaceContext == null || clusterContext == null) {
+        if (keyspaceContext == null) {
             throw new IllegalStateException();
         }
 
         keyspaceContext.shutdown();
         keyspaceContext = null;
 
-        clusterContext.shutdown();
-        clusterContext = null;
+        if (clusterContext != null) {
+            clusterContext.shutdown();
+            clusterContext = null;
+        }
     }
 
     /**

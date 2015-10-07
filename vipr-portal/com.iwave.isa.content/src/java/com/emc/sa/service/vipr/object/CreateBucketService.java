@@ -43,7 +43,7 @@ public class CreateBucketService extends ViPRService {
     @Param(value = RETENTION)
     protected String retention;
 
-    @Param(value = OWNER)
+    @Param(value = OWNER, required = false)
     protected String owner;
 
     @Override

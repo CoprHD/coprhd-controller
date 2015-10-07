@@ -1848,9 +1848,6 @@ public interface BadRequestExceptions {
     public BadRequestException volumeNotExpandable(final String volumeName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException unsupportedVolumeExpansion();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unsupportedUnManagedVolumeDiscovery(final String systemSerialNumber);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2348,9 +2345,6 @@ public interface BadRequestExceptions {
     public BadRequestException noSnapshotsForVMAX3VolumeWithActiveFullCopy();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException expansionNotSupportedForVMAX3Volumes();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notSupportedSnapshotWithMixedArrays(URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2471,13 +2465,14 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException clientIpNotExist();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotShareVcenterWithMultipleTenants(final String vcenterName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotRemoveDatacenterTenant(final String dataCenterName, final String vcenterName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotUpdateACL(final String vcenterName, final long refreshInterval);
+    public BadRequestException cannotEditVcenterOrUpdateACL(final String vcenterName, final long refreshInterval);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cgReferencesInvalidProtectionSystem(final URI cgUri, final URI protectionSystemUri);

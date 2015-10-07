@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_MIRROR_TO_URI;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkCloneConsistencyGroup;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Collections2.transform;
 import static java.lang.String.format;
@@ -172,7 +173,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String TERMINATE_RESTORE_SESSIONS_METHOD = "terminateRestoreSessions";
     private static final String FRACTURE_CLONE_METHOD = "fractureClone";
     private static final String UPDATE_CONSISTENCY_GROUP_WF_NAME = "UPDATE_CONSISTENCY_GROUP_WORKFLOW";
-    static final String CREATE_SINGLE_SNAPSHOT_METHOD = "createSingleSnapshot";
+    static final String CREATE_LIST_SNAPSHOT_METHOD = "createListSnapshot";
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
@@ -2041,28 +2042,37 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         try {
             List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
-            // filter out mirrors with invalid replication group. It is necessary as the fracture/detach/delete will
-            // expect mirrors with valid replication group
-            List<BlockMirror> mirrorsToRollback = getMirrorsWithValidGroup(mirrors);
-            if (!mirrorsToRollback.isEmpty()) {
-                List<URI> mirrorURIsToRollback = new ArrayList<URI>(transform(mirrorsToRollback, FCTN_MIRROR_TO_URI));
-                String mirrorNativeIds = Joiner.on(", ").join(transform(mirrorsToRollback, fctnBlockObjectToNativeID()));
+            boolean isCG = isCGMirror(mirrorList.get(0), _dbClient);
+            List<BlockMirror> mirrorsNoRollback = new ArrayList<BlockMirror>();
+            for (BlockMirror mirror : mirrors) {
+                // for CG mirror, filter out mirrors with invalid replication group. It is necessary as the fracture/detach/delete will
+                // expect mirrors with valid replication group
+                // for non CG mirror, filter out mirror with no native Id
+                if ((isCG && NullColumnValueGetter.isNullValue(mirror.getReplicationGroupInstance()) ||
+                        (!isCG && isNullOrEmpty(mirror.getNativeId())))) {
+                    mirror.setInactive(true);
+                    mirrorsNoRollback.add(mirror);
+                }
+            }
+
+            if (!mirrorsNoRollback.isEmpty()) {
+                _dbClient.persistObject(mirrorsNoRollback);
+                mirrors.removeAll(mirrorsNoRollback);
+            }
+
+            if (!mirrors.isEmpty()) {
+                List<URI> mirrorURIsToRollback = new ArrayList<URI>(transform(mirrors, FCTN_MIRROR_TO_URI));
+                String mirrorNativeIds = Joiner.on(", ").join(transform(mirrors, fctnBlockObjectToNativeID()));
 
                 if (mirrorIsPausable(mirrors)) {
                     _log.info("Attempting to fracture {} for rollback", mirrorNativeIds);
-                    fractureMirror(storage, mirrorURIsToRollback, isCGMirror(mirrorList.get(0), _dbClient), false, taskId);
+                    fractureMirror(storage, mirrorURIsToRollback, isCG, false, taskId);
                 }
 
                 _log.info("Attempting to detach {} for rollback", mirrorNativeIds);
-                detachMirror(storage, mirrorURIsToRollback, false, false, taskId);
+                detachMirror(storage, mirrorURIsToRollback, isCG, false, taskId);
                 _log.info("Attempting to delete {} for rollback", mirrorNativeIds);
-                deleteMirror(storage, mirrorURIsToRollback, false, taskId);
-            } else { // none mirrors has native Id
-                for (BlockMirror mirror : mirrors) {
-                    mirror.setInactive(true);
-                }
-
-                _dbClient.persistObject(mirrors);
+                deleteMirror(storage, mirrorURIsToRollback, isCG, taskId);
             }
             WorkflowStepCompleter.stepSucceded(taskId);
         } catch (InternalException ie) {
@@ -2074,18 +2084,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
             doFailTask(Volume.class, mirrorList, taskId, serviceError);
         }
-    }
-
-    // Get mirrors with valid replication group
-    private List<BlockMirror> getMirrorsWithValidGroup(List<BlockMirror> mirrors) {
-        List<BlockMirror> mirrorsWithGroup = new ArrayList<BlockMirror>();
-        for (BlockMirror mirror : mirrors) {
-            if (NullColumnValueGetter.isNotNullValue(mirror.getReplicationGroupInstance())) {
-                mirrorsWithGroup.add(mirror);
-            }
-        }
-
-        return mirrorsWithGroup;
     }
 
     @Override
@@ -2770,7 +2768,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String taskId)
             throws ControllerException {
         _log.info("START fullCopyVolumes");
-        TaskCompleter taskCompleter = null;
+        TaskCompleter taskCompleter = new CloneCreateWorkflowCompleter(fullCopyVolumes, taskId);
         Volume clone = _dbClient.queryObject(Volume.class, fullCopyVolumes.get(0));
         URI sourceVolume = clone.getAssociatedSourceVolume();
 
@@ -2779,7 +2777,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Workflow workflow = _workflowService.getNewWorkflow(this, FULL_COPY_WORKFLOW, true, taskId);
             boolean isCG = false;
             // check if the clone is in a CG
-            if (isCloneInConsistencyGroup(fullCopyVolumes.get(0), _dbClient)) {
+            if (checkCloneConsistencyGroup(fullCopyVolumes.get(0), _dbClient, taskCompleter)) {
                 isCG = true;
                 _log.info("Creating group full copy");
                 Workflow.Method createMethod = createFullCopyVolumeMethod(storage, sourceVolume, fullCopyVolumes, createInactive, isCG);
@@ -2831,10 +2829,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         Volume cloneVol = _dbClient.queryObject(Volume.class, uri);
                         BlockObject sourceObj = BlockObject.fetch(_dbClient, cloneVol.getAssociatedSourceVolume());
                         // detach if source is snapshot, or storage system is not vmax/vnx/hds
-                        if (sourceObj instanceof BlockSnapshot
+                    	if (storageSystem.deviceIsType(Type.openstack)){
+                    		setCloneReplicaStateStep(workflow, storageSystem, asList(uri), waitForSyncStep, ReplicationState.SYNCHRONIZED);
+                    	}
+                        else if (sourceObj instanceof BlockSnapshot
                                 || !(storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.hds)
                                 || storageSystem.deviceIsType(Type.vnxblock))) {
-                            Workflow.Method detachMethod = detachFullCopyMethod(storage, uri);
+			    
+                            Workflow.Method detachMethod = detachFullCopyMethod(storage, asList(uri));
                             workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", waitForSyncStep,
                                     storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
                         } else if (storageSystem.deviceIsType(Type.vnxblock)) {
@@ -2848,8 +2850,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
 
             }
-            // List<URI> uris = new ArrayList<URI>(fullCopyVolumes);
-            taskCompleter = new CloneCreateWorkflowCompleter(fullCopyVolumes, taskId);
             String successMsg = String.format("Full copy of %s to %s successful", sourceVolume, fullCopyVolumes);
             workflow.executePlan(taskCompleter, successMsg);
         } catch (InternalException e) {
@@ -2926,7 +2926,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     @Override
     public void activateFullCopy(URI storage, List<URI> fullCopy, String opId) {
-        TaskCompleter completer = new CloneActivateCompleter(fullCopy, opId);
+        TaskCompleter completer = new CloneCreateWorkflowCompleter(fullCopy, opId);
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
 
@@ -2934,7 +2934,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // need to create a workflow to wait sync finish, then do fracture/activate
                 Workflow workflow = _workflowService.getNewWorkflow(this, RESYNC_CLONE_WF_NAME, false, opId);
                 _log.info("Created new activate workflow with operation id {}", opId);
-                boolean isCG = isCloneInConsistencyGroup(fullCopy.get(0), _dbClient);
+                boolean isCG = checkCloneConsistencyGroup(fullCopy.get(0), _dbClient, completer);
                 String previousStep = null;
                 if (isCG) {
                     for (URI cloneUri : fullCopy) {
@@ -2982,9 +2982,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             TaskCompleter taskCompleter = new CloneActivateCompleter(fullCopy, opId);
-            if (isCloneInConsistencyGroup(fullCopy.get(0), _dbClient)) {
+            if (checkCloneConsistencyGroup(fullCopy.get(0), _dbClient, taskCompleter)) {
                 getDevice(storageSystem.getSystemType()).doActivateGroupFullCopy(storageSystem, fullCopy, taskCompleter);
-
             } else {
                 getDevice(storageSystem.getSystemType()).doActivateFullCopy(storageSystem, fullCopy.get(0), taskCompleter);
             }
@@ -2995,8 +2994,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public Workflow.Method detachFullCopyMethod(URI storage, URI fullCopyVolume) {
-        return new Workflow.Method("detachFullCopy", storage, Arrays.asList(fullCopyVolume));
+    public Workflow.Method detachFullCopyMethod(URI storage, List<URI> fullCopyVolume) {
+        return new Workflow.Method("detachFullCopy", storage, fullCopyVolume);
     }
 
     @Override
@@ -3006,13 +3005,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            if (isCloneInConsistencyGroup(fullCopyVolume.get(0), _dbClient)) {
+            TaskCompleter taskCompleter = new VolumeDetachCloneCompleter(fullCopyVolume, taskId);
+            if (checkCloneConsistencyGroup(fullCopyVolume.get(0), _dbClient, taskCompleter)) {
                 _log.info("detach group full copy");
-                TaskCompleter taskCompleter = new VolumeDetachCloneCompleter(fullCopyVolume, taskId);
                 getDevice(storageSystem.getSystemType()).doDetachGroupClone(storageSystem, fullCopyVolume, taskCompleter);
 
             } else {
-                TaskCompleter taskCompleter = new VolumeDetachCloneCompleter(fullCopyVolume, taskId);
                 getDevice(storageSystem.getSystemType()).doDetachClone(storageSystem, fullCopyVolume.get(0),
                         taskCompleter);
             }
@@ -3041,7 +3039,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             workflow.executePlan(taskCompleter, "Successfully created group relation between Volume group and Full copy group");
         } catch (Exception e) {
             String msg = String.format("Failed to create group relation between Volume group and Full copy group."
-                    + "Source volume: %s, Full copy: %s",
+                            + "Source volume: %s, Full copy: %s",
                     sourceVolume, fullCopy);
             _log.error(msg, e);
             if (taskCompleter != null) {
@@ -3783,35 +3781,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return waitFor;
     }
 
-    public static boolean isCloneInConsistencyGroup(URI cloneUri, DbClient dbClient) {
-        boolean isCG = false;
-
-        Volume clone = dbClient.queryObject(Volume.class, cloneUri);
-        if (clone != null) {
-            URI systemURI = clone.getStorageController();
-            StorageSystem storage = dbClient.queryObject(StorageSystem.class, systemURI);
-            if (storage.deviceIsType(Type.ibmxiv)) {
-                return isCG;
-            }
-            URI source = clone.getAssociatedSourceVolume();
-            BlockObject sourceObj = BlockObject.fetch(dbClient, source);
-            if (sourceObj instanceof BlockSnapshot) {
-                return isCG;
-            }
-            Volume sourceVolume = (Volume) sourceObj;
-            if (!NullColumnValueGetter.isNullURI(sourceVolume.getConsistencyGroup())) {
-                final URI cgId = sourceVolume.getConsistencyGroup();
-                if (cgId != null) {
-                    final BlockConsistencyGroup group = dbClient.queryObject(
-                            BlockConsistencyGroup.class, cgId);
-                    isCG = group != null;
-                }
-            }
-        }
-
-        return isCG;
-    }
-
     private static final String RESTORE_FROM_CLONE_WF_NAME = "RESTORE_FROM_CLONE_WORKFLOW";
     private static final String RESTORE_FROM_CLONE_GROUP = "BlockDeviceRestoreFromClone";
     private static final String FRACTURE_CLONE_GROUP = "PostBlockDeviceFractureClone";
@@ -3819,7 +3788,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void restoreFromFullCopy(URI storage, List<URI> clones,
             Boolean updateOpStatus, String opId) throws InternalException {
-        CloneCreateWorkflowCompleter completer = null;
+        CloneCreateWorkflowCompleter completer = new CloneCreateWorkflowCompleter(clones, opId);
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_FROM_CLONE_WF_NAME, false, opId);
             _log.info("Created new restore workflow with operation id {}", opId);
@@ -3854,7 +3823,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
 
             String description = String.format("Restore volume from %s", clones.get(0));
-            boolean isCG = isCloneInConsistencyGroup(clones.get(0), _dbClient);
+            boolean isCG = checkCloneConsistencyGroup(clones.get(0), _dbClient, completer);
 
             workflow.createStep(RESTORE_FROM_CLONE_GROUP, description, waitFor,
                     storage, getDeviceType(storage), BlockDeviceController.class,
@@ -3883,8 +3852,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
             _log.info("Executing workflow {}", RESTORE_FROM_CLONE_GROUP);
             String msg = String.format("Restore from %s completed successfully", clones.get(0));
-
-            completer = new CloneCreateWorkflowCompleter(clones, opId);
 
             workflow.executePlan(completer, msg);
 
@@ -3991,11 +3958,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void resyncFullCopy(URI storage, List<URI> clones,
             Boolean updateOpStatus, String opId) throws InternalException {
-        CloneCreateWorkflowCompleter completer = null;
+        CloneCreateWorkflowCompleter completer = new CloneCreateWorkflowCompleter(clones, opId);
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, RESYNC_CLONE_WF_NAME, false, opId);
             _log.info("Created new resync workflow with operation id {}", opId);
-            boolean isCG = isCloneInConsistencyGroup(clones.get(0), _dbClient);
+            boolean isCG = checkCloneConsistencyGroup(clones.get(0), _dbClient, completer);
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
             String description = String.format("Resync clone %s", clones.get(0));
             workflow.createStep(RESYNC_CLONE_GROUP, description, null,
@@ -4027,8 +3994,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _log.info("Executing workflow {}", RESYNC_CLONE_GROUP);
             String msg = String.format("Resync %s completed successfully", clones.get(0));
 
-            completer = new CloneCreateWorkflowCompleter(clones, opId);
-
             workflow.executePlan(completer, msg);
 
         } catch (Exception e) {
@@ -4055,11 +4020,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public boolean resyncFullCopyStep(URI storage, List<URI> clone, Boolean updateOpStatus, boolean isCG, String opId)
             throws ControllerException {
         _log.info("Start resync full copy");
-        CloneResyncCompleter taskCompleter = null;
+        CloneResyncCompleter taskCompleter = new CloneResyncCompleter(clone, opId);
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            taskCompleter = new CloneResyncCompleter(clone, opId);
-            if (isCloneInConsistencyGroup(clone.get(0), _dbClient)) {
+            if (checkCloneConsistencyGroup(clone.get(0), _dbClient, taskCompleter)) {
                 _log.info("resync group full copy");
                 getDevice(storageSystem.getSystemType()).doResyncGroupClone(storageSystem, clone, taskCompleter);
             } else {
@@ -4124,76 +4088,38 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public String
-            createSingleCloneStep(Workflow workflow, URI storage, StorageSystem storageSystem, Volume volume, URI uri, String waitFor) {
-        Workflow.Method createMethod = createFullCopyVolumeMethod(storage, volume.getId(),
-                Arrays.asList(uri), false, false);
-        Workflow.Method rollbackMethod = rollbackFullCopyVolumeMethod(storage, asList(uri));
-        waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", waitFor, storage,
-                storageSystem.getSystemType(), getClass(), createMethod, rollbackMethod, null);
-
-        boolean isCG = false; // create individual clone, then add to group
-        // After all full copies have been created, wait for synchronization
-        // to complete
-        Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage,
-                Arrays.asList(uri), isCG);
-        waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_WFS_STEP_GROUP, "Waiting for synchronization",
-                waitFor, storage, storageSystem.getSystemType(),
-                getClass(), waitForSyncMethod, null, null);
-
-        // detach if storage system is not vmax/vnx/hds
-        if (!(storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.hds)
-        || storageSystem.deviceIsType(Type.vnxblock))) {
-            Workflow.Method detachMethod = detachFullCopyMethod(storage, uri);
-            waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy",
-                    waitFor, storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
-        } else if (storageSystem.deviceIsType(Type.vnxblock)) {
-            waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_FRACTURE_STEP_GROUP,
-                    "Fracturing full copy", waitFor, storage, storageSystem.getSystemType(),
-                    BlockDeviceController.class,
-                    BlockDeviceController.fractureCloneMethod(storage, Arrays.asList(uri), isCG), null, null);
-        } else {
-            setCloneReplicaStateStep(workflow, storageSystem, asList(uri), waitFor,
-                    ReplicationState.SYNCHRONIZED);
-        }
-
-        return waitFor;
-    }
-
-    public String detachCloneStep(Workflow workflow, String waitFor, URI storage, StorageSystem storageSystem, List<URI> cloneList,
+    public String detachCloneStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> cloneList,
             boolean isRemoveAll) {
+        URI storage = storageSystem.getId();
         if (isRemoveAll) {
-            Workflow.Method detachMethod = detachFullCopyMethod(storage, cloneList.get(0));
-            waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", waitFor,
+            Workflow.Method detachMethod = detachFullCopyMethod(storage, cloneList);
+            waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching group clone", waitFor,
                     storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
         } else {
-            for (URI uri : cloneList) {
-                Workflow.Method detachMethod = detachSelectedFullCopyMethod(storage, uri);
-                waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", waitFor,
-                        storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
-            }
+            Workflow.Method detachMethod = detachListCloneMethod(storage, cloneList);
+            waitFor = workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching list clone", waitFor,
+                    storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
         }
 
         return waitFor;
     }
 
-    public Workflow.Method detachSelectedFullCopyMethod(URI storage, URI fullCopyVolume) {
-        return new Workflow.Method("detachSelectedFullCopy", storage, fullCopyVolume);
+    public Workflow.Method detachListCloneMethod(URI storage, List<URI> cloneList) {
+        return new Workflow.Method("detachListClone", storage, cloneList);
     }
 
-    public void detachSelectedFullCopy(URI storage, URI fullCopyVolume, String taskId)
+    public void detachListClone(URI storage, List<URI> cloneList, String taskId)
             throws ControllerException {
-        _log.info("START detachFullCopy: {}", fullCopyVolume);
+        _log.info("START detachListClone: {}", Joiner.on("\t").join(cloneList));
 
         try {
-            // TODO -ensure the clone is detachable
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            TaskCompleter taskCompleter = new VolumeDetachCloneCompleter(fullCopyVolume, taskId);
-            getDevice(storageSystem.getSystemType()).doDetachClone(storageSystem, fullCopyVolume, taskCompleter);
+            TaskCompleter taskCompleter = new VolumeDetachCloneCompleter(cloneList, taskId);
+            getDevice(storageSystem.getSystemType()).doDetachListReplica(storageSystem, cloneList, taskCompleter);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
-            doFailTask(Volume.class, fullCopyVolume, taskId, serviceError);
+            doFailTask(Volume.class, cloneList, taskId, serviceError);
         }
     }
 
@@ -4203,7 +4129,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         _log.info("Start deleteMirror Step for mirror:{}", mirrorStr);
         List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
         if (isRemoveAll) {
-
             // Optionally create a step to pause (fracture) the mirror
             if (mirrorIsPausable(mirrors)) {
                 _log.info("Adding group fracture mirror step");
@@ -4291,6 +4216,175 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 completer.error(_dbClient, serviceError);
             } else {
                 throw DeviceControllerException.exceptions.deleteVolumeSnapshotFailed(e);
+            }
+        }
+    }
+
+    /**
+     * Add step to create list clone.
+     *
+     * @param workflow The Workflow being built
+     * @param storageSystem Storage system
+     * @param waitFor Previous step to waitFor
+     * @param cloneList List of URIs for clones to be created
+     * @return last step added to waitFor
+     */
+    public String createListCloneStep(Workflow workflow, StorageSystem storageSystem, List<URI> cloneList, String waitFor) {
+        URI storage = storageSystem.getId();
+        Workflow.Method createMethod = createListCloneMethod(storage, cloneList, false);
+        Workflow.Method rollbackMethod = rollbackListCloneMethod(storage, cloneList);
+        waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", waitFor, storage,
+                storageSystem.getSystemType(), getClass(), createMethod, rollbackMethod, null);
+
+        return waitFor;
+    }
+
+    public Workflow.Method createListCloneMethod(URI storage, List<URI> cloneList, Boolean createInactive) {
+        return new Workflow.Method("createListClone", storage, cloneList, createInactive);
+    }
+
+    public void createListClone(URI storage, List<URI> cloneList, Boolean createInactive, String taskId) {
+        try {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            TaskCompleter taskCompleter = new CloneCreateCompleter(cloneList, taskId);
+            WorkflowStepCompleter.stepExecuting(taskId);
+            getDevice(storageSystem.getSystemType()).doCreateListReplica(storageSystem, cloneList, createInactive, taskCompleter);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(taskId, serviceError);
+            doFailTask(Volume.class, cloneList, taskId, serviceError);
+        }
+    }
+
+    public Workflow.Method rollbackListCloneMethod(URI storage, List<URI> cloneList) {
+        return new Workflow.Method("rollbackListClone", storage, cloneList);
+    }
+
+    public void rollbackListClone(URI storage, List<URI> cloneList, String taskId) {
+        WorkflowStepCompleter.stepExecuting(taskId);
+        _log.info("Rollback list clone");
+        List<Volume> clones = _dbClient.queryObject(Volume.class, cloneList);
+        List<Volume> clonesNoRollback = new ArrayList<Volume>();
+        try {
+            for (Volume clone : clones) {
+                if (isNullOrEmpty(clone.getNativeId())) {
+                    clone.setInactive(true);
+                    clonesNoRollback.add(clone);
+                }
+            }
+
+            if (!clonesNoRollback.isEmpty()) {
+                _dbClient.persistObject(clonesNoRollback);
+                clones.removeAll(clonesNoRollback);
+            }
+
+            if (!clones.isEmpty()) {
+                _log.info("Detach list clone for rollback");
+                detachListClone(storage, cloneList, taskId);
+                _log.info("Delete clones for rollback");
+                deleteVolumes(storage, cloneList, taskId);
+            }
+
+            WorkflowStepCompleter.stepSucceded(taskId);
+        } catch (InternalException ie) {
+            _log.error(String.format("rollbackListClone failed - Array: %s, clones: %s", storage, Joiner.on("\t").join(cloneList)));
+            doFailTask(Volume.class, cloneList, taskId, ie);
+            WorkflowStepCompleter.stepFailed(taskId, ie);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(taskId, serviceError);
+            doFailTask(Volume.class, cloneList, taskId, serviceError);
+        }
+    }
+
+    /**
+     * Add Steps to create list mirror.
+     *
+     * @param workflow The Workflow being built
+     * @param storageSystem Storage system
+     * @param waitFor Previous step to waitFor
+     * @param mirrorList List of URIs for mirrors to be created
+     * @return last step added to waitFor
+     */
+    public String createListMirrorStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> mirrorList) throws ControllerException {
+        URI storage = storageSystem.getId();
+        waitFor = workflow.createStep(CREATE_MIRRORS_STEP_GROUP, "Creating list mirror", waitFor,
+                storage, storageSystem.getSystemType(),
+                this.getClass(),
+                createListMirrorMethod(storage, mirrorList, false),
+                rollbackListMirrorMethod(storage, mirrorList), null);
+
+        return waitFor;
+    }
+
+    public Workflow.Method createListMirrorMethod(URI storage, List<URI> mirrorList, Boolean createInactive) {
+        return new Workflow.Method("createListMirror", storage, mirrorList, createInactive);
+    }
+
+    public void createListMirror(URI storage, List<URI> mirrorList, Boolean createInactive, String opId)
+            throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            completer = new BlockMirrorCreateCompleter(mirrorList, opId);
+            getDevice(storageObj.getSystemType()).doCreateListReplica(storageObj, mirrorList, createInactive, completer);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    public Workflow.Method rollbackListMirrorMethod(URI storage, List<URI> mirrorList) {
+        return new Workflow.Method("rollbackListMirror", storage, mirrorList);
+    }
+
+    public void rollbackListMirror(URI storage, List<URI> mirrorList, String taskId) {
+        WorkflowStepCompleter.stepExecuting(taskId);
+
+        try {
+            List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
+            List<URI> mirrorURIsToRollback = new ArrayList<URI>(transform(mirrors, FCTN_MIRROR_TO_URI));
+            String mirrorNativeIds = Joiner.on(", ").join(transform(mirrors, fctnBlockObjectToNativeID()));
+            if (mirrorIsPausable(mirrors)) {
+                _log.info("Attempting to fracture {} for rollback", mirrorNativeIds);
+                fractureMirror(storage, mirrorURIsToRollback, false, false, taskId);
+            }
+
+            _log.info("Attempting to detach {} for rollback", mirrorNativeIds);
+            detachMirror(storage, mirrorURIsToRollback, false, false, taskId);
+            _log.info("Attempting to delete {} for rollback", mirrorNativeIds);
+            deleteMirror(storage, mirrorURIsToRollback, false, taskId);
+            WorkflowStepCompleter.stepSucceded(taskId);
+        } catch (InternalException ie) {
+            _log.error(String.format("rollbackListMirror failed - Array:%s, Mirror:%s", storage, Joiner.on("\t").join(mirrorList)));
+            doFailTask(Volume.class, mirrorList, taskId, ie);
+            WorkflowStepCompleter.stepFailed(taskId, ie);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(taskId, serviceError);
+            doFailTask(Volume.class, mirrorList, taskId, serviceError);
+        }
+    }
+
+    public void createListSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
+            throws ControllerException {
+        WorkflowStepCompleter.stepExecuting(opId);
+        TaskCompleter completer = null;
+        try {
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
+            getDevice(storageObj.getSystemType()).doCreateListReplica(storageObj, snapshotList, createInactive, completer);
+        } catch (Exception e) {
+            if (completer != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                WorkflowStepCompleter.stepFailed(opId, serviceError);
+                completer.error(_dbClient, serviceError);
+            } else {
+                throw DeviceControllerException.exceptions.createVolumeSnapshotFailed(e);
             }
         }
     }

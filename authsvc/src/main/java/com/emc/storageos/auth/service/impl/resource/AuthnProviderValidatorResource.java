@@ -37,6 +37,9 @@ public class AuthnProviderValidatorResource {
 
     private static final Logger _log = LoggerFactory.
             getLogger(AuthnProviderValidatorResource.class);
+    public void setLdapConnectionTimeoutInSecs(int secs) {
+        _ldapConnectionTimeoutInSecs = secs;
+    }
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;

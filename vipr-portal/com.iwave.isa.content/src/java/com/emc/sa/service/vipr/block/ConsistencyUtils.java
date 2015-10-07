@@ -18,6 +18,7 @@ import com.emc.sa.service.vipr.block.consistency.tasks.DetachConsistencyGroupFul
 import com.emc.sa.service.vipr.block.consistency.tasks.RestoreConsistencyGroupFullCopy;
 import com.emc.sa.service.vipr.block.consistency.tasks.RestoreConsistencyGroupSnapshot;
 import com.emc.sa.service.vipr.block.consistency.tasks.ResynchronizeConsistencyGroupFullCopy;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -25,13 +26,15 @@ import com.emc.vipr.client.ViPRCoreClient;
 
 /**
  * Package level Utility class with static calls to Consistency Group Tasks
- * 
+ *
  * @author Jay Logelin
  *
  */
 final class ConsistencyUtils {
 
     private static final String VOLUME_STORAGE_TYPE = "volume";
+    private static final String TYPE_RP = "rp";
+    private static final String TYPE_SRDF = "srdf";
 
     static boolean isVolumeStorageType(String storageType) {
         if (storageType == null) {
@@ -90,5 +93,27 @@ final class ConsistencyUtils {
 
     static Tasks<BlockConsistencyGroupRestRep> removeSnapshot(URI consistencyGroupId) {
         return execute(new DeactivateConsistencyGroupSnapshot(consistencyGroupId));
+    }
+
+    /**
+     * Determines the consistency group type.
+     *
+     * @param consistencyGroup the consistency group from which to determine the type.
+     * @return the type of consistency group.
+     */
+    public static String getFailoverType(BlockConsistencyGroupRestRep consistencyGroup) {
+        if (consistencyGroup != null && consistencyGroup.getTypes() != null) {
+            // CG is of type RP
+            if (consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP.name())) {
+                return TYPE_RP;
+            }
+
+            // CG is of type SRDF
+            if (consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name())) {
+                return TYPE_SRDF;
+            }
+        }
+
+        return null;
     }
 }

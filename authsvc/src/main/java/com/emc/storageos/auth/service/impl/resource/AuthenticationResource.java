@@ -29,6 +29,7 @@ import com.emc.storageos.security.password.Password;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.security.password.PasswordValidator;
 import com.emc.storageos.security.password.ValidatorFactory;
+import com.emc.storageos.services.util.SecurityUtils;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.B64Code;
@@ -384,7 +385,7 @@ public class AuthenticationResource {
             service = httpRequest.getScheme() + "://" + DUMMY_HOST_NAME + port + "/login";
         }
 
-        String formLP = getFormLoginPage(service, source, loginError);
+        String formLP = getFormLoginPage(service, source, httpRequest.getServerName(), loginError);
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
                     .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
@@ -422,7 +423,7 @@ public class AuthenticationResource {
             // Dummy Host Name will be replaced by the actual host name during redirection
             service = httpRequest.getScheme() + "://" + DUMMY_HOST_NAME + port + "/login";
         }
-        String formLP = getFormChangePasswordPage(service, source, loginError);
+        String formLP = getFormChangePasswordPage(service, source, httpRequest.getServerName(), loginError);
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
                     .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
@@ -642,13 +643,14 @@ public class AuthenticationResource {
 
         String formLP = null;
         if (!isChangeSuccess) {
-            formLP = getFormChangePasswordPage(service, source, MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, message));
+            formLP = getFormChangePasswordPage(service, source, request.getServerName(),
+                    MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, message));
             if (message.contains(_invLoginManager.OLD_PASSWORD_INVALID_ERROR)) {
                 _invLoginManager.markErrorLogin(clientIP);
             }
         } else {  // change password successfully, do some cleanup
             try {
-                formLP = getFormLoginPage(service, source, MessageFormat.format(FORM_SUCCESS_ENT, message));
+                formLP = getFormLoginPage(service, source, request.getServerName(), MessageFormat.format(FORM_SUCCESS_ENT, message));
                 _invLoginManager.removeInvalidRecord(clientIP);
                 if (logout) {
                     _log.info("logout active sessions for: " + userName);
@@ -783,9 +785,11 @@ public class AuthenticationResource {
 
         String formLP = null;
         if (isPasswordExpired) {
-            formLP = getFormChangePasswordPage(service, source, MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
+            formLP = getFormChangePasswordPage(service, source, request.getServerName(),
+                    MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
         } else {
-            formLP = getFormLoginPage(service, source, MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
+            formLP = getFormLoginPage(service, source, request.getServerName(),
+                    MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
         }
 
         auditOp(null, null,
@@ -881,7 +885,7 @@ public class AuthenticationResource {
      * @param service The requested service
      * @return
      */
-    private String getFormLoginPage(final String service, final String source, final String error) {
+    private String getFormLoginPage(final String service, final String source, final String serverName, final String error) {
 
         if (StringUtils.isBlank(_cachedLoginPagePart1) || StringUtils.isBlank(_cachedLoginPagePart2)) {
             _log.error("The form login page is not processed correctly, missing part1 and/or part2");
@@ -889,8 +893,9 @@ public class AuthenticationResource {
         }
         String encodedTargetService = "";
         try {
-            encodedTargetService = URLEncoder.encode(service, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
+            URI serviceURL = getServiceURL(service, serverName);
+            encodedTargetService = URLEncoder.encode(serviceURL.toString(), "UTF-8");
+        } catch (UnsupportedEncodingException | URISyntaxException e) {
             throw APIException.badRequests.unableToEncodeString(service, e);
         }
         StringBuffer sbFinal = new StringBuffer();
@@ -912,7 +917,7 @@ public class AuthenticationResource {
     /**
      * Update the static changePassword page with service query parameter
      */
-    private String getFormChangePasswordPage(final String service, final String source, final String error) {
+    private String getFormChangePasswordPage(final String service, final String source, final String serverName, final String error) {
 
         if (StringUtils.isBlank(_cachedChangePasswordPagePart1) || StringUtils.isBlank(_cachedChangePasswordPagePart2)) {
             _log.error("The form changePassword page is not processed correctly, missing part1 and/or part2");
@@ -920,8 +925,9 @@ public class AuthenticationResource {
         }
         String encodedTargetService = "";
         try {
-            encodedTargetService = URLEncoder.encode(service, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
+            URI serviceURL = getServiceURL(service, serverName);
+            encodedTargetService = URLEncoder.encode(serviceURL.toString(), "UTF-8");
+        } catch (UnsupportedEncodingException | URISyntaxException e) {
             throw APIException.badRequests.unableToEncodeString(service, e);
         }
         StringBuffer sbFinal = new StringBuffer();
@@ -1129,5 +1135,49 @@ public class AuthenticationResource {
                     exceedingErrorLoginLimit(_invLoginManager.getMaxAuthnLoginAttemtsCount(),
                             _invLoginManager.getTimeLeftToUnblock(clientIP));
         }
+    }
+
+    /**
+     * Returns the Service URL to be redirected upon the successful login of
+     * the user. The service URL is built using the service queryParam and
+     * the host header of the http request.
+     *
+     * @param service the requested service url.
+     * @param serverName the server name from the host header of the http request.
+     *
+     * @return returns the service url built from the server name.
+     * @throws URISyntaxException
+     */
+    private URI getServiceURL(String service, String serverName)
+            throws UnsupportedEncodingException, URISyntaxException {
+        String serviceDecoded = URLDecoder.decode(service, UTF8_ENCODING);
+        _log.debug("Original service = " + serviceDecoded);
+        serviceDecoded = SecurityUtils.stripXSS(serviceDecoded);
+
+        String newService = "";
+        URI uriObject = new URI(serviceDecoded);
+        String scheme = uriObject.getScheme();
+        if (StringUtils.isBlank(scheme) ) {
+            scheme = "https";
+        }
+        int port = uriObject.getPort();
+        // newservice will be constructed by replacing the host component in the original service by
+        // serverName obtained from the HttpServletRequest.
+        newService = scheme + "://" + serverName;
+        if (port > 0) {
+            newService += ":" + port;
+        }
+
+        String path = uriObject.getPath();
+        if (StringUtils.isNotBlank(path)) {
+            newService += (path.startsWith("/")?"":"/") + path;
+        }
+        String query = uriObject.getQuery();
+        if (query != null && !query.isEmpty() ) {
+            newService += "?" + query;
+        }
+        _log.debug("Updated service = " + newService);
+
+        return URI.create(newService);
     }
 }

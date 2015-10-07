@@ -147,6 +147,33 @@ def consistency_group_snapshot_create(args):
     else:
         print 'Consistency Group Snapshot creation failed '
     bourne.pretty_print_json(s) 
+
+def consistency_group_swap(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    tgt_varray_uri = bourne.neighborhood_query(args.targetVarray)
+    print "Swapping Consistency Group " + str(args.group) + " with target virtial array " + str(args.targetVarray)
+    start = time.time()
+    s = bourne.block_consistency_group_swap(group_uri, args.copyType, tgt_varray_uri)
+    bourne.pretty_print_json(s) 
+    
+def consistency_group_failover(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    tgt_varray_uri = bourne.neighborhood_query(args.targetVarray)
+    print "Failover Consistency Group " + str(args.group) + " with target virtial array " + str(args.targetVarray)
+    start = time.time()
+    s = bourne.block_consistency_group_failover(group_uri, args.copyType, tgt_varray_uri)
+    bourne.pretty_print_json(s)         
+    
+def consistency_group_failover_cancel(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    tgt_varray_uri = bourne.neighborhood_query(args.targetVarray)
+    print "Failover Consistency Group " + str(args.group) + " with target virtial array " + str(args.targetVarray)
+    start = time.time()
+    s = bourne.block_consistency_group_failover_cancel(group_uri, args.copyType, tgt_varray_uri)
+    bourne.pretty_print_json(s)     
     
 def consistency_group_snapshot_activate(args):
     bourne.connect(args.ip)
@@ -220,7 +247,7 @@ except:
 
 # consistency group cmd cmd_args [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne blockconsistencygroups cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | show | delete | check_volume | delete_with_volumes | check_volume_error)')
+parser.add_argument('cmd', help = 'cmd = (create | show | delete | check_volume | delete_with_volumes | check_volume_error | swap | failover | failover-cancel)')
 parser.add_argument('--ip',    metavar = 'ipaddr',    help = 'IP address of bourne', default=bourne_ip)
 
 # consistency group create fsuri [--ip ipaddr]
@@ -273,6 +300,12 @@ snapshotOperation.add_argument('group', help = 'name of consistency group')
 snapshotOperation.add_argument('name', help = 'name for new consistency group snapshot')
 snapshotOperation.add_argument('--createInactive', dest='createInactive',action='store_true')
 snapshotOperation.set_defaults(createInactive=False)
+
+# consistency group swap arguments parser
+protectionOperation = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+protectionOperation.add_argument('group', help = 'name of consistency group')
+protectionOperation.add_argument('--copyType', help = 'copy type (rp or srdf)')
+protectionOperation.add_argument('--targetVarray', help = 'name of target virtual array')
 
 #----------------------------------------------------------------------
 # Main script
@@ -328,7 +361,16 @@ try:
         consistency_group_snapshot_list(args)
     elif (cmd == "update"):
         args = update.parse_args()
-        consistency_group_update(args)		
+        consistency_group_update(args)	
+    elif (cmd == "swap"):
+        args = protectionOperation.parse_args()
+        consistency_group_swap(args)
+    elif (cmd == "failover"):
+        args = protectionOperation.parse_args()
+        consistency_group_failover(args)
+    elif (cmd == "failover_cancel"):
+        args = protectionOperation.parse_args()
+        consistency_group_failover_cancel(args)    	
     else:
         parser.print_help()
 

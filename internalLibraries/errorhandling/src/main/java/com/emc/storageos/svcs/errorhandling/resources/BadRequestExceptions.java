@@ -2400,6 +2400,27 @@ public interface BadRequestExceptions {
     public BadRequestException insufficientRetentionForVirtualPool(final String label, final String type);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupContainsNoVolumes(final URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException targetVirtualArrayDoesNotMatch(final URI consistencyGroup, final URI virtualArray);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noValidSrdfTargetVolume(final URI volumeId, final URI virtualArray);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeMustBeSRDFProtected(final URI volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException srdfCgContainsNoSourceVolumes(final URI consistencyGroupId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupMustBeSRDFProtected(final URI consistencyGroupId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupMustBeRPProtected(final URI consistencyGroupId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotRemoveTenant(final String resource, final String name, final Set<String> tenants);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2470,10 +2491,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException fullCopyNotAllowedForIngestedCG(final String uri);
-    
+
     @DeclareServiceCode(ServiceCode.API_DELETION_IN_PROGRESS)
     public BadRequestException deletionInProgress(final String dataObjectType, final String dataObjectName);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException imageNotPresentOnComputeImageServer(final String computeImage, final String computeImageServer);
 
@@ -2493,4 +2514,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotAddSRDFProtectionToPartialCG(String msg);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDeleteImageServer();
+    
+    @DeclareServiceCode(ServiceCode.API_PRECONDITION_FAILED)
+    public BadRequestException cannotAddImageWithoutImageServer();
 }

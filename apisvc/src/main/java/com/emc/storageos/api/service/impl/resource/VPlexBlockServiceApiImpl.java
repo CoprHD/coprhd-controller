@@ -2799,7 +2799,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * name for the passed volume.
      * 
      * @param volume The volume for which the snapshot is being created.
-     * @param snapsetLabel The snapset label for grouping this snapshot.k
+     * @param snapsetLabel The snapset label for grouping this snapshot.
      * @param label The label for the new snapshot.
      * 
      * @return A reference to the new BlockSnapshot instance.

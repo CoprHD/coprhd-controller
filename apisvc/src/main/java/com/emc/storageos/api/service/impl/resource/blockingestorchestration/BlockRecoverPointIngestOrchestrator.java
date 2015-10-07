@@ -1029,7 +1029,19 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // TODO: Fill this in  
         // For example, you could put a check in here that ensures that the TARGET/METADATA are associated
         // with some RP vpool.  It would be good to fail the ingestion early with an error that says "You're
-        // trying to ingest this target/journal volume in a vpool that is not associated with a RP vpool."       
+        // trying to ingest this target/journal volume in a vpool that is not associated with a RP vpool."
+        
+        // First check:  Make sure a SOURCE vpool is being ingested with an RP vpool (and not a target/base vpool.
+        // TODO: Ensure the UI doesn't show the wrong vpool in the first place.  This check is still needed for API/CLI.
+        String type = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.RP_PERSONALITY.toString(), unManagedVolume.getVolumeInformation());
+        if ((Volume.PersonalityTypes.SOURCE.toString().equalsIgnoreCase(type)) &&
+                (virtualPool.getProtectionVarraySettings() == null)) {
+            throw IngestionException.exceptions.invalidSourceRPVirtualPool(unManagedVolume.getLabel(), virtualPool.getLabel());
+        } else if (!(Volume.PersonalityTypes.SOURCE.toString().equalsIgnoreCase(type)) &&
+                (virtualPool.getProtectionVarraySettings() != null)) {
+            throw IngestionException.exceptions.invalidRPVirtualPool(unManagedVolume.getLabel(), virtualPool.getLabel());
+        }            
     }
 
     private static enum ColumnEnum {

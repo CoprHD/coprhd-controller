@@ -1612,7 +1612,7 @@ public class StorageSystemService extends TaskResourceService {
         while (unmanagedVolumeItr.hasNext()) {
             UnManagedVolume umv = unmanagedVolumeItr.next();
             String umvExportStatus = umv.getVolumeCharacterstics().get(
-                    SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString());
+                    SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString());
             if (umv.getStorageSystemUri().equals(id) && null != umvExportStatus
                     && umvExportStatus.equalsIgnoreCase(isExportedSelected)) {
                 String name = (null == umv.getLabel()) ? umv.getNativeGuid() : umv.getLabel();

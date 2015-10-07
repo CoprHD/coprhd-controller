@@ -196,4 +196,10 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException noUnManagedVolumesFound(String cgName);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException invalidSourceRPVirtualPool(String volLabel, String vpoolLabel);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException invalidRPVirtualPool(String volLabel, String vpoolLabel);
 }

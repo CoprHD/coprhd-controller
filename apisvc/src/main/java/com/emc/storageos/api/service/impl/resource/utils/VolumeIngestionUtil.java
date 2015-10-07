@@ -432,6 +432,17 @@ public class VolumeIngestionUtil {
         return false;
     }
 
+    public static boolean checkUnManagedResourceIsNonRPExported(UnManagedVolume unManagedVolume) {
+        StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
+        String isNonRPExported = unManagedVolumeCharacteristics
+                .get(SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString());
+        if (null != isNonRPExported && Boolean.parseBoolean(isNonRPExported)) {
+            return true;
+        }
+
+        return false;
+    }
+
     public static boolean checkUnManagedResourceAddedToConsistencyGroup(UnManagedVolume unManagedVolume) {
         StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         String isVolumeAddedToConsistencyGroup = unManagedVolumeCharacteristics

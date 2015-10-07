@@ -53,7 +53,10 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         IS_SNAP_SHOT("Snapshot", "Snapshot"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
         IS_BOUND("EMCSVIsBound", "EMCIsBound"),
+        // Is this volume exported to anything?  (including RP and VPLEX)
         IS_VOLUME_EXPORTED("isVolumeExported", "isVolumeExported"),
+        // Is this volume export to hosts/clusters? (excluding RP)
+        IS_NONRP_EXPORTED("isNonRPExported", "isNonRPExported"),
         HAS_REPLICAS("hasReplicas", "hasReplicas"),
         IS_VOLUME_ADDED_TO_CONSISTENCYGROUP("isVolumeAddedToCG", "isVolumeAddedToCG"),
         IS_INGESTABLE("IsIngestable", "IsIngestable"),

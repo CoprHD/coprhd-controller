@@ -275,6 +275,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         volumeToLocalReplicaMap, poolSupportedSLONames, keyMap, srdfEnabledTargetVPools);
 
                 // set up UnManagedExportMask information
+                boolean nonRpExported = false;
 
                 @SuppressWarnings("unchecked")
                 Map<String, Set<UnManagedExportMask>> masksMap = (Map<String, Set<UnManagedExportMask>>) keyMap
@@ -286,6 +287,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         _logger.info("{} UnManagedExportMasks found in the keyMap for volume {}",
                                 uems.size(), unManagedVolume.getNativeGuid());
                         for (UnManagedExportMask uem : uems) {
+                            boolean backendMaskFound = false;
                             _logger.info("   adding UnManagedExportMask {} to UnManagedVolume",
                                     uem.getMaskingViewPath());
                             unManagedVolume.getUnmanagedExportMasks().add(uem.getId().toString());
@@ -319,6 +321,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                                         unManagedVolume.putVolumeCharacterstics(
                                                 SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
                                                 "true");
+                                        backendMaskFound = true;
                                     }
                                 }
                             }
@@ -337,9 +340,28 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                                     }
                                 }
                             }
+                            
+                            if (!backendMaskFound) {
+                                nonRpExported = true;
+                            }
                         }
                     }
                 }
+
+                // If this mask isn't RP, then this volume is exported to a host/cluster/initiator or VPLEX.  Mark
+                // this as a convenience to ingest features.
+                if (nonRpExported) {
+                    _logger.info("unmanaged volume {} is exported to something other than RP.  Marking IS_NONRP_EXPORTED.", unManagedVolume.getLabel());
+                    unManagedVolume.putVolumeCharacterstics(
+                            SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
+                            "true");
+                } else {
+                    _logger.info("unmanaged volume {} is not exported OR not exported to something other than RP.  Not marking IS_NONRP_EXPORTED.", unManagedVolume.getLabel());
+                    unManagedVolume.putVolumeCharacterstics(
+                            SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
+                            "false");
+                }
+                
                 _logger.debug(
                         "Going to check if the volume is meta: {}, volume meta property: {}",
                         volumeViewInstance.getObjectPath(),

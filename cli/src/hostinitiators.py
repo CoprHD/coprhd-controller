@@ -78,7 +78,7 @@ class HostInitiator(object):
 
         hostUri = self.get_host_uri(hostName)
         initiatorList = self.get_host_object().list_initiators(hostUri)
-
+       
         # Match the name and return uri
         for initiator in initiatorList:
             initiatorDetails = self.show_by_uri(initiator['id'])
@@ -97,18 +97,19 @@ class HostInitiator(object):
     Initiator create operation
     """
 
-    def create(self, sync, hostlabel, protocol, initiatorwwn, portwwn):
+    def create(self, sync, hostlabel, protocol, initiatorwwn, portwwn, initname):
 
         hostUri = self.get_host_uri(hostlabel)
-
         request = {'protocol': protocol,
                    'initiator_port': portwwn,
+                   'name': initname
                    }
 
         if(initiatorwwn):
             request['initiator_node'] = initiatorwwn
 
         body = json.dumps(request)
+      
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
@@ -116,12 +117,14 @@ class HostInitiator(object):
             body)
         o = common.json_decode(s)
         return self.check_for_sync(o, sync)
+        
+        
 
     """
     Initiator update operation
     """
 
-    def update(self, initiatorUri, newprotocol, newinitiatorwwn, newportwwn):
+    def update(self, initiatorUri, newprotocol, newinitiatorwwn, newportwwn, newinitname):
 
         request = dict()
 
@@ -133,6 +136,9 @@ class HostInitiator(object):
 
         if(newportwwn):
             request['initiator_port'] = newportwwn
+            
+        if(newinitname):
+            request['name'] = newinitname    
 
         body = json.dumps(request)
         (s, h) = common.service_json_request(
@@ -349,14 +355,18 @@ class HostInitiator(object):
     def list_tasks(self, host_name, initiatorportwwn, task_id=None):
 
         uri = self.query_by_portwwn(initiatorportwwn, host_name)
+        
+      
 
         hostinitiator = self.show_by_uri(uri)
         if(hostinitiator['initiator_port'] == initiatorportwwn):
             if(not task_id):
+                
                 return common.get_tasks_by_resourceuri(
                     "initiator", uri, self.__ipAddr, self.__port)
 
             else:
+                
                 res = common.get_task_by_resourceuri_and_taskId(
                     "initiator", uri, task_id,
                     self.__ipAddr, self.__port)
@@ -372,12 +382,16 @@ class HostInitiator(object):
         if(sync):
             if(len(result["resource"]) > 0):
                 resource = result["resource"]
+                
                 return (
                     common.block_until_complete("initiator", resource["id"],
                                                 result["id"], self.__ipAddr,
                                                 self.__port)
+                                                
+                                    
                 )
             else:
+                
                 raise SOSError(
                     SOSError.SOS_FAILURE_ERR,
                     "error: task list is empty, no task response found")
@@ -442,6 +456,11 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    
+    create_parser.add_argument('-initiatorname', '-initname',
+                               help='Initiator Alias Name',
+                               dest='initname',
+                               metavar='<initiatorname>' )
 
     mandatory_args.add_argument(
         '-pwwn', '-initiatorportwwn',
@@ -463,13 +482,13 @@ def initiator_create(args):
         raise SOSError(
             SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
             " " + sys.argv[2] + ": error:" +
-            "-inititorwwn is required for FC type initiator")
+            "-initiatorwwn is required for FC type initiator")
 
     if(args.protocol == "iSCSI" and args.initiatorwwn):
         raise SOSError(
             SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
             " " + sys.argv[2] + ": error:" +
-            "-inititorwwn is not required for iSCSI type initiator")
+            "-initiatorwwn is not required for iSCSI type initiator")
 
     initiatorObj = HostInitiator(args.ip, args.port)
     try:
@@ -478,7 +497,8 @@ def initiator_create(args):
             args.hostlabel,
             args.protocol,
             args.initiatorwwn,
-            args.initiatorportwwn)
+            args.initiatorportwwn,
+            args.initname)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create",
@@ -698,6 +718,11 @@ def update_parser(subcommand_parsers, common_parser):
         help='WWN of the initiator node ',
         dest='newinitiatorwwn',
         metavar='<newinitiatorwwn>')
+    
+    update_parser.add_argument('-newinitiatorname', '-newinitname',
+                               help='Initiator Alias Name',
+                               dest='newinitname',
+                               metavar='<newinitiatorname>' )
 
     mandatory_args.add_argument(
         '-npwwn', '-newinitiatorportwwn',
@@ -739,7 +764,8 @@ def initiator_update(args):
             initiatorUri,
             args.newprotocol,
             args.newinitiatorwwn,
-            args.newinitiatorportwwn)
+            args.newinitiatorportwwn,
+            args.newinitname)
 
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -767,7 +793,7 @@ def task_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-pwwn', '-initiatorportwwn',
                                 metavar='<initiatorportwwn>',
                                 dest='initiatorportwwn',
-                                help='Port WWN of the Initiator to be deleted',
+                                help='Port WWN of the Initiator to be searched',
                                 required=True)
     mandatory_args.add_argument('-hl', '-hostlabel',
                                 dest='hostlabel',
@@ -802,7 +828,9 @@ def host_initiator_list_tasks(args):
             if(res):
                 return common.format_json_object(res)
         elif(args.hostlabel):
+           
             res = obj.list_tasks(args.hostlabel, args.initiatorportwwn)
+           
             if(res and len(res) > 0):
                 if(args.verbose):
                     return common.format_json_object(res)

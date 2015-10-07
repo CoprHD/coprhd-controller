@@ -114,7 +114,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
     public List<String> getVirtualVolumes() {
         return virtualVolumes;
     }
-
+    
     /**
      * Setter for the virtual volume for the storage view.
      * Comma separated list.
@@ -123,9 +123,18 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
      */
     public void setVirtualVolumes(List<String> strVals) {
         virtualVolumes.clear();
+        virtualVolumes.addAll(strVals);
+        refreshMaps();
+    }
+    
+    /**
+     * Refreshes the virtualVolumeWWNMap and virtualVolumeHLUMap
+     * based on the data in the virtualVolumes collection. This is
+     * required because the GSON parser bypasses accessor methods.
+     */
+    public void refreshMaps() {
         virtualVolumeWWNMap.clear();
         virtualVolumeHLUMap.clear();
-        virtualVolumes.addAll(strVals);
         for (String volumeInfoStr : virtualVolumes) {
             StringTokenizer tokenizer = new StringTokenizer(volumeInfoStr, ",");
             String hluStr = tokenizer.nextToken();
@@ -133,7 +142,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
             Integer volumeHLU = Integer.valueOf(hluStr);
             String volumeName = tokenizer.nextToken();
             String vpdId = tokenizer.nextToken();
-            int indexColon = vpdId.indexOf(":");
+            int indexColon = vpdId.indexOf(':');
             String volumeWWN = vpdId.substring(indexColon + 1);
             virtualVolumeWWNMap.put(volumeName, volumeWWN);
             virtualVolumeHLUMap.put(volumeName, volumeHLU);
@@ -256,11 +265,11 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("StorageViewInfo ( ");
         str.append(super.toString());
-        str.append(", clusterId: " + clusterId);
-        str.append(", virtualVolumes: " + virtualVolumes.toString());
-        str.append(", initiators: " + initiators.toString());
-        str.append(", initiator PWWNs: " + initiatorPwwns.toString());
-        str.append(", target ports: " + ports.toString());
+        str.append(", clusterId: ").append(clusterId);
+        str.append(", virtualVolumes: ").append(virtualVolumes.toString());
+        str.append(", initiators: ").append(initiators.toString());
+        str.append(", initiator PWWNs: ").append(initiatorPwwns.toString());
+        str.append(", target ports: ").append(ports.toString());
         str.append(" )");
         return str.toString();
     }

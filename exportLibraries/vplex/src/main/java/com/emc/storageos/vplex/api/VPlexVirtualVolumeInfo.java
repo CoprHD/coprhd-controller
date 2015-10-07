@@ -70,7 +70,8 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         EXPANSION_STATUS("expansion-status"),
         SUPPORTING_DEVICE("supporting-device"),
         SERVICE_STATUS("service-status"),
-        LOCALITY("locality");
+        LOCALITY("locality"),
+        VPD_ID("vpd-id");
 
         // The VPlex name for the attribute.
         private String _name;
@@ -139,6 +140,9 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
 
     // The clusters for the virtual volume.
     private List<String> clusters = new ArrayList<String>();
+
+    // The volume id containing the wwn
+    private String vpdId;
 
     /**
      * Getter for the volume block count.
@@ -285,7 +289,41 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
             clusters.add(clusterId);
         }
     }
-
+    
+    /**
+     * Getter for the volume vpd-id.
+     * 
+     * @return The volume vpd-id.
+     */
+    public String getVpdId() {
+        return vpdId;
+    }
+    
+    /**
+     * Setter for the volume vpd-id.
+     * 
+     * @param strVal The volume vpd-id.
+     */
+    public void setVpdId(String strVal) {
+        locality = strVal;
+    }
+    
+    /**
+     * Getter for the volume WWN, parsed
+     * from the vpd-id value.
+     * 
+     * @return the volume's WWN or null if none
+     */
+    public String getWwn() {
+        if (null != vpdId) {
+            if (vpdId.startsWith(VPlexApiConstants.VOLUME_WWN_PREFIX)) {
+                return vpdId.substring(VPlexApiConstants.VOLUME_WWN_PREFIX.length());
+            }
+        }
+        
+        return null;
+    }
+    
     /**
      * Return the virtual volume capacity in bytes.
      * 
@@ -360,13 +398,17 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("VirtualVolumeInfo ( ");
         str.append(super.toString());
-        str.append(", blockCount: " + blockCount);
-        str.append(", blockSize: " + blockSize);
-        str.append(", expansionStatus: " + expansionStatus);
-        str.append(", supportingDevice: " + supportingDevice);
-        str.append(", serviceStatus: " + serviceStatus);
-        str.append(", locality: " + locality);
-        str.append(", clusters: " + clusters);
+        str.append(", blockCount: ").append(blockCount);
+        str.append(", blockSize: ").append(blockSize);
+        str.append(", expansionStatus: ").append(expansionStatus);
+        str.append(", supportingDevice: ").append(supportingDevice);
+        if (supportingDeviceInfo != null) {
+            str.append(", supportingDeviceInfo: ").append(supportingDeviceInfo.toString());
+        }
+        str.append(", serviceStatus: ").append(serviceStatus);
+        str.append(", locality: ").append(locality);
+        str.append(", clusters: ").append(clusters);
+        str.append(", vpdId: ").append(vpdId);
         str.append(" )");
         return str.toString();
     }

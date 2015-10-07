@@ -53,16 +53,16 @@ public interface BlockServiceApi {
      * @param varray source VirtualArray
      * @param vpool VirtualPool requested
      * @param recommendations Placement recommendation object
+     * @param taskList list of tasks for source volumes
      * @param task task ID
      * @param vpoolCapabilities wrapper for vpool params
-     * 
      * @return TaskList
      * 
      * @throws InternalException
      */
     public TaskList createVolumes(VolumeCreate param, Project project,
             VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
-            String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;
 
     /**
@@ -131,11 +131,11 @@ public interface BlockServiceApi {
      * @param sync Boolean flag for pause operation; true=split, false=fracture
      * @param taskId Task ID
      * 
-     * @return Task resource
+     * @return TaskList resource
      * 
      * @throws ControllerException
      */
-    public TaskResourceRep pauseNativeContinuousCopies(StorageSystem storageSystem,
+    public TaskList pauseNativeContinuousCopies(StorageSystem storageSystem,
             Volume sourceVolume, List<BlockMirror> blockMirrors, Boolean sync, String taskId)
             throws ControllerException;
 
@@ -147,13 +147,41 @@ public interface BlockServiceApi {
      * @param blockMirrors
      * @param taskId
      * 
-     * @return
+     * @return TaskList
      * 
      * @throws ControllerException
      */
-    public TaskResourceRep resumeNativeContinuousCopies(StorageSystem storageSystem,
+    public TaskList resumeNativeContinuousCopies(StorageSystem storageSystem,
             Volume sourceVolume, List<BlockMirror> blockMirrors, String taskId)
             throws ControllerException;
+
+    /**
+     * Establish group relation between volume group and native continuous copy group.
+     *
+     * @param storageSystem the storage system
+     * @param sourceVolume the source volume
+     * @param blockMirror the block mirror
+     * @param taskId the task id
+     * @return the task resource rep
+     * @throws ControllerException the controller exception
+     */
+    public TaskResourceRep establishVolumeAndNativeContinuousCopyGroupRelation(
+            StorageSystem storageSystem, Volume sourceVolume,
+            BlockMirror blockMirror, String taskId) throws ControllerException;
+
+    /**
+     * Establish group relation between volume group and snapshot group.
+     *
+     * @param storageSystem the storage system
+     * @param sourceVolume the source volume
+     * @param snapshot the block snapshot
+     * @param taskId the task id
+     * @return the task resource rep
+     * @throws ControllerException the controller exception
+     */
+    public TaskResourceRep establishVolumeAndSnapshotGroupRelation(
+            StorageSystem storageSystem, Volume sourceVolume,
+            BlockSnapshot snapshot, String taskId) throws ControllerException;
 
     /**
      * Deactivate a volume mirror This operation will attempt to both detach and
@@ -164,9 +192,9 @@ public interface BlockServiceApi {
      * @param mirrorURI URI of mirror to be deactivated
      * @param task Task ID
      * 
-     * @return Task resource
+     * @return TaskList
      */
-    public TaskResourceRep deactivateMirror(StorageSystem device, URI mirrorURI,
+    public TaskList deactivateMirror(StorageSystem device, URI mirrorURI,
             String task) throws ControllerException;
 
     /**
@@ -356,10 +384,11 @@ public interface BlockServiceApi {
      * @param snapshotType The snapshot technology type.
      * @param createInactive true if the snapshots should be created but not
      *            activated, false otherwise.
+     * @param readOnly true if the snapshot should be read only, false otherwise
      * @param taskId The unique task identifier.
      */
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, String taskId);
+            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId);
 
     /**
      * Uses the appropriate controller to delete the snapshot.
@@ -387,6 +416,14 @@ public interface BlockServiceApi {
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume volume);
 
     /**
+     * Validates a resynchronize snapshot request.
+     * 
+     * @param snapshot The snapshot to resynchronize.
+     * @param volume
+     */
+    public void validateResynchronizeSnapshot(BlockSnapshot snapshot, Volume volume);
+
+    /**
      * Restore the passed parent volume from the passed snapshot of that parent volume.
      * 
      * @param snapshot The snapshot to restore
@@ -394,6 +431,15 @@ public interface BlockServiceApi {
      * @param taskId The unique task identifier.
      */
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
+
+    /**
+     * Resynchronize the passed snapshot.
+     * 
+     * @param snapshot The snapshot to be resynchronized
+     * @param parentVolume The volume to resynchronize from.
+     * @param taskId The unique task identifier.
+     */
+    public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
 
     /**
      * Returns the maximum number of volumes that are allowed in the passed consistency group.

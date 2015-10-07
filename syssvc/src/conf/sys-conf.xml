@@ -245,7 +245,10 @@
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordChangeIntervalRuleHandler" />
                 <ref bean="authLoginAttemptsHandler" />
                 <ref bean="authLockoutTimeHandler" />
+                <ref bean="ldapConnectionTimeoutHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.UpgradeCheckFrequencyRuleHandler" />
+                <bean class="com.emc.storageos.systemservices.impl.propertyhandler.TokenLifeTimeHandler" />
+                <bean class="com.emc.storageos.systemservices.impl.propertyhandler.TokenIdleTimeHandler" />
             </list>
         </property>
     </bean>
@@ -258,6 +261,9 @@
     </bean>
     <bean id="authLockoutTimeHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.AuthLockoutTimeHandler">
         <property name="invalidLoginManager" ref="invalidLoginManager"/>
+        <property name="apiNotifier" ref="apiNotifier"/>
+    </bean>
+    <bean id="ldapConnectionTimeoutHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.LdapConnectionTimeoutHandler">
         <property name="apiNotifier" ref="apiNotifier"/>
     </bean>
 

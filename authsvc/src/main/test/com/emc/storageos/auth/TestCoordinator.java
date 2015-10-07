@@ -5,20 +5,17 @@
 
 package com.emc.storageos.auth;
 
-import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
-import com.emc.storageos.coordinator.client.model.DbVersionInfo;
-import com.emc.storageos.coordinator.client.model.MigrationStatus;
-import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.*;
-import com.emc.storageos.coordinator.client.service.WorkPool.WorkAssignmentListener;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
-import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.vipr.model.sys.ClusterInfo;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
@@ -28,12 +25,31 @@ import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
 import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreMutex;
 import org.apache.curator.framework.recipes.queue.QueueSerializer;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
+import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
+import com.emc.storageos.coordinator.client.model.DbVersionInfo;
+import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.*;
+import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
+import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
+import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
+import com.emc.storageos.coordinator.client.service.DistributedQueue;
+import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
+import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.client.service.WorkPool;
+import com.emc.storageos.coordinator.client.service.WorkPool.WorkAssignmentListener;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueTaskConsumer;
+import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.vipr.model.sys.ClusterInfo;
 
 /**
  * Stub coordinator class for use with unit tests
@@ -76,6 +92,11 @@ public class TestCoordinator extends CoordinatorClientImpl {
             DistributedQueueConsumer<T> consumer,
             QueueSerializer<T> serializer, int maxThreads) throws CoordinatorException {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public <T> DistributedLockQueueManager getLockQueue(DistributedLockQueueTaskConsumer<T> consumer) throws CoordinatorException {
         return null;
     }
 
@@ -212,6 +233,21 @@ public class TestCoordinator extends CoordinatorClientImpl {
 
     @Override
     public void removeNodeListener(NodeListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DistributedAroundHook getDistributedOwnerLockAroundHook() {
         throw new UnsupportedOperationException();
     }
 

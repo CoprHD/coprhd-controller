@@ -34,12 +34,17 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
@@ -398,6 +403,195 @@ public class SRDFUtils implements SmisConstants {
         throw new RemoteGroupAssociationNotFoundException();
     }
 
+    /**
+     * Gets the associated target remote director group
+     * by forming target RDF group's NativeGuid from source group NativeGuid
+     */
+    public static RemoteDirectorGroup getAssociatedTargetRemoteDirectorGroup(DbClient dbClient,
+            boolean is80Provider, String raGroupId) {
+        // interchange source and target ids & group ids
+        // 8.0.x NativeGuid format in DB
+        // SYMMETRIX+000195700985+REMOTEGROUP+000195700985+60+000195700999+60
+        // SYMMETRIX+000195700999+REMOTEGROUP+000195700999+60+000195700985+60
+
+        // 4.6.x NativeGuid format in DB
+        // SYMMETRIX+000195701573+REMOTEGROUP+000195701505+60+000195701573+60
+        // SYMMETRIX+000195701505+REMOTEGROUP+000195701505+60+000195701573+60
+
+        String targetRaGroupNativeGuid = null;
+        StringBuilder strBuilder = new StringBuilder();
+        String[] nativeGuidArray = raGroupId.split(Constants.SMIS_PLUS_REGEX);
+        String sourceArray = nativeGuidArray[1];
+        if (is80Provider) {
+            String targetArray = nativeGuidArray[5];
+            strBuilder.append(nativeGuidArray[0]).append(Constants.PLUS)
+                    .append(targetArray).append(Constants.PLUS)
+                    .append(nativeGuidArray[2]).append(Constants.PLUS)
+                    .append(targetArray).append(Constants.PLUS)
+                    .append(nativeGuidArray[6]).append(Constants.PLUS)
+                    .append(sourceArray).append(Constants.PLUS)
+                    .append(nativeGuidArray[4]);
+        } else {
+            String targetArray = null;
+            if (nativeGuidArray[3].contains(sourceArray)) {
+                targetArray = nativeGuidArray[5];
+            } else {
+                targetArray = nativeGuidArray[3];
+            }
+            strBuilder.append(nativeGuidArray[0]).append(Constants.PLUS)
+                    .append(targetArray).append(Constants.PLUS)
+                    .append(nativeGuidArray[2]).append(Constants.PLUS)
+                    .append(nativeGuidArray[3]).append(Constants.PLUS)
+                    .append(nativeGuidArray[6]).append(Constants.PLUS)
+                    .append(nativeGuidArray[5]).append(Constants.PLUS)
+                    .append(nativeGuidArray[4]);
+        }
+        targetRaGroupNativeGuid = strBuilder.toString();
+        log.debug("Target RA Group Id : {}", targetRaGroupNativeGuid);
+        RemoteDirectorGroup remoteGroup = getRAGroupFromDB(dbClient, targetRaGroupNativeGuid);
+        if (null == remoteGroup) {
+            log.warn("Target RA Group {} not found", targetRaGroupNativeGuid);
+            return null;
+        }
+        return remoteGroup;
+    }
+
+    private static RemoteDirectorGroup getRAGroupFromDB(DbClient dbClient, String raGroupNativeGuid) {
+        URIQueryResultList raGroupUris = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getRAGroupByNativeGuidConstraint(raGroupNativeGuid),
+                raGroupUris);
+        for (URI raGroupURI : raGroupUris) {
+            RemoteDirectorGroup raGroup = dbClient.queryObject(RemoteDirectorGroup.class, raGroupURI);
+            if (null != raGroup && !raGroup.getInactive()) {
+                return raGroup;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Fetch the SRDF Protected target virtual pool uris.
+     * 
+     * @return
+     */
+    public static Set<URI> fetchSRDFTargetVirtualPools(DbClient dbClient) {
+        Set<URI> srdfProtectedTargetVPools = new HashSet<URI>();
+        try {
+            List<URI> vpoolRemoteSettingURIs = dbClient.queryByType(VpoolRemoteCopyProtectionSettings.class,
+                    true);
+            Iterator<VpoolRemoteCopyProtectionSettings> vPoolRemoteSettingsItr = dbClient
+                    .queryIterativeObjects(VpoolRemoteCopyProtectionSettings.class, vpoolRemoteSettingURIs,
+                            true);
+            while (vPoolRemoteSettingsItr.hasNext()) {
+                VpoolRemoteCopyProtectionSettings rSetting = vPoolRemoteSettingsItr.next();
+                if (null != rSetting && !NullColumnValueGetter.isNullURI(rSetting.getVirtualPool())) {
+                    srdfProtectedTargetVPools.add(rSetting.getVirtualPool());
+                }
+
+            }
+        } catch (Exception ex) {
+            log.error("Exception occurred while fetching SRDF enabled virtualpools", ex);
+        }
+        return srdfProtectedTargetVPools;
+    }
+
+    /**
+     * Checks if R1 or R2 has group snapshot or clone or mirror associated.
+     */
+    public boolean checkIfR1OrR2HasReplica(RemoteDirectorGroup group) {
+        // get one existing source and target volume from group
+        boolean forceAdd = false;
+        Volume existingSourceVolume = null;
+        Volume existingTargetVolume = null;
+        StringSet volumeIds = group.getVolumes();
+        for (String volumeId : volumeIds) {
+            URIQueryResultList result = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getVolumeNativeGuidConstraint(volumeId), result);
+            Iterator<URI> volumeIterator = result.iterator();
+            if (volumeIterator.hasNext()) {
+                Volume volume = dbClient.queryObject(Volume.class, volumeIterator.next());
+                if (volume != null && PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality())) {
+                    log.debug("Found source volume {} in ViPR DB", volume.getNativeGuid());
+                    existingSourceVolume = volume;
+                    // get target
+                    StringSet targets = volume.getSrdfTargets();
+                    for (String target : targets) {
+                        if (NullColumnValueGetter.isNotNullValue(target)) {
+                            existingTargetVolume = dbClient.queryObject(Volume.class, URI.create(target));
+                            break;
+                        }
+                    }
+                } else if (volume != null && PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())) {
+                    log.debug("Found target volume {} in ViPR DB", volume.getNativeGuid());
+                    existingTargetVolume = volume;
+                    // get source
+                    existingSourceVolume = dbClient.queryObject(Volume.class, volume.getSrdfParent().getURI());
+                }
+            }
+            if (existingSourceVolume != null && existingTargetVolume != null) {
+                break;
+            }
+        }
+        // detect if R1/R2 has snapshots, clones or mirrors
+        return ((existingSourceVolume != null && CheckIfVolumeHasReplica(existingSourceVolume))
+        || (existingTargetVolume != null && CheckIfVolumeHasReplica(existingTargetVolume)));
+    }
+
+    /**
+     * Checks if a volume has snapshot or clone or mirror associated.
+     */
+    private boolean CheckIfVolumeHasReplica(Volume volume) {
+        boolean forceAdd = false;
+        URIQueryResultList list = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getVolumeSnapshotConstraint(volume.getId()), list);
+        Iterator<URI> it = list.iterator();
+        while (it.hasNext()) {
+            URI snapshotID = it.next();
+            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
+            if (snapshot != null) {
+                log.debug("There are Snapshot(s) available for volume {}", volume.getId());
+                forceAdd = true;
+                break;
+            }
+        }
+
+        if (!forceAdd) {
+            // TODO ignore DETACHED clones?
+            URIQueryResultList cloneList = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getAssociatedSourceVolumeConstraint(volume.getId()), cloneList);
+            Iterator<URI> iter = cloneList.iterator();
+            while (iter.hasNext()) {
+                URI cloneID = iter.next();
+                Volume clone = dbClient.queryObject(Volume.class, cloneID);
+                if (clone != null) {
+                    log.debug("There are Clone(s) available for volume {}", volume.getId());
+                    forceAdd = true;
+                    break;
+                }
+            }
+        }
+
+        if (!forceAdd) {
+            URIQueryResultList mirrorList = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getVolumeBlockMirrorConstraint(volume.getId()), mirrorList);
+            Iterator<URI> itr = mirrorList.iterator();
+            while (itr.hasNext()) {
+                URI mirrorID = itr.next();
+                BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorID);
+                if (mirror != null) {
+                    log.debug("There are Mirror(s) available for volume {}", volume.getId());
+                    forceAdd = true;
+                    break;
+                }
+            }
+        }
+        return forceAdd;
+    }
+
     private CIMObjectPath getStorageSynchronizationFromVolume(StorageSystem provider, CIMObjectPath volumePath) {
         CloseableIterator<CIMObjectPath> references = null;
 
@@ -475,4 +669,54 @@ public class SRDFUtils implements SmisConstants {
             }
         };
     }
+
+    public static final char REPLACE_RDF_STR_BEFORE = ' ';
+    public static final char REPLACE_RDF_STR_AFTER = '_';
+    public static final int RDF_GROUP_NAME_MAX_LENGTH = 10;
+    public static final String RDF_GROUP_PREFIX = "V-";
+
+    /**
+     * Get the qualifying RDF Group names allowed that we can match against.
+     * "V-<projectname>" or "<projectname>"
+     * 
+     * @param project
+     *            project requested
+     * @return string of a qualifying name
+     */
+    public static StringSet getQualifyingRDFGroupNames(final Project project) {
+        StringSet names = new StringSet();
+        String grpName1 = RDF_GROUP_PREFIX
+                + project.getLabel().replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER);
+        if (grpName1.length() > RDF_GROUP_NAME_MAX_LENGTH) {
+            names.add(grpName1.substring(0, RDF_GROUP_NAME_MAX_LENGTH - 1));
+        } else {
+            names.add(grpName1);
+        }
+        String grpName2 = project.getLabel().replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER);
+        if (grpName2.length() > RDF_GROUP_NAME_MAX_LENGTH) {
+            names.add(grpName2.substring(0, RDF_GROUP_NAME_MAX_LENGTH - 1));
+        } else {
+            names.add(grpName2);
+        }
+        return names;
+    }
+
+    /**
+     * Returns false if the label doesn't available in the grpNames
+     * Primary name check, "V-<projectname>" or "<projectname>"
+     * 
+     * @param grpNames list of potential names to match
+     * @param label label desired from project
+     * @return
+     */
+    public static boolean containsRaGroupName(StringSet grpNames, String label) {
+        // check on each name instead of .contains() as we need to ignore case difference.
+        for (String name : grpNames) {
+            if (name.equalsIgnoreCase(label)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

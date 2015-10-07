@@ -911,6 +911,10 @@ public class ConfigService {
             throw APIException.badRequests.propertyIsNullOrEmpty();
         }
 
+        if (!_invLoginManager.isClientIPExist(ip)) {
+            throw APIException.badRequests.clientIpNotExist();
+        }
+
         _invLoginManager.removeInvalidRecord(ip);
 
         return Response.ok().build();

@@ -763,7 +763,7 @@ public class BlockSnapshotService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/create-vplex-volume")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep importSnapshotToVplex(@PathParam("id") URI id) {
+    public TaskResourceRep createVplexVolumeFromSnapshot(@PathParam("id") URI id) {
 
         // Validate and get the block snapshot.
         ArgValidator.checkFieldUriType(id, BlockSnapshot.class, "id");
@@ -773,19 +773,19 @@ public class BlockSnapshotService extends TaskResourceService {
         URI sourceVolumeURI = snapshot.getParent().getURI();
         Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
         if (!Volume.checkForVplexBackEndVolume(_dbClient, sourceVolume)) {
-            throw APIException.badRequests.cantImportNonVPLEXSnapshotToVplex(id.toString());
+            throw APIException.badRequests.cantCreateVplexVolumeNonVPLEXSnapshot(id.toString());
         }
 
         // Verify it is not marked for deletion.
         if (snapshot.getInactive()) {
-            throw APIException.badRequests.cantImportInactiveSnapshotToVplex(id.toString());
+            throw APIException.badRequests.cantCreateVplexVolumeInactiveSnapshot(id.toString());
         }
 
         // Verify that it has been activated such that the target volume
         // reflects the source volume data. Otherwise, when the snapshot
         // is activated, the read cache for the VPLEX volume would be invalid.
         if (!snapshot.getIsSyncActive()) {
-            throw APIException.badRequests.cantImportUnsynchronizedSnapshotToVplex(id.toString());
+            throw APIException.badRequests.cantCreateVplexVolumeUnsynchronizedSnapshot(id.toString());
         }
 
         // Verify it has yet to be used to create a VPLEX volume.
@@ -796,7 +796,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // same native GUID as the snapshot.
         String snapshotNativeGuid = snapshot.getNativeGuid();
         if (!CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid).isEmpty()) {
-            throw APIException.badRequests.snapshotAlreadyImportedIntoVplex(id.toString());
+            throw APIException.badRequests.cantCreateVplexVolumeForSnapshotAlreadyCreated(id.toString());
         }
 
         // Get the virtual pool of the snapshot source volume. We need to set
@@ -839,7 +839,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // completer to update the status on the snapshot as well if we
         // find a snapshot with the same native guid as the volume.
         Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.IMPORT_SNAPSHOT_TO_VPLEX);
+        op.setResourceType(ResourceOperationTypeEnum.CREATE_VPLEX_VOLUME_FROM_SNAPSHOT);
         _dbClient.createTaskOpStatus(BlockSnapshot.class, id, taskId, op);
         snapshot.getOpStatus().put(taskId, op);
 

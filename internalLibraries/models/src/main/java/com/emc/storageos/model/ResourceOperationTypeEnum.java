@@ -285,7 +285,7 @@ public enum ResourceOperationTypeEnum {
     SYS_EVENT("SYSTEM EVENT", "System Event"),
     CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER", "Create and verify a compute image server"),
     UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "Update and verify a compute image server"),
-    IMPORT_SNAPSHOT_TO_VPLEX("IMPORT SNAPSHOT TO VPLEX", "Create a VPLEX volume on top of a block snapshot");
+    CREATE_VPLEX_VOLUME_FROM_SNAPSHOT("CREATE VPLEX VOLUME FROM SNAPSHOT", "Create a VPLEX volume on top of a block snapshot target volume");
 
     private final String name;
     private final String description;

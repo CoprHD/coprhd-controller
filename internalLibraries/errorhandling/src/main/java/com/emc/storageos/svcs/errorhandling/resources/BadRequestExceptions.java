@@ -2461,7 +2461,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToFindSuitableJournalRecommendation();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToFindJournalRecommendation(final String rpSiteName);
 
@@ -2506,27 +2506,27 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotAddSRDFProtectionToPartialCG(String msg);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteImageServer();
-    
+
     @DeclareServiceCode(ServiceCode.API_PRECONDITION_FAILED)
     public BadRequestException cannotAddImageWithoutImageServer();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantImportNonVPLEXSnapshotToVplex(final String snapshotId);
+    public BadRequestException cantCreateVplexVolumeNonVPLEXSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantImportInactiveSnapshotToVplex(final String snapshotId);
+    public BadRequestException cantCreateVplexVolumeInactiveSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantImportUnsynchronizedSnapshotToVplex(final String snapshotId);
+    public BadRequestException cantCreateVplexVolumeUnsynchronizedSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException snapshotAlreadyImportedIntoVplex(final String snapshotId);
+    public BadRequestException cantCreateVplexVolumeForSnapshotAlreadyCreated(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantDeleteSnapshotExportedToVPLEX(final String snapshotId, final String volumeId);
+    public BadRequestException cantDeleteSnapshotUsedByVPLEXVolume(final String snapshotId, final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException fullCopyNotAllowedForVPLEXVolumeBuiltOnSnapshot(final String volumeId);

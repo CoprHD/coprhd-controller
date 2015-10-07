@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.crypto.SecretKey;
@@ -25,6 +26,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,6 +82,12 @@ public class DisasterRecoveryService {
     private SysUtils sysUtils;
     private CoordinatorClient coordinator;
     private DbClient dbClient;
+
+    private String vdcShortId;
+
+    public void setVdcShortId(String vdcId) {
+        vdcShortId = vdcId;
+    }
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -384,18 +393,34 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(uuid, standby.toConfiguration());
             VirtualDataCenter vdc = queryLocalVDC();
 
-            for (Site standbySite : getStandbySites(vdc.getId())) {
-                updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
+            // exclude the paused site from strategy options of dbsvc and geodbsvc
+            updateStrategyOptions(((DbClientImpl)dbClient).getLocalContext());
+            updateStrategyOptions(((DbClientImpl)dbClient).getGeoContext());
+
+            for (Site site : getSites(vdc.getId())) {
+                updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
-            // in order to pause standby, the local site (primary) needs to update the strategy options
-            // for both db/geodb before regenerating configuration files.
-            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.PAUSE_STANDBY);
 
             return siteMapper.map(standby);
         } catch (Exception e) {
             log.error("Error pausing site {}", uuid, e);
             throw APIException.internalServerErrors.pauseStandbyFailed(uuid, e.getMessage());
         }
+    }
+
+    private void updateStrategyOptions(DbClientContext dbContext) throws Exception {
+        Map<String, String> strategyOptions = dbContext.getKeyspace().describeKeyspace().getStrategyOptions();
+
+        for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
+            Site site = new Site(config);
+            String dcId = String.format("%s-%s", vdcShortId, site.getStandbyShortId());
+            if (site.getState().equals(SiteState.STANDBY_PAUSED) && strategyOptions.containsKey(dcId)) {
+                log.info("Remove dc {} from strategy options", dcId);
+                strategyOptions.remove(dcId);
+            }
+        }
+
+        dbContext.setCassandraStrategyOptions(strategyOptions, true);
     }
 
     private void updateVdcTargetVersion(String siteId, String action) throws Exception {

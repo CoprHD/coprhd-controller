@@ -602,13 +602,7 @@
                 </bean>
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
                 <ref local="userGroupService"/>
-                
-                <bean class="com.emc.storageos.api.service.impl.resource.DisasterRecoveryService">
-                  <property name="dbClient" ref="dbclient"/>
-                  <property name="coordinator" ref="coordinator"/>
-                  <property name="apiSignatureGenerator" ref="keyGenerator"/>
-                  <property name="sysUtils" ref="sysUtils" />
-                </bean>
+                <ref bean="disasterRecoveryService"/>
             </set>
         </property>
     </bean>

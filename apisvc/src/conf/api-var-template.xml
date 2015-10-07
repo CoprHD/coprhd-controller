@@ -9,4 +9,12 @@
         <property name="endpoint" value="http://${node_id}:8080/"/>
         <property name="version" value="1"/>
     </bean>
+
+    <bean id="disasterRecoveryService" class="com.emc.storageos.api.service.impl.resource.DisasterRecoveryService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="apiSignatureGenerator" ref="keyGenerator"/>
+        <property name="sysUtils" ref="sysUtils" />
+        <property name="vdcShortId" value="${vdc_myid}"/>
+    </bean>
 </beans>

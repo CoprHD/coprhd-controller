@@ -67,12 +67,6 @@ public class VdcSiteManager extends AbstractManager {
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
     
     private SiteInfo targetSiteInfo;
-
-    private String vdcShortId;
-
-    public void setVdcShortId(String vdcId) {
-        vdcShortId = vdcId;
-    }
     
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
@@ -322,54 +316,9 @@ public class VdcSiteManager extends AbstractManager {
             case SiteInfo.RECONFIG_RESTART:
                 reconfigRestartSvcs();
                 break;
-            case SiteInfo.PAUSE_STANDBY:
-                pauseStandbySite(svcId);
-                break;
             default:
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
         }
-    }
-
-    private void pauseStandbySite(String svcId) throws Exception {
-        log.info("Step3: Acquiring vdc lock for strategy options change.");
-        if (getVdcLock(svcId)) {
-            try {
-                targetSiteInfo = coordinator.getTargetInfo(SiteInfo.class);
-                if (!targetSiteInfo.getActionRequired().equals(SiteInfo.PAUSE_STANDBY)) {
-                    log.info("strategy options already changed. Do nothing");
-                    return;
-                }
-
-                CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
-                // exclude the paused site from strategy options of dbsvc and geodbsvc
-                updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getLocalContext());
-                updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getGeoContext());
-
-                SiteInfo currentSiteInfo = coordinatorClient.getTargetInfo(coordinatorClient.getSiteId(),
-                        SiteInfo.class);
-                SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.RECONFIG_RESTART,
-                            currentSiteInfo.getTargetDataRevision());
-                coordinatorClient.setTargetInfo(coordinatorClient.getSiteId(), siteInfo);
-                log.info("VDC target version updated to {} for local site", siteInfo.getVdcConfigVersion());
-            } finally {
-                coordinator.releasePersistentLock(svcId, vdcLockId);
-            }
-        }
-    }
-
-    private void updateStrategyOptions(CoordinatorClient coordinatorClient, DbClientContext dbContext) throws Exception {
-        Map<String, String> strategyOptions = dbContext.getKeyspace().describeKeyspace().getStrategyOptions();
-
-        for(Configuration config : coordinatorClient.queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
-            String dcId = String.format("%s-%s", vdcShortId, site.getStandbyShortId());
-            if (site.getState().equals(SiteState.STANDBY_PAUSED) && strategyOptions.containsKey(dcId)) {
-                log.info("Remove dc {} from strategy options", dcId);
-                strategyOptions.remove(dcId);
-            }
-        }
-
-        dbContext.setCassandraStrategyOptions(strategyOptions, true);
     }
 
     private void reconfigRestartSvcs() throws Exception {

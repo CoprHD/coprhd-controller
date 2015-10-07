@@ -727,7 +727,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return data;
     }
 
-    protected List<Service> locateAllServices(String siteId, String name, String version, String tag,
+    @Override
+    public List<Service> locateAllServices(String siteId, String name, String version, String tag,
             String endpointKey) throws CoordinatorException {
         String serviceRoot = String.format("%1$s/%2$s", name, version);
         List<String> servicePaths = lookupServicePath(siteId, serviceRoot);

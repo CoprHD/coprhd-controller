@@ -52,6 +52,7 @@
         <property name="loopInterval"  value="600000" />
         <property name="retryInterval"  value="4000" />
         <property name="vdcShortId" value="${vdc_myid}"/>
+        <property name="service" ref="serviceinfo" />
     </bean>
 
 </beans>

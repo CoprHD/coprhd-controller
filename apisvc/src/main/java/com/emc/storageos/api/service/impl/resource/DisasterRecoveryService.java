@@ -268,16 +268,18 @@ public class DisasterRecoveryService {
         }
 
         try {
-            Site site = new Site(config);
+            Site toBeRemovedSite = new Site(config);
             log.info("Find standby site in local VDC and remove it");
-            VirtualDataCenter vdc = queryLocalVDC();
-            coordinator.removeServiceConfiguration(config);
 
-            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
-            for (Site standbySite : getStandbySites(vdc.getId())) {
+            toBeRemovedSite.setState(SiteState.STANDBY_REMOVING);
+            coordinator.persistServiceConfiguration(toBeRemovedSite.toConfiguration());
+
+            log.info("Notify all sites for reconfig");
+            VirtualDataCenter vdc = queryLocalVDC();
+            for (Site standbySite : getSites(vdc.getId())) {
                 updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
-            return siteMapper.map(site);
+            return siteMapper.map(toBeRemovedSite);
         } catch (Exception e) {
             log.error("Failed to remove site {}", uuid, e);
             throw APIException.internalServerErrors.removeStandbyFailed(uuid, e.getMessage());

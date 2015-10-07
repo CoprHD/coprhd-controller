@@ -14,11 +14,13 @@ import java.util.Properties;
 import java.util.Set;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.services.util.FileUtils;
 
 public class SpringQuorumPeerConfig extends QuorumPeerConfig {
     private static final Logger log = LoggerFactory.getLogger(SpringQuorumPeerConfig.class);
@@ -47,9 +49,17 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
             }
         }
 
-        //create zk server id file if it doesn't exist
+        //create zk server id file if it doesn't exist or not match current server id
         File serverId = new File(dataDirName, SERVER_ID_FILE);
-        if (!serverId.exists()) {
+        boolean shouldRecreate = true;
+        if (serverId.exists()) {
+            String s = new String(FileUtils.readDataFromFile(serverId.getAbsolutePath()));
+            int currentId = Integer.parseInt(s);
+            if (currentId == _id) {
+                shouldRecreate = false;
+            }
+         }
+        if (shouldRecreate) {
             FileWriter writer = new FileWriter(serverId);
             writer.write(Integer.toString(_id));
             writer.close();

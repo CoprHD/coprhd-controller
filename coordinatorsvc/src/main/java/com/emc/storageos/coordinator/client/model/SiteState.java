@@ -14,5 +14,6 @@ public enum SiteState {
     STANDBY_SYNCED,  // Standby site. Synced with active one 
     STANDBY_PAUSED,  // Standby site. Replication is paused 
     STANDBY_TESTING, // Standby site. Run DR testing
+    STANDBY_REMOVING, // Standby site. Removing
     STANDBY_ERROR    // Unrecoverable error for this standby site
 }

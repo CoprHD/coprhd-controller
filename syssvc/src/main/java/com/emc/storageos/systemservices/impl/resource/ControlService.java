@@ -379,6 +379,18 @@ public class ControlService {
     }
 
     /**
+     * Power off current cluster
+     */
+    @POST
+    @Path("internal/cluster/poweroff")
+    @Produces({ MediaType.APPLICATION_JSON })
+    public Response internalPowerOffCluster(@QueryParam("force") String forceSet) throws Exception {
+        _log.info("Poweroff cluster");
+        recoveryManager.poweroff();
+        return powerOffCluster(forceSet);
+    }
+
+    /**
      * Trigger minority node recovery
      */
     @POST

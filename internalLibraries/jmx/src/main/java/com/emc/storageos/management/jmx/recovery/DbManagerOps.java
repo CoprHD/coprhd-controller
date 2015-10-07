@@ -161,6 +161,10 @@ public class DbManagerOps implements AutoCloseable {
         }
     }
 
+    public void removeDataCenter(String dcName) {
+        mbean.removeDataCenter(dcName);
+    }
+    
     public void startNodeRepairAndWaitFinish(boolean canResume, boolean crossVdc) throws Exception {
         if (canResume && getLastSucceededRepairStatus(true) != null) {
             log.info("Resume last successful repair");

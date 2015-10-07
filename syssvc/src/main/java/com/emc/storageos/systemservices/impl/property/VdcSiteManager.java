@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,13 +27,18 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
@@ -69,6 +75,8 @@ public class VdcSiteManager extends AbstractManager {
     private SiteInfo targetSiteInfo;
 
     private String vdcShortId;
+    
+    private Service service;
 
     public void setVdcShortId(String vdcId) {
         vdcShortId = vdcId;
@@ -76,6 +84,10 @@ public class VdcSiteManager extends AbstractManager {
     
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
+    }
+
+    public void setService(Service svc) {
+        this.service = svc;
     }
 
     @Override
@@ -320,6 +332,7 @@ public class VdcSiteManager extends AbstractManager {
 
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
+                removeStandby();
                 reconfigRestartSvcs();
                 break;
             case SiteInfo.PAUSE_STANDBY:
@@ -362,14 +375,29 @@ public class VdcSiteManager extends AbstractManager {
 
         for(Configuration config : coordinatorClient.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
-            String dcId = String.format("%s-%s", vdcShortId, site.getStandbyShortId());
-            if (site.getState().equals(SiteState.STANDBY_PAUSED) && strategyOptions.containsKey(dcId)) {
-                log.info("Remove dc {} from strategy options", dcId);
-                strategyOptions.remove(dcId);
+            String dcId = getCassandraDcId(site);
+            if (strategyOptions.containsKey(dcId)) {
+                if (site.getState().equals(SiteState.STANDBY_PAUSED) || site.getState().equals(SiteState.STANDBY_REMOVING))  {
+                    log.info("Remove dc {} from strategy options", dcId);
+                    strategyOptions.remove(dcId);
+                }
             }
         }
-
         dbContext.setCassandraStrategyOptions(strategyOptions, true);
+    }
+
+    /**
+     * Generate Cassandra data center name for given site. 
+     * 
+     * @param site
+     * @return
+     */
+    private String getCassandraDcId(Site site) {
+        if (site.getState().equals(SiteState.ACTIVE)) {
+            return vdcShortId;
+        } else {
+            return String.format("%s-%s", vdcShortId, site.getStandbyShortId());
+        }
     }
 
     private void reconfigRestartSvcs() throws Exception {
@@ -571,6 +599,82 @@ public class VdcSiteManager extends AbstractManager {
         log.info("powering off the cluster!");
         final String[] cmd = { POWEROFFTOOL_COMMAND };
         Exec.sudo(SHUTDOWN_TIMEOUT_MILLIS, cmd);
+    }
+
+    // Todo - move DR related code to a separated util class
+    private void removeStandby() throws Exception{
+        String svcId = coordinator.getMySvcId();
+        if (getVdcLock(svcId)) {
+            try {
+                VirtualDataCenter vdc = VdcUtil.getLocalVdc();
+                CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
+                String currentSiteId = coordinatorClient.getSiteId();
+                List<Site> sites = listSites(vdc);
+                for(Site site : sites) {
+                    if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
+                        if (currentSiteId.equals(site.getUuid())) {
+                            log.info("Current site is removed from DR sites. It should be manually promoted as a primary controller");
+                        } else {
+                            poweroffRemoteSite(site);
+                            updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getLocalContext());
+                            updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getGeoContext());
+                        }
+                   }
+                }
+            } finally {
+                coordinator.releasePersistentLock(svcId, vdcLockId);
+            }
+        }
+    }
+
+    private List<Site> listSites(VirtualDataCenter vdc) {
+        List<Site> result = new ArrayList<Site>();
+        for(Configuration config : coordinator.getCoordinatorClient().queryAllConfiguration(Site.CONFIG_KIND)) {
+            Site site = new Site(config);
+            if (!vdc.getId().equals(site.getVdc())) {
+                continue;
+            }
+            result.add(site);
+        }
+        return result;
+    }
+
+    private void poweroffRemoteSite(Site site) {
+        if (!isSiteUp(site)) {
+            log.info("Site {} is down. No need to poweroff it", site.getUuid());
+            return;
+        }
+
+        String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVip(), service.getEndpoint().getPort());
+        String poweroffURL = "/control/internal/cluster/poweroff";
+        int timeoutInMillis = 10000;
+        SysClientFactory.getSysClient(URI.create(baseNodeURL), timeoutInMillis, timeoutInMillis).post(URI.create(poweroffURL), null, null);
+        log.info("Powering off site {}", site.getUuid());
+        while(isSiteUp(site)) {
+            log.info("Short sleep and will check site status again later");
+            retrySleep();
+        }
+    }
+
+    private boolean isSiteUp(Site site) {
+        // Get service beacons for given site - - assume syssvc on all sites share same service name in beacon
+        try {
+            List<Service> svcs = coordinator.getCoordinatorClient().locateAllServices(site.getUuid(), service.getName(), service.getVersion(),
+                    (String) null, null);
+
+            List<String> nodeList = new ArrayList<String>();
+            for(Service svc : svcs) {
+                nodeList.add(svc.getNodeId());
+            }
+            log.info("Site {} is up. Active nodes {}", site.getUuid(), StringUtils.join(nodeList, ","));
+            return true;
+        } catch (CoordinatorException ex) {
+            if (ex.getServiceCode() == ServiceCode.COORDINATOR_SVC_NOT_FOUND) {
+                return false; // no service beacon found for given site
+            }
+            log.error("Unexpected error when checking site service becons", ex);
+            return true;
+        }
     }
 
 }

@@ -604,7 +604,7 @@ public class BlockFullCopyManager {
         if (!sourceVolume.hasConsistencyGroup() ||
                 fullCopyVolume.getReplicationGroupInstance() == null) {
             // check if this is vplex
-            if(!VPlexUtil.isFullCopyInReplicationGroup(fullCopyVolume, _dbClient)) {
+            if(!VPlexUtil.isBackendFullCopyInReplicationGroup(fullCopyVolume, _dbClient)) {
                 throw APIException.badRequests.blockObjectHasNoConsistencyGroup();
             }
         }

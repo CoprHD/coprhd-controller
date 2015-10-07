@@ -1069,12 +1069,12 @@ public class VPlexUtil {
     }
     
     /**
-     * Check if the full copy is a vplex full copy and it is in a replication group
+     * Check if the full copy is a vplex full copy and its backend full copy is in a replication group
      * @param fullcopy
      * @param dbClient
      * @return true or false
      */
-    public static boolean isFullCopyInReplicationGroup(Volume fullcopy, DbClient dbClient) {
+    public static boolean isBackendFullCopyInReplicationGroup(Volume fullcopy, DbClient dbClient) {
         boolean result = false;
         URI systemURI = fullcopy.getStorageController();
         StorageSystem system = dbClient.queryObject(StorageSystem.class, systemURI);

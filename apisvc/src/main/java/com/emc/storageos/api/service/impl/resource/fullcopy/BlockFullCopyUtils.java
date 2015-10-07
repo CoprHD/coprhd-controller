@@ -457,7 +457,7 @@ public class BlockFullCopyUtils {
                 if ((fullCopyVolume != null) && (!fullCopyVolume.getInactive())) {
                     String groupName = fullCopyVolume.getReplicationGroupInstance();
                     if (NullColumnValueGetter.isNotNullValue(groupName) ||
-                            VPlexUtil.isFullCopyInReplicationGroup(fullCopyVolume, dbClient)) {
+                            VPlexUtil.isBackendFullCopyInReplicationGroup(fullCopyVolume, dbClient)) {
                         isFullCopySource = true;
                         break;
                     }

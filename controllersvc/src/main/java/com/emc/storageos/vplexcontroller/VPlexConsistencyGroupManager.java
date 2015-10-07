@@ -458,7 +458,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                         "UpdateConsistencyGroup: " + cg.getLabel());
             }
             
-            // The addVolumesList could be full copyies or volumes. 
+            // The addVolumesList could be full copies or volumes. 
             boolean isFullCopy = false;
             if (addVolumesList != null && !addVolumesList.isEmpty()) {
                 URI volURI = addVolumesList.get(0);

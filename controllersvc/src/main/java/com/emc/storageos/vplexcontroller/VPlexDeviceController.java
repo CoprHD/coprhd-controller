@@ -5703,23 +5703,38 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String clusterId = client.getClaimedStorageVolumeClusterName(mirrorInfo);
 
                 try {
+                    // Try to detach mirror that might have been added.
                     client.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
+
+                    // Find virtual volume and its supporting device
+                    VPlexVirtualVolumeInfo virtualVolumeInfo = client.findVirtualVolumeAndUpdateInfo(virtualVolumeName);
+                    String sourceDeviceName = virtualVolumeInfo.getSupportingDevice();
+
+                    // Once mirror is detached we need to do device collapse so that its not seen as distributed device.
+                    client.deviceCollapse(sourceDeviceName);
+
+                    // Once device collapse is successful we need to set visibility of device to local beacuse volume will be seen from
+                    // other cluster still as visibility of device changes to global once mirror is attached.
+                    client.setDeviceVisibility(sourceDeviceName);
+
                 } catch (Exception e) {
+                    _log.error("Exception restoring virtiual volume " + virtualVolumeName + " to its original state." + e);
                     _log.info(String
                             .format("Couldn't detach mirror corresponding to the backend volume %s from the VPLEX volume %s on VPLEX cluster %s during rollback. "
                                     + "Its possible mirror was never attached, so just move on to delete backend volume artifacts from the VPLEX",
                                     mirrorInfo.getVolumeName(), virtualVolumeName, clusterId));
                 }
-                // For each virtual volume attempted, try and rollback.
-                client.deleteVirtualVolume(new ArrayList<VolumeInfo>(Arrays.asList(mirrorInfo)));
+                // Its possible that mirror was never attached so we will try to delete the delete the device, if mirror device is still
+                // attached this will any ways fails, so its fine to make this call.
+                client.deleteLocalDevice(mirrorInfo);
             }
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
-            _log.error("Exception rollback VPlex Virtual Volume create: " + vae.getLocalizedMessage(), vae);
+            _log.error("Exception rollback VPlex Virtual Volume upgrade from local to distributed : " + vae.getLocalizedMessage(), vae);
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception ex) {
-            _log.error("Exception rollback VPlex Virtual Volume create: " + ex.getLocalizedMessage(), ex);
+            _log.error("Exception rollback VPlex Virtual Volume upgrade from local to distributed : " + ex.getLocalizedMessage(), ex);
             ServiceError serviceError = VPlexApiException.errors.createVirtualVolumesRollbackFailed(stepId, ex);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }

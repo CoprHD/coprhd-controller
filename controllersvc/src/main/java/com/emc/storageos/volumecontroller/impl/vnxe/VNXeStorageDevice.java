@@ -1237,7 +1237,7 @@ public class VNXeStorageDevice extends VNXeOperations
         _logger.info("{} doCreateSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient
                 .queryObject(BlockSnapshot.class, snapshotList);
-        if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
             _snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive, readOnly, taskCompleter);
         } else {
             URI snapshot = snapshots.get(0).getId();
@@ -1255,7 +1255,7 @@ public class VNXeStorageDevice extends VNXeOperations
         _logger.info("{} doActivateSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotList);
         URI snapshot = snapshots.get(0).getId();
-        if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
             _snapshotOperations.activateGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
             _snapshotOperations.activateSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -1271,7 +1271,7 @@ public class VNXeStorageDevice extends VNXeOperations
         _logger.info("{} doDeleteSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
 
-        if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
             _snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
             _snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -1305,7 +1305,7 @@ public class VNXeStorageDevice extends VNXeOperations
         _logger.info("{} doRestoreFromSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
 
-        if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
             _snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             _snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);

@@ -37,7 +37,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,6 +90,7 @@ import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy.IG_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 
@@ -6624,8 +6624,6 @@ public class SmisCommandHelper implements SmisConstants {
             sourceURI = ((BlockSnapshot) replica).getParent().getURI();
         } else if (replica instanceof BlockMirror) {
             sourceURI = ((BlockMirror) replica).getSource().getURI();
-        } else if (replica instanceof BlockSnapshot) {
-            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
         } else {
             sourceURI = ((Volume) replica).getAssociatedSourceVolume();
         }

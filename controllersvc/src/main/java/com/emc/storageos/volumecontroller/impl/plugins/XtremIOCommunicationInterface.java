@@ -32,7 +32,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
-import com.emc.storageos.services.restutil.RestClientFactory;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -56,7 +55,7 @@ public class XtremIOCommunicationInterface extends
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
 
-    private RestClientFactory xtremioRestClientFactory = null;
+    private XtremIOClientFactory xtremioRestClientFactory = null;
     private XtremIOUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
 
     public void setXtremioRestClientFactory(
@@ -81,8 +80,9 @@ public class XtremIOCommunicationInterface extends
         StorageProvider.ConnectionStatus cxnStatus = StorageProvider.ConnectionStatus.CONNECTED;
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
                 accessProfile.getSystemId());
+        XtremIOClient xtremIOClient = null;
         try {
-            XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
+            xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getXtremIOV1Client(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
                     accessProfile.getUserName(), accessProfile.getPassword(), true);
             String xmsVersion = xtremIOClient.getXtremIOXMSVersion();
@@ -120,6 +120,7 @@ public class XtremIOCommunicationInterface extends
         } finally {
             provider.setConnectionStatus(cxnStatus.name());
             _dbClient.persistObject(provider);
+            xtremIOClient.close();
             _logger.info("Completed scan of XtremIO StorageProvider. IP={}", accessProfile.getIpAddress());
         }
     }
@@ -132,11 +133,12 @@ public class XtremIOCommunicationInterface extends
                 && (accessProfile.getnamespace().equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString()))) {
             discoverUnManagedVolumes(accessProfile);
         } else {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
+            xtremioRestClientFactory.setModel(storageSystem.getFirmwareVersion());
             XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                     URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(), accessProfile.getPortNumber())),
                     accessProfile.getUserName(), accessProfile.getPassword(), true);
             _logger.info("Discovery started for system {}", accessProfile.getSystemId());
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
             discoverXtremIOSystem(xtremIOClient, storageSystem);
         }
     }

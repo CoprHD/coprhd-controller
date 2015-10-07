@@ -170,7 +170,7 @@ OVFBUILD_VSPHERE_BASH_LICENSE_FILE = $(OVFBUILD_VSPHERE_DIR)/storageos-license-s
 
               OVFBUILD_UI_FILES  = $(OVFBUILD_HYPERV_UI_FILE) $(OVFBUILD_VSPHERE_UI_FILE)
 
-          OVFBUILD_BASE_RELEASE := 3
+          OVFBUILD_BASE_RELEASE := 4
           OVFBUILD_BASE_URL      = http://lglaf020.lss.emc.com/images/vipr/ViPRBase/2.4.0.0/$(OVFBUILD_BASE_RELEASE)/
             OVFBUILD_BASE_NAME  = base-2.4.0.0.$(OVFBUILD_BASE_RELEASE)
               OVFBUILD_BASE_DIR  = $(OBJDIR)/$(OVFBUILD_BASE_NAME)
@@ -937,6 +937,8 @@ endif
 	$(ATSIGN)$(CHMOD) 770 $(INSTALL_PREFIX)/opt/storageos/play/play
 	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/db
 	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/geodb
+	$(ATSIGN)$(CHMOD) o-r -R $(INSTALL_PREFIX)/opt/storageos/conf
+	$(ATSIGN)$(SETFACL) -m u:1001:r -R $(INSTALL_PREFIX)/opt/storageos/conf   # svcuser(1001) is created during rpm installation in coprhd 
 
 _uninstall:
 	@echo "Uninstalling $(INSTALL_PREFIX)$(PRODUCT_PREFIX)"

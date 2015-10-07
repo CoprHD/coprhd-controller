@@ -8,11 +8,11 @@
     #{/if}
     #{if computeImage.availableImageServers}
         <dt>&{'computeImages.availableImageServers'}</dt>
-        <dd>${computeImage.availableImageServers.name ?: '-'}</dd>
+        <dd>${computeImage.availableImageServers.collect{ it.name }.join(", ")?: '-'}</dd>
     #{/if}
     #{if computeImage.failedImageServers}
         <dt>&{'computeImages.failedImageServers'}</dt>
-        <dd>${computeImage.failedImageServers.name ?: '-'}</dd>
+        <dd>${computeImage.failedImageServers.collect{ it.name }.join(", ")?: '-'}</dd>
     #{/if}
 
 </dl>

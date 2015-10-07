@@ -129,6 +129,20 @@ IPS_IN_CLUSTER=$(_get_ips_in_cluster)
 IPS_OF_STANDBYS=$(_get_ips_in_standby)
 
 _gen_ipsec_conf() {
+
+    # based on ipsec_enabled to decide if need to generate ipsec config files
+    if [ ${_GENCONFIG_ipsec_enabled} == "false" ] ; then
+        rm ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
+        return
+    fi
+
+    # to do:
+    #    check if it is the first boot after upgrade from previous non-ipsec cluster,
+    #    if so, do not generate ipsec config files
+
+
+
+    # ipsec_enabled = true, generating ipsec config files
     local conn_in_cluster=$(_gen_conn_sections "${IPS_IN_CLUSTER}" "${PORTS_PROTECTED_IN_CLUSTER}")
     local conn_of_standby=$(_gen_conn_sections "${IPS_OF_STANDBYS}" "${PORTS_PROTECTED_ACROSS_SITE}")
     local content=$(cat << EOF

@@ -357,6 +357,11 @@ public class DisasterRecoveryService {
         return resp;
     }
 
+    /**
+     * Pause a standby site that is already sync'ed with the primary
+     * @param uuid site UUID
+     * @return updated standby site representation
+     */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/pause/{uuid}")

@@ -2,8 +2,6 @@
 Description=Security Auditing Service
 DefaultDependencies=no
 After=local-fs.target boot-ovfenv.service
-Conflicts=shutdown.target
-Before=shutdown.target
 
 [Service]
 ExecStart=/sbin/auditd -n

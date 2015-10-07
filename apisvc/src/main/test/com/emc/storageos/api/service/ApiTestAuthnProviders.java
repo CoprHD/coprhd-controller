@@ -5,19 +5,27 @@
 
 package com.emc.storageos.api.service;
 
+import com.emc.storageos.api.ldap.exceptions.DirectoryOrFileNotFoundException;
+import com.emc.storageos.api.ldap.exceptions.FileOperationFailedException;
 import com.emc.storageos.model.auth.AuthnCreateParam;
 import com.emc.storageos.model.auth.AuthnProviderBaseParam;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.auth.AuthnUpdateParam;
 import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
 import com.sun.jersey.api.client.ClientResponse;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldif.LDIFException;
 import org.apache.commons.httpclient.HttpStatus;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.net.URI;
+import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
@@ -34,6 +42,21 @@ public class ApiTestAuthnProviders extends ApiTestBase {
     private final String AUTHN_PROVIDER_ADD_UPDATE_PARTIAL_ERROR = "The authentication provider could not be added or ";
     private final String TRACE_SUCCESSFUL = "Successful";
     private final String TRACE_AUTHN_PROVIDER_SUCCESSFUL = "Successful creation of authn provider";
+
+    private static ApiTestAuthnProviders apiTestAuthnProviders = new ApiTestAuthnProviders();
+
+    @BeforeClass
+    public static void setupTestSuite() throws LDIFException,
+            LDAPException, IOException, FileOperationFailedException,
+            GeneralSecurityException, DirectoryOrFileNotFoundException, InterruptedException {
+        apiTestAuthnProviders.apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();
+        apiTestAuthnProviders.apiTestAuthnProviderUtils.startLdapServer(ApiTestAuthnProviders.class.getSimpleName());
+    }
+
+    @AfterClass
+    public static void tearDownTestSuite() {
+        apiTestAuthnProviders.apiTestAuthnProviderUtils.stopLdapServer();
+    }
 
     @Before
     public void setUp() throws Exception {

@@ -1068,7 +1068,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
                     // do not unexport volumes from exclusive exports if the host has a boot volume id
                     boolean isBootVolumeExport = export.forHost() && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
-                            && export.getVolumes().containsKey(host.getBootVolumeId().toString());
+                            && export.hasBlockObject(host.getBootVolumeId());
                     if (!isBootVolumeExport) {
                         ExportGroupState egh = getExportGroupState(exportGroups, export);
                         egh.removeHost(host.getId());

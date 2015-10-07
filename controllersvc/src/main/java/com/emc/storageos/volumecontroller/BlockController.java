@@ -109,7 +109,7 @@ public interface BlockController extends BlockStorageManagementController {
 
     /**
      * Create a single snapshot using CreateElementReplica.
-     *
+     * 
      * @param storage
      * @param snapshotList
      * @param createInactive
@@ -260,7 +260,7 @@ public interface BlockController extends BlockStorageManagementController {
 
     /**
      * Establishes group relation between volume group and mirror group.
-     *
+     * 
      * @param storage the storage
      * @param sourceVolume the source volume
      * @param mirror the mirror
@@ -272,14 +272,15 @@ public interface BlockController extends BlockStorageManagementController {
 
     /**
      * Establishes group relation between volume group and mirror group.
-     *
+     * 
      * @param storage the storage
      * @param sourceVolume the source volume
      * @param snapshot the snapshot
      * @param opId the op id
      * @throws ControllerException the controller exception
      */
-    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId) throws ControllerException;
+    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId)
+            throws ControllerException;
 
     /**
      * Detach a mirror or mirrors of a volume or volumes.
@@ -366,7 +367,7 @@ public interface BlockController extends BlockStorageManagementController {
 
     /**
      * Establishes group relation between volume group and full copy group.
-     *
+     * 
      * @param storage the storage
      * @param sourceVolume the source volume
      * @param fullCopy the full copy
@@ -519,9 +520,10 @@ public interface BlockController extends BlockStorageManagementController {
      * 
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URI of the snapshot session.
+     * @param updateStatus true if the snap session operation status should be updated, false otherwise.
      * @param opId The unique task identifier.
      */
-    public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, String opId);
+    public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, Boolean updateStatus, String opId);
 
     /**
      * Deletes the array snapshot point-in-time copy represented by the

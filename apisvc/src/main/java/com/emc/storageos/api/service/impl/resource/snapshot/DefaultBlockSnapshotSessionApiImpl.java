@@ -399,8 +399,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public void validateRelinkSnapshotSessionTargets(BlockSnapshotSession tgtSnapSession, Project project,
-            List<URI> snapshotURIs, UriInfo uriInfo) {
+    public void validateRelinkSnapshotSessionTargets(BlockObject snapSessionSourceObj, BlockSnapshotSession tgtSnapSession,
+            Project project, List<URI> snapshotURIs, UriInfo uriInfo) {
 
         // Validate the project tenant.
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());

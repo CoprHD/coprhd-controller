@@ -4676,8 +4676,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * {@inheritDoc}
      */
     @Override
-    public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
-        TaskCompleter completer = new BlockSnapshotSessionRestoreWorkflowCompleter(snapSessionURI, opId);
+    public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, Boolean updateStatus, String opId) {
+        TaskCompleter completer = new BlockSnapshotSessionRestoreWorkflowCompleter(snapSessionURI, updateStatus, opId);
         try {
             // Get a new workflow to restore the snapshot session.
             Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_SNAPSHOT_SESSION_WF_NAME, false, opId);

@@ -143,4 +143,10 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
         return VPlexDeviceController.getInstance().validateStorageProviderConnection(ipAddress, portNumber);
     }
+
+    @Override
+    public void restoreSnapshotSession(URI vplexURI, URI snapSessionURI, String opId)
+            throws InternalException {
+        queueRequest("restoreSnapshotSession", vplexURI, snapSessionURI, opId);
+    }
 }

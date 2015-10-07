@@ -358,7 +358,7 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
 
         // Validate that the requested targets can be re-linked to the snapshot session.
-        snapSessionApiImpl.validateRelinkSnapshotSessionTargets(snapSession, project, linkedTargetURIs, _uriInfo);
+        snapSessionApiImpl.validateRelinkSnapshotSessionTargets(snapSessionSourceObj, snapSession, project, linkedTargetURIs, _uriInfo);
 
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();

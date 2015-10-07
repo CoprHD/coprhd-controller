@@ -10,8 +10,8 @@ import java.util.Map;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 public interface VPlexController extends Controller {
 
@@ -248,5 +248,20 @@ public interface VPlexController extends Controller {
      * @return true if the Storage Provider connection is valid
      */
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber);
+
+    /**
+     * Restores a VPLEX volume by restoring a native array snapshot of the source
+     * backend volume for the VPLEX volume and invalidating the read cache for
+     * the VPLEX volume. Presumes that I/O for exported volumes has been
+     * quiesced at the host and that host write buffers/cache have been cleared.
+     * 
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param snapSessionURI The URI of a BlockSnapshotSession instance.
+     * @param opId The unique task identifier.
+     * 
+     * @throws InternalException When an error occurs configuring the snapshot session restore workflow.
+     */
+    public abstract void restoreSnapshotSession(URI vplexURI, URI snapSessionURI, String opId)
+            throws InternalException;
 
 }

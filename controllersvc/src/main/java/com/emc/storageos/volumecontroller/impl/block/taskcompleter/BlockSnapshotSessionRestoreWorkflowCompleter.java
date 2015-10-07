@@ -27,6 +27,9 @@ public class BlockSnapshotSessionRestoreWorkflowCompleter extends BlockSnapshotS
     public static final String SNAPSHOT_SESSION_RESTORE_SUCCESS_MSG = "Block Snapshot Session %s restored for source %s";
     public static final String SNAPSHOT_SESSION_RESTORE_FAIL_MSG = "Failed to restore Block Snapshot Session %s for source %s";
 
+    // Flag indicates if the completer should update and record the status when it completes.
+    private static Boolean _updateOpStatus = Boolean.TRUE;
+
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionRestoreWorkflowCompleter.class);
 
@@ -36,8 +39,9 @@ public class BlockSnapshotSessionRestoreWorkflowCompleter extends BlockSnapshotS
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
      * @param taskId The unique task identifier.
      */
-    public BlockSnapshotSessionRestoreWorkflowCompleter(URI snapSessionURI, String taskId) {
+    public BlockSnapshotSessionRestoreWorkflowCompleter(URI snapSessionURI, Boolean updateOpStatus, String taskId) {
         super(snapSessionURI, taskId);
+        _updateOpStatus = updateOpStatus;
     }
 
     /**
@@ -47,25 +51,27 @@ public class BlockSnapshotSessionRestoreWorkflowCompleter extends BlockSnapshotS
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         URI snapSessionURI = getId();
         try {
-            BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-            BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+            if (_updateOpStatus) {
+                BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
 
-            // Record the results.
-            recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.RESTORE_SNAPSHOT_SESSION,
-                    status, snapSession, sourceObj);
+                // Record the results.
+                recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.RESTORE_SNAPSHOT_SESSION,
+                        status, snapSession, sourceObj);
 
-            // Update the status map of the snapshot session.
-            switch (status) {
-                case error:
-                    setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
-                    break;
-                case ready:
-                    setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
-                    break;
-                default:
-                    String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
-                    s_logger.info(errMsg);
-                    throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
+                // Update the status map of the snapshot session.
+                switch (status) {
+                    case error:
+                        setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
+                        break;
+                    case ready:
+                        setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
+                        break;
+                    default:
+                        String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
+                        s_logger.info(errMsg);
+                        throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
+                }
             }
 
             if (isNotifyWorkflow()) {

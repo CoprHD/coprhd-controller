@@ -193,7 +193,7 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         // Invoke the BlockDeviceController to restore the snapshot session source.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.restoreSnapshotSession(storageSystem.getId(), snapSession.getId(), taskId);
+        controller.restoreSnapshotSession(storageSystem.getId(), snapSession.getId(), Boolean.TRUE, taskId);
     }
 
     /**

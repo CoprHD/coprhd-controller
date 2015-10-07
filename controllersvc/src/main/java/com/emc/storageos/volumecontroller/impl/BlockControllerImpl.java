@@ -165,7 +165,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     @Override
     public void createSingleSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
             throws ControllerException {
-        blockRMI("createSingleSnapshot", storage,snapshotList, createInactive, readOnly, opId);
+        blockRMI("createSingleSnapshot", storage, snapshotList, createInactive, readOnly, opId);
     }
 
     @Override
@@ -270,7 +270,8 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void establishVolumeAndNativeContinuousCopyGroupRelation(URI storage, URI sourceVolume, URI mirror, String opId) throws InternalException {
+    public void establishVolumeAndNativeContinuousCopyGroupRelation(URI storage, URI sourceVolume, URI mirror, String opId)
+            throws InternalException {
         blockRMI("establishVolumeAndNativeContinuousCopyGroupRelation", storage, sourceVolume, mirror, opId);
     }
 
@@ -495,8 +496,8 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
      * {@inheritDoc}
      */
     @Override
-    public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
-        blockRMI("restoreSnapshotSession", systemURI, snapSessionURI, opId);
+    public void restoreSnapshotSession(URI systemURI, URI snapSessionURI, Boolean updateStatus, String opId) {
+        blockRMI("restoreSnapshotSession", systemURI, snapSessionURI, updateStatus, opId);
     }
 
     /**

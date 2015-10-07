@@ -121,6 +121,7 @@ public interface BlockSnapshotSessionApi {
     /**
      * Validates a re-link targets to block snapshot session request.
      * 
+     * @param snapSessionSourceObj A reference to the snapshot session source.
      * @param tgtSnapSession A reference to the BlockSnapshotSession instance to which the
      *            targets will be re-linked.
      * @param snapSessionSourceObj A reference to the snapshot session source.
@@ -129,8 +130,8 @@ public interface BlockSnapshotSessionApi {
      *            to be re-linked.
      * @param uriInfo A reference to the URI information.
      */
-    public void validateRelinkSnapshotSessionTargets(BlockSnapshotSession tgtSnapSession, Project project,
-            List<URI> snapshotURIs, UriInfo uriInfo);
+    public void validateRelinkSnapshotSessionTargets(BlockObject snapSessionSourceObj, BlockSnapshotSession tgtSnapSession,
+            Project project, List<URI> snapshotURIs, UriInfo uriInfo);
 
     /**
      * Re-links the targets represented by the BlockSnapshot instances with the passed

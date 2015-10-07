@@ -832,6 +832,7 @@ public class DbClientImpl implements DbClient {
         return result;
     }
 
+    @Override
     public <T extends DataObject> void queryInactiveObjects(Class<T> clazz, final long timeBefore, QueryResultList<URI> result) {
         if (clazz.getAnnotation(NoInactiveIndex.class) != null) {
             final Iterator<Row<String, CompositeColumnName>> it = scanRowsByType(clazz, true, null, Integer.MAX_VALUE).iterator();
@@ -1380,13 +1381,13 @@ public class DbClientImpl implements DbClient {
                             .getKey(rowKey)
                             .autoPaginate(true)
                             .withColumnRange(type.getColumnRange(timeBucket, granularity, DEFAULT_TS_PAGE_SIZE));
-                    columns = query.execute().getResult();
-                    while (!columns.isEmpty()) {
+                    do {
+                        columns = query.execute().getResult();
                         for (Column<UUID> c : columns) {
                             result.data(type.getSerializer().deserialize(c.getByteArrayValue()),
                                     TimeUUIDUtils.getTimeFromUUID(c.getName()));
                         }
-                    }
+                    } while (!columns.isEmpty());
                     return null;
                 }
             }));
@@ -1570,27 +1571,45 @@ public class DbClientImpl implements DbClient {
 
     private Operation updateTaskStatus(Class<? extends DataObject> clazz, URI id,
             String opId, Operation updateOperation) {
-        try {
-            DataObject doobj = clazz.newInstance();
-            List<URI> ids = new ArrayList<URI>(Arrays.asList(id));
-            List<? extends DataObject> objs = queryObjectField(clazz, "status",
-                    ids);
-            if (!objs.isEmpty()) {
-                doobj = objs.get(0);
-                Operation op = doobj.getOpStatus().updateTaskStatus(opId, updateOperation);
-
-                _log.info("Updating operation {} {}", opId, updateOperation.getStatus());
-                persistObject(doobj);
-                return op;
-            }
-            else {
+        List<URI> ids = new ArrayList<URI>(Arrays.asList(id));
+        List<? extends DataObject> objs = queryObjectField(clazz, "status", ids);
+        if (objs == null || objs.isEmpty()) {
+            // When "status" map is null (empty) we do not get object when query by the map field name in CF.
+            // Try to get object by id.
+            objs = queryObject(clazz, ids);
+            if (objs == null || objs.isEmpty()) {
+                _log.error("Cannot find object {} in {}", id, clazz.getSimpleName());
                 return null;
             }
-        } catch (InstantiationException e) {
-            throw new IllegalStateException(e);
-        } catch (IllegalAccessException e) {
-            throw new IllegalStateException(e);
+            _log.info("Object {} has empty status map", id);
         }
+
+        DataObject doobj = objs.get(0);
+        _log.info(String.format("Updating operation %s for object %s with status %s", opId, doobj.getId(), updateOperation.getStatus()));
+        Operation op = doobj.getOpStatus().updateTaskStatus(opId, updateOperation);
+        if (op == null)
+        {
+            // OpStatusMap does not have entry for a given opId. The entry already expired based on ttl.
+            // Recreate the entry for this opId from the task object and proceed with update
+            _log.info("Operation map for object {} does not have entry for operation id {}", doobj.getId(), opId);
+            Task task = TaskUtils.findTaskForRequestId(this, doobj.getId(), opId);
+            if (task != null) {
+                _log.info(String.format("Creating operation %s for object %s from task instance %s", opId, doobj.getId(), task.getId()));
+                // Create operation instance for the task
+                Operation operation = TaskUtils.createOperation(task);
+                doobj.getOpStatus().createTaskStatus(opId, operation);
+                op = doobj.getOpStatus().updateTaskStatus(opId, updateOperation);
+                if (op == null) {
+                    _log.error(String.format("Failed to update operation %s for object %s ", opId, doobj.getId()));
+                    return null;
+                }
+            } else {
+                _log.warn(String.format("Task for operation %s and object %s does not exist.", opId, doobj.getId()));
+                return null;
+            }
+        }
+        persistObject(doobj);
+        return op;
     }
 
     @Override

@@ -78,9 +78,10 @@ task InternalVdcApiTest(type: Test, dependsOn: compileTestJava) {
 // ./gradlew :apisvc:ApiTest -PAPP_HOST_NAMES="lglw0061,lglw0062,lglw0061"
 task ApiTest(type: Test, dependsOn: compileTestJava) {
     //include "com/emc/storageos/api/service/ApiTest.class"
-    include "com/emc/storageos/api/service/ApiTest_AuthnProviders.class"
-    include "com/emc/storageos/api/service/ApiTest_Tenants.class"
-    include "com/emc/storageos/api/service/ApiTest_UserGroup.class"
+    include "com/emc/storageos/api/service/ApiTestAuthnProviders.class"
+    include "com/emc/storageos/api/service/ApiTestTenants.class"
+    include "com/emc/storageos/api/service/ApiTestUserGroup.class"
+    include "com/emc/storageos/api/service/ApiTestVcenter.class"
     environment "API_TEST_VERBOSE", project.ext.has('API_TEST_VERBOSE') ? project.ext.API_TEST_VERBOSE : "true"
     environment "APP_HOST_NAMES", project.ext.has('APP_HOST_NAMES') ? project.ext.APP_HOST_NAMES : "localhost"
 }

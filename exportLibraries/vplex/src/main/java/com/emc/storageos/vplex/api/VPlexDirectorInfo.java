@@ -97,7 +97,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
     private String hostName;
 
     // The port information for the director
-    List<VPlexPortInfo> portInfoList = new ArrayList<VPlexPortInfo>();
+    private List<VPlexPortInfo> portInfoList = new ArrayList<VPlexPortInfo>();
 
     /**
      * Getter for the director id.
@@ -261,11 +261,11 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("DirectorInfo ( ");
         str.append(super.toString());
-        str.append(", directorId: " + directorId);
-        str.append(", engineId: " + engineId);
-        str.append(", serialNumber: " + serialNumber);
-        str.append(", spId: " + spId);
-        str.append(", hostName: " + hostName);
+        str.append(", directorId: ").append(directorId);
+        str.append(", engineId: ").append(engineId);
+        str.append(", serialNumber: ").append(serialNumber);
+        str.append(", spId: ").append(spId);
+        str.append(", hostName: ").append(hostName);
         for (VPlexPortInfo portInfo : portInfoList) {
             str.append(", ");
             str.append(portInfo.toString());

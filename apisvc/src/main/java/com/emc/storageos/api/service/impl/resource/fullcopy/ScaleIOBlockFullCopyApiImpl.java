@@ -42,21 +42,7 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public List<BlockObject> getAllSourceObjectsForFullCopyRequest(BlockObject fcSourceObj) {
-        // No CG operation support for ScaleIO.
-        List<BlockObject> fcSourceObjList = new ArrayList<BlockObject>();
-        fcSourceObjList.add(fcSourceObj);
-        return fcSourceObjList;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Map<URI, Volume> getFullCopySetMap(BlockObject fcSourceObj,
-            Volume fullCopyVolume) {
-        Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
-        fullCopyMap.put(fullCopyVolume.getId(), fullCopyVolume);
-        return fullCopyMap;
+        return super.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
     }
 
     /**
@@ -121,8 +107,7 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     protected void verifyCGVolumeRequestCount(int count) {
-        // Do nothing here. scaleio only supports clone of single volume,
-        // thus no full copy count restriction in ViPR.
+        super.verifyCGVolumeRequestCount(count);
     }
 
     /**
@@ -130,7 +115,6 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     protected void verifyCGSnapshotRequest() {
-        // Do nothing here. scaleIO only supports clone of single volume,
-        // this includes clone of snapshot of volume in a CG.
+        super.verifyCGSnapshotRequest();
     }
 }

@@ -33,6 +33,14 @@ import zlib
 import struct
 from time import sleep
 
+try:
+    # OpenSUSE CoprHD kits tend to display certificate warnings which aren't
+    # relevant to running sanity tests
+    requests.packages.urllib3.disable_warnings()
+except AttributeError:
+    # Swallow error, likely ViPR devkit
+    pass
+
 URI_SERVICES_BASE               = ''
 URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'
@@ -166,6 +174,7 @@ URI_VOLUME_FULL_COPY_CHECK_PROGRESS = URI_VOLUME_LIST     + '/{0}/protection/ful
 URI_FULL_COPY = URI_SERVICES_BASE  + '/block/full-copies'
 URI_FULL_COPY_RESTORE = URI_FULL_COPY + '/{0}/restore'
 URI_FULL_COPY_RESYNC = URI_FULL_COPY + '/{0}/resynchronize'
+URI_ADD_JOURNAL = URI_VOLUME_LIST + '/protection/addJournalCapacity'
 
 URI_UNMANAGED                    = URI_VDC + '/unmanaged'
 URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
@@ -218,7 +227,7 @@ URI_NETWORKSYSTEM_ALIASES_FABRIC       = URI_NETWORKSYSTEM_ALIASES  + '?fabric-i
 URI_NETWORKSYSTEM_ALIASES_REMOVE       = URI_NETWORKSYSTEM_ALIASES  + '/remove'
 
 URI_NETWORKSYSTEM_ZONES           	   = URI_NETWORKSYSTEM  + '/san-fabrics/{1}/san-zones'
-URI_NETWORKSYSTEM_ZONES_QUERY      	   = URI_NETWORKSYSTEM_ZONES  + '?zone-name={2}&exclude-members={3}'
+URI_NETWORKSYSTEM_ZONES_QUERY      	   = URI_NETWORKSYSTEM_ZONES  + '?zone-name={2}&exclude-members={3}&exclude-aliases={4}'
 URI_NETWORKSYSTEM_ZONES_REMOVE         = URI_NETWORKSYSTEM_ZONES  + '/remove'
 URI_NETWORKSYSTEM_ZONES_ACTIVATE       = URI_NETWORKSYSTEM_ZONES  + '/activate'
 
@@ -415,6 +424,11 @@ URI_REPLICATION_GROUP           = URI_SERVICES_BASE + '/vdc/data-service/vpools/
 URI_REPLICATION_GROUPS          = URI_SERVICES_BASE + '/vdc/data-service/vpools'
 URI_REPLICATION_EXTEND          = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/addvarrays'
 URI_REPLICATION_COMPRESS        = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/removevarrays'
+
+URI_VNAS_SERVERS                = URI_SERVICES_BASE + '/vdc/vnas-servers'
+URI_VNAS_SERVER                 = URI_SERVICES_BASE + '/vdc/vnas-servers/{0}'
+URI_VNAS_SERVER_ASSIGN          = URI_SERVICES_BASE + '/projects/{0}/assign-vnas-servers'
+URI_VNAS_SERVER_UNASSIGN        = URI_SERVICES_BASE + '/projects/{0}/unassign-vnas-servers'
 
 URI_GEO_SERVICES_BASE           = ''
 URI_CHUNKINFO                   = URI_GEO_SERVICES_BASE + '/chunkinfo'
@@ -1504,7 +1518,8 @@ class Bourne:
 
     def cos_match(self, type, useMatchedPools,
                    protocols, numpaths, highavailability, haNhUri, haCosUri, activeProtectionAtHASite, metropoint, file_cos, provisionType,
-                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, protectionCoS,
+                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
+                   standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    system_type, srdf):
 
@@ -2789,11 +2804,11 @@ class Bourne:
                     
                 return self.api_sync_2(o['resource']['id'], o['op_id'], self.networksystem_show_task)
 
-    def zone_list(self, uri, fabricId,zoneName, excludeMembers):
+    def zone_list(self, uri, fabricId,zoneName, excludeMembers, excludeAliases):
         if (fabricId):
             if ( zoneName == None ):
                 zoneName = ""
-            return self.api('GET', URI_NETWORKSYSTEM_ZONES_QUERY.format(uri, fabricId, zoneName,excludeMembers))     
+            return self.api('GET', URI_NETWORKSYSTEM_ZONES_QUERY.format(uri, fabricId, zoneName,excludeMembers, excludeAliases))     
         else:
             raise Exception('fabricid was not provided')
 
@@ -3435,6 +3450,30 @@ class Bourne:
 
         print "VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})
+        print "RESP = ", resp
+        self.assert_is_dict(resp)
+        tr_list = resp['task']
+        #print 'DEBUG : debug operation for volume : ' + o['resource']['id']
+        print tr_list
+        result = list()
+        for tr in tr_list:
+            s = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
+            result.append(s)
+        return result
+
+    def volume_add_journal(self, copyName, project, neighborhood, cos, size, count, consistencyGroup):
+        parms = {
+            'name' : copyName,
+            'varray' : neighborhood,
+            'project' : project,
+            'vpool' :  cos,
+            'size' : size,
+            'count' : count,
+	    'consistency_group' : consistencyGroup,
+        }        
+
+        print "ADD JOURNAL Params = ", parms
+        resp = self.api('POST', URI_ADD_JOURNAL, parms, {})
         print "RESP = ", resp
         self.assert_is_dict(resp)
         tr_list = resp['task']
@@ -8067,6 +8106,46 @@ class Bourne:
 
     def vdcinfo_list(self):
         return self.api('GET', URI_VDCINFO_LIST)
+
+    def vnas_list(self):
+        vnaslist = self.api('GET', URI_VNAS_SERVERS)
+        if('vnas_server' in vnaslist):
+            return vnaslist['vnas_server']
+    
+    def vnas_query(self, name):
+        if name.startswith('urn:storageos:VirtualNAS'):
+            return name
+	vnasservers = self.vnas_list()
+        for vnas in vnasservers:
+            if('name' in vnas and vnas['name'] == name):
+                return vnas['id']	
+        raise Exception('bad vnas name ' + name)
+		
+    def vnas_show(self, name):
+        vnasid = self.vnas_query(name)
+	if(vnasid is not None):
+	    return self.api('GET', URI_VNAS_SERVER.format(vnasid))
+			
+    def assign_vnas(self, name, project):
+        vnasid = self.vnas_query(name)
+	projectURI = self.project_query(project)
+        params = dict()
+        vnaslist = []
+	if(projectURI is not None):
+            vnaslist.append(vnasid)
+            params['vnas_server'] = vnaslist
+	    return self.api('PUT', URI_VNAS_SERVER_ASSIGN.format(projectURI), params)	
+
+    def unassign_vnas(self, name, project):
+        vnasid = self.vnas_query(name)
+	projectURI = self.project_query(project)
+        params = dict()
+        vnaslist = []
+	if(projectURI is not None):
+            vnaslist.append(vnasid)
+            params['vnas_server'] = vnaslist
+            return self.api('PUT', URI_VNAS_SERVER_UNASSIGN.format(projectURI), params)			
+		
 
     def unmanaged_volume_query(self, name):
         if (self.__is_uri(name)):

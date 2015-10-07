@@ -9,6 +9,23 @@ public class UnManagedDiscoveredObject extends DataObject {
     // Unique Bourne identifier.
     private String _nativeGuid;
 
+    private StringSet supportedVpoolUris;
+
+    public enum ExportType {
+        EXPORTED, UNEXPORTED;
+
+        private static final ExportType[] exportTypes = values();
+
+        public static ExportType lookup(final String name) {
+            for (ExportType value : exportTypes) {
+                if (value.name().equalsIgnoreCase(name)) {
+                    return value;
+                }
+            }
+            return null;
+        }
+    }
+
     @AlternateId("StandAloneObjectsAltIdIdnex")
     @Name("nativeGuid")
     public String getNativeGuid() {
@@ -42,5 +59,19 @@ public class UnManagedDiscoveredObject extends DataObject {
             }
             return null;
         }
+    }
+
+    @IndexByKey
+    @AlternateId("SupportedVPoolUriIndex")
+    @Name("supportedVpoolUris")
+    public StringSet getSupportedVpoolUris() {
+        if (null == supportedVpoolUris) {
+            this.setSupportedVpoolUris(new StringSet());
+        }
+        return supportedVpoolUris;
+    }
+
+    public void setSupportedVpoolUris(StringSet supportedVpoolUris) {
+        this.supportedVpoolUris = supportedVpoolUris;
     }
 }

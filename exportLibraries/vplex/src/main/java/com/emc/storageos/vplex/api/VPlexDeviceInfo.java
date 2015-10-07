@@ -20,8 +20,14 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     private List<VPlexDeviceInfo> childDeviceInfoList = new ArrayList<VPlexDeviceInfo>();
 
     // The cluster id.
-    private String clusterId = null;
+    private String cluster = null;
 
+    // The device geometry (RAID level).
+    private String geometry = null;
+
+    // The device slot number.
+    private String slotNumber = null;
+    
     /**
      * Getter for the extent info for the device.
      * 
@@ -63,8 +69,19 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
      * 
      * @return The device cluster id.
      */
-    public String getClusterId() {
-        return clusterId;
+    public String getCluster() {
+        if (null == cluster) {
+            // attempt to parse it from the contextPath
+            // formatted like: /clusters/cluster-1/devices/device_*
+            String[] contextParts = getPath().split("/");
+            // first token will be empty string, 
+            // then "clusters", then cluster id at index 2
+            if (contextParts != null && contextParts.length >= 2) {
+                cluster = contextParts[2];
+            }
+        }
+        
+        return cluster;
     }
 
     /**
@@ -72,8 +89,44 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
      * 
      * @param id The device cluster id.
      */
-    public void setClusterId(String id) {
-        clusterId = id;
+    public void setCluster(String id) {
+        cluster = id;
+    }
+
+    /**
+     * Getter for the device geometry (RAID level).
+     * 
+     * @return The device geometry.
+     */
+    public String getGeometry() {
+        return geometry;
+    }
+
+    /**
+     * Setter for the device geometry (RAID level).
+     * 
+     * @param id The device geometry.
+     */
+    public void setGeometry(String geometry) {
+        this.geometry = geometry;
+    }
+
+    /**
+     * Getter for the device slot number.
+     * 
+     * @return The device slot number.
+     */
+    public String getSlotNumber() {
+        return slotNumber;
+    }
+
+    /**
+     * Setter for the device slot number.
+     * 
+     * @param id The device slot number.
+     */
+    public void setSlotNumber(String slotNumber) {
+        this.slotNumber = slotNumber;
     }
 
     /**
@@ -82,9 +135,11 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append("DeviceInfo ( ");
+        str.append("VPlexDeviceInfo ( ");
         str.append(super.toString());
-        str.append(", clusterId: " + clusterId);
+        str.append(", cluster: ").append(getCluster());
+        str.append(", geometry: ").append(geometry);
+        str.append(", slotNumber: ").append(slotNumber);
         for (VPlexExtentInfo extentInfo : extentInfoList) {
             str.append(", ");
             str.append(extentInfo.toString());

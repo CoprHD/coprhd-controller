@@ -122,7 +122,6 @@ public class StorageProviders extends ViprResourceController {
             StorageProviderForm smisProvider = new StorageProviderForm(provider);
             copyRenderArgsToAngular();
             angularRenderArgs().put("smisProvider", smisProvider);
-            renderArgs.put("isScaleio", smisProvider.isScaleio);
             render(smisProvider);
         }
         else {
@@ -221,7 +220,6 @@ public class StorageProviders extends ViprResourceController {
 
         public String elementManagerURL;
         
-        public boolean isScaleio = true;
 
         public StorageProviderForm() {        	
         }
@@ -251,7 +249,6 @@ public class StorageProviders extends ViprResourceController {
             this.secondaryPassword = ""; // the platform will never return the real password
             this.elementManagerURL = storageProvider.getElementManagerURL();      
             if(isScaleIOApi()) {
-            	isScaleio = false;
             	this.secondaryUsername = this.userName;
             	this.secondaryPassword = this.password;
             	this.secondaryPasswordConfirm = this.confirmPassword;

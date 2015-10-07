@@ -59,8 +59,8 @@ public class VPlexExtentInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("ExtentInfo ( ");
         str.append(super.toString());
-        str.append(", clusterId: " + clusterId);
-        str.append(", storageVolumeInfo: " + (storageVolumeInfo == null ? "null" : storageVolumeInfo.toString()));
+        str.append(", clusterId: ").append(clusterId);
+        str.append(", storageVolumeInfo: ").append((storageVolumeInfo == null ? "null" : storageVolumeInfo.toString()));
         str.append(" )");
         return str.toString();
     }

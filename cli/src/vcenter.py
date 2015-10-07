@@ -31,13 +31,17 @@ class VCenter(object):
     URI_RESOURCE_DEACTIVATE = '{0}/deactivate'
     URI_VCENTERS = URI_SERVICES_BASE + '/compute/vcenters'
     URI_VCENTER = URI_SERVICES_BASE + '/compute/vcenters/{0}'
-    URI_VCENTER_DATACENTERS = URI_VCENTER + '/vcenter-data-centers'
-    URI_DATACENTERS = URI_SERVICES_BASE + '/compute/vcenter-data-centers'
-    URI_DATACENTER = URI_SERVICES_BASE + '/compute/vcenter-data-centers/{0}'
+    URI_VCENTER_DATACENTERS = URI_VCENTER + '/vcenter-data-centers?tenant={1}'
     URI_VCENTER_HOSTS = URI_VCENTER + '/hosts'
     URI_VCENTER_CLUSTERS = URI_VCENTER + '/clusters'
-    URI_VCENTER_DATACENTERS = URI_VCENTER + '/vcenter-data-centers'
     URI_VCENTER_DISCOVER = URI_VCENTER + '/discover'
+    URI_VCENTER_ACL = URI_VCENTERS + '/{0}/acl'
+    URI_VCENTERS_WITH_TENANT_PARAM = URI_VCENTERS + '?tenant={0}'
+    URI_VCENTERS_WITH_DISCOVER_PARAM = URI_VCENTERS + '?discover_vcenter={0}'
+    URI_WHO_AM_I = "/user/whoami";
+    VCENTERS_FROM_ALL_TENANTS = "No-Filter";
+    VCENTERS_WITH_NO_TENANTS = "Not-Assigned";
+    USER_ROLE_SYSTEM_ADMIN = "SYSTEM_ADMIN";
 
     def __init__(self, ipAddr, port):
         '''
@@ -47,6 +51,20 @@ class VCenter(object):
         self.__ipAddr = ipAddr
         self.__port = port
 
+    def get_tenant_uri_from_name(self, tenantname):
+        if (tenantname is None or
+            tenantname == "" or
+            tenantname.lower() == VCenter.VCENTERS_FROM_ALL_TENANTS.lower() or
+            tenantname.lower() == VCenter.VCENTERS_WITH_NO_TENANTS.lower()):
+            tenanturi = tenantname
+        else:
+            from tenant import Tenant
+            obj = Tenant(self.__ipAddr, self.__port)
+
+            tenanturi = obj.tenant_query(tenantname)
+
+        return tenanturi
+
     def vcenter_query(self, name, tenantname):
         '''
         Returns the UID of the vcenter specified by the name
@@ -54,10 +72,7 @@ class VCenter(object):
         if (common.is_uri(name)):
             return name
 
-        from tenant import Tenant
-        obj = Tenant(self.__ipAddr, self.__port)
-
-        tenanturi = obj.tenant_query(tenantname)
+        tenanturi = self.get_tenant_uri_from_name(tenantname)
 
         vcenters = self.vcenter_list(tenanturi)
         for vcenter in vcenters:
@@ -74,18 +89,31 @@ class VCenter(object):
         Returns:
                 JSON payload of vcenter list
         '''
-        from tenant import Tenant
-        obj = Tenant(self.__ipAddr, self.__port)
-
-        uri = obj.tenant_query(tenant)
+        uri = self.get_vcenter_uri_with_tenant_param(tenant)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
-            VCenter.URI_TENANTS_VCENTERS.format(uri), None)
+            uri, None)
 
         o = common.json_decode(s)
 
         return o['vcenter']
+
+    def get_vcenter_uri_with_tenant_param(self, tenant):
+        uri = ""
+        if (tenant is None or
+            tenant == "" or
+            tenant.lower() == VCenter.VCENTERS_FROM_ALL_TENANTS.lower()):
+            uri = VCenter.URI_VCENTERS_WITH_TENANT_PARAM.format(VCenter.VCENTERS_FROM_ALL_TENANTS)
+        elif tenant.lower() == VCenter.VCENTERS_WITH_NO_TENANTS.lower():
+            uri = VCenter.URI_VCENTERS_WITH_TENANT_PARAM.format(tenant)
+        else:
+            from tenant import Tenant
+            obj = Tenant(self.__ipAddr, self.__port)
+
+            tenant_uri = obj.tenant_query(tenant)
+            uri = VCenter.URI_VCENTERS_WITH_TENANT_PARAM.format(tenant_uri)
+        return uri
 
     def vcenter_get_details_list(self, detailslst):
         rsltlst = []
@@ -103,10 +131,13 @@ class VCenter(object):
         '''
 
         uri = self.vcenter_query(label, tenantname)
-
+        if (tenantname is None or
+            tenantname == "") :
+            tenantname = VCenter.VCENTERS_FROM_ALL_TENANTS
+            
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
-            VCenter.URI_VCENTER_DATACENTERS.format(uri),
+            VCenter.URI_VCENTER_DATACENTERS.format(uri, self.get_tenant_uri_from_name(tenantname)),
             None, None, xml)
 
         o = common.json_decode(s)
@@ -186,7 +217,7 @@ class VCenter(object):
         return o
 
     def vcenter_create(self, label, tenant, ipaddress, devport,
-                       username, password, osversion, usessl):
+                       username, password, osversion, usessl, cascade_tenancy):
         '''
         creates a vcenter
         parameters:
@@ -202,10 +233,20 @@ class VCenter(object):
 
         except SOSError as e:
             if(e.err_code == SOSError.NOT_FOUND_ERR):
-                from tenant import Tenant
-                obj = Tenant(self.__ipAddr, self.__port)
 
-                uri = obj.tenant_query(tenant)
+                (s, h) = common.service_json_request(
+                    self.__ipAddr, self.__port, "GET", VCenter.URI_WHO_AM_I, None)
+
+                user_info = common.json_decode(s)
+
+                sys_admin = False
+                vdc_roles = []
+
+                if user_info['vdc_roles']:
+                    vdc_roles = user_info['vdc_roles']
+
+                if VCenter.USER_ROLE_SYSTEM_ADMIN in vdc_roles:
+                    sys_admin = True
 
                 var = dict()
                 params = dict()
@@ -218,11 +259,46 @@ class VCenter(object):
                           'use_ssl': usessl
                           }
 
-                body = json.dumps(params)
-                (s, h) = common.service_json_request(
-                    self.__ipAddr, self.__port, "POST",
-                    VCenter.URI_TENANTS_VCENTERS.format(uri), body)
+                if sys_admin:
+                    params['cascade_tenancy'] = cascade_tenancy;
+                    discover = 'false';
+                    if tenant is None:
+                        discover = 'true';
+
+                    body = json.dumps(params)
+                    (s, h) = common.service_json_request(
+                        self.__ipAddr, self.__port, "POST", VCenter.URI_VCENTERS_WITH_DISCOVER_PARAM.format(discover), body)
+                else:
+                    body = json.dumps(params)
+
+                    from tenant import Tenant
+                    obj = Tenant(self.__ipAddr, self.__port)
+                    tenant_uri = obj.tenant_query(tenant)
+
+                    (s, h) = common.service_json_request(
+                        self.__ipAddr, self.__port, "POST", VCenter.URI_TENANTS_VCENTERS.format(str(tenant_uri)), body)
+
                 o = common.json_decode(s)
+                uri = None
+                if sys_admin and uri is not None:
+                    tenant_uri = None
+                    if tenant is not None:
+                        from tenant import Tenant
+                        obj = Tenant(self.__ipAddr, self.__port)
+                        tenant_uri = obj.tenant_query(tenant)
+                        
+                    vcenter_id = (o['resource'])['id']
+                    acls_params = dict()
+                    acls_params = {'add' : [{
+                                            'tenant' : str(tenant_uri),
+                                            'privilege' : ['USE']
+                                            }]
+                                   }
+                    body = json.dumps(acls_params)
+                    (s, h) = common.service_json_request(
+                        self.__ipAddr, self.__port, "PUT", VCenter.URI_VCENTER_ACL.format(vcenter_id), body)
+                    o = common.json_decode(s)
+
                 return o
 
             else:
@@ -283,6 +359,43 @@ class VCenter(object):
                 vcenter_name +
                 " not found")
 
+    def add_or_remove_vcenter_acls(self, vcenter_name, tenants, operation):
+        vcenter_uri = self.vcenter_query(vcenter_name, VCenter.VCENTERS_FROM_ALL_TENANTS)
+
+        tenants_array = []
+        tenants_array = tenants.split(',')
+
+        from tenant import Tenant
+        obj = Tenant(self.__ipAddr, self.__port)
+
+        acl_entries = []
+        for tenant in tenants_array:
+            acl_entry = dict()
+            acl_entry['privilege'] = ['USE']
+            acl_entry['tenant'] = str(obj.tenant_query(tenant))
+            acl_entries.append(acl_entry)
+
+        request = {operation: acl_entries}
+
+        body = json.dumps(request)
+
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "PUT",
+                        VCenter.URI_VCENTER_ACL.format(vcenter_uri), body)
+
+        o = common.json_decode(s)
+
+        return o
+
+    def get_vcenter_acls(self, vcenter_name):
+        vcenter_uri = self.vcenter_query(vcenter_name, VCenter.VCENTERS_FROM_ALL_TENANTS)
+
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
+                        VCenter.URI_VCENTER_ACL.format(vcenter_uri), None)
+
+        o = common.json_decode(s)
+
+        return o
+
 
 # Create routines
 def create_parser(subcommand_parsers, common_parser):
@@ -336,6 +449,11 @@ def create_parser(subcommand_parsers, common_parser):
                                action='store_true',
                                help='Use SSL or not')
 
+    create_parser.add_argument('-cascade_tenancy', '-cascade',
+                               dest='cascade_tenancy',
+                               metavar='<cascade_tenancy>',
+                               help='Whether to cascade the vCenter tenancy to its datacenters, clusters and hosts or not')
+
     create_parser.set_defaults(func=vcenter_create)
 
 
@@ -349,7 +467,7 @@ def vcenter_create(args):
     try:
         res = obj.vcenter_create(args.name, args.tenant, args.vcenter_ip,
                                  args.vcenter_port, args.user, passwd,
-                                 args.osversion, args.usessl)
+                                 args.osversion, args.usessl, args.cascade_tenancy)
     except SOSError as e:
         common.format_err_msg_and_raise("create", "vcenter", e.err_text,
                                         e.err_code)
@@ -817,6 +935,91 @@ def vcenter_list_tasks(args):
         common.format_err_msg_and_raise("get tasks list", "vcenter",
                                         e.err_text, e.err_code)
 
+def add_acls_parser(subcommand_parsers, common_parser):
+    add_acls_parser = subcommand_parsers.add_parser('add-acls',
+                    description='ViPR add vCenter ACL CLI usage.',
+                    parents=[common_parser],
+                    conflict_handler='resolve',
+                    help='Add vCenter ACL details')
+    mandatory_args = add_acls_parser.add_argument_group(
+                                    'mandatory arguments')
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of vCenter',
+                                required=True)
+    mandatory_args.add_argument('-tns', '-tenants',
+                                metavar='<tenants>',
+                                dest='tenants',
+                                help='A comma separated list of tenant names',
+                                required=True)
+    add_acls_parser.set_defaults(func=add_vcenter_acls)
+
+
+def add_vcenter_acls(args):
+    obj = VCenter(args.ip, args.port)
+    try:
+        res = obj.add_or_remove_vcenter_acls(args.name, args.tenants, "add")
+        if res:
+            return common.format_json_object(res)
+    except SOSError as e:
+        raise e
+
+def remove_acls_parser(subcommand_parsers, common_parser):
+    remove_acls_parser = subcommand_parsers.add_parser('remove-acls',
+                    description='ViPR remove vCenter ACL CLI usage.',
+                    parents=[common_parser],
+                    conflict_handler='resolve',
+                    help='Remove vCenter ACL details')
+    mandatory_args = remove_acls_parser.add_argument_group(
+                                    'mandatory arguments')
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of vCenter',
+                                required=True)
+    mandatory_args.add_argument('-tns', '-tenants',
+                                metavar='<tenants>',
+                                dest='tenants',
+                                help='A comma separated list of tenant names',
+                                required=True)
+    remove_acls_parser.set_defaults(func=remove_vcenter_acls)
+
+
+def remove_vcenter_acls(args):
+    obj = VCenter(args.ip, args.port)
+    try:
+        res = obj.add_or_remove_vcenter_acls(args.name, args.tenants, "remove")
+        if res:
+            return common.format_json_object(res)
+    except SOSError as e:
+        raise e
+
+def get_acls_parser(subcommand_parsers, common_parser):
+    get_acls_parser = subcommand_parsers.add_parser('get-acls',
+                    description='ViPR get vCenter ACL CLI usage.',
+                    parents=[common_parser],
+                    conflict_handler='resolve',
+                    help='Get vCenter ACL details')
+    mandatory_args = get_acls_parser.add_argument_group(
+                                    'mandatory arguments')
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of vCenter',
+                                required=True)
+    get_acls_parser.set_defaults(func=get_vcenter_acls)
+
+
+def get_vcenter_acls(args):
+    obj = VCenter(args.ip, args.port)
+    try:
+        res = obj.get_vcenter_acls(args.name)
+        if res:
+            return common.format_json_object(res)
+    except SOSError as e:
+        raise e
+
 
 #
 # vcenter Main parser routine
@@ -854,3 +1057,12 @@ def vcenter_parser(parent_subparser, common_parser):
     discover_parser(subcommand_parsers, common_parser)
 
     task_parser(subcommand_parsers, common_parser)
+
+    #add vCenter acls parser
+    add_acls_parser(subcommand_parsers, common_parser)
+
+    #remove vCenter acls parser
+    remove_acls_parser(subcommand_parsers, common_parser)
+
+    #get vCenter acls parser
+    get_acls_parser(subcommand_parsers, common_parser)

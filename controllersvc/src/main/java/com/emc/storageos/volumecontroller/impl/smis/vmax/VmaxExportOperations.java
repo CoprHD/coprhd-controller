@@ -3055,11 +3055,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
 
         _log.info("{} Groups generated based on grouping volumes by fast policy", policyToVolumeGroup.size());
-        Map<StorageGroupPolicyLimitsParam, Set<String>> allStorageGroups = _helper.getExistingSGNamesFromArray(storage);
-        Set<String> existingGroupNames = new HashSet<>();
-        for (Set<String> groupNames : allStorageGroups.values()) {
-            existingGroupNames.addAll(groupNames);
-        }
 
         /** Grouped Volumes based on Fast Policy */
         for (Entry<StorageGroupPolicyLimitsParam, Collection<VolumeURIHLU>> policyToVolumeGroupEntry : policyToVolumeGroup.asMap()
@@ -3082,8 +3077,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 _log.debug("Group Name Created {}", groupName);
                 groupPath = createVolumeGroup(storage, groupName, volumeURIHLU, taskCompleter, true);
-                // Add the newly created storage group to the existingGroupNames list.
-                existingGroupNames.add(groupName);
                 _log.info("Volume Group {} created on Array", groupPath);
 
             }
@@ -3123,8 +3116,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     groupName = generateStorageGroupName(storage, mask, initiators, storageGroupPolicyLimitsParam);
                     _log.debug("Group Name Created :", groupName);
                     groupPath = createVolumeGroup(storage, groupName, volumeURIHLU, taskCompleter, true);
-                    // Add the newly created storage group to the existingGroupNames list.
-                    existingGroupNames.add(groupName);
                     _log.info("Volume Group {} created on Array {}", groupName, storage.getSerialNumber());
                 }
             }
@@ -3153,6 +3144,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
             }
             childVolumeGroupsToBeAddedToParentGroup.addAll(childVolumeGroupsToBeAdded);
+        }
+        Map<StorageGroupPolicyLimitsParam, Set<String>> allStorageGroups = _helper.getExistingSGNamesFromArray(storage);
+        Set<String> existingGroupNames = new HashSet<>();
+        for (Set<String> groupNames : allStorageGroups.values()) {
+            existingGroupNames.addAll(groupNames);
         }
         // Avoid duplicate names for the Cascaded VolumeGroup
         parentGroupName = _helper.generateGroupName(existingGroupNames, parentGroupName);

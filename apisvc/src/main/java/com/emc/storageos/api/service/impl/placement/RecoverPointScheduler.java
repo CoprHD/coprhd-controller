@@ -443,7 +443,7 @@ public class RecoverPointScheduler implements Scheduler {
             // If we have an existing RP consistency group we want to use the same protection system
             // used by other volumes in it.
             if (cgProtectionSystem != null) {
-                _log.info(String.format("RP Placement : Narrowing down placement to use protection system %s, "
+                _log.info(String.format("RP Placement : Narrowing down placement to use ProtectionSystem %s, "
                         + "which is currently used by RecoverPoint consistency group %s.", cgProtectionSystem.getLabel(), cg));
                 protectionSystems.add(cgProtectionSystem);
             } else {
@@ -462,7 +462,7 @@ public class RecoverPointScheduler implements Scheduler {
             for (ProtectionSystem candidateProtectionSystem : protectionSystemsLst) {
                 Calendar cgLastCreated = candidateProtectionSystem.getCgLastCreatedTime();
 
-                _log.info(String.format("Attempting to use protection system %s, which was last used to create a CG on %s.",
+                _log.info(String.format("RP Placement : Attempting to use ProtectionSystem %s, which was last used to create a CG on %s.",
                         candidateProtectionSystem.getLabel(), cgLastCreated != null ? cgLastCreated.getTime().toString() : "N/A"));
 
                 List<String> associatedStorageSystems = new ArrayList<String>();
@@ -472,7 +472,7 @@ public class RecoverPointScheduler implements Scheduler {
                 // If we have existing source volumes in the RP consistency group, we want to use the same
                 // source internal site.
                 if (internalSiteNameandAssocStorageSystem != null) {
-                    _log.info(String.format("RP Placement : Narrowing down placement to use source internal site %s, "
+                    _log.info(String.format("RP Placement : Narrowing down placement to use internal site %s for source, "
                             + "which is currently used by RecoverPoint consistency group %s.", internalSiteNameandAssocStorageSystem, cg));
                     associatedStorageSystems.add(internalSiteNameandAssocStorageSystem);
                 } else {
@@ -485,35 +485,36 @@ public class RecoverPointScheduler implements Scheduler {
                 if (associatedStorageSystems.isEmpty()) {
                     // no rp site clusters connected to this storage system, should not hit this, but just to be safe we'll catch it
                     _log.info(String.format(
-                            "RP Placement: Protection System %s does not have an rp site cluster connected to Storage pool %s ",
+                            "RP Placement: Protection System %s does not have an RP internal site connected to Storage pool %s ",
                             candidateProtectionSystem.getLabel(), sourcePool.getLabel()));
                     continue;
                 }
 
                 for (String associatedStorageSystem : associatedStorageSystems) {
+                	_log.info(String.format("RP Placement : Attempting to find solution using StorageSystem : %s for RP source", associatedStorageSystem));
                     rpProtectionRecommendation.setProtectionDevice(candidateProtectionSystem.getId());
-                    RPRecommendation rpRecommendation = buildSourceRecommendation(associatedStorageSystem, varray, vpool,
+                    RPRecommendation rpSourceRecommendation = buildSourceRecommendation(associatedStorageSystem, varray, vpool,
                             candidateProtectionSystem, sourcePool,
                             capabilities, satisfiedCount, placementStatus, vpoolChangeVolume, false);
-                    if (rpRecommendation == null) {
+                    if (rpSourceRecommendation == null) {
                         // No placement found for the associatedStorageSystem, so continue.
                         continue;
                     }
 
-                    candidateSourceInternalSiteName = rpRecommendation.getInternalSiteName();
-                    _log.info(String.format("RP Placement : Choosing RP site %s for source", candidateSourceInternalSiteName));
+                    candidateSourceInternalSiteName = rpSourceRecommendation.getInternalSiteName();
+                    _log.info(String.format("RP Placement : Choosing RP internal site %s for source", candidateSourceInternalSiteName));
 
                     // Build the HA recommendation if HA is specified
                     VirtualPoolCapabilityValuesWrapper haCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
                     haCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, satisfiedCount);
                     RPRecommendation haRecommendation = this.getHaRecommendation(varray, vpool, project, haCapabilities);
                     if (haRecommendation != null) {
-                        rpRecommendation.setHaRecommendation(haRecommendation);
+                        rpSourceRecommendation.setHaRecommendation(haRecommendation);
                     }
 
                     totalSatisfiedCount += satisfiedCount;
                     requestedCount = requestedCount - totalSatisfiedCount;
-                    rpProtectionRecommendation.getSourceRecommendations().add(rpRecommendation);
+                    rpProtectionRecommendation.getSourceRecommendations().add(rpSourceRecommendation);
 
                     // Build Source Journal Recommendation
                     if (rpProtectionRecommendation.getSourceJournalRecommendation() == null) {
@@ -535,7 +536,7 @@ public class RecoverPointScheduler implements Scheduler {
                     placementStatus.setLatestInvalidRecommendation(null);
 
                     // Find a solution, given this vpool, and the target varrays
-                    if (findSolution(rpProtectionRecommendation, rpRecommendation, varray, vpool, protectionVarrays,
+                    if (findSolution(rpProtectionRecommendation, rpSourceRecommendation, varray, vpool, protectionVarrays,
                             capabilities, satisfiedCount, false, null, project)) {                       
 
                         if ((totalSatisfiedCount >= totalRequestedCount)) {
@@ -553,18 +554,17 @@ public class RecoverPointScheduler implements Scheduler {
                             break;
                         }
                     } else {
-                        candidateSourceInternalSiteName = "";
                         // Not sure there's anything to do here. Just go to the next candidate protection system or Protection System
-                        _log.info(String.format("RP Placement : Could not find a solution against protection system %s "
-                                + "and internal cluster name %s", candidateProtectionSystem.getLabel(), candidateSourceInternalSiteName));
-                        rpProtectionRecommendation = null;
-                    }
-                } // end of for loop trying to find solution using possible rp cluster sites
+                        _log.info(String.format("RP Placement : Could not find a solution against ProtectionSystem %s "
+                                + "and internal site %s", candidateProtectionSystem.getLabel(), candidateSourceInternalSiteName));                       
+                    }                                                       
+                } // end of for loop trying to find solution using possible rp cluster sites                
+                rpProtectionRecommendation = new RPProtectionRecommendation();                
             } // end of protection systems for loop
         }
         // we went through all the candidate pools and there are still some of the volumes that haven't been placed, then we failed to find
         // a solution
-        _log.error("ViPR could not find matching storage pools that could be protected via RecoverPoint");
+        _log.error("RP Placement : ViPR could not find matching storage pools that could be protected via RecoverPoint");
         throw APIException.badRequests.cannotFindSolutionForRP(placementStatus.toString(dbClient));
     }
 

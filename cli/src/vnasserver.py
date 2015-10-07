@@ -337,7 +337,7 @@ def unassign_parser(subcommand_parsers, common_parser):
         help='Un-Assign vnasserver to project')
     mandatory_args = unassign_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
-                                help='Name of vnasserver',
+                                help='List of vnasservers',
                                 metavar='<vnas_server>',
                                 dest='name',
                                 required=True ,

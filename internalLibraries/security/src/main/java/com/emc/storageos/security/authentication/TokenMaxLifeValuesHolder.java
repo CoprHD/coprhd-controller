@@ -24,11 +24,13 @@ import org.slf4j.LoggerFactory;
 public class TokenMaxLifeValuesHolder {
     private static final Logger _log = LoggerFactory.getLogger(TokenMaxLifeValuesHolder.class);
 
+    private static final int MAX_TOKEN_LIFE_TIME_IN_MINS = 8 * 60; // 8 hrs
+    private static final int MAX_TOKEN_IDLE_TIME_IN_MINS = 2 * 60; // 2 hrs
     private static final int TOKEN_IDLE_TIME_GRACE_IN_MINS = 10;
     private static final int FOREIGN_TOKEN_CACHE_EXPIRATION_IN_MINS = 10;
 
-    protected int _maxTokenLifeTimeInMins;
-    protected int _maxTokenIdleTimeInMins;
+    protected int _maxTokenLifeTimeInMins = MAX_TOKEN_LIFE_TIME_IN_MINS;
+    protected int _maxTokenIdleTimeInMins = MAX_TOKEN_IDLE_TIME_IN_MINS;
     protected int _tokenIdleTimeGraceInMins = TOKEN_IDLE_TIME_GRACE_IN_MINS;
     protected int _foreignTokenCacheExpirationInMins = FOREIGN_TOKEN_CACHE_EXPIRATION_IN_MINS;
     protected long _overrideKeyRotationIntervalInMsecs = 0;

@@ -4,9 +4,9 @@
     <dd>${computeImageServer.computeImageServerStatus ?: '-'}</dd>
     <dt>&{'computeImageServers.tftpBootDir'}</dt>
     <dd>${computeImageServer.tftpBootDir ?: '-'}</dd>
-    <dt>&{'computeImageServers.availableComputeImages'}</dt>
-    <dd>${computeImageServer.computeImages ?: '-'}</dd>
-    <dt>&{'computeImageServers.failedComputeImages'}</dt>
-    <dd>${computeImageServer.computeImages ?: '-'}</dd>
+    #{if computeImageServer.computeImages}
+        <dt>&{'computeImageServers.availableComputeImages'}</dt>
+        <dd>${computeImageServer.computeImages.collect{ it.id }.join(", ")?: '-'}</dd>
+    #{/if}
 
 </dl>

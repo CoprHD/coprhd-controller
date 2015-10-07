@@ -417,4 +417,33 @@ public class VPlexControllerUtils {
 
         return distributedDevicePathToClusterMap;
     }
+    
+    /**
+     * Validates that the underlaying structure of the given device name
+     * satisfies the constraints for compatibility with ViPR.  Used for
+     * validating unmanaged VPLEX volumes before ingestion.
+     * 
+     * @param deviceName the device to validate
+     * @param vplexUri the VPLEX to query
+     * @param dbClient a reference to the database client
+     * @throws VPlexApiException if the device structure is incompatible with ViPR
+     */
+    public static void validateSupportingDeviceStructure(String deviceName, 
+            URI vplexUri, DbClient dbClient) throws VPlexApiException {
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        if (null != client) {
+            client.validateSupportingDeviceStructure(deviceName);
+        } else {
+            throw VPlexApiException.exceptions.failedToExecuteDrillDownCommand(
+                    deviceName, "cannot load vplex api client");
+        }
+    }
 }

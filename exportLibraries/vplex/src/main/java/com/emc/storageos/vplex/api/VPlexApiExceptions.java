@@ -741,4 +741,7 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedToValidateExportMask(String exporURI, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedToExecuteDrillDownCommand(String deviceName, String response);
 }

@@ -117,6 +117,7 @@ public class VPlexApiConstants {
     public static final URI URI_INVALIDATE_VOLUME_CACHE_STATUS = URI.create("/vplex/virtual-volume+cache-invalidate-status");
     public static final URI URI_DEVICE_DETACH_MIRROR = URI.create("/vplex/device+detach-mirror");
     public static final URI URI_REFRESH_CONTEXT = URI.create("/vplex/ls");
+    public static final URI URI_DRILL_DOWN = URI.create("/vplex/drill-down");
 
     // Keys found in JSON responses to HTTP requests
     public static final String RESPONSE_JSON_KEY = "response";

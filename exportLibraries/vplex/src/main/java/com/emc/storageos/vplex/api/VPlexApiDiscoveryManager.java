@@ -3860,4 +3860,44 @@ public class VPlexApiDiscoveryManager {
         return distributedDevicePathToClusterMap;
     }
 
+    /**
+     * Calls the VPLEX CLI "drill-down" command for the given device name.
+     * 
+     * @param deviceName a device name to check with the drill-down command
+     * @return the String drill-down command response from the VPLEX API
+     * @throws VPlexApiException if the device structure is incompatible with ViPR
+     */
+    public String getDrillDownInfoForDevice(String deviceName) throws VPlexApiException {
+
+        ClientResponse response = null;
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(
+                VPlexApiConstants.URI_DRILL_DOWN);
+        s_logger.info("Drill-down command URI is {}", requestURI.toString());
+
+        Map<String, String> argsMap = new HashMap<String, String>();
+        argsMap.put(VPlexApiConstants.ARG_DASH_R, deviceName);
+        JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
+        s_logger.info("Drill-down command POST data is {}", postDataObject.toString());
+
+        response = _vplexApiClient.post(requestURI, postDataObject.toString());
+        String responseStr = response.getEntity(String.class);
+        s_logger.info("Drill-down command response is {}", responseStr);
+
+        int status = response.getStatus();
+        response.close();
+
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
+                s_logger.info("Drill-down command is completing asynchronously");
+                responseStr = _vplexApiClient.waitForCompletion(response);
+                s_logger.info("Task Response is {}", responseStr);
+            } else {
+                throw VPlexApiException.exceptions.failedToExecuteDrillDownCommand(deviceName, responseStr);
+            }
+        }
+
+        String customData = VPlexApiUtils.getCustomDataFromResponse(responseStr);
+        s_logger.info("Custom data from drill-down command is {}", customData);
+        return customData;
+    }
 }

@@ -1654,4 +1654,20 @@ public class VPlexApiClient {
             throws VPlexApiException {
         return _discoveryMgr.getDistributedDevicePathToClusterMap();
     }
+    
+    /**
+     * Validates that the underlaying structure of the given device name
+     * satisfies the constraints for compatibility with ViPR.  Used for
+     * validating unmanaged VPLEX volumes before ingestion.
+     * 
+     * @param deviceName the device to validate
+     * @throws VPlexApiException if the device structure is incompatible with ViPR
+     */
+    public void validateSupportingDeviceStructure(String deviceName) throws VPlexApiException {
+        String drillDownResponse = _discoveryMgr.getDrillDownInfoForDevice(deviceName);
+        
+        
+        
+        
+    }
 }

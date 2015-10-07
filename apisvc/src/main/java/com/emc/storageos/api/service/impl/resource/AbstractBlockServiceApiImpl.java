@@ -311,32 +311,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             List<Volume> cgVolumes, BlockConsistencyGroup consistencyGroup,
             List<URI> addVolumesList, List<URI> removeVolumesList, String taskId)
             throws ControllerException {
-        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class,
-                consistencyGroup.getId(), taskId,
-                ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
-
-        if (!cgStorageSystem.getSystemType().equals(DiscoveredDataObject.Type.scaleio.name())) {
-            BlockController controller = getController(BlockController.class,
-                    cgStorageSystem.getSystemType());
-            controller.updateConsistencyGroup(cgStorageSystem.getId(), consistencyGroup.getId(),
-                    addVolumesList, removeVolumesList, taskId);
-            return toTask(consistencyGroup, taskId, op);
-        } else {
-            // ScaleIO does not have explicit CGs, so we can just update the database and complete
-            List<Volume> addVolumes = _dbClient.queryObject(Volume.class, addVolumesList, true);
-            for (Volume volume : addVolumes) {
-                volume.setConsistencyGroup(consistencyGroup.getId());
-            }
-
-            List<Volume> removeVolumes = _dbClient.queryObject(Volume.class, removeVolumesList, true);
-            for (Volume volume : removeVolumes) {
-                volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-            }
-
-            _dbClient.updateAndReindexObject(addVolumes);
-            _dbClient.updateAndReindexObject(removeVolumes);
-            return toCompletedTask(consistencyGroup, taskId, op);
-        }
+        throw APIException.methodNotAllowed.notSupported();
     }
 
     /**

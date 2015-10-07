@@ -100,6 +100,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
@@ -2264,12 +2265,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             }
         }
         
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(),
+                taskId, ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
+        
         // When adding snapshots to CG, just call block implementation.
         if (!addSnapshots.isEmpty()) {
             BlockSnapshot snapshot = _permissionsHelper.getObjectById(addSnapshots.get(0), BlockSnapshot.class);
             URI systemURI = snapshot.getStorageController();
             StorageSystem system = _permissionsHelper.getObjectById(systemURI, StorageSystem.class);
-            return super.updateConsistencyGroup(system, cgVolumes, consistencyGroup, addSnapshots, removeVolumesList, taskId);
+            BlockController controller = getController(BlockController.class, system.getSystemType());
+            controller.updateConsistencyGroup(system.getId(), consistencyGroup.getId(),
+                    addVolumesList, removeVolumesList, taskId);
+            return toTask(consistencyGroup, taskId, op);
             
         }
         
@@ -2282,10 +2289,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         if (!addFullcopies.isEmpty()) {
             addVolumes.addAll(addFullcopies);   
         }
-        
-        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(),
-                taskId, ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
-        
+       
         // Get VPlex controller 
         VPlexController controller = getController();
         controller.updateConsistencyGroup(cgStorageSystem.getId(),

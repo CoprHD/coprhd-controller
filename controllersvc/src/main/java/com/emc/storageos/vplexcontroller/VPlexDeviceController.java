@@ -5606,8 +5606,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // We will restore the original volume.
                 vplexRollbackMethod = deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs);
             } else {
-                // If rolling back an upgrade from local to distributed, then
-                // try to detach remote mirror and delete new artifacts created on VPLEX.
+                // COP-16861: If rolling back an upgrade from local to distributed, then
+                // try to detach remote mirror and delete new artifacts created on VPLEX
+                // and clean up backend array volume.
+                // Without this rollback method with original code, if we failed to clean-up
+                // on VPLEX it used to still clean-up backed volume which would leave VPLEX
+                // volume in bad state. With this rollback we will clean-up backend array only
+                // if we were successful in clean-up on VPLEX.
                 // We will restore the VPlex local volume.
                 vplexRollbackMethod = rollbackUpgradeVirtualVolumeLocalToDistributedMethod(vplexURI, vplexVolume.getDeviceLabel(), stepId);
             }

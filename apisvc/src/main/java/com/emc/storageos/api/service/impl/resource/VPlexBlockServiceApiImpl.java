@@ -2207,8 +2207,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<URI> addVolumesList, List<URI> removeVolumesList, String taskId)
             throws ControllerException {
 
-        
-        // When adding snapshots to CG, we should call block implementation.
+        // addVolumesList could be volumes, or full copies, or snapshots or mirrors.
         List<URI> addVolumes = new ArrayList<URI> ();
         List<URI> addSnapshots = new ArrayList<URI> ();
         List<URI> addFullcopies = new ArrayList<URI> ();
@@ -2254,16 +2253,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     } else if (!cgVArrayURI.equals(addVolume.getVirtualArray())) {
                         throw APIException.badRequests.invalidParameterConsistencyGroupVolumeHasIncorrectVArray(cgVolume.getId(), cgVArrayURI);
                     }
-                     
                 }
             }
         }
         
+        // Only add snapshot or full copies to CG if backend volumes are from the same storage system.
         if (!addSnapshots.isEmpty() || !addFullcopies.isEmpty()) {
             if (!VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(cgVolumes, _dbClient)) {
                 throw APIException.badRequests.cantUpdateCGWithReplicaFromMultipleSystems(consistencyGroup.getLabel());
             }
         }
+        
+        // When adding snapshots to CG, just call block implementation.
         if (!addSnapshots.isEmpty()) {
             BlockSnapshot snapshot = _permissionsHelper.getObjectById(addSnapshots.get(0), BlockSnapshot.class);
             URI systemURI = snapshot.getStorageController();
@@ -2272,7 +2273,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             
         }
         
-        
         // If the CG is ingested, and we would like to add back end CGs for those virtual volumes in the CG,
         // all the virtual volumes in the CG have to be selected.
         if (!addVolumes.isEmpty()) {
@@ -2280,8 +2280,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         
         if (!addFullcopies.isEmpty()) {
-            addVolumes.addAll(addFullcopies);
-            
+            addVolumes.addAll(addFullcopies);   
         }
         
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(),

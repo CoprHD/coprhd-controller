@@ -225,6 +225,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FULL_COPY_STEP = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_STEP = "detachFullCopy";
     private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
+    private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP="volumeFullcopyRelationStep";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
@@ -10040,11 +10041,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD, 
                     nativeSystemURI, nativeSourceVolumeURI, nativeFullCopyVolume.getId());
-            workflow.createStep(RESTORE_VOLUME_STEP,
+            workflow.createStep(VOLUME_FULLCOPY_GROUP_RELATION_STEP,
                     "create group relation between Volume group and Full copy group", null,
                     nativeSystemURI, nativeSystem.getSystemType(), BlockDeviceController.class,
                     establishRelationMethod, rollbackMethodNullMethod(), null);
-            _log.info("Executing workflow plan");
             TaskCompleter completer = new CloneTaskCompleter(fullCopy, opId);
             String successMsg = String.format(
                     "Establish volume and full copy %s group relation completed successfully", fullCopy);

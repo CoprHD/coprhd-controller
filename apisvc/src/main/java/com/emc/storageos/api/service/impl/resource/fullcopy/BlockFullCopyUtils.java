@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexUtil;
 
 /**
  * Utilities class for processing fully copy request
@@ -443,7 +444,7 @@ public class BlockFullCopyUtils {
      * @param volume A reference to a volume.
      * @param dbClient A reference to a database client.
      * 
-     * @return true if the volume is a full copy source, false otherwise.
+     * @return true if the volume is a CG full copy source, false otherwise.
      */
     public static boolean isVolumeCGFullCopySource(Volume volume, DbClient dbClient) {
         boolean isFullCopySource = false;
@@ -455,7 +456,8 @@ public class BlockFullCopyUtils {
                 Volume fullCopyVolume = dbClient.queryObject(Volume.class, fullCopyURI);
                 if ((fullCopyVolume != null) && (!fullCopyVolume.getInactive())) {
                     String groupName = fullCopyVolume.getReplicationGroupInstance();
-                    if (NullColumnValueGetter.isNotNullValue(groupName)) {
+                    if (NullColumnValueGetter.isNotNullValue(groupName) ||
+                            VPlexUtil.isFullCopyInReplicationGroup(fullCopyVolume, dbClient)) {
                         isFullCopySource = true;
                         break;
                     }

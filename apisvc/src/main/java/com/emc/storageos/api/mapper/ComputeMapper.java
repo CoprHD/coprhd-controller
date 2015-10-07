@@ -12,6 +12,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,7 +185,8 @@ public class ComputeMapper {
         to.setTftpBootDir(from.getTftpBootDir());
         to.setComputeImageServerStatus(from.getComputeImageServerStatus());
         to.setImageServerUser(from.getImageServerUser());
-        to.setOsInstallTimeoutMs(from.getOsInstallTimeoutMs());
+        to.setOsInstallTimeoutMs(new Long(TimeUnit.MILLISECONDS.toSeconds(from
+                .getOsInstallTimeoutMs())).intValue());
         to.setComputeImages(new ArrayList<NamedRelatedResourceRep>());
         to.setFailedImages(new ArrayList<NamedRelatedResourceRep>());
         if (from.getComputeImages() != null) {
@@ -199,8 +201,8 @@ public class ComputeMapper {
         }
         if (from.getFailedComputeImages() != null) {
             for (String failedImageID : from.getFailedComputeImages()) {
-                ComputeImage failedImage = dbclient.queryObject(ComputeImage.class,
-                        URIUtil.uri(failedImageID));
+                ComputeImage failedImage = dbclient.queryObject(
+                        ComputeImage.class, URIUtil.uri(failedImageID));
                 to.getFailedImages().add(
                         DbObjectMapper.toNamedRelatedResource(
                                 ResourceTypeEnum.COMPUTE_IMAGE,

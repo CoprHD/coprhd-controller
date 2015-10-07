@@ -9,8 +9,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
+import com.emc.storageos.model.valid.Length;
+
 @XmlRootElement(name = "compute_imageserver_create")
 public class ComputeImageServerCreate {
+    private String name;
     private String imageServerIp;
     private String imageServerSecondIp;
     private String imageServerUser;
@@ -23,6 +26,7 @@ public class ComputeImageServerCreate {
 
     /**
      * ComputeImageServerCreate Constructor
+     * @param name
      * @param imageServerAddress
      * @param imageServerSecondIp
      * @param imageServerUser
@@ -30,11 +34,12 @@ public class ComputeImageServerCreate {
      * @param tftpBootDir
      * @param osInstallTimeoutMs
      */
-    public ComputeImageServerCreate(String imageServerAddress,
+    public ComputeImageServerCreate(String name, String imageServerAddress,
             String imageServerSecondIp, String imageServerUser,
             String imageServerPassword, String tftpBootDir,
             Integer osInstallTimeoutMs) {
         super();
+        this.name = name;
         this.imageServerIp = imageServerAddress;
         this.imageServerSecondIp = imageServerSecondIp;
         this.imageServerUser = imageServerUser;
@@ -131,8 +136,8 @@ public class ComputeImageServerCreate {
     /**
      * @return the osInstallTimeoutMs
      */
-    @XmlElement(required = true, name = "osinstall_timeoutms")
-    @JsonProperty("osinstalltimeoutms")
+    @XmlElement(required = true, name = "osinstall_timeout")
+    @JsonProperty("osinstall_timeout")
     public Integer getOsInstallTimeoutMs() {
         return osInstallTimeoutMs;
     }
@@ -143,6 +148,22 @@ public class ComputeImageServerCreate {
      */
     public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
         this.osInstallTimeoutMs = osInstallTimeoutMs;
+    }
+
+    /**
+     * @return the name
+     */
+    @XmlElement(required = true)
+    @Length(min = 2, max = 128)
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * @param name the name to set
+     */
+    public void setName(String name) {
+        this.name = name;
     }
 
 }

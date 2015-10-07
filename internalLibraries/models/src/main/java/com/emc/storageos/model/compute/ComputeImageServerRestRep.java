@@ -136,8 +136,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     /**
      * @return the osInstallTimeoutMs
      */
-    @XmlElement(name = "osinstall_timeoutms")
-    @JsonProperty("osinstall_timeoutms")
+    @XmlElement(name = "osinstall_timeout")
+    @JsonProperty("osinstall_timeout")
     public Integer getOsInstallTimeoutMs() {
         return osInstallTimeoutMs;
     }

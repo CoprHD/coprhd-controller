@@ -2478,10 +2478,16 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotAddSRDFProtectionToPartialCG(String msg);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteImageServer();
-    
+
     @DeclareServiceCode(ServiceCode.API_PRECONDITION_FAILED)
     public BadRequestException cannotAddImageWithoutImageServer();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotUpdateTFTPBOOTDirectory();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotUpdateImageServerIP();
 }

@@ -2260,8 +2260,10 @@ public class VPlexApiVirtualVolumeManager {
             s_logger.info("Device collapse URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_D, devicePath);
+
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Device collapse POST data is {}", postDataObject.toString());
+
             response = _vplexApiClient.post(requestURI, postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Device collapse response is {}", responseStr);
@@ -2318,6 +2320,7 @@ public class VPlexApiVirtualVolumeManager {
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
                     URI.create(pathBuilder.toString()));
             s_logger.info("Set device visibility URI is {}", requestURI.toString());
+
             response = _vplexApiClient.put(requestURI);
             String responseStr = response.getEntity(String.class);
             s_logger.info("Set device visibility response is {}", responseStr);

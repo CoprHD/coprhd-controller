@@ -5607,7 +5607,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vplexRollbackMethod = deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs);
             } else {
                 // If rolling back an upgrade from local to distributed, then
-                // try to detach remote mirror and delete new artifacts creatted on VPLEX.
+                // try to detach remote mirror and delete new artifacts created on VPLEX.
                 // We will restore the VPlex local volume.
                 vplexRollbackMethod = rollbackUpgradeVirtualVolumeLocalToDistributedMethod(vplexURI, vplexVolume.getDeviceLabel(), stepId);
             }
@@ -5674,19 +5674,27 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
     }
 
+    /**
+     * Rollback upgrade of VPLEX local to VPLEX distributed volume.
+     * 
+     * @param vplexURI Reference to VPLEX system
+     * @param virtualVolumeName Virtual volume name which was supposed to be upgraded
+     * @param executeStepId step Id of the execute step; used to retrieve rollback data
+     * @return workflow method
+     */
     private Workflow.Method rollbackUpgradeVirtualVolumeLocalToDistributedMethod(
             URI vplexURI, String virtualVolumeName, String executeStepId) {
         return new Workflow.Method(RB_UPGRADE_VIRTUAL_VOLUME_LOCAL_TO_DISTRIBUUTED_METHOD_NAME, vplexURI, virtualVolumeName, executeStepId);
     }
 
     /**
-     * Rollback any virtual volumes previously created.
+     * Rollback upgrade of VPLEX local to VPLEX distributed volume.
      * 
-     * @param vplexURI
-     * @param vplexVolumeURIs
-     * @param executeStepId - step Id of the execute step; used to retrieve rollback data.
-     * @param stepId
-     * @throws WorkflowException
+     * @param vplexURI Reference to VPLEX system
+     * @param virtualVolumeName Virtual volume name which was supposed to be upgraded
+     * @param executeStepId step Id of the execute step; used to retrieve rollback data
+     * @param stepId The rollback step id
+     * @throws WorkflowException When an error occurs updating the workflow step state
      */
     public void rollbackUpgradeVirtualVolumeLocalToDistributed(URI vplexURI, String virtualVolumeName, String executeStepId, String stepId)
             throws WorkflowException {
@@ -5713,7 +5721,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // Once mirror is detached we need to do device collapse so that its not seen as distributed device.
                     client.deviceCollapse(sourceDeviceName);
 
-                    // Once device collapse is successful we need to set visibility of device to local beacuse volume will be seen from
+                    // Once device collapse is successful we need to set visibility of device to local because volume will be seen from
                     // other cluster still as visibility of device changes to global once mirror is attached.
                     client.setDeviceVisibility(sourceDeviceName);
 
@@ -5724,8 +5732,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                     + "Its possible mirror was never attached, so just move on to delete backend volume artifacts from the VPLEX",
                                     mirrorInfo.getVolumeName(), virtualVolumeName, clusterId));
                 }
-                // Its possible that mirror was never attached so we will try to delete the delete the device, if mirror device is still
-                // attached this will any ways fails, so its fine to make this call.
+                // Its possible that mirror was never attached so we will try to delete the device even if we fail to detach a mirror.
+                // If mirror device is still attached this will any ways fails, so its safe to make this call.
                 client.deleteLocalDevice(mirrorInfo);
             }
 

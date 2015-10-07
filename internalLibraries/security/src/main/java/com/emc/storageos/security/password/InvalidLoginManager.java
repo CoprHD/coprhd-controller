@@ -39,6 +39,7 @@ public class InvalidLoginManager {
 
     private static final String MAX_AUTH_LOGIN_ATTEMPTS = "max_auth_login_attempts";
     private static final String AUTH_LOCKOUT_TIME_IN_MINUTES = "auth_lockout_time_in_minutes";
+	private static final int CLEANUP_THREAD_INITIAL_DELAY_IN_MINS = 10;
     private static final int MAX_AUTHN_LOGIN_ATTEMPTS_NODE_COUNT = 5000;
     private static final int MAX_AUTHN_LOGIN_ATTEMPTS__LIFE_TIME_IN_MINS = 10;
     private static final int CLEANUP_THREAD_SCHEDULE_INTERVAL_IN_MINS = 10;

@@ -110,7 +110,6 @@ public class ComputeImageServers extends ViprResourceController {
     @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(ComputeImageServerForm computeImageServers) {
         computeImageServers.validate("computeImageServers");
-
         if (Validation.hasErrors()) {
             handleError(computeImageServers);
         }
@@ -202,6 +201,7 @@ public class ComputeImageServers extends ViprResourceController {
             if (isNew()) {
                 Validation.required(fieldName + ".password", this.password);
                 Validation.required(fieldName + ".imageServerIp", this.imageServerIp);
+                Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
                 if (!HostNameOrIpAddressCheck.isValidIp(imageServerIp)) {
                     Validation.addError(fieldName + ".imageServerIp",
                             MessagesUtils.get("computeSystem.invalid.ipAddress"));
@@ -210,6 +210,14 @@ public class ComputeImageServers extends ViprResourceController {
                 if (!HostNameOrIpAddressCheck.isValidIp(osInstallNetworkAddress)) {
                     Validation.addError(fieldName + ".osInstallNetworkAddress",
                             MessagesUtils.get("computeSystem.invalid.ipAddress"));
+                }
+                if (StringUtils.equals(StringUtils.trim(password),
+                        StringUtils.trim(confirmPassword))) {
+                }
+                if (!StringUtils.equals(StringUtils.trim(password),
+                        StringUtils.trim(confirmPassword))) {
+                    Validation.addError(fieldName + ".confirmPassword", MessagesUtils
+                            .get("computeImageServers.confirmPassword.not.match"));
                 }
             }
         }

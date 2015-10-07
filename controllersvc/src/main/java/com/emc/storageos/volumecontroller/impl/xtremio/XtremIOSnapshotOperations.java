@@ -127,12 +127,12 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             if (cgId != null) {
                 BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
                 String snapType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
-                String snapSetTagName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client,
+                String snapshotSetTagName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client,
                         getVolumeFolderName(snapshotObj.getProject().getURI(), storage), clusterName)
                         .get(XtremIOConstants.SNAPSHOT_KEY);
                 client.createConsistencyGroupSnapshot(group.getLabel(), snapshotObj.getSnapsetLabel(), "", snapType, clusterName);
                 // tag the created the snapshotSet
-                client.tagObject(snapSetTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapshotObj.getSnapsetLabel(), clusterName);
+                client.tagObject(snapshotSetTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapshotObj.getSnapsetLabel(), clusterName);
             }
             // Create mapping of volume.deviceLabel to BlockSnapshot object
             Map<String, BlockSnapshot> volumeToSnapMap = new HashMap<String, BlockSnapshot>();

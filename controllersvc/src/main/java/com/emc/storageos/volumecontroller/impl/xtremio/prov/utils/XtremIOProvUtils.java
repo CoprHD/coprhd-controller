@@ -252,7 +252,7 @@ public class XtremIOProvUtils {
      * @param client
      * @param rootTagName
      * @param clusterName
-     * @return map of volume tag name and snapshot tag name
+     * @return string
      * @throws Exception
      */
     public static String createTagsForConsistencyGroup(XtremIOClient client, String rootTagName, String clusterName)

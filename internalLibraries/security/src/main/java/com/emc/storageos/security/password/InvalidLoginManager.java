@@ -41,7 +41,7 @@ public class InvalidLoginManager {
     private static final String AUTH_LOCKOUT_TIME_IN_MINUTES = "auth_lockout_time_in_minutes";
     private static final int MAX_AUTHN_LOGIN_ATTEMPTS_NODE_COUNT = 5000;
     private static final int MAX_AUTHN_LOGIN_ATTEMPTS__LIFE_TIME_IN_MINS = 10;
-    private static final int CLEANUP_THREAD_INITIAL_DELAY_IN_MINS = 10;
+    private static final int CLEANUP_THREAD_SCHEDULE_INTERVAL_IN_MINS = 10;
     private static final long MIN_TO_MSECS = 60 * 1000;
     private static final String INVALID_LOGIN_CLEANER_LOCK = "invalid_login_cleaner_lock";
     private static final String INVALID_LOGIN_VERSION = "_2.2";
@@ -53,8 +53,7 @@ public class InvalidLoginManager {
     protected DistributedDataManager _distDataManager;
 
     protected int _maxAuthnLoginAttemtsCount;
-    protected int _maxAuthnLoginAttemtsLifeTimeInMins;
-    protected int _cleanupThreadInitialDelay = CLEANUP_THREAD_INITIAL_DELAY_IN_MINS;
+    protected int _maxAuthnLoginAttemtsLifeTimeInMins = MAX_AUTHN_LOGIN_ATTEMPTS__LIFE_TIME_IN_MINS;
 
     public int getMaxAuthnLoginAttemtsCount() {
         return _maxAuthnLoginAttemtsCount;
@@ -67,12 +66,6 @@ public class InvalidLoginManager {
         return _maxAuthnLoginAttemtsLifeTimeInMins;
     }
 
-    public void setCleanupThreadInitialDelay(int cleanupThreadInitialDelay) {
-        this._cleanupThreadInitialDelay = cleanupThreadInitialDelay;
-    }
-    public int getCleanupThreadInitialDelay() {
-        return _cleanupThreadInitialDelay;
-    }
     public void setMaxAuthnLoginAttemtsLifeTimeInMins(int maxAuthnLoginAttemtsLifeTimeInMins) {
         this._maxAuthnLoginAttemtsLifeTimeInMins = maxAuthnLoginAttemtsLifeTimeInMins;
     }

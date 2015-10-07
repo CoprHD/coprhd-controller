@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
@@ -440,7 +441,10 @@ public class VPlexControllerUtils {
         }
 
         if (null != client) {
-            client.validateSupportingDeviceStructure(deviceName);
+            String drillDownResponse = client.getDrillDownInfoForDevice(deviceName);
+            if (!VPlexUtil.isDeviceStructureValid(deviceName, drillDownResponse)) {
+                throw VPlexApiException.exceptions.deviceStructureIsIncompatibleForIngestion(drillDownResponse);
+            }
         } else {
             throw VPlexApiException.exceptions.failedToExecuteDrillDownCommand(
                     deviceName, "cannot load vplex api client");

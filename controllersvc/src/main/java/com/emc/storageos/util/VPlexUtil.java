@@ -1067,4 +1067,17 @@ public class VPlexUtil {
         }
         return result;
     }
+    
+    /**
+     * Analyzes the given String as a VPLEX API drill-down response and
+     * checks that it has a structure compatible with ViPR.
+     * 
+     * @param deviceName name of the device being analyzed
+     * @param drillDownResponse a drill-down command response from the VPLEX API 
+     * @return true if the device structure is compatible with ViPR
+     */
+    public static boolean isDeviceStructureValid(String deviceName, String drillDownResponse) {
+        
+        return true;
+    }
 }

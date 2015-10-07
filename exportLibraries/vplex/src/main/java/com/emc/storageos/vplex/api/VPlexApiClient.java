@@ -1656,18 +1656,13 @@ public class VPlexApiClient {
     }
     
     /**
-     * Validates that the underlaying structure of the given device name
-     * satisfies the constraints for compatibility with ViPR.  Used for
-     * validating unmanaged VPLEX volumes before ingestion.
+     * Calls the VPLEX CLI "drill-down" command for the given device name.
      * 
-     * @param deviceName the device to validate
+     * @param deviceName a device name to check with the drill-down command
+     * @return the String drill-down command response from the VPLEX API
      * @throws VPlexApiException if the device structure is incompatible with ViPR
      */
-    public void validateSupportingDeviceStructure(String deviceName) throws VPlexApiException {
-        String drillDownResponse = _discoveryMgr.getDrillDownInfoForDevice(deviceName);
-        
-        
-        
-        
+    public String getDrillDownInfoForDevice(String deviceName) throws VPlexApiException {
+        return _discoveryMgr.getDrillDownInfoForDevice(deviceName);
     }
 }

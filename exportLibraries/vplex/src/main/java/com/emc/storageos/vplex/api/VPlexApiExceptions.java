@@ -741,4 +741,17 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedToValidateExportMask(String exporURI, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedDeviceCollapse(final String deviceName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedDeviceCollapseStatus(final String deviceName, String msg, String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedSettingDeviceVisibility(final String deviceName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedSettingDeviceVisibilityStatus(final String deviceName, String msg, String reason);
+
 }

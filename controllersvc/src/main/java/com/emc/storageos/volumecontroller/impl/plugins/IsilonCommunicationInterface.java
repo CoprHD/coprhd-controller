@@ -2262,7 +2262,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         phyNas.setNasName(isiAccessZone.getName());
         phyNas.setNativeId(isiAccessZone.getId());
        //set base directory path
-        phyNas.setBaseDirPath(isiAccessZone.getPath());
+        
         phyNas.setNasState(VirtualNasState.LOADED.toString());
         phyNas.setId(URIUtil.createId(PhysicalNAS.class));
         // Set storage port details to vNas
@@ -2270,17 +2270,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     system, isiAccessZone.getZone_id().toString(), NativeGUIDGenerator.PHYSICAL_NAS);
         phyNas.setNativeGuid(physicalNasNativeGuid);
             _log.info("Physical NAS created with guid {} ", phyNas.getNativeGuid());
-            
-        //add network interfaces
-        if(isilonNetworkPool != null) {
-            StringSet storagePorts = phyNas.getStoragePorts();
-            if(storagePorts == null) {
-                storagePorts = new StringSet();
-            }
-            storagePorts.add(isilonNetworkPool.getSc_dns_zone());
-            phyNas.setStoragePorts(storagePorts);
-        }
-        
             
         StringMap dbMetrics = phyNas.getMetrics();
         if(dbMetrics == null) {

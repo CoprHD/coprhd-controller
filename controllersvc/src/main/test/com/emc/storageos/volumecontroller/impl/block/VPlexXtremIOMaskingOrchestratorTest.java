@@ -167,6 +167,7 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
          * Dual X-bricks (4 SCs, 3 ports from X-brick 1, 3 ports from X-brick 2), 2 networks
          * ports spread across networks with second network having only 2 ports
          */
+        // TODO tricky
         context.reinitialize();
         networkMap.clear();
         allocatablePorts.clear();

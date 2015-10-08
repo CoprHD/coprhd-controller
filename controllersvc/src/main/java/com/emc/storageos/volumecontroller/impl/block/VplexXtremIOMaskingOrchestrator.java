@@ -388,11 +388,11 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         // with one port. This will ensure not to violate four paths per director.
 
         // select number of paths per VPLEX director
-        // if director count is less than X-bricks counts, choose only 2 initiators from each director
+        // if X-bricks count is less than director count, choose only 2 initiators from each director
         // leaving other initiators for future scale of X-bricks
         int pathsPerDirector = 4;
-        // TODO determine which of the Director-Xbrick combinations require lesser paths per director
-        if (vplexDirectorCount < xtremIOXbricksCount) {
+        // TODO determine which of the Director-Xbrick combinations require lesser number of paths per director
+        if (xtremIOXbricksCount < vplexDirectorCount) {
             pathsPerDirector = 2;
         }
         _log.info(String.format("VPLEX Directors: %s, X-bricks: %s, Number of paths per VPLEX Director: %s", vplexDirectorCount,

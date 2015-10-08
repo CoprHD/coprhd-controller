@@ -305,8 +305,10 @@ public class RPHelper {
                         descriptor.setParameters(volumeParams);
                     }
                                                         
-                    _log.info(String.format("Adding %s descriptor to %s virtual volume [%s] (%s)", 
-                            volumeType, operationType, volume.getLabel(), volume.getId()));
+                    _log.info(String.format("Adding %s descriptor to %s %s volume [%s] (%s)", 
+                            volumeType, operationType, 
+                            (volumeType.equals("RP_SOURCE") ? "" : "virtual"), 
+                            volume.getLabel(), volume.getId()));
                     volumeDescriptors.add(descriptor);                                        
                 }
                 

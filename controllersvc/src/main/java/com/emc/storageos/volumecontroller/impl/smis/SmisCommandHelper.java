@@ -37,7 +37,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +77,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -91,6 +91,7 @@ import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy.IG_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 
@@ -382,18 +383,18 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
-     * remove Volumes from Storage Group
+     * remove Volumes from Storage Group.
      *
-     * @param storage
-     * @param groupName
-     * @param volumeURIList
-     * @param job
+     * @param storage the storage
+     * @param groupName the group name
+     * @param volumeURIList the volume uri list
+     * @param forceFlag the force flag
      */
     public void removeVolumesFromStorageGroup(
             StorageSystem storage, String groupName, List<URI> volumeURIList,
-            SmisJob job, boolean forceFlag) {
+            boolean forceFlag) {
         _log.info(
-                "{} removeVolume  from Storage group {} associated with Auto Tier Policy START...",
+                "{} removeVolume from Storage group {} START...",
                 storage.getSerialNumber(), groupName);
         try {
             CIMArgument[] inArgs = getRemoveVolumesFromMaskingGroupInputArguments(
@@ -404,12 +405,76 @@ public class SmisCommandHelper implements SmisConstants {
         } catch (Exception e) {
             _log.error(
                     String.format(
-                            "removeVolume from Storage group associated with Auto Tier Policy failed -: %s",
+                            "removeVolume from Storage group failed -: %s",
                             groupName), e);
         }
         _log.info(
-                "{} removeVolume from Storage group {} associated with Auto Tier Policy END...",
+                "{} removeVolume from Storage group {} END...",
                 storage.getSerialNumber(), groupName);
+    }
+
+    /**
+     * Removes the volume from storage groups if the volume is not in any Masking View.
+     * This will be called just before deleting the volume (for VMAX2).
+     *
+     * @param storageSystem the storage system
+     * @param volume the volume
+     */
+    public void removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(StorageSystem storage, Volume volume) {
+        /**
+         * If Volume is not associated with any MV, then remove the volume from its associated SGs.
+         */
+        CloseableIterator<CIMObjectPath> mvPathItr = null;
+        CloseableIterator<CIMInstance> sgInstancesItr = null;
+        boolean isSGInAnyMV = true;
+        try {
+            _log.info("Checking if Volume {} needs to be removed from Storage Groups which is not in any Masking View",
+                    volume.getNativeGuid());
+            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storage, volume);
+            // See if Volume is associated with MV
+            mvPathItr = getAssociatorNames(storage, volumePath, null, SYMM_LUN_MASKING_VIEW,
+                    null, null);
+            if (!mvPathItr.hasNext()) {
+                isSGInAnyMV = false;
+            }
+
+            if (!isSGInAnyMV) {
+                _log.info("Volume {} is not in any Masking View, hence removing it from Storage Groups if any",
+                        volume.getNativeGuid());
+                boolean forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volume.getId());
+                // Get all the storage groups associated with this volume
+                sgInstancesItr = getAssociatorInstances(storage, volumePath, null,
+                        SmisConstants.SE_DEVICE_MASKING_GROUP, null, null, PS_ELEMENT_NAME);
+                while (sgInstancesItr.hasNext()) {
+                    CIMInstance sgPath = sgInstancesItr.next();
+                    String storageGroupName = CIMPropertyFactory.getPropertyValue(sgPath, SmisConstants.CP_ELEMENT_NAME);
+                    // Double check: check if SG is part of MV
+                    if (!checkStorageGroupInAnyMaskingView(storage, sgPath.getObjectPath())) {
+                        // if last volume, dis-associate FAST
+                        if (getVMAXStorageGroupVolumeCount(storage, storageGroupName) == 1) {
+                            WBEMClient client = getConnection(storage).getCimClient();
+                            removeVolumeGroupFromPolicyAndLimitsAssociation(client, storage, sgPath.getObjectPath());
+                        }
+
+                        removeVolumesFromStorageGroup(storage, storageGroupName, Arrays.asList(volume.getId()), forceFlag);
+
+                        // remove empty group
+                        if (getVMAXStorageGroupVolumeCount(storage, storageGroupName) == 0) {
+                            _log.info("Deleting Empty Storage Group {}", storageGroupName);
+                            deleteMaskingGroup(storage, storageGroupName, SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+                        }
+                    }
+                }
+            } else {
+                _log.info("Found that Volume {} is part of Masking View {}", volume.getNativeGuid(), mvPathItr.next());
+            }
+        } catch (Exception e) {
+            _log.warn("Exception while trying to remove volume {} from Storage Groups which is not in any Masking View",
+                    volume.getNativeGuid(), e);
+        } finally {
+            closeCIMIterator(mvPathItr);
+            closeCIMIterator(sgInstancesItr);
+        }
     }
 
     public void removeVolumeGroupFromAutoTieringPolicy(

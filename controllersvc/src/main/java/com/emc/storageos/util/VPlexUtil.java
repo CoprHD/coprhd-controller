@@ -1201,7 +1201,6 @@ public class VPlexUtil {
                                     localDevice.append(LOCAL_DEVICE)
                                                .append(extentStorageVolumePattern)
                                                .append(END);
-                                    _log.info("using pattern " + localDevice.toString());
                                     if (drillDownResponse.matches(localDevice.toString())) {
                                         _log.info("this is a simple local volume");
                                         return true;
@@ -1216,7 +1215,6 @@ public class VPlexUtil {
                                                          .append(localDeviceComponentPattern)
                                                          .append(localDeviceComponentPattern)
                                                          .append(END);
-                                    _log.info("using pattern " + localDeviceWithMirror.toString());
                                     if (drillDownResponse.matches(localDeviceWithMirror.toString())) {
                                         _log.info("this is a local device with mirror");
                                         return true;
@@ -1243,7 +1241,6 @@ public class VPlexUtil {
                                                          .append(distributedDeviceComponentPattern)
                                                          .append(distributedDeviceComponentPattern)
                                                          .append(END);
-                                        _log.info("using pattern " + distributedDevice.toString());
                                         if (drillDownResponse.matches(distributedDevice.toString())) {
                                             _log.info("this is a simple distributed device");
                                             return true;
@@ -1263,8 +1260,6 @@ public class VPlexUtil {
                                                          .append(distributedDeviceComponentPattern)
                                                          .append(distributedLegMirrorPattern)
                                                          .append(END);
-                                        _log.info("using pattern " + distributedDeviceMirrorOnLeg1.toString());
-                                        _log.info("using pattern " + distributedDeviceMirrorOnLeg2.toString());
                                         if (drillDownResponse.matches(distributedDeviceMirrorOnLeg1.toString()) 
                                          || drillDownResponse.matches(distributedDeviceMirrorOnLeg2.toString())) {
                                             _log.info("this is a distributed volume with a mirror on one leg or the other");
@@ -1280,7 +1275,6 @@ public class VPlexUtil {
                                                          .append(distributedLegMirrorPattern)
                                                          .append(distributedLegMirrorPattern)
                                                          .append(END);
-                                        _log.info("using pattern " + distributedDeviceMirrorOnBothLegs.toString());
                                         if (drillDownResponse.matches(distributedDeviceMirrorOnBothLegs.toString())) {
                                             _log.info("this is a distributed volume with mirrors on both legs");
                                             return true;

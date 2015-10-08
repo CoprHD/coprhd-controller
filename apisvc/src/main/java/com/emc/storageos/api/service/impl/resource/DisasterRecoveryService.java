@@ -12,7 +12,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -26,8 +25,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.db.client.impl.DbClientContext;
-import com.emc.storageos.db.client.impl.DbClientImpl;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +38,8 @@ import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;

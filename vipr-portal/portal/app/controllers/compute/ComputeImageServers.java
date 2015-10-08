@@ -26,6 +26,7 @@ import util.ComputeImageServerUtils;
 import util.MessagesUtils;
 import util.validation.HostNameOrIpAddressCheck;
 
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.compute.ComputeImageServerCreate;
 import com.emc.storageos.model.compute.ComputeImageServerRestRep;
 import com.emc.storageos.model.compute.ComputeImageServerUpdate;
@@ -166,6 +167,8 @@ public class ComputeImageServers extends ViprResourceController {
 
         public String tftpBootDir;
 
+        public List<RelatedResourceRep> computeImages;
+
         @MaxSize(2048)
         @Required
         public String userName;
@@ -188,6 +191,8 @@ public class ComputeImageServers extends ViprResourceController {
             this.tftpBootDir = computeImageServer.getTftpBootDir();
             this.userName = computeImageServer.getImageServerUser();
             this.osInstallTimeOut = computeImageServer.getOsInstallTimeoutMs();
+            this.computeImages = computeImageServer.getComputeImages();
+            System.out.println("ComputeImageServerForm computeImages " + this.computeImages.toString());
             this.password = ""; // the platform will never return the real password //NOSONAR
             // ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
         }

@@ -63,31 +63,37 @@ public interface DbClient {
     /**
      * Queries for objects with given URI's. Deserializes into a data object of given
      * class.
-     * 
+     *
+     * @deprecated use queryIterativeObjects() instead
      * @param clazz object type
      * @param id object id
      * @param <T> object type
      * @return deserialized object list. non matching records are not returned
      * @throws DatabaseException TODO
      */
+    @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids);
 
     /**
      * Same as queryObject(Class, List<URI>). Filters on activeOnly record if specified.
-     * 
+     *
+     * @deprecated use queryIterativeObjects() instead
      * @param clazz
      * @param ids
      * @param activeOnly
      * @return
      * @throws DatabaseException
      */
+    @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly);
 
     /**
      * See queryObject(Class<T> clazz, List<URI>)
-     * 
+     *
+     * @deprecated use queryIterativeObjects() instead
      * @throws DatabaseException TODO
      */
+    @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id);
 
     /**

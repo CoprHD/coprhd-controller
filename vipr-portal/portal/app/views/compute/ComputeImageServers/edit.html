@@ -35,13 +35,19 @@
         }
         $('#computeImageServers_password').val('');        
         $('#computeImageServers_confirmPassword').val('');  
-                  
+        if (editMode) {
+        	var computeImages = $('#computeImageServers_computeImages');
+    		console.log("compute images " + computeImages);
+        	if (computeImages.val()) {
+        		console.log("compute images exist ");
+                $('#computeImageServers_tftpBootDir').prop('disabled', true);
+        	}
+        }
     });
 
     function setDefaults() {
         var tftpDir = $('#computeImageServers_tftpBootDir');
         var installTo = $('#computeImageServers_osInstallTimeOut');
-
         if (!tftpDir.val()) {
         	tftpDir.val('/opt/tftpboot/');
         }

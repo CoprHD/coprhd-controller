@@ -200,7 +200,7 @@ public class ComputeImageServerService extends TaskResourceService {
         String osInstallAddress = createParams.getImageServerSecondIp();
         String username = createParams.getImageServerUser();
         String password = createParams.getImageServerPassword();
-        Integer installTimeout = createParams.getOsInstallTimeoutMs();
+        Integer installTimeout = createParams.getOsInstallTimeout();
 
         ArgValidator.checkFieldNotEmpty(bootDir, TFTPBOOTDIR);
         ArgValidator.checkFieldNotEmpty(osInstallAddress,
@@ -315,7 +315,7 @@ public class ComputeImageServerService extends TaskResourceService {
             String osInstallAddress = param.getImageServerSecondIp();
             String username = param.getImageServerUser();
             String password = param.getImageServerPassword();
-            Integer installTimeout = param.getOsInstallTimeoutMs();
+            Integer installTimeout = param.getOsInstallTimeout();
             if (StringUtils.isNotBlank(imageServerName)
                     && !imageServerName
                             .equalsIgnoreCase(imageServer.getLabel())) {

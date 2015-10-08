@@ -19,7 +19,7 @@ public class ComputeImageServerCreate {
     private String imageServerUser;
     private String imageServerPassword;
     private String tftpBootDir;
-    private Integer osInstallTimeoutMs;
+    private Integer osInstallTimeout;
 
     public ComputeImageServerCreate() {
     }
@@ -32,12 +32,12 @@ public class ComputeImageServerCreate {
      * @param imageServerUser
      * @param imageServerPassword
      * @param tftpBootDir
-     * @param osInstallTimeoutMs
+     * @param osInstallTimeout
      */
     public ComputeImageServerCreate(String name, String imageServerAddress,
             String imageServerSecondIp, String imageServerUser,
             String imageServerPassword, String tftpBootDir,
-            Integer osInstallTimeoutMs) {
+            Integer osInstallTimeout) {
         super();
         this.name = name;
         this.imageServerIp = imageServerAddress;
@@ -45,7 +45,7 @@ public class ComputeImageServerCreate {
         this.imageServerUser = imageServerUser;
         this.imageServerPassword = imageServerPassword;
         this.tftpBootDir = tftpBootDir;
-        this.osInstallTimeoutMs = osInstallTimeoutMs;
+        this.osInstallTimeout = osInstallTimeout;
     }
 
     /**
@@ -134,20 +134,20 @@ public class ComputeImageServerCreate {
     }
 
     /**
-     * @return the osInstallTimeoutMs
+     * @return the osInstallTimeout
      */
     @XmlElement(required = true, name = "osinstall_timeout")
     @JsonProperty("osinstall_timeout")
-    public Integer getOsInstallTimeoutMs() {
-        return osInstallTimeoutMs;
+    public Integer getOsInstallTimeout() {
+        return osInstallTimeout;
     }
 
     /**
-     * @param osInstallTimeoutMs
-     *            the osInstallTimeoutMs to set
+     * @param osInstallTimeout
+     *            the osInstallTimeout to set
      */
-    public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
-        this.osInstallTimeoutMs = osInstallTimeoutMs;
+    public void setOsInstallTimeout(Integer osInstallTimeout) {
+        this.osInstallTimeout = osInstallTimeout;
     }
 
     /**

@@ -26,7 +26,7 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     private String tftpBootDir;
     private List<NamedRelatedResourceRep> computeImages;
     private String computeImageServerStatus;
-    private Integer osInstallTimeoutMs;
+    private Integer osInstallTimeout;
     private String imageServerUser;
     private List<NamedRelatedResourceRep> failedImages = new ArrayList<NamedRelatedResourceRep>();
 
@@ -134,20 +134,20 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     }
 
     /**
-     * @return the osInstallTimeoutMs
+     * @return the osInstallTimeout
      */
     @XmlElement(name = "osinstall_timeout")
     @JsonProperty("osinstall_timeout")
-    public Integer getOsInstallTimeoutMs() {
-        return osInstallTimeoutMs;
+    public Integer getOsInstallTimeout() {
+        return osInstallTimeout;
     }
 
     /**
-     * @param osInstallTimeoutMs
-     *            the osInstallTimeoutMs to set
+     * @param osInstallTimeout
+     *            the osInstallTimeout to set
      */
-    public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
-        this.osInstallTimeoutMs = osInstallTimeoutMs;
+    public void setOsInstallTimeout(Integer osInstallTimeout) {
+        this.osInstallTimeout = osInstallTimeout;
     }
 
     /**

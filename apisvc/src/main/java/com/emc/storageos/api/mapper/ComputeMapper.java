@@ -185,7 +185,7 @@ public class ComputeMapper {
         to.setTftpBootDir(from.getTftpBootDir());
         to.setComputeImageServerStatus(from.getComputeImageServerStatus());
         to.setImageServerUser(from.getImageServerUser());
-        to.setOsInstallTimeoutMs(new Long(TimeUnit.MILLISECONDS.toSeconds(from
+        to.setOsInstallTimeout(new Long(TimeUnit.MILLISECONDS.toSeconds(from
                 .getOsInstallTimeoutMs())).intValue());
         to.setComputeImages(new ArrayList<NamedRelatedResourceRep>());
         to.setFailedImages(new ArrayList<NamedRelatedResourceRep>());

@@ -65,6 +65,8 @@ public class FileShare extends FileObject implements ProjectResource {
 
     // set when a file share is release from a project for internal object use
     private URI _originalProject;
+    
+    private URI vituralNAS;
 
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
@@ -250,4 +252,16 @@ public class FileShare extends FileObject implements ProjectResource {
         _originalProject = originalProject;
         setChanged("originalProject");
     }
+
+    @RelationIndex(cf = "RelationIndex", type = VirtualNAS.class)
+    @Name("vituralNAS")
+	public URI getVituralNAS() {
+		return vituralNAS;
+	}
+
+	public void setVituralNAS(URI vituralNAS) {
+		this.vituralNAS = vituralNAS;
+		setChanged("vituralNAS");
+	}
+    
 }

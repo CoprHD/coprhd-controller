@@ -3011,6 +3011,7 @@ isilon_setup()
 #
 ecs_setup_once()
 {
+    #discoveredsystem show $ECS_DEV &> /dev/null && return $?
     discoveredsystem create $ECS_DEV ecs $ECS_IP 4443 $ECS_USER $ECS_PASSWD
 
     storagepool update $ECS_NATIVEGUID --nhadd $NH

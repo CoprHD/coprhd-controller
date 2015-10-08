@@ -16,7 +16,7 @@ from bourne import Bourne
 def ecs_bucket_create(args):
     bourne.connect(args.ip)
     project_uri = bourne.project_query(args.project)
-    cos_uri     = bourne.cos_query('object', args.cos) #take care of 'object'
+    cos_uri     = bourne.cos_query('object', args.cos)
     nh_uri      = bourne.neighborhood_query(args.neighborhood)
     s = bourne.ecs_bucket_create(args.label, project_uri, nh_uri, cos_uri, args.soft_quota, args.hard_quota, args.owner)
     if (s['state'] == 'ready'):

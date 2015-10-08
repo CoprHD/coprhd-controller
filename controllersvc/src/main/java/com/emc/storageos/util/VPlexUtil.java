@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -1067,10 +1068,57 @@ public class VPlexUtil {
         }
         return result;
     }
-    
+
+    private static final String LOCAL_DEVICE = "local-device: ";
+    private static final String LOCAL_DEVICE_COMPONENT = "   local-device-component: ";
+    private static final String DISTRIBUTED_DEVICE = "distributed-device: ";
+    private static final String DISTRIBUTED_DEVICE_COMPONENT = "   distributed-device-component: ";
+    private static final String EXTENT = "   extent: ";
+    private static final String STORAGE_VOLUME = "   storage-volume: ";
+    private static final String START = "^(?s)";
+    private static final String ANYTHING = "(.*)";
+    private static final String END = "(.*)$";
+
     /**
      * Analyzes the given String as a VPLEX API drill-down response and
-     * checks that it has a structure compatible with ViPR.
+     * checks that it has a structure compatible with ViPR.  Supported structure examples:
+     * 
+     * a local device
+     *  local-device: device_VAPM00140844981-01727 (cluster-1)
+     *     extent: extent_VAPM00140844981-01727_1
+     *        storage-volume: VAPM00140844981-01727 (blocks: 0 - 2097151)
+     *
+     * a local device with a mirror
+     *  local-device: device_VAPM00140844981-00464 (cluster-1)
+     *     local-device-component: device_VAPM00140801303-01246
+     *        extent: extent_VAPM00140801303-01246_1
+     *           storage-volume: VAPM00140801303-01246 (blocks: 0 - 786431)
+     *     local-device-component: device_VAPM00140844981-004642015Oct07_142827
+     *        extent: extent_VAPM00140844981-00464_1
+     *           storage-volume: VAPM00140844981-00464 (blocks: 0 - 786431)
+     * 
+     * a distributed device
+     *  distributed-device: dd_VAPM00140844981-00294_V000198700406-02199
+     *     distributed-device-component: device_V000198700406-02199 (cluster-2)
+     *        extent: extent_V000198700406-02199_1
+     *           storage-volume: V000198700406-02199 (blocks: 0 - 524287)
+     *     distributed-device-component: device_VAPM00140844981-00294 (cluster-1)
+     *        extent: extent_VAPM00140844981-00294_1
+     *           storage-volume: VAPM00140844981-00294 (blocks: 0 - 524287)
+     *
+     * a distributed device with a mirror on one or both legs
+     *  distributed-device: dd_VAPM00140844981-00525_VAPM00140801303-01247
+     *     distributed-device-component: device_VAPM00140801303-01247 (cluster-2)
+     *        extent: extent_VAPM00140801303-01247_1
+     *           storage-volume: VAPM00140801303-01247 (blocks: 0 - 1048575)
+     *     distributed-device-component: device_VAPM00140844981-00525 (cluster-1)
+     *        local-device-component: device_VAPM00140801303-01258
+     *           extent: extent_VAPM00140801303-01258_1
+     *              storage-volume: VAPM00140801303-01258 (blocks: 0 - 1048575)
+     *        local-device-component: device_VAPM00140844981-005252015Oct07_160927
+     *           extent: extent_VAPM00140844981-00525_1
+     *              storage-volume: VAPM00140844981-00525 (blocks: 0 - 1048575)
+     *
      * 
      * @param deviceName name of the device being analyzed
      * @param drillDownResponse a drill-down command response from the VPLEX API 
@@ -1078,6 +1126,129 @@ public class VPlexUtil {
      */
     public static boolean isDeviceStructureValid(String deviceName, String drillDownResponse) {
         
-        return true;
+        if (drillDownResponse != null && !drillDownResponse.isEmpty()) {
+            _log.info("looking at device {} with drill-down {}", deviceName, drillDownResponse);
+            
+            // could quite possible run into NullPointer or other Exceptions,
+            // and in any of those cases, we'll just return false. so, for readability,
+            // there's not a lot of null checking going on here
+            try {
+                String[] lines = drillDownResponse.split("\n");
+                if (lines.length > 1) {
+
+                    StringBuffer extentStorageVolumePattern = 
+                            new StringBuffer(ANYTHING).append(EXTENT)
+                                     .append(ANYTHING).append(STORAGE_VOLUME).append(ANYTHING);
+                    StringBuffer localDeviceComponentPattern = 
+                            new StringBuffer(ANYTHING).append(LOCAL_DEVICE_COMPONENT)
+                                .append(extentStorageVolumePattern);
+                    StringBuffer distributedDeviceComponentPattern = 
+                            new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
+                                .append(extentStorageVolumePattern);
+                    StringBuffer distributedLegMirrorPattern = 
+                            new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
+                                .append(localDeviceComponentPattern)
+                                .append(localDeviceComponentPattern);
+
+                    int localDeviceComponentCount = 
+                            StringUtils.countMatches(drillDownResponse, LOCAL_DEVICE_COMPONENT);
+
+                    String firstLine = lines[0];
+                    if (firstLine.startsWith(LOCAL_DEVICE)) {
+                        // a local device can have 0, 2, local device components
+                        switch (localDeviceComponentCount) {
+                            case 0:
+                                StringBuffer localDevice = new StringBuffer(START);
+                                localDevice.append(LOCAL_DEVICE)
+                                           .append(extentStorageVolumePattern)
+                                           .append(END);
+                                _log.info("using pattern " + localDevice.toString());
+                                if (drillDownResponse.matches(localDevice.toString())) {
+                                    _log.info("this is a simple local volume");
+                                    return true;
+                                }
+                                break;
+                            case 2:
+                                StringBuffer localDeviceWithMirror = new StringBuffer(START);
+                                localDeviceWithMirror.append(LOCAL_DEVICE)
+                                                     .append(localDeviceComponentPattern)
+                                                     .append(localDeviceComponentPattern)
+                                                     .append(END);
+                                _log.info("using pattern " + localDeviceWithMirror.toString());
+                                if (drillDownResponse.matches(localDeviceWithMirror.toString())) {
+                                    _log.info("this is a local device with mirror");
+                                    return true;
+                                }
+                                break;
+                            default :
+                                return false;
+                        }
+                    } else if (firstLine.startsWith(DISTRIBUTED_DEVICE)) {
+                        // should have exactly two sets of device-extent-storage-volume
+                        int distributedDeviceComponentCount = 
+                                StringUtils.countMatches(drillDownResponse, DISTRIBUTED_DEVICE_COMPONENT);
+                        if (distributedDeviceComponentCount == 2) {
+                            // we have the right number of distributed device components
+                            // a distributed device can have 0, 2, or 4 local device components
+                            switch (localDeviceComponentCount) {
+                                case 0:
+                                    StringBuffer distributedDevice = new StringBuffer(START);
+                                    distributedDevice.append(DISTRIBUTED_DEVICE)
+                                                     .append(distributedDeviceComponentPattern)
+                                                     .append(distributedDeviceComponentPattern)
+                                                     .append(END);
+                                    _log.info("using pattern " + distributedDevice.toString());
+                                    if (drillDownResponse.matches(distributedDevice.toString())) {
+                                        _log.info("this is a simple distributed device");
+                                        return true;
+                                    }
+                                    break;
+                                case 2:
+                                    StringBuffer distributedDeviceMirrorOnLeg1 = new StringBuffer(START);
+                                    distributedDeviceMirrorOnLeg1.append(DISTRIBUTED_DEVICE)
+                                                     .append(distributedLegMirrorPattern)
+                                                     .append(distributedDeviceComponentPattern)
+                                                     .append(END);
+                                    StringBuffer distributedDeviceMirrorOnLeg2 = new StringBuffer(START);
+                                    distributedDeviceMirrorOnLeg2.append(DISTRIBUTED_DEVICE)
+                                                     .append(distributedDeviceComponentPattern)
+                                                     .append(distributedLegMirrorPattern)
+                                                     .append(END);
+                                    _log.info("using pattern " + distributedDeviceMirrorOnLeg1.toString());
+                                    _log.info("using pattern " + distributedDeviceMirrorOnLeg2.toString());
+                                    if (drillDownResponse.matches(distributedDeviceMirrorOnLeg1.toString()) 
+                                     || drillDownResponse.matches(distributedDeviceMirrorOnLeg2.toString())) {
+                                        _log.info("this is a distributed volume with a mirror on one leg or the other");
+                                        return true;
+                                    }
+                                    break;
+                                case 4:
+                                    StringBuffer distributedDeviceMirrorOnBothLegs = new StringBuffer(START);
+                                    distributedDeviceMirrorOnBothLegs.append(DISTRIBUTED_DEVICE)
+                                                     .append(distributedLegMirrorPattern)
+                                                     .append(distributedLegMirrorPattern)
+                                                     .append(END);
+                                    _log.info("using pattern " + distributedDeviceMirrorOnBothLegs.toString());
+                                    if (drillDownResponse.matches(distributedDeviceMirrorOnBothLegs.toString())) {
+                                        _log.info("this is a distributed volume with mirrors on both legs");
+                                        return true;
+                                    }
+                                    break;
+                                default :
+                                    return false;
+                            }
+                        }
+                    } else {
+                        return false;
+                    }
+                }
+            } catch (Exception ex) {
+                _log.error("Exception encountered parsing device drill down: " 
+                        + ex.getLocalizedMessage(), ex);
+                return false;
+            }
+        }
+        
+        return false;
     }
 }

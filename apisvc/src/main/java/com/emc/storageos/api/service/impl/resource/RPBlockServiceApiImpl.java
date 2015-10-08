@@ -3300,12 +3300,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 
                 // Ensure there are no Local Array Snapshots on the Target Volume(s)
                 if (!targetSnapshots.isEmpty()) {
+                    List<String> targetSnapshotInfo = new ArrayList<String>();
+                    for (BlockSnapshot targetSnapshot : targetSnapshots) {
+                        targetSnapshotInfo.add(targetSnapshot.getLabel() + " (" + targetSnapshot.getId() + ")");
+                    }
+                    
                     // There are snapshots on the targets, throw an exception to inform the
                     // user. We do not want to auto-clean up the snapshots on the target.
                     // The user should first clean up those snapshots.
                     String warningMessage = String.format("Volume [%s] (%s) has targets with snapshots, please delete the "
                             + "following snapshots {%s} and place the order again.", 
-                            volume.getLabel(), volume.getId(), Joiner.on(',').join(targetSnapshots));
+                            volume.getLabel(), volume.getId(), Joiner.on(',').skipNulls().join(targetSnapshotInfo));
                     _log.warn(warningMessage);
                     throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
                 }

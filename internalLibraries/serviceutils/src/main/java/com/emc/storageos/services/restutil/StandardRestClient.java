@@ -48,7 +48,8 @@ public abstract class StandardRestClient implements RestClientItf {
                 .put(ClientResponse.class, body);
         if (authenticationFailed(response)) {
             authenticate();
-            response = setResourceHeaders(_client.resource(requestURI)).put(ClientResponse.class, body);
+            response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
+                    .put(ClientResponse.class, body);
         }
         checkResponse(uri, response);
         return response;

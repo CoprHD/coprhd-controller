@@ -3636,6 +3636,7 @@ public class VPlexApiDiscoveryManager {
             }
         }
 
+        parentDevice.setGeometry(VPlexApiConstants.ARG_GEOMETRY_RAID1);
         parentDevice.setLocalDeviceInfo(deviceInfoList);
         if (!deviceInfoList.isEmpty()) {
             s_logger.info("found these distributed component devices for VPLEX device {}:", parentDevice.getName());

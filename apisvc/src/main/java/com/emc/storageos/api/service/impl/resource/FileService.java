@@ -588,11 +588,10 @@ public class FileService extends TaskResourceService {
 
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())
-        		&& !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+        if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())) {
             // Throw an error
-            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool doesn't support either"
-                    + StorageProtocol.File.NFS.name() +" or "+StorageProtocol.File.NFSv4 +" protocol");
+            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool doesn't support "
+                    + StorageProtocol.File.NFS.name() + " protocol");
         }
 
         // locate storage port for exporting file System
@@ -1680,11 +1679,10 @@ public class FileService extends TaskResourceService {
 
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())
-        		&& !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+        if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())) {
             // Throw an error
-            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool doesn't support either"
-                    + StorageProtocol.File.NFS.name() +" or "+StorageProtocol.File.NFSv4 +" protocol");
+            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
+                    + StorageProtocol.File.NFS.name() + " protocol");
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
@@ -2115,8 +2113,7 @@ public class FileService extends TaskResourceService {
 
         // Check for VirtualPool whether it has NFS v4 enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name()) ||
-        		vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+        if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())) {
             // Throw an error
             throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
                     + StorageProtocol.File.NFS.name() + " protocol");

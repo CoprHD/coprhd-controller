@@ -295,8 +295,8 @@ public class ExportGroupService extends TaskResourceService {
         
         // If ExportPathParameter block is presnet, and volumes are present, capture those arguments.
         ExportPathParam exportPathParam = null;
-        if (param.getPathParam() != null && !volumeMap.keySet().isEmpty()) {
-            exportPathParam = validateAndCreateExportPathParam(param.getPathParam(), exportGroup);
+        if (param.getExportPathParameters() != null && !volumeMap.keySet().isEmpty()) {
+            exportPathParam = validateAndCreateExportPathParam(param.getExportPathParameters(), exportGroup);
             addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
         }
 
@@ -2539,19 +2539,22 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * For all the block objects in the list, checks to see if they are associated with an ExportPathParam object.
      * If so they are removed. If there are no remaining block objects, the ExportPathParam is deleted.
+     * 
      * @param blockObjectURIs
      * @param exportGroup
      */
-            void removeBlockObjectsFromPathParamMap(Collection<URI> blockObjectURIs, ExportGroup exportGroup) {
-        // For each existing PathParam block, remove all the volumes in the list it may have
-        for (String key : exportGroup.getPathParameters().keySet()) {
-            StringSet values = exportGroup.getPathParameters().get(key);
-            for (URI blockObjectURI : blockObjectURIs) {
-                exportGroup.removeFromPathParameters(URI.create(key), blockObjectURI);
-            }
-            if (values.isEmpty()) {
-                ExportPathParam pathParam = _dbClient.queryObject(ExportPathParam.class, URI.create(key));
-                if (pathParam != null && pathParam.wasExplicitlyCreated()) {
+    void removeBlockObjectsFromPathParamMap(Collection<URI> blockObjectURIs, ExportGroup exportGroup) {
+        // For each BlockObject, remove it's association to a ExportPathParam.
+        for (URI blockObjectURI : blockObjectURIs) {
+            String pathParamId = exportGroup.getPathParameters().get(blockObjectURI.toString());
+            if (pathParamId == null)
+                continue;
+            exportGroup.removeFromPathParameters(blockObjectURI);
+            // If there are no more entries for the given ExportPathParam, mark it for deletion
+            if (!exportGroup.getPathParameters().containsValue(pathParamId)) {
+                URI pathParamURI = URI.create(pathParamId);
+                ExportPathParam pathParam = _dbClient.queryObject(ExportPathParam.class, pathParamURI);
+                if (pathParam != null) {
                     _dbClient.markForDeletion(pathParam);
                 }
             }
@@ -2570,8 +2573,7 @@ public class ExportGroupService extends TaskResourceService {
         removeBlockObjectsFromPathParamMap(blockObjectURIs, exportGroup);
         // Add them for the new ExportPathParam object.
         for (URI blockObjectURI : blockObjectURIs) {
-            exportGroup.addToPathParameters(pathParamURI, blockObjectURI);
-            ;
+            exportGroup.addToPathParameters(blockObjectURI, pathParamURI);
         }
     }
 }

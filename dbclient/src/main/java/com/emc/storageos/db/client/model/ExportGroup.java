@@ -48,8 +48,8 @@ public class ExportGroup extends DataObject implements ProjectResource {
     private Boolean _zoneAllInitiators = Boolean.FALSE;     // if true all initiators are zoned.
 
     private StringMap _altVirtualArrays;    // alternate virtual arrays in this ExportGroup (VPlex)
-    // map from ExportPathParam id to set of BlockObject ids paths are applied to
-    private StringSetMap pathParameters;
+    // map from BlockObject id to ExportPathParam id for over-ridden path parameters
+    private StringMap _pathParameters;
 
     public static final int LUN_UNASSIGNED = -1;
     public static final String LUN_UNASSIGNED_STR = Integer.toHexString(LUN_UNASSIGNED);
@@ -510,27 +510,27 @@ public class ExportGroup extends DataObject implements ProjectResource {
     }
 
     @Name("pathParam")
-    public StringSetMap getPathParameters() {
-        if (pathParameters == null) {
-            return new StringSetMap();
+    public StringMap getPathParameters() {
+        if (_pathParameters == null) {
+            return new StringMap();
         }
-        return pathParameters;
+        return _pathParameters;
     }
 
-    public void setPathParameters(StringSetMap pathParameters) {
-        this.pathParameters = pathParameters;
+    public void setPathParameters(StringMap pathParameters) {
+        this._pathParameters = pathParameters;
         setChanged("pathParam");
     }
     
     public void addToPathParameters(URI key, URI value) {
-        if (pathParameters == null) {
-            setPathParameters(new StringSetMap());
+        if (_pathParameters == null) {
+            setPathParameters(new StringMap());
         }
         getPathParameters().put(key.toString(), value.toString());
     }
     
-    public void removeFromPathParameters(URI key, URI value) {
-        getPathParameters().remove(key.toString(), value.toString());
+    public void removeFromPathParameters(URI key) {
+        getPathParameters().remove(key.toString());
     }
     
 }

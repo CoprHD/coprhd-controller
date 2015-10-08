@@ -4557,7 +4557,7 @@ class Bourne:
 	# Optionally add path parameters
         if (pathParam['max_paths'] > 0):
             print 'Path parameters', pathParam
-	    parms['path_param'] = pathParam
+	    parms['path_parameters'] = pathParam
         else:
             print 'No path parameters'
 

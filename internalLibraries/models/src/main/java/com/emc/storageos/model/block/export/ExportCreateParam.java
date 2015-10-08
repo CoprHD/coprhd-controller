@@ -27,7 +27,7 @@ public class ExportCreateParam {
     private String name;
     private String type;
     private List<VolumeParam> volumes;
-    private ExportPathParameters pathParam;
+    private ExportPathParameters exportPathParameters;
 
     // The fiber channel SAN membership
     // of Fiber Channel initiators must be known. For iSCSI initiators, either a default IP network
@@ -194,17 +194,17 @@ public class ExportCreateParam {
         getClusters().add(clusterId);
     }
 
-    @XmlElement(name="path_param", required=false)
+    @XmlElement(name="path_parameters", required=false)
     /**
      * Optional path parameters that will over-ride the Vpool path parameters.
-     * @return PathParam
+     * @return ExportPathParameters
      * @valid none
      */
-    public ExportPathParameters getPathParam() {
-        return pathParam;
+    public ExportPathParameters getExportPathParameters() {
+        return exportPathParameters;
     }
 
-    public void setPathParam(ExportPathParameters pathParam) {
-        this.pathParam = pathParam;
+    public void setExportPathParameters(ExportPathParameters pathParam) {
+        this.exportPathParameters = pathParam;
     }
 }

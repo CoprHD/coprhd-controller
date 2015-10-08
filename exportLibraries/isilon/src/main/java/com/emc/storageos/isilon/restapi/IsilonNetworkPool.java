@@ -6,6 +6,7 @@ package com.emc.storageos.isilon.restapi;
 /*
  * Class representing the isilon network pool object
  * member names should match the key names in json object
+ * 
  */
 public class IsilonNetworkPool {
     

@@ -1419,6 +1419,11 @@ public class FileService extends TaskResourceService {
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
             fs.setThinlyProvisioned(Boolean.TRUE);
         }
+        
+        if(placement.getvNAS() != null) {
+        	fs.setVituralNAS(placement.getvNAS());
+        }
+        
         fs.setOpStatus(new OpStatusMap());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_FILE_SYSTEM);

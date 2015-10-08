@@ -255,9 +255,10 @@ public class FileDeviceController implements FileController {
 
             Project proj = _dbClient.queryObject(Project.class, fsObj.getProject());
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fsObj.getTenant());
-            VirtualNAS vNAS = getVirtualNasForStoragePort(fsObj.getStoragePort());
+            URI vNASUri = fsObj.getVituralNAS();
             
-            if(vNAS != null) {
+            if(vNASUri != null) {
+            	VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
             	args.setvNAS(vNAS);
             }
 
@@ -486,6 +487,7 @@ public class FileDeviceController implements FileController {
         FileShare fs = null;
         Snapshot snapshotObj = null;
         StorageSystem storageObj = null;
+        VirtualNAS vNAS = null;
         
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -499,6 +501,11 @@ public class FileDeviceController implements FileController {
                 args.addFSFileObject(fs);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
                 args.addStoragePool(pool);
+                URI vNASUri = fs.getVituralNAS();
+                if(vNASUri != null) {
+                	vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
+                	args.setvNAS(vNAS);
+                }
             } else {
                 snapshotObj = _dbClient.queryObject(Snapshot.class, uri);
                 fsObj = snapshotObj;
@@ -507,15 +514,16 @@ public class FileDeviceController implements FileController {
                 args.addSnapshotFileObject(snapshotObj);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
                 args.addStoragePool(pool);
+                URI vNASUri = fs.getVituralNAS();
+                if(vNASUri != null) {
+                	vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
+                	args.setvNAS(vNAS);
+                }
             }
 
             args.setFileOperation(isFile);
             args.setOpId(opId);
-            VirtualNAS vNAS = getVirtualNasForStoragePort(fs.getStoragePort());
             
-            if(vNAS != null) {
-            	args.setvNAS(vNAS);
-            }
             _log.info("Export details...  ");
             List<FileExport> fileExports = new ArrayList<FileExport>();
             if (exports != null) {
@@ -861,7 +869,8 @@ public class FileDeviceController implements FileController {
                 fileObject = fsObj;
                 args.addFSFileObject(fsObj);
                 args.setFileOperation(true);
-                vNAS = getVirtualNasForStoragePort(fsObj.getStoragePort());
+                URI vNASUri = fsObj.getVituralNAS();
+                vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
                 args.setvNAS(vNAS);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
@@ -889,7 +898,8 @@ public class FileDeviceController implements FileController {
                 fsObj = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
                 args.addFileShare(fsObj);
                 args.setFileOperation(false);
-                vNAS = getVirtualNasForStoragePort(fsObj.getStoragePort());
+                URI vNASUri = fsObj.getVituralNAS();
+                vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
                 args.setvNAS(vNAS);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
@@ -2874,7 +2884,7 @@ public class FileDeviceController implements FileController {
      * @param storagePortURI urn of the storage port
      * @return VirtualNAS associated with the  storage Port
      */
-    private VirtualNAS getVirtualNasForStoragePort(URI storagePortURI) {
+    /*private VirtualNAS getVirtualNasForStoragePort(URI storagePortURI) {
 
         URIQueryResultList vNasUriList = new URIQueryResultList();
         _dbClient.queryByConstraint(
@@ -2889,5 +2899,5 @@ public class FileDeviceController implements FileController {
         }
         return null;
 
-    }
+    }*/
 }

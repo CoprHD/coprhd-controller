@@ -166,6 +166,7 @@ public class FileStorageScheduler {
             URI storageDevice = fRec.getSourceStorageSystem();
 
             if (vNAS.getStorageDeviceURI().equals(storageDevice)) {
+            	fRec.setvNAS(vNAS.getId());
                 fRec.setStoragePorts(storagePortURIList);
                 fileRecommendations.add(fRec);
             }

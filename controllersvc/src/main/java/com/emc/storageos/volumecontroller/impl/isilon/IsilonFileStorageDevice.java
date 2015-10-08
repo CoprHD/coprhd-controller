@@ -666,19 +666,18 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             String mountPath = null;
             // Update the mount path as required
-            if(vNASPath != null && vNASPath.length() > 0 && !"".equals(vNASPath.trim())) {
-            	mountPath = String.format("%1$s/%2$s", vNASPath, args.getFsName());
-            } else {
-            	
-	            if (projName != null && tenantOrg != null) {
-	                mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
-	                        args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
-	                        args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
-	            } else {
-	                mountPath = String.format("%1$s/%2$s/%3$s/%4$s", IFS_ROOT, VIPR_DIR,
-	                        args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
-	            }
-            }
+	        if (projName != null && tenantOrg != null) {
+	            mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
+	                    args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
+	                    args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
+	        } else {
+	            mountPath = String.format("%1$s/%2$s/%3$s/%4$s", IFS_ROOT, VIPR_DIR,
+	                    args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
+	        }
+	            
+	        if(vNASPath != null && vNASPath.length() > 0 && !"".equals(vNASPath.trim())) {
+	        	mountPath = String.format("%1$s/%2$s", vNASPath, mountPath);
+	        }
 
             _log.info("Mount path to mount the Isilon File System {}", mountPath);
             args.setFsMountPath(mountPath);

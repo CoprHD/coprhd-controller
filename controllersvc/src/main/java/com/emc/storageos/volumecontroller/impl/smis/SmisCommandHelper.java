@@ -389,25 +389,19 @@ public class SmisCommandHelper implements SmisConstants {
      * @param groupName the group name
      * @param volumeURIList the volume uri list
      * @param forceFlag the force flag
+     * @throws Exception
      */
     public void removeVolumesFromStorageGroup(
             StorageSystem storage, String groupName, List<URI> volumeURIList,
-            boolean forceFlag) {
+            boolean forceFlag) throws Exception {
         _log.info(
                 "{} removeVolume from Storage group {} START...",
                 storage.getSerialNumber(), groupName);
-        try {
-            CIMArgument[] inArgs = getRemoveVolumesFromMaskingGroupInputArguments(
-                    storage, groupName, volumeURIList, forceFlag);
-            CIMArgument[] outArgs = new CIMArgument[5];
-            invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
-                    "RemoveMembers", inArgs, outArgs, null);
-        } catch (Exception e) {
-            _log.error(
-                    String.format(
-                            "removeVolume from Storage group failed -: %s",
-                            groupName), e);
-        }
+        CIMArgument[] inArgs = getRemoveVolumesFromMaskingGroupInputArguments(
+                storage, groupName, volumeURIList, forceFlag);
+        CIMArgument[] outArgs = new CIMArgument[5];
+        invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                "RemoveMembers", inArgs, outArgs, null);
         _log.info(
                 "{} removeVolume from Storage group {} END...",
                 storage.getSerialNumber(), groupName);
@@ -451,15 +445,16 @@ public class SmisCommandHelper implements SmisConstants {
                     // Double check: check if SG is part of MV
                     if (!checkStorageGroupInAnyMaskingView(storage, sgPath.getObjectPath())) {
                         // if last volume, dis-associate FAST
-                        if (getVMAXStorageGroupVolumeCount(storage, storageGroupName) == 1) {
+                        int sgVolumeCount = getVMAXStorageGroupVolumeCount(storage, storageGroupName);
+                        if (sgVolumeCount == 1) {
                             WBEMClient client = getConnection(storage).getCimClient();
                             removeVolumeGroupFromPolicyAndLimitsAssociation(client, storage, sgPath.getObjectPath());
                         }
 
-                        removeVolumesFromStorageGroup(storage, storageGroupName, Arrays.asList(volume.getId()), forceFlag);
+                        removeVolumesFromStorageGroup(storage, storageGroupName, Collections.singletonList(volume.getId()), forceFlag);
 
-                        // remove empty group
-                        if (getVMAXStorageGroupVolumeCount(storage, storageGroupName) == 0) {
+                        // If there was only one volume in the SG, it would be empty after removing that last volume.
+                        if (sgVolumeCount == 1) {
                             _log.info("Deleting Empty Storage Group {}", storageGroupName);
                             deleteMaskingGroup(storage, storageGroupName, SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
                         }

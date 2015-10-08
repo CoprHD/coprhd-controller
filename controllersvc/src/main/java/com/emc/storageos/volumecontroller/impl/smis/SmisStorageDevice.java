@@ -592,11 +592,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     }
                     _log.info("Done invoking remove volume from storage group");
                 }
-                if (storageSystem.deviceIsType(Type.vmax) && !storageSystem.checkIfVmax3()) {
-                    // VMAX2 - remove volume from Storage Groups if volume is not in any MaskingView
-                    // COP-16705 - Ingested non-exported Volume may be associated with SG outside of ViPR. Clear them during delete.
-                    _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storageSystem, volume);
-                }
                 // For clones, 'replicationgroupinstance' property contains the Replication Group name.
                 if (volume.getReplicationGroupInstance() != null) {
                     removeVolumeFromConsistencyGroup(storageSystem, volume);
@@ -617,6 +612,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     if (storageSystem.deviceIsType(Type.vnxblock) || storageSystem.checkIfVmax3()) {
                         cleanupAnyBackupSnapshots(storageSystem, volume);
                     }
+                }
+                if (storageSystem.deviceIsType(Type.vmax) && !storageSystem.checkIfVmax3()) {
+                    // VMAX2 - remove volume from Storage Groups if volume is not in any MaskingView
+                    // COP-16705 - Ingested non-exported Volume may be associated with FAST SG outside of ViPR. Clear them during delete.
+                    _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(storageSystem, volume);
                 }
                 StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem,
                         volumes.get(0));

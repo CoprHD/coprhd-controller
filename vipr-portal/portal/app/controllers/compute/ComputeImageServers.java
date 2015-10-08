@@ -26,7 +26,7 @@ import util.ComputeImageServerUtils;
 import util.MessagesUtils;
 import util.validation.HostNameOrIpAddressCheck;
 
-import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.compute.ComputeImageServerCreate;
 import com.emc.storageos.model.compute.ComputeImageServerRestRep;
 import com.emc.storageos.model.compute.ComputeImageServerUpdate;
@@ -167,7 +167,7 @@ public class ComputeImageServers extends ViprResourceController {
 
         public String tftpBootDir;
 
-        public List<RelatedResourceRep> computeImages;
+        public List<NamedRelatedResourceRep> computeImages;
 
         @MaxSize(2048)
         @Required

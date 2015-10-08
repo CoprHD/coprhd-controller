@@ -13,6 +13,7 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logWarn;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -719,5 +720,23 @@ public class VMwareSupport {
         }
 
         return e;
+    }
+
+    public void detachLuns(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume) {
+        final HostScsiDisk disk = findScsiDisk(host, cluster, volume);
+        List<HostSystem> hosts = Lists.newArrayList();
+        if (host != null) {
+            hosts.add(host);
+        } else {
+            for (HostSystem hostSystem : cluster.getHosts())
+                hosts.add(hostSystem);
+        }
+
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                detachLuns(host, Collections.singletonList(disk));
+            }
+        });
     }
 }

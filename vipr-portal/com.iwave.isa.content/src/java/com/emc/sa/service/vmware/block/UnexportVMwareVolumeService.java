@@ -70,6 +70,11 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
 
     @Override
     public void execute() throws Exception {
+
+        for (BlockObjectRestRep volume : volumes) {
+            vmware.detachLuns(host, cluster, volume);
+        }
+
         for (ExportGroupRestRep export : filteredExportGroups) {
             URI exportId = ResourceUtils.id(export);
             String exportName = ResourceUtils.name(export);

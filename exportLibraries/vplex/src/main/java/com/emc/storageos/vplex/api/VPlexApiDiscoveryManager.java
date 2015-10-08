@@ -3897,7 +3897,6 @@ public class VPlexApiDiscoveryManager {
         }
 
         String customData = VPlexApiUtils.getCustomDataFromResponse(responseStr);
-        s_logger.info("Custom data from drill-down command is {}", customData);
         return customData;
     }
 }

@@ -1029,9 +1029,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 context.setDistributedDevicePathToClusterMap(distributedDevicePathToClusterMap);
                 context.discover();
                 
-                // TODO temporary
-                context.validateSupportingDeviceStructure();
-                
                 for (UnManagedVolume bvol : context.getUnmanagedBackendVolumes()) {
                     
                     // map this backend volume's GUID to its parent front-end volume GUID

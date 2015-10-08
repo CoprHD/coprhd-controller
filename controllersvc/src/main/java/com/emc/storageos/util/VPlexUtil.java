@@ -1069,6 +1069,7 @@ public class VPlexUtil {
         return result;
     }
 
+    // constants related to supporting device structure validation
     private static final String LOCAL_DEVICE = "local-device: ";
     private static final String LOCAL_DEVICE_COMPONENT = "   local-device-component: ";
     private static final String DISTRIBUTED_DEVICE = "distributed-device: ";
@@ -1083,12 +1084,14 @@ public class VPlexUtil {
      * Analyzes the given String as a VPLEX API drill-down response and
      * checks that it has a structure compatible with ViPR.  Supported structure examples:
      * 
-     * a local device
+     * a simple local device
+     * 
      *  local-device: device_VAPM00140844981-01727 (cluster-1)
      *     extent: extent_VAPM00140844981-01727_1
      *        storage-volume: VAPM00140844981-01727 (blocks: 0 - 2097151)
      *
      * a local device with a mirror
+     * 
      *  local-device: device_VAPM00140844981-00464 (cluster-1)
      *     local-device-component: device_VAPM00140801303-01246
      *        extent: extent_VAPM00140801303-01246_1
@@ -1097,7 +1100,8 @@ public class VPlexUtil {
      *        extent: extent_VAPM00140844981-00464_1
      *           storage-volume: VAPM00140844981-00464 (blocks: 0 - 786431)
      * 
-     * a distributed device
+     * a simple distributed device
+     * 
      *  distributed-device: dd_VAPM00140844981-00294_V000198700406-02199
      *     distributed-device-component: device_V000198700406-02199 (cluster-2)
      *        extent: extent_V000198700406-02199_1
@@ -1107,6 +1111,7 @@ public class VPlexUtil {
      *           storage-volume: VAPM00140844981-00294 (blocks: 0 - 524287)
      *
      * a distributed device with a mirror on one or both legs
+     * 
      *  distributed-device: dd_VAPM00140844981-00525_VAPM00140801303-01247
      *     distributed-device-component: device_VAPM00140801303-01247 (cluster-2)
      *        extent: extent_VAPM00140801303-01247_1
@@ -1118,17 +1123,16 @@ public class VPlexUtil {
      *        local-device-component: device_VAPM00140844981-005252015Oct07_160927
      *           extent: extent_VAPM00140844981-00525_1
      *              storage-volume: VAPM00140844981-00525 (blocks: 0 - 1048575)
-     *
      * 
      * @param deviceName name of the device being analyzed
      * @param drillDownResponse a drill-down command response from the VPLEX API 
      * @return true if the device structure is compatible with ViPR
      */
     public static boolean isDeviceStructureValid(String deviceName, String drillDownResponse) {
-        
+
         if (drillDownResponse != null && !drillDownResponse.isEmpty()) {
             _log.info("looking at device {} with drill-down {}", deviceName, drillDownResponse);
-            
+
             // could quite possible run into NullPointer or other Exceptions,
             // and in any of those cases, we'll just return false. so, for readability,
             // there's not a lot of null checking going on here
@@ -1136,9 +1140,11 @@ public class VPlexUtil {
                 String[] lines = drillDownResponse.split("\n");
                 if (lines.length > 1) {
 
+                    // these patterns are used to build up the various
+                    // supported device structures as outlined in the method javadoc
                     StringBuffer extentStorageVolumePattern = 
                             new StringBuffer(ANYTHING).append(EXTENT)
-                                     .append(ANYTHING).append(STORAGE_VOLUME).append(ANYTHING);
+                                     .append(ANYTHING).append(STORAGE_VOLUME);
                     StringBuffer localDeviceComponentPattern = 
                             new StringBuffer(ANYTHING).append(LOCAL_DEVICE_COMPONENT)
                                 .append(extentStorageVolumePattern);
@@ -1150,14 +1156,19 @@ public class VPlexUtil {
                                 .append(localDeviceComponentPattern)
                                 .append(localDeviceComponentPattern);
 
+                    // a supported vplex device can have 0, 2, or 4 local device components
+                    // 0 indicates a simple local or distributed volume
+                    // 2 indicates a mirror configured on local or one leg of distributed
+                    // 4 indicates a mirror configured on each leg of a distributed volume
                     int localDeviceComponentCount = 
                             StringUtils.countMatches(drillDownResponse, LOCAL_DEVICE_COMPONENT);
 
                     String firstLine = lines[0];
                     if (firstLine.startsWith(LOCAL_DEVICE)) {
-                        // a local device can have 0, 2, local device components
+                        // a local device can have 0 or 2 local device components
                         switch (localDeviceComponentCount) {
                             case 0:
+                                // this could be a simple local volume
                                 StringBuffer localDevice = new StringBuffer(START);
                                 localDevice.append(LOCAL_DEVICE)
                                            .append(extentStorageVolumePattern)
@@ -1169,6 +1180,7 @@ public class VPlexUtil {
                                 }
                                 break;
                             case 2:
+                                // this could be a local volume with a mirror configured
                                 StringBuffer localDeviceWithMirror = new StringBuffer(START);
                                 localDeviceWithMirror.append(LOCAL_DEVICE)
                                                      .append(localDeviceComponentPattern)
@@ -1181,10 +1193,11 @@ public class VPlexUtil {
                                 }
                                 break;
                             default :
-                                return false;
+                                // fall through
                         }
                     } else if (firstLine.startsWith(DISTRIBUTED_DEVICE)) {
-                        // should have exactly two sets of device-extent-storage-volume
+                        // need to check that distributed device has
+                        // exactly two distributed device components
                         int distributedDeviceComponentCount = 
                                 StringUtils.countMatches(drillDownResponse, DISTRIBUTED_DEVICE_COMPONENT);
                         if (distributedDeviceComponentCount == 2) {
@@ -1192,6 +1205,7 @@ public class VPlexUtil {
                             // a distributed device can have 0, 2, or 4 local device components
                             switch (localDeviceComponentCount) {
                                 case 0:
+                                    // this could be a simple distributed volume
                                     StringBuffer distributedDevice = new StringBuffer(START);
                                     distributedDevice.append(DISTRIBUTED_DEVICE)
                                                      .append(distributedDeviceComponentPattern)
@@ -1204,6 +1218,7 @@ public class VPlexUtil {
                                     }
                                     break;
                                 case 2:
+                                    // this could be a volume with a mirror on one leg or the other
                                     StringBuffer distributedDeviceMirrorOnLeg1 = new StringBuffer(START);
                                     distributedDeviceMirrorOnLeg1.append(DISTRIBUTED_DEVICE)
                                                      .append(distributedLegMirrorPattern)
@@ -1223,6 +1238,7 @@ public class VPlexUtil {
                                     }
                                     break;
                                 case 4:
+                                    // this could be a volume with a mirror on each leg
                                     StringBuffer distributedDeviceMirrorOnBothLegs = new StringBuffer(START);
                                     distributedDeviceMirrorOnBothLegs.append(DISTRIBUTED_DEVICE)
                                                      .append(distributedLegMirrorPattern)
@@ -1235,20 +1251,18 @@ public class VPlexUtil {
                                     }
                                     break;
                                 default :
-                                    return false;
+                                    // fall through
                             }
                         }
-                    } else {
-                        return false;
                     }
                 }
             } catch (Exception ex) {
                 _log.error("Exception encountered parsing device drill down: " 
                         + ex.getLocalizedMessage(), ex);
-                return false;
             }
         }
-        
+
+        _log.error("this is not a compatible supporting device structure");
         return false;
     }
 }

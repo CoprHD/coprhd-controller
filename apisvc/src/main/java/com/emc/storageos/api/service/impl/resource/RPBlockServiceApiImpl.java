@@ -3279,11 +3279,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         try {            
             List<URI> volumeURIs = new ArrayList<URI>();            
             for (Volume volume : volumes) {
-                _log.info(String.format("Request to remove protection from Volume [%s] (%s) and move to Virtual Pool [%s] (%s)", 
+                _log.info(String.format("Request to remove protection from Volume [%s] (%s) and move it to Virtual Pool [%s] (%s)", 
                         volume.getLabel(), volume.getId(), newVpool.getLabel(), newVpool.getId()));
                 volumeURIs.add(volume.getId());
                 
-                List<BlockSnapshot> targetSnapshots = new ArrayList<BlockSnapshot>();
+                List<BlockSnapshot> rpBookmarks = new ArrayList<BlockSnapshot>();
                 for (String targetId : volume.getRpTargets()) {
                     Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetId));
                     // Ensure Target Volumes are not exported
@@ -3295,44 +3295,41 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
                     }
                     
-                    targetSnapshots.addAll(this.getSnapshots(targetVolume));
-                }
-                
-                // Ensure there are no Local Array Snapshots on the Target Volume(s)
-                if (!targetSnapshots.isEmpty()) {
-                    List<String> targetSnapshotInfo = new ArrayList<String>();
-                    for (BlockSnapshot targetSnapshot : targetSnapshots) {
-                        targetSnapshotInfo.add(targetSnapshot.getLabel() + " (" + targetSnapshot.getId() + ")");
-                    }
-                    
-                    // There are snapshots on the targets, throw an exception to inform the
-                    // user. We do not want to auto-clean up the snapshots on the target.
-                    // The user should first clean up those snapshots.
-                    String warningMessage = String.format("Volume [%s] (%s) has targets with snapshots, please delete the "
-                            + "following snapshots {%s} and place the order again.", 
-                            volume.getLabel(), volume.getId(), Joiner.on(',').skipNulls().join(targetSnapshotInfo));
-                    _log.warn(warningMessage);
-                    throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
-                }
-                
-                // Cleanup only RP Bookmarks, Local Array Snapshots will be left alone.
-                List<BlockSnapshot> snapshots = this.getSnapshots(volume);
-                for (BlockSnapshot snapshot : snapshots) {
-                    if (TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
-                        // Ensure that RP Bookmarks/Snapshots are not exported
-                        if (snapshot.isSnapshotExported(_dbClient)) { 
-                            String warningMessage = String.format("RP Bookmark/Snapshot [%s] (%s) is exported to Host, please un-export the "
-                                    + "Bookmark/Snapshot from all exports and place the order again.", 
-                                    snapshot.getLabel(), snapshot.getId());
+                    List<BlockSnapshot> snapshots = this.getSnapshots(targetVolume);
+                    for (BlockSnapshot snapshot : snapshots) {
+                        if (TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
+                            // If there are RP bookmarks that have been exported, throw an exception to inform the
+                            // user. The user should first un-export those bookmarks.
+                            if (snapshot.isSnapshotExported(_dbClient)) { 
+                                String warningMessage = String.format("RP Bookmark/Snapshot [%s] (%s) is exported to Host, "
+                                        + "please un-export the Bookmark/Snapshot from all exports and place the order again.", 
+                                        snapshot.getLabel(), snapshot.getId());
+                                _log.warn(warningMessage);
+                                throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
+                            }
+                            // Add bookmark to be cleaned up
+                            rpBookmarks.add(snapshot);
+                        } else {
+                            // There are snapshots on the targets, throw an exception to inform the
+                            // user. We do not want to auto-clean up the snapshots on the target.
+                            // The user should first clean up those snapshots.
+                            String warningMessage = String.format("Target Volume [%s] (%s) has a snapshot, please delete the "
+                                    + "snapshot [%s] (%s) and place the order again.", 
+                                    volume.getLabel(), volume.getId(), snapshot.getLabel(), snapshot.getId());
                             _log.warn(warningMessage);
                             throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
                         }
-                        
-                        _log.info(String.format("Deleting RP Snapshot [%s] (%s)", snapshot.getLabel(), snapshot.getId()));
+                    }                    
+                }
+                
+                // Cleanup only RP Bookmarks
+                if (!rpBookmarks.isEmpty()) {
+                    for (BlockSnapshot bookmark : rpBookmarks) {                                            
+                        _log.info(String.format("Deleting RP Snapshot/Bookmark [%s] (%s)", bookmark.getLabel(), bookmark.getId()));
                         // Generate task id
                         final String deleteSnapshotTaskId = UUID.randomUUID().toString();
                         // Delete the snapshot
-                        this.deleteSnapshot(snapshot, deleteSnapshotTaskId);
+                        this.deleteSnapshot(bookmark, deleteSnapshotTaskId);                    
                     }
                 }
             }

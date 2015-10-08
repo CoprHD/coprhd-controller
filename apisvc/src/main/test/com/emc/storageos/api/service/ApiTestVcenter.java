@@ -5,6 +5,8 @@
 
 package com.emc.storageos.api.service;
 
+import com.emc.storageos.api.ldap.exceptions.DirectoryOrFileNotFoundException;
+import com.emc.storageos.api.ldap.exceptions.FileOperationFailedException;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskResourceRep;
@@ -21,6 +23,8 @@ import com.emc.storageos.model.usergroup.UserGroupRestRep;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.services.util.EnvConfig;
 import com.sun.jersey.api.client.ClientResponse;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldif.LDIFException;
 import org.apache.commons.httpclient.HttpStatus;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -30,7 +34,9 @@ import org.junit.Test;
 import org.junit.Assert;
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
 import java.net.URI;
+import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.ArrayList;
@@ -93,7 +99,10 @@ public class ApiTestVcenter extends ApiTestBase {
     private static ApiTestVcenter apiTestVcenter = new ApiTestVcenter();
 
     @BeforeClass
-    public static void setupTestSuite() throws NoSuchAlgorithmException {
+    public static void setupTestSuite() throws LDIFException,
+        LDAPException, IOException, FileOperationFailedException,
+        GeneralSecurityException, DirectoryOrFileNotFoundException, InterruptedException {
+        apiTestVcenter.apiTestAuthnProviderUtils.startLdapServer(ApiTestVcenter.class.getSimpleName());
         apiTestVcenter.setupHttpsResources();
 
         apiTestVcenter.apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();
@@ -111,6 +120,7 @@ public class ApiTestVcenter extends ApiTestBase {
 
         CleanupResource.cleanUpTestResources(apiTestVcenter._cleanupEnvironmentResourceList);
         apiTestVcenter.tearDownHttpsResources();
+        apiTestVcenter.apiTestAuthnProviderUtils.stopLdapServer();
     }
 
     @Before
@@ -300,7 +310,7 @@ public class ApiTestVcenter extends ApiTestBase {
     }
 
     private String getProviderTenantAdminGroup() {
-        return apiTestAuthnProviderUtils.getLDAPGroup(4);
+        return apiTestAuthnProviderUtils.getLDAPGroup(9);
     }
 
     private String getSecurityAdminGroup() {

@@ -1654,4 +1654,38 @@ public class VPlexApiClient {
             throws VPlexApiException {
         return _discoveryMgr.getDistributedDevicePathToClusterMap();
     }
+
+    /**
+     * This method finds virtual volume on the VPLEX and then updates virtual volume info.
+     * 
+     * @param virtualVolumeName virtual volume name
+     * @param discoveryMgr reference to VPlexApiDiscoveryManager
+     * @return VPlexVirtualVolumeInfo object with updated info.
+     */
+    public VPlexVirtualVolumeInfo findVirtualVolumeAndUpdateInfo(String virtualVolumeName) {
+        return _virtualVolumeMgr.findVirtualVolumeAndUpdateInfo(virtualVolumeName, null);
+    }
+
+    /**
+     * This method collapses the one legged device for the passed virtual volume device.
+     * After this device will change back to local device.
+     * 
+     * @param sourceDeviceName source device name
+     * @throws VPlexApiException
+     */
+    public void deviceCollapse(String sourceDeviceName) throws VPlexApiException {
+        s_logger.info("Request to collpase device {}", _baseURI);
+        _virtualVolumeMgr.deviceCollapse(sourceDeviceName);
+    }
+
+    /**
+     * This method sets device visibility to local.
+     * 
+     * @param sourceDeviceName source device name
+     * @throws VPlexApiException
+     */
+    public void setDeviceVisibility(String sourceDeviceName) throws VPlexApiException {
+        s_logger.info("Request to set device visibility {}", _baseURI);
+        _virtualVolumeMgr.setDeviceVisibility(sourceDeviceName);
+    }
 }

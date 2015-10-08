@@ -1214,7 +1214,6 @@ public class VplexBackendIngestionContext {
     /**
      * Validates the structure of the supporting device for acceptable structures
      * that can be ingested.
-     * 
      */
     public void validateSupportingDeviceStructure() {
         _logger.info("validating the supporting device structure of " + getSupportingDeviceName());

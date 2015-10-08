@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +51,8 @@ import util.StoragePoolUtils;
 import util.StoragePortUtils;
 import util.StorageSystemUtils;
 import util.StringOption;
+import util.VCenterUtils;
+import util.TenantUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
@@ -103,6 +106,7 @@ public class StorageSystems extends ViprResourceController {
     protected static final String UNKNOWN_PORT = "storageArrayPort.unknown";
     protected static final String NOT_REGISTERED = "StorageSystems.not.registered";
     protected static final String SCALEIO = "scaleio";
+    private static final String EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT = "2.4";
 
     private static void addReferenceData() {
         renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.OPTIONS));
@@ -119,8 +123,15 @@ public class StorageSystems extends ViprResourceController {
     }
 
     public static void list() {
-        renderArgs.put("dataTable", new StorageSystemDataTable());
+        renderArgs.put("dataTable", new StorageSystemsDataTable());
         render();
+    }
+    
+    public static class StorageSystemsDataTable extends StorageSystemDataTable {
+        public StorageSystemsDataTable() {
+            addColumn("actions").setRenderFunction("renderButtonBar");
+            sortAllExcept("actions");
+        }
     }
 
     public static void listJson() {
@@ -286,7 +297,6 @@ public class StorageSystems extends ViprResourceController {
             flash.error(MessagesUtils.get(UNKNOWN, id));
             list();
         }
-
         StorageArrayPortDataTable dataTable = new StorageArrayPortDataTable(storageSystem);
 
         render("@listPorts", storageSystem, dataTable);
@@ -376,6 +386,9 @@ public class StorageSystems extends ViprResourceController {
         if (StorageSystemTypes.isFileStorageSystem(storageSystem.getSystemType())) {
             dataTable.configureForFile();
         }
+        if (StorageSystemTypes.isECS(storageSystem.getSystemType())) {
+        	dataTable.configureForECS();
+        }
         render("@listPools", storageSystem, dataTable);
     }
 	
@@ -390,6 +403,7 @@ public class StorageSystems extends ViprResourceController {
         	dataTable = new VirtualNasForNonProjectAdminDataTable();
         }
         renderArgs.put("storageId", id);
+        renderArgs.put("expectedGeoVersion", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT));
         render("@listVirtualNasServers", storageSystem, dataTable);
     }
     
@@ -399,66 +413,60 @@ public class StorageSystems extends ViprResourceController {
     	}
     }
     
-    @FlashException(keep = true, referrer = { "virtualNasServers"})
-    public static void associateProject(String nasIds, String projectId, String storageId ) {
-       
-       Set<String> vnasServers = new TreeSet<String>();
-       if (nasIds!=null && !nasIds.isEmpty()) {
-          String[] nasArray = nasIds.split(",");
-          Collections.addAll(vnasServers,nasArray);
-       }
-       if (projectId != null && !projectId.isEmpty()){
-    	   projectId = projectId.trim();
-       }
-       VirtualNasParam vNasParam = new VirtualNasParam();
-       vNasParam.setVnasServers(vnasServers);
-       try {
-		  Task<VirtualNASRestRep> resp = getViprClient().virtualNasServers().assignVnasServers(uri(projectId), vNasParam);
-	   } catch (Exception e) {
-          e.printStackTrace();
-	   }
-	   virtualNasServers(storageId);
+    @FlashException(keep = true, referrer = { "virtualNasServers" })
+    public static void associateProject(String nasIds, String projectId, String storageId) {
+
+        Set<String> vnasServers = new TreeSet<String>();
+        if (nasIds != null && !nasIds.isEmpty()) {
+            String[] nasArray = nasIds.split(",");
+            Collections.addAll(vnasServers, nasArray);
+        }
+        if (projectId != null && !projectId.isEmpty()) {
+            projectId = projectId.trim();
+        }
+        VirtualNasParam vNasParam = new VirtualNasParam();
+        vNasParam.setVnasServers(vnasServers);
+        getViprClient().virtualNasServers().assignVnasServers(uri(projectId), vNasParam);
+
+        virtualNasServers(storageId);
     }
     
-    @FlashException(keep = true, referrer = { "virtualNasServers"})
-    public static void dissociateProject(@As(",") String[] ids,String storageId) {
-    	
-    	List<URI> uris = Lists.newArrayList();
-    	for (String id:ids) {
-    		uris.add(uri(id));
-    	}
-    	Map<URI,Set<String>> projectVNas = Maps.newHashMap();
-    	List<VirtualNASRestRep> vNasServers = getViprClient().virtualNasServers().getByIds(uris);
-    	for (VirtualNASRestRep vnasServer:vNasServers) {
-    		if(vnasServer.getProject() == null) {
-    			continue;
-    		}
-    		URI projectId =  vnasServer.getProject().getId();
-    		URI vNasId = vnasServer.getId();
-    		
-    		if (projectVNas.get(projectId) == null) {
-    			Set<String> vnasIds = Sets.newTreeSet();
-    			vnasIds.add(vNasId.toString());
-    			projectVNas.put(projectId, vnasIds);
-    		} else {
-    			Set<String> vnasIds = projectVNas.get(projectId);
-    			vnasIds.add(vNasId.toString());
-    			projectVNas.put(projectId, vnasIds);
-    		}
-    	}
-    	List<URI> projectIds = new ArrayList<URI>(projectVNas.keySet());
-    	for (URI uri : projectIds) {
-    	    
-    	    VirtualNasParam vNasParam = new VirtualNasParam();
-    	    vNasParam.setVnasServers(projectVNas.get(uri));
-    	    try {
-				getViprClient().virtualNasServers().unassignVnasServers(uri, vNasParam);
-			} catch (Exception e) {
-				
-				e.printStackTrace();
-			}
-    	}
-    	virtualNasServers(storageId);
+    @FlashException(keep = true, referrer = { "virtualNasServers" })
+    public static void dissociateProject(@As(",") String[] ids, String storageId) {
+
+        List<URI> uris = Lists.newArrayList();
+        for (String id : ids) {
+            uris.add(uri(id));
+        }
+        Map<URI, Set<String>> projectVNas = Maps.newHashMap();
+        List<VirtualNASRestRep> vNasServers = getViprClient().virtualNasServers().getByIds(uris);
+        for (VirtualNASRestRep vnasServer : vNasServers) {
+            if (vnasServer.getProject() == null) {
+                continue;
+            }
+            URI projectId = vnasServer.getProject().getId();
+            URI vNasId = vnasServer.getId();
+
+            if (projectVNas.get(projectId) == null) {
+                Set<String> vnasIds = Sets.newTreeSet();
+                vnasIds.add(vNasId.toString());
+                projectVNas.put(projectId, vnasIds);
+            } else {
+                Set<String> vnasIds = projectVNas.get(projectId);
+                vnasIds.add(vNasId.toString());
+                projectVNas.put(projectId, vnasIds);
+            }
+        }
+        List<URI> projectIds = new ArrayList<URI>(projectVNas.keySet());
+        for (URI uri : projectIds) {
+
+            VirtualNasParam vNasParam = new VirtualNasParam();
+            vNasParam.setVnasServers(projectVNas.get(uri));
+
+            getViprClient().virtualNasServers().unassignVnasServers(uri, vNasParam);
+
+        }
+        virtualNasServers(storageId);
     }
     
     public static void virtualNasServersJson(String storageId) {
@@ -472,20 +480,32 @@ public class StorageSystems extends ViprResourceController {
             results.add(new VirtualNasServerInfo(vNasServer,isProjectAccessible));
         }
         renderArgs.put("storageId", storageId);
+        renderArgs.put("expectedGeoVersion", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT));
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
     
     public static void getProjectsForNas() {
-        List<URI> tenants = getViprClient().tenants().listBulkIds();
+        List<URI> tenants = Lists.newArrayList();
+        List<StringOption> allTenants = TenantUtils.getUserSubTenantOptions();
+        Iterator<StringOption> tenantsIterator = allTenants.iterator();
+        while (tenantsIterator.hasNext()) {
+            StringOption tenant = tenantsIterator.next();
+            if (tenant == null) {
+                continue;
+            }
+            tenants.add(uri(tenant.id));
+        }
         List<StringOption> projectTenantOptions = Lists.newArrayList();
-        for (URI tenantId:tenants) {
-        	 String tenantName = getViprClient().tenants().get(tenantId).getName();
-        	 List<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
-             List<String> projectOptions = Lists.newArrayList();
-             for (ProjectRestRep project : projects) {
-            	 projectOptions.add(project.getId().toString()+"~~~"+project.getName());
-             }
-             projectTenantOptions.add(new StringOption(projectOptions.toString(), tenantName));
+        for (URI tenantId : tenants) {
+            String tenantName = getViprClient().tenants().get(tenantId).getName();
+            List<String> projectOptions = Lists.newArrayList();
+
+            List<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
+            for (ProjectRestRep project : projects) {
+                projectOptions.add(project.getId().toString() + "~~~" + project.getName());
+            }
+
+            projectTenantOptions.add(new StringOption(projectOptions.toString(), tenantName));
         }
        
         renderJSON(projectTenantOptions);
@@ -1029,6 +1049,11 @@ public class StorageSystems extends ViprResourceController {
         public void configureForFile() {
             alterColumns("driveTypes", "subscribedCapacity").hidden();
         }
+        
+        public void configureForECS() {
+        	alterColumns("registrationStatus", "storageSystem", "volumeTypes", "driveTypes").hidden();
+        	alterColumn("status").setVisible(true);
+        }
     }
 
     public static class StorageArrayPortDataTable extends StoragePortDataTable {
@@ -1036,6 +1061,9 @@ public class StorageSystems extends ViprResourceController {
             alterColumn("name").setRenderFunction("renderStorageArrayPortEditLink");
             if (StorageSystemTypes.isBlockStorageSystem(storageSystem.getSystemType())) {
                 alterColumn("iqn").hidden();
+            }
+            if (StorageSystemTypes.isECS(storageSystem.getSystemType())) {
+            	alterColumns("portGroup", "iqn", "alias").hidden();
             }
         }
     }

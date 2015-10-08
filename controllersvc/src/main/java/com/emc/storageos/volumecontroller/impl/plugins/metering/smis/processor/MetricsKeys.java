@@ -51,10 +51,10 @@ public enum MetricsKeys {
     maxStorageCapacity,
     /** Number of storage objects (FS + Check points) */
     storageObjects,
-    /** Storage capacity of storage objects */
-    storageCapacity,
+    /** Used Storage capacity of storage objects */
+    usedStorageCapacity,
     /** Indicate load on datamover in compared with all dataMover combined. */
-    loadFactor,
+    percentLoad,
 
     /** Indicates whether the storage server is overloaded or not */
     overLoaded,

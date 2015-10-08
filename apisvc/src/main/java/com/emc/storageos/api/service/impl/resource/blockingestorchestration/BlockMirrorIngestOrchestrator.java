@@ -55,7 +55,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         }
         // Run this always when the volume is NO_PUBLIC_ACCESS
         if (markUnManagedVolumeInactive(unManagedVolume, mirrorObj, unManagedVolumesIngestedSuccessfully, createdObjectMap,
-                updatedObjectMap, taskStatusMap)) {
+                updatedObjectMap, taskStatusMap, vplexIngestionMethod)) {
             logger.info("Marking UnManaged Volume {} as inactive, all the related replicas and parent has been ingested",
                     unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as inactive after successful export

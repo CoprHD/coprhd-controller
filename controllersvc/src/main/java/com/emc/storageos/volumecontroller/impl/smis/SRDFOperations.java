@@ -392,7 +392,7 @@ public class SRDFOperations implements SmisConstants {
             performDetach(system, target, isGrouprollback, new TaskCompleter() {
                 @Override
                 protected void complete(DbClient dbClient,
-                        Operation.Status status, ServiceCoded coded)
+                                        Operation.Status status, ServiceCoded coded)
                         throws DeviceControllerException {
                     // ignore
                 }
@@ -527,39 +527,90 @@ public class SRDFOperations implements SmisConstants {
         List<Volume> sources = dbClient.queryObject(Volume.class, sourceURIs);
         List<Volume> targets = new ArrayList<>();
 
-        for (Volume source : sources) {
-            for (String targetStr : source.getSrdfTargets()) {
-                URI targetURI = URI.create(targetStr);
-                Volume target = dbClient.queryObject(Volume.class, targetURI);
-                targets.add(target);
-                CIMObjectPath syncPair = utils.getStorageSynchronizedObject(system, source, target, null);
-                syncPairs.add(syncPair);
-            }
-        }
-
-        // Update targets with the existing target SRDF CG
-        findOrCreateTargetBlockConsistencyGroup(targets);
-
-        CIMObjectPath groupSynchronized = getGroupSyncObject(system, sources.get(0),
-                group.getSourceReplicationGroupName(), group.getTargetReplicationGroupName());
-
-        if (groupSynchronized == null || syncPairs.isEmpty()) {
-            log.warn("Expected Group Synchronized not found");
-            log.error("Expected Group Synchronized not found for volumes {}", sources.get(0).getNativeId());
-            ServiceError error = SmisException.errors
-                    .jobFailed("Expected Group Synchronized not found");
-            WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
-            completer.error(dbClient, error);
-            return;
-        }
-
-        @SuppressWarnings("rawtypes")
-        CIMArgument[] inArgs = helper.getAddSyncPairInputArguments(groupSynchronized, forceAdd,
-                syncPairs.toArray(new CIMObjectPath[syncPairs.size()]));
-        if (forceAdd) {
-            log.info("There are replicas available for R1/R2, hence adding new volume pair(s) to CG with Force flag");
-        }
         try {
+            // Build list of sources and targets
+            for (Volume source : sources) {
+                for (String targetStr : source.getSrdfTargets()) {
+                    URI targetURI = URI.create(targetStr);
+                    Volume target = dbClient.queryObject(Volume.class, targetURI);
+                    targets.add(target);
+                }
+            }
+
+            StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, sources.get(0).getStorageController());
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targets.get(0).getStorageController());
+            // Transform to list of their respective device ID's
+            Collection<String> srcDevIds = transform(filter(sources, hasNativeID()), fctnBlockObjectToNativeID());
+            Collection<String> tgtDevIds = transform(filter(targets, hasNativeID()), fctnBlockObjectToNativeID());
+
+            int attempts = 0;
+            final int MAX_ATTEMPTS = 12;
+            final int DELAY_TIME_IN_MS = 5000;
+            do {
+                log.info("Attempt {}/{}...", attempts+1, MAX_ATTEMPTS);
+                // Get all remote mirror relationships from provider
+                List<CIMObjectPath> repPaths = helper.getReplicationRelationships(system,
+                        REMOTE_LOCALITY_VALUE, MIRROR_VALUE,
+                        Mode.valueOf(targets.get(0).getSrdfCopyMode()).getMode(),
+                        STORAGE_SYNCHRONIZED_VALUE);
+
+                log.info("Found {} relationships", repPaths.size());
+                log.info("Looking for System elements on {} with IDs {}", sourceSystem.getNativeGuid(),
+                        Joiner.on(',').join(srcDevIds));
+                log.info("Looking for Synced elements on {} with IDs {}", targetSystem.getNativeGuid(),
+                        Joiner.on(',').join(tgtDevIds));
+
+                // Filter the relationships on known source ID's that must match with some known target ID.
+                Collection<CIMObjectPath> syncPaths = filter(repPaths, and(
+                        cgSyncPairsPredicate(sourceSystem.getNativeGuid(), srcDevIds, CP_SYSTEM_ELEMENT),
+                        cgSyncPairsPredicate(targetSystem.getNativeGuid(), tgtDevIds, CP_SYNCED_ELEMENT)));
+
+                log.info("Need {} paths / Found {} paths", syncPaths.size(), sources.size());
+
+                // We're done if the filtered list contains <sources-size> relationships.
+                if (syncPaths.size() == sources.size()) {
+                    // Add these pairs to the result list
+                    syncPairs.addAll(syncPaths);
+                } else {
+                    try {
+                        Thread.sleep(DELAY_TIME_IN_MS);
+                    } catch (InterruptedException ie) {
+                        log.warn("Error:", ie);
+                    }
+                }
+            } while (syncPairs.isEmpty() && (attempts++) < MAX_ATTEMPTS);
+
+            if (syncPairs.isEmpty()) {
+                throw new IllegalStateException("Failed to find synchronization paths");
+            }
+
+            // Update targets with the existing target SRDF CG
+            findOrCreateTargetBlockConsistencyGroup(targets);
+
+            CIMObjectPath groupSynchronized = getGroupSyncObject(system, sources.get(0),
+                    group.getSourceReplicationGroupName(), group.getTargetReplicationGroupName());
+
+            if (groupSynchronized == null || syncPairs.isEmpty()) {
+                log.warn("Expected Group Synchronized not found");
+                log.error("Expected Group Synchronized not found for volumes {}", sources.get(0).getNativeId());
+                ServiceError error = SmisException.errors
+                        .jobFailed("Expected Group Synchronized not found");
+                WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
+                completer.error(dbClient, error);
+                return;
+            }
+
+            Mode mode = Mode.valueOf(targets.get(0).getSrdfCopyMode());
+            CIMInstance settingInstance = getReplicationSettingDataInstance(system, mode.getMode());
+
+            @SuppressWarnings("rawtypes")
+            CIMArgument[] inArgs = helper.getAddSyncPairInputArguments(groupSynchronized, forceAdd, settingInstance,
+                    syncPairs.toArray(new CIMObjectPath[syncPairs.size()]));
+
+            if (forceAdd) {
+                log.info("There are replicas available for R1/R2, hence adding new volume pair(s) to CG with Force flag");
+            }
+
             helper.callModifyReplica(system, inArgs);
             completer.ready(dbClient);
         } catch (WBEMException wbeme) {
@@ -668,6 +719,51 @@ public class SRDFOperations implements SmisConstants {
         }
     }
 
+    public void createListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
+        try {
+            List<Volume> sourceVolumes = dbClient.queryObject(Volume.class, sources);
+            List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targets);
+
+            Volume firstTarget = targetVolumes.get(0);
+            RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, firstTarget.getSrdfGroup());
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, firstTarget.getStorageController());
+            int modeValue = Mode.valueOf(firstTarget.getSrdfCopyMode()).getMode();
+            CIMObjectPath srcRepSvcPath = cimPath.getControllerReplicationSvcPath(system);
+            CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(system, group);
+            CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(system, modeValue);
+
+            List<CIMObjectPath> sourcePaths = new ArrayList<>();
+            List<CIMObjectPath> targetPaths = new ArrayList<>();
+            for (Volume sourceVolume : sourceVolumes) {
+                sourcePaths.add(cimPath.getVolumePath(system, sourceVolume.getNativeId()));
+            }
+            for (Volume targetVolume : targetVolumes) {
+                targetPaths.add(cimPath.getVolumePath(targetSystem, targetVolume.getNativeId()));
+            }
+
+            CIMArgument[] inArgs = helper.getCreateListReplicaInputArguments(system,
+                    sourcePaths.toArray(new CIMObjectPath[]{}),
+                    targetPaths.toArray(new CIMObjectPath[]{}),
+                    modeValue, repCollectionPath, replicationSettingDataInstance);
+            CIMArgument[] outArgs = new CIMArgument[5];
+
+            helper.invokeMethodSynchronously(system, srcRepSvcPath,
+                    SmisConstants.CREATE_LIST_REPLICA, inArgs, outArgs,
+                    new SmisSRDFCreateMirrorJob(null, system.getId(), completer));
+        } catch (WBEMException wbeme) {
+            log.error("SMI-S error creating mirrors for {}", Joiner.on(',').join(sources), wbeme);
+            ServiceError error = SmisException.errors.jobFailed(wbeme.getMessage());
+            WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
+            completer.error(dbClient, error);
+
+        } catch (Exception e) {
+            log.error("Error creating mirrors for {}", Joiner.on(',').join(sources), e);
+            ServiceError error = SmisException.errors.jobFailed(e.getMessage());
+            WorkflowStepCompleter.stepFailed(completer.getOpId(), error);
+            completer.error(dbClient, error);
+        }
+    }
+
     public void refreshStorageSystem(final URI storageSystemURI, List<URI> volumeURIs) {
         StorageSystem system = null;
         try {
@@ -743,14 +839,10 @@ public class SRDFOperations implements SmisConstants {
 
             // for 4.6.x CG, only failback and swap are at group level. Failover has to be called at ModifyListSync.
             StorageSystem activeSystem = findProviderWithGroup(target);
-            Collection<CIMObjectPath> syncPaths = utils.getSynchronizations(
-                    activeSystem, sourceVolume, target, false);
-            CIMInstance firstSync = getInstance(syncPaths.iterator().next(), activeSystem);
-
             AbstractSRDFOperationContextFactory ctxFactory = getContextFactory(activeSystem);
             SRDFOperationContext ctx = null;
 
-            if (!system.getUsingSmis80() && !isFailedOver(firstSync)) {
+            if (!system.getUsingSmis80() && !isFailedOver(activeSystem, sourceVolume, target)) {
                 log.info("Failing over link");
                 ctx = ctxFactory.build(SRDFOperation.FAIL_OVER, target);
                 ctx.perform();
@@ -759,7 +851,14 @@ public class SRDFOperations implements SmisConstants {
             }
 
             if (completer instanceof SRDFLinkFailOverCompleter) {
-                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(Volume.LinkStatus.IN_SYNC);
+                // Re-check the fail over status.
+                LinkStatus status = null;
+                if (isFailedOver(activeSystem, sourceVolume, target)) {
+                    status = LinkStatus.FAILED_OVER;
+                } else {
+                    status = sourceVolume.hasConsistencyGroup() ? LinkStatus.CONSISTENT : LinkStatus.IN_SYNC;
+                }
+                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(status);
             }
         } catch (Exception e) {
             log.error("Failed to failover srdf link {}", target.getSrdfParent().getURI(), e);
@@ -1112,13 +1211,13 @@ public class SRDFOperations implements SmisConstants {
         try {
             StorageSystem activeSystem = findProviderWithGroup(targetVolume);
 
-            SRDFOperationContext ctx = null;
             SRDFOperationContext failBackCtx = getContextFactory(activeSystem).build(SRDFOperation.FAIL_BACK, targetVolume);
             failBackCtx.perform();
 
             // this hack is needed, as currently triggering fail over twice invokes failback
             if (completer instanceof SRDFLinkFailOverCompleter) {
-                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(Volume.LinkStatus.IN_SYNC);
+                LinkStatus status = sourceVolume.hasConsistencyGroup() ? LinkStatus.CONSISTENT : LinkStatus.IN_SYNC;
+                ((SRDFLinkFailOverCompleter) completer).setLinkStatus(status);
             }
             completer.ready(dbClient);
         } catch (Exception e) {
@@ -1451,12 +1550,15 @@ public class SRDFOperations implements SmisConstants {
         }
     }
 
+    private boolean isFailedOver(StorageSystem system, Volume source, Volume target) throws WBEMException {
+        Collection<CIMObjectPath> syncPaths = utils.getSynchronizations(system, source, target, false);
+        CIMInstance firstSync = getInstance(syncPaths.iterator().next(), system);
+        return isFailedOver(firstSync);
+    }
+
     private boolean isFailedOver(final CIMInstance syncInstance) {
         String copyState = syncInstance.getPropertyValue(CP_COPY_STATE).toString();
-        if (String.valueOf(FAILOVER_SYNC_PAIR).equalsIgnoreCase(copyState)) {
-            return true;
-        }
-        return false;
+        return String.valueOf(FAILOVER_SYNC_PAIR).equalsIgnoreCase(copyState);
     }
 
     private Set<CIMObjectPath> getDeviceGroup(final StorageSystem system,

@@ -47,6 +47,8 @@ import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
@@ -146,17 +148,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
     public void discoverUnManagedObjects(AccessProfile accessProfile, DbClient dbClient,
             PartitionManager partitionManager) throws Exception {
         log.info("Started discovery of UnManagedVolumes for system {}", accessProfile.getSystemId());
-        XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory
-                .getRESTClient(URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(),
-                        accessProfile.getPortNumber())),
-                        accessProfile.getUserName(),
-                        accessProfile.getPassword(), true);
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
+                accessProfile.getSystemId());
+        XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(storageSystem, xtremioRestClientFactory);
 
         unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
         unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();
 
-        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
-                accessProfile.getSystemId());
         // get the storage pool associated with the xtremio system
         StoragePool storagePool = getXtremIOStoragePool(storageSystem.getId(), dbClient);
         if (storagePool == null) {
@@ -413,7 +411,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
             List<Initiator> hostInitiators = hostInitiatorsMap.get(hostname);
             Set<String> hostIGs = hostIGNamesMap.get(hostname);
 
+            boolean isVplexBackendMask = false;
             for (Initiator hostInitiator : hostInitiators) {
+                if (!isVplexBackendMask && VPlexControllerUtils.isVplexInitiator(hostInitiator, dbClient)) {
+                    log.info("host {} contains VPLEX backend ports, "
+                            + "so this mask contains VPLEX backend volumes", hostname);
+                    isVplexBackendMask = true;
+                }
                 knownIniSet.add(hostInitiator.getId().toString());
                 knownNetworkIdSet.add(hostInitiator.getInitiatorPort());
                 if (HostInterface.Protocol.FC.toString().equals(hostInitiator.getProtocol())) {
@@ -438,6 +442,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         hostUnManagedVol.setInitiatorNetworkIds(knownNetworkIdSet);
                         hostUnManagedVol.setInitiatorUris(knownIniSet);
                         hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
+                        if (isVplexBackendMask) {
+                            log.info("marking unmanaged Xtremio volume {} as a VPLEX backend volume",
+                                    hostUnManagedVol.getLabel());
+                            hostUnManagedVol.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString(),
+                                    Boolean.TRUE.toString());
+                        }
                         mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                         unManagedExportVolumesToUpdate.add(hostUnManagedVol);
                     }
@@ -569,11 +580,15 @@ public class XtremIOUnManagedVolumeDiscoverer {
         unManagedVolumeInformation.put(SupportedVolumeInformation.DEVICE_LABEL.toString(),
                 deviceLabel);
 
-        String volumeWWN = volume.getWwn().isEmpty()? volume.getVolInfo().get(0) :volume.getWwn();
+        String volumeWWN = volume.getWwn().isEmpty() ? volume.getVolInfo().get(0) : volume.getWwn();
         unManagedVolume.setWwn(volumeWWN);
 
         StringSet systemTypes = new StringSet();
         systemTypes.add(system.getSystemType());
+
+        StringSet accessState = new StringSet();
+        accessState.add(Volume.VolumeAccessState.READWRITE.name());
+        unManagedVolumeInformation.put(SupportedVolumeInformation.ACCESS.toString(), accessState);
 
         StringSet provCapacity = new StringSet();
         provCapacity.add(String.valueOf(Long.parseLong(volume.getAllocatedCapacity()) * 1024));

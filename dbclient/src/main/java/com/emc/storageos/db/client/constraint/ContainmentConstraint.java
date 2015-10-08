@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.ComputeBootDef;
 import com.emc.storageos.db.client.model.ComputeBootPolicy;
@@ -129,6 +130,11 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(project, FileShare.class, field);
         }
 
+        public static ContainmentConstraint getProjectBucketConstraint(URI project) {
+            DataObjectType doType = TypeMap.getDoType(Bucket.class);
+            ColumnField field = doType.getColumnField(PROJECT);
+            return new ContainmentConstraintImpl(project, Bucket.class, field);
+        }
         public static ContainmentConstraint getStoragePoolFileshareConstraint(URI pool) {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
             ColumnField field = doType.getColumnField("pool");

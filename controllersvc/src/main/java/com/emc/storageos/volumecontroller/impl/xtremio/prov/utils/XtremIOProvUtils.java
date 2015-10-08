@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.xtremio.prov.utils;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
+import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
@@ -26,6 +28,8 @@ import com.google.common.base.Joiner;
 public class XtremIOProvUtils {
 
     private static final Logger _log = LoggerFactory.getLogger(XtremIOProvUtils.class);
+
+    private static final int SLEEP_TIME = 10000; // 10 seconds
 
     public static void updateStoragePoolCapacity(XtremIOClient client, DbClient dbClient, StoragePool storagePool) {
         try {
@@ -51,6 +55,15 @@ public class XtremIOProvUtils {
         }
     }
 
+    /**
+     * Check if there is a volume with the given name
+     * If found, return the volume
+     * 
+     * @param client
+     * @param label
+     * @param clusterName
+     * @return XtremIO volume if found else null
+     */
     public static XtremIOVolume isVolumeAvailableInArray(XtremIOClient client, String label, String clusterName) {
         XtremIOVolume volume = null;
         try {
@@ -61,6 +74,15 @@ public class XtremIOProvUtils {
         return volume;
     }
 
+    /**
+     * Check if there is a snapshot with the given name
+     * If found, return the snapshot
+     * 
+     * @param client
+     * @param label
+     * @param clusterName
+     * @return XtremIO snapshot if found else null
+     */
     public static XtremIOVolume isSnapAvailableInArray(XtremIOClient client, String label, String clusterName) {
         XtremIOVolume volume = null;
         try {
@@ -70,18 +92,36 @@ public class XtremIOProvUtils {
         }
         return volume;
     }
-    
+
+    /**
+     * Check if there is a consistency group with the given name
+     * If found, return the consistency group
+     * 
+     * @param client
+     * @param label
+     * @param clusterName
+     * @return XtremIO consistency group if found else null
+     */
     public static XtremIOConsistencyGroup isCGAvailableInArray(XtremIOClient client, String label, String clusterName) {
-    	XtremIOConsistencyGroup cg = null;
-    	try {
-    		cg = client.getConsistencyGroupDetails(label, clusterName);
-    	} catch (Exception e) {
+        XtremIOConsistencyGroup cg = null;
+        try {
+            cg = client.getConsistencyGroupDetails(label, clusterName);
+        } catch (Exception e) {
             _log.info("Consistency group {} not available in Array.", label);
         }
-    	
-    	return cg;
+
+        return cg;
     }
-    
+
+    /**
+     * Check if there is a snapset with the given name
+     * If found, return the snapset
+     * 
+     * @param client
+     * @param label
+     * @param clusterName
+     * @return XtremIO snapset if found else null
+     */
     public static XtremIOConsistencyGroup isSnapsetAvailableInArray(XtremIOClient client, String label, String clusterName) {
         XtremIOConsistencyGroup cg = null;
         try {
@@ -89,13 +129,22 @@ public class XtremIOProvUtils {
         } catch (Exception e) {
             _log.info("Snapshot Set {} not available in Array.", label);
         }
-        
+
         return cg;
     }
-    
+
+    /**
+     * Checks if there is folder with the given name and sub folders for volume and snapshots.
+     * If not found, create them.
+     * 
+     * @param client
+     * @param rootVolumeFolderName
+     * @return map of volume folder name and snapshot folder name
+     * @throws Exception
+     */
     public static Map<String, String> createFoldersForVolumeAndSnaps(XtremIOClient client, String rootVolumeFolderName)
             throws Exception {
-        
+
         List<String> folderNames = client.getVolumeFolderNames();
         _log.info("Volume folder Names found on Array : {}", Joiner.on("; ").join(folderNames));
         Map<String, String> folderNamesMap = new HashMap<String, String>();
@@ -111,12 +160,26 @@ public class XtremIOProvUtils {
         } else {
             _log.info("Found {} folder on the Array.", rootFolderName);
         }
-
+        long waitTime = 30000; // 30 sec
+        int count = 0;
+        // @TODO this is a temporary workaround to retry volume folder verification.
+        // Actually we should create workflow steps for this.
+        while (waitTime > 0) {
+            count++;
+            _log.debug("Retrying {} time to find the volume folders", count);
+            if (!folderNames.contains(volumesFolderName)) {
+                _log.debug("sleeping time {} remaining time: {}", SLEEP_TIME, (waitTime - SLEEP_TIME));
+                Thread.sleep(SLEEP_TIME);
+                waitTime = waitTime - SLEEP_TIME;
+                folderNames = client.getVolumeFolderNames();
+            } else {
+                _log.info("Found {} folder on the Array.", volumesFolderName);
+                break;
+            }
+        }
         if (!folderNames.contains(volumesFolderName)) {
             _log.info("Sending create volume folder request {}", volumesFolderName);
             client.createTag("volumes", rootFolderName, XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name(), null);
-        } else {
-            _log.info("Found {} folder on the Array.", volumesFolderName);
         }
 
         if (!folderNames.contains(snapshotsFolderName)) {
@@ -128,7 +191,17 @@ public class XtremIOProvUtils {
 
         return folderNamesMap;
     }
-    
+
+    /**
+     * Checks if there are tags with the given name for volume and snapshots.
+     * If not found, create them.
+     * 
+     * @param client
+     * @param rootTagName
+     * @param clusterName
+     * @return map of volume tag name and snapshot tag name
+     * @throws Exception
+     */
     public static Map<String, String> createTagsForVolumeAndSnaps(XtremIOClient client, String rootTagName, String clusterName)
             throws Exception {
         List<String> tagNames = client.getTagNames(clusterName);
@@ -138,25 +211,50 @@ public class XtremIOProvUtils {
         String snapshotsTagName = XtremIOConstants.V2_SNAPSHOT_ROOT_FOLDER.concat(rootTagName);
         tagNamesMap.put(XtremIOConstants.VOLUME_KEY, volumesTagName);
         tagNamesMap.put(XtremIOConstants.SNAPSHOT_KEY, snapshotsTagName);
-        
+        long waitTime = 30000; // 30 sec
+        int count = 0;
+        // @TODO this is a temporary workaround to retry volume tag verification.
+        // Actually we should create workflow steps for this.
+        while (waitTime > 0) {
+            count++;
+            _log.debug("Retrying {} time to find the volume tag", count);
+            if (!tagNames.contains(volumesTagName)) {
+                _log.debug("sleeping time {} remaining time: {}", SLEEP_TIME, (waitTime - SLEEP_TIME));
+                Thread.sleep(SLEEP_TIME);
+                waitTime = waitTime - SLEEP_TIME;
+                tagNames = client.getTagNames(clusterName);
+            } else {
+                _log.info("Found {} tag on the Array.", volumesTagName);
+                break;
+            }
+
+        }
         if (!tagNames.contains(volumesTagName)) {
             _log.info("Sending create volume tag request {}", volumesTagName);
             client.createTag(volumesTagName, null, XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name(), clusterName);
-        } else {
-            _log.info("Found {} tag on the Array.", volumesTagName);
         }
-        
+
         if (!tagNames.contains(snapshotsTagName)) {
             _log.info("Sending create snapshot tag request {}", snapshotsTagName);
             client.createTag(snapshotsTagName, null, XtremIOConstants.XTREMIO_ENTITY_TYPE.SnapshotSet.name(), clusterName);
         } else {
             _log.info("Found {} tag on the Array.", snapshotsTagName);
         }
-        
+
         return tagNamesMap;
-        
+
     }
-    
+
+    /**
+     * Check the number of volumes under the tag/volume folder.
+     * If zero, delete the tag/folder
+     * 
+     * @param client
+     * @param xioClusterName
+     * @param volumeFolderName
+     * @param storageSystem
+     * @throws Exception
+     */
     public static void cleanupVolumeFoldersIfNeeded(XtremIOClient client, String xioClusterName, String volumeFolderName,
             StorageSystem storageSystem) throws Exception {
         try {
@@ -164,9 +262,10 @@ public class XtremIOProvUtils {
             // Find the # volumes in folder, if the Volume folder is empty,
             // then delete the folder too
             XtremIOTag tag = client.getTagDetails(volumeFolderName, XTREMIO_ENTITY_TYPE.Volume.name(), xioClusterName);
-            int numberOfVolumes = Integer.parseInt(tag.getNumberOfVolumes());
-            if(numberOfVolumes == 0) {
-                if(isVersion2) {
+            String numOfVols = isVersion2 ? tag.getNumberOfDirectObjs() : tag.getNumberOfVolumes();
+            int numberOfVolumes = Integer.parseInt(numOfVols);
+            if (numberOfVolumes == 0) {
+                if (isVersion2) {
                     client.deleteTag(volumeFolderName, XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name(), xioClusterName);
                 } else {
                     String volumesFolderName = volumeFolderName.concat(XtremIOConstants.VOLUMES_SUBFOLDER);
@@ -182,5 +281,23 @@ public class XtremIOProvUtils {
         } catch (Exception e) {
             _log.warn("Deleting root folder {} failed", volumeFolderName, e);
         }
+    }
+
+    /**
+     * Get the XtremIO client for making requests to the system based
+     * on the passed profile.
+     * 
+     * @param accessProfile A reference to the access profile.
+     * @param xtremioRestClientFactory xtremioclientFactory.
+     * 
+     * @return A reference to the xtremio client.
+     */
+    public static XtremIOClient getXtremIOClient(StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
+        xtremioRestClientFactory.setModel(system.getFirmwareVersion());
+        XtremIOClient client = (XtremIOClient) xtremioRestClientFactory
+                .getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
+                                system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword(), true);
+        return client;
     }
 }

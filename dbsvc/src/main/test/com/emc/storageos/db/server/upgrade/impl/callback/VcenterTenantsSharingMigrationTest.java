@@ -7,29 +7,19 @@ package com.emc.storageos.db.server.upgrade.impl.callback;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.impl.ColumnField;
-import com.emc.storageos.db.client.impl.DataObjectType;
-import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
-import com.emc.storageos.db.client.upgrade.callbacks.NetworkVarrayIndexMigration;
 import com.emc.storageos.db.client.upgrade.callbacks.VcenterTenantsSharingMigration;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * A migration test for the migrating the tenant information
@@ -38,7 +28,7 @@ import java.util.List;
  */
 public class VcenterTenantsSharingMigrationTest extends DbSimpleMigrationTestBase {
     private Vcenter vcenter;
-    TenantOrg tenant;
+    private TenantOrg tenant;
 
     @BeforeClass
     public static void setup() throws IOException {
@@ -80,7 +70,7 @@ public class VcenterTenantsSharingMigrationTest extends DbSimpleMigrationTestBas
      * @see com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase#prepareData()
      */
     @Override
-    protected void prepareData() throws Exception {
+    protected void prepareData() {
         DbClient dbClient = getDbClient();
 
         tenant = new TenantOrg();
@@ -109,14 +99,14 @@ public class VcenterTenantsSharingMigrationTest extends DbSimpleMigrationTestBas
      * @see com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase#verifyResults()
      */
     @Override
-    protected void verifyResults() throws Exception {
+    protected void verifyResults() {
         DbClient dbClient = getDbClient();
 
         Vcenter vcenterObj = dbClient.queryObject(Vcenter.class, vcenter.getId());
 
         Assert.assertNotNull(vcenterObj);
         Assert.assertFalse(CollectionUtils.isEmpty(vcenterObj.getAcls()));
-        Assert.assertTrue(vcenterObj.getTenantCreated());
+        Assert.assertTrue(vcenterObj.getCascadeTenancy());
         Assert.assertTrue(URIUtil.identical(NullColumnValueGetter.getNullURI(), vcenterObj.getTenant()));
         Assert.assertTrue(URIUtil.identical(tenant.getId(), BasePermissionsHelper.getTenant(vcenterObj.getAcls())));
         Assert.assertTrue(URIUtil.identical(tenant.getId(), vcenterObj.findVcenterTenant()));

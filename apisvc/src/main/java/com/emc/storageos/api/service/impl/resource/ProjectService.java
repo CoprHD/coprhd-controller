@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
@@ -92,6 +93,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
         writeAcls = { ACL.OWN, ACL.ALL })
 public class ProjectService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(ProjectService.class);
+    private static String EXPECTED_GEO_VERSION = "2.4";
+    private static String FEATURE_NAME = "VNAS support in File Controller";
     // Constants for Events
     private static final String EVENT_SERVICE_TYPE = "project";
     private static final String EVENT_SERVICE_SOURCE = "ProjectService";
@@ -263,6 +266,30 @@ public class ProjectService extends TaggedResource {
             }
         };
 
+        QueryResultList<TypedRelatedResourceRep> bucket = new QueryResultList<TypedRelatedResourceRep>() {
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri) {
+                TypedRelatedResourceRep resource = new TypedRelatedResourceRep();
+                resource.setId(uri);
+                resource.setType(ResourceTypeEnum.BUCKET);
+                return resource;
+            }
+
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri, String name, UUID timestamp) {
+                TypedRelatedResourceRep resource = new TypedRelatedResourceRep();
+                resource.setId(uri);
+                resource.setType(ResourceTypeEnum.BUCKET);
+                resource.setName(name);
+                return resource;
+            }
+
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
+                return createQueryHit(uri);
+            }
+        };
+
         QueryResultList<TypedRelatedResourceRep> exportgroup = new QueryResultList<TypedRelatedResourceRep>() {
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri) {
@@ -388,6 +415,8 @@ public class ProjectService extends TaggedResource {
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectFileshareConstraint(project.getId()), file);
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getProjectBucketConstraint(project.getId()), bucket);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectExportGroupConstraint(project.getId()), exportgroup);
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectBlockSnapshotConstraint(project.getId()), blockSnapshot);
@@ -402,10 +431,31 @@ public class ProjectService extends TaggedResource {
 
         ResourceList list = new ResourceList();
         list.setResources(new ChainedList<TypedRelatedResourceRep>(file.iterator(),
-                volume.iterator(), exportgroup.iterator(), blockSnapshot.iterator(),
+                volume.iterator(), bucket.iterator(), exportgroup.iterator(), blockSnapshot.iterator(),
                 fileSnapshot.iterator(), file.iterator(), volume.iterator(),
                 exportgroup.iterator(), protectionSet.iterator(), blockConsistencySet.iterator()));
         return list;
+    }
+    
+    /**
+     * validates whether the project has active vnas servers 
+     * assigned to it or not.
+     * 
+     * @param project - a ViPR Project
+     */
+    private boolean isProjectAssignedWithVNasServers(Project project) {
+    	
+    	if(project.getAssignedVNasServers() != null && !project.getAssignedVNasServers().isEmpty() ) {
+    		for( String vnasId : project.getAssignedVNasServers()) {
+    			VirtualNAS vnas = _permissionsHelper.getObjectById(URI.create(vnasId), VirtualNAS.class);
+    			if ( vnas != null && !vnas.getInactive() ){
+    				_log.debug("project {} has been assigned with vnas server {}", project.getLabel(), vnas.getNasName() );
+    				return true;
+    			}
+    		}
+       }
+    	_log.info("No active vnas servers assigned to project {}", project.getLabel() );
+    	return false;
     }
 
     /**
@@ -427,6 +477,12 @@ public class ProjectService extends TaggedResource {
     public Response deactivateProject(@PathParam("id") URI id) {
         Project project = getProjectById(id, true);
         ArgValidator.checkReference(Project.class, id, checkForDelete(project));
+        
+        // Check the project has been assigned with vNAS servers!!!
+        if(isProjectAssignedWithVNasServers(project)) {
+        	 _log.error("Delete porject failed due to, One or more vnas servers are assigned to project.");
+        	throw APIException.badRequests.failedToDeleteVNasAssignedProject();
+        }
         _dbClient.markForDeletion(project);
 
         recordOperation(OperationTypeEnum.DELETE_PROJECT, true, project);
@@ -809,6 +865,7 @@ public class ProjectService extends TaggedResource {
     @Path("/{id}/assign-vnas-servers")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
     public Response assignVNasServersToProject(@PathParam("id") URI id, VirtualNasParam vnasParam) {
+        checkCompatibleVersion();
         Project project = getProjectById(id, true);
         StringBuilder errorMsg = new StringBuilder();
         StringSet validVNasServers = validateVNasServers(project, vnasParam, errorMsg);
@@ -821,10 +878,13 @@ public class ProjectService extends TaggedResource {
             }
             project.setAssignedVNasServers(validVNasServers);
             _dbClient.persistObject(project);
-            _log.info("Successfully assigned the virtual NAS Servers to project : {} ", project.getLabel());
-        } else {
+            _log.info("Successfully assigned {} virtual NAS Servers to project : {} ",
+            		validVNasServers.size(), project.getLabel());
+        }
+        // Report error, if there are any invalid vnas servers found!!!
+        if (errorMsg != null && errorMsg.length() > 0) {
             _log.error("Failed to assigned the virtual NAS Servers to project due to {} ", errorMsg.toString());
-            throw APIException.badRequests.failedToAssignVNasToProject(errorMsg.toString());
+            throw APIException.badRequests.vNasServersNotAssociatedToProject();
         }
         return Response.ok().build();
     }
@@ -842,6 +902,7 @@ public class ProjectService extends TaggedResource {
     public StringSet validateVNasServers(Project project, VirtualNasParam param, StringBuilder errorMsg) {
         Set<String> vNasIds = param.getVnasServers();
         StringSet validNas = new StringSet();
+        
         if (vNasIds != null && !vNasIds.isEmpty() && project != null) {
 
             // Get list of domains associated with the project
@@ -853,7 +914,7 @@ public class ProjectService extends TaggedResource {
                     for (String existingMapping : userMappingSet) {
                         UserMappingParam userMap = BasePermissionsHelper.UserMapping.toParam(
                                 BasePermissionsHelper.UserMapping.fromString(existingMapping));
-                        projectDomains.add(userMap.getDomain());
+                        projectDomains.add(userMap.getDomain().toUpperCase());
                     }
                 }
             }
@@ -862,19 +923,26 @@ public class ProjectService extends TaggedResource {
                 URI vnasURI = URI.create(id);
                 VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
                 ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
-
+                
                 // Validate the VNAS is assigned to project!!!
                 if (!vnas.isNotAssignedToProject()) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is associated to project " + project.getLabel());
-                    _log.info(errorMsg.toString());
-                    return null;
+                    _log.error(errorMsg.toString());
+                    continue;
                 }
-
+                
+                // Validate the VNAS is in Discovery state -VISIBLE!!!
+                if (!DiscoveryStatus.VISIBLE.name().equals(vnas.getDiscoveryStatus())) {
+                    errorMsg.append(" vNas " + vnas.getNasName() + " is not in Discovery-VISIBLE state ");
+                    _log.error(errorMsg.toString());
+                    continue;
+                }
+                
                 // Validate the VNAS state should be in loaded state !!!
                 if (!vnas.getVNasState().equalsIgnoreCase(VirtualNasState.LOADED.getNasState())) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " is not in Loaded state");
-                    _log.info(errorMsg.toString());
-                    return null;
+                    _log.error(errorMsg.toString());
+                    continue;
                 }
 
                 // Get list of domains associated with a VNAS server and validate with project's domain
@@ -883,7 +951,7 @@ public class ProjectService extends TaggedResource {
                     Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
                     for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
                         NasCifsServer cifsServer = nasCifsServer.getValue();
-                        if (projectDomains.contains(cifsServer.getDomain())) {
+                        if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
                             domainMatched = true;
                             break;
                         }
@@ -893,8 +961,8 @@ public class ProjectService extends TaggedResource {
                 }
                 if (!domainMatched) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " domain is not matched with project domain");
-                    _log.info(errorMsg.toString());
-                    return null;
+                    _log.error(errorMsg.toString());
+                    continue;
                 }
 
                 // Get list of file systems and associated project of VNAS server and validate with Project
@@ -918,8 +986,8 @@ public class ProjectService extends TaggedResource {
                 }
                 if (!projectMatched) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " has file systems belongs to other project");
-                    _log.info(errorMsg.toString());
-                    return null;
+                    _log.error(errorMsg.toString());
+                    continue;
                 }
 
                 validNas.add(id);
@@ -947,6 +1015,7 @@ public class ProjectService extends TaggedResource {
     @Path("/{id}/unassign-vnas-servers")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
     public Response unassignVNasServersFromProject(@PathParam("id") URI id, VirtualNasParam param) {
+        checkCompatibleVersion();
         Project project = getProjectById(id, true);
         Set<String> vNasIds = param.getVnasServers();
         if (vNasIds != null && !vNasIds.isEmpty()) {
@@ -977,6 +1046,17 @@ public class ProjectService extends TaggedResource {
             throw APIException.badRequests.invalidEntryForProjectVNAS();
         }
         return Response.ok().build();
+    }
+
+    /**
+     * Check if all the VDCs in the federation are in the same expected
+     * or minimum supported version for this API.
+     * 
+     */
+    private void checkCompatibleVersion() {
+        if (!_dbClient.checkGeoCompatible(EXPECTED_GEO_VERSION)) {
+            throw APIException.badRequests.incompatibleGeoVersions(EXPECTED_GEO_VERSION, FEATURE_NAME);
+        }
     }
 
 }

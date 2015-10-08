@@ -1995,8 +1995,8 @@ public class BasePermissionsHelper {
      * @param acls to be converted into the ACLEntry list.
      * @return the converted ACLEntry list.
      */
-    public static ArrayList<ACLEntry> convertToACLEntries(StringSetMap acls) {
-        ArrayList<ACLEntry> assignments = new ArrayList<ACLEntry>();
+    public static List<ACLEntry> convertToACLEntries(StringSetMap acls) {
+        List<ACLEntry> assignments = new ArrayList<ACLEntry>();
         if (CollectionUtils.isEmpty(acls)) {
             return assignments;
         }
@@ -2060,7 +2060,10 @@ public class BasePermissionsHelper {
 
         Iterator<ACLEntry> aclEntryIt = aclEntries.iterator();
         while (aclEntryIt.hasNext()) {
-            tenantUris.add(URI.create(aclEntryIt.next().getTenant()));
+            ACLEntry aclEntry = aclEntryIt.next();
+            if (!CollectionUtils.isEmpty(aclEntry.getAces())) {
+                tenantUris.add(URI.create(aclEntry.getTenant()));
+            }
         }
 
         return tenantUris;

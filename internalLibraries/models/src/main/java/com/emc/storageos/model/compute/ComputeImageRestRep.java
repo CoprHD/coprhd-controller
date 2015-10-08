@@ -108,5 +108,4 @@ public class ComputeImageRestRep extends DataObjectRestRep {
         this.failedImageServers = failedImageServers;
     }
 
-
 }

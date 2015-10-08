@@ -73,11 +73,12 @@ class SanFabrics(object):
     Returns a list of the active zones (and their zone members)
                                         for the specified
     '''
-    def show_fabrics_zones_by_uri(self, nsuri, fabricid, xml=False, excludealiases=False):
+    def show_fabrics_zones_by_uri(self, nsuri, fabricid,excludealiases , xml=False ):
 
         urisanfabric= SanFabrics.URI_SAN_FABRICS_ZONE_LIST
-        if(excludealiases == True ):
+        if(excludealiases == True):
             urisanfabric = urisanfabric + "?exclude-aliases=true"
+            
         if(xml == False):
             (s, h) = common.service_json_request(self.__ipAddr, self.__port,
             "GET",
@@ -92,10 +93,10 @@ class SanFabrics(object):
             None, None, xml)
             return s
 
-    def san_fabrics_zones_list(self, networkname, fabricid, xml=False , excludealiases=False):
+    def san_fabrics_zones_list(self, networkname, fabricid,excludealiases , xml=False ):
         obj = Networksystem(self.__ipAddr, self.__port)
         nsuri = obj.networksystem_query(networkname)
-        return self.show_fabrics_zones_by_uri(nsuri, fabricid, xml ,excludealiases )
+        return self.show_fabrics_zones_by_uri(nsuri, fabricid,excludealiases , xml  )
 
     '''
     Returns a list of the active zones (and their zone members)
@@ -106,7 +107,7 @@ class SanFabrics(object):
         nsuri = obj.networksystem_query(name)
 
         restapi = SanFabrics.URI_SAN_FABRICS_ZONE_LIST.format(nsuri, fabricid)
-        restapi = restapi + "?zone-name=" + sanzone + "&exclude-members=false"
+        restapi = restapi + "?zone-name=" + sanzone + "&exclude-members=false" 
         if(xml == False):
             (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                                     "GET",
@@ -280,8 +281,10 @@ def list_san_zones_parser(subcommand_parsers, common_parser):
 def list_fabric_san_zones(args):
     obj = SanFabrics(args.ip, args.port)
     try:
-        zones = obj.san_fabrics_zones_list(args.name, args.fabricid, None, args.excludealiases)
+        zones = obj.san_fabrics_zones_list(args.name, args.fabricid, args.excludealiases, xml=False )
+        
         sanzone = zones['san_zone']
+        
 
         output = []
         strwwp = ""
@@ -338,13 +341,13 @@ def show_sanfabrics(args):
         # fabric show command parser
     obj = SanFabrics(args.ip, args.port)
     try:
-        res = obj.san_fabrics_zones_list(args.name, args.fabricid,
+        res = obj.san_fabrics_zones_list(args.name, args.fabricid, None ,
                                                            args.xml)
         if(res):
-            if(args.xml == True):
+            if(args.xml):
                 return common.format_xml(res)
-            else:
-                return common.format_json_object(res)
+            
+            return common.format_json_object(res)
     except SOSError as e:
         common.format_err_msg_and_raise(
                                         "show",

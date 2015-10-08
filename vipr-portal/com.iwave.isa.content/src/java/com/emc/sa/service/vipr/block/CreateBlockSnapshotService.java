@@ -61,7 +61,7 @@ public class CreateBlockSnapshotService extends ViPRService {
             }
         } else {
             for (String consistencyGroupId : volumeIds) {
-                tasks = ConsistencyUtils.createSnapshot(uri(consistencyGroupId), nameParam);
+                tasks = ConsistencyUtils.createSnapshot(uri(consistencyGroupId), nameParam, readOnly);
                 addAffectedResources(tasks);
             }
         }

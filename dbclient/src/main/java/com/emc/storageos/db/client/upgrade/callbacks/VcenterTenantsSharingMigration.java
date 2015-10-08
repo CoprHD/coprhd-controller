@@ -22,7 +22,7 @@ import java.util.List;
  *
  */
 public class VcenterTenantsSharingMigration extends BaseCustomMigrationCallback {
-    protected final static Logger _log = LoggerFactory.getLogger(VcenterTenantsSharingMigration.class);
+    protected static final Logger _log = LoggerFactory.getLogger(VcenterTenantsSharingMigration.class);
 
     @Override
     public void process() {
@@ -35,7 +35,7 @@ public class VcenterTenantsSharingMigration extends BaseCustomMigrationCallback 
             URI tenantURI = vcenter.getTenant();
             if (!NullColumnValueGetter.isNullURI(tenantURI)) {
                 _log.info("Migrating the tenant {} of the vCenter {}", vcenter.getTenant(), vcenter.getLabel());
-                vcenter.setTenantCreated(Boolean.TRUE);
+                vcenter.setCascadeTenancy(Boolean.TRUE);
                 vcenter.addAcl(tenantURI);
                 vcenter.setTenant(NullColumnValueGetter.getNullURI());
                 dbClient.persistObject(vcenter);

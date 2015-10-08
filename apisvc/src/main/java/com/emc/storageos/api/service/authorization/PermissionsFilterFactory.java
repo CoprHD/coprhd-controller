@@ -214,7 +214,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                     } else if (_resourceClazz.isAssignableFrom(ExportGroupService.class)) {
                         return getProjectIdFromResourceId(uriStr, ExportGroup.class);
                     } else if (_resourceClazz.isAssignableFrom(BlockService.class)) {
-                        return getProjectIdFromResourceId(uriStr, Volume.class);
+                        return getProjectIdFromResourceId(uriStr, BlockService.getBlockServiceResourceClass(uriStr));
                     } else if (_resourceClazz.isAssignableFrom(BlockConsistencyGroupService.class)) {
                         return getProjectIdFromResourceId(uriStr, BlockConsistencyGroup.class);
                     }
@@ -230,7 +230,9 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                         return getProjectIdFromComputeResources(uriStr);
                     } else if (_resourceClazz.isAssignableFrom(InitiatorService.class)) {
                         return getProjectIdFromComputeResources(uriStr);
-                    }
+                    } else if (_resourceClazz.isAssignableFrom(BucketService.class)) {
+                        return getProjectIdFromResourceId(uriStr, Bucket.class);
+                    } 
                 } else {
                     _log.warn("project id not available for this resource type");
                 }

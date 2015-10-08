@@ -102,6 +102,7 @@ public class AdminDashboard extends Controller {
         if (LicenseUtils.isControllerLicensed()) {
             promises.put("blockVirtualPoolCount", AdminDashboardUtils.blockVirtualPoolCount());
             promises.put("fileVirtualPoolCount", AdminDashboardUtils.fileVirtualPoolCount());
+            promises.put("objectVirtualPoolCount", AdminDashboardUtils.objectVirtualPoolCount());
             promises.put("computeVirtualPoolCount", AdminDashboardUtils.computeVirtualPoolCount());
         }
 

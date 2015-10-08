@@ -33,6 +33,14 @@ import zlib
 import struct
 from time import sleep
 
+try:
+    # OpenSUSE CoprHD kits tend to display certificate warnings which aren't
+    # relevant to running sanity tests
+    requests.packages.urllib3.disable_warnings()
+except AttributeError:
+    # Swallow error, likely ViPR devkit
+    pass
+
 URI_SERVICES_BASE               = ''
 URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'
@@ -147,6 +155,7 @@ URI_BLOCK_SNAPSHOTS_EXPORTS     = URI_BLOCK_SNAPSHOTS + '/exports'
 URI_BLOCK_SNAPSHOTS_UNEXPORTS   = URI_BLOCK_SNAPSHOTS + '/exports/{1},{2},{3}'
 URI_BLOCK_SNAPSHOTS_RESTORE     = URI_BLOCK_SNAPSHOTS + '/restore'
 URI_BLOCK_SNAPSHOTS_ACTIVATE    = URI_BLOCK_SNAPSHOTS + '/activate'
+URI_BLOCK_SNAPSHOTS_CREATE_VPLEX_VOLUME    = URI_BLOCK_SNAPSHOTS + '/create-vplex-volume'
 URI_BLOCK_SNAPSHOTS_TASKS       = URI_BLOCK_SNAPSHOTS + '/tasks/{1}'
 URI_VOLUME_CHANGE_VPOOL           = URI_VOLUME          + '/vpool'
 URI_VOLUME_CHANGE_VPOOL_MATCH     = URI_VOLUME          + '/vpool-change/vpool'
@@ -166,6 +175,7 @@ URI_VOLUME_FULL_COPY_CHECK_PROGRESS = URI_VOLUME_LIST     + '/{0}/protection/ful
 URI_FULL_COPY = URI_SERVICES_BASE  + '/block/full-copies'
 URI_FULL_COPY_RESTORE = URI_FULL_COPY + '/{0}/restore'
 URI_FULL_COPY_RESYNC = URI_FULL_COPY + '/{0}/resynchronize'
+URI_ADD_JOURNAL = URI_VOLUME_LIST + '/protection/addJournalCapacity'
 
 URI_UNMANAGED                    = URI_VDC + '/unmanaged'
 URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
@@ -201,6 +211,11 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_TASKS      = URI_BLOCK_CONSISTENCY_GROUP_SN
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_ACTIVATE   = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/activate"
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_DEACTIVATE = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/deactivate"
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_RESTORE    = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/restore"
+
+URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE       = URI_BLOCK_CONSISTENCY_GROUP + "/protection/continuous-copies"
+URI_BLOCK_CONSISTENCY_GROUP_SWAP                  = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/swap"
+URI_BLOCK_CONSISTENCY_GROUP_FAILOVER              = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover"
+URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL       = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover-cancel"
 
 URI_NETWORKSYSTEMS              = URI_SERVICES_BASE   + '/vdc/network-systems'
 URI_NETWORKSYSTEM               = URI_NETWORKSYSTEMS  + '/{0}'
@@ -1509,7 +1524,8 @@ class Bourne:
 
     def cos_match(self, type, useMatchedPools,
                    protocols, numpaths, highavailability, haNhUri, haCosUri, activeProtectionAtHASite, metropoint, file_cos, provisionType,
-                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, protectionCoS,
+                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
+                   standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    system_type, srdf):
 
@@ -3451,6 +3467,30 @@ class Bourne:
             result.append(s)
         return result
 
+    def volume_add_journal(self, copyName, project, neighborhood, cos, size, count, consistencyGroup):
+        parms = {
+            'name' : copyName,
+            'varray' : neighborhood,
+            'project' : project,
+            'vpool' :  cos,
+            'size' : size,
+            'count' : count,
+	    'consistency_group' : consistencyGroup,
+        }        
+
+        print "ADD JOURNAL Params = ", parms
+        resp = self.api('POST', URI_ADD_JOURNAL, parms, {})
+        print "RESP = ", resp
+        self.assert_is_dict(resp)
+        tr_list = resp['task']
+        #print 'DEBUG : debug operation for volume : ' + o['resource']['id']
+        print tr_list
+        result = list()
+        for tr in tr_list:
+            s = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
+            result.append(s)
+        return result
+
     def volume_full_copy(self, label, sourceVolume, count, createInactive):
         parms = {
             'name' : label,
@@ -3960,6 +4000,78 @@ class Bourne:
         s = self.api_sync_2(id, task_id, self.block_consistency_group_show_task)
         return (o, s)
 
+    def block_consistency_group_swap(self, group, copyType, targetVarray):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+        
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_SWAP.format(group), copies_param )
+        self.assert_is_dict(o)
+        
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
+    def block_consistency_group_failover(self, group, copyType, targetVarray):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+        
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_FAILOVER.format(group), copies_param )
+        self.assert_is_dict(o)
+        
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
+    def block_consistency_group_failover_cancel(self, group, copyType, targetVarray):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+        
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL.format(group), copies_param )
+        self.assert_is_dict(o)
+        
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
     def block_consistency_group_snapshot_show_task(self, group, snapshot, task):
         return self.api('GET', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_TASKS.format(group, snapshot, task))
 
@@ -3967,7 +4079,7 @@ class Bourne:
         return self.api('GET', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT.format(group, snapshot))
 
     def block_consistency_group_snapshot_query(self, group, name):
-        if (self.__is_uri(name)):
+        if (self.__is_uri(name)):   
             return name
 
         return (self.block_consistency_group_snapshot_get_id_by_name(group, name))
@@ -4851,6 +4963,14 @@ class Bourne:
     def block_snapshot_exports(self, snapshot):
         vuri = self.block_snapshot_query(snapshot).strip()
         return self.api('GET', URI_BLOCK_SNAPSHOTS_EXPORTS.format(vuri))
+
+    def block_snapshot_create_vplex_volume(self, snapshot):
+        vuri = self.block_snapshot_query(snapshot)
+        vuri = vuri.strip()
+        o = self.api('POST', URI_BLOCK_SNAPSHOTS_CREATE_VPLEX_VOLUME.format(vuri))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.block_snapshot_show_task)
+        return (o, s['state'], s['message'])
 
 #
 # protection system APIs

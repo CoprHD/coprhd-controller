@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.smis;
 import static java.util.Arrays.asList;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.cim.UnsignedInteger16;
 import javax.cim.UnsignedInteger32;
+import javax.cim.UnsignedInteger64;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
@@ -52,6 +54,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockMirror.SynchronizationState;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -66,6 +69,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.ExportMaskNameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -87,6 +91,7 @@ import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy.IG_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 
@@ -108,6 +113,7 @@ public class SmisCommandHelper implements SmisConstants {
     private static final CIMObjectPath _cop = CimObjectPathCreator.createInstance(
             Constants.PROFILECLASS, CimConstants.DFLT_CIM_CONNECTION_INTEROP_NS);
     public static final int PARKING_SLO_SG_LOCK_WAIT_SECS = 3600;
+    public static final UnsignedInteger32 SINGLE_DEVICE_FOR_EACH_CONFIG = new UnsignedInteger32(1);
     CIMArgumentFactory _cimArgument = null;
     CIMPropertyFactory _cimProperty = null;
     CIMObjectPathFactory _cimPath = null;
@@ -247,7 +253,7 @@ public class SmisCommandHelper implements SmisConstants {
      * allow callers to make consecutive asynchronous calls without the need for a workflow.
      * <em>This function should be used for asynchronous SMIS calls only and will throw an exception
      * if the call did not return a job path.</em>
-     *
+     * 
      * @param inArgs
      *            input arguments
      * @param outArgs
@@ -343,7 +349,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Executes query for component of a given storage system (volume, pool, etc...)
-     *
+     * 
      * @param storageSystem
      * @param query
      * @param queryLanguage
@@ -376,7 +382,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * remove Volumes from Storage Group
-     *
+     * 
      * @param storage
      * @param groupName
      * @param volumeURIList
@@ -557,9 +563,11 @@ public class SmisCommandHelper implements SmisConstants {
         };
     }
 
-    public CIMArgument[] getAddSyncPairInputArguments(CIMObjectPath groupSync, boolean forceAdd, CIMObjectPath... syncPairs) {
-        List<CIMArgument> args = new ArrayList<CIMArgument>();
+    public CIMArgument[] getAddSyncPairInputArguments(CIMObjectPath groupSync, boolean forceAdd,
+            Object settings, CIMObjectPath... syncPairs) {
+        List<CIMArgument> args = new ArrayList<>();
 
+        args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, settings));
         args.add(_cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true));
         args.add(_cimArgument.uint16(CP_OPERATION, ADD_SYNC_PAIR));
         if (forceAdd) {
@@ -785,9 +793,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Create input arguments for ReturnElementsToStoragePool operation
-     *
-     * @param storage
-     *            The storage system where this operation will be performed
+     * 
      * @param theElements
      *            Array of path to be returned to the storage pool
      * @param options
@@ -795,10 +801,16 @@ public class SmisCommandHelper implements SmisConstants {
      *            nonexistent element)
      * @return An array of CIMArgument based on the given parameters
      */
-    public CIMArgument[] getReturnElementsToStoragePoolArguments(StorageSystem storage, CIMObjectPath[] theElements, int options) {
+    public CIMArgument[] getReturnElementsToStoragePoolArguments(CIMObjectPath[] theElements, int options) {
         return new CIMArgument[] {
                 _cimArgument.referenceArray(CP_THE_ELEMENTS, theElements),
                 _cimArgument.uint16(CP_OPTIONS, options)
+        };
+    }
+
+    public CIMArgument[] getReturnElementsToStoragePoolArguments(CIMObjectPath[] theElements) {
+        return new CIMArgument[] {
+                _cimArgument.referenceArray(CP_THE_ELEMENTS, theElements)
         };
     }
 
@@ -912,11 +924,26 @@ public class SmisCommandHelper implements SmisConstants {
         return result;
     }
 
-    public List<CIMArgument> getCreateVolumesInputArgumentsasList(StorageSystem storageDevice, StoragePool pool, String label,
+    public List<CIMArgument> getCreateVolumesInputArgumentsasList(StorageSystem storageDevice, StoragePool pool,
+            List<String> labels,
             Long capacity,
             int count,
             boolean isThinlyProvisioned) {
-        ArrayList<CIMArgument> list = new ArrayList<CIMArgument>();
+        if (storageDevice.getUsingSmis80()) {
+            return getCreateVolumesInputArgumentsasList80(storageDevice, pool, labels, capacity, count,
+                    isThinlyProvisioned);
+        } else {
+            return getCreateVolumesInputArgumentsasList40(storageDevice, pool, labels.get(0), capacity, count,
+                    isThinlyProvisioned);
+        }
+    }
+
+    public List<CIMArgument> getCreateVolumesInputArgumentsasList40(StorageSystem storageDevice, StoragePool pool,
+            String label,
+            Long capacity,
+            int count,
+            boolean isThinlyProvisioned) {
+        ArrayList<CIMArgument> list = new ArrayList<>();
         try {
             CIMProperty[] inPoolPropKeys = {
                     _cimProperty.string(CP_INSTANCE_ID, _cimPath.getPoolName(storageDevice, pool.getNativeId()))
@@ -942,7 +969,61 @@ public class SmisCommandHelper implements SmisConstants {
         return list;
     }
 
+    public List<CIMArgument> getCreateVolumesInputArgumentsasList80(StorageSystem storageDevice, StoragePool pool,
+            List<String> labels,
+            Long capacity,
+            int count,
+            boolean isThinlyProvisioned) {
+        ArrayList<CIMArgument> list = new ArrayList<>();
+        try {
+            CIMProperty[] inPoolPropKeys = {
+                    _cimProperty.string(CP_INSTANCE_ID, _cimPath.getPoolName(storageDevice, pool.getNativeId()))
+            };
+            CIMObjectPath inPoolPath = CimObjectPathCreator.createInstance(pool.getPoolClassName(),
+                    _cimConnection.getNamespace(storageDevice),
+                    inPoolPropKeys);
+
+            // Use thick/thin volume type
+            Integer volumeType = isThinlyProvisioned ? STORAGE_VOLUME_TYPE_THIN : STORAGE_VOLUME_VALUE;
+
+            // Create array values
+            String[] labelsArray = labels.toArray(new String[] {});  // Convert labels to array
+
+            // Adding Goal parameter if volumes need to be FAST Enabled
+            list.add(_cimArgument.referenceArray(CP_IN_POOL,
+                    toMultiElementArray(count, inPoolPath)));
+            list.add(_cimArgument.uint64Array(CP_SIZE,
+                    toMultiElementArray(count, new UnsignedInteger64(Long.toString(capacity)))));
+            list.add(_cimArgument.uint32Array(CP_EMC_NUMBER_OF_DEVICE_FOR_EACH_CONFIG,
+                    toMultiElementArray(count, SINGLE_DEVICE_FOR_EACH_CONFIG)));
+
+            if (labels != null) {
+                list.add(_cimArgument.stringArray(CP_ELEMENT_NAMES, labelsArray));
+            }
+            // Add CIMArgument instances to the list
+            if (!storageDevice.checkIfVmax3()) {
+                list.add(_cimArgument.uint16Array(CP_ELEMENT_TYPE,
+                        toMultiElementArray(count, new UnsignedInteger16(volumeType))));
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Problem getting input arguments: " + storageDevice.getSerialNumber());
+        }
+        return list;
+    }
+
     public CIMArgument[] getCreateVolumesBasedOnSettingInputArguments(
+            StorageSystem storage, CIMObjectPath poolPath,
+            CIMInstance storageSetting, String label, int count, long capacity) {
+        if (storage.getUsingSmis80()) {
+            return getCreateVolumesBasedOnSettingInputArguments80(storage, poolPath, storageSetting, label, count,
+                    capacity);
+        } else {
+            return getCreateVolumesBasedOnSettingInputArguments40(storage, poolPath, storageSetting, label, count,
+                    capacity);
+        }
+    }
+
+    public CIMArgument[] getCreateVolumesBasedOnSettingInputArguments40(
             StorageSystem storage, CIMObjectPath poolPath,
             CIMInstance storageSetting, String label, int count, long capacity) {
         return new CIMArgument[] {
@@ -953,7 +1034,36 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.reference(CP_GOAL, storageSetting.getObjectPath()) };
     }
 
+    public CIMArgument[] getCreateVolumesBasedOnSettingInputArguments80(
+            StorageSystem storage, CIMObjectPath poolPath,
+            CIMInstance storageSetting, String label, int count, long capacity) {
+        return new CIMArgument[] {
+                _cimArgument.uint16Array(CP_ELEMENT_TYPE,
+                        toMultiElementArray(count, new UnsignedInteger16(STORAGE_VOLUME_VALUE))),
+                _cimArgument.uint32Array(CP_EMC_NUMBER_OF_DEVICE_FOR_EACH_CONFIG,
+                        toMultiElementArray(count, SINGLE_DEVICE_FOR_EACH_CONFIG)),
+                _cimArgument.uint64Array(CP_SIZE,
+                        toMultiElementArray(count, new UnsignedInteger64(Long.toString(capacity)))),
+                _cimArgument.referenceArray(CP_IN_POOL,
+                        toMultiElementArray(count, poolPath)),
+                _cimArgument.referenceArray(CP_GOAL,
+                        toMultiElementArray(count, storageSetting.getObjectPath()))
+        };
+    }
+
     public CIMArgument[] getCreateVolumesBasedOnVolumeGroupInputArguments(
+            StorageSystem storage, CIMObjectPath poolPath,
+            CIMObjectPath volumeGroupPath, String label, int count, long capacity) {
+        if (storage.getUsingSmis80() != null && storage.getUsingSmis80()) {
+            return getCreateVolumesBasedOnVolumeGroupInputArguments80(storage, poolPath, volumeGroupPath, label, count,
+                    capacity);
+        } else {
+            return getCreateVolumesBasedOnVolumeGroupInputArguments40(storage, poolPath, volumeGroupPath, label, count,
+                    capacity);
+        }
+    }
+
+    public CIMArgument[] getCreateVolumesBasedOnVolumeGroupInputArguments40(
             StorageSystem storage, CIMObjectPath poolPath,
             CIMObjectPath volumeGroupPath, String label, int count, long capacity) {
         if (label != null) {
@@ -974,27 +1084,86 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.referenceArray(CP_EMC_COLLECTIONS, new CIMObjectPath[] { volumeGroupPath }) };
     }
 
-    public CIMArgument[] getCreateVolumesInputArguments(StorageSystem storageDevice, StoragePool pool, String label, Long capacity,
+    public CIMArgument[] getCreateVolumesBasedOnVolumeGroupInputArguments80(
+            StorageSystem storage, CIMObjectPath poolPath,
+            CIMObjectPath volumeGroupPath, String label, int count, long capacity) {
+
+        List<CIMArgument> list = new ArrayList<>();
+
+        list.add(_cimArgument.uint16Array(CP_ELEMENT_TYPE,
+                toMultiElementArray(count, new UnsignedInteger16(STORAGE_VOLUME_VALUE))));
+        list.add(_cimArgument.uint32Array(CP_EMC_NUMBER_OF_DEVICE_FOR_EACH_CONFIG,
+                toMultiElementArray(count, SINGLE_DEVICE_FOR_EACH_CONFIG)));
+        list.add(_cimArgument.uint64Array(CP_SIZE,
+                toMultiElementArray(count, new UnsignedInteger64(Long.toString(capacity)))));
+        list.add(_cimArgument.referenceArray(CP_IN_POOL,
+                toMultiElementArray(count, poolPath)));
+        list.add(_cimArgument.referenceArray(CP_EMC_COLLECTIONS,
+                new CIMObjectPath[] { volumeGroupPath }));
+
+        if (label != null) {
+            list.add(_cimArgument.stringArray(CP_ELEMENT_NAMES,
+                    toMultiElementArray(count, label)));
+        }
+        return list.toArray(new CIMArgument[count]);
+    }
+
+    public CIMArgument[] getCreateVolumesInputArguments(StorageSystem storageDevice, StoragePool pool, String label,
+            Long capacity,
             int count,
-            boolean isThinlyProvisioned, CIMInstance poolSetting, boolean isBoundToPool) {
-        List<CIMArgument> list = getCreateVolumesInputArgumentsasList(storageDevice, pool, label, capacity, count, isThinlyProvisioned);
+            boolean isThinlyProvisioned,
+            CIMInstance poolSetting,
+            boolean isBoundToPool) {
+
+        List<String> labels = new ArrayList<>(asList(toMultiElementArray(count, label)));
+        return getCreateVolumesInputArguments(storageDevice, pool, labels, capacity, count, isThinlyProvisioned,
+                poolSetting, isBoundToPool);
+    }
+
+    public CIMArgument[] getCreateVolumesInputArguments(StorageSystem storageDevice, StoragePool pool,
+            List<String> labels,
+            Long capacity,
+            int count,
+            boolean isThinlyProvisioned,
+            CIMInstance poolSetting,
+            boolean isBoundToPool) {
+
+        List<CIMArgument> list = getCreateVolumesInputArgumentsasList(storageDevice, pool,
+                labels, capacity, count, isThinlyProvisioned);
         if (!isBoundToPool) {
-            list.add(_cimArgument.bool(CP_EMC_BIND_ELEMENTS, false));
+            if (storageDevice.getUsingSmis80()) {
+                list.add(_cimArgument.boolArray(CP_EMC_BIND_ELEMENTS, toMultiElementArray(count, false)));
+            } else {
+                list.add(_cimArgument.bool(CP_EMC_BIND_ELEMENTS, false));
+            }
+
         }
         if (poolSetting != null) {
-            list.add(_cimArgument.reference(CP_GOAL, poolSetting.getObjectPath()));
+            if (storageDevice.getUsingSmis80()) {
+                list.add(_cimArgument.referenceArray(CP_GOAL, toMultiElementArray(count, poolSetting.getObjectPath())));
+            } else {
+                list.add(_cimArgument.reference(CP_GOAL, poolSetting.getObjectPath()));
+            }
         }
         CIMArgument[] result = {};
         result = list.toArray(result);
         return result;
     }
 
-    public CIMArgument[] getCreateVolumesInputArguments(StorageSystem storageDevice, StoragePool pool, String label, Long capacity,
-            int count,
-            boolean isThinlyProvisioned, boolean isBoundToPool, CIMObjectPath volumeGroupPath, boolean fullyAllocated) {
-        List<CIMArgument> list = getCreateVolumesInputArgumentsasList(storageDevice, pool, label, capacity, count, isThinlyProvisioned);
+    public CIMArgument[] getCreateVolumesInputArguments(StorageSystem storageDevice, StoragePool pool,
+            List<String> labels, Long capacity, int count,
+            boolean isThinlyProvisioned, boolean isBoundToPool,
+            CIMObjectPath volumeGroupPath, boolean fullyAllocated) {
+
+        List<CIMArgument> list = getCreateVolumesInputArgumentsasList(storageDevice, pool, labels, capacity, count,
+                isThinlyProvisioned);
+
         if (!isBoundToPool) {
-            list.add(_cimArgument.bool(CP_EMC_BIND_ELEMENTS, false));
+            if (storageDevice.getUsingSmis80()) {
+                list.add(_cimArgument.boolArray(CP_EMC_BIND_ELEMENTS, toMultiElementArray(count, false)));
+            } else {
+                list.add(_cimArgument.bool(CP_EMC_BIND_ELEMENTS, false));
+            }
         }
         if (storageDevice.checkIfVmax3()) {
             CIMObjectPath[] members = {};
@@ -1005,22 +1174,51 @@ public class SmisCommandHelper implements SmisConstants {
 
             // set volumeType for fully-thin or fully-allocated
             int volumeType = fullyAllocated ? STORAGE_VOLUME_FULLY_ALLOCATED : STORAGE_VOLUME_TYPE_THIN;
-            list.add(_cimArgument.uint16(CP_ELEMENT_TYPE, volumeType));
+            if (storageDevice.getUsingSmis80()) {
+                list.add(_cimArgument.uint16Array(CP_ELEMENT_TYPE,
+                        toMultiElementArray(count, new UnsignedInteger16(volumeType))));
+            } else {
+                list.add(_cimArgument.uint16(CP_ELEMENT_TYPE, volumeType));
+            }
         }
         CIMArgument[] result = {};
         result = list.toArray(result);
         return result;
     }
 
-    public CIMArgument[] getCreateVolumesInputArgumentsOnFastEnabledPool(StorageSystem storageDevice, StoragePool pool, String label,
+    public CIMArgument[] getCreateVolumesInputArgumentsOnFastEnabledPool(StorageSystem storageDevice, StoragePool pool,
+            String label,
             Long capacity,
             int count,
-            boolean isThinlyProvisioned, String fastPolicyName) throws IOException {
-        List<CIMArgument> list = getCreateVolumesInputArgumentsasList(storageDevice, pool, label, capacity, count, isThinlyProvisioned);
+            boolean isThinlyProvisioned,
+            String fastPolicyName) throws IOException {
+
+        if (storageDevice.getUsingSmis80()) {
+            List<String> labels = new ArrayList<>(asList(toMultiElementArray(count, label)));
+            return getCreateVolumesInputArgumentsOnFastEnabledPool(storageDevice, pool, labels, capacity, count,
+                    isThinlyProvisioned, fastPolicyName);
+        } else {
+            return getCreateVolumesInputArgumentsOnFastEnabledPool(storageDevice, pool, asList(label), capacity, count,
+                    isThinlyProvisioned, fastPolicyName);
+        }
+
+    }
+
+    public CIMArgument[] getCreateVolumesInputArgumentsOnFastEnabledPool(StorageSystem storageDevice, StoragePool pool,
+            List<String> labels,
+            Long capacity,
+            int count,
+            boolean isThinlyProvisioned,
+            String fastPolicyName) throws IOException {
+
+        List<CIMArgument> list = getCreateVolumesInputArgumentsasList(storageDevice, pool, labels, capacity, count,
+                isThinlyProvisioned);
         CIMArgument[] result = {};
+
         if (!storageDevice.getAutoTieringEnabled()) {
             return list.toArray(result);
         }
+
         String poolSettingId = null;
         if (null == fastPolicyName) {
             poolSettingId = pool.getStartHighThenAutoTierId();
@@ -1042,8 +1240,14 @@ public class SmisCommandHelper implements SmisConstants {
         }
 
         if (null != poolSettingId) {
-            list.add(_cimArgument.reference(CP_GOAL, _cimPath.getPoolSettingPath(storageDevice, poolSettingId)));
+            if (storageDevice.getUsingSmis80()) {
+                list.add(_cimArgument.referenceArray(CP_GOAL,
+                        toMultiElementArray(count, _cimPath.getPoolSettingPath(storageDevice, poolSettingId))));
+            } else {
+                list.add(_cimArgument.reference(CP_GOAL, _cimPath.getPoolSettingPath(storageDevice, poolSettingId)));
+            }
         }
+
         result = list.toArray(result);
         return result;
     }
@@ -1330,7 +1534,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get the fast policies associated with the storage group
-     *
+     * 
      * @param storage storage system
      * @param storageGroup storage group name
      * @return the fast policies associated with the storage group
@@ -1344,7 +1548,9 @@ public class SmisCommandHelper implements SmisConstants {
             if (storage.checkIfVmax3()) {
                 CIMInstance instance = getInstance(storage, storageGroupPath, false, true, SmisConstants.PS_HOST_IO);
                 String policyName = SmisUtils.getSLOPolicyName(instance);
-                policies.add(policyName);
+                if (policyName != null) {
+                    policies.add(policyName);
+                }
             } else {
                 tierPolicyRuleItr = getAssociatorNames(storage, storageGroupPath, null,
                         CIM_TIER_POLICY_RULE, null, null);
@@ -1352,7 +1558,9 @@ public class SmisCommandHelper implements SmisConstants {
                     CIMObjectPath tierPolicyRulePath = tierPolicyRuleItr.next();
                     String policyRuleName = tierPolicyRulePath.getKey(Constants.POLICYRULENAME)
                             .getValue().toString();
-                    policies.add(policyRuleName);
+                    if (policyRuleName != null) {
+                        policies.add(policyRuleName);
+                    }
                 }
             }
         } finally {
@@ -1364,33 +1572,29 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get the fast policies associated with the storage group
-     *
+     * 
      * @param storage storage system
      * @param storageGroup storage group name
      * @return the fast policies associated with the storage group
      * @throws Exception
      */
     public StringSet findTierPoliciesForStorageGroup(StorageSystem storage, String storageGroup) throws Exception {
-        CloseableIterator<CIMObjectPath> tierPolicyRuleItr = null;
-        CloseableIterator<CIMInstance> cimInstanceItr = null;
+        CloseableIterator<CIMInstance> cimInstanceItr;
         StringSet policies = new StringSet();
-        try {
-            CIMObjectPath storageGroupPath = _cimPath.getStorageGroupObjectPath(storageGroup, storage);
-            if (this.isCascadedSG(storage, storageGroupPath)) {
-                cimInstanceItr = getAssociatorInstances(storage, storageGroupPath, null,
-                        SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null,
-                        PS_ELEMENT_NAME);
-                while (cimInstanceItr.hasNext()) {
-                    CIMInstance childGroupInstance = cimInstanceItr.next();
-                    String returnedgroupName = CIMPropertyFactory.getPropertyValue(childGroupInstance,
-                            CP_ELEMENT_NAME);
-                    policies.addAll(findTierPoliciesForSingleStorageGroup(storage, returnedgroupName));
-                }
-            } else {
-                policies.addAll(findTierPoliciesForSingleStorageGroup(storage, storageGroup));
+
+        CIMObjectPath storageGroupPath = _cimPath.getStorageGroupObjectPath(storageGroup, storage);
+        if (this.isCascadedSG(storage, storageGroupPath)) {
+            cimInstanceItr = getAssociatorInstances(storage, storageGroupPath, null,
+                    SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup.name(), null, null,
+                    PS_ELEMENT_NAME);
+            while (cimInstanceItr.hasNext()) {
+                CIMInstance childGroupInstance = cimInstanceItr.next();
+                String returnedgroupName = CIMPropertyFactory.getPropertyValue(childGroupInstance,
+                        CP_ELEMENT_NAME);
+                policies.addAll(findTierPoliciesForSingleStorageGroup(storage, returnedgroupName));
             }
-        } finally {
-            closeCIMIterator(tierPolicyRuleItr);
+        } else {
+            policies.addAll(findTierPoliciesForSingleStorageGroup(storage, storageGroup));
         }
 
         return policies;
@@ -1399,7 +1603,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Utility method to see if the storage group is used in a masking view.
      * Will not look past its own SG. (for instance, it will not look at the parent's SG)
-     *
+     * 
      * @param storage storage system
      * @param storageGroupPath storage group
      * @return true if this SG is directly assigned to a masking view
@@ -1589,11 +1793,11 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * This method is used for VMAX3 storage system to find exiting storage group with a
      * specified SLO for parking volumes.
-     *
+     * 
      * @param storage The reference to storage system
      * @param policyName The EMCFastSetting name with which storage group is associated
      * @param associatedToView Boolean which specifies whether storage group should be associated with masking view or not
-     *
+     * 
      * @return returns map of storage group and volumes nativeguids in a storage group
      * @throws WBEMException
      */
@@ -1681,7 +1885,7 @@ public class SmisCommandHelper implements SmisConstants {
      * updates the new SG2. UseCase 2: 1. V1,V2 from SG1 2. V3,V4 from SG2, algorithm adds this
      * entry. Use Case 3: 1. V1.V2 from SG1 2. V1,V3 from SG2, algorithm replaces the old with new
      * group. Use case 4: 1.V1,V2 from SG1 2. V1 from SG2, no action
-     *
+     * 
      * @param groupPaths
      * @param returnedNativeGuids
      */
@@ -1940,7 +2144,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Move volumes from one storage group to another.
      * Provider from v8.0.3 supports moveMembers for V3 array. It is a non-disruptive IO call.
-     *
+     * 
      * without disrupting the host's ability to view the volumes, at least one of the following conditions must be met:
      * - Each storage group must be a child of the same parent storage group, and the parent group must be associated with a masking view.
      * - Each storage group must be associated with a masking view, and both masking views must contain a common initiator group and a
@@ -1966,7 +2170,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get the Volume CIM path, given a Volume object
-     *
+     * 
      * @param storage
      *            storage system
      * @param volume
@@ -1984,7 +2188,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get List of Volume CIM Paths
-     *
+     * 
      * @param storage
      * @param boUris
      * @return List<CIMObjectPath>
@@ -1999,7 +2203,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Helper method to set/unset the volume with the "RecoverPoint" tag.
      * The boolean parameter flag determines if the operation is to set or unset the flag on the volume.
-     *
+     * 
      * @param storageSystem
      * @param volume
      * @param flag
@@ -2020,7 +2224,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Method will add or remove the EMCRecoverPointEnabled flag from the device masking group for
      * VMAX.
-     *
+     * 
      * @param deviceGroupPath
      *            [in] - CIMObjectPath referencing the volume
      */
@@ -2063,7 +2267,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Method will attempt to add or remove the EMCRecoverPointEnabled tag on VMAX volumes for up to 1 minute
-     *
+     * 
      * @param storage - VMAX storage system under consideration
      * @param volumeMemberList - volumes to add or remove EMCRecoverPointEnabled tag on
      * @param tag - enable or disable the tag
@@ -2524,7 +2728,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Convenience method that wraps SMI-S ModifyReplicatSynchronization operation
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object representing array
      * @param inArgs
@@ -2540,6 +2744,15 @@ public class SmisCommandHelper implements SmisConstants {
         CIMArgument[] outArgs = new CIMArgument[5];
         invokeMethod(storage, replicationSvcPath, MODIFY_REPLICA_SYNCHRONIZATION, inArgs, outArgs);
         return _cimPath.getCimObjectPathFromOutputArgs(outArgs, JOB);
+    }
+
+    public void callModifyReplicaSynchronously(StorageSystem storage,
+            CIMArgument[] inArgs, SmisJob job) throws WBEMException {
+        CIMObjectPath replicationSvcPath = _cimPath
+                .getControllerReplicationSvcPath(storage);
+        CIMArgument[] outArgs = new CIMArgument[5];
+        invokeMethodSynchronously(storage, replicationSvcPath,
+                MODIFY_REPLICA_SYNCHRONIZATION, inArgs, outArgs, job);
     }
 
     public CIMObjectPath callModifyListReplica(StorageSystem storage, CIMArgument[] inArgs)
@@ -2562,7 +2775,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Convenience method that wraps SMI-S ModifyReplicatSynchronization operation
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object representing array
      * @param inArgs
@@ -2581,7 +2794,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Convenience method that wraps SMI-S ModifySettingsDefineState operation
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object referencing the array
      * @param inArgs
@@ -2599,7 +2812,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Convenience method that wraps SMI-S ModifySettingsDefineState operation
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object referencing the array
      * @param inArgs
@@ -2618,7 +2831,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * This method will take a URI and return a nativeId for the BlockObject object to which the URI
      * applies.
-     *
+     * 
      * @param uri
      *            - URI
      * @return Returns a nativeId String value
@@ -2645,7 +2858,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * This method will take a URI and return alternateName for the BlockObject object to which the
      * URI applies.
-     *
+     * 
      * @param uri
      *            - URI
      * @return Returns a nativeId String value
@@ -2672,7 +2885,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * This method will loop through the URI list and return a list of nativeIds for each of the
      * BlockObject objects to which the URI applies.
-     *
+     * 
      * @param uris
      *            - Collection of URIs
      * @return Returns a list of nativeId String values
@@ -2704,7 +2917,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * This method will loop through the URI list and return a list of nativeIds for each of the
      * BlockObject objects to which the URI applies.
-     *
+     * 
      * @param uris
      *            - Collection of URIs
      * @return Returns a list of nativeId String values
@@ -2798,7 +3011,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * This is a wrapper for the WBEMClient enumerateInstances method.
-     *
+     * 
      * @param storage
      *            - StorageArray reference, will be used to lookup SMI-S connection
      * @param namespace
@@ -2875,7 +3088,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * This method is a wrapper for the getInstance. If the object is not found, it returns a null
      * value instead of throwing an exception.
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object to which an SMI-S connection would be made
      * @param objectPath
@@ -2941,7 +3154,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Returns whether this object is a cascaded object or not.
-     *
+     * 
      * @param storage storage device
      * @param path path of IG, SG, or PG
      * @return true if the object has child references
@@ -2989,7 +3202,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Find if IG is cascaded
-     *
+     * 
      * @param storage
      * @param path
      * @return
@@ -3031,7 +3244,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Wrapper for WBEM.referenceNames routine
-     *
+     * 
      * @param storageDevice
      *            [required] - StorageSystem object to which an SMI-S connection would be made
      * @param path
@@ -3061,7 +3274,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Wrapper for WBEM.associatorNames routine
-     *
+     * 
      * @param storageDevice
      *            [required]
      * @param path
@@ -3209,7 +3422,7 @@ public class SmisCommandHelper implements SmisConstants {
      * through each Child Storage Group { Loop through each Volume in child Group ,if given volume
      * found, then the volume gets landed in child Group bucket } Result : Volumes gets landed in
      * proper child Storage Group buckets.
-     *
+     * 
      * @param storage
      * @param groupName
      * @param volumeUris
@@ -3353,7 +3566,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Group volumes based on policy, bandwidth, and IOPs as dictated by the ViPR database objects.
-     *
+     * 
      * @param storage storage device
      * @param volumeUris volume URIs
      * @return a map of storage groups to volumes using that policy, bandwidth, and IOPs
@@ -3444,7 +3657,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Generate NativeGuid-->Volume uri mapping using volume uris list.
-     *
+     * 
      * @param volumeUris
      * @param storage
      * @return
@@ -3475,7 +3688,7 @@ public class SmisCommandHelper implements SmisConstants {
      * resultant group would be CH1--->V1,V2 3. After looping through all child Storage Groups, if
      * you still didn't encounter F2, then it means we need to create a new Storage Group CH2 and
      * associate with F2. 4. Final result would be Volumes get grouped by child Storage Group Names.
-     *
+     * 
      * @param storage storage system
      * @param parentGroupName parent storage group name
      * @param policyToVolumeMap map of FAST policy to volume objects
@@ -3610,7 +3823,7 @@ public class SmisCommandHelper implements SmisConstants {
             /**
              * At this point, we have the list of the volume groups (FP + bandwidth+IOPS), which has a Storage Group.
              * For the remaining volume groups, we need to create a new Storage Group.
-             *
+             * 
              * No changes needed
              */
             for (Entry<StorageGroupPolicyLimitsParam, Collection<VolumeURIHLU>> policyToVolumeEntry : policyLimitsParamToVolumeGroup
@@ -3676,7 +3889,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * generate Group Name based on policy and host settings, which doesn't exist in array already.
-     *
+     * 
      * @param storageGroupPolicyLimitsParam
      * @param existingGroupNames
      * @param parentGroupName
@@ -3701,7 +3914,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * TODO: VMAX3 Customized names
      * generate Group Names which doesn't exist in array already.
-     *
+     * 
      * @param count
      * @param existingGroupNames
      * @param parentGroupName
@@ -3734,7 +3947,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * get SGs from Array. I hit a failure in this query off and on during my testing,
      * so I am using this method for a small retry method.
-     *
+     * 
      * @param storage storage system
      * @return set of storage group names
      */
@@ -3801,7 +4014,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get Existing Port Group Names
-     *
+     * 
      * @param storage
      * @return
      */
@@ -3827,7 +4040,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get Existing Initiator Group Names from Array
-     *
+     * 
      * @param storage
      * @return
      */
@@ -3915,7 +4128,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * This is wrapper of the WBEM modifyIstance interface
-     *
+     * 
      * @param storage
      *            [required] - StorageSystem object representing the array
      * @param instance
@@ -4095,7 +4308,7 @@ public class SmisCommandHelper implements SmisConstants {
      * Returns a CloseableIterator for ClarLunMaskingProtocolController CIMInstance objects. NOTE:
      * This will return all instances from all arrays that the SMISProvider upon which the 'storage'
      * system is managed.
-     *
+     * 
      * @param storage
      *            [in] - StorageSystem object. Used to look up SMIS connection.
      * @return CloseableIterator of CIMInstance objects
@@ -4112,7 +4325,7 @@ public class SmisCommandHelper implements SmisConstants {
      * Returns a CloseableIterator for protocol controller CIMInstance objects. NOTE: This will
      * return all instances from all arrays that the SMISProvider upon which the 'storage' system is
      * managed.
-     *
+     * 
      * @param storage
      *            [in] - StorageSystem object. Used to look up SMIS connection.
      * @param className
@@ -4152,7 +4365,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Will return a map of the volume WWNs to their HLU values for an instance of LunMasking
      * container on the array.
-     *
+     * 
      * @param client
      *            [in] - WBEM client used to read data from SMI-S
      * @param instance
@@ -4214,7 +4427,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Will return a list of port names for the LunMasking container 'instance'.
-     *
+     * 
      * @param client
      *            [in] - WBEM client used to read data from SMI-S
      * @param instance
@@ -4250,7 +4463,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Given a CIMInstance of a ClarLunMaskingProtocolController return a list of storage ports that
      * it references.
-     *
+     * 
      * @param client
      *            [in] - WBEMClient to be used to talk to SMIS provider
      * @param instance
@@ -4348,7 +4561,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Retrieve the Clar_SettingsDefineState_RG_SAFS instance represented by the given
      * Clar_SynchronizationAspectForSourceGroup instance ID
-     *
+     * 
      * @param storageSystem
      *            - StorageArray reference, will be used to lookup SMI-S connection
      * @param synchAspectinstanceID
@@ -4387,7 +4600,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Retrieve the Clar_SettingsDefineState_RG_SAFS instance represented by the given
      * Clar_SynchronizationAspectForSourceGroup instance ID
-     *
+     * 
      * @param storageSystem
      *            - StorageArray reference, will be used to lookup SMI-S connection
      * @param synchAspectinstanceID
@@ -4645,7 +4858,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Method to generate the input arguments for EMCManuallyRegisterHostInitiators
-     *
+     * 
      * @param storage [in] - StorageSystem object.
      * @param initiators [in] - List of Initiator objects to process for input generation
      * @param storagePortURI [in] - StoragePort URI reference
@@ -4706,7 +4919,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * This function will generate the input arguments for the EMCGetConnectedTargetEndpoints
      * SMI-S method call.
-     *
+     * 
      * @param initiator [in] - CIMObjectPath that references an initiator on the provider
      * @return CIMArgument array containing arguments for the method call
      */
@@ -4720,12 +4933,12 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * This function will prevent calls to obj.toString() from generating a
      * runtime Exception.
-     *
+     * 
      * Note: this function is here because there seem to be strange cases where
      * the result of an SMI-S invokeMethod returns a non-null Object, but calling
      * toString() on the Object results in a NPE deep within the toString() call.
      * This function is used as a countermeasure for this behavior.
-     *
+     * 
      * @param obj [in] - Object to call toString() against.
      * @return String (obj.toString() or "", if it could not be obtained)
      */
@@ -4793,7 +5006,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Removes volume from storage group
-     *
+     * 
      * @param storage The reference to storage system
      * @param nativeId The volume nativeId
      * @param forceFlag
@@ -4852,12 +5065,12 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Finds the storage group based on SLO
-     *
+     * 
      * @param storageSystem The reference to storage system
      * @param slo The slo name for the fast setting
      * @param workload The workload name for the fast setting
      * @param srp The srp name for the fast setting
-     *
+     * 
      * @return returns volumeGroupPath if found else null
      */
     public CIMObjectPath getVolumeGroupBasedOnSLO(StorageSystem storageSystem, String slo, String workload, String srp) {
@@ -4885,12 +5098,12 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Creates storage group based on fast setting.
-     *
+     * 
      * @param storageSystem The reference to the storage system
      * @param slo The slo name for the fast setting
      * @param workload The workload name for the fast setting
      * @param srp The srp name for the fast setting
-     *
+     * 
      * @return returns the storage group path for the storage group created
      */
     public CIMObjectPath createVolumeGroupBasedOnSLO(StorageSystem storageSystem, String slo, String workload, String srp) {
@@ -4951,7 +5164,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * This method return volumes deviceId present in the passed in storage group.
-     *
+     * 
      * @param storage The reference to storage system
      * @param groupName The storage group name
      * @return set of deviceIds of volumes in the passed in storage group
@@ -4965,7 +5178,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * This method returns volume device IDs present in the passed-in storage group.
-     *
+     * 
      * @param storage storage system
      * @param sgPath storage group object path
      * @return set of device IDs of volumes in the storage group
@@ -4993,10 +5206,10 @@ public class SmisCommandHelper implements SmisConstants {
      * fastSetting is combination of SLO+WORKLOAD+SRP. If no policy name is specified then
      * fastSetting is OPTIMIZED+NONE+SRP_1.
      * Other example name is BRONZE+DSS+SRP_1 when autoTierPolicy is specified for a volume.
-     *
+     * 
      * @param blockObjectURI BlockObjectURI
      * @param autoTierPolicyName AutoTier Policy name
-     *
+     * 
      * @return VMAX3 fast setting
      */
     public String getVMAX3FastSettingForVolume(URI blockObjectURI, String autoTierPolicyName) {
@@ -5004,6 +5217,15 @@ public class SmisCommandHelper implements SmisConstants {
         Volume volume = null;
         if (URIUtil.isType(blockObjectURI, Volume.class)) {
             volume = _dbClient.queryObject(Volume.class, blockObjectURI);
+
+            // If the there is a BlockSnapshot with the same native GUID as the volume, then
+            // this is a backend volume representing the snapshot for the purpose of importing
+            // the snapshot into VPLEX as a VPLEX volume. Therefore, treat it like a block snapshot
+            // and use the parent volume.
+            List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(_dbClient, volume.getNativeGuid());
+            if (!snapshots.isEmpty()) {
+                volume = _dbClient.queryObject(Volume.class, snapshots.get(0).getParent());
+            }
         }
         else if (URIUtil.isType(blockObjectURI, BlockSnapshot.class)) {
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, blockObjectURI);
@@ -5028,7 +5250,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Convenient method to update storage group host IO limits attributes (bandwidth and iops, using setting from volumes
-     *
+     * 
      * @param client
      * @param storageGroupPath
      * @param volumeURIHLUs
@@ -5050,7 +5272,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Reset storage group host IO limits to 0
-     *
+     * 
      * @param client
      * @param storage
      * @param storageGroupPath
@@ -5075,7 +5297,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Set storage group host io limit bandwidth
-     *
+     * 
      * @param client
      * @param storageGroupPath
      * @param hostIOLimitBandwidth
@@ -5099,7 +5321,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Set storage group host io limit iops
-     *
+     * 
      * @param client
      * @param storageGroupPath
      * @param hostIOLimitIOPs
@@ -5119,7 +5341,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Set storage group host io limit iops
-     *
+     * 
      * @param client
      * @param storageGroupPath
      * @param hostIOLimitIOPs
@@ -5139,7 +5361,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get policy and host limits information about the export mask that is specific to VMAX.
-     *
+     * 
      * @param storage storage system
      * @param exportMask export mask
      * @return export mask policy
@@ -5153,8 +5375,11 @@ public class SmisCommandHelper implements SmisConstants {
         try {
             CIMObjectPath maskingViewPath = _cimPath.getMaskingViewPath(storage, exportMask.getMaskName());
             CIMInstance maskingViewInstance = checkExists(storage, maskingViewPath, false, false);
-            int maxVolumesAllowed = Integer.valueOf(CIMPropertyFactory.getPropertyValue(maskingViewInstance, CP_MAX_UNITS_CONTROLLED));
-            policy.setMaxVolumesAllowed(maxVolumesAllowed);
+            String maxUnitsControlled = CIMPropertyFactory.getPropertyValue(maskingViewInstance, CP_MAX_UNITS_CONTROLLED);
+            if (!Strings.isNullOrEmpty(maxUnitsControlled)) {
+                int maxVolumesAllowed = Integer.valueOf(maxUnitsControlled);
+                policy.setMaxVolumesAllowed(maxVolumesAllowed);
+            }
 
             storageGroupName = getStorageGroupForGivenMaskingView(maskingViewInstance,
                     exportMask.getMaskName(), storage);
@@ -5221,12 +5446,12 @@ public class SmisCommandHelper implements SmisConstants {
      * a volume in the specified masking view that is contained in a storage group that is NOT in a masking view. This is
      * a trick used by folks to be able to use a single non-cascaded storage group to contain volumes with different fast-policies,
      * which is a policy that is attached to the storage group.
-     *
+     * 
      * In order to find a phantom storage group, starting from the masking view, we must:
      * 1. Find the volumes associated with the masking view
      * 2. Find the storage groups associated the volume that is not in a masking view
      * 3. Verify the storage group has a FAST policy and it is not child SG type (in case of CSG attached to MV)
-     *
+     * 
      * @param maskingViewName the name of the masking view
      * @param storage storage device
      * @return a set of phantom storage group names
@@ -5287,7 +5512,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Finds the storage group attached to the masking view.
-     *
+     * 
      * @param maskingViewName name of masking view
      * @param storage storage system
      * @return name of storage group
@@ -5302,7 +5527,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Finds the storage group attached to the masking view.
-     *
+     * 
      * @param maskingViewInstance CIMInstance that points to the Symm_LunMaskingView
      * @param maskingViewName name of masking view
      * @param storage storage system
@@ -5342,7 +5567,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get IG associated with masking view
-     *
+     * 
      * @param maskingViewName
      * @param storage
      * @return
@@ -5371,7 +5596,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get IG associated with given masking view
-     *
+     * 
      * @param maskName
      * @param storage
      * @return
@@ -5384,7 +5609,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Find a phantom (not belonging to any masking view) with matches the FAST (auto-tiering) policy name and limits setting
-     *
+     * 
      * @param storage storage device
      * @param storageGroupPolicyLimitsParam policy name and limits setting
      * @return name of storage group that is a phantom SG with that policy, otherwise null
@@ -5465,7 +5690,7 @@ public class SmisCommandHelper implements SmisConstants {
      * Determines which of the provided volumes URIs are already in the storage group
      * provided. Allows us to only remove the volumes that haven't been removed yet,
      * and assume success for the others.
-     *
+     * 
      * @param storage storage system
      * @param storageGroupName storage group name
      * @param volumeURIList list of volumes
@@ -5504,7 +5729,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Filter volumes that are already part of the Replication Group.
-     *
+     * 
      * @param storage the storage
      * @param replicationGroupPath the replication group path
      * @param deviceIds the volumes
@@ -5522,7 +5747,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Filter replicas that are already part of the Replication Group.
-     *
+     * 
      * @param storage the storage
      * @param replicationGroupPath the replication group path
      * @param deviceIds the volumes
@@ -5543,7 +5768,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Determines which of the provided volumes URIs are already in the replication group
      * provided.
-     *
+     * 
      * @param storage storage system
      * @param replicationGroupPath the replication group path
      * @param volumeURIList list of volumes
@@ -5580,7 +5805,7 @@ public class SmisCommandHelper implements SmisConstants {
      * Check to see if this volume is in a masking view other than the one that was sent in.
      * If it is, it is likely a volume that is in a view that requires the volume to remain in
      * its phantom storage group
-     *
+     * 
      * @param storage storage system
      * @param volumeId volume ID
      * @param knownStorageGroupName masking view name we already know about
@@ -5640,7 +5865,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Construct a storage group policy limits object from a volumeURIHLU object.
-     *
+     * 
      * @param volumeUriHLUs
      * @param dbClient
      * @return
@@ -5665,7 +5890,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Construct a storage group policy limits based on info extracted from SMIS storage group object
-     *
+     * 
      * @param storage storage system
      * @param groupInstance SMIS storage group instance
      * @return
@@ -5695,7 +5920,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get Port Groups within the masking View.
-     *
+     * 
      * @param system
      * @param mvName
      * @return
@@ -5719,7 +5944,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Check volume is already added to any phantom sg with expected fast
-     *
+     * 
      * @param volNativeId
      * @param groupName
      * @param storage
@@ -5760,7 +5985,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Check volume associated with any SG with fast policy applied, irrespective of MVs.
-     *
+     * 
      * @param volNativeId
      * @param storage
      * @param policy
@@ -5796,7 +6021,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Verify atleast 1 volume in SG is already associated with Fast through phantom sgs.
-     *
+     * 
      * @param sgPath
      * @param storage
      * @param policy
@@ -5954,7 +6179,7 @@ public class SmisCommandHelper implements SmisConstants {
      * This is a distributed process protected operation that checks each CIMInstance in
      * the 'parkingSLOStorageGroups' set to see if it has no volumes associated it.
      * If so, it will be deleted.
-     *
+     * 
      * @param storage [in] - StorageSystem object against which the StorageGroups belong
      * @param _locker [in] - Locking service to protect access across
      * @param parkingSLOStorageGroups [in] - Set of SE_DeviceMaskingGroup CIMInstance objects
@@ -6020,12 +6245,47 @@ public class SmisCommandHelper implements SmisConstants {
         return args.toArray(new CIMArgument[args.size()]);
     }
 
+    public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice,
+            CIMObjectPath[] sourceVolumePath,
+            CIMObjectPath[] targetVolumePath,
+            int mode,
+            CIMObjectPath repCollection,
+            CIMInstance repSetting) {
+        List<CIMArgument> args = new ArrayList<>();
+        args.add(_cimArgument.referenceArray(CP_SOURCE_ELEMENTS, sourceVolumePath));
+        args.add(_cimArgument.referenceArray(CP_TARGET_ELEMENTS, targetVolumePath));
+        args.add(_cimArgument.uint16(CP_SYNC_TYPE, MIRROR_VALUE));
+        args.add(_cimArgument.uint16(CP_MODE, mode));
+        args.add(_cimArgument.reference(CP_CONNECTIVITY_COLLECTION, repCollection));
+
+        // WaitForCopyState only valid for Synchronous mode.
+        if (SRDFOperations.Mode.SYNCHRONOUS.getMode() == mode) {
+            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, SYNCHRONIZED));
+        }
+
+        if (repSetting != null) {
+            args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, repSetting));
+        }
+
+        return args.toArray(new CIMArgument[args.size()]);
+    }
+
     public CIMArgument[] getModifyListReplicaInputArguments(CIMObjectPath[] syncObjectPaths, int operationValue) {
         return new CIMArgument[] {
                 _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, operationValue),
                 _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncObjectPaths)
         };
+    }
+
+    public CIMArgument[] getModifyListReplicaInputArguments(CIMObjectPath[] syncObjectPaths, int operation, int copyState) {
+        CIMArgument[] baseArgs = getModifyListReplicaInputArguments(syncObjectPaths, operation);
+        List<CIMArgument> args = new ArrayList<>(Arrays.asList(baseArgs));
+        if (copyState != NON_COPY_STATE) {
+            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, copyState));
+        }
+
+        return args.toArray(new CIMArgument[] {});
     }
 
     public CIMObjectPath getPoolPath(StorageSystem storageSystem, StoragePool storagePool) {
@@ -6066,7 +6326,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get SettingsDefineState instances based on source or source group
-     *
+     * 
      * @param storage
      *            StorageSystem that holds the SettingsDefineState instances
      * @param blockObject
@@ -6089,7 +6349,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Get Synchronization aspects associated with the source block object, then
      * constructs SettingsDefineState instances based on the source and aspects.
-     *
+     * 
      * @param storage
      *            StorageSystem that holds the SettingsDefineState instances
      * @param blockObject
@@ -6139,7 +6399,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Get SettingsDefineState instances related to the consistency group that
      * the source of the BlockSnapshot object belongs to.
-     *
+     * 
      * There is no association between source group and Synchronization aspects
      * (unlike source volume).
      * Steps -
@@ -6148,7 +6408,7 @@ public class SmisCommandHelper implements SmisConstants {
      * 3. query aspect instances with desired SyncType, SyncState, and array serial number in SourceElement
      * 4. check if SourceElement is the consistency group
      * 5. if yes, construct SettingsDefineState based on the source group and aspect
-     *
+     * 
      * @param storage
      *            StorageSystem that holds the SettingsDefineState instances
      * @param snapshot
@@ -6271,5 +6531,71 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.reference(CP_SYNCHRONIZATION, syncObjectPath),
                 _cimArgument.bool(CP_FORCE, true)
         };
+    }
+
+    /**
+     * Verifies whether the group has replicas in split state.
+     * When new replicas are added to the group, they can be in Sync state & old mirrors could be in SPLIT state.
+     * Hence to make the group consistent, we should check for the syncState of all replicas in the group.
+     * if there is any replica in split state, then resume the complete group.
+     * 
+     * @param storage
+     * @param replicaList
+     * @param clazz
+     * @return
+     */
+    public <T extends BlockObject> boolean groupHasReplicasInSplitState(StorageSystem storage, List<URI> replicaList, Class<T> clazz) {
+        Iterator<T> replicaObjsItr = _dbClient.queryIterativeObjects(clazz, replicaList, true);
+        while (replicaObjsItr.hasNext()) {
+            T replicaObj = replicaObjsItr.next();
+            CIMObjectPath syncObjCoP = _cimPath.getSyncObject(storage, replicaObj);
+            _log.debug("Verifying replica {} sync state.", replicaObj.getId());
+            try {
+                CIMInstance instance = getInstance(storage, syncObjCoP, false, false,
+                        new String[] { SmisConstants.CP_SYNC_STATE });
+                if (null == instance)
+                    continue;
+                String syncState = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_SYNC_STATE);
+                if (SynchronizationState.FRACTURED.toString().equals(syncState)) {
+                    _log.info("Found a replica {} in Split state", replicaObj.getId());
+                    return true;
+                }
+            } catch (Exception e) {
+                String msg = String.format("Failed to acquire sync instance %s. continuing with next.. ",
+                        syncObjCoP);
+                _log.warn(msg, e);
+            }
+        }
+        _log.info("All replicas in the group are in SYNC state. No resume required");
+        return false;
+    }
+
+    /*
+     * Creates an explicitly sized array of generic type T, containing the given value for all its elements.
+     * 
+     * Example:
+     * toMultiElementArray(2, true); => boolean[] array = new boolean[2] { true, true};
+     * 
+     * @param count size of the array
+     * 
+     * @param value value for each element
+     * 
+     * @param <T> type of array
+     * 
+     * @return Array of T, containing the same value for each element.
+     */
+    public static <T> T[] toMultiElementArray(int count, T value) {
+        T[] array = (T[]) Array.newInstance(value.getClass(), count);
+
+        for (int i = 0; i < count; i++) {
+            array[i] = value;
+        }
+        return array;
+    }
+
+    public String createVolumesMethodName(StorageSystem storageSystem) {
+        return storageSystem.getUsingSmis80() ?
+                EMC_CREATE_MULTIPLE_TYPE_ELEMENTS_FROM_STORAGE_POOL :
+                CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
     }
 }

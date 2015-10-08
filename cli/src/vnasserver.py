@@ -211,7 +211,7 @@ def vnasserver_list(args):
             if(args.verbose is False and args.long is True):
                 TableGenerator(
                     resultList,
-                    ["name","assigned_varrays","nas_state"]).printTable()
+                    ["nas_name","parent_nas/name","assigned_varrays","nas_state","storage_domains","project/id","protocols"]).printTable()
                     
             # show all items in json format
             if(args.verbose):

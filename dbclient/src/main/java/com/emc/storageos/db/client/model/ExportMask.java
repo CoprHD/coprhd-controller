@@ -925,6 +925,21 @@ public class ExportMask extends DataObject {
         return userVolumes + existingVolumes;
     }
 
+    /**
+     * Returns the HLU for the specified Volume/BlockObject
+     *
+     * @param volumeURI [IN] - BlockObject URI for which to look up the HLU
+     * @return String representing the volume HLU or ExportGroup.LUN_UNASSIGNED_DECIMAL_STR
+     */
+    public String returnVolumeHLU(URI volumeURI) {
+        String hlu = ExportGroup.LUN_UNASSIGNED_DECIMAL_STR;
+        if (_volumes != null) {
+            String temp = _volumes.get(volumeURI.toString());
+            hlu = (temp != null) ? temp : ExportGroup.LUN_UNASSIGNED_DECIMAL_STR;
+        }
+        return hlu;
+    }
+
     @Override
     public String toString() {
         return String.format(

@@ -37,6 +37,7 @@ import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.StringComparator;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -62,6 +63,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.BlockVolumeConsistencyGroupFilter;
+import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
 import com.emc.vipr.client.core.filters.DefaultResourceFilter;
 import com.emc.vipr.client.core.filters.ExportHostOrClusterFilter;
 import com.emc.vipr.client.core.filters.ExportVirtualArrayFilter;
@@ -125,6 +127,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             newAssetOption("ntfs", "ntfs"),
             newAssetOption("fat32", "fat32"));
 
+    private static final String BLOCK_CONSISTENCY_GROUP_TYPE = "BlockConsistencyGroup";
+
+    private static final String VOLUME_TYPE = "Volume";
+
+    private static final String NONE_TYPE = "None";
+
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
     }
@@ -139,6 +147,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     public static boolean isConsistencyGroupType(String type) {
         return CONSISTENCY_GROUP_OPTION_KEY.equals(type);
+    }
+
+    public static boolean checkTypeConsistency(URI volumeId, String volumeOrConsistencyType) {
+        if (volumeId == null || volumeOrConsistencyType == null) {
+            return false;
+        } else if (isVolumeType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, VOLUME_TYPE)) {
+            return false;
+        } else if (isConsistencyGroupType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean isInConsistencyGroup(BlockObjectRestRep volume) {
+        return volume.getConsistencyGroup() != null;
     }
 
     @Asset("blockVolumeOrConsistencyType")
@@ -171,7 +194,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     /**
      * Get source volumes for a specific project. If the deletionType is VIPR_ONLY, create
      * a filter that only retrieves Volumes with Host Exports
-     * 
+     *
      * @param ctx
      * @param project
      * @param deletionType
@@ -442,7 +465,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of unique exports for a given volume.
-     * 
+     *
      * @param ctx
      *            the asset options context
      * @param volumeId
@@ -543,7 +566,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Returns the virtual pools for a given virtualArray (initially added for the Create Volume service)
-     * 
+     *
      * @param ctx
      * @param virtualArray
      * @return
@@ -576,7 +599,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         debug("getting volumes (project=%s)", project);
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(type)) {
-            return createVolumeOptions(client, listVolumes(client, project));
+            return createVolumeOptions(client, listVolumesWithoutConsistencyGroup(client, project));
         } else {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
                     .search()
@@ -587,35 +610,102 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("protectedBlockVolume")
-    @AssetDependencies("project")
-    public List<AssetOption> getProtectedVolumes(AssetOptionsContext ctx, URI project) {
-        debug("getting protectedVolumes (project=%s)", project);
-        // Allow recoverpoint or SRDF sources
-        ResourceFilter<VolumeRestRep> filter = RecoverPointPersonalityFilter.SOURCE.or(new SRDFSourceFilter());
-        ViPRCoreClient client = api(ctx);
-        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, filter);
-        return createVolumeOptions(client, volumes);
+    @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
+    public List<AssetOption> getProtectedVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
+        if (isVolumeType(volumeOrConsistencyType)) {
+            debug("getting protected volumes (project=%s)", project);
+            // Allow recoverpoint or SRDF sources
+            ResourceFilter<VolumeRestRep> filter = RecoverPointPersonalityFilter.SOURCE.or(new SRDFSourceFilter());
+            ViPRCoreClient client = api(ctx);
+            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, filter);
+            return createVolumeOptions(client, volumes);
+        } else {
+            debug("getting protected consistency groups (project=%s)", project);
+            // Allow recoverpoint or SRDF sources
+            ResourceFilter<BlockConsistencyGroupRestRep> filter = new ConsistencyGroupFilter(BlockConsistencyGroup.Types.RP.name(),
+                    false).or(new ConsistencyGroupFilter(BlockConsistencyGroup.Types.SRDF.name(),
+                    false));
+            List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
+                    .search()
+                    .byProject(project)
+                    .filter(filter)
+                    .run();
+
+            return createBaseResourceOptions(consistencyGroups);
+        }
     }
 
     @Asset("failoverTarget")
     @AssetDependencies("protectedBlockVolume")
     public List<AssetOption> getFailoverTarget(AssetOptionsContext ctx, URI protectedBlockVolume) {
-        debug("getting failoverTargets (protectedBlockVolume=%s)", protectedBlockVolume);
-        ViPRCoreClient client = api(ctx);
-        VolumeRestRep volume = client.blockVolumes().get(protectedBlockVolume);
+        if (protectedBlockVolume != null) {
+            ViPRCoreClient client = api(ctx);
 
-        ProtectionRestRep protection = volume.getProtection();
-        if (protection != null) {
-            // RecoverPoint protection
-            if (protection.getRpRep() != null && protection.getRpRep().getProtectionSet() != null) {
-                return getRpFailoverTargets(client, volume);
-            }
-            // VMAX SRDF protection
-            if (protection.getSrdfRep() != null && protection.getSrdfRep().getSRDFTargetVolumes() != null
-                    && !protection.getSrdfRep().getSRDFTargetVolumes().isEmpty()) {
-                return getSrdfFailoverTargets(client, volume);
+            if (BlockProviderUtils.isType(protectedBlockVolume, VOLUME_TYPE)) {
+                debug("getting failoverTargets (protectedBlockVolume=%s)", protectedBlockVolume);
+                VolumeRestRep volume = client.blockVolumes().get(protectedBlockVolume);
+
+                ProtectionRestRep protection = volume.getProtection();
+                if (protection != null) {
+                    // RecoverPoint protection
+                    if (protection.getRpRep() != null && protection.getRpRep().getProtectionSet() != null) {
+                        return getRpFailoverTargets(client, volume);
+                    }
+                    // VMAX SRDF protection
+                    if (protection.getSrdfRep() != null && protection.getSrdfRep().getSRDFTargetVolumes() != null
+                            && !protection.getSrdfRep().getSRDFTargetVolumes().isEmpty()) {
+                        return getSrdfFailoverTargets(client, volume);
+                    }
+                }
+            } else if (BlockProviderUtils.isType(protectedBlockVolume, BLOCK_CONSISTENCY_GROUP_TYPE)) {
+                debug("getting failoverTargets for consistency group %s", protectedBlockVolume);
+                BlockConsistencyGroupRestRep cg = client.blockConsistencyGroups().get(protectedBlockVolume);
+
+                List<VolumeRestRep> srcVolumes = null;
+                // Get RP source volumes
+                if (cg.getTypes().contains(BlockConsistencyGroup.Types.RP.name())) {
+                    srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), RecoverPointPersonalityFilter.SOURCE);
+                }
+                // Get SRDF source volumes
+                if (cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name())) {
+                    srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), new SRDFSourceFilter());
+                }
+
+                if (srcVolumes != null && !srcVolumes.isEmpty()) {
+                    // Get the first source volume and obtain its target references
+                    VolumeRestRep srcVolume = srcVolumes.get(0);
+
+                    if (cg.getTypes() != null) {
+                        Map<String, String> targetVolumes = Maps.newLinkedHashMap();
+                        CachedResources<VirtualArrayRestRep> virtualArrays = new CachedResources<VirtualArrayRestRep>(client.varrays());
+                        List<VirtualArrayRelatedResourceRep> targets = new ArrayList<VirtualArrayRelatedResourceRep>();
+
+                        // Process the RP targets
+                        if (cg.getTypes().contains(BlockConsistencyGroup.Types.RP.name())) {
+                            targets = srcVolume.getProtection().getRpRep().getRpTargets();
+                        }
+                        // Process the SRDF targets
+                        if (cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name())) {
+                            targets = srcVolume.getProtection().getSrdfRep().getSRDFTargetVolumes();
+                        }
+
+                        for (VolumeRestRep targetVolume : client.blockVolumes().getByRefs(targets)) {
+                            VirtualArrayRestRep virtualArray = virtualArrays.get(targetVolume.getVirtualArray());
+                            String label = getMessage(name(virtualArray));
+                            targetVolumes.put(stringId(virtualArray), label);
+                        }
+
+                        List<AssetOption> options = Lists.newArrayList();
+                        for (Map.Entry<String, String> entry : targetVolumes.entrySet()) {
+                            options.add(new AssetOption(entry.getKey(), entry.getValue()));
+                        }
+                        AssetOptionsUtils.sortOptionsByLabel(options);
+                        return options;
+                    }
+                }
             }
         }
+
         return Lists.newArrayList();
     }
 
@@ -671,21 +761,40 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return getSnapshotOptionsForProject(ctx, project);
     }
 
+    private List<AssetOption> getVolumeSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {
+        final ViPRCoreClient client = api(ctx);
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().findByProject(project,
+                new DefaultResourceFilter<BlockSnapshotRestRep>() {
+                    @Override
+                    public boolean accept(BlockSnapshotRestRep snapshot) {
+                        return !isInConsistencyGroup(snapshot);
+                    }
+                });
+
+        return constructSnapshotOptions(client, project, snapshots);
+    }
+
     @Asset("blockSnapshotOrConsistencyGroup")
-    @AssetDependencies({ "project", "consistencyGroupByProject", "blockVolumeOrConsistencyType" })
-    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, URI consistencyGroupId, String type) {
-        if (isVolumeType(type)) {
+    @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType" })
+    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String type, URI consistencyGroupId) {
+        if (NONE_TYPE.equals(type)) {
             debug("getting blockSnapshots (project=%s)", project);
-            return getSnapshotOptionsForProject(ctx, project);
+            return getVolumeSnapshotOptionsForProject(ctx, project);
         } else {
-            if (consistencyGroupId == null) {
-                error("Consistency Group field is required for Storage Type %s", type);
+            if (type == null) {
+                error("Consistency type invalid : %s", type);
+                return new ArrayList<AssetOption>();
             }
-            return getConsistencyGroupSnapshots(ctx, consistencyGroupId);
+            URI consistencyGroup = uri(type);
+            if (!BlockProviderUtils.isType(consistencyGroup, BLOCK_CONSISTENCY_GROUP_TYPE)) {
+                error("Consistency Group field is required for Storage Type [%s, %s]", type, consistencyGroupId);
+                return new ArrayList<AssetOption>();
+            }
+            return getConsistencyGroupSnapshots(ctx, consistencyGroup);
         }
     }
 
-    @Asset("consistencyGroupByProject")
+    @Asset("consistencyGroupByProjectAndType")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getAllConsistencyGroups(final AssetOptionsContext ctx, URI projectId, String type) {
 
@@ -696,7 +805,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     .run();
             return createBaseResourceOptions(consistencyGroups);
         } else {
-            return Lists.newArrayList(newAssetOption("NONE", "None"));
+            return Lists.newArrayList(newAssetOption(NONE_TYPE, "None"));
         }
     }
 
@@ -737,6 +846,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     private List<AssetOption> getBlockVolumesForHost(ViPRCoreClient client, URI tenant, URI host, boolean mounted) {
         return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumes(client, tenant, host, mounted));
+    }
+
+    private List<AssetOption> getBlockVolumesForHostDatastore(ViPRCoreClient client, URI tenant, URI host, String datastore) {
+        return createVolumeOptions(client, null, host, BlockProviderUtils.getBlockVolumesForDatastore(client, tenant, host, datastore));
     }
 
     private List<AssetOption> getProjectBlockVolumesForHost(ViPRCoreClient client, URI project, URI host,
@@ -830,6 +943,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("esxHost")
     public List<AssetOption> getMountedBlockVolumesForEsxHost(AssetOptionsContext context, URI host) {
         return getBlockVolumesForHost(api(context), context.getTenant(), host, true);
+    }
+
+    @Asset("mountedBlockVolumeDatastore")
+    @AssetDependencies({ "esxHost", "blockdatastore" })
+    public List<AssetOption> getMountedBlockVolumesForEsxHostDatastore(AssetOptionsContext context, URI host, String datastore) {
+        return getBlockVolumesForHostDatastore(api(context), context.getTenant(), host, datastore);
     }
 
     @Asset("mountedBlockVolume")
@@ -1019,14 +1138,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getSnapshotBlockVolumes(AssetOptionsContext context, URI project, String type) {
         final ViPRCoreClient client = api(context);
         if (isVolumeType(type)) {
-            List<VolumeRestRep> volumes = listVolumes(client, project);
+            List<VolumeRestRep> volumes = listVolumesWithoutConsistencyGroup(client, project);
             List<VolumeDetail> volumeDetails = getVolumeDetails(client, volumes);
             Map<URI, VolumeRestRep> volumeNames = ResourceUtils.mapById(volumes);
 
             List<AssetOption> options = Lists.newArrayList();
             for (VolumeDetail detail : volumeDetails) {
                 if (isLocalSnapshotSupported(detail.vpool) || isRPSourceVolume(detail.volume)) {
-                    options.add(createVolumeOption(client, null, detail.volume, volumeNames));
+                    if (!isInConsistencyGroup(detail.volume)) {
+                        options.add(createVolumeOption(client, null, detail.volume, volumeNames));
+                    }
                 }
             }
             return options;
@@ -1172,8 +1293,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (isVolumeType(volumeOrConsistencyType)) {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
                 @Override
-                public boolean acceptId(URI id) {
-                    return !client.blockVolumes().getFullCopies(id).isEmpty();
+                public boolean accept(VolumeRestRep volume) {
+                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty() && !isInConsistencyGroup(volume)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             });
             return createVolumeOptions(client, volumes);
@@ -1189,10 +1314,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("fullCopy")
     @AssetDependencies({ "volumeWithFullCopies", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getFullCopies(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
+
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
+            if (!BlockProviderUtils.isType(volumeId, VOLUME_TYPE)) {
+                warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+                return new ArrayList<AssetOption>();
+            }
+
             return createBaseResourceOptions(client.blockVolumes().getFullCopies(volumeId));
         } else {
+            if (!BlockProviderUtils.isType(volumeId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
+                warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+                return new ArrayList<AssetOption>();
+            }
             return getConsistencyGroupFullCopies(ctx, volumeId);
         }
     }
@@ -1200,6 +1335,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("fullCopyAvailableForDetach")
     @AssetDependencies({ "volumeWithFullCopies", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getFullCopiedDetach(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
+        if (!checkTypeConsistency(volumeId, volumeOrConsistencyType)) {
+            warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+            return new ArrayList<AssetOption>();
+        }
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             List<VolumeRestRep> volumes = client.blockVolumes().getFullCopies(volumeId, new DefaultResourceFilter<VolumeRestRep>() {
@@ -1227,6 +1366,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("fullCopyAvailableForResynchronize")
     @AssetDependencies({ "volumeWithFullCopies", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getFullCopiedSynchronize(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
+        if (!checkTypeConsistency(volumeId, volumeOrConsistencyType)) {
+            warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+            return new ArrayList<AssetOption>();
+        }
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             List<VolumeRestRep> volumes = client.blockVolumes().getFullCopies(volumeId, new DefaultResourceFilter<VolumeRestRep>() {
@@ -1247,6 +1390,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("fullCopyAvailableForRestore")
     @AssetDependencies({ "volumeWithFullCopies", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getFullCopiedRestore(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
+        if (!checkTypeConsistency(volumeId, volumeOrConsistencyType)) {
+            warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+            return new ArrayList<AssetOption>();
+        }
+
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             List<VolumeRestRep> volumes = client.blockVolumes().getFullCopies(volumeId, new DefaultResourceFilter<VolumeRestRep>() {
@@ -1267,7 +1415,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     class VirtualPoolFilter extends DefaultResourceFilter<VolumeRestRep> {
 
-        private URI virtualPoolId;
+        private final URI virtualPoolId;
 
         public VirtualPoolFilter(URI virtualPoolId) {
             this.virtualPoolId = virtualPoolId;
@@ -1294,6 +1442,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     protected List<VolumeRestRep> listVolumes(ViPRCoreClient client, URI project) {
         return client.blockVolumes().findByProject(project);
+    }
+
+    protected List<VolumeRestRep> listVolumesWithoutConsistencyGroup(ViPRCoreClient client, URI project) {
+        return client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
+
+            @Override
+            public boolean accept(VolumeRestRep item) {
+                return !isInConsistencyGroup(item);
+            }
+        });
     }
 
     protected static List<AssetOption> createVolumeWithVarrayOptions(ViPRCoreClient client,
@@ -1447,7 +1605,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of volume IDs associated with the given exports.
-     * 
+     *
      * @param exports
      *            the export groups.
      * @return the set of volume IDs.
@@ -1466,11 +1624,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the set of volume IDs for volumes in the given project that are exported to the given host/cluster
-     * 
+     *
      * @param client An instance of the ViPRCoreClient
      * @param projectId The ViPR ID of the project
      * @param hostOrClusterId The ViPR ID of the host/cluster
-     * 
+     *
      * @return The set of Volume IDs
      */
     protected static Set<URI> getExportedVolumes(ViPRCoreClient client, URI projectId, URI hostOrClusterId, URI virtualArrayId) {
@@ -1493,7 +1651,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the value of the specified tag from the given volumes.
-     * 
+     *
      * @param tagName
      *            the tag name.
      * @param volumes
@@ -1530,7 +1688,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the volume details for a collection of volumes.
-     * 
+     *
      * @param client the bourne client.
      * @param volumes the collection of volumes.
      * @return the volume details.
@@ -1549,7 +1707,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets the unique set of BlockVirtualPool IDs for the given volumes.
-     * 
+     *
      * @param volumes the volumes.
      * @return the block virtual pool IDs.
      */
@@ -1563,7 +1721,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all BlockVirtualPools mapped by ID.
-     * 
+     *
      * @param client the ViPR client instance.
      * @param ids the IDs.
      * @return the mapping of ID->BlockVirtualPoolRestRep
@@ -1578,7 +1736,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all BlockVirtualPools mapped by ID.
-     * 
+     *
      * @param client the ViPR client instance.
      * @param volumes the volumes for which we need the VPool information.
      * @return the mapping of ID->BlockVirtualPoolRestRep
@@ -1596,7 +1754,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Gets all {@link VolumeRestRep}s that are either in the target VArray or use the target VArray for protection
-     * 
+     *
      * @param client the ViPR client instance.
      * @param targetVArrayId the target VArray ID.
      * @param volumes the volumes we are concerned with. (These should be VPlex volumes)
@@ -1628,7 +1786,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Class for holding all volume detail information, currently the volume and virtual pool.
-     * 
+     *
      * @author jonnymiller
      */
     public static class VolumeDetail {
@@ -1645,7 +1803,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
     }
 
-    public List<AssetOption> createVirtualPoolResourceOptions(Collection<? extends VirtualPoolCommonRestRep> virtualPools) {
+    public static List<AssetOption> createVirtualPoolResourceOptions(Collection<? extends VirtualPoolCommonRestRep> virtualPools) {
 
         List<AssetOption> options = Lists.newArrayList();
 
@@ -1656,7 +1814,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    public AssetOption createVirtualPoolResourceOption(VirtualPoolCommonRestRep virtualPool) {
+    public static AssetOption createVirtualPoolResourceOption(VirtualPoolCommonRestRep virtualPool) {
         boolean hasPools = (virtualPool.getUseMatchedPools() && !CollectionUtils.isEmpty(virtualPool.getMatchedStoragePools()) ||
                 (!virtualPool.getUseMatchedPools() && !CollectionUtils.isEmpty(virtualPool.getAssignedStoragePools())));
 
@@ -1760,7 +1918,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     /**
      * Add the volume and it's snapshots to the 'blockObjects' list.
-     * 
+     *
      * When the method completes the snapshots that have been added to the blockObjects list will be removed from the snapshots list.
      */
     protected static void addVolume(List<BlockObjectRestRep> blockObjects, VolumeRestRep volume, List<BlockSnapshotRestRep> snapshots) {
@@ -1782,7 +1940,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      * SRDF filter for block objects.
      */
     private static class BlockObjectSRDFTargetFilter extends DefaultResourceFilter<BlockObjectRestRep> {
-        private SRDFTargetFilter filter = new SRDFTargetFilter();
+        private final SRDFTargetFilter filter = new SRDFTargetFilter();
 
         @Override
         public boolean accept(BlockObjectRestRep item) {

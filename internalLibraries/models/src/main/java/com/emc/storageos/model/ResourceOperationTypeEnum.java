@@ -92,6 +92,9 @@ public enum ResourceOperationTypeEnum {
     CREATE_FILE_SYSTEM_QUOTA_DIR("CREATE FILESYSTEM QUOTA DIR", "create filesystem quota directory"),
     DELETE_FILE_SYSTEM_QUOTA_DIR("DELETE FILESYSTEM QUOTA DIR", "delete filesystem quota directory"),
     UPDATE_FILE_SYSTEM_QUOTA_DIR("UPDATE FILESYSTEM QUOTA DIR", "update filesystem quota directory"),
+    UPDATE_BUCKET("UPDATE BUCKET", "update bucket operation"),
+    DELETE_BUCKET("DELETE BUCKET", "delete bucket operation"),
+    CREATE_BUCKET("CREATE BUCKET", "create bucket operation"),
 
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "tag a filesystem"),
     DELETE_FILE_SNAPSHOT("DELETE FILESYSTEM SNAPSHOT", "delete filesystem snapshot"),
@@ -280,8 +283,9 @@ public enum ResourceOperationTypeEnum {
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
     ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "add journal volume to consistency group"),
     SYS_EVENT("SYSTEM EVENT", "System Event"),
-    CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER","Create and verify a compute image server"),
-    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER","Update and verify a compute image server");
+    CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER", "Create and verify a compute image server"),
+    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "Update and verify a compute image server"),
+    CREATE_VPLEX_VOLUME_FROM_SNAPSHOT("CREATE VPLEX VOLUME FROM SNAPSHOT", "Create a VPLEX volume on top of a block snapshot target volume");
 
     private final String name;
     private final String description;

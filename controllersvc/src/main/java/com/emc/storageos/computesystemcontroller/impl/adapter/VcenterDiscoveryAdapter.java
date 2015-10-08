@@ -284,7 +284,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             List<Cluster> oldClusters = new ArrayList<Cluster>();
             Iterables.addAll(oldClusters, getClusters(target));
             List<Cluster> newClusters = Lists.newArrayList();
-            reconcileClusters(source, target, oldClusters, newClusters, vcenter);
+            reconcileClusters(source, target, oldClusters, newClusters);
 
             List<Host> oldHosts = new ArrayList<Host>();
             Iterables.addAll(oldHosts, getHosts(target));
@@ -330,6 +330,11 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 }
             }
 
+            for (Host oldHost : oldHosts) {
+                info("Unable to discover host %s. Marking as failed discovery.", oldHost.getId());
+                DiscoveryStatusUtils.markAsFailed(getModelClient(), oldHost, "Unable to discover host. Host may be disconnected.", null);
+            }
+
             Collection<URI> oldClusterIds = Lists.newArrayList(Collections2.transform(oldClusters,
                     CommonTransformerFunctions.fctnDataObjectToID()));
             deletedClusters.addAll(oldClusterIds);
@@ -347,7 +352,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
          * If not found create new cluster.
          */
         private void reconcileClusters(Datacenter source, VcenterDataCenter target, List<Cluster> oldClusters,
-                List<Cluster> newClusters, Vcenter vcenter) {
+                List<Cluster> newClusters) {
             List<ClusterHolder> allClusters = new ArrayList<ClusterHolder>();
             // get all clusters
             List<ClusterComputeResource> vcClusters = vcenterAPI.listClusters(source);
@@ -588,7 +593,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
          */
         private void setVcenterDataCenterTenant(VcenterDataCenter target) {
             if (NullColumnValueGetter.isNullURI(target.getTenant())) {
-                if (vcenter.getTenantCreated()) {
+                if (vcenter.getCascadeTenancy()) {
                     target.setTenant(BasePermissionsHelper.getTenant(vcenter.getAcls()));
                 } else {
                     target.setTenant(NullColumnValueGetter.getNullURI());

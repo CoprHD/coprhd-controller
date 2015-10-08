@@ -61,6 +61,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             for (XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
                 URI xmsURI = URI.create(xmsInfo.getHref().concat(XtremIOConstants.XTREMIO_XMS_FILTER_STR));
                 response = get(xmsURI);
+                log.debug("Got response {} for url {}.", response.getClientResponseStatus(), xmsURI);
                 if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
                     isV2 = false;
                 } else {
@@ -68,7 +69,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
                 }
             }
         } catch (Exception ex) {
-            log.error("Error retrieving xms version info", ex);
+            log.warn("Error retrieving xms version info", ex);
             isV2 = false;
         }
 
@@ -94,7 +95,9 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             } else if (xtremIOCode == 401) {
                 throw XtremIOApiException.exceptions.authenticationFailure(uri.toString());
             } else {
-                throw XtremIOApiException.exceptions.internalError(uri.toString(), obj.toString());
+                // Sometimes the response object can be null, just empty when it is null.
+                String objStr = (obj == null) ? "" : obj.toString();
+                throw XtremIOApiException.exceptions.internalError(uri.toString(), objStr);
             }
         } else {
             return errorCode;

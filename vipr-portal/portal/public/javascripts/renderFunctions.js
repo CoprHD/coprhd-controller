@@ -103,6 +103,15 @@ render.relativeDate = function(o, val) {
     return '<span data-relative-time="'+millis+'">'+text+'</span>';
 }
 
+render.expiryStatus = function(o, val) {
+	if (!val) {
+		return "";
+	}
+	var expiryDate = val.substring(val.indexOf('/')-2,val.lastIndexOf('.'));
+	var formattedDate = render.localDate(o, expiryDate);
+	return val.substring(0, val.indexOf('/')-2).concat(formattedDate);
+}
+
 render.vdclastReached = function(o, val) {
     if (!val) {
         return "";

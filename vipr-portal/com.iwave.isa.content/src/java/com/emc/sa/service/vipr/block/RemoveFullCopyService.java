@@ -11,6 +11,7 @@ import static com.emc.sa.service.ServiceParams.VOLUME;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
@@ -23,7 +24,7 @@ public class RemoveFullCopyService extends ViPRService {
     protected String storageType;
 
     @Param(VOLUME)
-    protected URI volumeId;
+    protected URI volumeOrConsistencyGroupId;
 
     @Param(COPIES)
     protected List<String> copyIds;
@@ -33,8 +34,12 @@ public class RemoveFullCopyService extends ViPRService {
     @Override
     public void precheck() {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-            volume = BlockStorageUtils.getBlockResource(volumeId);
+            volume = BlockStorageUtils.getBlockResource(volumeOrConsistencyGroupId);
             logInfo("remove.full.copy.service.precheck", volume.getName());
+        } else {
+            if (!ConsistencyUtils.validateConsistencyGroupFullCopies(getClient(), volumeOrConsistencyGroupId)) {
+                ExecutionUtils.fail("failTask.ConsistencyGroup.noFullCopies", volumeOrConsistencyGroupId, volumeOrConsistencyGroupId);
+            }
         }
     }
 
@@ -43,9 +48,7 @@ public class RemoveFullCopyService extends ViPRService {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             BlockStorageUtils.removeFullCopies(uris(copyIds));
         } else {
-            for (URI copyId : uris(copyIds)) {
-                ConsistencyUtils.removeFullCopy(volumeId, copyId);
-            }
+            ConsistencyUtils.removeFullCopy(volumeOrConsistencyGroupId);
         }
     }
 }

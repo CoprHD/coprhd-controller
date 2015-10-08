@@ -194,7 +194,7 @@ public class ConfigProperties extends Controller {
              * image server configuration has been moved to Physical assets but, image server properties meta data
              * needs to remain for migration
              */
-            if (entry.getKey().contains("image_server")) {
+            if (entry.getKey().startsWith("image_server")) {
                 continue;
             }
             PropertyMetadata metadata = entry.getValue();

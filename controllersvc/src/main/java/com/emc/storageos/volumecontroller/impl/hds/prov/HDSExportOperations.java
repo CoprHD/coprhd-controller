@@ -623,8 +623,6 @@ public class HDSExportOperations implements ExportMaskOperations {
                             } else {
                                 iSCSIHostsToRegister.get(hdshost).add(portWWN);
                             }
-                        } else {
-                            // unsupported initiator. throw exception
                         }
                     }
                 }
@@ -1782,4 +1780,8 @@ public class HDSExportOperations implements ExportMaskOperations {
         log.info("{} {} updateAutoTieringPolicy END...", storage.getSerialNumber(), message);
     }
 
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return Collections.emptyMap();
+    }
 }

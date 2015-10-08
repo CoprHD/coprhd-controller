@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.BlockMapper;
 import com.emc.storageos.api.mapper.DbObjectMapper;
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
 import com.emc.storageos.api.service.impl.placement.PlacementManager.SchedulerType;
@@ -41,6 +42,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -52,6 +54,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -395,6 +398,22 @@ public class BlockFullCopyManager {
             throws InternalException {
         s_logger.info("START detach full copy {}", fullCopyURI);
 
+        // Check if full copy has been detached. 
+        // It will return success if it has been detached
+        Volume fullCopy = (Volume) BlockFullCopyUtils.queryFullCopyResource(fullCopyURI, _uriInfo, false, _dbClient);
+        if (BlockFullCopyUtils.isFullCopyDetached(fullCopy, _dbClient)) {
+            s_logger.info("The full copy {} has been detached", fullCopyURI);
+            TaskList taskList = new TaskList();
+            String taskId = UUID.randomUUID().toString();
+            Operation op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
+            op.ready("Full copy is already detached");
+            _dbClient.createTaskOpStatus(Volume.class, fullCopyURI, taskId, op);
+                    
+            TaskResourceRep task = TaskMapper.toTask(fullCopy, taskId, op);
+            taskList.addTask(task);
+            return taskList;
+        }
         // Verify passed URIs for the full copy request.
         Map<URI, BlockObject> resourceMap = BlockFullCopyUtils.verifySourceAndFullCopy(
                 sourceURI, fullCopyURI, _uriInfo, _dbClient);
@@ -734,6 +753,13 @@ public class BlockFullCopyManager {
      * @return true if the volume can be deleted, false otherwise.
      */
     public boolean volumeCanBeDeleted(Volume volume) {
+        /**
+         * Delete volume api call will delete all its related replicas for VMAX using SMI 8.0.3.
+         * Hence vmax using 8.0.3 can be delete even if volume has replicas.
+         */
+        if (volume.isInCG() && BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+            return true;
+        }
 
         boolean volumeCanBeDeleted = true;
 

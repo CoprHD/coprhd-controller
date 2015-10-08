@@ -8,7 +8,6 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDiscoveredSystemObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,6 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImageServer;
@@ -31,7 +32,8 @@ import com.emc.storageos.model.compute.ComputeImageServerRestRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 
 public class ComputeMapper {
-    private static final Logger LOG = LoggerFactory.getLogger(ComputeMapper.class);
+    private static final Logger LOG = LoggerFactory
+            .getLogger(ComputeMapper.class);
 
     public static ComputeSystemRestRep map(ComputeSystem from) {
         if (from == null) {
@@ -45,10 +47,10 @@ public class ComputeMapper {
         to.setUsername(from.getUsername());
         to.setVersion(from.getVersion());
         to.setOsInstallNetwork(from.getOsInstallNetwork());
-        if (from.getComputeImageServer()!=null){
-        	to.setComputeImageServer(from.getComputeImageServer().toString());
-        }else{
-        	to.setComputeImageServer("");
+        if (from.getComputeImageServer() != null) {
+            to.setComputeImageServer(from.getComputeImageServer().toString());
+        } else {
+            to.setComputeImageServer("");
         }
 
         // sort vlans as numbers
@@ -72,7 +74,7 @@ public class ComputeMapper {
             }
             vlanStr.append(vlanId);
         }
-        if (vlanStr != null) {  // cannot set null
+        if (vlanStr != null) { // cannot set null
             to.setVlans(vlanStr.toString());
         }
         return to;
@@ -93,7 +95,8 @@ public class ComputeMapper {
         to.setOriginalUuid(from.getOriginalUuid());
         to.setAvailable(from.getAvailable());
         to.setModel(from.getModel());
-        to.setComputeSystem(toRelatedResource(ResourceTypeEnum.COMPUTE_SYSTEM, from.getComputeSystem()));
+        to.setComputeSystem(toRelatedResource(ResourceTypeEnum.COMPUTE_SYSTEM,
+                from.getComputeSystem()));
         to.setRegistrationStatus(from.getRegistrationStatus());
         return to;
     }
@@ -111,13 +114,24 @@ public class ComputeMapper {
         to.setLastImportStatusMessage(from.getLastImportStatusMessage());
         List<NamedRelatedResourceRep> availableServersList = new ArrayList<NamedRelatedResourceRep>();
         List<NamedRelatedResourceRep> failedServersList = new ArrayList<NamedRelatedResourceRep>();
+<<<<<<< HEAD
 	to.setAvailableImageServers(availableServersList);
 	to.setFailedImageServers(failedServersList);
+=======
+        to.setAvailableImageServers(availableServersList);
+        to.setFailedImageServers(failedServersList);
+>>>>>>> integration-2.4.1
 
         return to;
     }
 
+<<<<<<< HEAD
     public static ComputeImageRestRep map(ComputeImage from,List<ComputeImageServer> availableServers, List<ComputeImageServer> failedServers) {
+=======
+    public static ComputeImageRestRep map(ComputeImage from,
+            List<ComputeImageServer> availableServers,
+            List<ComputeImageServer> failedServers) {
+>>>>>>> integration-2.4.1
         if (from == null) {
             return null;
         }
@@ -130,6 +144,7 @@ public class ComputeMapper {
         to.setLastImportStatusMessage(from.getLastImportStatusMessage());
         List<NamedRelatedResourceRep> availableServersList = new ArrayList<NamedRelatedResourceRep>();
         List<NamedRelatedResourceRep> failedServersList = new ArrayList<NamedRelatedResourceRep>();
+<<<<<<< HEAD
         for (ComputeImageServer server: availableServers){
                 NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
                 serverRep.setId(server.getId());
@@ -141,6 +156,19 @@ public class ComputeMapper {
                 serverRep.setId(server.getId());
                 serverRep.setName(server.getImageServerIp());
                 failedServersList.add(serverRep);
+=======
+        for (ComputeImageServer server : availableServers) {
+            NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
+            serverRep.setId(server.getId());
+            serverRep.setName(server.getImageServerIp());
+            availableServersList.add(serverRep);
+        }
+        for (ComputeImageServer server : failedServers) {
+            NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
+            serverRep.setId(server.getId());
+            serverRep.setName(server.getImageServerIp());
+            failedServersList.add(serverRep);
+>>>>>>> integration-2.4.1
         }
 
         to.setAvailableImageServers(availableServersList);
@@ -150,12 +178,17 @@ public class ComputeMapper {
     }
 
     /**
-     * Utility mapper method to map fields of {@link ComputeImageServer} columnFamily
-     *  to {@link ComputeImageServerRestRep} rest representation. 
+     * Utility mapper method to map fields of {@link ComputeImageServer}
+     * columnFamily to {@link ComputeImageServerRestRep} rest representation.
+     * 
+     * @param dbclient
+     *            {@link DbClient} instance
      * @param from
-     * @return
+     *            {@link ComputeImageServer} instance that has to be mapped.
+     * @return {@link ComputeImageServerRestRep}
      */
-    public static ComputeImageServerRestRep map(ComputeImageServer from) {
+    public static ComputeImageServerRestRep map(DbClient dbclient,
+            ComputeImageServer from) {
         if (from == null) {
             return null;
         }
@@ -163,7 +196,9 @@ public class ComputeMapper {
         mapDataObjectFields(from, to);
 
         try {
-            to.setLink(new RestLinkRep("self", RestLinkFactory.simpleServiceLink(ResourceTypeEnum.COMPUTE_IMAGESERVER, from.getId())));
+            to.setLink(new RestLinkRep("self", RestLinkFactory
+                    .simpleServiceLink(ResourceTypeEnum.COMPUTE_IMAGESERVER,
+                            from.getId())));
         } catch (URISyntaxException e) {
             LOG.warn("Error while creating self link URI.", e);
         }
@@ -173,9 +208,26 @@ public class ComputeMapper {
         to.setComputeImageServerStatus(from.getComputeImageServerStatus());
         to.setImageServerUser(from.getImageServerUser());
         to.setOsInstallTimeoutMs(from.getOsInstallTimeoutMs());
+        to.setComputeImages(new ArrayList<NamedRelatedResourceRep>());
+        to.setFailedImages(new ArrayList<NamedRelatedResourceRep>());
         if (from.getComputeImages() != null) {
             for (String computeimage : from.getComputeImages()) {
-                to.getComputeImages().add(toRelatedResource(ResourceTypeEnum.COMPUTE_IMAGE, URI.create(computeimage)));
+                ComputeImage image = dbclient.queryObject(ComputeImage.class,
+                        URIUtil.uri(computeimage));
+                to.getComputeImages().add(
+                        DbObjectMapper.toNamedRelatedResource(
+                                ResourceTypeEnum.COMPUTE_IMAGE, image.getId(),
+                                image.getLabel()));
+            }
+        }
+        if (from.getFailedComputeImages() != null) {
+            for (String failedImageID : from.getFailedComputeImages()) {
+                ComputeImage failedImage = dbclient.queryObject(ComputeImage.class,
+                        URIUtil.uri(failedImageID));
+                to.getFailedImages().add(
+                        DbObjectMapper.toNamedRelatedResource(
+                                ResourceTypeEnum.COMPUTE_IMAGE,
+                                failedImage.getId(), failedImage.getLabel()));
             }
         }
         return to;

@@ -91,6 +91,7 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         DEVICE_LABEL("ElementName"),
         NAME("FSName"),
         PATH("FSPath"),
+        NAS("NasUri"),
         MOUNT_PATH("FSMountPath");
         private String _infoKey;
 

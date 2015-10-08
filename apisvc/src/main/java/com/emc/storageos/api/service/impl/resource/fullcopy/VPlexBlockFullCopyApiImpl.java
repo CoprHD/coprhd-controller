@@ -34,8 +34,10 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -45,8 +47,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -179,21 +179,34 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // Call super first.
                 super.validateFullCopyCreateRequest(fcSourceObjList, count);
 
-                // If there are more than one volume in the consistency group, and they are on 
+                // If there are more than one volume in the consistency group, and they are on
                 // different backend storage systems, return error.
-                if (fcSourceObjList.size() >1) {
+                if (fcSourceObjList.size() > 1) {
                     List<Volume> volumes = new ArrayList<Volume>();
                     for (BlockObject fcSource : fcSourceObjList) {
-                        volumes.add((Volume)fcSource);
+                        volumes.add((Volume) fcSource);
                     }
                     if (!VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumes, _dbClient)) {
                         throw APIException.badRequests.fullCopyNotAllowedWhenCGAcrossMultipleSystems();
                     }
                 }
-                
+
+                // Check if the source volume is an ingested CG, without any back end CGs yet. if yes, throw error
+                Volume srcVol = (Volume) fcSourceObjList.get(0);
+                if (VPlexUtil.isVolumeInIngestedCG(srcVol, _dbClient)) {
+                    throw APIException.badRequests.fullCopyNotAllowedForIngestedCG(srcVol.getId().toString());
+                }
+
                 // Platform specific checks.
                 for (BlockObject fcSourceObj : fcSourceObjList) {
                     Volume fcSourceVolume = (Volume) fcSourceObj;
+
+                    // If the volume is a VPLEX volume created on a block snapshot,
+                    // we don't support creation of a full copy.
+                    if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, fcSourceVolume)) {
+                        throw APIException.badRequests.fullCopyNotAllowedForVPLEXVolumeBuiltOnSnapshot(fcSourceVolume.getId().toString());
+                    }
+
                     StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                             fcSourceVolume.getStorageController());
                     if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
@@ -478,9 +491,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
                 // Prepare the volume.
                 Volume volume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size,
-                    vplexSystemProject, haVarray, haVpool,
-                    haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
-                    nameBuilder.toString(), null, taskId, _dbClient);
+                        vplexSystemProject, haVarray, haVpool,
+                        haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
+                        nameBuilder.toString(), null, taskId, _dbClient);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                 _dbClient.persistObject(volume);
                 copyHAVolumes.add(volume);

@@ -1069,6 +1069,30 @@ public class VPlexUtil {
         return result;
     }
 
+    /**
+     * Check if the full copy is a vplex full copy and its backend full copy is in a replication group
+     * @param fullcopy
+     * @param dbClient
+     * @return true or false
+     */
+    public static boolean isBackendFullCopyInReplicationGroup(Volume fullcopy, DbClient dbClient) {
+        boolean result = false;
+        URI systemURI = fullcopy.getStorageController();
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, systemURI);
+        String type = system.getSystemType();
+        if (type.equals(DiscoveredDataObject.Type.vplex.name())) {
+            Volume backendFullcopy = getVPLEXBackendVolume(fullcopy, true, dbClient);
+            if (backendFullcopy != null) {
+                String replicationGroup = backendFullcopy.getReplicationGroupInstance();
+                if (NullColumnValueGetter.isNotNullValue(replicationGroup)) {
+                    result = true;
+                }
+            }
+        }
+        
+        return result;
+    }
+
     // constants related to supporting device structure validation
     private static final String LOCAL_DEVICE = "local-device: ";
     private static final String LOCAL_DEVICE_COMPONENT = "   local-device-component: ";

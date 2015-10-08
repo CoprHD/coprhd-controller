@@ -9,7 +9,8 @@ public class ExportPathParam extends DataObject {
     Integer maxPaths;
     Integer minPaths;
     Integer pathsPerInitiator;
-    List<URI> storagePorts;
+    StringSet storagePorts;
+    Boolean explicitlyCreated;
     
     
     @Name("maxPaths")
@@ -43,16 +44,29 @@ public class ExportPathParam extends DataObject {
     }
     
     @Name("storagePorts")
-    public List<URI> getStoragePorts() {
+    public StringSet getStoragePorts() {
         if (storagePorts == null) {
-            return new ArrayList<URI>();
+            return new StringSet();
         }
         return storagePorts;
     }
     
-    public void setStoragePorts(List<URI> storagePorts) {
+    public void setStoragePorts(StringSet storagePorts) {
         this.storagePorts = storagePorts;
         setChanged("storagePorts");
+    }
+
+    @Name("explicitlyCreated")
+    public Boolean getExplicitlyCreated() {
+        return explicitlyCreated;
+    }
+    
+    public boolean wasExplicitlyCreated() {
+        return (explicitlyCreated != null && explicitlyCreated);
+    }
+
+    public void setExplicitlyCreated(Boolean explicitlyCreated) {
+        this.explicitlyCreated = explicitlyCreated;
     }
 
 }

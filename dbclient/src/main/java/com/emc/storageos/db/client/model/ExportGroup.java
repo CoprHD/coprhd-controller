@@ -519,5 +519,18 @@ public class ExportGroup extends DataObject implements ProjectResource {
 
     public void setPathParameters(StringSetMap pathParameters) {
         this.pathParameters = pathParameters;
+        setChanged("pathParam");
     }
+    
+    public void addToPathParameters(URI key, URI value) {
+        if (pathParameters == null) {
+            setPathParameters(new StringSetMap());
+        }
+        getPathParameters().put(key.toString(), value.toString());
+    }
+    
+    public void removeFromPathParameters(URI key, URI value) {
+        getPathParameters().remove(key.toString(), value.toString());
+    }
+    
 }

@@ -292,6 +292,13 @@ public class ExportGroupService extends TaskResourceService {
         // If so, this is like because concurrent operations were in the API at the same time and another created
         // the ExportGroup.
         validateNotSameNameProjectAndVarray(param);
+        
+        // If ExportPathParameter block is presnet, and volumes are present, capture those arguments.
+        ExportPathParam exportPathParam = null;
+        if (param.getPathParam() != null && !volumeMap.keySet().isEmpty()) {
+            exportPathParam = validateAndCreateExportPathParam(param.getPathParam(), exportGroup);
+            addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
+        }
 
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
@@ -306,6 +313,9 @@ public class ExportGroupService extends TaskResourceService {
         Operation.Status status = storageMap.isEmpty() ? Operation.Status.ready : Operation.Status.pending;
 
         _dbClient.createObject(exportGroup);
+        if (exportPathParam != null) {
+            _dbClient.createObject(exportPathParam);
+        }
         Operation op = initTaskStatus(exportGroup, task, status, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);
 
         // persist the export group to the database
@@ -1465,6 +1475,11 @@ public class ExportGroupService extends TaskResourceService {
         checkForPendingTasks(tenants, dataObjects);
         // Mark deletion in progress. This will cause future updates to fail.
         exportGroup.addInternalFlags(DataObject.Flag.DELETION_IN_PROGRESS);
+        // Remove any associated ExportPathParam
+        if (exportGroup.getVolumes() != null && !exportGroup.getVolumes().isEmpty() 
+                && !exportGroup.getPathParameters().isEmpty()) {
+            removeBlockObjectsFromPathParamMap(URIUtil.uris(exportGroup.getVolumes().keySet()), exportGroup);
+        }
 
         if (storageMap.isEmpty()) {
             op = initTaskStatus(exportGroup, task, Operation.Status.ready, ResourceOperationTypeEnum.DELETE_EXPORT_GROUP);
@@ -2482,12 +2497,21 @@ public class ExportGroupService extends TaskResourceService {
         }
         if (param.getMaxPaths() != null) {
             ArgValidator.checkFieldMinimum(param.getMaxPaths(), 1, "max_paths");
+        } else {
+            // Defaults to two paths if not supplied
+            param.setMaxPaths(2);
         }
         if (param.getMinPaths() != null) {
             ArgValidator.checkFieldMinimum(param.getMinPaths(), 1, "min_paths");
+        } else {
+            // Defaults to one path if not suppiled
+            param.setMinPaths(1);;
         }
         if (param.getPathsPerInitiator() != null) {
             ArgValidator.checkFieldMinimum(param.getPathsPerInitiator(), 1, "paths_per_initiator");
+        } else {
+            // Defaults to one path if not supplied
+            param.setPathsPerInitiator(1);
         }
         // minPaths must be <= than maxPaths.
         if (param.getMinPaths() > param.getMaxPaths()) {
@@ -2505,7 +2529,49 @@ public class ExportGroupService extends TaskResourceService {
         pathParam.setMaxPaths(param.getMaxPaths());
         pathParam.setMinPaths(param.getMinPaths());
         pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
-        pathParam.getStoragePorts().addAll(param.getStoragePorts());
+        if (param.getStoragePorts() != null) { 
+            pathParam.getStoragePorts().addAll(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
+        }
+        pathParam.setExplicitlyCreated(false);
         return pathParam;
+    }
+    
+    /**
+     * For all the block objects in the list, checks to see if they are associated with an ExportPathParam object.
+     * If so they are removed. If there are no remaining block objects, the ExportPathParam is deleted.
+     * @param blockObjectURIs
+     * @param exportGroup
+     */
+            void removeBlockObjectsFromPathParamMap(Collection<URI> blockObjectURIs, ExportGroup exportGroup) {
+        // For each existing PathParam block, remove all the volumes in the list it may have
+        for (String key : exportGroup.getPathParameters().keySet()) {
+            StringSet values = exportGroup.getPathParameters().get(key);
+            for (URI blockObjectURI : blockObjectURIs) {
+                exportGroup.removeFromPathParameters(URI.create(key), blockObjectURI);
+            }
+            if (values.isEmpty()) {
+                ExportPathParam pathParam = _dbClient.queryObject(ExportPathParam.class, URI.create(key));
+                if (pathParam != null && pathParam.wasExplicitlyCreated()) {
+                    _dbClient.markForDeletion(pathParam);
+                }
+            }
+        }
+    }
+
+    /**
+     * Adds all the listed block objects to the specified export path parameters.
+     * 
+     * @param blockObjectURIs
+     * @param pathParamURI
+     * @param exportGroup
+     */
+    void addBlockObjectsToPathParamMap(Collection<URI> blockObjectURIs, URI pathParamURI, ExportGroup exportGroup) {
+        // Remove the block objects from any existing path parameters. Having duplicates is not allowed.
+        removeBlockObjectsFromPathParamMap(blockObjectURIs, exportGroup);
+        // Add them for the new ExportPathParam object.
+        for (URI blockObjectURI : blockObjectURIs) {
+            exportGroup.addToPathParameters(pathParamURI, blockObjectURI);
+            ;
+        }
     }
 }

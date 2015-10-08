@@ -4557,7 +4557,7 @@ class Bourne:
 	# Optionally add path parameters
         if (pathParam['max_paths'] > 0):
             print 'Path parameters', pathParam
-	    parms['path_param'] = path_param
+	    parms['path_param'] = pathParam
         else:
             print 'No path parameters'
 
@@ -4707,7 +4707,10 @@ class Bourne:
     def export_group_delete(self, groupId):
         o = self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_EXPORTGROUP_INSTANCE.format(groupId)))
         self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        except:
+            print o;
         return (o, s)
 
     def export_group_add_volume(self, groupId, volspec):

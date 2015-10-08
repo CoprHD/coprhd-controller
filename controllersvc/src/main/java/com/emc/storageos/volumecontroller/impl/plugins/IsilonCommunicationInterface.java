@@ -645,7 +645,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    }
                    //set the smart connect
                    if(isilonNetworkPoolTemp != null) {
-                       StringSet storagePorts = virtualNAS.getStoragePorts();
+                       StringSet storagePorts = physicalNAS.getStoragePorts();
                        if(storagePorts == null) {
                            storagePorts = new StringSet();
                        }

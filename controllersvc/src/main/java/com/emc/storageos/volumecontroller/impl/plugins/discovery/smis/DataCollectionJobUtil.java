@@ -500,13 +500,7 @@ public class DataCollectionJobUtil {
             }
         } else if (storageDevice.getSystemType().equals(
                 Type.scaleio.toString())) {
-            accessProfile.setSystemType(storageDevice.getSystemType());
-            accessProfile.setIpAddress(storageDevice.getSmisProviderIP());
-            accessProfile.setUserName(storageDevice.getSmisUserName());
-            accessProfile.setserialID(storageDevice.getSerialNumber());
-            accessProfile.setPassword(storageDevice.getSmisPassword());
-            accessProfile.setPortNumber(storageDevice.getSmisPortNumber());
-            accessProfile.setLastSampleTime(0L);
+            injectDiscoveryProfile(accessProfile, storageDevice);
             if (null != nameSpace) {
                 accessProfile.setnamespace(nameSpace);
             }
@@ -907,12 +901,7 @@ public class DataCollectionJobUtil {
                                                 .getRegistrationStatus())) {
                             injectReachableStatusInSystem(storageSystemInDb,
                                     null, NullColumnValueGetter.getNullURI(), false);
-                        } else {
-                            // Case 4: not registered and not managed by
-                            // provider,
-                            // delete it.
-                            // deleteUnregisteredStorageSystems(storageSystemInDb);
-                        }
+                        } 
                     }
                 }
             } catch (Exception e) {

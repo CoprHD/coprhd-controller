@@ -95,7 +95,6 @@ class StorageSystem(object):
         'netapp',
         'hds',
         'openstack',
-        'xtremio',
         'ibmxiv',
         'netappc',
         'ecs' ,	

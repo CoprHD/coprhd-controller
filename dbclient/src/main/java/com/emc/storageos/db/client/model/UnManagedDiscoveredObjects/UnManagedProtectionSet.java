@@ -48,6 +48,9 @@ public class UnManagedProtectionSet extends UnManagedDiscoveredObject {
     
     // Volume IDs (to Volumes)
     private StringSet _managedVolumeIds;
+
+    // Volume WWNs (in case some volumes aren't in our UnManaged inventory)
+    private StringSet _volumeWwns;
     
     // Name of the CG on the RP
     private String _cgName;
@@ -85,7 +88,8 @@ public class UnManagedProtectionSet extends UnManagedDiscoveredObject {
      * to validate against vpool settings, such as policy settings.
      */
     public enum SupportedCGInformation {
-        RPO("RPO");
+        RPO("RPO"),
+        PROTECTION_ID("ProtectionID");
 
         private final String _infoKey;
 
@@ -185,7 +189,7 @@ public class UnManagedProtectionSet extends UnManagedDiscoveredObject {
     }
 
     @IndexByKey
-    @AlternateId("UnManagedVolumesIdIndex")
+    @AlternateId("UnManagedVolumeIdsIndex")
     @Name("unManagedVolumeIds")
     public StringSet getUnManagedVolumeIds() {
         if (null == _unManagedVolumeIds) {
@@ -199,7 +203,7 @@ public class UnManagedProtectionSet extends UnManagedDiscoveredObject {
     }
 
     @IndexByKey
-    @AlternateId("ManagedVolumesIdIndex")
+    @AlternateId("ManagedVolumeIdsIndex")
     @Name("managedVolumeIds")
     public StringSet getManagedVolumeIds() {
         if (null == _managedVolumeIds) {
@@ -212,6 +216,20 @@ public class UnManagedProtectionSet extends UnManagedDiscoveredObject {
         this._managedVolumeIds = managedVolumesIds;
     }
 
+    @IndexByKey
+    @AlternateId("VolumeWwnIndex")
+    @Name("volumeWwns")
+    public StringSet getVolumeWwns() {
+        if (null == _volumeWwns) {
+            this.setVolumeWwns(new StringSet());
+        }
+        return _volumeWwns;
+    }
+
+    public void setVolumeWwns(StringSet volumeWwns) {
+        this._volumeWwns = volumeWwns;
+    }
+    
     @Override
     public String toString() {
         return this.getLabel() + " (" + this.getId() + ")";

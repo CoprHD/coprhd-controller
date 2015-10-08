@@ -2390,6 +2390,7 @@ recoverpoint_ingest_test()
 
     # Sleep 5 to get past discovery required timeframe
     sleep 5
+
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
     exit;

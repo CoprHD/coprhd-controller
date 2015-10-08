@@ -15,8 +15,8 @@ import static com.emc.vipr.client.core.util.UnmanagedHelper.getLabel;
 import static com.emc.vipr.client.core.util.UnmanagedHelper.getVpoolsForUnmanaged;
 import static com.emc.vipr.client.core.util.UnmanagedHelper.isClone;
 import static com.emc.vipr.client.core.util.UnmanagedHelper.isMirror;
+import static com.emc.vipr.client.core.util.UnmanagedHelper.isNonRPExported;
 import static com.emc.vipr.client.core.util.UnmanagedHelper.isSnapShot;
-import static com.emc.vipr.client.core.util.UnmanagedHelper.isVolumeExported;
 
 import java.net.URI;
 import java.util.Collection;
@@ -136,8 +136,8 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         StorageSystemRestRep storageSystemRestRep = client.storageSystems().get(storageSystemId);
 
         List<AssetOption> options = Lists.newArrayList();
+        options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
         if (BlockProviderUtils.isVplex(storageSystemRestRep)) {
-            options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
             options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(),
                     "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
         }
@@ -151,8 +151,8 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         BlockVirtualPoolRestRep virtualPoolRestRep = client.blockVpools().get(virtualPoolId);
 
         List<AssetOption> options = Lists.newArrayList();
+        options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
         if (virtualPoolRestRep.getHighAvailability() != null) {
-            options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
             options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(),
                     "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
         }
@@ -220,7 +220,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVolumeFilter(AssetOptionsContext ctx, URI storageSystemId, URI vpool) {
         List<String> volumeNames = Lists.newArrayList();
         for (UnManagedVolumeRestRep volume : listUnmanagedVolumes(ctx, storageSystemId, vpool)) {
-            if (!isVolumeExported(volume.getVolumeCharacteristics())) {
+            if (!isNonRPExported(volume.getVolumeCharacteristics())) {
                 volumeNames.add(getLabel(volume));
             }
         }
@@ -233,7 +233,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getUnmanagedVolumeByStorageSystemVirtualPool(AssetOptionsContext ctx, URI storageSystemId, URI vpool) {
         List<AssetOption> options = Lists.newArrayList();
         for (UnManagedVolumeRestRep volume : listUnmanagedVolumes(ctx, storageSystemId, vpool)) {
-            if (!isVolumeExported(volume.getVolumeCharacteristics())) {
+            if (!isNonRPExported(volume.getVolumeCharacteristics())) {
                 options.add(toAssetOption(volume));
             }
         }
@@ -247,7 +247,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
             int volumePage) {
         List<AssetOption> options = Lists.newArrayList();
         for (UnManagedVolumeRestRep volume : listUnmanagedVolumes(ctx, storageSystemId, vpool)) {
-            if (!isVolumeExported(volume.getVolumeCharacteristics())) {
+            if (!isNonRPExported(volume.getVolumeCharacteristics())) {
                 options.add(toAssetOption(volume));
             }
         }
@@ -261,7 +261,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
         List<AssetOption> options = Lists.newArrayList();
         for (UnManagedVolumeRestRep volume : listUnmanagedVolumes(ctx, storageSystemId)) {
-            if (matchesVpool(volume, vpool) && !isVolumeExported(volume.getVolumeCharacteristics())) {
+            if (matchesVpool(volume, vpool) && !isNonRPExported(volume.getVolumeCharacteristics())) {
                 options.add(toAssetOption(volume));
             }
         }

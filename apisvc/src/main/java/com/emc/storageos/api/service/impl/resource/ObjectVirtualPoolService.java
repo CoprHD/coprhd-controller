@@ -405,8 +405,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     private class mapObjectVirtualPoolWithResources implements Function<VirtualPool, ObjectVirtualPoolRestRep> {
         @Override
         public ObjectVirtualPoolRestRep apply(VirtualPool vpool) {
-            ObjectVirtualPoolRestRep to = VirtualPoolMapper.toObjectVirtualPool(vpool);
-            return to;
+            return VirtualPoolMapper.toObjectVirtualPool(vpool);
         }
     }
 

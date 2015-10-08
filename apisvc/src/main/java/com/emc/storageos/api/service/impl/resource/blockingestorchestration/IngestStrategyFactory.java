@@ -80,6 +80,11 @@ public class IngestStrategyFactory {
         this.blockVplexVolumeIngestOrchestrator = blockVplexVolumeIngestOrchestrator;
     }
 
+    public void setBlockRecoverPointIngestOrchestrator(
+            BlockIngestOrchestrator blockRecoverPointIngestOrchestrator) {
+        this.blockRecoverPointIngestOrchestrator = blockRecoverPointIngestOrchestrator;
+    }
+    
     public BlockIngestOrchestrator getBlockSnapshotIngestOrchestrator() {
         return blockSnapshotIngestOrchestrator;
     }
@@ -293,12 +298,19 @@ public class IngestStrategyFactory {
 
     }
 
-    public IngestStrategy buildIngestStrategy(UnManagedVolume unManagedVolume) {
+    /**
+     * Retrieves the proper ingestion strategy for the given UnManagedVolume.
+     * 
+     * @param unManagedVolume unmanaged volume
+     * @param disregardProtection disregard RP properties when determining strategy
+     * @return ingestion strategy
+     */
+    public IngestStrategy buildIngestStrategy(UnManagedVolume unManagedVolume, boolean disregardProtection) {
         String remoteMirrorEnabledInVolume = unManagedVolume.getVolumeCharacterstics().get(
                 SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString());
 
         String replicationStrategy;
-        if (VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
+        if (!disregardProtection && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
             replicationStrategy = ReplicationStrategy.RP.name();
         } else if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
             replicationStrategy = ReplicationStrategy.VPLEX.name();

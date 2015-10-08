@@ -134,7 +134,7 @@ public class TokenBasedAuthenticationFilter extends AbstractAuthenticationFilter
         } else {
             redirectURL.append("/login?");
         }
-        StringBuilder serviceURL = new StringBuilder(req.getRequestURL().toString());
+        StringBuilder serviceURL = new StringBuilder(SecurityUtils.stripXSS(req.getRequestURL().toString()));
         String queryString = SecurityUtils.stripXSS(RequestProcessingUtils.removeFromQueryString(req.getQueryString(), REQUESTING_COOKIES));
 
         if (queryString != null && !queryString.isEmpty()) {

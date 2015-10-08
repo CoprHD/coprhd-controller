@@ -30,7 +30,6 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -78,6 +77,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     public static final String VNX_SMIS_DEVICE = "vnxSmisDevice";
     public static final String DEFAULT_LABEL = "Default";
 
+    @Override
     public BlockStorageDevice getDevice() {
         BlockStorageDevice device = VNX_BLOCK_DEVICE.get();
         synchronized (VNX_BLOCK_DEVICE) {
@@ -453,6 +453,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * @param token - Identifier for the operation
      * @throws Exception
      */
+    @Override
     public boolean determineExportGroupCreateSteps(Workflow workflow, String previousStep,
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token) throws Exception {
@@ -598,7 +599,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // already taken by a pre-existing volume.
                             Integer requestedHLU = volumeMap.get(boURI);
                             StringMap existingVolumesInMask = mask.getExistingVolumes();
-                            if (existingVolumesInMask != null &&
+                            // DO NOT CHECK-IN!  WJEIV  Email out to Ameer.  After latest merge from master, -1 isn't working anymore
+                            if (existingVolumesInMask != null && requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
@@ -750,6 +752,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      *         the passed in previousStep id is returned.
      * 
      */
+    @Override
     public String
             checkForSnapshotsToCopyToTarget(Workflow workflow, StorageSystem storageSystem,
                     String previousStep,

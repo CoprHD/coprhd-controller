@@ -33,6 +33,14 @@ import zlib
 import struct
 from time import sleep
 
+try:
+    # OpenSUSE CoprHD kits tend to display certificate warnings which aren't
+    # relevant to running sanity tests
+    requests.packages.urllib3.disable_warnings()
+except AttributeError:
+    # Swallow error, likely ViPR devkit
+    pass
+
 URI_SERVICES_BASE               = ''
 URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'
@@ -166,12 +174,14 @@ URI_VOLUME_FULL_COPY_CHECK_PROGRESS = URI_VOLUME_LIST     + '/{0}/protection/ful
 URI_FULL_COPY = URI_SERVICES_BASE  + '/block/full-copies'
 URI_FULL_COPY_RESTORE = URI_FULL_COPY + '/{0}/restore'
 URI_FULL_COPY_RESYNC = URI_FULL_COPY + '/{0}/resynchronize'
+URI_ADD_JOURNAL = URI_VOLUME_LIST + '/protection/addJournalCapacity'
 
 URI_UNMANAGED                    = URI_VDC + '/unmanaged'
 URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
 URI_UNMANAGED_VOLUMES_SEARCH     = URI_UNMANAGED + "/search"
 URI_UNMANAGED_VOLUMES_SEARCH_NAME= URI_UNMANAGED_VOLUMES_SEARCH + "?name={0}"
 URI_UNMANAGED_EXPORTED_VOLUMES   = URI_UNMANAGED + '/volumes/ingest-exported' 
+URI_UNMANAGED_TASK               = URI_VDC + '/tasks/{0}'
 
 URI_BLOCK_MIRRORS_BASE          = URI_VOLUME               + '/protection/continuous-copies'
 URI_BLOCK_MIRRORS_LIST          = URI_BLOCK_MIRRORS_BASE
@@ -218,7 +228,7 @@ URI_NETWORKSYSTEM_ALIASES_FABRIC       = URI_NETWORKSYSTEM_ALIASES  + '?fabric-i
 URI_NETWORKSYSTEM_ALIASES_REMOVE       = URI_NETWORKSYSTEM_ALIASES  + '/remove'
 
 URI_NETWORKSYSTEM_ZONES           	   = URI_NETWORKSYSTEM  + '/san-fabrics/{1}/san-zones'
-URI_NETWORKSYSTEM_ZONES_QUERY      	   = URI_NETWORKSYSTEM_ZONES  + '?zone-name={2}&exclude-members={3}'
+URI_NETWORKSYSTEM_ZONES_QUERY      	   = URI_NETWORKSYSTEM_ZONES  + '?zone-name={2}&exclude-members={3}&exclude-aliases={4}'
 URI_NETWORKSYSTEM_ZONES_REMOVE         = URI_NETWORKSYSTEM_ZONES  + '/remove'
 URI_NETWORKSYSTEM_ZONES_ACTIVATE       = URI_NETWORKSYSTEM_ZONES  + '/activate'
 
@@ -2798,11 +2808,11 @@ class Bourne:
                     
                 return self.api_sync_2(o['resource']['id'], o['op_id'], self.networksystem_show_task)
 
-    def zone_list(self, uri, fabricId,zoneName, excludeMembers):
+    def zone_list(self, uri, fabricId,zoneName, excludeMembers, excludeAliases):
         if (fabricId):
             if ( zoneName == None ):
                 zoneName = ""
-            return self.api('GET', URI_NETWORKSYSTEM_ZONES_QUERY.format(uri, fabricId, zoneName,excludeMembers))     
+            return self.api('GET', URI_NETWORKSYSTEM_ZONES_QUERY.format(uri, fabricId, zoneName,excludeMembers, excludeAliases))     
         else:
             raise Exception('fabricid was not provided')
 
@@ -3444,6 +3454,30 @@ class Bourne:
 
         print "VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})
+        print "RESP = ", resp
+        self.assert_is_dict(resp)
+        tr_list = resp['task']
+        #print 'DEBUG : debug operation for volume : ' + o['resource']['id']
+        print tr_list
+        result = list()
+        for tr in tr_list:
+            s = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
+            result.append(s)
+        return result
+
+    def volume_add_journal(self, copyName, project, neighborhood, cos, size, count, consistencyGroup):
+        parms = {
+            'name' : copyName,
+            'varray' : neighborhood,
+            'project' : project,
+            'vpool' :  cos,
+            'size' : size,
+            'count' : count,
+	    'consistency_group' : consistencyGroup,
+        }        
+
+        print "ADD JOURNAL Params = ", parms
+        resp = self.api('POST', URI_ADD_JOURNAL, parms, {})
         print "RESP = ", resp
         self.assert_is_dict(resp)
         tr_list = resp['task']
@@ -8151,6 +8185,10 @@ class Bourne:
             return  self.api('GET', URI_UNMANAGED_VOLUMES_SEARCH_NAME.format(name))
         
 
+    def ingest_show_task(self, vol, task):
+        uri_ingest_task = URI_VDC + '/tasks/{1}'
+        return self.api('GET', uri_ingest_task.format(vol, task))
+
     def ingest_exported_volumes(self, host, cluster, varray, vpool, project, volspec):
         projectURI = self.project_query(project).strip()
         varrayURI = self.neighborhood_query(varray).strip()
@@ -8187,10 +8225,11 @@ class Bourne:
         if('details' in resp):
            print "Failed operation: "+ resp['details']
            return resp;
-        tr_list = resp['volume']
+        tr_list = resp['task']
         result = list()
         for tr in tr_list:
-           result.append(tr['id'])
+            s = self.api_sync_2(tr['resource']['id'], tr['id'], self.ingest_show_task)
+            result.append(s)
         return result
     
     def ingest_unexported_volumes(self, varray, vpool, project, volspec):
@@ -8218,8 +8257,9 @@ class Bourne:
         if('details' in resp):
            print "Failed operation: "+ resp['details']
            return resp;
-        tr_list = resp['volume']
+        tr_list = resp['task']
         result = list()
         for tr in tr_list:
-           result.append(tr['id'])
+            s = self.api_sync_2(tr['resource']['id'], tr['id'], self.ingest_show_task)
+            result.append(s)
         return result

@@ -265,7 +265,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                         systemCache.put(storageSystemUri.toString(), system);
                     }
 
-                    IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume);
+                    IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, false);
                     // TODO try to find put ways to reduce parameters.
                     @SuppressWarnings("unchecked")
                     BlockObject blockObject = ingestStrategy.ingestBlockObjects(full_systems, full_pools, system, unManagedVolume, vpool,
@@ -282,10 +282,10 @@ public class UnManagedVolumeService extends TaskResourceService {
                     processedUnManagedVolumeMap.put(unManagedVolume.getNativeGuid(), unManagedVolume);
 
                 } catch (APIException ex) {
-                    _logger.debug("APIException occurred", ex);
+                    _logger.error("APIException occurred", ex);
                     _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
                 } catch (Exception ex) {
-                    _logger.debug("Exception occurred", ex);
+                    _logger.error("Exception occurred", ex);
                     _dbClient.error(UnManagedVolume.class, unManagedVolumeUri,
                             taskId, IngestionException.exceptions.generalVolumeException(
                                     unManagedVolume.getLabel(), ex.getLocalizedMessage()));
@@ -400,7 +400,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                     systemMap.put(storageSystemUri.toString(), system);
                 }
                 // Build the Strategy , which contains reference to Block object & export orchestrators
-                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume);
+                IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(unManagedVolume, false);
 
                 // TODO try to find ways to reduce parameters
                 @SuppressWarnings("unchecked")

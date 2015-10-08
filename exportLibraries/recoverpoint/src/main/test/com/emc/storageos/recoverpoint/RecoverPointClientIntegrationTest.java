@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.recoverpoint;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.net.URI;
@@ -35,6 +37,9 @@ import com.emc.storageos.recoverpoint.requests.MultiCopyEnableImageRequestParams
 import com.emc.storageos.recoverpoint.requests.MultiCopyRestoreImageRequestParams;
 import com.emc.storageos.recoverpoint.requests.RPCopyRequestParams;
 import com.emc.storageos.recoverpoint.responses.GetCGsResponse;
+import com.emc.storageos.recoverpoint.responses.GetCopyResponse;
+import com.emc.storageos.recoverpoint.responses.GetRSetResponse;
+import com.emc.storageos.recoverpoint.responses.GetVolumeResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
@@ -84,8 +89,8 @@ public class RecoverPointClientIntegrationTest {
 
     private static final String RP_USERNAME = "admin"; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RP_USERNAME");
     private static final String RP_PASSWORD = "admin"; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RP_PASSWORD");
-    private static final String RPSiteToUse = "lrmb016.lss.emc.com"; // EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSiteToUse");
-    private static final String RPSystemName = "lrmb016"; // EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSystemName");
+    private static final String RPSiteToUse = "lglw1044.lss.emc.com"; // EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSiteToUse");
+    private static final String RPSystemName = "lglw1044"; // EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSystemName");
     private static final String SITE_MGMT_IPV4 = "10.247.169.83";//EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.SITE_MGMT_IPV4");
 
     private static final String FAKE_WWN = "6006016018C12D00";
@@ -169,8 +174,44 @@ public class RecoverPointClientIntegrationTest {
         Set<GetCGsResponse> cgs;
         try {
             cgs = rpClient.getAllCGs();
+            Set<String> wwns = new HashSet<String>();
             for (GetCGsResponse cg : cgs) {
                 logger.info("CG: " + cg);
+     
+                assertNotNull(cg.getCgName());
+                assertNotNull(cg.getCgId());
+                assertNotNull(cg.getCopies());
+                assertNotNull(cg.getRsets());
+                
+                // Make sure certain fields are filled-in
+                for (GetCopyResponse copy : cg.getCopies()) {
+                    assertNotNull(copy.getJournals());
+                    assertNotNull(copy.getName());
+                    for (GetVolumeResponse volume : copy.getJournals()) {
+                        assertNotNull(volume.getInternalSiteName());
+                        assertNotNull(volume.getRpCopyName());
+                        assertNotNull(volume.getWwn());
+                        // Make sure the same volume isn't in more than one place in the list.
+                        assertFalse(wwns.contains(volume.getWwn()));
+                        wwns.add(volume.getWwn());
+                    }
+                }
+                
+                for (GetRSetResponse rset : cg.getRsets()) {
+                    assertNotNull(rset.getName());
+                    assertNotNull(rset.getVolumes());
+                    for (GetVolumeResponse volume : rset.getVolumes()) {
+                        assertNotNull(volume.getInternalSiteName());
+                        assertNotNull(volume.getRpCopyName());
+                        assertNotNull(volume.getWwn());
+                        // Make sure the same volume isn't in more than one place in the list.
+                        assertFalse(wwns.contains(volume.getWwn()));
+                        wwns.add(volume.getWwn());
+                    }
+                }
+                
+                
+                // Make sure you have journals, sources, and targets
             }
         } catch (RecoverPointException e) {
             fail(e.getMessage());
@@ -278,13 +319,13 @@ public class RecoverPointClientIntegrationTest {
             for (RPSite rpSite : returnList) {
                 boolean foundError = false;
                 logger.info("Testing RecoverPoint Get Site WWNs");
-                Map<String, String> WWNs = null;
+                Map<String, Map<String, String>> WWNs = null;
                 WWNs = rpClient.getInitiatorWWNs(rpSite.getInternalSiteName());
                 if (WWNs == null || WWNs.size() < 1) {
                     foundError = true;
                     fail("No WWNs were returned");
                 }
-                if (!foundError) {
+                if (!foundError) {                	
                     logger.info("TestRecoverPointServiceGetSiteWWNs PASSED.  Found " + WWNs.size() + " Initiator WWNs");
                 }
             }

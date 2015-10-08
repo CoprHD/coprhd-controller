@@ -765,7 +765,7 @@ class Volume(object):
         return o
 
     def unmanaged_volume_ingest(self, tenant, project,
-                                varray, vpool, volumes):
+                                varray, vpool, volumes, ingestmethod):
         '''
         This function is to ingest given unmanaged volumes
         into ViPR.
@@ -781,15 +781,20 @@ class Volume(object):
         from virtualarray import VirtualArray
         varray_obj = VirtualArray(self.__ipAddr, self.__port)
         varray_uri = varray_obj.varray_query(varray)
+        
+        if(ingestmethod is None):
+            ingestmethod = "Full"
 
         request = {
             'vpool': vpool_uri,
             'varray': varray_uri,
+            'vplexIngestionMethod': ingestmethod,
             'project': project_uri,
             'unmanaged_volume_list': volumes
         }
 
         body = json.dumps(request)
+        
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
@@ -799,7 +804,7 @@ class Volume(object):
         return o
 
     def unmanaged_exported_volume_ingest(self, tenant, project,
-                                varray, vpool, volumes, host, cluster):
+                                varray, vpool, volumes, host, cluster, ingestmethod):
         '''
         This function is to ingest given unmanaged volumes
         into ViPR.
@@ -815,9 +820,13 @@ class Volume(object):
         from virtualarray import VirtualArray
         varray_obj = VirtualArray(self.__ipAddr, self.__port)
         varray_uri = varray_obj.varray_query(varray)
+        
+        if(ingestmethod is None):
+            ingestmethod = "Full"
 
         request = {
             'vpool': vpool_uri,
+            'vplexIngestionMethod': ingestmethod, 
             'varray': varray_uri,
             'project': project_uri,
             'unmanaged_volume_list': volumes
@@ -1479,6 +1488,24 @@ class Volume(object):
             return self.check_for_sync(task,sync)
         else:
             return o    
+
+        
+    #To check whether a cloned volume is in detachable state or not
+    def is_volume_detachable(self, name):
+        
+        volumeUri = self.volume_query(name)
+        vol = self.show_by_uri(volumeUri)
+        #Filtering based on "replicaState" attribute value of Cloned volume.
+        #If "replicaState" value is "SYNCHRONIZED" then only Cloned volume would be in detachable state.
+        if(vol and 'protection' in vol and
+            'full_copies' in vol['protection'] and
+            'replicaState' in vol['protection']['full_copies']):
+            if(vol['protection']['full_copies']['replicaState'] == 'SYNCHRONIZED'):
+                return True
+            else:
+                return False
+        else:
+            return False
         
         
     def volume_clone_deactivate(self, resourceUri, name, sync):
@@ -1738,7 +1765,7 @@ def rp_journal_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-cg', '-consistencygroup',
                                help='The name of the consistency group',
                                dest='consistencygroup',
-                               metavar='<consistentgroupname>',
+                               metavar='<consistencygroupname>',
                                required=True)
     rp_journal_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
@@ -1800,7 +1827,7 @@ def volume_clone_common_parser(cc_common_parser):
     group.add_argument('-volume', '-vol',
                        metavar='<volumename>',
                        dest='volume',
-                       help='Name of a volume')
+                       help='Name of a volume , N/A for clone-deactivate')
     mandatory_args.add_argument('-project', '-pr',
                                 metavar='<projectname>',
                                 dest='project',
@@ -2060,8 +2087,8 @@ def clone_deactivate_parser(subcommand_parsers, common_parser):
         'clone-deactivate',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Deactivate the Fullcopy of a volume/consistency group',
-        description='ViPR Deactivate Fullcopy of a volume/consistency group CLI usage.')
+        help='Deactivate the Fullcopy of a consistency group',
+        description='ViPR Deactivate Fullcopy of a consistency group CLI usage.')
     
     # Add parameter from common clone parser.
     volume_clone_common_parser(clone_deactivate_parser)
@@ -2670,6 +2697,12 @@ def unmanaged_parser(subcommand_parsers, common_parser):
                                 metavar='<cluster name>',
                                 dest='cluster',
                                 help='Name of cluster')
+    ingest_parser.add_argument('-ingestmethod', '-inmd',
+                                metavar='<ingest method>',
+                                dest='ingestmethod',
+                                choices = ["Full" ,"VirtualVolumesOnly"],
+                                default = "Full" ,
+                                help='Ingest Method')
 
     # show unmanaged volume
     umshow_parser = subcommand_parsers.add_parser('show',
@@ -2705,11 +2738,11 @@ def unmanaged_volume_ingest(args):
                 obj.unmanaged_exported_volume_ingest(args.tenant, args.project,
                                           args.varray, args.vpool,
                                           args.volumes, args.host,
-                                          args.cluster)
+                                          args.cluster ,args.ingestmethod)
             else:
                 obj.unmanaged_volume_ingest(args.tenant, args.project,
                                           args.varray, args.vpool,
-                                          args.volumes)
+                                          args.volumes,args.ingestmethod)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "ingest",
@@ -3117,7 +3150,7 @@ def mirror_protect_parser(subcommand_parsers, common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         description='ViPR continuous_copies show CLI usage.',
-        help='Show Continuous copy volume')
+        help='Show Continuous copy volume ,For Native and RP only')
     # Add parameter from common protection parser.
     add_protection_sub_common_parser(mptshow_parser)
     mptshow_parser.set_defaults(func=volume_mirror_protect_show)
@@ -3216,7 +3249,7 @@ def mirror_protect_parser(subcommand_parsers, common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         description='ViPR continuous_copies list CLI usage.',
-        help='List continous copies for given volume')
+        help='List continous copies for given volume , For Native and RP only')
     mandatory_args = mptlist_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<volumename>',

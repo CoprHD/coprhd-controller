@@ -10,10 +10,11 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,35 +97,61 @@ public class FileStorageScheduler {
         Map<VirtualNAS, List<StoragePool>> vNASPoolMap = getRecommendedVirtualNASBasedOnCandidatePools(
                 vPool, vArray.getId(), candidatePools, project);
 
-        VirtualNAS firstVNAS = null;
-        if (!vNASPoolMap.isEmpty()) {
-            for (VirtualNAS eachVNAS : vNASPoolMap.keySet()) {
-                firstVNAS = eachVNAS;
-                break;
-            }
-        }
-        if (firstVNAS != null) {
-            _log.info("Best vNAS selected: {}", firstVNAS.getNasName());
-            List<StoragePool> recommendedPools = vNASPoolMap.get(firstVNAS);
-
-            if (recommendedPools != null && !recommendedPools.isEmpty()) {
-                candidatePools = recommendedPools;
-            }
-        }
-        // Get the recommendations for the candidate pools.
-        List<Recommendation> poolRecommendations = _scheduler
-                .getRecommendationsForPools(vArray.getId().toString(),
-                        candidatePools, capabilities);
-
+        VirtualNAS currvNAS = null;
         List<FileRecommendation> fileRecommendations = null;
-        if (firstVNAS != null) {
-            fileRecommendations = getFileRecommendationsForVNAS(firstVNAS,
-                    vArray.getId(), vPool, poolRecommendations);
-        }
+        
+        if (!vNASPoolMap.isEmpty()) {
+            for (Entry<VirtualNAS, List<StoragePool>> eachVNASEntry : vNASPoolMap.entrySet()) {
+            	// If No storage pools recommended!!!
+            	if(eachVNASEntry.getValue().isEmpty()) {
+            		continue;
+            	}
+            	
+            	currvNAS = eachVNASEntry.getKey();
+            	if (currvNAS != null) {
+                    _log.info("Best vNAS selected: {}", currvNAS.getNasName());
+                    List<StoragePool> recommendedPools = eachVNASEntry.getValue();
+                    
+                    // Get the recommendations for the current vnas pools.
+                    List<Recommendation> poolRecommendations = _scheduler
+                            .getRecommendationsForPools(vArray.getId().toString(),
+                            		recommendedPools, capabilities);
+                    // If we did not find pool recommendation for current vNAS
+                    // Pick the pools from next available vNas recommended pools!!!
+                    if(poolRecommendations.isEmpty()) {
+                    	_log.info("Skipping vNAS {}, as pools are not having enough resources",
+                    			currvNAS.getNasName());
+                    	continue;
+                    }
 
-        if (fileRecommendations == null || fileRecommendations.isEmpty()) {
+                    // Get the file recommendations for pool recommendation!!!
+                    fileRecommendations = getFileRecommendationsForVNAS(currvNAS,
+                            vArray.getId(), vPool, poolRecommendations);
+                    
+                    if( !fileRecommendations.isEmpty()) {
+                    	_log.info("Selected vNAS {} for placement",
+                    			currvNAS.getNasName());
+                    	break;
+                    } 
+                }
+            }
+            
+        }
+        
+        // In case of
+        // 1. vNAS does not provide file recommendations or
+        // 2. vpool does not have storage pools from vnx or
+        // 3. vnx does not have vdms
+        // Get the file recommendations
+        if(fileRecommendations == null || fileRecommendations.isEmpty()) {
+        	// Get the recommendations for the candidate pools.
+        	_log.info("Placement on HADomain matching pools");
+            List<Recommendation> poolRecommendations = _scheduler
+                    .getRecommendationsForPools(vArray.getId().toString(),
+                            candidatePools, capabilities);
+            
             fileRecommendations = selectStorageHADomainMatchingVpool(vPool,
-                    vArray.getId(), poolRecommendations);
+                    vArray.getId(), poolRecommendations); 
         }
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
@@ -283,7 +310,7 @@ public class FileStorageScheduler {
             VirtualPool vPool, URI vArrayURI,
             List<StoragePool> candidatePools, Project project) {
 
-        Map<VirtualNAS, List<StoragePool>> map = new HashMap<VirtualNAS, List<StoragePool>>();
+        Map<VirtualNAS, List<StoragePool>> map = new LinkedHashMap<VirtualNAS, List<StoragePool>>();
 
         _log.info(
                 "Get matching recommendations based on assigned VNAS to project {}",
@@ -326,7 +353,9 @@ public class FileStorageScheduler {
                     storagePools.add(storagePool);
                 }
             }
-            map.put(vNAS, storagePools);
+            if(!storagePools.isEmpty()) {
+            	map.put(vNAS, storagePools);
+            }
         }
 
         return map;

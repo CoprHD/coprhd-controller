@@ -752,7 +752,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);
-                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList);
+                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList,
+                        false);
 
                 if (vvInfo == null) {
                     VPlexApiException ex = VPlexApiException.exceptions.cantFindRequestedVolume(vplexVolume.getLabel());
@@ -2867,7 +2868,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     continue;
                 }
                 Integer requestedHLU = entry.getValue();
-                // If user have provided specific HLU for volume, then check if its alreday in use
+                // If user have provided specific HLU for volume, then check if its already in use
                 if (requestedHLU.intValue() != VPlexApiConstants.LUN_UNASSIGNED &&
                         exportMask.anyVolumeHasHLU(requestedHLU.toString())) {
                     String message = String.format("Failed to add Volumes %s to ExportMask %s",
@@ -2896,7 +2897,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 return;
             }
 
-            // If deviceLabelToHLU map is empty then volumes alreday exist in the storage view hence return.
+            // If deviceLabelToHLU map is empty then volumes already exists in the storage view hence return.
             if (deviceLabelToHLU.isEmpty()) {
                 completer.ready(_dbClient);
                 return;
@@ -5753,7 +5754,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         existingVolume.getWWN().toUpperCase().replaceAll(":", ""),
                         existingVolume.getNativeId(), existingVolume.getThinlyProvisioned().booleanValue(), itls);
                 vinfos.add(vinfo);
-                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null);
+                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.CREATE_VVOLUME_FROM_IMPORT.getName();
                     ServiceError serviceError = VPlexApiException.errors.createVirtualVolumeFromImportStepFailed(opName);
@@ -6406,16 +6407,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _log.info("Created new update CG workflow with operation id {}", opId);
 
         BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, _dbClient);
-
+        ConsistencyGroupManager consistencyGroupManager = null;
         if (cg != null) {
             // Get a reference to the ConsistencyGroupManager and delete the consistency group
-            ConsistencyGroupManager consistencyGroupManager =
-                    getConsistencyGroupManager(cg);
-
-            if (consistencyGroupManager != null) {
-                consistencyGroupManager.updateConsistencyGroup(workflow, vplexURI,
-                        cgURI, addVolumesList, removeVolumesList, opId);
+            if (cg.created()) {
+                consistencyGroupManager = getConsistencyGroupManager(cg);
+            } else if (!cg.created() && addVolumesList != null && !addVolumesList.isEmpty()) {
+                // Check on volumes to get the right consistency group manager
+                Volume volume = _dbClient.queryObject(Volume.class, addVolumesList.get(0));
+                consistencyGroupManager = getConsistencyGroupManager(volume);
             }
+        }
+
+        if (consistencyGroupManager != null) {
+            consistencyGroupManager.updateConsistencyGroup(workflow, vplexURI,
+                    cgURI, addVolumesList, removeVolumesList, opId);
         }
     }
 

@@ -89,7 +89,7 @@ public class ComputeImageServerUpdate {
     /**
      * @return the password
      */
-    @XmlElement(required = true, name  = "imageserver_password")
+    @XmlElement(name  = "imageserver_password")
     @JsonProperty("imageserver_password")
     public String getImageServerPassword() {
         return imageServerPassword;
@@ -106,7 +106,7 @@ public class ComputeImageServerUpdate {
     /**
      * @return the tftpBootDir
      */
-    @XmlElement(required = true, name = "tftpBootdir")
+    @XmlElement(required = true, name = "tftpBootDir")
     @JsonProperty("tftpBootDir")
     public String getTftpBootDir() {
         return tftpBootDir;

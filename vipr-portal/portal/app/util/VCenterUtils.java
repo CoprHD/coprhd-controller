@@ -63,6 +63,7 @@ public class VCenterUtils {
     }
 
     public static Task<VcenterRestRep> createVCenter(URI tenantId, VcenterCreateParam vcenterCreateParam, boolean validateConnection) {
+        vcenterCreateParam.setCascadeTenancy(Boolean.TRUE);
         return getViprClient().vcenters().create(tenantId, vcenterCreateParam, validateConnection);
     }
 
@@ -115,8 +116,9 @@ public class VCenterUtils {
 
     public static Task<VcenterRestRep> createVCenter(VcenterCreateParam vcenterCreateParam, boolean validateConnection,
                                                      ACLAssignmentChanges aclAssignmentChanges) {
-        Task<VcenterRestRep> vCenterCreateTask = getViprClient().vcenters().create(vcenterCreateParam, validateConnection);
-        if (canUpdateACLs() && isValidAclAssignments(aclAssignmentChanges)) {
+        boolean updateAcls = canUpdateACLs() && isValidAclAssignments(aclAssignmentChanges);
+        Task<VcenterRestRep> vCenterCreateTask = getViprClient().vcenters().create(vcenterCreateParam, validateConnection, !updateAcls);
+        if (updateAcls) {
             return updateAcl(aclAssignmentChanges, vCenterCreateTask);
         } else {
             return vCenterCreateTask;
@@ -124,10 +126,10 @@ public class VCenterUtils {
     }
 
     public static Task<VcenterRestRep> updateVCenter(URI vcenterId, VcenterUpdateParam vcenterUpdateParam,
-                                                     boolean validateConnection, ACLAssignmentChanges aclAssignmentChanges,
-                                                     boolean discoverVcenter) {
-        Task<VcenterRestRep> vCenterUpdateTask = getViprClient().vcenters().update(vcenterId, vcenterUpdateParam, validateConnection, discoverVcenter);
-        if (canUpdateACLs() && isValidAclAssignments(aclAssignmentChanges)) {
+                                                     boolean validateConnection, ACLAssignmentChanges aclAssignmentChanges) {
+        boolean updateAcls = canUpdateACLs() && isValidAclAssignments(aclAssignmentChanges);
+        Task<VcenterRestRep> vCenterUpdateTask = getViprClient().vcenters().update(vcenterId, vcenterUpdateParam, validateConnection, !updateAcls);
+        if (updateAcls) {
             return updateAcl(vcenterId, aclAssignmentChanges);
         } else {
             return vCenterUpdateTask;
@@ -153,7 +155,7 @@ public class VCenterUtils {
         return Security.hasAnyRole(Security.SECURITY_ADMIN, Security.SYSTEM_ADMIN);
     }
 
-    private static boolean isValidAclAssignments (ACLAssignmentChanges aclAssignmentChanges) {
+    public static boolean isValidAclAssignments (ACLAssignmentChanges aclAssignmentChanges) {
         if (!(CollectionUtils.isEmpty(aclAssignmentChanges.getAdd()) &&
                 CollectionUtils.isEmpty(aclAssignmentChanges.getRemove()))) {
             return true;

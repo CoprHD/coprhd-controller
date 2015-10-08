@@ -1548,9 +1548,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
             boolean mustHaveAllPorts) {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
+        Map<URI, ExportMask> maskMap = new HashMap<>();
         CloseableIterator<CIMInstance> maskInstanceItr = null;
         try {
-            StringBuilder builder = new StringBuilder();
+
             WBEMClient client = _helper.getConnection(storage).getCimClient();
             HashMap<String, CIMObjectPath> initiatorPathsMap = _cimPath.getInitiatorToInitiatorPath(storage, initiatorNames);
 
@@ -1620,12 +1621,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         List<String> storagePortURIs =
                                 ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts);
                         exportMask.setStoragePorts(storagePortURIs);
-                        builder.append(String.format("   ----> SP { %s }\n" +
-                                "         URI{ %s }\n",
-                                Joiner.on(',').join(storagePorts),
-                                Joiner.on(',').join(storagePortURIs)));
                         // Add the mask name to the list for which volumes are already updated
                         maskNames.add(name);
+                        maskMap.put(exportMask.getId(), exportMask);
                     }
                     exportMask.addToExistingInitiatorsIfAbsent(initiatorName);
 
@@ -1637,12 +1635,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         continue;
                     }
                     exportMask.addInitiator(existingInitiator);
-                    StringMap existingVolumes = exportMask.getExistingVolumes();
-                    String volumes = (null != existingVolumes && existingVolumes.size() < 100) ?
-                            Joiner.on(',').join(existingVolumes.keySet()) : "...";
-                    builder.append(String.format("XM:%s is matching. " +
-                            "EI: { %s }, EV: { %s }",
-                            name, Joiner.on(',').join(exportMask.getExistingInitiators()), volumes));
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
                         _dbClient.updateAndReindexObject(exportMask);
@@ -1650,8 +1642,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         _dbClient.createObject(exportMask);
                     }
 
-                    if (matchesSearchCriteria(exportMask, new ArrayList<String>(Arrays.asList(initiatorName)),
-                            mustHaveAllPorts)) {
+                    if (matchesSearchCriteria(exportMask, Collections.singletonList(initiatorName), mustHaveAllPorts)) {
                         Set<URI> maskURIs = matchingMasks.get(initiatorName);
                         if (maskURIs == null) {
                             maskURIs = new HashSet<URI>();
@@ -1660,6 +1651,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         maskURIs.add(exportMask.getId());
                     }
                 }
+            }
+            StringBuilder builder = new StringBuilder();
+            for (URI exportMaskURI : maskMap.keySet()) {
+                ExportMask exportMask = maskMap.get(exportMaskURI);
+                builder.append(String.format("\nXM:%s is matching: ", exportMask.getMaskName())).append('\n').append(exportMask.toString());
             }
             _log.info(builder.toString());
         } catch (Exception e) {

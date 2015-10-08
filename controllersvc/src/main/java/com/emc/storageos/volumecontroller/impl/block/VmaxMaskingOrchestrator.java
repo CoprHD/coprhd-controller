@@ -1852,7 +1852,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
         // Dummy/non-essential data
         ExportGroup dummyExportGroup = new ExportGroup();
-        dummyExportGroup.setType(ExportGroupType.Initiator.name());
+        dummyExportGroup.setType(ExportGroupType.Host.name());
 
         // InitiatorHelper for processing the initiators
         InitiatorHelper initiatorHelper = new InitiatorHelper(initiators).process(dummyExportGroup);

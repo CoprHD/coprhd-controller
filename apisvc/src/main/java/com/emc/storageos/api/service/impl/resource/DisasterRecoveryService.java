@@ -82,12 +82,6 @@ public class DisasterRecoveryService {
     private SysUtils sysUtils;
     private CoordinatorClient coordinator;
     private DbClient dbClient;
-
-    private String vdcShortId;
-
-    public void setVdcShortId(String vdcId) {
-        vdcShortId = vdcId;
-    }
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -391,15 +385,18 @@ public class DisasterRecoveryService {
         try {
             standby.setState(SiteState.STANDBY_PAUSED);
             coordinator.persistServiceConfiguration(uuid, standby.toConfiguration());
+
             VirtualDataCenter vdc = queryLocalVDC();
-
             // exclude the paused site from strategy options of dbsvc and geodbsvc
-            updateStrategyOptions(((DbClientImpl)dbClient).getLocalContext());
-            updateStrategyOptions(((DbClientImpl)dbClient).getGeoContext());
+            updateStrategyOptions(((DbClientImpl)dbClient).getLocalContext(), vdc.getShortId(), uuid);
+            updateStrategyOptions(((DbClientImpl)dbClient).getGeoContext(), vdc.getShortId(), uuid);
 
-            for (Site site : getSites(vdc.getId())) {
+            for (Site site : getStandbySites(vdc.getId())) {
                 updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
+
+            // update the local(primary) site last
+            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
 
             return siteMapper.map(standby);
         } catch (Exception e) {
@@ -408,13 +405,14 @@ public class DisasterRecoveryService {
         }
     }
 
-    private void updateStrategyOptions(DbClientContext dbContext) throws Exception {
+    private void updateStrategyOptions(DbClientContext dbContext, String localVdcShortId, String siteId)
+            throws Exception {
         Map<String, String> strategyOptions = dbContext.getKeyspace().describeKeyspace().getStrategyOptions();
 
         for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
-            String dcId = String.format("%s-%s", vdcShortId, site.getStandbyShortId());
-            if (site.getState().equals(SiteState.STANDBY_PAUSED) && strategyOptions.containsKey(dcId)) {
+            String dcId = String.format("%s-%s", localVdcShortId, site.getStandbyShortId());
+            if (site.getUuid().equals(siteId) && strategyOptions.containsKey(dcId)) {
                 log.info("Remove dc {} from strategy options", dcId);
                 strategyOptions.remove(dcId);
             }

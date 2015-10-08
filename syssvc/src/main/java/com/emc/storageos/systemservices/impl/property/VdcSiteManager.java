@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
+import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -72,12 +73,16 @@ public class VdcSiteManager extends AbstractManager {
     // data revision time out - 11 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
     
+    private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
+    
     private SiteInfo targetSiteInfo;
 
     private String vdcShortId;
     
     private Service service;
-
+    
+    private String currentSiteId;
+   
     public void setVdcShortId(String vdcId) {
         vdcShortId = vdcId;
     }
@@ -142,7 +147,8 @@ public class VdcSiteManager extends AbstractManager {
     @Override
     protected void innerRun() {
         final String svcId = coordinator.getMySvcId();
-
+        currentSiteId = coordinator.getCoordinatorClient().getSiteId();
+        
         addSiteInfoListener();
 
         while (doRun) {
@@ -332,7 +338,9 @@ public class VdcSiteManager extends AbstractManager {
 
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
-                removeStandby();
+                if (isRemovingStandby()) {
+                    removeStandby();
+                }
                 reconfigRestartSvcs();
                 break;
             case SiteInfo.PAUSE_STANDBY:
@@ -601,23 +609,61 @@ public class VdcSiteManager extends AbstractManager {
         Exec.sudo(SHUTDOWN_TIMEOUT_MILLIS, cmd);
     }
 
-    // Todo - move DR related code to a separated util class
+    /**
+     * Check if a standby is removing from an ensemble. 
+     * 
+     * @return
+     */
+    private boolean isRemovingStandby() {
+        VirtualDataCenter vdc = VdcUtil.getLocalVdc();
+        List<Site> sites = listSites(vdc);
+
+        for(Site site : sites) {
+            if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
+                if (!currentSiteId.equals(site.getUuid())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Remove a standby site from current ensemble. 
+     * 
+     * @throws Exception
+     */
     private void removeStandby() throws Exception{
         String svcId = coordinator.getMySvcId();
         if (getVdcLock(svcId)) {
             try {
                 VirtualDataCenter vdc = VdcUtil.getLocalVdc();
                 CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
-                String currentSiteId = coordinatorClient.getSiteId();
                 List<Site> sites = listSites(vdc);
                 for(Site site : sites) {
                     if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
                         if (currentSiteId.equals(site.getUuid())) {
-                            log.info("Current site is removed from DR sites. It should be manually promoted as a primary controller");
+                            log.info("Current site is removed from a DR. It should be manually promoted as a primary controller");
                         } else {
                             poweroffRemoteSite(site);
+                            
+                            String dcName = getCassandraDcId(site);
+                            DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
+                            try {
+                                dbOps.removeDataCenter(dcName);
+                            } finally {
+                                dbOps.close();
+                            }
                             updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getLocalContext());
+                            
+                            DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME);
+                            try {
+                                geodbOps.removeDataCenter(dcName);
+                            } finally {
+                                geodbOps.close();
+                            }
                             updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getGeoContext());
+                            coordinatorClient.removeServiceConfiguration(site.toConfiguration());
                         }
                    }
                 }
@@ -641,17 +687,15 @@ public class VdcSiteManager extends AbstractManager {
 
     private void poweroffRemoteSite(Site site) {
         if (!isSiteUp(site)) {
-            log.info("Site {} is down. No need to poweroff it", site.getUuid());
+            log.info("Site {} is down. no need to poweroff it", site.getUuid());
             return;
         }
-
+        // all syssvc shares same port
         String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVip(), service.getEndpoint().getPort());
-        String poweroffURL = "/control/internal/cluster/poweroff";
-        int timeoutInMillis = 10000;
-        SysClientFactory.getSysClient(URI.create(baseNodeURL), timeoutInMillis, timeoutInMillis).post(URI.create(poweroffURL), null, null);
+        SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
         log.info("Powering off site {}", site.getUuid());
         while(isSiteUp(site)) {
-            log.info("Short sleep and will check site status again later");
+            log.info("Short sleep and will check site status later");
             retrySleep();
         }
     }
@@ -666,7 +710,7 @@ public class VdcSiteManager extends AbstractManager {
             for(Service svc : svcs) {
                 nodeList.add(svc.getNodeId());
             }
-            log.info("Site {} is up. Active nodes {}", site.getUuid(), StringUtils.join(nodeList, ","));
+            log.info("Site {} is up. active nodes {}", site.getUuid(), StringUtils.join(nodeList, ","));
             return true;
         } catch (CoordinatorException ex) {
             if (ex.getServiceCode() == ServiceCode.COORDINATOR_SVC_NOT_FOUND) {

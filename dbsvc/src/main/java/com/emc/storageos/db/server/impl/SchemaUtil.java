@@ -847,12 +847,13 @@ public class SchemaUtil {
         // insert DR primary site info to ZK
         Site site = new Site();
         site.setUuid(_coordinator.getSiteId());
-        site.setName("Primary Site");
+        site.setName("Primary");
         site.setVdc(vdc.getId());
         site.setHostIPv4AddressMap(ipv4Addresses);
         site.setHostIPv6AddressMap(ipv6Addresses);
         site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
+        site.setVip(_vdcEndpoint);
         _coordinator.persistServiceConfiguration(site.toConfiguration());
     }
 

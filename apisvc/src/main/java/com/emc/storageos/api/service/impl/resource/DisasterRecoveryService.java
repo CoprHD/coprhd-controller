@@ -269,6 +269,11 @@ public class DisasterRecoveryService {
 
         try {
             Site toBeRemovedSite = new Site(config);
+            if (toBeRemovedSite.getState().equals(SiteState.ACTIVE)) {
+                log.error("Not allowed to remove primary site {}", uuid);
+                throw APIException.badRequests.operationNotAllowedOnPrimarySite();
+            }
+
             log.info("Find standby site in local VDC and remove it");
 
             toBeRemovedSite.setState(SiteState.STANDBY_REMOVING);

@@ -96,7 +96,7 @@ public class DisasterRecoveryServiceTest {
         
         // setup local VDC
         localVDC = new VirtualDataCenter();
-        localVDC.setId(URIUtil.createId(VirtualDataCenter.class));
+        localVDC.setId(URI.create("urn:storageos:VirtualDataCenter:a81058b2-a241-4a77-a89a-d9402d80ea55:vdc1"));
         
         standby = new SiteConfigRestRep();
         standby.setClusterStable(true);
@@ -264,7 +264,18 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testRemoveStandby() {
-        //TODO this test case will be add when implement detach standby feature
+        String invalidSiteId = "invalid_site_id";
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
+                standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
+                standbySite2.getUuid());
+
+        doReturn(localVDC).when(drService).queryLocalVDC();
+        doNothing().when(coordinator).persistServiceConfiguration(any(Configuration.class));
+        doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
+        doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
+
+        SiteRestRep response = drService.removeStandby(standbySite2.getUuid());
     }
 
     @Test

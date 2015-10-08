@@ -57,7 +57,8 @@ public class NfsACLUtility {
     }
 
     public void verifyNfsACLs(NfsACLUpdateParams param) {
-        // TODO
+
+        List<NfsACE> addlist = param.getAcesToAdd();
 
     }
 

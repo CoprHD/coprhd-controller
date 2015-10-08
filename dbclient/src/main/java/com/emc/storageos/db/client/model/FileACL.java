@@ -22,10 +22,6 @@ public abstract class FileACL extends DataObject {
 
     protected String snapshotACLIndex;
 
-    public static enum SupportedPermissions {
-        read, change, fullcontrol
-    }
-
     @Name("user")
     public String getUser() {
         return user;
@@ -89,7 +85,7 @@ public abstract class FileACL extends DataObject {
 
     @Name("snapshotACLIndex")
     @AlternateId("snapshotACLIndexTable")
-    public String getSnapshotExportACLIndex() {
+    public String getSnapshotACLIndex() {
         return snapshotACLIndex;
     }
 
@@ -110,16 +106,16 @@ public abstract class FileACL extends DataObject {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("ExportACL [user=");
+        builder.append("ACL [user=");
         builder.append(user);
-        builder.append(", group=");
+        builder.append(", type=");
         builder.append(type);
         builder.append(", fileSystemPath=");
         builder.append(fileSystemPath);
         builder.append(", permission=");
         builder.append(permission);
-        builder.append(", deviceExportPath=");
-
+        builder.append(", permission type=");
+        builder.append(permissionType);
         builder.append("]");
         return builder.toString();
     }

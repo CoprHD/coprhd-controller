@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
@@ -52,6 +53,7 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
@@ -2586,6 +2588,67 @@ public class FileDeviceController implements FileController {
 
     }
 
+    private void copyToPersistNfsACL(NfsACE ace, NFSShareACL dbShareAcl,
+            FileShare fs, FileDeviceInputOutput args) {
+
+        if (ace.getUser() != null) {
+            dbShareAcl.setUser(ace.getUser());
+        }
+        if (ace.getType() != null) {
+            dbShareAcl.setType(ace.getType());
+        }
+
+        if (ace.getDomain() != null) {
+            dbShareAcl.setDomain(ace.getDomain());
+        }
+
+        if (args.getFileOperation()) {
+            dbShareAcl.setFileSystemId(fs.getId());
+        } else {
+            dbShareAcl.setSnapshotId(args.getSnapshotId());
+        }
+        if (args.getFileSystemPath() != null) {
+            dbShareAcl.setFileSystemPath(args.getFileSystemPath());
+        }
+        if (ace.getPermission() != null) {
+            dbShareAcl.setPermission(ace.getPermission());
+        }
+        if (ace.getPermissionType() != null) {
+            dbShareAcl.setPermissionType(ace.getPermissionType());
+        }
+
+    }
+
+    private NFSShareACL getExistingNfsAclFromDB(NFSShareACL dbShareAcl,
+            FileDeviceInputOutput args) {
+
+        NFSShareACL acl = null;
+        String index = null;
+        URIQueryResultList result = new URIQueryResultList();
+        if (args.getFileOperation()) {
+            index = dbShareAcl.getFileSystemACLIndex();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getFileSystemNfsACLConstraint(index), result);
+        } else {
+            index = dbShareAcl.getSnapshotACLIndex();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getSnapshotNfsACLConstraint(index), result);
+        }
+
+        Iterator<URI> it = result.iterator();
+        while (it.hasNext()) {
+            if (result.iterator().hasNext()) {
+                acl = _dbClient.queryObject(NFSShareACL.class, it.next());
+                if (acl != null && !acl.getInactive()) {
+                    _log.info("Existing ACE found in DB: {}", acl);
+                    return acl;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private List<CifsShareACL> queryDBShareAcls(FileDeviceInputOutput args) {
         List<CifsShareACL> acls = new ArrayList<CifsShareACL>();
         try {
@@ -2904,7 +2967,8 @@ public class FileDeviceController implements FileController {
 
             if (result.isCommandSuccess()) {
                 // Update Database
-                // doCRUDExports(param, fs, args);
+
+                updateNFSACLsInDB(param, fs, args);
 
             }
 
@@ -2944,5 +3008,58 @@ public class FileDeviceController implements FileController {
             _log.error("{}, {} ", e.getMessage(), e);
             updateTaskStatus(opId, fsObj, e);
         }
+    }
+
+    private void updateNFSACLsInDB(NfsACLUpdateParams param,
+            FileShare fs, FileDeviceInputOutput args) {
+
+        try {
+            // Create new Acls
+            List<NfsACE> aceAdd = param.getAcesToAdd();
+
+            if (aceAdd != null && !aceAdd.isEmpty()) {
+                for (NfsACE ace : aceAdd) {
+                    NFSShareACL dbNfsAcl = new NFSShareACL();
+                    dbNfsAcl.setId(URIUtil.createId(NFSShareACL.class));
+                    copyToPersistNfsACL(ace, dbNfsAcl, fs, args);
+                    _log.info("Storing new acl in DB: {}", dbNfsAcl);
+                    _dbClient.createObject(dbNfsAcl);
+                }
+            }
+
+            // Modify existing acls
+
+            List<NfsACE> aceModify = param.getAcesToModify();
+
+            if (aceModify != null && !aceModify.isEmpty()) {
+                for (NfsACE ace : aceModify) {
+                    NFSShareACL dbNfsAcl = new NFSShareACL();
+                    copyToPersistNfsACL(ace, dbNfsAcl, fs, args);
+                    NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args);
+                    dbNfsAcl.setId(dbNfsAclTemp.getId());
+                    _log.info("Modifying acl in DB: {}", dbNfsAcl);
+                    _dbClient.persistObject(dbNfsAcl);
+                }
+            }
+
+            List<NfsACE> aceDelete = param.getAcesToDelete();
+
+            if (aceDelete != null && !aceDelete.isEmpty()) {
+                for (NfsACE ace : aceDelete) {
+                    NFSShareACL dbNfsAcl = new NFSShareACL();
+                    copyToPersistNfsACL(ace, dbNfsAcl, fs, args);
+                    NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args);
+                    dbNfsAcl.setId(dbNfsAclTemp.getId());
+                    dbNfsAcl.setInactive(true);
+                    _log.info("Marking acl inactive in DB: {}", dbNfsAcl);
+                    _dbClient.persistObject(dbNfsAcl);
+                }
+            }
+        }
+
+        catch (Exception e) {
+            _log.error("Error While executing CRUD Operations {}", e);
+        }
+
     }
 }

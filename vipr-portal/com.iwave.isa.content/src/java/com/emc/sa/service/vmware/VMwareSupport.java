@@ -722,15 +722,16 @@ public class VMwareSupport {
         return e;
     }
 
+    /**
+     * Detach the volume from the host or hosts in the cluster
+     * 
+     * @param host host to detach the volume. if null, use cluster's hosts
+     * @param cluster cluster to detach the volume
+     * @param volume the volume to detach
+     */
     public void detachLuns(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume) {
         final HostScsiDisk disk = findScsiDisk(host, cluster, volume);
-        List<HostSystem> hosts = Lists.newArrayList();
-        if (host != null) {
-            hosts.add(host);
-        } else {
-            for (HostSystem hostSystem : cluster.getHosts())
-                hosts.add(hostSystem);
-        }
+        List<HostSystem> hosts = host != null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
 
         executeOnHosts(hosts, new HostSystemCallback() {
             @Override

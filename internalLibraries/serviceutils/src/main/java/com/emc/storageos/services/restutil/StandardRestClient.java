@@ -10,6 +10,8 @@ import java.net.URI;
 import javax.ws.rs.core.MediaType;
 
 import org.codehaus.jettison.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -17,8 +19,6 @@ import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class StandardRestClient implements RestClientItf {
     protected Client _client;
@@ -44,7 +44,8 @@ public abstract class StandardRestClient implements RestClientItf {
     @Override
     public ClientResponse put(URI uri, String body) throws InternalException {
         URI requestURI = _base.resolve(uri);
-        ClientResponse response = setResourceHeaders(_client.resource(requestURI)).put(ClientResponse.class, body);
+        ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
+                .put(ClientResponse.class, body);
         if (authenticationFailed(response)) {
             authenticate();
             response = setResourceHeaders(_client.resource(requestURI)).put(ClientResponse.class, body);
@@ -80,17 +81,17 @@ public abstract class StandardRestClient implements RestClientItf {
         checkResponse(uri, response);
         return response;
     }
-    
+
     public ClientResponse delete(URI uri, String body) throws InternalException {
         URI requestURI = _base.resolve(uri);
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                 .delete(ClientResponse.class, body);
-        if ( authenticationFailed(response) ){
+        if (authenticationFailed(response)) {
             authenticate();
             response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                     .delete(ClientResponse.class);
         }
-        checkResponse(uri,response);
+        checkResponse(uri, response);
         return response;
     }
 

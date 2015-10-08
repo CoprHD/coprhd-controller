@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>]'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>] | sanzoning'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -120,7 +120,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore)
+    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -183,10 +183,18 @@ if [ "$ethdev" = "" ] ; then
    ethdev=eth0
 fi
 
+# COP-16713: Sometimes a linux ethernet interface is more than 9 characters
+#            However, ifconfig will only show the first 9.  If the name is 
+#            long, run "ip link show", which will give us the full name.
+if [ ${#ethdev} > 8 ] ; then
+    ethdev=`ip link show | grep ${ethdev} | awk '{print $2}' | awk -F: '{print $1}'`
+fi
+
 macaddr=`/sbin/ifconfig ${ethdev} | /usr/bin/awk '/HWaddr/ { print $5 }'`
 if [ "$macaddr" = "" ] ; then
     macaddr=`/sbin/ifconfig en0 | /usr/bin/awk '/ether/ { print $2 }'`
 fi
+
 seed=`date "+%H%M%S%N"`
 seed2b=`printf "%02X" $$ | cut -b1-2`
 hostseed=`echo ${macaddr} | awk -F: '{print $5$6}'`
@@ -399,7 +407,7 @@ SRDF_VOLUME=srdfSanity-${HOSTNAME}-${RANDOM}
 #
 RP_SYSTEM_TYPE=rp
 RP_REMOVE_BAD_CHARS_HOSTNAME=${HOSTNAME//[^a-zA-Z0-9]/}
-RP_MODIFIED_HOSTNAME=${HOSTNAME:0:8}
+RP_MODIFIED_HOSTNAME=${RP_REMOVE_BAD_CHARS_HOSTNAME:0:8}
 RP_SANITY_RANDOM=$((RANDOM % 999))
 
 RP_VOLUME=rpSanity-${RP_MODIFIED_HOSTNAME}-${RP_SANITY_RANDOM}-vol
@@ -1779,6 +1787,52 @@ vplexexport_tests() {
     run export-tests/vplexexport.sh test1
 }
 
+sanzoning_setup()
+{
+    sanzoning_setup_once
+}
+
+sanzoning_setup_once()
+{
+    vmaxblock_discovery
+    vnxblock_discovery
+}
+
+# Sanzoning Tests
+sanzoning_tests()
+{
+    echo "************* Running export-tests/sanzoning.sh  *****************"
+#    run export-tests/sanzoning.sh addvolumezonecheck
+#   run export-tests/sanzoning.sh cleanup
+    run export-tests/sanzoning.sh sanzonereuse
+}
+
+vmaxblock_discovery()
+{
+    # do this only once
+    smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
+
+    if [ $QUICK -eq 0 ]; then
+       smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    fi
+
+    storagedevice discover_all --ignore_error
+}
+
+vnxblock_discovery()
+{
+    # Discover VNX block array
+    smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
+
+    if [ $QUICK -eq 0 ]; then
+       smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    else
+       smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    fi
+
+    storagedevice discover_all --ignore_error
+}
+
 ######################### Start of RecoverPoint ############################
 #
 # RecoverPoint can be run in a simulated and physical environment.
@@ -1791,8 +1845,8 @@ vplexexport_tests() {
 # All varrays for regular targets
 rp_targets()
 {
-    cos create block rp_targets$1 $POOLS_AUTO_MATCH \
-        --description 'RP Targets' \
+    run cos create block rp_targets$1 $POOLS_AUTO_MATCH \
+        --description 'RP-Targets' \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1803,8 +1857,8 @@ rp_targets()
 # All varrays for RP+VPLEX targets
 rpvplex_targets()
 {
-    cos create block rpvplex_targets$1 true \
-        --description 'RP+VPLEX Targets' \
+    run cos create block rpvplex_targets$1 true \
+        --description 'RP+VPLEX-Targets' \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1816,7 +1870,7 @@ rpvplex_targets()
 # All varrays for HA
 rpvplex_ha()
 {
-    cos create block rpvplex_ha$1 true \
+    run cos create block rpvplex_ha$1 true \
         --description 'HA' \
         --protocols FC \
         --numpaths 2 \
@@ -1828,8 +1882,8 @@ rpvplex_ha()
 # Regular vpool used as base for change vpool tests
 rp_regular()
 {
-    cos create block rp_regular$1 true \
-        --description 'Regular vpool used as base for change vpool tests' \
+    run cos create block rp_regular$1 true \
+        --description 'Regular-vpool-used-as-base-for-change-vpool-tests' \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1840,8 +1894,8 @@ rp_regular()
 # Regular VPLEX local vpool used as base for change vpool tests
 rpvplex_local_regular()
 {
-    cos create block rpvplex_local_regular$1 true \
-        --description 'Regular VPLEX local vpool used as base for change vpool tests' \
+    run cos create block rpvplex_local_regular$1 true \
+        --description 'Regular-VPLEX-local-vpool-used-as-base-for-change-vpool-tests' \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1852,8 +1906,8 @@ rpvplex_local_regular()
 # Regular VPLEX dist vpool used as base for change vpool tests
 rpvplex_dist_regular()
 {
-    cos create block rpvplex_dist_regular$1 true \
-        --description 'Regular VPLEX dist vpool used as base for change vpool tests' \
+    run cos create block rpvplex_dist_regular$1 true \
+        --description 'Regular-VPLEX-dist-vpool-used-as-base-for-change-vpool-tests' \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -1866,15 +1920,15 @@ rpvplex_dist_regular()
 # RP CDP
 rp_cdp()
 {
-    cos create block rp_cdp$1 $POOLS_AUTO_MATCH \
-        --description 'RP Source - CDP'  \
+    run cos create block rp_cdp$1 $POOLS_AUTO_MATCH \
+        --description 'RP-Source-CDP'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
 }
@@ -1882,15 +1936,15 @@ rp_cdp()
 # RP CRR
 rp_crr()
 {
-    cos create block rp_crr$1 true \
-        --description 'RP Source - CRR'  \
+    run cos create block rp_crr$1 $POOLS_AUTO_MATCH \
+        --description 'RP-Source-CRR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
 }
@@ -1898,15 +1952,15 @@ rp_crr()
 # RP CLR
 rp_clr()
 {
-    cos create block rp_clr$1 true \
-        --description 'RP Source - CLR'  \
+    run cos create block rp_clr$1 true \
+        --description 'RP-Source-CLR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES
 }
@@ -1914,15 +1968,15 @@ rp_clr()
 # RP+VPLEX CDP
 rpvplex_cdp()
 {
-    cos create block rpvplex_cdp$1 true \
-        --description 'RP+VPLEX Source - CDP'  \
+    run cos create block rpvplex_cdp$1 true \
+        --description 'RP+VPLEX-Source-CDP'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_local
@@ -1931,15 +1985,15 @@ rpvplex_cdp()
 # RP+VPLEX CRR
 rpvplex_crr()
 {
-    cos create block rpvplex_crr$1 true \
-        --description 'RP+VPLEX Source - CRR'  \
+    run cos create block rpvplex_crr$1 true \
+        --description 'RP+VPLEX-Source-CRR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -1950,15 +2004,15 @@ rpvplex_crr()
 # RP+VPLEX CLR
 rpvplex_clr()
 {
-    cos create block rpvplex_clr$1 true \
-        --description 'RP+VPLEX Source - CLR'  \
+    run cos create block rpvplex_clr$1 true \
+        --description 'RP+VPLEX-Source-CLR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -1969,15 +2023,15 @@ rpvplex_clr()
 # MetroPoint CDP
 mp_cdp()
 {
-    cos create block mp_cdp$1 true \
-        --description 'MetroPoint Source - CDP'  \
+    run cos create block mp_cdp$1 true \
+        --description 'MetroPoint-Source-CDP'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -1990,15 +2044,15 @@ mp_cdp()
 # MetroPoint CRR
 mp_crr()
 {
-    cos create block mp_crr$1 true \
-        --description 'MetroPoint Source - CRR'  \
+    run cos create block mp_crr$1 true \
+        --description 'MetroPoint-Source-CRR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -2011,15 +2065,15 @@ mp_crr()
 # MetroPoint CLR
 mp_clr()
 {
-    cos create block mp_clr$1 true \
-        --description 'MetroPoint - CLR'  \
+    run cos create block mp_clr$1 true \
+        --description 'MetroPoint-CLR'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
-        --rp_copy_mode SYNCHRONOUS \
+        --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
@@ -2032,20 +2086,22 @@ mp_clr()
 rp_vpool_setup()
 {
     rp_targets
-    rpvplex_targets
-    rpvplex_ha
     rp_regular
-    rpvplex_local_regular
-    rpvplex_dist_regular
     rp_cdp
     rp_crr
     rp_clr
-    rpvplex_cdp
-    rpvplex_crr
-    rpvplex_clr
-    mp_cdp
-    mp_crr
-    mp_clr
+    if [ "${RPVPLEX_TESTS}" = "1" ]; then
+	rpvplex_targets
+	rpvplex_ha
+	rpvplex_local_regular
+	rpvplex_dist_regular
+	rpvplex_cdp
+	rpvplex_crr
+	rpvplex_clr
+	mp_cdp
+	mp_crr
+	mp_clr
+    fi
 }
 
 rp_varray_setup()
@@ -2102,7 +2158,9 @@ rp_smis_setup()
         fi
     done
 
-    rp_vplex_setup
+    if [ "${RPVPLEX_TESTS}" = "1" ]; then
+	rp_vplex_setup
+    fi
 
     echo '*** Recoverpoint discover storage systems ***'
     run storagedevice discover_all
@@ -2191,8 +2249,10 @@ rp_cg_setup()
     echo '*** Recoverpoint CG setup ***'
 
     run blockconsistencygroup create $PROJECT $RP_CONSISTENCY_GROUP
-    run blockconsistencygroup create $PROJECT $RP_VPLEX_CONSISTENCY_GROUP
-    run blockconsistencygroup create $PROJECT $RP_METROPOINT_CONSISTENCY_GROUP
+    if [ "${RPVPLEX_TESTS}" = "1" ]; then
+	run blockconsistencygroup create $PROJECT $RP_VPLEX_CONSISTENCY_GROUP
+	run blockconsistencygroup create $PROJECT $RP_METROPOINT_CONSISTENCY_GROUP
+    fi
 }
 
 rp_isolate_rpa_clusters()
@@ -2300,16 +2360,10 @@ recoverpoint_ingest_test()
 {
     echo '*** RP ingest tests ***'
 
-    src_volume=${1}
-    tgt_volume=${2}
-    src_varray=${3}
+    # Some more thought needs to go into this, how to integrate this into the regular test suite
+    # and efficiently take into the account the test variables for RP.
 
-    # Figure out the journal volume spec we would need for import
-    
-
-    # Delete the RP volume from inventory
-    #echo 'Deleting created volume from CoprHD inventory only'
-    #run volume delete ${1} --wait --vipronly
+    vpool=${1}
 
     INGEST_NATIVEGUID=$VMAX1_SIMULATOR_NATIVEGUID
     RP_NATIVEGUID=$RECOVERPOINT_RP_SIM_NATIVEGUID
@@ -2320,10 +2374,90 @@ recoverpoint_ingest_test()
 
     # Discover unmanaged volumes on the array
     run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+
+    if [ ${RP_CRR} = "1" ]; then
+	INGEST_NATIVEGUID2=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
+	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+    fi	
+
+    # Especially with the simulator, the previous RP discovery may still be running
+    state=`protectionsystem list | grep ${RP_SIMULATOR} | awk '{print $(NF-1)}'`
+    while [ "$state" = "IN_PROGRESS" ]; do
+	echo "Waiting for RP protection discovery to complete..."
+	sleep 10
+	state=`protectionsystem list | grep ${RP_SIMULATOR} | awk '{print $(NF-1)}'`
+    done
+
+    # Sleep 5 to get past discovery required timeframe
+    sleep 5
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
-    # Ingest Journals
-    run unmanagedvolume ingest_unexport $NH rp_targets $PROJECT --volspec "$tgt_volume"
+    exit;
+
+    # Ingest Journals, Target, then Source
+    if [ "${RP_CDP}" = "1" ]; then
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"_${vpool}
+    elif [ "${RP_CRR}" = "1" ]; then
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"_${vpool}
+    fi
+
+    # now perform failover tests
+    recoverpoint_failover_test "${RECOVERPOINT_INGEST_VOL1_SRC}"_${vpool} "${RECOVERPOINT_INGEST_VOL1_TGT}"_${vpool}
+
+    # Add a volume to the protection
+    run volume create "${RECOVERPOINT_INGEST_VOL1_SRC}"_"${vpool}"-2 ${PROJECT} ${RECOVERPOINT_VARRAY1} rp_crr 1GB --consistencyGroup ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"_${vpool}
+
+    # Remove a volume from the protection
+    run volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}"_"${vpool}"-2 --wait
+
+    # Inventory-only remove of RP volume
+    run volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}"_${vpool} --vipronly
+
+    # Recreate unmanaged volumes/protection sets
+    run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+
+    if [ ${RP_CRR} = "1" ]; then
+	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+    fi	
+
+    run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+
+    # Re-ingest
+    if [ "${RP_CDP}" = "1" ]; then
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"_${vpool}
+    elif [ "${RP_CRR}" = "1" ]; then
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"_${vpool}
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"_${vpool}
+    fi
+   
+    # Run snapshot test
+    recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}"_${vpool} "${RECOVERPOINT_INGEST_VOL1_TGT}"_${vpool} $RECOVERPOINT_VARRAY1
+
+    # Inventory-only remove of RP volume
+    run volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}"_${vpool} --vipronly
+}
+
+recoverpoint_ingest_primer()
+{
+    vpool=${1}
+
+    # In order to be able to ingest RP CGs, you need RP CGs to exist out there already.
+    # This method will create those CGs.  For now, it's likely you'll run this, then
+    # kill off your DB and run the ingest test
+    run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_CG}_${vpool}
+    run volume create ${RECOVERPOINT_INGEST_VOL1_SRC}_${vpool} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_CG}_${vpool}
+    run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC}_${vpool} --vipronly
 }
 
 recoverpoint_failover_test()
@@ -2411,6 +2545,163 @@ recoverpoint_failover_test()
     run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 }
 
+# Support will be added in ViPR 2.4 SP1
+recoverpoint_cg_failover_test()
+{
+	# The name of the consistency group to swap
+	cg_name=${1}
+	# The source source volume - an arbitrary source volume from the CG
+	src_volume=${2}
+	# The virtual array corresonding to the source volume (src_volume)
+	src_varray=${3}
+	# The target volume name used to identify all target volumes
+	tgt_volumes=${4}
+	# The swap target virtual arrays
+	tgt_varrays=${5}
+
+	echo '*** RP consistency group failover/swap tests ***'
+
+	# Test the CG swap and swap-back for every target virtual array
+	for tgt_varray in ${tgt_varrays}
+	do
+		echo 'Verify the current state of the source and target vols'
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+		
+		for tgt_volume in ${tgt_volumes}
+		do
+	    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+	    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+	    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+		done
+		
+	    echo 'Failover'
+	    run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+		
+	    echo 'Verify post failover'
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+		
+		# Post-failover target verification
+		for tgt_volume in ${tgt_volumes}
+		do
+			# If the volume corresponds to the target varray used for the failover we
+			# need to verify different values
+			if [[ $tgt_volume == *$tgt_varray* ]]
+			then
+			    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+			    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+			    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+			else
+		    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+		    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+		    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+			fi
+		done
+		
+	    echo 'Cancel the failover'
+	    run blockconsistencygroup failover_cancel $cg_name --copyType rp --targetVarray $tgt_varray
+
+	    echo 'Verify post failover cancel, everything should be back to the start'
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+		
+		for tgt_volume in ${tgt_volumes}
+		do
+	    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+	    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+	    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+		done
+		
+	    echo 'Failover again'
+	    run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+		
+	    echo 'Verify post failover'
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+		
+		# Post-failover target verification
+		for tgt_volume in ${tgt_volumes}
+		do
+			# If the volume corresponds to the target varray used for the failover we
+			# need to verify different values
+			if [[ $tgt_volume == *$tgt_varray* ]]
+			then
+			    run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+			    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+			    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+			else
+		    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+		    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+		    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+			fi
+		done
+		
+	    echo 'Swap'
+	   	run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
+
+	    echo 'Verify post swap'
+	    # Post-swap source verification
+	    run volume verify ${PROJECT}/${src_volume} personality TARGET
+	    run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
+	    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+		
+		# Post-swap target verification
+		for tgt_volume in ${tgt_volumes}
+		do
+		    run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+		    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+		    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+		done
+		
+	    echo 'Failover once again, post swap'
+	    run blockconsistencygroup failover $cg_name --copyType rp --targetVarray $tgt_varray
+
+	    echo 'Verify post failover, post swap'
+	    run volume verify ${PROJECT}/${src_volume} personality TARGET
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
+		
+		for tgt_volume in ${tgt_volumes}
+		do
+			# If the volume corresponds to the target varray used for the failover we
+			# need to verify different values
+			if [[ $tgt_volume == *$tgt_varray* ]]
+			then
+			    run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+			    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+			    run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
+			else
+		    	run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+		    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+		    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+			fi
+		done
+		
+	    echo 'Swap back'
+		# Swap-back
+		run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $src_varray
+
+	    echo 'Verify post swap back, everything should be back to normal'
+		# swap-back source verification
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+		
+		# swap-back target verification
+		for tgt_volume in ${tgt_volumes}
+		do
+	    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+	    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+	    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+		done
+	done
+}
+
 recoverpoint_vpool_change_test()
 {
     base_volume=${1}
@@ -2427,6 +2718,16 @@ recoverpoint_vpool_change_test()
     run volume change_cos ${PROJECT}/${base_volume}-1 ${rp_vpool}
 }
 
+recoverpoint_add_journal_volume()
+{
+   copy_name=${1}
+   journ_varray=${2} 
+   journ_vpool=${3}     
+   rp_cg=${4}
+
+   echo '*** RP add journal volume ***'
+   run volume add_journal ${copy_name} $PROJECT ${journ_varray} ${journ_vpool} 10GB --consistencyGroup ${rp_cg} --count=1  
+}
 
 # Simulator setup
 recoverpoint_simulator_setup()
@@ -2453,16 +2754,8 @@ recoverpoint_simulator_setup()
      storagedevice discover_all
 #    storagedevice list
 #
-     run storagepool update $VMAX1_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
-     run storagepool update $VMAX2_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY2 --type block
      
      POOLS_AUTO_MATCH=false
-
-     rp_vpool_setup
-
-     # Simulator adjustments to cos (shouldn't be needed but assignment above isn't restricting us to that array in cos)
-     run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
-     run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
 
      RECOVERPOINT=$RP_SIMULATOR
      RECOVERPOINT_IP=$RP_SIMULATOR_IP
@@ -2471,6 +2764,16 @@ recoverpoint_simulator_setup()
      run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_1rp1 --addvarrays $RECOVERPOINT_VARRAY1
      run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_2rp1 --addvarrays $RECOVERPOINT_VARRAY2
      run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster site_3rp1 --addvarrays $RECOVERPOINT_VARRAY3
+
+     run storagepool update $VMAX1_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY1 --type block
+     run storagepool update $VMAX2_SIMULATOR_NATIVEGUID --nhadd $RECOVERPOINT_VARRAY2 --type block
+
+     # Simulator adjustments to cos (shouldn't be needed but RP simulator only sees a subset of what's on the network)
+     rp_targets
+     run cos update block rp_targets --storage $VMAX1_SIMULATOR_NATIVEGUID
+     rp_cdp
+     run cos update block rp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
+
 #
 #        # VPLEX
 #        VPLEX_DEV_NAME=$VPLEX_SIMULATOR
@@ -2562,11 +2865,13 @@ recoverpoint_tests()
 
             # RP
             rp_tgt_varray=$RECOVERPOINT_VARRAY1
+			rp_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
@@ -2574,6 +2879,7 @@ recoverpoint_tests()
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
             mp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
+			mp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2)
             mp_tgt_vpool='rp_targets'
         fi
 
@@ -2583,17 +2889,20 @@ recoverpoint_tests()
 
             # RP
             rp_tgt_varray=$RECOVERPOINT_VARRAY3
+			rp_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
-            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY3
+			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+			mp_tgt_varrays=($RECOVERPOINT_VARRAY3)
             mp_standby_tgt_varray=''
             mp_tgt_vpool='rp_targets'
         fi
@@ -2604,17 +2913,20 @@ recoverpoint_tests()
 
             # RP
             rp_tgt_varray=$RECOVERPOINT_VARRAY3
+			rp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+			mp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3)
             mp_standby_tgt_varray=''
             mp_tgt_vpool='rp_targets'
         fi
@@ -2632,7 +2944,7 @@ recoverpoint_tests()
         # MP
         mp_src_vpool='mp_'$rp_type
         mpvolume=${RP_METROPOINT_VOLUME}
-        mpvolumetarget=${mpvolume}'-target-'${mp_tgt_varray}
+        mpvolumetarget=${mpvolume}'-target-'${mp_active_tgt_varray}
 
         # Setup test volumes...
         # Either use volumes that have gone through the change vpool process or
@@ -2654,10 +2966,22 @@ recoverpoint_tests()
                 echo 'MP change vpool...NOT SUPPORTED YET!!'
             fi
 
+        elif [ "$RP_INGESTPRIMEONLY" = "1" ]; then
+	    echo '*** RP ingest volumes priming only ***'
+	    if [ "$RP_CDP" = "1" ] ; then
+		recoverpoint_ingest_primer rp_cdp
+	    elif [ "$RP_CRR" = "1" ] ; then
+		recoverpoint_ingest_primer rp_crr
+	    fi
+	    exit
         elif [ "$RP_INGESTTESTS" = "1" ]; then
 	    echo '*** RP ingest volumes ***'
-	    recoverpoint_ingest_test
-	    exit;  # for now, exit after this test.
+	    if [ "$RP_CDP" = "1" ] ; then
+		recoverpoint_ingest_test rp_cdp
+	    elif [ "$RP_CRR" = "1" ] ; then
+		recoverpoint_ingest_test rp_crr
+	    fi
+	    exit
 	else
             echo '*** RP create volumes ***'
 
@@ -2686,6 +3010,27 @@ recoverpoint_tests()
             volume_name_modifier='-1'
         fi
 
+		# Compile a list of target volume names that have been created for RP
+		rp_tgt_volumes=()
+		for tgt in ${rp_tgt_varrays}
+		do
+			rp_tgt_volumes=("${rp_tgt_volumes[@]}" "${rpvolume}-target-${tgt}${volume_name_modifier}")
+		done
+		
+		# Compile a list of target volume names that have been created for RP+VPlex		
+		rp_vplex_tgt_volumes=()
+		for tgt in ${rpvplex_tgt_varrays}
+		do
+			rp_vplex_tgt_volumes=("${rp_vplex_tgt_volumes[@]}" "${rpvplexvolume}-target-${tgt}${volume_name_modifier}")
+		done
+		
+		# Compile a list of target volume names that have been created for MetroPoint		
+		mp_tgt_volumes=()
+		for tgt in ${mp_tgt_varrays}
+		do
+			mp_tgt_volumes=("${mp_tgt_volumes[@]}" "${mpvolume}-target-${tgt}${volume_name_modifier}")
+		done
+
         ### Begin Recoverpoint test cases ###
 
         # RP test cases
@@ -2694,31 +3039,49 @@ recoverpoint_tests()
 
             if [ "$RP_TESTS" = "1" ]; then
                 echo 'RP tests...'
+		# Add Journal Test
+		recoverpoint_add_journal_volume ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
+		
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier} ${rp_src_varray}
 
                 # Failover Test
                 recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
+				
+				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
+				# recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
 	    fi
 
             # RP+VPLEX test cases
             if [ "$RPVPLEX_TESTS" = "1" ]; then
                 echo 'RP+VPLEX tests...'
+                # Add Journal Test
+		recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+		
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier} ${rpvplex_src_varray}
 
                 # Failover Test
                 recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
+				
+				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
+				# recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
             fi
 
             # MP test cases
             if [ "$MP_TESTS" = "1" ]; then
                 echo 'MetroPoint tests...'
+		# Add Journal Test
+		recoverpoint_add_journal_volume ${mp_active_tgt_varray} ${mp_active_tgt_varray} ${mp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+		
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier} ${mp_src_varray}
 
                 # Failover Test
                 recoverpoint_failover_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier}
+				
+				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
+				# recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${mp_src_varray} ${mp_tgt_volumes} ${mp_tgt_varrays}
             fi
         fi
 

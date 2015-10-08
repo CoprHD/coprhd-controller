@@ -118,9 +118,8 @@ public class DisasterRecovery extends Controller {
     }
 
     public static void create() {
-//        ObjectVirtualPoolForm form = new ObjectVirtualPoolForm();
-//        edit(form);
-        edit("");
+        DisasterRecoveryForm form = new DisasterRecoveryForm();
+        edit(form);
     }
 
    
@@ -129,12 +128,12 @@ public class DisasterRecovery extends Controller {
        render();
     }
 
-//    private static void edit(ObjectVirtualPoolForm vpool) {
-//        addStaticOptions();
-//        addDynamicOptions(vpool);
-//        renderArgs.put("storagePoolsDataTable", createStoragePoolDataTable());
-//        render("@edit", vpool);
-//    }
+    private static void edit(DisasterRecoveryForm vpool) {
+        //addStaticOptions();
+        //addDynamicOptions(vpool);
+        //renderArgs.put("storagePoolsDataTable", createStoragePoolDataTable());
+        render("@edit", vpool);
+    }
 
 //    private static void addStaticOptions() {
 //        renderArgs.put("protocolOptions", ObjectProtocols.options(ObjectProtocols.SWIFT, ObjectProtocols.ATMOS, ObjectProtocols.S3));

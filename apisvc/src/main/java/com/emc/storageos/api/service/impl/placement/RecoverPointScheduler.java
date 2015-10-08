@@ -2387,13 +2387,6 @@ public class RecoverPointScheduler implements Scheduler {
         // Represents the journal storage system
         URI storageSystemURI = null;
 
-        // First Determine if journal recommendation need to be computed. It might have already been done.
-        for (RPRecommendation targetJournalRec : rpProtectionRecommendation.getTargetJournalRecommendations()) {
-            if (targetJournalRec.getVirtualArray().equals(journalVarray.getId())) {
-                return null;
-            }
-        }
-
         // Primary source journal remains what it was before the change Vpool operation.
         if (vpoolChangeVolume != null
                 && !NullColumnValueGetter.isNullURI(vpoolChangeVolume.getRpJournalVolume())
@@ -3405,16 +3398,26 @@ public class RecoverPointScheduler implements Scheduler {
                 }
                 sourceRecommendation.getTargetRecommendations().add(targetRecommendation);
 
-                // Build the target journal recommendation
-                RPRecommendation targetJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
-										                        targetInternalSiteName,
-										                        protectionSettings.getJournalSize(), targetJournalVarray,
-										                        targetJournalVpool, ps, newCapabilities,
-										                        capabilities.getResourceCount(), null, false);
-                if (targetJournalRecommendation == null) {                  
-                   continue;
+                
+                // First Determine if journal recommendation need to be computed. It might have already been done.
+                boolean isJournalPlacedForVarray = false;
+                for (RPRecommendation targetJournalRec : rpProtectionRecommendation.getTargetJournalRecommendations()) {
+                    if (targetJournalRec.getVirtualArray().equals(targetJournalVarray.getId())) { 
+                    	isJournalPlacedForVarray = true;
+                    }
                 }
-                rpProtectionRecommendation.getTargetJournalRecommendations().add(targetJournalRecommendation);
+                // Build the target journal recommendation
+                if(!isJournalPlacedForVarray) {
+	                RPRecommendation targetJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation,
+											                        targetInternalSiteName,
+											                        protectionSettings.getJournalSize(), targetJournalVarray,
+											                        targetJournalVpool, ps, newCapabilities,
+											                        capabilities.getResourceCount(), null, false);
+	                if (targetJournalRecommendation == null) {                  
+	                   continue;
+	                }
+	                rpProtectionRecommendation.getTargetJournalRecommendations().add(targetJournalRecommendation);
+                }
                 
                 // Set the placement status to reference either the primary or secondary.
                 PlacementStatus tmpPlacementStatus = placementStatus;

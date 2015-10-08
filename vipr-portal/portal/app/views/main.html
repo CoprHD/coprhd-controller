@@ -22,7 +22,6 @@
     <div class="collapse navbar-collapse" id="navbar-collapse-1">
       <ul class="nav navbar-nav navbar-right">
         #{get 'navBarRight' /}
-
         #{viprSystemTasks/}
 	    #{nav.vdcMenu vdcs:vdcs, token:token/}   
         <li id="nav_help">
@@ -226,6 +225,7 @@
       #{nav.menuSection 'nav.settings'} 
         #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
             #{nav.item 'properties', href: @infra.ConfigProperties.properties()/}
+            #{nav.item 'disasterRecovery', href: @infra.DisasterRecovery.list()/}
             #{if controllers.infra.ClusterInfo.isVMwareVapp()}
             	#{nav.item 'clusterInfo', href: @infra.ClusterInfo.clusterIpInfo()/}
             #{/if}

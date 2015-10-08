@@ -532,15 +532,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @return
      * @throws IsilonCollectionException
      */
-    private List<IsilonNetworkPool> discoverNetworkPools(final StorageSystem storageSystem) throws IsilonCollectionException{
+    private List<IsilonNetworkPool> discoverNetworkPools(StorageSystem storageSystem) throws IsilonCollectionException{
         List<IsilonNetworkPool> isilonNetworkPoolList = new ArrayList<IsilonNetworkPool>();
-
+        URI storageSystemId = storageSystem.getId();
+        _log.info("discoverNetworkPools for storage system {} - start", storageSystemId);
+        List<IsilonNetworkPool> isilonNetworkPoolsTemp = null;
         try {
-            List<IsilonNetworkPool> isilonNetworkPoolsTemp = null;
-            IsilonApi isilonApi = getIsilonDevice(storageSystem);
-            IsilonClusterConfig clusterConfig = isilonApi.getClusterConfig();
-            if(clusterConfig.getOnefs_version_info().getReleaseVersionNumber() != null) {
-                _log.info("print isilon version {}", clusterConfig.getOnefs_version_info().toString());
+            
+            if(storageSystem.getFirmwareVersion().equalsIgnoreCase("8.0.0.BETA.0")) {
+                IsilonApi isilonApi = getIsilonDevice(storageSystem);
                 isilonNetworkPoolsTemp = isilonApi.getNetworkPools();
                 if(isilonNetworkPoolsTemp != null) {
                     isilonNetworkPoolList.addAll(isilonNetworkPoolsTemp);
@@ -555,7 +555,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         } catch (Exception e) {
             _log.info("discover of NetworkPools is failed. %s", e.getMessage());
         }
-        
         return isilonNetworkPoolList;
     }
     
@@ -683,7 +682,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
             
         } catch (Exception e) {
-            _log.error("discoverPorts failed. Storage system: {}", storageSystemId, e);
+            _log.error("discoverAccessZones failed. Storage system: {}", storageSystemId, e);
             IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. Storage system: " + storageSystemId);
             throw ice;
         }

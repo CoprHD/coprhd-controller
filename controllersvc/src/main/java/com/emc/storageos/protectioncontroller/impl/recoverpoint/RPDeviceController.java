@@ -999,6 +999,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 exportGroup.setVirtualArray(varrayURI);
                 exportGroup.setTenant(new NamedURI(params.getTenant(), exportGroup.getLabel()));
                 exportGroup.setType(ExportGroupType.Cluster.name());
+                // This name generation needs to match ingestion code found in BlockRecoverPointIngestOrchestrator until
+                // we come up with better export group matching criteria.
                 String exportGroupGeneratedName = rpSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + rpSiteName + "_"
                         + varray.getLabel();
                 // Remove all non alpha-numeric characters, excluding "_".

@@ -243,7 +243,7 @@ public class RPUnManagedObjectDiscoverer {
                         UnManagedVolume targetUnManagedVolume = DiscoveryUtils.checkUnManagedVolumeExistsInDBByWwn(dbClient, targetVolume.getWwn());
                         
                         if (null == targetUnManagedVolume) {
-                            log.info("Protection Set " + nativeGuid + " contains volume: " + volume.getWwn() + " that is not in our database of unmanaged volumes (target search).  Skipping.");
+                            log.info("Protection Set " + nativeGuid + " contains volume: " + targetVolume.getWwn() + " that is not in our database of unmanaged volumes (target search).  Skipping.");
                             continue;                        
                         }
                         
@@ -252,9 +252,6 @@ public class RPUnManagedObjectDiscoverer {
                             continue;
                         }
                         
-                        // Store the source volume ID in the target unmanaged volume
-                        rpTargetVolumeIds.add(unManagedVolume.getId().toString());
-
                         // Add the source unmanaged volume ID to the target volume
                         StringSet rpUnManagedSourceVolumeId = new StringSet();
                         rpUnManagedSourceVolumeId.add(unManagedVolume.getId().toString());
@@ -263,6 +260,9 @@ public class RPUnManagedObjectDiscoverer {
 
                         // Update the target unmanaged volume with the source managed volume ID
                         dbClient.updateAndReindexObject(targetUnManagedVolume);
+
+                        // Store the unmanaged target ID in the source volume
+                        rpTargetVolumeIds.add(targetUnManagedVolume.getId().toString());
                     }
 
                     // Add the unmanaged target IDs to the source unmanaged volume

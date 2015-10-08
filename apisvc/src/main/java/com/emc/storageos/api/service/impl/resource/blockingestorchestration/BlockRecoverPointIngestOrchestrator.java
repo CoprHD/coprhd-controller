@@ -783,7 +783,10 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             exportGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
             exportGroup.setVirtualArray(virtualArray.getId());
             exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
-            String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + volume.getInternalSiteName() + "_"
+            // This name generation needs to match ingestion code found in RPDeviceController until
+            // we come up with better export group matching criteria.
+            String protectionSiteName = protectionSystem.getRpSiteNames().get(volume.getInternalSiteName());
+            String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + protectionSiteName + "_"
                     + virtualArray.getLabel();
             // Remove all non alpha-numeric characters, excluding "_".
             exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");

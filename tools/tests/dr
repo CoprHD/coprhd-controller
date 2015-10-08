@@ -1,0 +1,129 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+import sysmgr as SysMgr
+
+#----------------------------------------------------------------------
+# vdc cli functions
+#----------------------------------------------------------------------
+
+def dr_add_standby(args):
+    bourne.connect(args.ip)
+    bourne.dr_add_standby(args.name, args.description, args.vip, args.username, args.password)
+
+def dr_list_standby(args):
+    bourne.connect(args.ip)
+    bourne.dr_list_standby()
+
+def dr_get_standby(args):
+    bourne.connect(args.ip)
+    bourne.dr_get_standby(args.uri)
+
+# def dr_sync_standby(args):
+#     bourne.connect(args.ip)
+#     bourne.dr_sync_standby(args.standby_sites, args.primary_site)
+
+def dr_delete_standby(args):
+    bourne.connect(args.ip)
+    bourne.dr_delete_standby(args.uri)
+
+def dr_local_config(args):
+    bourne.connect(args.ip)
+    bourne.dr_local_config()
+
+def dr_nat_check(args):
+    bourne.connect(args.ip)
+    bourne.dr_nat_check(args.ipv4, args.ipv6)
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# dr <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
+parser.add_argument('cmd', help = 'cmd = (add|list|get|delete|config|natcheck)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# add dr standby
+draddstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+draddstandby.add_argument('name',	     help = 'name of standby site')
+draddstandby.add_argument('description', help = 'the description of standby site to be added')
+draddstandby.add_argument('vip',         help = 'the vip of standby site to be added')
+draddstandby.add_argument('username',    help = 'the username  of standby site to be added')
+draddstandby.add_argument('password',    help = 'the password  of standby site to be added')
+
+# list dr standby
+drliststandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# get dr standby
+drgetstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drgetstandby.add_argument('uri',    help = 'uri of standby site')
+
+# sync dr standby
+# drsyncstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+# drsyncstandby.add_argument('standby_sites',	      help = 'name of standby site')
+# drsyncstandby.add_argument('primary_site', help = 'the description of standby site to be added')
+
+# get dr standby
+drdeletestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drdeletestandby.add_argument('uri', help = 'uri of standby site')
+
+# get dr standby
+drgetconfig = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# get dr standby
+drnatchecksite = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drnatchecksite.add_argument('ipv4', nargs='?', help = 'uri of standby site')
+drnatchecksite.add_argument('ipv6', nargs='?', help = 'uri of standby site')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "add"):
+        args = draddstandby.parse_args()
+        dr_add_standby(args)
+    elif (cmd == "list"):
+        args = drliststandby.parse_args()
+        dr_list_standby(args)
+    elif (cmd == "get"):
+        args = drgetstandby.parse_args()
+        dr_get_standby(args)
+    elif (cmd == "delete"):
+        args = drdeletestandby.parse_args()
+        dr_delete_standby(args)
+    elif (cmd == "config"):
+        args = drgetconfig.parse_args()
+        dr_local_config(args)
+    elif (cmd == "natcheck"):
+        args = drnatchecksite.parse_args()
+        dr_nat_check(args)
+    # elif (cmd == "sync"):
+    #     args = drsyncstandby.parse_args()
+    #     dr_sync_standby(args)
+
+    else:
+        parser.print_help()
+except:
+    raise

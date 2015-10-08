@@ -560,7 +560,7 @@ public class RecoverPointScheduler implements Scheduler {
                         // Not sure there's anything to do here. Just go to the next candidate protection system or Protection System
                         _log.info(String.format("RP Placement : Could not find a solution against ProtectionSystem %s "
                                 + "and internal site %s", candidateProtectionSystem.getLabel(), candidateSourceInternalSiteName));
-                       getNewProtectionRecommendation(vpoolChangeVolume);
+                        rpProtectionRecommendation = getNewProtectionRecommendation(vpoolChangeVolume);
                     }                                                                          
                 } // end of for loop trying to find solution using possible rp cluster sites  
                 rpProtectionRecommendation = getNewProtectionRecommendation(vpoolChangeVolume);   

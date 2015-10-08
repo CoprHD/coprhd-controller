@@ -503,12 +503,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
         try {
-        	XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);        
-        	if(!client.isVersion2()) {
+        	// Check if the consistency group exists
+            BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+            if(!client.isVersion2()) {
         		_log.info("{} Operation deleteConsistencyGroup not supported for the xtremio array version");            	
-            } else {	            
-	            // Check if the consistency group exists
-	            BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+            } else {
 	            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 	            Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
 	
@@ -523,8 +523,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 	            if (markInactive) {
 	                consistencyGroup.setInactive(true);
 	            }
+	            dbClient.persistObject(consistencyGroup);
             }
-            taskCompleter.ready(dbClient);
+	        taskCompleter.ready(dbClient);
             _log.info("{} doDeleteConsistencyGroup END ...", storage.getSerialNumber());
         } catch (Exception e) {
             _log.error(String.format("Delete Consistency Group operation failed %s", e));
@@ -538,10 +539,10 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doCreateConsistencyGroup START ...", storage.getSerialNumber());
         try {
-            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
-            if(!client.isVersion2()) {
-            	_log.info("{} Operation deleteConsistencyGroup not supported for the xtremio array version");            	
-            } else {            	
+        	XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+        	if(!client.isVersion2()) {
+        		_log.info("{} Operation deleteConsistencyGroup not supported for the xtremio array version");            	
+            } else {
 	            BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
 	            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 	            Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
@@ -553,6 +554,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 	            if (NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
 	                consistencyGroup.setStorageController(storage.getId());
 	            }
+	            dbClient.persistObject(consistencyGroup);
             }
             taskCompleter.ready(dbClient);
             _log.info("{} doCreateConsistencyGroup END ...", storage.getSerialNumber());

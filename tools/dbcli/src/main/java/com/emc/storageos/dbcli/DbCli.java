@@ -318,10 +318,6 @@ public class DbCli {
                                 throw new Exception("field format exception");
                             }
                             StringMap sMap = (StringMap) pd.getReadMethod().invoke(object);
-                            if (sMap == null) {
-                                sMap = new StringMap();
-                                pd.getWriteMethod().invoke(object, sMap);
-                            }
                             sMap.clear();
 
                             Set<String> keys = newStringMap.keySet();

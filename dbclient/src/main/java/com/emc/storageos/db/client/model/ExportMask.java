@@ -423,8 +423,8 @@ public class ExportMask extends DataObject {
     public void setUserAddedInitiators(StringMap userAddedInitiators) {
         _userAddedInitiators = userAddedInitiators;
     }
-
-
+    
+    
     @Name("existingInitiators")
     public StringSet getExistingInitiators() {
         return _existingInitiators;
@@ -432,10 +432,6 @@ public class ExportMask extends DataObject {
 
     public void setExistingInitiators(StringSet existingInitiators) {
         _existingInitiators = existingInitiators;
-    }
-
-    public boolean hasAnyExistingInitiators() {
-        return (_existingInitiators != null && !_existingInitiators.isEmpty());
     }
 
     public void addToUserCreatedInitiators(Initiator initiator) {

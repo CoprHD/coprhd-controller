@@ -1369,7 +1369,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                     canRemoveVolumes, initiatorsToRemove.size(), allExportMaskInitiators.size(),
                                     removingLastVolumeFromMask, removingAllUserAddedVolumes));
 
-                            if (canRemoveInitiators || (removingAllUserAddedVolumes && exportMask.hasAnyExistingInitiators())) {
+                            if (canRemoveInitiators || removingAllUserAddedVolumes) {
                                 _log.info(String.format(
                                         "Determined that we can remove initiators from mask %s (%s): %s",
                                         exportMask.getMaskName(), exportMask.getId(),

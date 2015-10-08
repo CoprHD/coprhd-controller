@@ -40,11 +40,11 @@ if [ -f $CONFIG_FILE ]; then
     source ${1}
 else
     echo "Configuration file $CONFIG_FILE not found"
-    Usage
+    #Usage
 fi
 
 
-[ $# -ge 3 ] || Usage
+#[ $# -ge 3 ] || Usage
 date
 
 init_env_var()
@@ -103,6 +103,8 @@ elif [ ${SS} = "vdc" ]; then
             AUTH=ldap
         fi
         echo AUTH=$AUTH
+elif [ ${SS} = "dr" ]; then
+        DR_SITE_B_IP=${4:-$DR_SITE_B_IP}
 else
 
 	# By default, we're not running quick sanity
@@ -120,7 +122,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
+    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -131,7 +133,7 @@ case $SS in
     ;;
 
     *)
-    Usage
+    #Usage
 esac
 
 # Webstorage parameters taken from the environment if set.
@@ -175,7 +177,7 @@ case $AUTH in
 	HDS_PROVIDER="lglap095.lss.emc.com"
 	HDS_PROVIDER_IP="2620:0:170:2858::95";;
     *)
-    Usage
+    #Usage
 esac
 
 ethdev=`/sbin/ifconfig | grep Ethernet | head -1 | awk '{print $1}'`
@@ -226,6 +228,14 @@ VDC_ENDPOINT_B_ID=
 VDC_TEST_PROJECT=vdc_project_$$
 VDC_TEST_DISCONN_RECONN_PROJECT=disrecon_vdc_project_$$
 VDC_TEST_REMOVE_PROJECT=testremove_vdc_project_$$
+
+#
+# Vdc Configuration
+#
+DR_SITE_B_NAME=dr_site_B_$$
+DR_SITE_B_DESCRIPTION="site b description"
+DR_SITE_B_USER=root
+DR_SITE_B_PASSWORD=ChangeMe
 
 #
 # Recovery Configuration
@@ -6222,6 +6232,30 @@ monitor_tests()
     fi
     monitor query $timeslot $language
 }
+
+dr_setup()
+{
+    echo "Running dr setup"
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD	
+    echo "Adding new standby into current vipr system"
+    #dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" $DR_SITE_B_IP $DR_SITE_B_USER $DR_SITE_B_PASSWORD 
+    #if [ $? -ne 0 ]; then
+    #    echo "Add vdc B failed."
+    #    exit 1
+    #fi
+    #sleep 30
+    #vdc waitforstablestate 10 600
+    echo "Adding dr done"
+}
+
+dr_tests()
+{
+    echo "Running dr tests"
+    test=$(dr list)
+    echo "printing test"
+    echo $test
+}
+
 
 vdc_setup()
 {

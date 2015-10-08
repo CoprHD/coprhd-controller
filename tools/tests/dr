@@ -11,20 +11,30 @@ from bourne import Bourne
 import sysmgr as SysMgr
 
 #----------------------------------------------------------------------
-# vdc cli functions
+# dr cli functions
 #----------------------------------------------------------------------
 
 def dr_add_standby(args):
     bourne.connect(args.ip)
-    bourne.dr_add_standby(args.name, args.description, args.vip, args.username, args.password)
+    standby=bourne.dr_add_standby(args.name, args.description, args.vip, args.username, args.password)
+    uuid=standby['uuid']
+    print uuid
 
 def dr_list_standby(args):
     bourne.connect(args.ip)
-    bourne.dr_list_standby()
+    sites=bourne.dr_list_standby()
+    if args.name:
+        for site in sites['site']:
+            if args.name in site['name']:
+                print site['uuid']
+                return
+        raise ValueError("site "+args.name+" doesn't exist")
 
 def dr_get_standby(args):
     bourne.connect(args.ip)
-    bourne.dr_get_standby(args.uri)
+    standby=bourne.dr_get_standby(args.uri)
+    if args.property:
+    	print standby[args.property]
 
 # def dr_sync_standby(args):
 #     bourne.connect(args.ip)
@@ -36,11 +46,14 @@ def dr_delete_standby(args):
 
 def dr_local_config(args):
     bourne.connect(args.ip)
-    bourne.dr_local_config()
+    config=bourne.dr_local_config()
+    if args.property:
+        print config[args.property]
 
 def dr_nat_check(args):
     bourne.connect(args.ip)
-    bourne.dr_nat_check(args.ipv4, args.ipv6)
+    resp=bourne.dr_nat_check(args.ipv4, args.ipv6)
+    print resp['isNodesReachable']
 
 
 #----------------------------------------------------------------------
@@ -67,27 +80,30 @@ draddstandby.add_argument('password',    help = 'the password  of standby site t
 
 # list dr standby
 drliststandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drliststandby.add_argument('name', nargs='?',        help = 'return uuid of stanby site name')
 
 # get dr standby
 drgetstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-drgetstandby.add_argument('uri',    help = 'uri of standby site')
+drgetstandby.add_argument('uri',    		 	help = 'uri of standby site')
+drgetstandby.add_argument('property', nargs='?',	help = 'return property of standby site')
 
 # sync dr standby
 # drsyncstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 # drsyncstandby.add_argument('standby_sites',	      help = 'name of standby site')
 # drsyncstandby.add_argument('primary_site', help = 'the description of standby site to be added')
 
-# get dr standby
+# delete dr standby
 drdeletestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 drdeletestandby.add_argument('uri', help = 'uri of standby site')
 
-# get dr standby
+# dr get site config
 drgetconfig = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drgetconfig.add_argument('property', nargs='?',        help = 'return property of standby site')
 
-# get dr standby
+# dr natcheck
 drnatchecksite = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-drnatchecksite.add_argument('ipv4', nargs='?', help = 'uri of standby site')
-drnatchecksite.add_argument('ipv6', nargs='?', help = 'uri of standby site')
+drnatchecksite.add_argument('--ipv4',  metavar = 'ipaddr4', help = 'uri of standby site')
+drnatchecksite.add_argument('--ipv6',  metavar = 'ipaddr6', help = 'uri of standby site')
 
 #----------------------------------------------------------------------
 # Main script

@@ -851,7 +851,7 @@ public class SchemaUtil {
         site.setVdc(vdc.getId());
         site.setHostIPv4AddressMap(ipv4Addresses);
         site.setHostIPv6AddressMap(ipv6Addresses);
-        site.setState(SiteState.ACTIVE);
+        site.setState(SiteState.PRIMARY);
         site.setCreationTime(System.currentTimeMillis());
         site.setVip(_vdcEndpoint);
         _coordinator.persistServiceConfiguration(site.toConfiguration());

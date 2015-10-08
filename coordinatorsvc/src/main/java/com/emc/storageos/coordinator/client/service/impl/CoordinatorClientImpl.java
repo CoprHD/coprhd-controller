@@ -224,11 +224,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         String siteStatePath = String.format("%1$s/%2$s", sitePath, Constants.SITE_STATE);
         try {
             EnsurePath ePath = new EnsurePath(siteStatePath);
-            log.info("init site state to {}", SiteState.ACTIVE.name());
+            log.info("init site state to {}", SiteState.PRIMARY.name());
             ePath.ensure(zkConnection.curator().getZookeeperClient());
-            zkConnection.curator().setData().forPath(siteStatePath, SiteState.ACTIVE.name().getBytes());
+            zkConnection.curator().setData().forPath(siteStatePath, SiteState.PRIMARY.name().getBytes());
         } catch (Exception e) {
-            log.error("Failed to init site state {}", SiteState.ACTIVE.name());
+            log.error("Failed to init site state {}", SiteState.PRIMARY.name());
             throw e;
         }
     }

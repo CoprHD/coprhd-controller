@@ -165,6 +165,7 @@ public class DisasterRecoveryService {
     /**
      * Sync all the site information from the primary site to the new standby
      * The current site will be demoted from primary to standby during the process
+     * 
      * @param configParam
      * @return
      */
@@ -217,6 +218,7 @@ public class DisasterRecoveryService {
 
     /**
      * Get all sites including standby and primary
+     * 
      * @return site list contains all sites with detail information
      */
     @GET
@@ -234,6 +236,7 @@ public class DisasterRecoveryService {
     
     /**
      * Get specified site according site UUID
+     * 
      * @param uuid site UUID
      * @return site response with detail information
      */
@@ -256,6 +259,12 @@ public class DisasterRecoveryService {
         return null;
     }
 
+    /**
+     * Remove a standby. After successfully done, it stops data replication to this site
+     * 
+     * @param uuid standby site uuid
+     * @return
+     */
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{uuid}")
@@ -267,15 +276,14 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.siteIdNotFound();
         }
 
+        Site toBeRemovedSite = new Site(config);
+        if (toBeRemovedSite.getState().equals(SiteState.PRIMARY)) {
+            log.error("Unable to remove this site {}. It is primary", uuid);
+            throw APIException.badRequests.operationNotAllowedOnPrimarySite();
+        }
+        
         try {
-            Site toBeRemovedSite = new Site(config);
-            if (toBeRemovedSite.getState().equals(SiteState.ACTIVE)) {
-                log.error("Not allowed to remove primary site {}", uuid);
-                throw APIException.badRequests.operationNotAllowedOnPrimarySite();
-            }
-
             log.info("Find standby site in local VDC and remove it");
-
             toBeRemovedSite.setState(SiteState.STANDBY_REMOVING);
             coordinator.persistServiceConfiguration(toBeRemovedSite.toConfiguration());
 
@@ -321,7 +329,7 @@ public class DisasterRecoveryService {
             Site site = new Site(config);
             siteConfigRestRep.setState(site.getState().toString());
         } else {
-            siteConfigRestRep.setState(SiteState.ACTIVE.toString());
+            siteConfigRestRep.setState(SiteState.PRIMARY.toString());
         }
         
         try {
@@ -521,7 +529,7 @@ public class DisasterRecoveryService {
         List<Site> result = new ArrayList<Site>();
         for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
-            if (site.getVdc().equals(vdcId) && site.getState() != SiteState.ACTIVE) {
+            if (site.getVdc().equals(vdcId) && site.getState() != SiteState.PRIMARY) {
                 result.add(site);
             }
         }

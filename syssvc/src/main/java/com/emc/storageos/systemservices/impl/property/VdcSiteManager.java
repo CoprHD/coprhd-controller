@@ -338,9 +338,7 @@ public class VdcSiteManager extends AbstractManager {
 
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
-                if (isRemovingStandby()) {
-                    removeStandby();
-                }
+                checkAndRemoveStandby();
                 reconfigRestartSvcs();
                 break;
             case SiteInfo.PAUSE_STANDBY:
@@ -401,7 +399,7 @@ public class VdcSiteManager extends AbstractManager {
      * @return
      */
     private String getCassandraDcId(Site site) {
-        if (site.getState().equals(SiteState.ACTIVE)) {
+        if (site.getState().equals(SiteState.PRIMARY)) {
             return vdcShortId;
         } else {
             return String.format("%s-%s", vdcShortId, site.getStandbyShortId());
@@ -629,43 +627,37 @@ public class VdcSiteManager extends AbstractManager {
     }
     
     /**
-     * Remove a standby site from current ensemble. 
+     * Check if we are removing a standby. If yes, remove a standby site from current ensemble. 
      * 
      * @throws Exception
      */
-    private void removeStandby() throws Exception{
+    private void checkAndRemoveStandby() throws Exception{
         String svcId = coordinator.getMySvcId();
-        if (getVdcLock(svcId)) {
+        VirtualDataCenter vdc = VdcUtil.getLocalVdc();
+        String primarySiteId = coordinator.getCoordinatorClient().getPrimarySiteId();
+        
+        while (isRemovingStandby()) {
+            if (!primarySiteId.equals(currentSiteId)) {
+                retrySleep(); // remove standby on primary site only
+                continue;
+            }
+            
+            if (!getVdcLock(svcId)) {
+                retrySleep(); // retry until we get the lock
+                continue;
+            }
+            
             try {
-                VirtualDataCenter vdc = VdcUtil.getLocalVdc();
-                CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
                 List<Site> sites = listSites(vdc);
                 for(Site site : sites) {
-                    if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
-                        if (currentSiteId.equals(site.getUuid())) {
-                            log.info("Current site is removed from a DR. It should be manually promoted as a primary controller");
-                        } else {
-                            poweroffRemoteSite(site);
-                            
-                            String dcName = getCassandraDcId(site);
-                            DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
-                            try {
-                                dbOps.removeDataCenter(dcName);
-                            } finally {
-                                dbOps.close();
-                            }
-                            updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getLocalContext());
-                            
-                            DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME);
-                            try {
-                                geodbOps.removeDataCenter(dcName);
-                            } finally {
-                                geodbOps.close();
-                            }
-                            updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getGeoContext());
-                            coordinatorClient.removeServiceConfiguration(site.toConfiguration());
-                        }
-                   }
+                    if (!site.getState().equals(SiteState.STANDBY_REMOVING)) {
+                        continue;
+                    }
+                    if (currentSiteId.equals(site.getUuid())) {
+                        log.info("Current site is removed from a DR. It should be manually promoted as a primary controller");
+                    } else {
+                        removeSiteFromReplication(site);
+                    }
                 }
             } finally {
                 coordinator.releasePersistentLock(svcId, vdcLockId);
@@ -673,6 +665,30 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
 
+    private void removeSiteFromReplication(Site site) throws Exception {
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
+        
+        poweroffRemoteSite(site);
+        
+        String dcName = getCassandraDcId(site);
+        DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
+        try {
+            dbOps.removeDataCenter(dcName);
+        } finally {
+            dbOps.close();
+        }
+        updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getLocalContext());
+        
+        DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME);
+        try {
+            geodbOps.removeDataCenter(dcName);
+        } finally {
+            geodbOps.close();
+        }
+        updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getGeoContext());
+        coordinatorClient.removeServiceConfiguration(site.toConfiguration());
+    }
+    
     private List<Site> listSites(VirtualDataCenter vdc) {
         List<Site> result = new ArrayList<Site>();
         for(Configuration config : coordinator.getCoordinatorClient().queryAllConfiguration(Site.CONFIG_KIND)) {

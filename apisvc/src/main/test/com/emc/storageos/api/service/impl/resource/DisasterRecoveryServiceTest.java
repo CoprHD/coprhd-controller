@@ -111,7 +111,7 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr1", "10.247.101.111");
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
-        standbySite1.setState(SiteState.ACTIVE);
+        standbySite1.setState(SiteState.PRIMARY);
         standbySite1.setVdc(localVDC.getId());
         
 
@@ -123,7 +123,7 @@ public class DisasterRecoveryServiceTest {
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
         standbySite3.setVdc(new URI("fake-vdc-id"));
-        standbySite3.setState(SiteState.ACTIVE);
+        standbySite3.setState(SiteState.PRIMARY);
         standbySite3.setVdc(localVDC.getId());
 
         primarySiteParam = new SiteParam();
@@ -205,7 +205,7 @@ public class DisasterRecoveryServiceTest {
         newAdded.setUuid(uuid);
         newAdded.setVip(vip);
         newAdded.getHostIPv4AddressMap().put("vipr1", "1.1.1.1");
-        newAdded.setState(SiteState.ACTIVE);
+        newAdded.setState(SiteState.PRIMARY);
         doReturn(newAdded.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, newAdded.getUuid());
 
         // mock checking and validating methods
@@ -351,7 +351,7 @@ public class DisasterRecoveryServiceTest {
         
         doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
         Site site = new Site();
-        site.setState(SiteState.ACTIVE);
+        site.setState(SiteState.PRIMARY);
         doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, coordinator.getSiteId());
         SiteConfigRestRep response = drService.getStandbyConfig();
         compareSiteResponse(response, standbyConfig);

@@ -177,7 +177,7 @@ public class VdcConfigUtil {
         List<Site> siteList = new ArrayList<>();
         for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
-            if (site.getVdc().equals(vdc.getId()) && site.getState() != SiteState.ACTIVE) {
+            if (site.getVdc().equals(vdc.getId()) && site.getState() != SiteState.PRIMARY) {
                 siteList.add(site);
             }
         }

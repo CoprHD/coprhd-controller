@@ -2393,8 +2393,6 @@ recoverpoint_ingest_test()
 
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
-    exit;
-
     # Ingest Journals, Target, then Source
     if [ "${RP_CDP}" = "1" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"_${vpool}

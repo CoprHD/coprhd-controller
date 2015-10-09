@@ -271,7 +271,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         
         Long totalStorObj = 0L;
         Long totalStorCap = 0L;
-        String systemAzName = null;
+        String systemAZId = null;
         
         List<VirtualNAS> virtualNASList = new ArrayList<VirtualNAS>();
         try {
@@ -299,11 +299,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         virtualNASList.add(virtualNAS);
                     }
                 } else {
-                    systemAzName = isAccessZone.getName();
+                    systemAZId = isAccessZone.getZone_id().toString();
                 }
             }
             
-            physicalNAS = findPhysicalNasByNativeId(storageSystem, systemAzName);
+            physicalNAS = findPhysicalNasByNativeId(storageSystem, systemAZId);
             if(physicalNAS == null) {
                 _log.error(String.format("computeStaticLoadMetrics is failed for  Storagesystemid: %s", storageSystemId));
                 return;
@@ -317,7 +317,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
             
             /*process the system accesszone dbmetrics*/
-            _log.info("get the total objs and capacity dbmetrics for systemaccess zone : {}", systemAzName);
+            _log.info("get the total objs and capacity dbmetrics for systemaccess zone : {}", systemAZId);
             getDBmetricsAZ(IFS_ROOT, isilonApi, dbMetrics);
             totalStorObj = totalStorObj + MetricsKeys.getLong(MetricsKeys.storageObjects, dbMetrics);
             totalStorCap = totalStorCap + MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, dbMetrics);

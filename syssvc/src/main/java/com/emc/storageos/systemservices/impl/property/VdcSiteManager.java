@@ -314,7 +314,15 @@ public class VdcSiteManager extends AbstractManager {
 
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
-                reconfigRestartSvcs();
+                if (!getVdcLock(svcId)) {
+                    retrySleep();
+                } else {
+                    try {
+                        reconfigRestartSvcs();
+                    } finally {
+                        coordinator.releasePersistentLock(svcId, vdcLockId);
+                    }
+                }
                 break;
             default:
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);

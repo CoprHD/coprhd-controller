@@ -293,7 +293,7 @@ public class VplexBackendIngestionContext {
             backendVolumeWwnToInfoMap =
                     VPlexControllerUtils.getStorageVolumeInfoForDevice(
                             getSupportingDeviceName(), getLocality(), getClusterName(), false,
-                            _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
+                            getVplexUri(), _dbClient);
             success = true;
         } catch (VPlexApiException ex) {
             _logger.warn("failed to find wwn to storage volume map on "
@@ -314,7 +314,7 @@ public class VplexBackendIngestionContext {
                     backendVolumeWwnToInfoMap =
                             VPlexControllerUtils.getStorageVolumeInfoForDevice(
                                     getSupportingDeviceName(), getLocality(), getClusterName(), hasMirror,
-                                    _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
+                                    getVplexUri(), _dbClient);
                     success = true;
                 } catch (VPlexApiException ex) {
                     String reason = "could not determine backend storage volumes for "
@@ -791,8 +791,7 @@ public class VplexBackendIngestionContext {
         _logger.info("getting top level device");
         topLevelDevice = VPlexControllerUtils.getDeviceInfo(
                 getSupportingDeviceName(), getLocality(),
-                getUnmanagedVirtualVolume().getStorageSystemUri(),
-                _dbClient);
+                getVplexUri(), _dbClient);
 
         _logger.info("top level device is: " + topLevelDevice);
         _tracker.fetchTopLevelDevice = System.currentTimeMillis() - start;
@@ -1130,7 +1129,7 @@ public class VplexBackendIngestionContext {
      * @return a Map of backend supporting device name to its UnManagedVolume
      */
     public Map<String, URI> getVplexDeviceToUnManagedVolumeMap() {
-        URI vplexUri = _unmanagedVirtualVolume.getStorageSystemUri();
+        URI vplexUri = getVplexUri();
         Iterator<UnManagedVolume> allUnmanagedVolumes = null;
         long dingleTimer = new Date().getTime();
         Map<String, URI> deviceToUnManagedVolumeMap = new HashMap<String, URI>();
@@ -1186,7 +1185,7 @@ public class VplexBackendIngestionContext {
         if (null == distributedDevicePathToClusterMap) {
             distributedDevicePathToClusterMap = 
                 VPlexControllerUtils.getDistributedDevicePathToClusterMap(
-                        getUnmanagedVirtualVolume().getStorageSystemUri(), _dbClient);
+                        getVplexUri(), _dbClient);
         }
         
         return distributedDevicePathToClusterMap;
@@ -1203,6 +1202,26 @@ public class VplexBackendIngestionContext {
         this.distributedDevicePathToClusterMap = distributedDevicePathToClusterMap;
     }
 
+    /**
+     * Returns the URI of the VPLEX containing the UnManagedVolume of this context.
+     * 
+     * @return a VPLEX device URI
+     */
+    public URI getVplexUri() {
+        return getUnmanagedVirtualVolume().getStorageSystemUri();
+    }
+    
+    /**
+     * Validates the structure of the supporting device for acceptable structures
+     * that can be ingested.
+     */
+    public void validateSupportingDeviceStructure() {
+        _logger.info("validating the supporting device structure of " + getSupportingDeviceName());
+        VPlexControllerUtils.validateSupportingDeviceStructure(
+                getSupportingDeviceName(), getVplexUri(), _dbClient);
+    }
+    
+    
     /**
      * Returns the performance report string.
      * 

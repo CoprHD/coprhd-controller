@@ -1176,6 +1176,27 @@ public class ControllerUtils {
     }
 
     /**
+     * Returns true, if a mirror is part of a consistency group, false otherwise.
+     * In addition to this, if a non-null {@link TaskCompleter} is provided the {@BlockConsistencyGroup} instance
+     * added to it.
+     *
+     * @param mirrors   List of mirror URIs
+     * @param dbClient  DbClient instance
+     * @param completer Optional TaskCompleter instance.
+     * @return          true/false dependent on the clone being part of a consistency group.
+     */
+    public static boolean checkMirrorConsistencyGroup(List<URI> mirrors, DbClient dbClient, TaskCompleter completer) {
+        BlockConsistencyGroup group = ConsistencyUtils.getMirrorsConsistencyGroup(mirrors, dbClient);
+        if (group != null) {
+            if (completer != null) {
+                completer.addConsistencyGroupId(group.getId());
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
      * 
      * @param volume

@@ -3283,10 +3283,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         volume.getLabel(), volume.getId(), newVpool.getLabel(), newVpool.getId()));
                 volumeURIs.add(volume.getId());
                 
+                // List of bookmarks to cleanup (if any)
                 List<BlockSnapshot> rpBookmarks = new ArrayList<BlockSnapshot>();
+                // Loop through all targets and check for bookmarks and snapshots.
+                // We want to prevent the operation if any of the following conditions
+                // exist:
+                // 1. There are exported targets
+                // 2. There are exported bookmarks
+                // 3. There are local array snapshots on any of the targets
                 for (String targetId : volume.getRpTargets()) {
                     Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetId));
-                    // Ensure Target Volumes are not exported
+                    // Ensure targets are not exported
                     if (targetVolume.isVolumeExported(_dbClient, true, true)) {  
                         String warningMessage = String.format("Target Volume [%s] (%s) is exported to Host, please "
                                 + "un-export the volume from all exports and place the order again.", 
@@ -3307,7 +3314,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 _log.warn(warningMessage);
                                 throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
                             }
-                            // Add bookmark to be cleaned up
+                            // Add bookmark to be cleaned up in ViPR. These
+                            // would have been automatically removed in RP when
+                            // removing protection anyway. So this is a pro-active
+                            // cleanup step.
                             rpBookmarks.add(snapshot);
                         } else {
                             // There are snapshots on the targets, throw an exception to inform the

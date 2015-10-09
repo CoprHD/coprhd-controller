@@ -5432,7 +5432,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             return waitFor;
         }
         
-        // Grab any volume from the list so we can grab the protection system
+        // Grab any volume from the list so we can grab the protection system. This 
+        // request could be over multiple protection systems but we don't really
+        // care at this point. We just need this reference to pass into the
+        // WorkFlow.
         Volume volume = _dbClient.queryObject(Volume.class, volumeURIs.get(0));
         ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
         

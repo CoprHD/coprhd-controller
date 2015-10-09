@@ -25,6 +25,7 @@ import java.util.Map;
 
 import javax.xml.bind.DataBindingException;
 
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -2126,6 +2127,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             List<URI> volumesWithTasks = new ArrayList<URI>(promotees);
             volumesWithTasks.addAll(getSourceVolumesFromURIs(mirrors));
             taskCompleter = new BlockMirrorTaskCompleter(Volume.class, volumesWithTasks, opId);
+            ControllerUtils.checkMirrorConsistencyGroup(mirrors, _dbClient, taskCompleter);
 
             workflow.executePlan(taskCompleter, "Successfully detached continuous copies");
         } catch (Exception e) {
@@ -2199,6 +2201,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doFractureMirror(storageObj, mirrorList.get(0), sync, completer);
             } else {
+                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doFractureGroupMirrors(storageObj, mirrorList, sync, completer);
             }
         } catch (Exception e) {
@@ -2271,10 +2274,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter taskCompleter = null;
         List<BlockMirror> mirrorList = _dbClient.queryObject(BlockMirror.class, mirrors);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        boolean isCG = isCGMirror(mirrors.get(0), _dbClient);
         List<URI> sourceVolumes = getSourceVolumes(mirrorList);
 
         try {
+            taskCompleter = new BlockMirrorTaskCompleter(Volume.class, sourceVolumes, opId);
+            boolean isCG = ControllerUtils.checkMirrorConsistencyGroup(mirrors, _dbClient, taskCompleter);
+
             if (!isCG) {
                 for (BlockMirror blockMirror : mirrorList) {
                     if (SynchronizationState.FRACTURED.toString().equals(blockMirror.getSyncState())) {
@@ -2288,7 +2293,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             this.getClass(), resumeNativeContinuousCopyMethod(storage, mirrors, isCG), null, null);
                 }
             }
-            taskCompleter = new BlockMirrorTaskCompleter(Volume.class, sourceVolumes, opId);
+
             workflow.executePlan(taskCompleter, "Successfully resumed continuous copies");
         } catch (Exception e) {
             String msg = String.format("Failed to execute resume continuous copies workflow for volume %s",
@@ -2325,6 +2330,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doResumeNativeContinuousCopy(storageObj, mirrorList.get(0), completer);
             } else {
+                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doResumeGroupNativeContinuousCopies(storageObj, mirrorList, completer);
             }
         } catch (Exception e) {
@@ -2352,6 +2358,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doDetachMirror(storageObj, mirrorList.get(0), completer);
             } else {
+                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doDetachGroupMirrors(storageObj, mirrorList, deleteGroup, completer);
             }
         } catch (Exception e) {
@@ -2676,6 +2683,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             Workflow workflow = _workflowService.getNewWorkflow(this, "deactivateMirror", true, opId);
             taskCompleter = new BlockMirrorDeactivateCompleter(mirrorList, opId);
+
+            ControllerUtils.checkMirrorConsistencyGroup(mirrorList, _dbClient, taskCompleter);
 
             String detachStep = workflow.createStepId();
             Workflow.Method detach = detachMirrorMethod(storage, mirrorList, isCG);

@@ -11,8 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.common.Configuration;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;

@@ -1192,99 +1192,11 @@ public class VPlexUtil {
 
                     String firstLine = lines[0];
                     if (firstLine.startsWith(LOCAL_DEVICE)) {
-                        // a local device can have 0 or 2 local device components
-                        switch (localDeviceComponentCount) {
-                            case 0:
-                                // this could be a simple local volume
-                                if (storageVolumeCount == 1 && extentCount == 1) {
-                                    StringBuffer localDevice = new StringBuffer(START);
-                                    localDevice.append(LOCAL_DEVICE)
-                                               .append(EXTENT_STORAGE_VOLUME_PATTERN)
-                                               .append(END);
-                                    if (drillDownResponse.matches(localDevice.toString())) {
-                                        _log.info("this is a simple local volume");
-                                        return true;
-                                    }
-                                }
-                                break;
-                            case 2:
-                                // this could be a local volume with a mirror configured
-                                if (storageVolumeCount == 2 && extentCount == 2) {
-                                    StringBuffer localDeviceWithMirror = new StringBuffer(START);
-                                    localDeviceWithMirror.append(LOCAL_DEVICE)
-                                                         .append(LOCAL_DEVICE_COMPONENT_PATTERN)
-                                                         .append(LOCAL_DEVICE_COMPONENT_PATTERN)
-                                                         .append(END);
-                                    if (drillDownResponse.matches(localDeviceWithMirror.toString())) {
-                                        _log.info("this is a local device with mirror");
-                                        return true;
-                                    }
-                                }
-                                break;
-                            default :
-                                // fall through
-                        }
+                        return validateLocalDevice(
+                                drillDownResponse, localDeviceComponentCount, storageVolumeCount, extentCount);
                     } else if (firstLine.startsWith(DISTRIBUTED_DEVICE)) {
-                        // need to check that distributed device has
-                        // exactly two distributed device components
-                        int distributedDeviceComponentCount = 
-                                StringUtils.countMatches(drillDownResponse, DISTRIBUTED_DEVICE_COMPONENT);
-                        if (distributedDeviceComponentCount == 2) {
-                            // we have the right number of distributed device components
-                            // a distributed device can have 0, 2, or 4 local device components
-                            switch (localDeviceComponentCount) {
-                                case 0:
-                                    // this could be a simple distributed volume
-                                    if (storageVolumeCount == 2 && extentCount == 2) {
-                                        StringBuffer distributedDevice = new StringBuffer(START);
-                                        distributedDevice.append(DISTRIBUTED_DEVICE)
-                                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
-                                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
-                                                         .append(END);
-                                        if (drillDownResponse.matches(distributedDevice.toString())) {
-                                            _log.info("this is a simple distributed device");
-                                            return true;
-                                        }
-                                    }
-                                    break;
-                                case 2:
-                                    // this could be a volume with a mirror on one leg or the other
-                                    if (storageVolumeCount == 3 && extentCount == 3) {
-                                        StringBuffer distributedDeviceMirrorOnLeg1 = new StringBuffer(START);
-                                        distributedDeviceMirrorOnLeg1.append(DISTRIBUTED_DEVICE)
-                                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
-                                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
-                                                         .append(END);
-                                        StringBuffer distributedDeviceMirrorOnLeg2 = new StringBuffer(START);
-                                        distributedDeviceMirrorOnLeg2.append(DISTRIBUTED_DEVICE)
-                                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
-                                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
-                                                         .append(END);
-                                        if (drillDownResponse.matches(distributedDeviceMirrorOnLeg1.toString()) 
-                                         || drillDownResponse.matches(distributedDeviceMirrorOnLeg2.toString())) {
-                                            _log.info("this is a distributed volume with a mirror on one leg or the other");
-                                            return true;
-                                        }
-                                    }
-                                    break;
-                                case 4:
-                                    // this could be a volume with a mirror on each leg
-                                    if (storageVolumeCount == 4 && extentCount == 4) {
-                                        StringBuffer distributedDeviceMirrorOnBothLegs = new StringBuffer(START);
-                                        distributedDeviceMirrorOnBothLegs.append(DISTRIBUTED_DEVICE)
-                                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
-                                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
-                                                         .append(END);
-                                        if (drillDownResponse.matches(distributedDeviceMirrorOnBothLegs.toString())) {
-                                            _log.info("this is a distributed volume with mirrors on both legs");
-                                            return true;
-                                        }
-                                    }
-                                    break;
-                                default :
-                                    // fall through
-                            }
-                        }
+                        return validateDistributedDevice(
+                                drillDownResponse, localDeviceComponentCount, storageVolumeCount, extentCount);
                     }
                 }
             } catch (Exception ex) {
@@ -1294,6 +1206,132 @@ public class VPlexUtil {
         }
 
         _log.error("this is not a compatible supporting device structure");
+        return false;
+    }
+
+    /**
+     * Validates a local device drill down response for valid ViPR-compatible structure
+     * 
+     * @param drillDownResponse the drill-down command response from the VPLEX API
+     * @param localDeviceComponentCount count of local-device-components in the drill-down response
+     * @param storageVolumeCount count of storage-volumes in the drill-down response
+     * @param extentCount count of extents in the drill-down response
+     * 
+     * @return true if this drill-down structure is compatible for ingestion 
+     */
+    private static boolean validateLocalDevice(
+            String drillDownResponse, int localDeviceComponentCount,
+            int storageVolumeCount, int extentCount) {
+        // a local device can have 0 or 2 local device components
+        switch (localDeviceComponentCount) {
+            case 0:
+                // this could be a simple local volume
+                if (storageVolumeCount == 1 && extentCount == 1) {
+                    StringBuffer localDevice = new StringBuffer(START);
+                    localDevice.append(LOCAL_DEVICE)
+                               .append(EXTENT_STORAGE_VOLUME_PATTERN)
+                               .append(END);
+                    if (drillDownResponse.matches(localDevice.toString())) {
+                        _log.info("this is a simple local volume");
+                        return true;
+                    }
+                }
+                break;
+            case 2:
+                // this could be a local volume with a mirror configured
+                if (storageVolumeCount == 2 && extentCount == 2) {
+                    StringBuffer localDeviceWithMirror = new StringBuffer(START);
+                    localDeviceWithMirror.append(LOCAL_DEVICE)
+                                         .append(LOCAL_DEVICE_COMPONENT_PATTERN)
+                                         .append(LOCAL_DEVICE_COMPONENT_PATTERN)
+                                         .append(END);
+                    if (drillDownResponse.matches(localDeviceWithMirror.toString())) {
+                        _log.info("this is a local device with mirror");
+                        return true;
+                    }
+                }
+                break;
+            default :
+                // fall through
+        }
+        
+        return false;
+    }
+
+    /**
+     * Validates a distributed device drill down response for valid ViPR-compatible structure
+     * 
+     * @param drillDownResponse the drill-down command response from the VPLEX API
+     * @param localDeviceComponentCount count of local-device-components in the drill-down response
+     * @param storageVolumeCount count of storage-volumes in the drill-down response
+     * @param extentCount count of extents in the drill-down response
+     * 
+     * @return true if this drill-down structure is compatible for ingestion 
+     */
+    private static boolean validateDistributedDevice(
+            String drillDownResponse, int localDeviceComponentCount, 
+            int storageVolumeCount, int extentCount) {
+        // need to check that distributed device has
+        // exactly two distributed device components
+        int distributedDeviceComponentCount = 
+                StringUtils.countMatches(drillDownResponse, DISTRIBUTED_DEVICE_COMPONENT);
+        if (distributedDeviceComponentCount == 2) {
+            // we have the right number of distributed device components
+            // a distributed device can have 0, 2, or 4 local device components
+            switch (localDeviceComponentCount) {
+                case 0:
+                    // this could be a simple distributed volume
+                    if (storageVolumeCount == 2 && extentCount == 2) {
+                        StringBuffer distributedDevice = new StringBuffer(START);
+                        distributedDevice.append(DISTRIBUTED_DEVICE)
+                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                         .append(END);
+                        if (drillDownResponse.matches(distributedDevice.toString())) {
+                            _log.info("this is a simple distributed device");
+                            return true;
+                        }
+                    }
+                    break;
+                case 2:
+                    // this could be a volume with a mirror on one leg or the other
+                    if (storageVolumeCount == 3 && extentCount == 3) {
+                        StringBuffer distributedDeviceMirrorOnLeg1 = new StringBuffer(START);
+                        distributedDeviceMirrorOnLeg1.append(DISTRIBUTED_DEVICE)
+                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                         .append(END);
+                        StringBuffer distributedDeviceMirrorOnLeg2 = new StringBuffer(START);
+                        distributedDeviceMirrorOnLeg2.append(DISTRIBUTED_DEVICE)
+                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                         .append(END);
+                        if (drillDownResponse.matches(distributedDeviceMirrorOnLeg1.toString()) 
+                         || drillDownResponse.matches(distributedDeviceMirrorOnLeg2.toString())) {
+                            _log.info("this is a distributed volume with a mirror on one leg or the other");
+                            return true;
+                        }
+                    }
+                    break;
+                case 4:
+                    // this could be a volume with a mirror on each leg
+                    if (storageVolumeCount == 4 && extentCount == 4) {
+                        StringBuffer distributedDeviceMirrorOnBothLegs = new StringBuffer(START);
+                        distributedDeviceMirrorOnBothLegs.append(DISTRIBUTED_DEVICE)
+                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                         .append(END);
+                        if (drillDownResponse.matches(distributedDeviceMirrorOnBothLegs.toString())) {
+                            _log.info("this is a distributed volume with mirrors on both legs");
+                            return true;
+                        }
+                    }
+                    break;
+                default :
+                    // fall through
+            }
+        }
+        
         return false;
     }
 }

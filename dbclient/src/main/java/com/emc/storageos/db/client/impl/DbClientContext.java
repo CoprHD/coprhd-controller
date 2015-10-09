@@ -323,7 +323,7 @@ public class DbClientContext {
      * @param dcId the dc to be removed
      * @throws Exception
      */
-    public void removeCassandraDC(String dcId) throws Exception {
+    public void removeDcFromStrategyOptions(String dcId) throws Exception {
         Map<String, String> strategyOptions = getKeyspace().describeKeyspace().getStrategyOptions();
         if (strategyOptions.containsKey(dcId)) {
             log.info("Remove dc {} from strategy options", dcId);

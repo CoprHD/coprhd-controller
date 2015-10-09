@@ -22,17 +22,17 @@ function accessStatus(){
 	if (isNaN(state)) {
 		return state;
 	} else if (state == '0') {
-		state = "&{'volume.accessState.unknown'}";
+		state = "&{'resources.volume.accessState.unknown'}";
 	} else if (state == '1') {
-		state = "&{'volume.accessState.read'}";
+		state = "&{'resources.volume.accessState.read'}";
 	} else if (state == '2') {
-		state = "&{'volume.accessState.write'}";
+		state = "&{'resources.volume.accessState.write'}";
 	} else if (state == '3') {
-		state = "&{'volume.accessState.readwrite'}";
+		state = "&{'resources.volume.accessState.readwrite'}";
 	} else if (state == '4') {
-		state = "&{'volume.accessState.writeonce'}";
+		state = "&{'resources.volume.accessState.writeonce'}";
 	} else if (state == '5') {
-		state = "&{'volume.accessState.notready'}";
+		state = "&{'resources.volume.accessState.notready'}";
 	}
 	return state;
 }

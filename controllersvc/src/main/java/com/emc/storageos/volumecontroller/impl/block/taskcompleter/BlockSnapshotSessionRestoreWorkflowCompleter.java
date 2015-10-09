@@ -28,7 +28,7 @@ public class BlockSnapshotSessionRestoreWorkflowCompleter extends BlockSnapshotS
     public static final String SNAPSHOT_SESSION_RESTORE_FAIL_MSG = "Failed to restore Block Snapshot Session %s for source %s";
 
     // Flag indicates if the completer should update and record the status when it completes.
-    private static Boolean _updateOpStatus = Boolean.TRUE;
+    private Boolean _updateOpStatus = Boolean.TRUE;
 
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionRestoreWorkflowCompleter.class);

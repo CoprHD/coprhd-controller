@@ -672,6 +672,20 @@ public class IsilonApi {
     public IsilonList<IsilonSmartQuota> listQuotas(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_QUOTAS), "quotas", IsilonSmartQuota.class, resumeToken);
     }
+    
+    /**
+     * List all smartquotas for given accesszone
+     * @param resumeToken
+     * @param pathBaseDir
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSmartQuota> listQuotas(String resumeToken, String pathBaseDir) throws IsilonException {
+        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_QUOTAS).toString());
+        URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
+        URI uri = URI.create(URLBuffer.toString());
+        return list(_baseUrl.resolve(URI_QUOTAS), "quotas", IsilonSmartQuota.class, resumeToken);
+    }
 
     /**
      * Create a smartquota
@@ -771,6 +785,20 @@ public class IsilonApi {
      */
     public IsilonList<IsilonSnapshot> listSnapshots(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_SNAPSHOTS), "snapshots", IsilonSnapshot.class, resumeToken);
+    }
+    
+    /**
+     * List all snapshot for given access zone
+     * @param resumeToken
+     * @param pathBaseDir
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSnapshot> listSnapshots(String resumeToken, String pathBaseDir) throws IsilonException {
+        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_SNAPSHOTS).toString());
+        URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
+        URI uri = URI.create(URLBuffer.toString());
+        return list(uri, "snapshots", IsilonSnapshot.class, resumeToken);
     }
 
     /**

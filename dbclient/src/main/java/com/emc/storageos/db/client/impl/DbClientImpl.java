@@ -386,7 +386,7 @@ public class DbClientImpl implements DbClient {
     }
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
+     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
      */
     @Override
     @Deprecated
@@ -395,7 +395,7 @@ public class DbClientImpl implements DbClient {
     }
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
+     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
      */
     @Override
     @Deprecated

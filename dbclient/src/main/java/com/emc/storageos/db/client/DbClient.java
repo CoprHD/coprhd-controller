@@ -73,7 +73,7 @@ public interface DbClient {
     <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly);
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
+     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
      */
     @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id);

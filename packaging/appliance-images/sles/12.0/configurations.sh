@@ -183,8 +183,9 @@ adg_zypperRepos() {
     #######################################################
     zypper addrepo http://lglob090.lss.emc.com/SLES12/SDK/ sles12_sdk
     zypper addrepo http://lglob090.lss.emc.com/SLES12/SLE/ sles12
-    zypper addrepo http://pld-imgapprd01.isus.emc.com:8081/artifactory/adg-icc icc
+    zypper addrepo http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux icc
     zypper addrepo http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12 sles12_icc
+    zypper addrepo http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12 sles12_common
 }
 
 #======================================

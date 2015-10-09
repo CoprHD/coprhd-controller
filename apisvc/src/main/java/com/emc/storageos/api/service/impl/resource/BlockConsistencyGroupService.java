@@ -30,11 +30,11 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.api.mapper.TaskMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.BlockMapper;
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.mapper.functions.MapBlockConsistencyGroup;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
@@ -456,8 +456,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
         if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
             snapshotType = BlockSnapshot.TechnologyType.RP.toString();
-        } else if ((!volumeList.isEmpty()) && (volumeList.get(0).checkForSRDF())) {
-            snapshotType = BlockSnapshot.TechnologyType.SRDF.toString();
         }
 
         // Determine the snapshot volume for RP.
@@ -1585,8 +1583,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param operationTypeEnum
      */
     protected void addConsistencyGroupTask(BlockConsistencyGroup group, TaskList taskList,
-                                                                    String taskId,
-                                                                    ResourceOperationTypeEnum operationTypeEnum) {
+            String taskId,
+            ResourceOperationTypeEnum operationTypeEnum) {
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
                 operationTypeEnum);
         taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));

@@ -30,6 +30,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
@@ -405,5 +406,37 @@ public class VPlexControllerUtils {
         }
 
         return distributedDevicePathToClusterMap;
+    }
+    
+    /**
+     * Validates that the underlying structure of the given device name
+     * satisfies the constraints for compatibility with ViPR.  Used for
+     * validating unmanaged VPLEX volumes before ingestion.
+     * 
+     * @param deviceName the device to validate
+     * @param vplexUri the VPLEX to query
+     * @param dbClient a reference to the database client
+     * @throws VPlexApiException if the device structure is incompatible with ViPR
+     */
+    public static void validateSupportingDeviceStructure(String deviceName, 
+            URI vplexUri, DbClient dbClient) throws VPlexApiException {
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        if (null != client) {
+            String drillDownResponse = client.getDrillDownInfoForDevice(deviceName);
+            if (!VPlexUtil.isDeviceStructureValid(deviceName, drillDownResponse)) {
+                throw VPlexApiException.exceptions.deviceStructureIsIncompatibleForIngestion(drillDownResponse);
+            }
+        } else {
+            throw VPlexApiException.exceptions.failedToExecuteDrillDownCommand(
+                    deviceName, "cannot load vplex api client");
+        }
     }
 }

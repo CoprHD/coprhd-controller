@@ -37,6 +37,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.utils.ClusterConsistencyGroupWrapper;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -456,6 +457,13 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                         "UpdateConsistencyGroup: " + cg.getLabel());
             }
 
+            // The addVolumesList could be full copies or volumes.
+            boolean isFullCopy = false;
+            if (addVolumesList != null && !addVolumesList.isEmpty()) {
+                URI volURI = addVolumesList.get(0);
+                Volume vol = getDataObject(Volume.class, volURI, dbClient);
+                isFullCopy = ControllerUtils.isVolumeFullCopy(vol, dbClient);
+            }
             // Users could use updateConsistencyGroup operation to add backend CGs for ingested CGs.
             // if that's the case, we will only add the backend CGs, but not add those virtual volumes to
             // the VPlex CG.
@@ -512,7 +520,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             }
 
             // Now create a step to add volumes to the CG.
-            if ((addVolumesList != null) && !addVolumesList.isEmpty() && !isIngestedCG && !isNewCg) {
+            if ((addVolumesList != null) && !addVolumesList.isEmpty() && !isIngestedCG && !isNewCg && !isFullCopy) {
                 // See if the CG contains no volumes. If so, we need to
                 // make sure the visibility and storage cluster info for
                 // the VPLEX CG is correct for these volumes we are adding.
@@ -550,7 +558,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                         waitFor, vplexURI, vplexSystem.getSystemType(), this.getClass(),
                         addMethod, rollbackMethodNullMethod(), null);
                 log.info("Created step for add volumes to consistency group.");
-            } else if (isNewCg && addVolumesList != null && !addVolumesList.isEmpty()) {
+            } else if (isNewCg && addVolumesList != null && !addVolumesList.isEmpty() && !isFullCopy) {
                 addStepsForCreateConsistencyGroup(workflow, waitFor, vplexSystem, addVolumesList, false, cgURI);
 
             }

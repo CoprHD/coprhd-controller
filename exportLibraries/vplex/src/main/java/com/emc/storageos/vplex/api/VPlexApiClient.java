@@ -1688,4 +1688,15 @@ public class VPlexApiClient {
         s_logger.info("Request to set device visibility {}", _baseURI);
         _virtualVolumeMgr.setDeviceVisibility(sourceDeviceName);
     }
+
+    /**
+     * Calls the VPLEX CLI "drill-down" command for the given device name.
+     * 
+     * @param deviceName a device name to check with the drill-down command
+     * @return the String drill-down command response from the VPLEX API
+     * @throws VPlexApiException if the device structure is incompatible with ViPR
+     */
+    public String getDrillDownInfoForDevice(String deviceName) throws VPlexApiException {
+        return _discoveryMgr.getDrillDownInfoForDevice(deviceName);
+    }
 }

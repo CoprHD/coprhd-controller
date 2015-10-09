@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
@@ -68,7 +69,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchest
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.volumecontroller.placement.ExportPathParams;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
@@ -301,7 +301,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
                 volumeMap.keySet(), exportGroup.getNumPaths());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
         if (exportGroup.getZoneAllInitiators()) {
             pathParams.setAllowFewerPorts(true);
@@ -506,7 +506,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
                 volumeURIs, exportGroup.getNumPaths());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);

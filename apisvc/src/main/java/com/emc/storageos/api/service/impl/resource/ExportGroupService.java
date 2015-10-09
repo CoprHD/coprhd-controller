@@ -66,7 +66,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.ExportPathParam;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -120,7 +120,6 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.volumecontroller.placement.ExportPathParams;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -294,7 +293,7 @@ public class ExportGroupService extends TaskResourceService {
         validateNotSameNameProjectAndVarray(param);
         
         // If ExportPathParameter block is presnet, and volumes are present, capture those arguments.
-        ExportPathParam exportPathParam = null;
+        ExportPathParams exportPathParam = null;
         if (param.getExportPathParameters() != null && !volumeMap.keySet().isEmpty()) {
             exportPathParam = validateAndCreateExportPathParam(param.getExportPathParameters(), exportGroup);
             addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
@@ -2490,7 +2489,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param exportGroup -- ExportGroup
      * @return ExportPathParam suitable for persistence
      */
-    private ExportPathParam validateAndCreateExportPathParam(ExportPathParameters param, ExportGroup exportGroup) {
+    private ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param, ExportGroup exportGroup) {
         // If minPaths is specified, or pathsPerInitiator is specified, maxPaths must be specified
         if ((param.getMinPaths() != null || param.getPathsPerInitiator() != null) && param.getMaxPaths() == null) {
             throw APIException.badRequests.maxPathsRequired();
@@ -2523,8 +2522,8 @@ public class ExportGroupService extends TaskResourceService {
         }
         // TODO: validate if ports are supplied, they are in the ExportGroup varray
 
-        ExportPathParam pathParam = new ExportPathParam();
-        pathParam.setId(URIUtil.createId(ExportPathParam.class));
+        ExportPathParams pathParam = new ExportPathParams();
+        pathParam.setId(URIUtil.createId(ExportPathParams.class));
         pathParam.setLabel(exportGroup.getLabel());
         pathParam.setMaxPaths(param.getMaxPaths());
         pathParam.setMinPaths(param.getMinPaths());
@@ -2553,7 +2552,7 @@ public class ExportGroupService extends TaskResourceService {
             // If there are no more entries for the given ExportPathParam, mark it for deletion
             if (!exportGroup.getPathParameters().containsValue(pathParamId)) {
                 URI pathParamURI = URI.create(pathParamId);
-                ExportPathParam pathParam = _dbClient.queryObject(ExportPathParam.class, pathParamURI);
+                ExportPathParams pathParam = _dbClient.queryObject(ExportPathParams.class, pathParamURI);
                 if (pathParam != null) {
                     _dbClient.markForDeletion(pathParam);
                 }

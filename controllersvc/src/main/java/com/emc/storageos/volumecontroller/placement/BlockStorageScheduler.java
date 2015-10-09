@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -1355,21 +1356,21 @@ public class BlockStorageScheduler {
                     hostInitiatorCounts.put(host, newValue);
                     ppi++;
                 }
-                if (ppi > param.pathsPerInitiator) {
-                    param.pathsPerInitiator = ppi;
+                if (ppi > param.getPathsPerInitiator()) {
+                    param.setPathsPerInitiator(ppi);
                 }
             }
             // Return the maximum of any host.
             for (Integer value : hostInitiatorCounts.values()) {
-                if (value > param.maxPaths) {
-                    param.maxPaths = value;
+                if (value > param.getMaxPaths()) {
+                    param.setMaxPaths(value);
                 }
             }
         } else {
             // If there is not a zoning map, we won't change things.
             _log.info(String.format("No zoning map for mask %s (%s), will not change zoning",
                     mask.getMaskName(), mask.getId()));
-            param.maxPaths = Integer.MAX_VALUE;
+            param.setMaxPaths(Integer.MAX_VALUE);
         }
         return param;
     }
@@ -1501,8 +1502,8 @@ public class BlockStorageScheduler {
     private void validateMinPaths(ExportPathParams pathParams,
             Map<URI, List<Initiator>> hostInitiatorsMap, Map<Initiator, List<StoragePort>> assignments) {
         // Do not validate ExportGroup Initiator type exports
-        if (pathParams.getExportGroupType() == null
-                || pathParams.getExportGroupType().equals(ExportGroup.ExportGroupType.Initiator)) {
+        if (pathParams.returnExportGroupType() == null
+                || pathParams.returnExportGroupType().equals(ExportGroup.ExportGroupType.Initiator)) {
             return;
         }
         for (URI hostURI : hostInitiatorsMap.keySet()) {
@@ -1528,7 +1529,7 @@ public class BlockStorageScheduler {
                 throw PlacementException.exceptions.hostHasFewerThanMinPaths(
                         hostName, hostURI.toString(), totalPorts, pathParams.getMinPaths());
             }
-            if (pathParams.getExportGroupType() == ExportGroupType.Initiator && unassignedInitiators > 0) {
+            if (pathParams.returnExportGroupType() == ExportGroupType.Initiator && unassignedInitiators > 0) {
                 _log.info(String.format("Host %s (%s) has %d initiators that were not assigned ports even though type Initiator",
                         hostName, hostURI, unassignedInitiators));
                 throw PlacementException.exceptions.hostHasUnusedInitiators(hostName, hostURI.toString());
@@ -1544,8 +1545,8 @@ public class BlockStorageScheduler {
      */
     private void validateHACapabilities(ExportPathParams pathParams, Map<Initiator, List<StoragePort>> assignments) {
         // Do not validate ExportGroup Initiator type exports
-        if (pathParams.getExportGroupType() == null
-                || pathParams.getExportGroupType().equals(ExportGroup.ExportGroupType.Initiator)) {
+        if (pathParams.returnExportGroupType() == null
+                || pathParams.returnExportGroupType().equals(ExportGroup.ExportGroupType.Initiator)) {
             return;
         }
         Set<URI> haDomains = null;
@@ -1705,13 +1706,13 @@ public class BlockStorageScheduler {
         for (URI networkURI : network2InitiatorsMap.keySet()) {
             for (Initiator initiator : network2InitiatorsMap.get(networkURI)) {
                 StringSet ports = mask.getZoningMap().get(initiator.getId().toString());
-                if ((null == ports) || (ports.size() <= pathParams.pathsPerInitiator)) {
+                if ((null == ports) || (ports.size() <= pathParams.getPathsPerInitiator())) {
                     continue;
                 }
                 _log.info(String.format("Limiting paths for initiator %s to %s; initial ports %s",
-                        initiator.getInitiatorPort(), pathParams.pathsPerInitiator.toString(), ports));
+                        initiator.getInitiatorPort(), pathParams.getPathsPerInitiator().toString(), ports));
                 boolean removedPort = true;
-                outer: while (removedPort && ports.size() > pathParams.pathsPerInitiator) {
+                outer: while (removedPort && ports.size() > pathParams.getPathsPerInitiator()) {
                     // First try not removing an already removed port
                     removedPort = false;
                     for (String port : ports) {
@@ -1737,7 +1738,7 @@ public class BlockStorageScheduler {
         // Now check that the total number of entries is not higher than maxPaths.
         // Remove paths from Networks with the most initiators to the list by removing initiators.
         ExportPathParams currentPathParams = calculateExportPathParamForExportMask(_dbClient, mask);
-        Integer overMaxPaths = currentPathParams.maxPaths - pathParams.maxPaths;
+        Integer overMaxPaths = currentPathParams.getMaxPaths() - pathParams.getMaxPaths();
 
         // Make a sorted map of initiator count to networks.
         SortedMap<Integer, Set<URI>> initiatorCountToNetwork = new TreeMap<Integer, Set<URI>>();
@@ -1786,10 +1787,10 @@ public class BlockStorageScheduler {
             pathCount += ports.size();
         }
         _log.info(String.format("ExportMask %s (%s) pathCount %s", mask.getMaskName(), mask.getId(), pathCount.toString()));
-        if (pathCount < pathParams.minPaths) {
+        if (pathCount < pathParams.getMinPaths()) {
             throw PlacementException.exceptions.cannotAllocateMinPaths(
-                    pathParams.minPaths, initiatorCount,
-                    pathParams.pathsPerInitiator, pathParams.minPaths, pathParams.maxPaths);
+                    pathParams.getMinPaths(), initiatorCount,
+                    pathParams.getPathsPerInitiator(), pathParams.getMinPaths(), pathParams.getMaxPaths());
         }
 
         // Save the updated ExportMask
@@ -2028,7 +2029,7 @@ public class BlockStorageScheduler {
     private ExportPathParams getPrezoningPathParam(URI virtualArrayUri,
             ExportPathParams exportPathParams, StorageSystem storage, boolean backend) {
         ExportPathParams prezoningPathParams = new ExportPathParams(exportPathParams.getMaxPaths(),
-                exportPathParams.getMinPaths(), exportPathParams.getPathsPerInitiator(), exportPathParams.getExportGroupType());
+                exportPathParams.getMinPaths(), exportPathParams.getPathsPerInitiator(), exportPathParams.returnExportGroupType());
         if (!allocateFromPrezonedPortsOnly(virtualArrayUri, null, false)) {
             // If the application is expected to supply missing paths, then the export path needs to be
             // changed to avoid failure on minPath check when prezoned paths do not meet the requirements

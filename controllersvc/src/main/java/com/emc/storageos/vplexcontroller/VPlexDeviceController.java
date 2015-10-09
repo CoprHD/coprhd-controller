@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
@@ -127,7 +128,6 @@ import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.volumecontroller.placement.ExportPathParams;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
@@ -2050,7 +2050,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
                 blockObjectMap.keySet(), exportGroup.getNumPaths());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
 
         // If allPortsFromMaskMatchForVarray passed in is false then assign storageports using the varray
@@ -3392,7 +3392,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                     volumeURIs, exportGroup.getNumPaths(), exportMask.getStorageDevice());
             if (exportGroup.getType() != null) {
-                pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+                pathParams.setExportGroupType(exportGroup.getType());
             }
 
             // Assign additional StoragePorts if needed.
@@ -7722,7 +7722,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
                 volumeURIs, exportGroup.getNumPaths());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
         // Determine the Varray for the targets. Default to ExportGroup.virtualArray
         URI varrayURI = exportGroup.getVirtualArray();
@@ -9815,7 +9815,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 .queryObject(Initiator.class, initiatorURIs);
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(volumeMap.keySet(), 0);
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, varrayURI, opId);

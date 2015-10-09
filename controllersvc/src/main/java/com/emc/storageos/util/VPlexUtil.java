@@ -1102,7 +1102,7 @@ public class VPlexUtil {
     private static final String START = "^(?s)";
     private static final String ANYTHING = "(.*)";
     private static final String END = "(.*)$";
-    
+
     // these patterns are used to build up the various
     // supported device structures as outlined in the method javadoc
     private static final StringBuffer EXTENT_STORAGE_VOLUME_PATTERN = 
@@ -1118,7 +1118,6 @@ public class VPlexUtil {
             new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
                 .append(LOCAL_DEVICE_COMPONENT_PATTERN)
                 .append(LOCAL_DEVICE_COMPONENT_PATTERN);
-
 
     /**
      * Analyzes the given String as a VPLEX API drill-down response and

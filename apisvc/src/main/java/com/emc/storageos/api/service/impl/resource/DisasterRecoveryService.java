@@ -276,6 +276,10 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.siteIdNotFound();
         }
 
+        if (!isClusterStable()) {
+            throw APIException.internalServerErrors.removeStandbyFailed(uuid, "Cluster is not stable");
+        }
+
         Site toBeRemovedSite = new Site(config);
         if (toBeRemovedSite.getState().equals(SiteState.PRIMARY)) {
             log.error("Unable to remove this site {}. It is primary", uuid);

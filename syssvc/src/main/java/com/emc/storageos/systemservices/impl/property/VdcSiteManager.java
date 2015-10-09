@@ -638,7 +638,8 @@ public class VdcSiteManager extends AbstractManager {
         
         while (isRemovingStandby()) {
             if (!primarySiteId.equals(currentSiteId)) {
-                retrySleep(); // remove standby on primary site only
+                log.info("Waiting for completion of site removal from primary site");
+                retrySleep();
                 continue;
             }
             
@@ -654,7 +655,7 @@ public class VdcSiteManager extends AbstractManager {
                         continue;
                     }
                     if (currentSiteId.equals(site.getUuid())) {
-                        log.info("Current site is removed from a DR. It should be manually promoted as a primary controller");
+                        log.info("Current site is removed from a DR. It could be manually promoted as primary site");
                     } else {
                         removeSiteFromReplication(site);
                     }

@@ -57,7 +57,7 @@ class ComputeImageServers(object):
     Creates and discovers a Compute image server in ViPR
     '''
 
-    def create_computeimageserver(self, name,imageserverid,
+    def create_computeimageserver(self, name,imageserverip,
                 imageserversecondip,username, password, 
                 tftpbootdir, osinstalltimeout):
 
@@ -65,7 +65,7 @@ class ComputeImageServers(object):
                  'name': name,
                  'imageserver_user': username,
                  'imageserver_password': password,
-                 'imageserver_ip': imageserverid,
+                 'imageserver_ip': imageserverip,
                  'imageserver_secondip': imageserversecondip,
                  'tftpBootDir': tftpbootdir,
                  'osinstall_timeout': osinstalltimeout
@@ -224,7 +224,7 @@ def computeimageserver_create(args):
             if (args.user and len(args.user) > 0):
                 passwd = common.get_password("computeimageserver")
     
-            obj.create_computeimageserver(args.name,args.imageserverid,
+            obj.create_computeimageserver(args.name,args.imageserverip,
                             args.imageserversecondip, args.user, passwd,
                             args.tftpbootdir, args.osinstalltimeout)
     
@@ -240,8 +240,8 @@ def compute_image_server_sub_common_parser(cc_common_parser):
                                 help='Name of compute image server',
                                 required=True)
     mandatory_args.add_argument('-imageserverip', '-iip',
-                                metavar='<computeimageserverid>',
-                                dest='imageserverid',
+                                metavar='<imageserverip>',
+                                dest='imageserverip',
                                 help='FQDN or IP address of the server that serves Compute Images',
                                 required=True)
     mandatory_args.add_argument('-imageserversecondip', '-issip',
@@ -275,7 +275,7 @@ def delete_computeimageserver_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Delete an computeimageserver')
     mandatory_args = delete_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-imageservername', '-n',
+    mandatory_args.add_argument('-name', '-n',
                                 metavar='<computeimageservername>',
                                 dest='name',
                                 help='Name of compute image server',
@@ -373,7 +373,6 @@ def computeimageserver_list(args):
                     ["name", "imageserverip","imageserversecondip", "tftpBootdir", "imageserver_status"]).printTable()
             # show all items in json format
             if(args.verbose):
-                #return common.format_json_object(computeImageServerList)
                 return common.format_json_object(resultList)
 
         else:
@@ -399,7 +398,12 @@ def update_computeimageserver_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-label', '-l',
                                 metavar='<label>',
                                 dest='label',
-                                help='new label for FQDN or IP address of the server that serves Compute Images')    
+                                help='new label server that serves Compute Images')  
+    mandatory_args.add_argument('-imageserverip', '-iip',
+                                metavar='<imageserverip>',
+                                dest='imageserverip',
+                                help='FQDN or IP address of the server that serves Compute Images',
+                                required=True)      
     update_parser.add_argument('-imageserversecondip', '-issip',
                                   metavar='<imageserversecondipaddress>',
                                   dest='imageserversecondip',

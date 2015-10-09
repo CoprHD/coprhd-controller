@@ -420,7 +420,7 @@ public class VPlexControllerUtils {
     }
     
     /**
-     * Validates that the underlaying structure of the given device name
+     * Validates that the underlying structure of the given device name
      * satisfies the constraints for compatibility with ViPR.  Used for
      * validating unmanaged VPLEX volumes before ingestion.
      * 

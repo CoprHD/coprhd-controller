@@ -1102,6 +1102,23 @@ public class VPlexUtil {
     private static final String START = "^(?s)";
     private static final String ANYTHING = "(.*)";
     private static final String END = "(.*)$";
+    
+    // these patterns are used to build up the various
+    // supported device structures as outlined in the method javadoc
+    private static final StringBuffer EXTENT_STORAGE_VOLUME_PATTERN = 
+            new StringBuffer(ANYTHING).append(EXTENT)
+                     .append(ANYTHING).append(STORAGE_VOLUME);
+    private static final StringBuffer LOCAL_DEVICE_COMPONENT_PATTERN = 
+            new StringBuffer(ANYTHING).append(LOCAL_DEVICE_COMPONENT)
+                .append(EXTENT_STORAGE_VOLUME_PATTERN);
+    private static final StringBuffer DISTRIBUTED_DEVICE_COMPONENT_PATTERN = 
+            new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
+                .append(EXTENT_STORAGE_VOLUME_PATTERN);
+    private static final StringBuffer DISTRIBUTED_LEG_MIRROR_PATTERN = 
+            new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
+                .append(LOCAL_DEVICE_COMPONENT_PATTERN)
+                .append(LOCAL_DEVICE_COMPONENT_PATTERN);
+
 
     /**
      * Analyzes the given String as a VPLEX API drill-down response and
@@ -1162,30 +1179,13 @@ public class VPlexUtil {
             try {
                 String[] lines = drillDownResponse.split("\n");
                 if (lines.length > 1) {
-
-                    // these patterns are used to build up the various
-                    // supported device structures as outlined in the method javadoc
-                    StringBuffer extentStorageVolumePattern = 
-                            new StringBuffer(ANYTHING).append(EXTENT)
-                                     .append(ANYTHING).append(STORAGE_VOLUME);
-                    StringBuffer localDeviceComponentPattern = 
-                            new StringBuffer(ANYTHING).append(LOCAL_DEVICE_COMPONENT)
-                                .append(extentStorageVolumePattern);
-                    StringBuffer distributedDeviceComponentPattern = 
-                            new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
-                                .append(extentStorageVolumePattern);
-                    StringBuffer distributedLegMirrorPattern = 
-                            new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
-                                .append(localDeviceComponentPattern)
-                                .append(localDeviceComponentPattern);
-
                     // a supported vplex device can have 0, 2, or 4 local device components
                     // 0 indicates a simple local or distributed volume
                     // 2 indicates a mirror configured on local or one leg of distributed
                     // 4 indicates a mirror configured on each leg of a distributed volume
                     int localDeviceComponentCount = 
                             StringUtils.countMatches(drillDownResponse, LOCAL_DEVICE_COMPONENT);
-                    
+
                     // other component counts
                     int storageVolumeCount = StringUtils.countMatches(drillDownResponse, STORAGE_VOLUME);
                     int extentCount = StringUtils.countMatches(drillDownResponse, EXTENT);
@@ -1199,7 +1199,7 @@ public class VPlexUtil {
                                 if (storageVolumeCount == 1 && extentCount == 1) {
                                     StringBuffer localDevice = new StringBuffer(START);
                                     localDevice.append(LOCAL_DEVICE)
-                                               .append(extentStorageVolumePattern)
+                                               .append(EXTENT_STORAGE_VOLUME_PATTERN)
                                                .append(END);
                                     if (drillDownResponse.matches(localDevice.toString())) {
                                         _log.info("this is a simple local volume");
@@ -1212,8 +1212,8 @@ public class VPlexUtil {
                                 if (storageVolumeCount == 2 && extentCount == 2) {
                                     StringBuffer localDeviceWithMirror = new StringBuffer(START);
                                     localDeviceWithMirror.append(LOCAL_DEVICE)
-                                                         .append(localDeviceComponentPattern)
-                                                         .append(localDeviceComponentPattern)
+                                                         .append(LOCAL_DEVICE_COMPONENT_PATTERN)
+                                                         .append(LOCAL_DEVICE_COMPONENT_PATTERN)
                                                          .append(END);
                                     if (drillDownResponse.matches(localDeviceWithMirror.toString())) {
                                         _log.info("this is a local device with mirror");
@@ -1238,8 +1238,8 @@ public class VPlexUtil {
                                     if (storageVolumeCount == 2 && extentCount == 2) {
                                         StringBuffer distributedDevice = new StringBuffer(START);
                                         distributedDevice.append(DISTRIBUTED_DEVICE)
-                                                         .append(distributedDeviceComponentPattern)
-                                                         .append(distributedDeviceComponentPattern)
+                                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
                                                          .append(END);
                                         if (drillDownResponse.matches(distributedDevice.toString())) {
                                             _log.info("this is a simple distributed device");
@@ -1252,13 +1252,13 @@ public class VPlexUtil {
                                     if (storageVolumeCount == 3 && extentCount == 3) {
                                         StringBuffer distributedDeviceMirrorOnLeg1 = new StringBuffer(START);
                                         distributedDeviceMirrorOnLeg1.append(DISTRIBUTED_DEVICE)
-                                                         .append(distributedLegMirrorPattern)
-                                                         .append(distributedDeviceComponentPattern)
+                                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
                                                          .append(END);
                                         StringBuffer distributedDeviceMirrorOnLeg2 = new StringBuffer(START);
                                         distributedDeviceMirrorOnLeg2.append(DISTRIBUTED_DEVICE)
-                                                         .append(distributedDeviceComponentPattern)
-                                                         .append(distributedLegMirrorPattern)
+                                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
                                                          .append(END);
                                         if (drillDownResponse.matches(distributedDeviceMirrorOnLeg1.toString()) 
                                          || drillDownResponse.matches(distributedDeviceMirrorOnLeg2.toString())) {
@@ -1272,8 +1272,8 @@ public class VPlexUtil {
                                     if (storageVolumeCount == 4 && extentCount == 4) {
                                         StringBuffer distributedDeviceMirrorOnBothLegs = new StringBuffer(START);
                                         distributedDeviceMirrorOnBothLegs.append(DISTRIBUTED_DEVICE)
-                                                         .append(distributedLegMirrorPattern)
-                                                         .append(distributedLegMirrorPattern)
+                                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
                                                          .append(END);
                                         if (drillDownResponse.matches(distributedDeviceMirrorOnBothLegs.toString())) {
                                             _log.info("this is a distributed volume with mirrors on both legs");

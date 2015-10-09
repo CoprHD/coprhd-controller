@@ -386,7 +386,7 @@ public class DbClientImpl implements DbClient {
     }
 
     /**
-     * @deprecated use queryIterativeObjects() instead
+     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
      */
     @Override
     @Deprecated
@@ -395,7 +395,7 @@ public class DbClientImpl implements DbClient {
     }
 
     /**
-     * @deprecated use queryIterativeObjects() instead
+     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
      */
     @Override
     @Deprecated
@@ -404,7 +404,7 @@ public class DbClientImpl implements DbClient {
     }
 
     /**
-     * @deprecated use queryIterativeObjects() instead
+     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
      */
     @Override
     @Deprecated
@@ -1003,13 +1003,26 @@ public class DbClientImpl implements DbClient {
         createObject(new DataObject[] { object });
     }
 
+    /**
+     * @deprecated use {@link DbClient#updateObject(T)} instead
+     */
+    @Deprecated
     @Override
     public <T extends DataObject> void persistObject(T object) {
         internalPersistObject(object, true);
     }
 
+    /**
+     * @deprecated use {@link DbClient#updateObject(T)} instead
+     */
+    @Deprecated
     @Override
     public <T extends DataObject> void updateAndReindexObject(T object) {
+        internalPersistObject(object, true);
+    }
+
+    @Override
+    public <T extends DataObject> void updateObject(T object) {
         internalPersistObject(object, true);
     }
 
@@ -1032,20 +1045,27 @@ public class DbClientImpl implements DbClient {
         internalIterativePersistObject(dataobjects, false);
     }
 
+    /**
+     * @deprecated use {@link DbClient#updateObject(Collection)} instead
+     */
+    @Deprecated
     @Override
     public <T extends DataObject> void persistObject(Collection<T> dataobjects) {
         internalIterativePersistObject(dataobjects, true);
     }
 
+    /**
+     * @deprecated use {@link DbClient#updateObject(Collection)} instead
+     */
+    @Deprecated
     @Override
     public <T extends DataObject> void updateAndReindexObject(Collection<T> dataobjects) {
         internalIterativePersistObject(dataobjects, true);
     }
 
     @Override
-    public boolean checkGeoCompatible(String expectVersion) {
-        _geoVersion = VdcUtil.getMinimalVdcVersion();
-        return VdcUtil.VdcVersionComparator.compare(_geoVersion, expectVersion) >= 0;
+    public <T extends DataObject> void updateObject(Collection<T> objects) {
+        internalIterativePersistObject(objects, true);
     }
 
     private <T extends DataObject>
@@ -1193,13 +1213,26 @@ public class DbClientImpl implements DbClient {
         createObject(Arrays.asList(object));
     }
 
+    /**
+     * @deprecated use {@link DbClient#updateObject(T...)} instead
+     */
+    @Deprecated
     @Override
     public <T extends DataObject> void persistObject(T... object) {
         internalPersistObject(Arrays.asList(object), true);
     }
 
+    /**
+     * @deprecated use {@link DbClient#updateObject(T...)} instead
+     */
+    @Deprecated
     @Override
     public <T extends DataObject> void updateAndReindexObject(T... object) {
+        internalPersistObject(Arrays.asList(object), true);
+    }
+
+    @Override
+    public <T extends DataObject> void updateObject(T... object) {
         internalPersistObject(Arrays.asList(object), true);
     }
 
@@ -1676,6 +1709,12 @@ public class DbClientImpl implements DbClient {
     @Override
     public void invalidateVdcUrnCache() {
         VdcUtil.invalidateVdcUrnCache();
+    }
+
+    @Override
+    public boolean checkGeoCompatible(String expectVersion) {
+        _geoVersion = VdcUtil.getMinimalVdcVersion();
+        return VdcUtil.VdcVersionComparator.compare(_geoVersion, expectVersion) >= 0;
     }
 
     private void serializeTasks(DataObject dataObject, RowMutator mutator, List<URI> objectsToCleanup) {

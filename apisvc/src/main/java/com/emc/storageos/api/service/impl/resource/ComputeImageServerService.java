@@ -303,10 +303,10 @@ public class ComputeImageServerService extends TaskResourceService {
         log.info("Update computeImageServer id {} ",id);
         ComputeImageServer imageServer = _dbClient.queryObject(
                 ComputeImageServer.class, id);
-        StringSet availImages = imageServer.getComputeImages();
         if (null == imageServer || imageServer.getInactive()) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         } else {
+            StringSet availImages = imageServer.getComputeImages();
             // make sure there are no active jobs associated with this imageserver
             checkActiveJobsForImageServer(id);
             String imageServerName = param.getName();

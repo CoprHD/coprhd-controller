@@ -5,6 +5,8 @@
 
 package com.emc.storageos.api.service;
 
+import com.emc.storageos.api.ldap.exceptions.DirectoryOrFileNotFoundException;
+import com.emc.storageos.api.ldap.exceptions.FileOperationFailedException;
 import com.emc.storageos.db.client.model.UserGroup;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.auth.*;
@@ -17,16 +19,21 @@ import com.emc.storageos.model.tenant.*;
 import com.emc.storageos.model.user.UserInfo;
 import com.emc.storageos.model.usergroup.*;
 import com.sun.jersey.api.client.ClientResponse;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldif.LDIFException;
 import org.apache.commons.httpclient.HttpStatus;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
 import java.net.URI;
+import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -64,6 +71,21 @@ public class ApiTestUserGroup extends ApiTestBase {
     private ApiTestAuthnProviderUtils apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();;
     private ApiTestTenants apiTestTenants = new ApiTestTenants();
     private List<CleanupResource> _cleanupResourceList = null;
+
+    private static ApiTestUserGroup apiTestAuthnUserGroup = new ApiTestUserGroup();
+
+    @BeforeClass
+    public static void setupTestSuite() throws LDIFException,
+            LDAPException, IOException, FileOperationFailedException,
+            GeneralSecurityException, DirectoryOrFileNotFoundException, InterruptedException {
+        apiTestAuthnUserGroup.apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();
+        apiTestAuthnUserGroup.apiTestAuthnProviderUtils.startLdapServer(ApiTestUserGroup.class.getSimpleName());
+    }
+
+    @AfterClass
+    public static void tearDownTestSuite() {
+        apiTestAuthnUserGroup.apiTestAuthnProviderUtils.stopLdapServer();
+    }
 
     @Before
     public void setUp() throws Exception {

@@ -6,7 +6,6 @@
 package com.emc.storageos.volumecontroller.impl.monitoring.cim;
 
 // Logger imports
-import com.emc.storageos.coordinator.client.service.WorkPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
@@ -16,11 +15,12 @@ import com.emc.storageos.cimadapter.connections.ConnectionManager;
 import com.emc.storageos.cimadapter.connections.ConnectionManagerException;
 import com.emc.storageos.cimadapter.connections.cim.CimConnectionInfo;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
+import com.emc.storageos.coordinator.client.service.WorkPool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.StorageMonitor;
 import com.emc.storageos.volumecontroller.StorageMonitorException;
-import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
+import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 
 /**
  * The CimStorageMonitor class implements the {@link StorageMonitor} interface.
@@ -146,7 +146,7 @@ public class CimStorageMonitor implements StorageMonitor {
         // the connection manager will check whether or not a connection to the
         // passed provider is currently being managed.
         try {
-            _cimConnectionManager.removeConnection(storageDevice.getSmisProviderIP());
+            _cimConnectionManager.removeConnection(storageDevice.getSmisProviderIP(), storageDevice.getSmisPortNumber());
         } catch (ConnectionManagerException cme) {
             throw new StorageMonitorException(MessageFormatter.format(
                     "Failed attempting to remove the connection to storage provider {}",
@@ -161,6 +161,7 @@ public class CimStorageMonitor implements StorageMonitor {
      * Shuts down the storage monitor so that event monitoring is stopped for
      * all storage devices being monitored and all resources are cleaned up.
      */
+    @Override
     public void shutdown() {
         if (_cimConnectionManager != null) {
             try {

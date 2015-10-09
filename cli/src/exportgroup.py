@@ -834,9 +834,7 @@ def exportgroup_list(args):
                         output,
                         ['module/name',
                          'volumes_snapshots',
-                         'initiator_node',
-                         'initiator_port',
-                         'tags']).printTable()
+                         'type']).printTable()
 
                 else:
                     from common import TableGenerator

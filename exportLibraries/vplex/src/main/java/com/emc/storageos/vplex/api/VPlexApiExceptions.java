@@ -754,4 +754,7 @@ public interface VPlexApiExceptions {
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedSettingDeviceVisibilityStatus(final String deviceName, String msg, String reason);
 
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException establishVolumeFullCopyGroupRelationFailed(String fullCopyId, final Throwable cause);
 }

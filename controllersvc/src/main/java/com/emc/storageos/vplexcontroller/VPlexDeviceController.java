@@ -10041,10 +10041,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get some info from the snapshot we need to do the native
             // restore of the backend volume.
-            URI parentSystemURI = snapSession.getStorageController();
-            StorageSystem parentSystem = getDataObject(StorageSystem.class, parentSystemURI, _dbClient);
             URI parentVolumeURI = snapSession.getParent().getURI();
             Volume parentVolume = getDataObject(Volume.class, parentVolumeURI, _dbClient);
+            StorageSystem parentSystem = getDataObject(StorageSystem.class, parentVolume.getStorageController(), _dbClient);
 
             // Get the VPLEX system.
             StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);

@@ -1162,13 +1162,6 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         Volume volume = queryVolumeResource(id);
 
-        // Check if the volume is on VMAX V3 which doesn't support expansion yet
-        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-        if (storage.checkIfVmax3()) {
-            _log.error("Volume expansion is not supported for VMAX V3 array {}", storage.getSerialNumber());
-            throw APIException.badRequests.unsupportedVolumeExpansion();
-        }
-
         // Verify that the volume is 'expandable'
         VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         if (!virtualPool.getExpandable()) {

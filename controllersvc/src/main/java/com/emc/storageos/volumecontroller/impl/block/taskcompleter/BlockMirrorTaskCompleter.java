@@ -24,7 +24,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 
-public class BlockMirrorTaskCompleter extends TaskCompleter {
+public class BlockMirrorTaskCompleter extends TaskLockingCompleter {
     private static final Logger _log = LoggerFactory.getLogger(BlockMirrorTaskCompleter.class);
 
     private URI _mirrorURI;
@@ -60,7 +60,7 @@ public class BlockMirrorTaskCompleter extends TaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         super.setStatus(dbClient, status, coded);
-        updateWorkflowStatus(status, coded);
+        super.complete(dbClient, status, coded);
     }
 
     public URI getMirrorURI() {

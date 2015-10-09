@@ -136,14 +136,6 @@ public abstract class VolumeTaskCompleter extends TaskLockingCompleter {
         }
     }
 
-    @Override
-    protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
-        if (isNotifyWorkflow()) {
-            // If there is a workflow, update the step to complete.
-            updateWorkflowStatus(status, coded);
-        }
-    }
-
     protected String eventMessage(Operation.Status status, Volume volume) {
         return (status == Operation.Status.ready) ?
                 String.format(VOLUME_TASK_MSG_SUCCESS, volume.getLabel()) :

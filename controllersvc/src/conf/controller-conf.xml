@@ -236,8 +236,21 @@
         <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
     </bean>
-    
-    
+
+    <bean id="vmaxReplicaOperations" class="com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxReplicaOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+    </bean>
+
+    <bean id="vnxReplicaOperations" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxReplicaOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+    </bean>
+
     <bean id="cinderCloneOperations" class="com.emc.storageos.volumecontroller.impl.cinder.CinderCloneOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="cinderApiFactory" ref="cinderapifactory" />
@@ -280,6 +293,7 @@
         <property name="snapshotOperations" ref="vmaxSnapshotOperations"/>
         <property name="mirrorOperations" ref="vmaxMirrorOperations"/>
         <property name="cloneOperations" ref="vmaxCloneOperations"/>
+         <property name="replicaOperations" ref="vmaxReplicaOperations"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="metaVolumeOperations" ref="vmaxMetaVolumeOperations"/>
         <property name="srdfOperations" ref="vmaxSrdfOperations" />
@@ -305,6 +319,7 @@
         <property name="snapshotOperations" ref="vnxSnapshotOperations"/>
         <property name="mirrorOperations" ref="vnxMirrorOperations"/>
         <property name="cloneOperations" ref="vnxCloneOperations"/>
+        <property name="replicaOperations" ref="vnxReplicaOperations"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="metaVolumeOperations" ref="vnxMetaVolumeOperations"/>
         <property name="findProviderFactory" ref="vnxFindProviderFactory"/>

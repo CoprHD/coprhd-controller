@@ -704,7 +704,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    //add authenticate providers
                    cifsServersMap = getCifsServerMap(isilonAccessZone);
                    if(cifsServersMap.isEmpty()) {
-                       virtualNAS.setCifsServersMap(cifsServersMap);
+                       physicalNAS.setCifsServersMap(cifsServersMap);
                    }
                    //set the smart connect
                    if(isilonNetworkPoolTemp != null) {

@@ -2035,13 +2035,20 @@ public class FileService extends TaskResourceService {
                 // list of the ace
                 List<NfsACE> nfsAces = new ArrayList<>();
                 NfsACE ace = new NfsACE();
-                getCIFSAce(nfsAcl, ace);
+                getNFSAce(nfsAcl, ace);
                 nfsAces.add(ace);
                 nfsAclMap.put(nfsAcl.getFileSystemPath(), nfsAces);
             }
 
             for (String mountpath : nfsAclMap.keySet()) {
                 NfsACL nfsAcl = new NfsACL(mountpath, nfsAclMap.get(mountpath));
+                nfsAcl.setFSMountPath(fs.getPath());
+                String getSubDir = mountpath.substring(fs.getPath().length());
+                if (getSubDir != null && !getSubDir.isEmpty()) {
+
+                    nfsAcl.setSubDir(getSubDir);
+
+                }
                 nfsAclList.add(nfsAcl);
                 acls.setNfsACLs(nfsAclList);
 
@@ -2049,32 +2056,36 @@ public class FileService extends TaskResourceService {
 
         } else if (subDir != null && subDir.length() > 0) {
             // Filter for a specific Sub Directory export
-
+            // fs path + subdir path is same as acl filesystem path
+            String absoluteSubdir = fs.getPath() + "/" + subDir;
             for (NFSShareACL nfsAcl : nfsAcls) {
-                if (nfsAcl.getFileSystemPath().endsWith("/" + subDir)) {
+                if (nfsAcl.getFileSystemPath().equals(absoluteSubdir)) {
                     // list of the ace
 
                     NfsACE ace = new NfsACE();
-                    getCIFSAce(nfsAcl, ace);
+                    getNFSAce(nfsAcl, ace);
                     nfsAceList.add(ace);
                 }
             }
             NfsACL nfsAcl = new NfsACL();
             nfsAcl.setNfsAces(nfsAceList);
+            nfsAcl.setFSMountPath(fs.getPath());
+            nfsAcl.setSubDir(subDir);
             nfsAclList.add(nfsAcl);
             acls.setNfsACLs(nfsAclList);
         } else {
             // Filter for No subDir - top level ACL rules for File System
             for (NFSShareACL nfsAcl : nfsAcls) {
-                if (nfsAcl.getFileSystemPath().equalsIgnoreCase(fs.getPath())) {
+                if (nfsAcl.getFileSystemPath().equals(fs.getPath())) {
 
                     NfsACE ace = new NfsACE();
-                    getCIFSAce(nfsAcl, ace);
+                    getNFSAce(nfsAcl, ace);
                     nfsAceList.add(ace);
                 }
             }
             NfsACL nfsAcl = new NfsACL();
             nfsAcl.setNfsAces(nfsAceList);
+            nfsAcl.setFSMountPath(fs.getPath());
             nfsAclList.add(nfsAcl);
             acls.setNfsACLs(nfsAclList);
         }
@@ -2112,13 +2123,15 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         // Check for VirtualPool whether it has NFS v4 enabled
-        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
-            // Throw an error
-            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
-                    + StorageProtocol.File.NFSv4.name() + " protocol");
-        }
-
+        /*
+         * uncomment it when nfsv4 code is done
+         * VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+         * if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+         * // Throw an error
+         * throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
+         * + StorageProtocol.File.NFSv4.name() + " protocol");
+         * }
+         */
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         FileController controller = getController(FileController.class, device.getSystemType());
 
@@ -2127,7 +2140,7 @@ public class FileService extends TaskResourceService {
 
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_NFS_ACL);
-        op.setDescription("Filesystem export rules update");
+        op.setDescription("Filesystem NFS ACL update");
 
         try {
             _log.info("Sub Dir Provided {}", subDir);
@@ -2220,11 +2233,17 @@ public class FileService extends TaskResourceService {
         dest.setMountPoint(orig.getMountPoint());
     }
 
-    private void getCIFSAce(NFSShareACL orig, NfsACE dest) {
+    private void getNFSAce(NFSShareACL orig, NfsACE dest) {
 
         dest.setDomain(orig.getDomain());
         dest.setPermission(orig.getPermission());
-        dest.setPermissionType(orig.getPermission());
+        if (orig.getPermissionType() != null && !orig.getPermissionType().isEmpty()) {
+
+            dest.setPermissionType(orig.getPermissionType());
+        } else {
+            dest.setPermissionType("allow");
+
+        }
         dest.setType(orig.getType());
         dest.setUser(orig.getUser());
 

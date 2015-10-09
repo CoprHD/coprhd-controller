@@ -6,8 +6,10 @@ package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +24,6 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.NfsACE;
-import com.emc.storageos.model.file.NfsACE.NfsACLOperationType;
 import com.emc.storageos.model.file.NfsACE.NfsPermission;
 import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
@@ -37,7 +38,7 @@ public class NfsACLUtility {
     private DbClient dbClient;
     private FileShare fs;
     private Snapshot snapshot;
-    private String fileSystemPath;
+    private String subDir;
     private String missingRequestParameterErrorString;
     private List<String> userGroupList;
     public static final String REQUEST_PARAM_PERMISSION_TYPE = "permission_type";
@@ -46,80 +47,60 @@ public class NfsACLUtility {
     public static final String REQUEST_PARAM_USER = "user";
     public static final String REQUEST_PARAM_GROUP = "group";
 
-    public NfsACLUtility(DbClient dbClient, FileShare fs, Snapshot snapshot,
-            String fileSystemPath) {
+    public NfsACLUtility(DbClient dbClient, FileShare fs, Snapshot snapshot, String subDir) {
         super();
         this.dbClient = dbClient;
         this.fs = fs;
         this.snapshot = snapshot;
-        this.fileSystemPath = fileSystemPath;
+        this.subDir = subDir;
         this.userGroupList = new ArrayList<String>();
     }
 
     public void verifyNfsACLs(NfsACLUpdateParams param) {
 
-        List<NfsACE> addlist = param.getAcesToAdd();
+        List<NfsACE> addList = param.getAcesToAdd();
+        List<NfsACE> modifyList = param.getAcesToAdd();
+        List<NfsACE> deleteList = param.getAcesToAdd();
+        List<NFSShareACL> dbACLList = queryDBSFileNfsACLs();
+        if (addList != null && !addList.isEmpty()) {
+            verifyNfsACLsAddList(addList, dbACLList);
+        }
+        if (modifyList != null && !modifyList.isEmpty()) {
+            verifyNfsACLsModifyList(modifyList, dbACLList);
+        }
+        if (deleteList != null && !deleteList.isEmpty()) {
+            verifyNfsACLsDeleteList(deleteList, dbACLList);
+        }
 
     }
 
-    private void reportErrors(NfsACLUpdateParams param,
-            NfsACLOperationType type) {
+    private void verifyNfsACLsAddList(List<NfsACE> addList, List<NFSShareACL> dbACLList) {
 
-        _log.info("Report errors if found");
+        Set userSet = new HashSet<String>();
+        for (NFSShareACL dbAcl : dbACLList) {
+            userSet.add(dbAcl.getUser());
 
-        switch (type) {
-            case ADD: {
-                reportAddErrors(param);
-                break;
-            }
-            case MODIFY: {
-                reportModifyErrors(param);
-                break;
-            }
-            case DELETE: {
-                reportDeleteErrors(param);
-                break;
+        }
+
+        for (NfsACE ace : addList) {
+
+            if (userSet.contains(ace.getUser())) {
+                throw APIException.badRequests.nfsACLAlredyPresent("add",
+                        ace.getUser());
+
             }
         }
 
     }
 
-    private void reportDeleteErrors(NfsACLUpdateParams param) {
-        // TODO
+    private void verifyNfsACLsDeleteList(List<NfsACE> deleteList, List<NFSShareACL> dbACLList) {
+
+      
 
     }
 
-    private void reportModifyErrors(NfsACLUpdateParams param) {
-        // TODO
-    }
-
-    private void reportAddErrors(NfsACLUpdateParams param) {
-        // TODO
-
-    }
-
-    private void validateNfsACLs(NfsACE nfsAce,
-            NfsACLOperationType type) {
-
-    }
-
-    private void verifyAddNfsACLs(List<NfsACL> nfsACLs) {
+    private void verifyNfsACLsModifyList(List<NfsACE> modifyList, List<NFSShareACL> dbACLList) {
         // TODO Auto-generated method stub
-
-    }
-
-    private void verifyDeleteNfsACLs(List<NfsACL> nfsAclList) {
-        // TODO
-
-    }
-
-    private void verifyModifyNfsACLs(List<NfsACL> nfsAclList) {
-        // TODO
-    }
-
-    public List<NfsACL> queryExistingNfsACLs() {
-        // TODO
-        return null;
 
     }
 
@@ -131,14 +112,15 @@ public class NfsACLUtility {
             if (this.fs != null) {
                 _log.info(
                         "Querying DB for Nfs ACLs of fs{} of filesystemId {} ",
-                        this.fileSystemPath, fs.getId());
+                        this.fs.getPath(), fs.getId());
+
                 containmentConstraint = ContainmentConstraint.Factory
                         .getFileNfsAclsConstraint(this.fs.getId());
             } else {
                 // Snapshot
                 _log.info(
                         "Querying DB for Nfs ACLs of fs {} of snapshotId {} ",
-                        this.fileSystemPath, this.snapshot.getId());
+                        this.snapshot.getPath(), this.snapshot.getId());
                 containmentConstraint = ContainmentConstraint.Factory
                         .getSnapshotNfsAclsConstraint(this.snapshot
                                 .getId());
@@ -148,6 +130,16 @@ public class NfsACLUtility {
                     .queryActiveResourcesByConstraint(this.dbClient,
                             NFSShareACL.class, containmentConstraint);
 
+            // filter out the list which is not for given sub directory
+            if (this.subDir != null && !this.subDir.isEmpty()) {
+                String absoluteSubdir = this.fs.getPath() + "/" + subDir;
+                for (NFSShareACL nfsAcl : nfsAclList) {
+                    if (!nfsAcl.getFileSystemPath().equals(absoluteSubdir)) {
+                        nfsAclList.remove(nfsAcl);
+
+                    }
+                }
+            }
             return nfsAclList;
 
         } catch (Exception e) {

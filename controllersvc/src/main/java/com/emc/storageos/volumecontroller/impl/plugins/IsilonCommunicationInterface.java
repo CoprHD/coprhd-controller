@@ -284,6 +284,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 if( isAccessZone.isSystem() != true) {
                     virtualNAS = findvNasByNativeId(storageSystem, isAccessZone.getZone_id().toString());
                     if(virtualNAS != null) {
+                        _log.info("process db metrics for access zone : {}", isAccessZone.getName());
                         dbMetrics = virtualNAS.getMetrics();
                         if(dbMetrics == null) {
                             dbMetrics = new StringMap();
@@ -307,7 +308,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             if(physicalNAS == null) {
                 _log.error(String.format("computeStaticLoadMetrics is failed for  Storagesystemid: %s", storageSystemId));
                 return;
-            }
+            } 
             
             ////step-2 process dbmetrics for system access zone
             
@@ -317,7 +318,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
             
             /*process the system accesszone dbmetrics*/
-            _log.info("get the total objs and capacity dbmetrics for systemaccess zone : {}", systemAZId);
+            _log.info("get dbmetrics total objs and capacity for system access zone : {}", systemAZId);
             getDBmetricsAZ(IFS_ROOT, isilonApi, dbMetrics);
             totalStorObj = totalStorObj + MetricsKeys.getLong(MetricsKeys.storageObjects, dbMetrics);
             totalStorCap = totalStorCap + MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, dbMetrics);
@@ -333,7 +334,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             if (totalStorObj >= maxObjects || totalStorObj >= maxCapacity) {
                 overLoaded = "true";
             }
-            _log.info("Is isilon zone Overload: {}", overLoaded);
+            _log.info("Is isilon access zone Overload !: {}", overLoaded);
             //set overload for system access zone
             dbMetrics.put(MetricsKeys.overLoaded.name(), overLoaded);
             //calculate percentage load
@@ -409,7 +410,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalFsCount));
             dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalProvCap));
             
-            _log.error("totals StorageObjs{} on base directory path: ",  totalFsCount, baseDirPath);
+            _log.error("totals StorageObjs{} on base directory path {}: ",  totalFsCount, baseDirPath);
         }
     }
     

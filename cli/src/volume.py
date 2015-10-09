@@ -3180,7 +3180,7 @@ def mirror_protect_parser(subcommand_parsers, common_parser):
         description='ViPR continuous_copies stop CLI usage.',
         help='Stop Continuous copy volume')
     # Add parameter from common protection parser.
-    add_protection_common_parser_nosrdf(mptstop_parser)
+    add_protection_common_parser(mptstop_parser)
     mptstop_parser.set_defaults(func=volume_mirror_protect_stop)
 
     # mirror protection delete

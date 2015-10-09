@@ -78,6 +78,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -381,34 +382,93 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
-     * remove Volumes from Storage Group
+     * remove Volumes from Storage Group.
      * 
-     * @param storage
-     * @param groupName
-     * @param volumeURIList
-     * @param job
+     * @param storage the storage
+     * @param groupName the group name
+     * @param volumeURIList the volume uri list
+     * @param forceFlag the force flag
+     * @throws Exception
      */
     public void removeVolumesFromStorageGroup(
             StorageSystem storage, String groupName, List<URI> volumeURIList,
-            SmisJob job, boolean forceFlag) {
+            boolean forceFlag) throws Exception {
         _log.info(
-                "{} removeVolume  from Storage group {} associated with Auto Tier Policy START...",
+                "{} removeVolume from Storage group {} START...",
                 storage.getSerialNumber(), groupName);
+        CIMArgument[] inArgs = getRemoveVolumesFromMaskingGroupInputArguments(
+                storage, groupName, volumeURIList, forceFlag);
+        CIMArgument[] outArgs = new CIMArgument[5];
+        invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                "RemoveMembers", inArgs, outArgs, null);
+        _log.info(
+                "{} removeVolume from Storage group {} END...",
+                storage.getSerialNumber(), groupName);
+    }
+
+    /**
+     * Removes the volume from storage groups if the volume is not in any Masking View.
+     * This will be called just before deleting the volume (for VMAX2).
+     *
+     * @param storageSystem the storage system
+     * @param volume the volume
+     */
+    public void removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(StorageSystem storage, Volume volume) {
+        /**
+         * If Volume is not associated with any MV, then remove the volume from its associated SGs.
+         */
+        CloseableIterator<CIMObjectPath> mvPathItr = null;
+        CloseableIterator<CIMInstance> sgInstancesItr = null;
+        boolean isSGInAnyMV = true;
         try {
-            CIMArgument[] inArgs = getRemoveVolumesFromMaskingGroupInputArguments(
-                    storage, groupName, volumeURIList, forceFlag);
-            CIMArgument[] outArgs = new CIMArgument[5];
-            invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
-                    "RemoveMembers", inArgs, outArgs, null);
+            _log.info("Checking if Volume {} needs to be removed from Storage Groups which is not in any Masking View",
+                    volume.getNativeGuid());
+            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storage, volume);
+            // See if Volume is associated with MV
+            mvPathItr = getAssociatorNames(storage, volumePath, null, SYMM_LUN_MASKING_VIEW,
+                    null, null);
+            if (!mvPathItr.hasNext()) {
+                isSGInAnyMV = false;
+            }
+
+            if (!isSGInAnyMV) {
+                _log.info("Volume {} is not in any Masking View, hence removing it from Storage Groups if any",
+                        volume.getNativeGuid());
+                boolean forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volume.getId());
+                // Get all the storage groups associated with this volume
+                sgInstancesItr = getAssociatorInstances(storage, volumePath, null,
+                        SmisConstants.SE_DEVICE_MASKING_GROUP, null, null, PS_ELEMENT_NAME);
+                while (sgInstancesItr.hasNext()) {
+                    CIMInstance sgPath = sgInstancesItr.next();
+                    String storageGroupName = CIMPropertyFactory.getPropertyValue(sgPath, SmisConstants.CP_ELEMENT_NAME);
+                    // Double check: check if SG is part of MV
+                    if (!checkStorageGroupInAnyMaskingView(storage, sgPath.getObjectPath())) {
+                        // if last volume, dis-associate FAST
+                        int sgVolumeCount = getVMAXStorageGroupVolumeCount(storage, storageGroupName);
+                        if (sgVolumeCount == 1) {
+                            WBEMClient client = getConnection(storage).getCimClient();
+                            removeVolumeGroupFromPolicyAndLimitsAssociation(client, storage, sgPath.getObjectPath());
+                        }
+
+                        removeVolumesFromStorageGroup(storage, storageGroupName, Collections.singletonList(volume.getId()), forceFlag);
+
+                        // If there was only one volume in the SG, it would be empty after removing that last volume.
+                        if (sgVolumeCount == 1) {
+                            _log.info("Deleting Empty Storage Group {}", storageGroupName);
+                            deleteMaskingGroup(storage, storageGroupName, SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+                        }
+                    }
+                }
+            } else {
+                _log.info("Found that Volume {} is part of Masking View {}", volume.getNativeGuid(), mvPathItr.next());
+            }
         } catch (Exception e) {
-            _log.error(
-                    String.format(
-                            "removeVolume from Storage group associated with Auto Tier Policy failed -: %s",
-                            groupName), e);
+            _log.warn("Exception while trying to remove volume {} from Storage Groups which is not in any Masking View",
+                    volume.getNativeGuid(), e);
+        } finally {
+            closeCIMIterator(mvPathItr);
+            closeCIMIterator(sgInstancesItr);
         }
-        _log.info(
-                "{} removeVolume from Storage group {} associated with Auto Tier Policy END...",
-                storage.getSerialNumber(), groupName);
     }
 
     public void removeVolumeGroupFromAutoTieringPolicy(
@@ -987,7 +1047,6 @@ public class SmisCommandHelper implements SmisConstants {
             Integer volumeType = isThinlyProvisioned ? STORAGE_VOLUME_TYPE_THIN : STORAGE_VOLUME_VALUE;
 
             // Create array values
-            String[] labelsArray = labels.toArray(new String[] {});  // Convert labels to array
 
             // Adding Goal parameter if volumes need to be FAST Enabled
             list.add(_cimArgument.referenceArray(CP_IN_POOL,
@@ -998,6 +1057,7 @@ public class SmisCommandHelper implements SmisConstants {
                     toMultiElementArray(count, SINGLE_DEVICE_FOR_EACH_CONFIG)));
 
             if (labels != null) {
+                String[] labelsArray = labels.toArray(new String[]{});  // Convert labels to array
                 list.add(_cimArgument.stringArray(CP_ELEMENT_NAMES, labelsArray));
             }
             // Add CIMArgument instances to the list
@@ -3896,19 +3956,24 @@ public class SmisCommandHelper implements SmisConstants {
      * @return
      */
     public String generateGroupName(Set<String> existingGroupNames, String storageGroupName) {
-        int count = 0;
-        String format = null;
-        while (count <= existingGroupNames.size()) {
-            if (count > 0) {
-                storageGroupName = String.format("%s_%d", storageGroupName, count);
+        String result = storageGroupName;
+        // Is 'storageGroupName' already in the list of existing names?
+        if (existingGroupNames.contains(storageGroupName)) {
+            // Yes -- name is already in the existing group name list. We're going to have to generate a unique name by using an appended
+            // numeric index. The format will be storageGroupName_<[N]>, where N is a number between 1 and the size of existingGroupNames.
+            int size = existingGroupNames.size();
+            for (int index = 1; index <= size; index++) {
+                // Generate an indexed name ...
+                result = String.format("%s_%d", storageGroupName, index);
+                // If the indexed name does not exist, then exit the loop and return 'result'
+                if (!existingGroupNames.contains(result)) {
+                    break;
+                }
             }
-
-            if (!existingGroupNames.contains(storageGroupName)) {
-                return storageGroupName;
-            }
-            count++;
         }
-        return storageGroupName;
+        _log.info(String.format("generateGroupName(existingGroupNames.size = %d, %s), returning %s", existingGroupNames.size(),
+                storageGroupName, result));
+        return result;
     }
 
     /**
@@ -6245,6 +6310,24 @@ public class SmisCommandHelper implements SmisConstants {
         return args.toArray(new CIMArgument[args.size()]);
     }
 
+    /*
+     * Construct input arguments for creating list replica.
+     *
+     * @param storageDevice
+     * @param sourceVolumePath
+     * @param labels
+     * @param synType
+     */
+    public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice, CIMObjectPath[] sourceVolumePath, List<String> labels, int syncType) {
+        List<CIMArgument> args = new ArrayList<CIMArgument>();
+        args.add(_cimArgument.referenceArray(CP_SOURCE_ELEMENTS, sourceVolumePath));
+        args.add(_cimArgument.stringArray(CP_ELEMENT_NAMES, labels.toArray(new String[]{})));
+        args.add(_cimArgument.uint16(CP_SYNC_TYPE, syncType));
+        args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, ACTIVATE_VALUE));
+
+        return args.toArray(new CIMArgument[args.size()]);
+    }
+
     public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice,
             CIMObjectPath[] sourceVolumePath,
             CIMObjectPath[] targetVolumePath,
@@ -6597,5 +6680,25 @@ public class SmisCommandHelper implements SmisConstants {
         return storageSystem.getUsingSmis80() ?
                 EMC_CREATE_MULTIPLE_TYPE_ELEMENTS_FROM_STORAGE_POOL :
                 CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
+    }
+
+    /*
+     * Get source object for a replica.
+     *
+     * @param dbClient
+     * @param replica
+     * @return source object
+     */
+    public BlockObject getSource(BlockObject replica) {
+        URI sourceURI;
+        if (replica instanceof BlockSnapshot) {
+            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
+        } else if (replica instanceof BlockMirror) {
+            sourceURI = ((BlockMirror) replica).getSource().getURI();
+        } else {
+            sourceURI = ((Volume) replica).getAssociatedSourceVolume();
+        }
+
+        return BlockObject.fetch(_dbClient, sourceURI);
     }
 }

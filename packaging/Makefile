@@ -170,7 +170,7 @@ OVFBUILD_VSPHERE_BASH_LICENSE_FILE = $(OVFBUILD_VSPHERE_DIR)/storageos-license-s
 
               OVFBUILD_UI_FILES  = $(OVFBUILD_HYPERV_UI_FILE) $(OVFBUILD_VSPHERE_UI_FILE)
 
-          OVFBUILD_BASE_RELEASE := 3
+          OVFBUILD_BASE_RELEASE := 4
           OVFBUILD_BASE_URL      = http://lglaf020.lss.emc.com/images/vipr/ViPRBase/2.4.0.0/$(OVFBUILD_BASE_RELEASE)/
             OVFBUILD_BASE_NAME  = base-2.4.0.0.$(OVFBUILD_BASE_RELEASE)
               OVFBUILD_BASE_DIR  = $(OBJDIR)/$(OVFBUILD_BASE_NAME)
@@ -214,7 +214,7 @@ CONTROLLER_OVF_DEFINITIONS       := storageos-properties-ovfenv.def
 CONTROLLER_PROPERTY_DEFINITIONS  := $(ITER_DEFINITIONS) $(CONTROLLER_OVF_DEFINITIONS) storageos-properties-config.def
     OVF_PROPERTY_METADATA_BEANS   = $(SOURCE_BASE)/syssvc/src/conf/sys-metadata-var.xml \
                                     $(SOURCE_BASE)/syssvc/src/conf/sys-metadata-var-template.xml
-                OVFBUILD_SVT_DATA = $(OVFBUILD_OVAS_DIR)/svt.data
+                OVFBUILD_SVT_DATA = $(OVFBUILD_OVAS_DIR)/$(PRODUCT).SVTDATA
                  CONFIG_DEFAULTS  = $(BUILD_BASE)/etc/config.defaults
           OVF_CONTROLLER_DEFAULTS = $(BUILD_BASE)/etc/.ovfenv.properties
                     ITER_DEFAULTS = $(BUILD_BASE)/etc/.iterable.properties
@@ -585,9 +585,9 @@ $(OVFBUILD_OVF_BUILDDIR)/%: %
 svt: $(OVFBUILD_SVT_DATA)
 
 clean-svt:
-	$(ATSIGN)$(RM) $(OVFBUILD_OVAS_DIR)/svt.data
+	$(ATSIGN)$(RM) $(OVFBUILD_OVAS_DIR)/*.SVTDATA
 
-$(OVFBUILD_OVAS_DIR)/svt.data: FORCE
+$(OVFBUILD_OVAS_DIR)/$(PRODUCT).SVTDATA: FORCE
 	$(ATSIGN)$(RM) $(@) $(@).temp
 	$(ATECHO) gensvtdata.py $(OVFBUILD_OVAS_DIR)/$(@F) $(PRODUCT)
 	$(ATSIGN)./gensvtdata.py $(OVFBUILD_OVAS_DIR) $(PRODUCT) >$(@).temp

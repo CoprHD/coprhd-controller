@@ -121,7 +121,6 @@ public class Bucket extends DataObject implements ProjectResource {
 
     @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
     @Name("varray")
-    @AlternateId("AltIdIndex")
     public URI getVirtualArray() {
         return _virtualArray;
     }

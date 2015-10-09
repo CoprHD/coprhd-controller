@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.ComputeElementHBA;
 import com.emc.storageos.db.client.model.ComputeFabricUplinkPort;
 import com.emc.storageos.db.client.model.ComputeFabricUplinkPortChannel;
 import com.emc.storageos.db.client.model.ComputeImageJob;
+import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeLanBoot;
 import com.emc.storageos.db.client.model.ComputeLanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeSanBoot;
@@ -145,6 +146,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
             ColumnField field = doType.getColumnField("virtualPool");
             return new ContainmentConstraintImpl(vpool, FileShare.class, field);
+        }
+        
+        public static ContainmentConstraint getVirtualArrayBucketsConstraint(URI varray) {
+            DataObjectType doType = TypeMap.getDoType(Bucket.class);
+            ColumnField field = doType.getColumnField("varray");
+            return new ContainmentConstraintImpl(varray, Bucket.class, field);
         }
         
         public static ContainmentConstraint getStoragePoolBucketConstraint(URI pool) {

@@ -315,6 +315,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             if(dbMetrics == null) {
                 dbMetrics = new StringMap();
             }
+            
             /*process the system accesszone dbmetrics*/
             _log.info("get the total objs and capacity dbmetrics for systemaccess zone : {}", systemAzName);
             getDBmetricsAZ(IFS_ROOT, isilonApi, dbMetrics);
@@ -380,23 +381,27 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonApi.IsilonList<IsilonSmartQuota> quotas = null;
         do {
             quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
-            for (IsilonSmartQuota quota : quotas.getList()) {
-                totalProvCap = totalProvCap + quota.getThresholds().getHard();
-                totalFsCount ++;
+            if(quotas != null) {
+                for (IsilonSmartQuota quota : quotas.getList()) {
+                    totalProvCap = totalProvCap + quota.getThresholds().getHard();
+                    totalFsCount ++;
+                }
+                resumeToken = quotas.getToken();
             }
-            resumeToken = quotas.getToken();
         } while (resumeToken != null);
         
         //snapshots count & capacity
-        resumeToken = null;
         IsilonApi.IsilonList<IsilonSnapshot> snapshots = null;
         do {
+            resumeToken = null;
             snapshots = isilonApi.listSnapshots(resumeToken, baseDirPath);
-            for(IsilonSnapshot isiSnap: snapshots.getList()) {
-                totalProvCap = totalProvCap + Long.valueOf(isiSnap.getSize());
-                totalFsCount ++;
+            if(snapshots != null) {
+                for(IsilonSnapshot isiSnap: snapshots.getList()) {
+                    totalProvCap = totalProvCap + Long.valueOf(isiSnap.getSize());
+                    totalFsCount ++;
+                }
+                resumeToken = snapshots.getToken();
             }
-            
         } while (resumeToken != null);
         
         // set total fs objects and their sum of capacity for give AZ

@@ -167,7 +167,7 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
          * Dual X-bricks (4 SCs, 3 ports from X-brick 1, 3 ports from X-brick 2), 2 networks
          * ports spread across networks with second network having only 2 ports
          */
-        // TODO tricky
+        // TODO tricky configuration
         context.reinitialize();
         networkMap.clear();
         allocatablePorts.clear();
@@ -306,6 +306,8 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         orca.setVplexDirectorCount(directorCount);
         portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
+
+        // TODO need 3 networks configuration?
     }
 
     static Integer maskCounter = 1;

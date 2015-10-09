@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.common.Configuration;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
@@ -311,6 +313,23 @@ public class DbClientContext {
 
         if (wait) {
             waitForSchemaChange(schemaVersion);
+        }
+    }
+
+    /**
+     * Remove a specific dc from strategy options, and wait till the new schema reaches all sites.
+     * If the dc doesn't exist in the current strategy options, nothing changes.
+     *
+     * @param dcId the dc to be removed
+     * @throws Exception
+     */
+    public void removeCassandraDC(String dcId) throws Exception {
+        Map<String, String> strategyOptions = getKeyspace().describeKeyspace().getStrategyOptions();
+        if (strategyOptions.containsKey(dcId)) {
+            log.info("Remove dc {} from strategy options", dcId);
+            strategyOptions.remove(dcId);
+
+            setCassandraStrategyOptions(strategyOptions, true);
         }
     }
 

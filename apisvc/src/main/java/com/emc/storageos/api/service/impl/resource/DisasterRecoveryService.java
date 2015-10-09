@@ -385,9 +385,11 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(uuid, standby.toConfiguration());
 
             VirtualDataCenter vdc = queryLocalVDC();
+
             // exclude the paused site from strategy options of dbsvc and geodbsvc
-            updateStrategyOptions(((DbClientImpl)dbClient).getLocalContext(), vdc.getShortId(), uuid);
-            updateStrategyOptions(((DbClientImpl)dbClient).getGeoContext(), vdc.getShortId(), uuid);
+            String dcId = String.format("%s-%s", vdc.getShortId(), standby.getStandbyShortId());
+            ((DbClientImpl)dbClient).getLocalContext().removeCassandraDC(dcId);
+            ((DbClientImpl)dbClient).getGeoContext().removeCassandraDC(dcId);
 
             for (Site site : getStandbySites(vdc.getId())) {
                 updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
@@ -401,22 +403,6 @@ public class DisasterRecoveryService {
             log.error("Error pausing site {}", uuid, e);
             throw APIException.internalServerErrors.pauseStandbyFailed(uuid, e.getMessage());
         }
-    }
-
-    private void updateStrategyOptions(DbClientContext dbContext, String localVdcShortId, String siteId)
-            throws Exception {
-        Map<String, String> strategyOptions = dbContext.getKeyspace().describeKeyspace().getStrategyOptions();
-
-        for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
-            String dcId = String.format("%s-%s", localVdcShortId, site.getStandbyShortId());
-            if (site.getUuid().equals(siteId) && strategyOptions.containsKey(dcId)) {
-                log.info("Remove dc {} from strategy options", dcId);
-                strategyOptions.remove(dcId);
-            }
-        }
-
-        dbContext.setCassandraStrategyOptions(strategyOptions, true);
     }
 
     private void updateVdcTargetVersion(String siteId, String action) throws Exception {

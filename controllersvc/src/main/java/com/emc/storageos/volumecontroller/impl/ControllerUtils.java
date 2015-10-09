@@ -18,8 +18,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +45,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -56,8 +55,10 @@ import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEvent;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
 import com.google.common.base.Joiner;
@@ -1206,5 +1207,24 @@ public class ControllerUtils {
     public static boolean isVmaxVolumeUsing803SMIS(Volume volume, DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
+    }
+
+    /**
+     * Check whether the given storage system is managed by SMI 8.1
+     * 
+     * @param storage
+     * @param dbClient
+     * @return status
+     */
+    public static boolean isVmaxUsing81SMIS(StorageSystem storage, DbClient dbClient) {
+        boolean status = false;
+        if (storage != null) {
+            StorageProvider provider = dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
+            if (provider != null) {
+                String providerVersion = provider.getVersionString();
+                status = providerVersion != null && providerVersion.startsWith("V8.1");
+            }
+        }
+        return status;
     }
 }

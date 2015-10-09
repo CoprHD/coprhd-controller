@@ -11,6 +11,7 @@ import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DIFFERENTIAL_CLONE_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.GET_DEFAULT_REPLICATION_SETTING_DATA;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.PROVISIONING_TARGET_SAME_AS_SOURCE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SMIS810_TF_DIFFERENTIAL_CLONE_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.TARGET_ELEMENT_SUPPLIER;
 import static javax.cim.CIMDataType.UINT16_T;
 
@@ -50,6 +51,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResyncSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCloneRestoreJob;
@@ -176,8 +178,16 @@ public class AbstractCloneOperations implements CloneOperations {
             CIMArgument[] inArgs = null;
             CIMInstance repSettingData = null;
             if (storageSystem.deviceIsType(Type.vmax)) {
+
                 if (createInactive && storageSystem.getUsingSmis80()) {
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, COPY_BEFORE_ACTIVATE);
+                } else if (storageSystem.checkIfVmax3() && ControllerUtils.isVmaxUsing81SMIS(storageSystem, _dbClient)) {
+                    /**
+                     * VMAX3 using SMI 8.1 provider needs to send DesiredCopyMethodology=32770
+                     * to create TimeFinder differential clone.
+                     */
+                    repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem,
+                            SMIS810_TF_DIFFERENTIAL_CLONE_VALUE);
                 } else {
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, DIFFERENTIAL_CLONE_VALUE);
                 }

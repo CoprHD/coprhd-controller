@@ -291,10 +291,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         /*get the fs objects and their capacity*/ 
                         _log.info("get the total objs and capacity dbmetrics for access zone : {}", isAccessZone.getName());
                         getDBmetricsAZ(isAccessZone.getPath(), isilonApi, dbMetrics);
-                        //sum of all access zones
+                        //sum of all user define AZ's
                         totalStorObj = totalStorObj + MetricsKeys.getLong(MetricsKeys.storageObjects, dbMetrics);
                         totalStorCap = totalStorCap + MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, dbMetrics);
-                        //persist in db
+                        //set AZ dbMetrics in db
                         virtualNAS.setMetrics(dbMetrics);
                         virtualNASList.add(virtualNAS);
                     }
@@ -518,7 +518,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports.get(NEW),
                     allExistPorts, _dbClient, _coordinator, poolsToMatchWithVpool);
             
-            //discover the accesszone and it's network interfaces
+            //discover the access zone and it's network interfaces
             discoverAccessZones(storageSystem);
             _completer.statusPending(_dbClient, "Completed Access Zone discovery");
             // discovery succeeds
@@ -588,7 +588,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
     
     /**
-     * discover the network interface of given isilon storage cluster
+     * discover the network interface of given Isilon storage cluster
      * @param storageSystem
      * @return
      * @throws IsilonCollectionException
@@ -601,6 +601,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         try {
             
             if(storageSystem.getFirmwareVersion().equalsIgnoreCase("8.0.0.BETA.0")) {
+                _log.info("Isilon release version {} and storagesystem label {}", 
+                                storageSystem.getFirmwareVersion(), storageSystem.getLabel());
                 IsilonApi isilonApi = getIsilonDevice(storageSystem);
                 isilonNetworkPoolsTemp = isilonApi.getNetworkPools();
                 if(isilonNetworkPoolsTemp != null) {

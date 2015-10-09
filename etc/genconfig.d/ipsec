@@ -9,10 +9,11 @@
 # limited to the terms and conditions of the License Agreement under which
 # it is provided by or on behalf of EMC.
 
-PORTS_PROTECTED_IN_CLUSTER="tcp/2181 tcp/2888 tcp/2889"
+PORTS_PROTECTED_IN_CLUSTER="tcp/2181 tcp/2888 tcp/2889 tcp/9160 tcp/7000"
 PORTS_PROTECTED_ACROSS_SITE="tcp/2181 tcp/2888 tcp/2889"
 IPSEC_CONF_FILE="/etc/ipsec.conf"
 IPSEC_SECRET_FILE="/etc/ipsec.secrets"
+DEFAULT_PRE_SHARED_KEY="defaultPreSharedKeyForIPSec"
 
 
 # This method returns the configured ip address of this machine
@@ -91,9 +92,14 @@ _get_ips_in_standby() {
     echo "$ips"
 }
 
+
+#
+# preparing values for variables
+#
 LOCAL_IP=$(_get_local_ip)
 IPS_IN_CLUSTER=$(_get_ips_in_cluster)
 IPS_OF_STANDBYS=$(_get_ips_in_standby)
+pre_shared_key=${
 
 #
 # common section for all connnections in ipsec.conf
@@ -132,10 +138,6 @@ conn ${LOCAL_IP}-${ip}-${port}
     right=${ip}
     rightprotoport=${port}
 
-conn ${ip}-${LOCAL_IP}-${port}
-    right=${ip}
-    leftprotoport=${port}
-
 EOF
 )
     echo "${conn}"
@@ -151,17 +153,25 @@ EOF
 #
 _gen_ipsec_conf() {
 
-    # based on ipsec_enabled to decide if need to generate ipsec config files
-    if [ ${_GENCONFIG_ipsec_enabled} == "false" ] ; then
+    # based on flag ipsec_enabled AND directory "/data/db/1" to determine if need to generate conf files
+    #
+    # flag NOT defined: first boot, further check "data/db/1" directory existence
+    #      - not exist: new installation, generate conf files
+    #      - exist    : first boot after upgrade, do NOT generate conf files
+    #
+    # flag defined: following up boots, further check its value
+    #      - true : generate files
+    #      - false: do NOT generate files
+    #
+    if [ -z "${_GENCONFIG_ipsec_enabled}" -a -d /data/db/1 ] ; then
         rm ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
         return
     fi
 
-    # to do:
-    #    check if it is the first boot after upgrade from previous non-ipsec cluster,
-    #    if so, do not generate ipsec config files
-
-
+    if [ ${_GENCONFIG_ipsec_enabled} == "false" ] ; then
+        rm ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
+        return
+    fi
 
     # ipsec_enabled = true, generating ipsec config files
     local conn_in_cluster=$(_gen_conn_sections "${IPS_IN_CLUSTER}" "${PORTS_PROTECTED_IN_CLUSTER}")
@@ -175,7 +185,8 @@ ${conn_of_standby}
 EOF
 )
     _genconfig_write 400 root:root "${IPSEC_CONF_FILE}" "${content}"
-    _genconfig_write 400 root:root "${IPSEC_SECRET_FILE}" " : PSK ${_GENCONFIG_ipsec_pre_shared_key}"
+    _genconfig_write 400 root:root "${IPSEC_SECRET_FILE}" \
+        " : PSK ${_GENCONFIG_ipsec_pre_shared_key:-${DEFAULT_PRE_SHARED_KEY}}"
 }
 
 _gen_ipsec_conf

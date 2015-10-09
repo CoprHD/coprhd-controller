@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -10031,7 +10032,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void restoreSnapshotSession(URI vplexURI, URI snapSessionURI, String opId)
             throws InternalException {
 
-        BlockSnapshot snapSession = getDataObject(BlockSnapshot.class, snapSessionURI, _dbClient);
+        BlockSnapshotSession snapSession = getDataObject(BlockSnapshotSession.class, snapSessionURI, _dbClient);
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,

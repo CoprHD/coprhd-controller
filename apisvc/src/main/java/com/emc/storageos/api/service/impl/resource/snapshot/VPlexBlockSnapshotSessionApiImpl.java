@@ -309,8 +309,9 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // Get the platform specific implementation for the source side
             // backend storage system and call the delete method.
             Volume vplexVolume = (Volume) snapSessionSourceObj;
-            BlockSnapshotSessionApi snapshotSessionImpl = getImplementationForBackendSystem(vplexVolume);
-            snapshotSessionImpl.deleteSnapshotSession(snapSession, snapSessionSourceObj, taskId);
+            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            BlockSnapshotSessionApi snapshotSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
+            snapshotSessionImpl.deleteSnapshotSession(snapSession, srcSideBackendVolume, taskId);
         } else {
             // We don't currently support snaps of BlockSnapshot instances
             // so should never be called.

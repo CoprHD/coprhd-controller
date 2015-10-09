@@ -11,6 +11,8 @@ import static java.lang.String.format;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.BlockSnapshotSession.CopyMode;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -54,8 +57,8 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
  * Class that implements all block snapshot session requests.
@@ -248,42 +251,37 @@ public class BlockSnapshotSessionManager {
         // instances for any new targets to be created and linked to the
         // snapshot sessions.
         List<URI> snapSessionURIs = new ArrayList<URI>();
-        Map<URI, List<URI>> snapSessionSnapshotMap = new HashMap<URI, List<URI>>();
+        Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap = new HashMap<URI, Map<URI, BlockSnapshot>>();
         List<BlockSnapshotSession> snapSessions = snapSessionApiImpl.prepareSnapshotSessions(snapSessionSourceObjList, snapSessionLabel,
                 newLinkedTargetsCount, newTargetsName, snapSessionURIs, snapSessionSnapshotMap, taskId);
 
-        // Create tasks for each snapshot session.
+        // Populate the preparedObjects list and create tasks for each snapshot session.
         TaskList response = new TaskList();
+        List<DataObject> preparedObjects = new ArrayList<DataObject>();
+        Map<URI, List<URI>> snapSessionSnapshotURIMap = new HashMap<URI, List<URI>>();
+        preparedObjects.addAll(snapSessions);
         for (BlockSnapshotSession snapSession : snapSessions) {
+            URI snapSessionURI = snapSession.getId();
             response.getTaskList().add(toTask(snapSession, taskId));
+            preparedObjects.addAll(snapSessionSnapshotMap.get(snapSessionURI).values());
+            List<URI> snapSessionSnapshotURIs = new ArrayList<URI>();
+            snapSessionSnapshotURIs.addAll(snapSessionSnapshotMap.get(snapSessionURI).keySet());
+            snapSessionSnapshotURIMap.put(snapSessionURI, snapSessionSnapshotURIs);
         }
 
         // Create the snapshot sessions.
         try {
             snapSessionApiImpl.createSnapshotSession(snapSessionSourceObj, snapSessionURIs,
-                    snapSessionSnapshotMap, newTargetsCopyMode, taskId);
-        } catch (APIException | InternalException e) {
-            // Update task status.
-            String errorMsg = format("Failed to create snapshot sessions for source %s: %s",
-                    sourceURI, e.getMessage());
-            for (TaskResourceRep taskResourceRep : response.getTaskList()) {
-                taskResourceRep.setState(Operation.Status.error.name());
-                taskResourceRep.setMessage(errorMsg);
-                _dbClient.error(BlockSnapshotSession.class, taskResourceRep.getResource().getId(), taskId, e);
+                    snapSessionSnapshotURIMap, newTargetsCopyMode, taskId);
+        } catch (Exception e) {
+            String errorMsg = format("Failed to create snapshot sessions for source %s: %s", sourceURI, e.getMessage());
+            ServiceCoded sc = null;
+            if (e instanceof ServiceCoded) {
+                sc = (ServiceCoded) e;
+            } else {
+                sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
             }
-
-            // Mark prepared snapshot sessions and snapshots inactive.
-            for (BlockSnapshotSession snapSession : snapSessions) {
-                List<BlockSnapshot> sessionSnapshots = _dbClient.queryObject(BlockSnapshot.class,
-                        snapSessionSnapshotMap.get(snapSession.getId()));
-                for (BlockSnapshot sessionSnapshot : sessionSnapshots) {
-                    sessionSnapshot.setInactive(true);
-                }
-                _dbClient.persistObject(sessionSnapshots);
-
-                snapSession.setInactive(true);
-                _dbClient.persistObject(snapSession);
-            }
+            cleanupFailure(response.getTaskList(), preparedObjects, errorMsg, taskId, sc);
             throw e;
         }
 
@@ -347,10 +345,22 @@ public class BlockSnapshotSessionManager {
         TaskResourceRep response = toTask(snapSession, taskId);
 
         // Create and link new targets to the snapshot session.
-        List<URI> snapshotURIs = new ArrayList<URI>();
-        snapshotURIs.addAll(snapshotMap.keySet());
-        snapSessionApiImpl.linkNewTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, snapshotURIs,
-                newTargetsCopyMode, taskId);
+        try {
+            List<URI> snapshotURIs = new ArrayList<URI>();
+            snapshotURIs.addAll(snapshotMap.keySet());
+            snapSessionApiImpl.linkNewTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession,
+                    snapshotURIs, newTargetsCopyMode, taskId);
+        } catch (Exception e) {
+            String errorMsg = format("Failed to link new targets for snapshot session %s: %s", snapSessionURI, e.getMessage());
+            ServiceCoded sc = null;
+            if (e instanceof ServiceCoded) {
+                sc = (ServiceCoded) e;
+            } else {
+                sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
+            }
+            cleanupFailure(Arrays.asList(response), snapshotMap.values(), errorMsg, taskId, sc);
+            throw e;
+        }
 
         // Create the audit log entry.
         auditOp(OperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGET, true, AuditLogManager.AUDITOP_BEGIN,
@@ -402,7 +412,19 @@ public class BlockSnapshotSessionManager {
         TaskResourceRep response = toTask(snapSession, taskId);
 
         // Re-link the targets to the snapshot session.
-        snapSessionApiImpl.relinkTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, linkedTargetURIs, taskId);
+        try {
+            snapSessionApiImpl.relinkTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, linkedTargetURIs, taskId);
+        } catch (Exception e) {
+            String errorMsg = format("Failed to relink targets to snapshot session %s: %s", snapSessionURI, e.getMessage());
+            ServiceCoded sc = null;
+            if (e instanceof ServiceCoded) {
+                sc = (ServiceCoded) e;
+            } else {
+                sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
+            }
+            cleanupFailure(Arrays.asList(response), new ArrayList<DataObject>(), errorMsg, taskId, sc);
+            throw e;
+        }
 
         // Create the audit log entry.
         auditOp(OperationTypeEnum.RELINK_SNAPSHOT_SESSION_TARGET, true, AuditLogManager.AUDITOP_BEGIN,
@@ -462,7 +484,19 @@ public class BlockSnapshotSessionManager {
         TaskResourceRep response = toTask(snapSession, taskId);
 
         // Unlink the targets from the snapshot session.
-        snapSessionApiImpl.unlinkTargetVolumesFromSnapshotSession(snapSessionSourceObj, snapSession, targetMap, taskId);
+        try {
+            snapSessionApiImpl.unlinkTargetVolumesFromSnapshotSession(snapSessionSourceObj, snapSession, targetMap, taskId);
+        } catch (Exception e) {
+            String errorMsg = format("Failed to unlink targets from snapshot session %s: %s", snapSessionURI, e.getMessage());
+            ServiceCoded sc = null;
+            if (e instanceof ServiceCoded) {
+                sc = (ServiceCoded) e;
+            } else {
+                sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
+            }
+            cleanupFailure(Arrays.asList(response), new ArrayList<DataObject>(), errorMsg, taskId, sc);
+            throw e;
+        }
 
         // Create the audit log entry.
         auditOp(OperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGET, true, AuditLogManager.AUDITOP_BEGIN,
@@ -509,16 +543,29 @@ public class BlockSnapshotSessionManager {
         op.setResourceType(ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION);
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, op);
         snapSession.getOpStatus().put(taskId, op);
+        TaskResourceRep response = toTask(snapSession, taskId);
 
         // Restore the snapshot session.
-        snapSessionApiImpl.restoreSnapshotSession(snapSession, snapSessionSourceObj, taskId);
+        try {
+            snapSessionApiImpl.restoreSnapshotSession(snapSession, snapSessionSourceObj, taskId);
+        } catch (Exception e) {
+            String errorMsg = format("Failed to restore snapshot session %s: %s", snapSessionURI, e.getMessage());
+            ServiceCoded sc = null;
+            if (e instanceof ServiceCoded) {
+                sc = (ServiceCoded) e;
+            } else {
+                sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
+            }
+            cleanupFailure(Arrays.asList(response), new ArrayList<DataObject>(), errorMsg, taskId, sc);
+            throw e;
+        }
 
         // Create the audit log entry.
         auditOp(OperationTypeEnum.RESTORE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN,
                 snapSessionURI.toString(), snapSessionSourceURI.toString(), snapSessionSourceObj.getStorageController().toString());
 
         s_logger.info("FINISH restore snapshot session {}", snapSessionURI);
-        return toTask(snapSession, taskId, op);
+        return response;
     }
 
     /**
@@ -591,16 +638,29 @@ public class BlockSnapshotSessionManager {
         op.setResourceType(ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION);
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, op);
         snapSession.getOpStatus().put(taskId, op);
+        TaskResourceRep response = toTask(snapSession, taskId);
 
         // Delete the snapshot session.
-        snapSessionApiImpl.deleteSnapshotSession(snapSession, snapSessionSourceObj, taskId);
+        try {
+            snapSessionApiImpl.deleteSnapshotSession(snapSession, snapSessionSourceObj, taskId);
+        } catch (Exception e) {
+            String errorMsg = format("Failed to delete snapshot session %s: %s", snapSessionURI, e.getMessage());
+            ServiceCoded sc = null;
+            if (e instanceof ServiceCoded) {
+                sc = (ServiceCoded) e;
+            } else {
+                sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
+            }
+            cleanupFailure(Arrays.asList(response), new ArrayList<DataObject>(), errorMsg, taskId, sc);
+            throw e;
+        }
 
         // Create the audit log entry.
         auditOp(OperationTypeEnum.DELETE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN,
                 snapSessionURI.toString(), snapSessionSourceURI.toString(), snapSessionSourceObj.getStorageController().toString());
 
         s_logger.info("FINISH delete snapshot session {}", snapSessionURI);
-        return toTask(snapSession, taskId, op);
+        return response;
     }
 
     /**
@@ -658,5 +718,33 @@ public class BlockSnapshotSessionManager {
                 BlockService.EVENT_SERVICE_TYPE, opType, System.currentTimeMillis(),
                 operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS
                         : AuditLogManager.AUDITLOG_FAILURE, operationStage, descparams);
+    }
+
+    /**
+     * Cleans up after a failed request.
+     * 
+     * @param taskList A list of prepared task responses.
+     * @param preparedObjects A collection of newly prepared ViPR database objects.
+     * @param errorMsg An error message.
+     * @param taskId The unique task identifier.
+     * @param sc A reference to a ServoceCoded.
+     */
+    private <T extends DataObject> void cleanupFailure(List<TaskResourceRep> taskList, Collection<T> preparedObjects,
+            String errorMsg, String taskId, ServiceCoded sc) {
+        // Update the task responses to indicate an error occurred and also update
+        // the operation status map for the associated resource.
+        for (TaskResourceRep taskResourceRep : taskList) {
+            taskResourceRep.setState(Operation.Status.error.name());
+            taskResourceRep.setMessage(errorMsg);
+            _dbClient.error(BlockSnapshotSession.class, taskResourceRep.getResource().getId(), taskId, sc);
+        }
+
+        // Mark any newly prepared database objects inactive.
+        if (!preparedObjects.isEmpty()) {
+            for (DataObject object : preparedObjects) {
+                object.setInactive(true);
+            }
+            _dbClient.persistObject(preparedObjects);
+        }
     }
 }

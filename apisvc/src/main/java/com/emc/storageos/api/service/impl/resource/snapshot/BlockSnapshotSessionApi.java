@@ -66,7 +66,7 @@ public interface BlockSnapshotSessionApi {
      * @return
      */
     public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<URI> snapSessionURIs, Map<URI, List<URI>> snapSessionSnapshotMap, String taskId);
+            String newTargetsName, List<URI> snapSessionURIs, Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String taskId);
 
     /**
      * Prepare ViPR BlockSnapshot instances for the new targets to be created and

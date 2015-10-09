@@ -254,7 +254,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<URI> snapSessionURIs, Map<URI, List<URI>> snapSessionSnapshotMap, String taskId) {
+            String newTargetsName, List<URI> snapSessionURIs, Map<URI, Map<URI, BlockSnapshot>> snapSessionSnapshotMap, String taskId) {
 
         int sourceCount = 0;
         List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
@@ -271,11 +271,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             // the BlockSnapshot instances to represent those targets.
             if (newTargetCount > 0) {
                 Map<URI, BlockSnapshot> snapshotMap = prepareSnapshotsForSession(sourceObj, sourceCount, newTargetCount, newTargetsName);
-                List<URI> snapshotURIs = new ArrayList<URI>();
-                snapshotURIs.addAll(snapshotMap.keySet());
-                snapSessionSnapshotMap.put(snapSession.getId(), snapshotURIs);
+                snapSessionSnapshotMap.put(snapSession.getId(), snapshotMap);
             } else {
-                snapSessionSnapshotMap.put(snapSession.getId(), new ArrayList<URI>());
+                snapSessionSnapshotMap.put(snapSession.getId(), new HashMap<URI, BlockSnapshot>());
             }
 
             // Update the snap sessions and URIs lists.

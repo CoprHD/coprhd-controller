@@ -76,8 +76,9 @@ public class ComputeImageServerMigration extends BaseCustomMigrationCallback {
                 try {
                     imageServer.setImageServerPassword(encryptionProvider.decrypt(Base64.decodeBase64(encryptedPassword)));
                 } catch (Exception e) {
-                    log.warn("Can't decrypt image server password");
-                    return;
+                    log.error("Can't decrypt image server password :" + e.getLocalizedMessage());
+                    log.error("Failed to save image server details into database during migration");
+                    throw e;
                 }
                 associateComputeImages(imageServer);
                 dbClient.createObject(imageServer);

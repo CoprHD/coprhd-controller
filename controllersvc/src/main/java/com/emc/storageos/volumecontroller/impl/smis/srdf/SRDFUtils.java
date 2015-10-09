@@ -700,10 +700,11 @@ public class SRDFUtils implements SmisConstants {
         }
         String grpName3 = project.getLabel();
         if (grpName3.length() > RDF_GROUP_NAME_MAX_LENGTH) {
-            names.add(grpName3.substring(0, RDF_GROUP_NAME_MAX_LENGTH).trim());
-        } else {
-            names.add(grpName3);
+            grpName3 = grpName3.substring(0, RDF_GROUP_NAME_MAX_LENGTH);
         }
+        names.add(grpName3
+                .trim()
+                .replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER));
         return names;
     }
 

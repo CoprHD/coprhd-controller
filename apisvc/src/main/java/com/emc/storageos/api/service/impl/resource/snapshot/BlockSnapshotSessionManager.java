@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static java.lang.String.format;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -53,6 +54,8 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
  * Class that implements all block snapshot session requests.
@@ -256,7 +259,33 @@ public class BlockSnapshotSessionManager {
         }
 
         // Create the snapshot sessions.
-        snapSessionApiImpl.createSnapshotSession(snapSessionSourceObj, snapSessionURIs, snapSessionSnapshotMap, newTargetsCopyMode, taskId);
+        try {
+            snapSessionApiImpl.createSnapshotSession(snapSessionSourceObj, snapSessionURIs,
+                    snapSessionSnapshotMap, newTargetsCopyMode, taskId);
+        } catch (APIException | InternalException e) {
+            // Update task status.
+            String errorMsg = format("Failed to create snapshot sessions for source %s: %s",
+                    sourceURI, e.getMessage());
+            for (TaskResourceRep taskResourceRep : response.getTaskList()) {
+                taskResourceRep.setState(Operation.Status.error.name());
+                taskResourceRep.setMessage(errorMsg);
+                _dbClient.error(BlockSnapshotSession.class, taskResourceRep.getResource().getId(), taskId, e);
+            }
+
+            // Mark prepared snapshot sessions and snapshots inactive.
+            for (BlockSnapshotSession snapSession : snapSessions) {
+                List<BlockSnapshot> sessionSnapshots = _dbClient.queryObject(BlockSnapshot.class,
+                        snapSessionSnapshotMap.get(snapSession.getId()));
+                for (BlockSnapshot sessionSnapshot : sessionSnapshots) {
+                    sessionSnapshot.setInactive(true);
+                }
+                _dbClient.persistObject(sessionSnapshots);
+
+                snapSession.setInactive(true);
+                _dbClient.persistObject(snapSession);
+            }
+            throw e;
+        }
 
         // Record a message in the audit log.
         auditOp(OperationTypeEnum.CREATE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN,

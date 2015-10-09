@@ -293,8 +293,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         _log.info("get the total objs and capacity dbmetrics for access zone : {}", isAccessZone.getName());
                         getDBmetricsAZ(isAccessZone.getPath(), isilonApi, dbMetrics);
                         //sum of all user define AZ's
-                        totalStorObj = totalStorObj + MetricsKeys.getLong(MetricsKeys.storageObjects, dbMetrics);
-                        totalStorCap = totalStorCap + MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, dbMetrics);
+                        //totalStorObj = totalStorObj + MetricsKeys.getLong(MetricsKeys.storageObjects, dbMetrics);
+                        //totalStorCap = totalStorCap + MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, dbMetrics);
                         //set AZ dbMetrics in db
                         virtualNAS.setMetrics(dbMetrics);
                         virtualNASList.add(virtualNAS);
@@ -320,11 +320,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             /*process the system accesszone dbmetrics*/
             _log.info("get dbmetrics total objs and capacity for system access zone : {}", systemAZId);
             getDBmetricsAZ(IFS_ROOT, isilonApi, dbMetrics);
-            totalStorObj = totalStorObj + MetricsKeys.getLong(MetricsKeys.storageObjects, dbMetrics);
-            totalStorCap = totalStorCap + MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, dbMetrics);
-            //set total fs count and capacity for system access zone
-            dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalStorObj));
-            dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalStorObj));
+            
             
             ////step-3 set the overload and percent load metrics for all access zones
             
@@ -346,8 +342,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 for (VirtualNAS vNas : virtualNASList) {
                     // Update dbMetrics for vNAS!!
                     dbMetrics = vNas.getMetrics();
-                    long StorageObj = MetricsKeys.getLong(MetricsKeys.storageObjects, vNas.getMetrics());
-                    percentageLoad = ((double) StorageObj / totalStorObj) * 100;
+                    maxObjects = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
+                    Long StorageObj = MetricsKeys.getLong(MetricsKeys.storageObjects, vNas.getMetrics());
+                    percentageLoad = ((double) StorageObj / maxObjects) * 100;
                     //update db metrics with percentload and overload
                     dbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
                     dbMetrics.put(MetricsKeys.overLoaded.name(), overLoaded);

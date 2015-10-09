@@ -261,7 +261,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         Workflow.Method createMethod = new Workflow.Method(
                 BlockDeviceController.CREATE_LIST_SNAPSHOT_METHOD, storage, snapshotList, false, false);
         waitFor = workflow.createStep(BlockDeviceController.CREATE_SNAPSHOTS_STEP_GROUP,
-                    "Create snapshot", waitFor, storage, storageSystem.getSystemType(),
+                    "Create list snapshot", waitFor, storage, storageSystem.getSystemType(),
                     _blockDeviceController.getClass(),
                     createMethod, _blockDeviceController.rollbackMethodNullMethod(), null);
 
@@ -280,12 +280,9 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             List<Volume> volumes, String repGroupName, URI cgURI) {
         log.info("START create clone step");
         URI storage = storageSystem.getId();
-        List<URI> sourceList = new ArrayList<URI>();
         List<URI> cloneList = new ArrayList<URI>();
         for (Volume volume : volumes) {
             Volume clone = prepareClone(volume, repGroupName);
-            URI cloneId = clone.getId();
-            sourceList.add(volume.getId());
             cloneList.add(clone.getId());
         }
 

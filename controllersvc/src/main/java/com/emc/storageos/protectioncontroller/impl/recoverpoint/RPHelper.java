@@ -1575,6 +1575,15 @@ public class RPHelper {
         return volume;
     }
     
+    /**
+     * Determine the wwn of the volume in the format RP is looking for.  For xtremio
+     * this is the 128 bit identifier.  For other array types it is the deafault.
+     * 
+     * @param volumeURI the URI of the volume the operation is being performed on
+     * @param dbClient
+     * @return the wwn of the volume which rp requires to perform the operation
+     *         in the case of xtremio this is the 128 bit identifier
+     */
     public static String getRPWWn(URI volumeURI, DbClient dbClient) {
     	Volume volume = dbClient.queryObject(Volume.class, volumeURI);    	
     	if (volume.getNativeGuid() != null && RecoverPointUtils.isXioVolume(volume.getNativeGuid())) {

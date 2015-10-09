@@ -1179,11 +1179,12 @@ public class RecoverPointImageManagementUtils {
     } 
     
     /**
-     * 
+     * Determines if the specified consistency group is using snapshot technology
      * 
      * @param impl the FAPI reference.
      * @param cgCopyUID the copy to be set as the production copy.
      * @throws RecoverPointException
+     * @return boolean indicating if snapshot technology is being used
      */
     private static boolean isSnapShotTechnologyEnabled(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID) throws RecoverPointException {       
     	String cgName = "unknown";
@@ -1206,6 +1207,16 @@ public class RecoverPointImageManagementUtils {
 		return false; 
     }
     
+    /**
+     * Determines the active pipe state to be looking for when the
+     * when the link is not-snapshot enabled or the link is snapshot enabled
+     * 
+     * @param impl the FAPI reference
+     * @param cgUID The consistency group being examined
+     * @return PipeState indicating the active state of the link
+     *         PipeState.ACTIVE for non-snapshot links
+     *         PipeState.SNAP_IDLE for snapshot enabled links  
+     */
     public static PipeState getPipeActiveState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID) {
     	PipeState pipeState = PipeState.ACTIVE;
     	if (isSnapShotTechnologyEnabled(impl, cgUID)) {

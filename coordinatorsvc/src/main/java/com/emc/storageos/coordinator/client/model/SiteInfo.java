@@ -22,7 +22,6 @@ public class SiteInfo implements CoordinatorSerializable {
 
     public static final String UPDATE_DATA_REVISION = "update_data_revision";
     public static final String RECONFIG_RESTART = "reconfig_restart";
-    public static final String PAUSE_STANDBY = "pause_standby";
     public static final String NONE = "none";
     
     public static final String DEFAULT_TARGET_VERSION="0"; // No target data revision set

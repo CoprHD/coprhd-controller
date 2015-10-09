@@ -76,6 +76,7 @@ public class VdcSiteManager extends AbstractManager {
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
     
     private SiteInfo targetSiteInfo;
+<<<<<<< HEAD
 
     private String vdcShortId;
     
@@ -86,6 +87,8 @@ public class VdcSiteManager extends AbstractManager {
     public void setVdcShortId(String vdcId) {
         vdcShortId = vdcId;
     }
+=======
+>>>>>>> feature-dr-pause-standby
     
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
@@ -341,55 +344,9 @@ public class VdcSiteManager extends AbstractManager {
                 checkAndRemoveStandby();
                 reconfigRestartSvcs();
                 break;
-            case SiteInfo.PAUSE_STANDBY:
-                pauseStandbySite(svcId);
-                break;
             default:
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
         }
-    }
-
-    private void pauseStandbySite(String svcId) throws Exception {
-        log.info("Step3: Acquiring vdc lock for strategy options change.");
-        if (getVdcLock(svcId)) {
-            try {
-                targetSiteInfo = coordinator.getTargetInfo(SiteInfo.class);
-                if (!targetSiteInfo.getActionRequired().equals(SiteInfo.PAUSE_STANDBY)) {
-                    log.info("strategy options already changed. Do nothing");
-                    return;
-                }
-
-                CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
-                // exclude the paused site from strategy options of dbsvc and geodbsvc
-                updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getLocalContext());
-                updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getGeoContext());
-
-                SiteInfo currentSiteInfo = coordinatorClient.getTargetInfo(coordinatorClient.getSiteId(),
-                        SiteInfo.class);
-                SiteInfo siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.RECONFIG_RESTART,
-                            currentSiteInfo.getTargetDataRevision());
-                coordinatorClient.setTargetInfo(coordinatorClient.getSiteId(), siteInfo);
-                log.info("VDC target version updated to {} for local site", siteInfo.getVdcConfigVersion());
-            } finally {
-                coordinator.releasePersistentLock(svcId, vdcLockId);
-            }
-        }
-    }
-
-    private void updateStrategyOptions(CoordinatorClient coordinatorClient, DbClientContext dbContext) throws Exception {
-        Map<String, String> strategyOptions = dbContext.getKeyspace().describeKeyspace().getStrategyOptions();
-
-        for(Configuration config : coordinatorClient.queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
-            String dcId = getCassandraDcId(site);
-            if (strategyOptions.containsKey(dcId)) {
-                if (site.getState().equals(SiteState.STANDBY_PAUSED) || site.getState().equals(SiteState.STANDBY_REMOVING))  {
-                    log.info("Remove dc {} from strategy options", dcId);
-                    strategyOptions.remove(dcId);
-                }
-            }
-        }
-        dbContext.setCassandraStrategyOptions(strategyOptions, true);
     }
 
     /**
@@ -678,7 +635,7 @@ public class VdcSiteManager extends AbstractManager {
         } finally {
             dbOps.close();
         }
-        updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getLocalContext());
+        ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcName);
         
         DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME);
         try {
@@ -686,7 +643,8 @@ public class VdcSiteManager extends AbstractManager {
         } finally {
             geodbOps.close();
         }
-        updateStrategyOptions(coordinatorClient, ((DbClientImpl)dbClient).getGeoContext());
+        ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcName);
+        
         coordinatorClient.removeServiceConfiguration(site.toConfiguration());
     }
     

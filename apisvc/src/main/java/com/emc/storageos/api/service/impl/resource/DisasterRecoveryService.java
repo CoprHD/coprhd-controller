@@ -11,7 +11,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -38,7 +37,7 @@ import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;
@@ -386,6 +385,11 @@ public class DisasterRecoveryService {
     @Path("/pause/{uuid}")
     public SiteRestRep pauseStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to pause data sync between standby site from local vdc by uuid: {}", uuid);
+        if (!isClusterStable()) {
+            log.error("Cluster is unstable");
+            throw APIException.serviceUnavailable.clusterStateNotStable();
+        }
+
         Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
         if (config == null) {
             log.error("Can't find site {} from ZK", uuid);
@@ -401,14 +405,20 @@ public class DisasterRecoveryService {
         try {
             standby.setState(SiteState.STANDBY_PAUSED);
             coordinator.persistServiceConfiguration(uuid, standby.toConfiguration());
+
             VirtualDataCenter vdc = queryLocalVDC();
 
-            for (Site standbySite : getStandbySites(vdc.getId())) {
-                updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
+            // exclude the paused site from strategy options of dbsvc and geodbsvc
+            String dcId = String.format("%s-%s", vdc.getShortId(), standby.getStandbyShortId());
+            ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcId);
+            ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcId);
+
+            for (Site site : getStandbySites(vdc.getId())) {
+                updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
-            // in order to pause standby, the local site (primary) needs to update the strategy options
-            // for both db/geodb before regenerating configuration files.
-            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.PAUSE_STANDBY);
+
+            // update the local(primary) site last
+            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
 
             return siteMapper.map(standby);
         } catch (Exception e) {
@@ -467,7 +477,8 @@ public class DisasterRecoveryService {
             String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
             String standbyDbSchemaVersion = standby.getDbSchemaVersion();
             if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
-                throw new Exception(String.format("Standby db schema version %s is not same as primary %s", standbyDbSchemaVersion, currentDbSchemaVersion));
+                throw new Exception(String.format("Standby db schema version %s is not same as primary %s",
+                        standbyDbSchemaVersion, currentDbSchemaVersion));
             }
             
             //software version should be matched
@@ -481,7 +492,8 @@ public class DisasterRecoveryService {
             }
             
             if (!isVersionMatchedForStandbyAttach(currentSoftwareVersion,standbySoftwareVersion)) {
-                throw new Exception(String.format("Standby site version %s is not equals to current version %s", standbySoftwareVersion, currentSoftwareVersion));
+                throw new Exception(String.format("Standby site version %s is not equals to current version %s",
+                        standbySoftwareVersion, currentSoftwareVersion));
             }
             
             //this site should not be standby site

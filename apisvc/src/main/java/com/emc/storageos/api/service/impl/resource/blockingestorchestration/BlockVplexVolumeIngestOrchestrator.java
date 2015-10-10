@@ -175,7 +175,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 setFlags(context);
                 createVplexMirrorObjects(context, (Volume) virtualVolume);
                 _logger.info(context.toStringDebug());
-                _logger.info(context.getPerformanceReport());
             }
 
             return virtualVolume;
@@ -659,7 +658,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                                 context.getBackendProject().getId(), mirrorVolume.getLabel()));
 
                         // update flags on mirror volume
-                        mirrorVolume.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+                        List<DataObject> updatedObjects = 
+                                context.getUpdatedObjectMap().get(mirrorVolume.getNativeGuid());
+                        if (updatedObjects == null) {
+                            updatedObjects = new ArrayList<DataObject>();
+                            context.getUpdatedObjectMap().put(mirrorVolume.getNativeGuid(), updatedObjects);
+                        }
+                        VolumeIngestionUtil.clearInternalFlags(mirrorVolume, updatedObjects, _dbClient);
                         // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
                         mirrorVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
 
@@ -668,9 +673,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         String deviceName = devicePathParts[devicePathParts.length - 1];
                         vplexMirror.setDeviceLabel(deviceName);
 
-                        // save the new VplexMirror & persist backend
+                        // save the new VplexMirror & persist backend & updated objects
                         _dbClient.createObject(vplexMirror);
                         _dbClient.updateAndReindexObject(mirrorVolume);
+                        for (DataObject updatedObject : updatedObjects) {
+                            _dbClient.persistObject(updatedObject);
+                        }
 
                         // set mirrors property on the parent virtual volume
                         StringSet mirrors = virtualVolume.getMirrors();

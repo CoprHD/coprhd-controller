@@ -14,6 +14,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "nfs_acls")
 public class NfsACLs implements Serializable {
 
+    /*
+     * response data attributes.
+     */
+
     private static final long serialVersionUID = -5805098581764691677L;
 
     private URI fileSystemId;

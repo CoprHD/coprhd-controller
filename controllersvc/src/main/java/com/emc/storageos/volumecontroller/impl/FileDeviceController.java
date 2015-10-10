@@ -2610,8 +2610,8 @@ public class FileDeviceController implements FileController {
         if (args.getFileSystemPath() != null) {
             dbShareAcl.setFileSystemPath(args.getFileSystemPath());
         }
-        if (ace.getPermission() != null) {
-            dbShareAcl.setPermission(ace.getPermission());
+        if (ace.getPermissions() != null) {
+            dbShareAcl.setPermissions(ace.getPermissions());
         }
         if (ace.getPermissionType() != null) {
             dbShareAcl.setPermissionType(ace.getPermissionType());

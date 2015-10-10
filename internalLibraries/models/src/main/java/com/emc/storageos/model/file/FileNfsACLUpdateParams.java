@@ -11,6 +11,11 @@ public class FileNfsACLUpdateParams extends NfsACLUpdateParams {
 
     private static final long serialVersionUID = -3923546614453117683L;
 
+    /**
+     * Payload attributes
+     * 
+     */
+
     public FileNfsACLUpdateParams() {
 
     }

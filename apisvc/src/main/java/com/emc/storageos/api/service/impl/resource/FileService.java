@@ -2236,7 +2236,7 @@ public class FileService extends TaskResourceService {
     private void getNFSAce(NFSShareACL orig, NfsACE dest) {
 
         dest.setDomain(orig.getDomain());
-        dest.setPermission(orig.getPermission());
+        dest.setPermissions(orig.getPermissions());
         if (orig.getPermissionType() != null && !orig.getPermissionType().isEmpty()) {
 
             dest.setPermissionType(orig.getPermissionType());

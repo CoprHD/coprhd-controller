@@ -5,6 +5,9 @@
 package com.emc.storageos.model.file;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -14,25 +17,22 @@ public class NfsACE implements Serializable {
 
     private static final long serialVersionUID = 1780598964262028652L;
     /*
-     * Payload attributes
+     * response data attributes.
+     * and payload attributes
      */
 
     private String domain;
     private String user;
     private String type;
-    private String permission;
+    private String permissions;
     private String permissionType;
-
-    public enum NfsACLOperationType {
-        ADD, MODIFY, DELETE
-    }
 
     public enum NfsPermissionType {
         ALLOW, DENY
     }
 
     public enum NfsPermission {
-        READ, CHANGE, FULLCONTROL
+        READ, WRITE, EXECUTE
     }
 
     public enum NfsACLOperationErrorType {
@@ -71,13 +71,13 @@ public class NfsACE implements Serializable {
         this.type = type;
     }
 
-    @XmlElement(name = "permission")
-    public String getPermission() {
-        return permission;
+    @XmlElement(name = "permissions")
+    public String getPermissions() {
+        return permissions;
     }
 
-    public void setPermission(String permission) {
-        this.permission = permission;
+    public void setPermissions(String permissions) {
+        this.permissions = permissions;
     }
 
     @XmlElement(name = "permission_type")
@@ -87,6 +87,13 @@ public class NfsACE implements Serializable {
 
     public void setPermissionType(String permissionType) {
         this.permissionType = permissionType;
+    }
+
+    public Set<String> getPermissionSet() {
+
+        String[] permissionArray = this.permissions.split(",");
+        return new HashSet<String>(Arrays.asList(permissionArray));
+
     }
 
     @Override
@@ -110,9 +117,9 @@ public class NfsACE implements Serializable {
             builder.append(", ");
         }
 
-        if (permission != null) {
-            builder.append("permission=");
-            builder.append(permission);
+        if (permissions != null) {
+            builder.append("permissions=");
+            builder.append(permissions);
             builder.append(", ");
         }
         if (permissionType != null) {
@@ -121,10 +128,6 @@ public class NfsACE implements Serializable {
         }
         builder.append("]");
         return builder.toString();
-    }
-
-    public NfsACE() {
-
     }
 
 }

@@ -13,11 +13,14 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 public class NfsACLUpdateParams implements Serializable {
 
     private static final long serialVersionUID = 3196927504346045761L;
+
+    /*
+     * Payload attributes
+     */
     protected List<NfsACE> acesToAdd;
     protected List<NfsACE> acesToModify;
     protected List<NfsACE> acesToDelete;
 
-    // Non payload models - for internal use only
     protected String subDir;
 
     public NfsACLUpdateParams() {

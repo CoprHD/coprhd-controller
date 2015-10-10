@@ -8,6 +8,11 @@ import java.util.ArrayList;
  */
 public class IsilonNFSACL {
 
+    public enum AccessRights {
+        dir_gen_read, dir_gen_execute,
+        std_write_dac
+    }
+
     public class Persona {
         private String type;   // optional
         private String id;     // optional

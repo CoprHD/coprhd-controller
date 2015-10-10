@@ -12,8 +12,8 @@ public abstract class FileACL extends DataObject {
 
     protected String fileSystemPath;
 
-    // Permissions for user or group: read(r), change (rw) or full control
-    protected String permission;
+    // Permissions for user or group: read(r), write (rw) or execute comma seperated.
+    protected String permissions;
 
     // permissionType can be allow or deny
     protected String permissionType;
@@ -62,13 +62,13 @@ public abstract class FileACL extends DataObject {
         setChanged("fileSystemPath");
     }
 
-    @Name("permission")
-    public String getPermission() {
-        return permission;
+    @Name("permissions")
+    public String getPermissions() {
+        return permissions;
     }
 
-    public void setPermission(String permission) {
-        this.permission = permission;
+    public void setPermissions(String permission) {
+        this.permissions = permission;
         setChanged("permission");
     }
 
@@ -112,8 +112,8 @@ public abstract class FileACL extends DataObject {
         builder.append(type);
         builder.append(", fileSystemPath=");
         builder.append(fileSystemPath);
-        builder.append(", permission=");
-        builder.append(permission);
+        builder.append(", permissions=");
+        builder.append(permissions);
         builder.append(", permission type=");
         builder.append(permissionType);
         builder.append("]");

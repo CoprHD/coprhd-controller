@@ -107,9 +107,9 @@ public class NFSShareACL extends FileACL {
             builder.append(fileSystemPath);
             builder.append(", ");
         }
-        if (permission != null) {
-            builder.append("permission=");
-            builder.append(permission);
+        if (permissions != null) {
+            builder.append("permissions=");
+            builder.append(permissions);
             builder.append(", ");
         }
         if (_id != null) {

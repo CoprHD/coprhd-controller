@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACE.NfsPermission;
+import com.emc.storageos.model.file.NfsACE.NfsPermissionType;
 import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -56,36 +57,65 @@ public class NfsACLUtility {
         this.userGroupList = new ArrayList<String>();
     }
 
+    public <T extends Enum<T>> boolean isValidEnum(String value, Class<T> enumClass) {
+        for (T e : enumClass.getEnumConstants()) {
+            if (e.name().equalsIgnoreCase(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void verifyNfsACLs(NfsACLUpdateParams param) {
 
         List<NfsACE> addList = param.getAcesToAdd();
         List<NfsACE> modifyList = param.getAcesToAdd();
         List<NfsACE> deleteList = param.getAcesToAdd();
         List<NFSShareACL> dbACLList = queryDBSFileNfsACLs();
+        Set<String> userSetDB = new HashSet<String>();
+        for (NFSShareACL dbAcl : dbACLList) {
+            userSetDB.add(dbAcl.getUser());
+
+        }
         if (addList != null && !addList.isEmpty()) {
-            verifyNfsACLsAddList(addList, dbACLList);
+            verifyNfsACLsAddList(addList, userSetDB);
         }
         if (modifyList != null && !modifyList.isEmpty()) {
-            verifyNfsACLsModifyList(modifyList, dbACLList);
+            verifyNfsACLsModifyOrDeleteList(modifyList, userSetDB);
         }
         if (deleteList != null && !deleteList.isEmpty()) {
-            verifyNfsACLsDeleteList(deleteList, dbACLList);
+            verifyNfsACLsModifyOrDeleteList(deleteList, userSetDB);
         }
 
     }
 
-    private void verifyNfsACLsAddList(List<NfsACE> addList, List<NFSShareACL> dbACLList) {
+    private void validateNfsAce(List<NfsACE> nfsaces) {
 
-        Set userSet = new HashSet<String>();
-        for (NFSShareACL dbAcl : dbACLList) {
-            userSet.add(dbAcl.getUser());
+        for (NfsACE ace : nfsaces) {
+
+            if (!isValidEnum(ace.getPermissionType(), NfsPermissionType.class)) {
+
+                throw APIException.badRequests.invalidPermissionType(ace.getPermissionType());
+            }
+
+            for (String permission : ace.getPermissionSet()) {
+                if (!isValidEnum(permission, NfsPermission.class)) {
+
+                    throw APIException.badRequests.invalidPermission(permission);
+                }
+
+            }
 
         }
+
+    }
+
+    private void verifyNfsACLsAddList(List<NfsACE> addList, Set<String> userSet) {
 
         for (NfsACE ace : addList) {
 
             if (userSet.contains(ace.getUser())) {
-                throw APIException.badRequests.nfsACLAlredyPresent("add",
+                throw APIException.badRequests.nfsACLAlreadyExists("add",
                         ace.getUser());
 
             }
@@ -93,15 +123,15 @@ public class NfsACLUtility {
 
     }
 
-    private void verifyNfsACLsDeleteList(List<NfsACE> deleteList, List<NFSShareACL> dbACLList) {
+    private void verifyNfsACLsModifyOrDeleteList(List<NfsACE> changeList, Set<String> userSet) {
+        for (NfsACE ace : changeList) {
 
-      
+            if (!userSet.contains(ace.getUser())) {
+                throw APIException.badRequests.nfsACLNotFoundFound("modify or delete",
+                        ace.getUser());
 
-    }
-
-    private void verifyNfsACLsModifyList(List<NfsACE> modifyList, List<NFSShareACL> dbACLList) {
-        // TODO Auto-generated method stub
-
+            }
+        }
     }
 
     private List<NFSShareACL> queryDBSFileNfsACLs() {
@@ -199,10 +229,10 @@ public class NfsACLUtility {
             case READ:
                 permissionText = FileControllerConstants.NFS_FILE_PERMISSION_READ;
                 break;
-            case CHANGE:
+            case WRITE:
                 permissionText = FileControllerConstants.NFS_FILE_PERMISSION_CHANGE;
                 break;
-            case FULLCONTROL:
+            case EXECUTE:
                 permissionText = FileControllerConstants.NFS_FILE_PERMISSION_FULLCONTROL;
                 break;
         }

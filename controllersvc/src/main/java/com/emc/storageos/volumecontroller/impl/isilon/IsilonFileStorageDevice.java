@@ -1786,12 +1786,11 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         for (NfsACE nfsACE : aceToAdd) {
             IsilonNFSACL.Acl acl = isilonAcl.new Acl();
             ArrayList<String> inheritFlags = new ArrayList<String>();
-            ArrayList<String> accessRights = new ArrayList<String>();
+
             inheritFlags.add("object_inherit");
             inheritFlags.add("inherit_only");
-            accessRights.add("std_write_dac");
             acl.setInherit_flags(inheritFlags);
-            acl.setAccessrights(accessRights);
+            acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
             acl.setOp("add");
             acl.setAccesstype(nfsACE.getPermissionType());
             IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
@@ -1804,12 +1803,10 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         for (NfsACE nfsACE : aceToModify) {
             IsilonNFSACL.Acl acl = isilonAcl.new Acl();
             ArrayList<String> inheritFlags = new ArrayList<String>();
-            ArrayList<String> accessRights = new ArrayList<String>();
             inheritFlags.add("object_inherit");
             inheritFlags.add("inherit_only");
-            accessRights.add("std_write_dac");
             acl.setInherit_flags(inheritFlags);
-            acl.setAccessrights(accessRights);
+            acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
             acl.setOp("replace");
             acl.setAccesstype(nfsACE.getPermissionType());
             IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
@@ -1822,12 +1819,10 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         for (NfsACE nfsACE : aceToDelete) {
             IsilonNFSACL.Acl acl = isilonAcl.new Acl();
             ArrayList<String> inheritFlags = new ArrayList<String>();
-            ArrayList<String> accessRights = new ArrayList<String>();
             inheritFlags.add("object_inherit");
             inheritFlags.add("inherit_only");
-            accessRights.add("std_write_dac");
             acl.setInherit_flags(inheritFlags);
-            acl.setAccessrights(accessRights);
+            acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
             acl.setOp("delete");
             acl.setAccesstype(nfsACE.getPermissionType());
             IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
@@ -1851,6 +1846,28 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         _log.info("End updateNfsACLs");
         BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
         return result;
+    }
+
+    private ArrayList<String> getIsilonAccessList(Set<String> permissions) {
+
+        ArrayList<String> accessRights = new ArrayList<String>();
+        for (String per : permissions) {
+
+            if (per.equalsIgnoreCase("read")) {
+                accessRights.add(IsilonNFSACL.AccessRights.dir_gen_read.toString());
+
+            }
+            if (per.equalsIgnoreCase("write")) {
+                accessRights.add(IsilonNFSACL.AccessRights.std_write_dac.toString());
+
+            }
+            if (per.equalsIgnoreCase("execute")) {
+                accessRights.add(IsilonNFSACL.AccessRights.dir_gen_execute.toString());
+
+            }
+        }
+        return accessRights;
+
     }
 
     @Override

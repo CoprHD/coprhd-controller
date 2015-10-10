@@ -15,7 +15,7 @@ public class NfsACL implements Serializable {
 
     private static final long serialVersionUID = 1780598964262028652L;
     /*
-     * Payload attributes
+     * response data attributes.
      */
 
     private String fSMountPath;

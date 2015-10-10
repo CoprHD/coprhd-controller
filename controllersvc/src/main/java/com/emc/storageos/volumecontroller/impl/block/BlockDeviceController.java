@@ -4258,7 +4258,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             TaskCompleter taskCompleter = new CloneCreateCompleter(cloneList, taskId);
             getDevice(storageSystem.getSystemType()).doCreateListReplica(storageSystem, cloneList, createInactive, taskCompleter);
-            WorkflowStepCompleter.stepSucceded(taskId);
         } catch (Exception e) {
             _log.error(e.getMessage(), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -4344,7 +4343,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             completer = new BlockMirrorCreateCompleter(mirrorList, opId);
             getDevice(storageObj.getSystemType()).doCreateListReplica(storageObj, mirrorList, createInactive, completer);
-            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             if (completer != null) {

@@ -307,7 +307,7 @@ function SetIpv4DefaultValue() {
 
 function IsIPv4Setted() {
 	$isIPv4Setted=$false
-	if (($Script:vip -ne "0.0.0.0") -or ($Script:ipaddr_1 -ne "0.0.0.0") -or ($Script:ipaddr_2 -ne "0.0.0.0") -or ($Script:ipaddr_3 -ne "0.0.0.0") -or ($Script:ipaddr_4 -ne "0.0.0.0") -or ($Script:ipaddr_5 -ne "0.0.0.0") -or ($Script:isNetmaskGiven -eq $true) -or ($Script:gateway -ne "0.0.0.0")) {
+	if (($Script:vip -ne "0.0.0.0") -or ($Script:ipaddr_1 -ne "0.0.0.0") -or ($Script:ipaddr_2 -ne "0.0.0.0") -or ($Script:ipaddr_3 -ne "0.0.0.0") -or ($Script:ipaddr_4 -ne "0.0.0.0") -or ($Script:ipaddr_5 -ne "0.0.0.0") -or ($Script:isNetmaskGiven -eq $true -and $Script:netmask -ne "255.255.255.0") -or ($Script:gateway -ne "0.0.0.0")) {
 		$isIPv4Setted=$true
 	}
 	

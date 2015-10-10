@@ -31,7 +31,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface;
@@ -43,6 +42,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -1066,5 +1066,271 @@ public class VPlexUtil {
             }
         }
         return result;
+    }
+
+    /**
+     * Check if the full copy is a vplex full copy and its backend full copy is in a replication group
+     * @param fullcopy
+     * @param dbClient
+     * @return true or false
+     */
+    public static boolean isBackendFullCopyInReplicationGroup(Volume fullcopy, DbClient dbClient) {
+        boolean result = false;
+        URI systemURI = fullcopy.getStorageController();
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, systemURI);
+        String type = system.getSystemType();
+        if (type.equals(DiscoveredDataObject.Type.vplex.name())) {
+            Volume backendFullcopy = getVPLEXBackendVolume(fullcopy, true, dbClient);
+            if (backendFullcopy != null) {
+                String replicationGroup = backendFullcopy.getReplicationGroupInstance();
+                if (NullColumnValueGetter.isNotNullValue(replicationGroup)) {
+                    result = true;
+                }
+            }
+        }
+        
+        return result;
+    }
+
+    // constants related to supporting device structure validation
+    private static final String LOCAL_DEVICE = "local-device: ";
+    private static final String LOCAL_DEVICE_COMPONENT = "   local-device-component: ";
+    private static final String DISTRIBUTED_DEVICE = "distributed-device: ";
+    private static final String DISTRIBUTED_DEVICE_COMPONENT = "   distributed-device-component: ";
+    private static final String EXTENT = "   extent: ";
+    private static final String STORAGE_VOLUME = "   storage-volume: ";
+    private static final String START = "^(?s)";
+    private static final String ANYTHING = "(.*)";
+    private static final String END = "(.*)$";
+
+    // these patterns are used to build up the various
+    // supported device structures as outlined in the method javadoc
+    private static final StringBuffer EXTENT_STORAGE_VOLUME_PATTERN = 
+            new StringBuffer(ANYTHING).append(EXTENT)
+                     .append(ANYTHING).append(STORAGE_VOLUME);
+    private static final StringBuffer LOCAL_DEVICE_COMPONENT_PATTERN = 
+            new StringBuffer(ANYTHING).append(LOCAL_DEVICE_COMPONENT)
+                .append(EXTENT_STORAGE_VOLUME_PATTERN);
+    private static final StringBuffer DISTRIBUTED_DEVICE_COMPONENT_PATTERN = 
+            new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
+                .append(EXTENT_STORAGE_VOLUME_PATTERN);
+    private static final StringBuffer DISTRIBUTED_LEG_MIRROR_PATTERN = 
+            new StringBuffer(ANYTHING).append(DISTRIBUTED_DEVICE_COMPONENT)
+                .append(LOCAL_DEVICE_COMPONENT_PATTERN)
+                .append(LOCAL_DEVICE_COMPONENT_PATTERN);
+
+    /**
+     * Analyzes the given String as a VPLEX API drill-down response and
+     * checks that it has a structure compatible with ViPR.  Supported structure examples:
+     * 
+     * a simple local device
+     * 
+     *  local-device: device_VAPM00140844981-01727 (cluster-1)
+     *     extent: extent_VAPM00140844981-01727_1
+     *        storage-volume: VAPM00140844981-01727 (blocks: 0 - 2097151)
+     *
+     * a local device with a mirror
+     * 
+     *  local-device: device_VAPM00140844981-00464 (cluster-1)
+     *     local-device-component: device_VAPM00140801303-01246
+     *        extent: extent_VAPM00140801303-01246_1
+     *           storage-volume: VAPM00140801303-01246 (blocks: 0 - 786431)
+     *     local-device-component: device_VAPM00140844981-004642015Oct07_142827
+     *        extent: extent_VAPM00140844981-00464_1
+     *           storage-volume: VAPM00140844981-00464 (blocks: 0 - 786431)
+     * 
+     * a simple distributed device
+     * 
+     *  distributed-device: dd_VAPM00140844981-00294_V000198700406-02199
+     *     distributed-device-component: device_V000198700406-02199 (cluster-2)
+     *        extent: extent_V000198700406-02199_1
+     *           storage-volume: V000198700406-02199 (blocks: 0 - 524287)
+     *     distributed-device-component: device_VAPM00140844981-00294 (cluster-1)
+     *        extent: extent_VAPM00140844981-00294_1
+     *           storage-volume: VAPM00140844981-00294 (blocks: 0 - 524287)
+     *
+     * a distributed device with a mirror on one or both legs
+     * 
+     *  distributed-device: dd_VAPM00140844981-00525_VAPM00140801303-01247
+     *     distributed-device-component: device_VAPM00140801303-01247 (cluster-2)
+     *        extent: extent_VAPM00140801303-01247_1
+     *           storage-volume: VAPM00140801303-01247 (blocks: 0 - 1048575)
+     *     distributed-device-component: device_VAPM00140844981-00525 (cluster-1)
+     *        local-device-component: device_VAPM00140801303-01258
+     *           extent: extent_VAPM00140801303-01258_1
+     *              storage-volume: VAPM00140801303-01258 (blocks: 0 - 1048575)
+     *        local-device-component: device_VAPM00140844981-005252015Oct07_160927
+     *           extent: extent_VAPM00140844981-00525_1
+     *              storage-volume: VAPM00140844981-00525 (blocks: 0 - 1048575)
+     * 
+     * @param deviceName name of the device being analyzed
+     * @param drillDownResponse a drill-down command response from the VPLEX API 
+     * @return true if the device structure is compatible with ViPR
+     */
+    public static boolean isDeviceStructureValid(String deviceName, String drillDownResponse) {
+
+        if (drillDownResponse != null && !drillDownResponse.isEmpty()) {
+            _log.info("looking at device {} with drill-down {}", deviceName, drillDownResponse);
+
+            // could quite possible run into NullPointer or other Exceptions,
+            // and in any of those cases, we'll just return false. so, for readability,
+            // there's not a lot of null checking going on here
+            try {
+                String[] lines = drillDownResponse.split("\n");
+                if (lines.length > 1) {
+                    // a supported vplex device can have 0, 2, or 4 local device components
+                    // 0 indicates a simple local or distributed volume
+                    // 2 indicates a mirror configured on local or one leg of distributed
+                    // 4 indicates a mirror configured on each leg of a distributed volume
+                    int localDeviceComponentCount = 
+                            StringUtils.countMatches(drillDownResponse, LOCAL_DEVICE_COMPONENT);
+
+                    // other component counts
+                    int storageVolumeCount = StringUtils.countMatches(drillDownResponse, STORAGE_VOLUME);
+                    int extentCount = StringUtils.countMatches(drillDownResponse, EXTENT);
+
+                    String firstLine = lines[0];
+                    if (firstLine.startsWith(LOCAL_DEVICE)) {
+                        return validateLocalDevice(
+                                drillDownResponse, localDeviceComponentCount, storageVolumeCount, extentCount);
+                    } else if (firstLine.startsWith(DISTRIBUTED_DEVICE)) {
+                        return validateDistributedDevice(
+                                drillDownResponse, localDeviceComponentCount, storageVolumeCount, extentCount);
+                    }
+                }
+            } catch (Exception ex) {
+                _log.error("Exception encountered parsing device drill down: " 
+                        + ex.getLocalizedMessage(), ex);
+            }
+        }
+
+        _log.error("this is not a compatible supporting device structure");
+        return false;
+    }
+
+    /**
+     * Validates a local device drill down response for valid ViPR-compatible structure
+     * 
+     * @param drillDownResponse the drill-down command response from the VPLEX API
+     * @param localDeviceComponentCount count of local-device-components in the drill-down response
+     * @param storageVolumeCount count of storage-volumes in the drill-down response
+     * @param extentCount count of extents in the drill-down response
+     * 
+     * @return true if this drill-down structure is compatible for ingestion 
+     */
+    private static boolean validateLocalDevice(
+            String drillDownResponse, int localDeviceComponentCount,
+            int storageVolumeCount, int extentCount) {
+        // a local device can have 0 or 2 local device components
+        switch (localDeviceComponentCount) {
+            case 0:
+                // this could be a simple local volume
+                if (storageVolumeCount == 1 && extentCount == 1) {
+                    StringBuffer localDevice = new StringBuffer(START);
+                    localDevice.append(LOCAL_DEVICE)
+                               .append(EXTENT_STORAGE_VOLUME_PATTERN)
+                               .append(END);
+                    if (drillDownResponse.matches(localDevice.toString())) {
+                        _log.info("this is a simple local volume");
+                        return true;
+                    }
+                }
+                break;
+            case 2:
+                // this could be a local volume with a mirror configured
+                if (storageVolumeCount == 2 && extentCount == 2) {
+                    StringBuffer localDeviceWithMirror = new StringBuffer(START);
+                    localDeviceWithMirror.append(LOCAL_DEVICE)
+                                         .append(LOCAL_DEVICE_COMPONENT_PATTERN)
+                                         .append(LOCAL_DEVICE_COMPONENT_PATTERN)
+                                         .append(END);
+                    if (drillDownResponse.matches(localDeviceWithMirror.toString())) {
+                        _log.info("this is a local device with mirror");
+                        return true;
+                    }
+                }
+                break;
+            default :
+                // fall through
+        }
+        
+        return false;
+    }
+
+    /**
+     * Validates a distributed device drill down response for valid ViPR-compatible structure
+     * 
+     * @param drillDownResponse the drill-down command response from the VPLEX API
+     * @param localDeviceComponentCount count of local-device-components in the drill-down response
+     * @param storageVolumeCount count of storage-volumes in the drill-down response
+     * @param extentCount count of extents in the drill-down response
+     * 
+     * @return true if this drill-down structure is compatible for ingestion 
+     */
+    private static boolean validateDistributedDevice(
+            String drillDownResponse, int localDeviceComponentCount, 
+            int storageVolumeCount, int extentCount) {
+        // need to check that distributed device has
+        // exactly two distributed device components
+        int distributedDeviceComponentCount = 
+                StringUtils.countMatches(drillDownResponse, DISTRIBUTED_DEVICE_COMPONENT);
+        if (distributedDeviceComponentCount == 2) {
+            // we have the right number of distributed device components
+            // a distributed device can have 0, 2, or 4 local device components
+            switch (localDeviceComponentCount) {
+                case 0:
+                    // this could be a simple distributed volume
+                    if (storageVolumeCount == 2 && extentCount == 2) {
+                        StringBuffer distributedDevice = new StringBuffer(START);
+                        distributedDevice.append(DISTRIBUTED_DEVICE)
+                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                         .append(END);
+                        if (drillDownResponse.matches(distributedDevice.toString())) {
+                            _log.info("this is a simple distributed device");
+                            return true;
+                        }
+                    }
+                    break;
+                case 2:
+                    // this could be a volume with a mirror on one leg or the other
+                    if (storageVolumeCount == 3 && extentCount == 3) {
+                        StringBuffer distributedDeviceMirrorOnLeg1 = new StringBuffer(START);
+                        distributedDeviceMirrorOnLeg1.append(DISTRIBUTED_DEVICE)
+                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                         .append(END);
+                        StringBuffer distributedDeviceMirrorOnLeg2 = new StringBuffer(START);
+                        distributedDeviceMirrorOnLeg2.append(DISTRIBUTED_DEVICE)
+                                         .append(DISTRIBUTED_DEVICE_COMPONENT_PATTERN)
+                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                         .append(END);
+                        if (drillDownResponse.matches(distributedDeviceMirrorOnLeg1.toString()) 
+                         || drillDownResponse.matches(distributedDeviceMirrorOnLeg2.toString())) {
+                            _log.info("this is a distributed volume with a mirror on one leg or the other");
+                            return true;
+                        }
+                    }
+                    break;
+                case 4:
+                    // this could be a volume with a mirror on each leg
+                    if (storageVolumeCount == 4 && extentCount == 4) {
+                        StringBuffer distributedDeviceMirrorOnBothLegs = new StringBuffer(START);
+                        distributedDeviceMirrorOnBothLegs.append(DISTRIBUTED_DEVICE)
+                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                         .append(DISTRIBUTED_LEG_MIRROR_PATTERN)
+                                         .append(END);
+                        if (drillDownResponse.matches(distributedDeviceMirrorOnBothLegs.toString())) {
+                            _log.info("this is a distributed volume with mirrors on both legs");
+                            return true;
+                        }
+                    }
+                    break;
+                default :
+                    // fall through
+            }
+        }
+        
+        return false;
     }
 }

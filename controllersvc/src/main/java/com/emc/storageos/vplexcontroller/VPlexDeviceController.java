@@ -367,7 +367,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             consistencyGroupManager = getConsistencyGroupManager(DiscoveredDataObject.Type.rp.name());
         } else if (!cg.checkForType(Types.RP) && cg.checkForType(Types.VPLEX)) {
             consistencyGroupManager = getConsistencyGroupManager(DiscoveredDataObject.Type.vplex.name());
-        } 
+        }
 
         return consistencyGroupManager;
     }
@@ -752,7 +752,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);
-                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList);
+                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList,
+                        false);
 
                 if (vvInfo == null) {
                     VPlexApiException ex = VPlexApiException.exceptions.cantFindRequestedVolume(vplexVolume.getLabel());
@@ -5753,7 +5754,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         existingVolume.getWWN().toUpperCase().replaceAll(":", ""),
                         existingVolume.getNativeId(), existingVolume.getThinlyProvisioned().booleanValue(), itls);
                 vinfos.add(vinfo);
-                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null);
+                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.CREATE_VVOLUME_FROM_IMPORT.getName();
                     ServiceError serviceError = VPlexApiException.errors.createVirtualVolumeFromImportStepFailed(opName);
@@ -6413,15 +6414,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 consistencyGroupManager = getConsistencyGroupManager(cg);
             } else if (!cg.created() && addVolumesList != null && !addVolumesList.isEmpty()) {
                 // Check on volumes to get the right consistency group manager
-                Volume volume = _dbClient.queryObject(Volume.class, addVolumesList.get(0)); 
+                Volume volume = _dbClient.queryObject(Volume.class, addVolumesList.get(0));
                 consistencyGroupManager = getConsistencyGroupManager(volume);
             }
         }
 
         if (consistencyGroupManager != null) {
             consistencyGroupManager.updateConsistencyGroup(workflow, vplexURI,
-                        cgURI, addVolumesList, removeVolumesList, opId);
-        } 
+                    cgURI, addVolumesList, removeVolumesList, opId);
+        }
     }
 
     /**

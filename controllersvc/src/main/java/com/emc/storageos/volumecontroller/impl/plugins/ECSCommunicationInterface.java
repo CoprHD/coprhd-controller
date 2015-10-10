@@ -178,11 +178,11 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             _logger.info("No of newly discovered pools {}", allPools.get(NEW).size());
             _logger.info("No of existing discovered pools {}", allPools.get(EXISTING).size());
 
-            if (allPools.get(NEW).size() > 0) {
+            if (!allPools.get(NEW).isEmpty()) {
                 _dbClient.createObject(allPools.get(NEW));
             }
 
-            if (allPools.get(EXISTING).size() > 0) {
+            if (!allPools.get(EXISTING).isEmpty()) {
                 _dbClient.persistObject(allPools.get(EXISTING));
             }
 
@@ -237,11 +237,11 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             _logger.info("No of newly discovered ports {}", storagePorts.get(NEW).size());
             _logger.info("No of existing discovered ports {}", storagePorts.get(EXISTING).size());
-            if (storagePorts.get(NEW).size() > 0) {
+            if (!storagePorts.get(NEW).isEmpty()) {
                 _dbClient.createObject(storagePorts.get(NEW));
             }
 
-            if (storagePorts.get(EXISTING).size() > 0) {
+            if (!storagePorts.get(EXISTING).isEmpty()) {
                 _dbClient.persistObject(storagePorts.get(EXISTING));
             }
 

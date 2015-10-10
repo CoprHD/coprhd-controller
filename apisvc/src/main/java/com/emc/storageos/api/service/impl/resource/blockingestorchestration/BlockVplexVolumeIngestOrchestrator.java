@@ -476,16 +476,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             String unManagedVolumeGUID = entry.getKey();
             UnManagedVolume processedUnManagedVolume = entry.getValue();
 
-            // we only need to worry about creating export masks for the
-            // actual backend volumes. if any replicas have unmanaged export
-            // masks, they should be ingested separately for the hosts
-            // they are exported to, not the backend of the VPLEX
-            if (!context.isBackendVolume(processedUnManagedVolume)) {
-                _logger.info("export mask processing is only required for backend volumes, skipping {}",
-                        processedUnManagedVolume.getLabel());
-                continue;
-            }
-
             if (processedUnManagedVolume.getUnmanagedExportMasks().isEmpty()) {
                 String reason = "the backend volume has no unmanaged export masks "
                         + processedUnManagedVolume.getLabel();

@@ -292,7 +292,7 @@ public class VplexBackendIngestionContext {
         _logger.info("found these wwns: " + backendVolumeWwnToInfoMap.keySet());
 
         boolean notEnoughWwnsFound = 
-                (isLocal() && backendVolumeWwnToInfoMap.size() < 1) ||
+                (isLocal() && backendVolumeWwnToInfoMap.isEmpty()) ||
                 (isDistributed() && backendVolumeWwnToInfoMap.size() < 2);
 
         if (notEnoughWwnsFound) {
@@ -319,7 +319,7 @@ public class VplexBackendIngestionContext {
         }
 
         notEnoughWwnsFound = 
-                (isLocal() && backendVolumeWwnToInfoMap.size() < 1) ||
+                (isLocal() && backendVolumeWwnToInfoMap.isEmpty()) ||
                 (isDistributed() && backendVolumeWwnToInfoMap.size() < 2);
         
         if (notEnoughWwnsFound) {

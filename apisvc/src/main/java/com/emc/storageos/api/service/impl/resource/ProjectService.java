@@ -948,14 +948,16 @@ public class ProjectService extends TaggedResource {
                 // Get list of domains associated with a VNAS server and validate with project's domain
                 boolean domainMatched = false;
                 if (projectDomains != null && !projectDomains.isEmpty()) {
-                    Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
-                    for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
-                        NasCifsServer cifsServer = nasCifsServer.getValue();
-                        if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
-                            domainMatched = true;
-                            break;
-                        }
-                    }
+                	if( vnas.getCifsServersMap() != null && !vnas.getCifsServersMap().isEmpty() ) {
+                		Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
+                		for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
+                			NasCifsServer cifsServer = nasCifsServer.getValue();
+                			if (projectDomains.contains(cifsServer.getDomain().toUpperCase())) {
+                				domainMatched = true;
+                				break;
+                			}
+                		}
+                	}
                 } else {
                     domainMatched = true;
                 }

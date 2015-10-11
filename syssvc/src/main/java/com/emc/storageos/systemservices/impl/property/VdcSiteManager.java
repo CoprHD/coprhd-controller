@@ -76,7 +76,6 @@ public class VdcSiteManager extends AbstractManager {
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
     
     private SiteInfo targetSiteInfo;
-<<<<<<< HEAD
 
     private String vdcShortId;
     
@@ -87,8 +86,6 @@ public class VdcSiteManager extends AbstractManager {
     public void setVdcShortId(String vdcId) {
         vdcShortId = vdcId;
     }
-=======
->>>>>>> feature-dr-pause-standby
     
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
@@ -695,5 +692,18 @@ public class VdcSiteManager extends AbstractManager {
             return true;
         }
     }
-
+    
+    /**
+     * Check if a standby is removing from an ensemble. 
+     * 
+     * @return
+     */
+    private void populateStandbySiteErrorIfNecessary() {
+        String primarySiteId = coordinator.getCoordinatorClient().getPrimarySiteId();
+        String siteId = coordinator.getCoordinatorClient().getSiteId();
+        
+        if (siteId.equals(primarySiteId))
+            return;
+        
+    }
 }

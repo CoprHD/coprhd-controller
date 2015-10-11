@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
@@ -119,7 +121,7 @@ public class DisasterRecoveryService {
             String shortId = generateShortId(existingSites);
             standbySite.setStandbyShortId(shortId);
             standbySite.setDescription(param.getDescription());
-            standbySite.setState(SiteState.STANDBY_SYNCING);
+            standbySite.setState(SiteState.ADDING);
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }
@@ -425,6 +427,45 @@ public class DisasterRecoveryService {
             log.error("Error pausing site {}", uuid, e);
             throw APIException.internalServerErrors.pauseStandbyFailed(uuid, e.getMessage());
         }
+    }
+    
+    /**
+     * Query the latest error message for specific standby site
+     * 
+     * @param uuid site UUID
+     * @return site response with detail information
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{uuid}/error")
+    public String getSiteError(@PathParam("uuid") String uuid) {
+        log.info("Begin to get site error by uuid {}", uuid);
+        
+        try {
+            Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
+            if (config == null) {
+                log.error("Can't find site {} from ZK", uuid);
+                throw APIException.badRequests.siteIdNotFound();
+            }
+
+            Site standby = new Site(config);
+            if (SiteState.ADDING.equals(standby.getState())) {
+                if ((new Date()).getTime() - standby.getCreationTime() > 1000 * 60 * 10 ) {
+                    SiteError error = new SiteError("New added standby site is not stable after 10 minutes");
+                    coordinator.setTargetInfo(uuid,  error);
+                    return error.getErrorMessage();
+                }
+            } 
+            
+            SiteError error = coordinator.getTargetInfo(uuid, SiteError.class);
+            if (error != null && error.getErrorMessage() != null) {
+                return error.getErrorMessage();
+            }
+        } catch (Exception e) {
+            log.error("Find find site from ZK for UUID " + uuid, e);
+        }
+        
+        return null;
     }
 
     private void updateVdcTargetVersion(String siteId, String action) throws Exception {

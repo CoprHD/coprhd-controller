@@ -97,8 +97,8 @@ public class FileStorageScheduler {
         // assigned and un-assigned list.
         // the invalid vnas server clould be
         // over loaded or protocol not supported or 
-        // The ports from these invalid vnas servers should not be considered
-        // for file provisioning!!!
+        // the ports from these invalid vnas servers
+        // should not be considered for file provisioning!!!
         List<VirtualNAS> invalidNasServers = new ArrayList<VirtualNAS>();
 
         // Get the recommendation based on virtual nas servers
@@ -142,8 +142,7 @@ public class FileStorageScheduler {
                     	break;
                     } 
                 }
-            }
-            
+            } 
         }
         
         // In case of
@@ -488,10 +487,9 @@ public class FileStorageScheduler {
                     iterator.remove();
                     invalidNasServers.add(vNAS);
                 } else if (!NullColumnValueGetter.isNullURI(vNAS.getProject())) {
-                	_log.debug("Removing vNAS {} as it is assigned to project",
-                			vNAS.getId());
-
                 	if ( !project.getId().equals(vNAS.getProject()) ) {
+                		_log.debug("Removing vNAS {} as it is assigned to project",
+                    			vNAS.getId());
                 		iterator.remove();
                 		invalidNasServers.add(vNAS);
                 	} 
@@ -768,16 +766,13 @@ public class FileStorageScheduler {
     	for ( VirtualNAS vNas : invalidNasServers ) {
 
     		StringSet spIdSet = vNas.getStoragePorts();
-
     		if (spIdSet != null && !spIdSet.isEmpty()) {
     			for (String id : spIdSet) {
     				spUriList.add(URI.create(id));
     			}
     		}
-    	}
-    	
+    	}	
     	return spUriList;
-
     }
     	
     
@@ -831,7 +826,6 @@ public class FileStorageScheduler {
             List<URI> storagePorts = new ArrayList<URI>();
             boolean foundValidPort = false;
             for (StoragePort port : portList) {
-            	
             	if ( invalidPorts.contains(port.getId()) ) {
             		_log.debug("Storage port {} belongs to invalid vNas server ",
                             port.getIpAddress());
@@ -891,7 +885,6 @@ public class FileStorageScheduler {
             }
         }
         return result;
-
     }
 
 }

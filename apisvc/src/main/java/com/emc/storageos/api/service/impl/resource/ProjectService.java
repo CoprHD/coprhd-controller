@@ -884,7 +884,7 @@ public class ProjectService extends TaggedResource {
         // Report error, if there are any invalid vnas servers found!!!
         if (errorMsg != null && errorMsg.length() > 0) {
             _log.error("Failed to assigned the virtual NAS Servers to project due to {} ", errorMsg.toString());
-            throw APIException.badRequests.vNasServersNotAssociatedToProject();
+            throw APIException.badRequests.oneOrMorevNasServersNotAssociatedToProject();
         }
         return Response.ok().build();
     }

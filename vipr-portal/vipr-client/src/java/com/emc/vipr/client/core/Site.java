@@ -57,6 +57,10 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     public DRNatCheckResponse checkIfBehindNat(DRNatCheckParam checkParam) {
         return client.post(DRNatCheckResponse.class, checkParam, PathConstants.SITE_URL + "/natcheck");
     }
+    
+    public String getSiteError(String uuid) {
+        return client.get(String.class, PathConstants.SITE_URL+"/"+uuid+"/error");
+    }
 
     @Override
     public List<SiteRestRep> getAll(ResourceFilter<SiteRestRep> filter) {

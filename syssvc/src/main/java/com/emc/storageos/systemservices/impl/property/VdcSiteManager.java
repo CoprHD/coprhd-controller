@@ -22,6 +22,7 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -340,6 +341,7 @@ public class VdcSiteManager extends AbstractManager {
             case SiteInfo.RECONFIG_RESTART:
                 checkAndRemoveStandby();
                 reconfigRestartSvcs();
+                cleanupSiteErrorIfNecessary();
                 break;
             default:
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
@@ -361,29 +363,34 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private void reconfigRestartSvcs() throws Exception {
-        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-        // set the vdc_config_version to an invalid value so that it always gets retried on failure.
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
-        localRepository.setVdcPropertyInfo(vdcProperty);
+        try {
+            PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+            // set the vdc_config_version to an invalid value so that it always gets retried on failure.
+            vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
+            localRepository.setVdcPropertyInfo(vdcProperty);
 
-        localRepository.reconfigProperties("firewall");
-        localRepository.reload("firewall");
+            localRepository.reconfigProperties("firewall");
+            localRepository.reload("firewall");
 
-        // Reconfigure ZK
-        // TODO: think again how to make use of the dynamic zookeeper configuration
-        // The previous approach disconnects all the clients, no different than a service restart.
-        localRepository.reconfigProperties("coordinator");
-        localRepository.restart("coordinatorsvc");
+            // Reconfigure ZK
+            // TODO: think again how to make use of the dynamic zookeeper configuration
+            // The previous approach disconnects all the clients, no different than a service restart.
+            localRepository.reconfigProperties("coordinator");
+            localRepository.restart("coordinatorsvc");
 
-        localRepository.reconfigProperties("db");
-        //localRepository.restart("dbsvc");
+            localRepository.reconfigProperties("db");
+            //localRepository.restart("dbsvc");
 
-        localRepository.reconfigProperties("geodb");
-        //localRepository.restart("geodbsvc");
+            localRepository.reconfigProperties("geodb");
+            //localRepository.restart("geodbsvc");
 
-        log.info("Step2: Updating the hash code for local vdc properties");
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
-        localRepository.setVdcPropertyInfo(vdcProperty);
+            log.info("Step2: Updating the hash code for local vdc properties");
+            vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+            localRepository.setVdcPropertyInfo(vdcProperty);
+        } catch (Exception e) {
+            populateStandbySiteErrorIfNecessary(e);
+            throw e;
+        }
     }
 
     private List<String> getJoiningZKNodes() {
@@ -605,13 +612,18 @@ public class VdcSiteManager extends AbstractManager {
             try {
                 List<Site> sites = listSites(vdc);
                 for(Site site : sites) {
-                    if (!site.getState().equals(SiteState.STANDBY_REMOVING)) {
-                        continue;
-                    }
-                    if (currentSiteId.equals(site.getUuid())) {
-                        log.info("Current site is removed from a DR. It could be manually promoted as primary site");
-                    } else {
-                        removeSiteFromReplication(site);
+                    try {
+                        if (!site.getState().equals(SiteState.STANDBY_REMOVING)) {
+                            continue;
+                        }
+                        if (currentSiteId.equals(site.getUuid())) {
+                            log.info("Current site is removed from a DR. It could be manually promoted as primary site");
+                        } else {
+                            removeSiteFromReplication(site);
+                        }
+                    } catch (Exception e) { 
+                        populateStandbySiteErrorIfNecessary(site.getUuid(), SiteError.ERROR_DESCRIPTION_REMOVE, e);
+                        throw e;
                     }
                 }
             } finally {
@@ -693,17 +705,55 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
     
+    private void populateStandbySiteErrorIfNecessary(Exception e) {
+        List<Site> sites = listSites(VdcUtil.getLocalVdc());
+        String siteId = coordinator.getCoordinatorClient().getSiteId();
+        for (Site site : sites) {
+            if (site.getUuid().equals(siteId)) {
+                if (site.getState().equals(SiteState.STANDBY_ADDING)) {
+                    populateStandbySiteErrorIfNecessary(site.getUuid(), SiteError.ERROR_DESCRIPTION_ADD, e);
+                } else if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
+                    populateStandbySiteErrorIfNecessary(site.getUuid(), SiteError.ERROR_DESCRIPTION_REMOVE, e);
+                }
+                
+                break;
+            }
+        }
+    }
+    
     /**
-     * Check if a standby is removing from an ensemble. 
+     * set standby site error to ZK
      * 
      * @return
      */
-    private void populateStandbySiteErrorIfNecessary() {
-        String primarySiteId = coordinator.getCoordinatorClient().getPrimarySiteId();
+    private void populateStandbySiteErrorIfNecessary(String siteId, String description, Exception e) {
+        SiteError error = new SiteError(description, e.getMessage());
+        
+        log.info("populateStandbySiteErrorIfNecessary for site: {}", error.toString());
+        coordinator.getCoordinatorClient().setTargetInfo(siteId,  error);
+    }
+    
+    private void cleanupSiteErrorIfNecessary() {
+        log.info("cleanupSiteErrorIfNecessary for standby site");
         String siteId = coordinator.getCoordinatorClient().getSiteId();
         
-        if (siteId.equals(primarySiteId))
-            return;
+        Configuration config = coordinator.getCoordinatorClient().queryConfiguration(Site.CONFIG_KIND, siteId);
+        Site site = new Site(config);
         
+        log.info("site: {}", site.toString());
+        
+        if (site.getState().equals(SiteState.STANDBY_ADDING) && site.getState().equals(SiteState.STANDBY_REMOVING)) {
+            log.info("Cleanup site error");
+            SiteError siteError = coordinator.getCoordinatorClient().getTargetInfo(siteId, SiteError.class);
+            siteError.cleanup();
+            
+            coordinator.getCoordinatorClient().setTargetInfo(siteId, siteError);
+        }
+        
+        if (site.getState().equals(SiteState.STANDBY_ADDING)) {
+            log.info("Set site state from adding to syncing");
+            site.setState(SiteState.STANDBY_SYNCING);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(siteId, site.toConfiguration());
+        }
     }
 }

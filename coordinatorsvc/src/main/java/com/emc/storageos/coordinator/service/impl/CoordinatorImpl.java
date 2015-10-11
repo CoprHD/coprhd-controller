@@ -119,6 +119,8 @@ public class CoordinatorImpl implements Coordinator {
                 QuorumPeerMain main = new QuorumPeerMain();
                 main.runFromConfig(_config);
             }
+            
+            _log.info("coordinator service started");
         }catch(AdminServer.AdminServerException e) {
             _log.info("Fail to start ZK server e:", e);
             throw new RuntimeException(e);

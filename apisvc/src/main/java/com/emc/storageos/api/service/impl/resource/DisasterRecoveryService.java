@@ -49,6 +49,7 @@ import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
+import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -98,6 +99,8 @@ public class DisasterRecoveryService {
     public SiteRestRep addStandby(SiteAddParam param) {
         log.info("Retrieving standby site config from: {}", param.getVip());
         
+        String siteId = null;
+        
         try {
             VirtualDataCenter vdc = queryLocalVDC();
             List<Site> existingSites = getStandbySites(vdc.getId());
@@ -107,6 +110,9 @@ public class DisasterRecoveryService {
             ViPRCoreClient viprClient = createViPRCoreClient(param.getVip(), param.getUsername(), param.getPassword());
 
             SiteConfigRestRep standbyConfig = viprClient.site().getStandbyConfig();
+            
+            siteId = standbyConfig.getUuid();
+            
             precheckForStandbyAttach(standbyConfig);
             
             Site standbySite = new Site();
@@ -121,7 +127,7 @@ public class DisasterRecoveryService {
             String shortId = generateShortId(existingSites);
             standbySite.setStandbyShortId(shortId);
             standbySite.setDescription(param.getDescription());
-            standbySite.setState(SiteState.ADDING);
+            standbySite.setState(SiteState.STANDBY_ADDING);
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }
@@ -159,6 +165,7 @@ public class DisasterRecoveryService {
             return siteMapper.map(standbySite);
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
+            setSiteSate(siteId, SiteState.STANDBY_ERROR);
             throw APIException.internalServerErrors.addStandbyFailed(e.getMessage());
         }
     }
@@ -438,7 +445,7 @@ public class DisasterRecoveryService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{uuid}/error")
-    public String getSiteError(@PathParam("uuid") String uuid) {
+    public SiteErrorResponse getSiteError(@PathParam("uuid") String uuid) {
         log.info("Begin to get site error by uuid {}", uuid);
         
         try {
@@ -449,23 +456,23 @@ public class DisasterRecoveryService {
             }
 
             Site standby = new Site(config);
-            if (SiteState.ADDING.equals(standby.getState())) {
+            if (SiteState.STANDBY_ADDING.equals(standby.getState())) {
                 if ((new Date()).getTime() - standby.getCreationTime() > 1000 * 60 * 10 ) {
-                    SiteError error = new SiteError("New added standby site is not stable after 10 minutes");
+                    SiteError error = new SiteError(SiteError.ERROR_DESCRIPTION_ADD, "New added standby site is not stable after 10 minutes");
                     coordinator.setTargetInfo(uuid,  error);
-                    return error.getErrorMessage();
+                    return error.toResponse();
                 }
             } 
             
             SiteError error = coordinator.getTargetInfo(uuid, SiteError.class);
             if (error != null && error.getErrorMessage() != null) {
-                return error.getErrorMessage();
+                return error.toResponse();
             }
         } catch (Exception e) {
             log.error("Find find site from ZK for UUID " + uuid, e);
         }
         
-        return null;
+        return SiteErrorResponse.noError();
     }
 
     private void updateVdcTargetVersion(String siteId, String action) throws Exception {
@@ -638,6 +645,18 @@ public class DisasterRecoveryService {
     // encapsulate the get local VDC operation for easy UT writing because VDCUtil.getLocalVdc is static method
     protected VirtualDataCenter queryLocalVDC() {
         return VdcUtil.getLocalVdc();
+    }
+    
+    private void setSiteSate(String siteId, SiteState state) {
+        if (siteId == null || siteId.isEmpty())
+            return;
+        
+        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, siteId);
+        if (config != null) {
+            Site site = new Site(config);
+            site.setState(state);
+            coordinator.persistServiceConfiguration(siteId, site.toConfiguration());
+        }
     }
 
     public InternalApiSignatureKeyGenerator getApiSignatureGenerator() {

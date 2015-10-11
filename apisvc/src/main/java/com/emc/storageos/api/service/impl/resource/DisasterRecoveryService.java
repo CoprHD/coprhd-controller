@@ -71,6 +71,8 @@ import com.emc.vipr.model.sys.ClusterInfo;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class DisasterRecoveryService {
+    private static final int STANDBY_ADD_TIMEOUT = 1000 * 60 * 10;
+
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     
     private static final String SHORTID_FMT="standby%d";
@@ -457,7 +459,7 @@ public class DisasterRecoveryService {
 
             Site standby = new Site(config);
             if (SiteState.STANDBY_ADDING.equals(standby.getState())) {
-                if ((new Date()).getTime() - standby.getCreationTime() > 1000 * 60 * 10 ) {
+                if ((new Date()).getTime() - standby.getCreationTime() > STANDBY_ADD_TIMEOUT ) {
                     SiteError error = new SiteError(SiteError.ERROR_DESCRIPTION_ADD, "New added standby site is not stable after 10 minutes");
                     coordinator.setTargetInfo(uuid,  error);
                     return error.toResponse();

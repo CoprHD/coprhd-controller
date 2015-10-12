@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>] | sanzoning'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestorei| dr} [local|ldap] [<timeslot>] | sanzoning'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -43,7 +43,8 @@ else
     Usage
 fi
 
-echo "what's this |$#"
+
+
 [ $# -ge 3 ] || Usage
 date
 
@@ -139,7 +140,6 @@ case $SS in
     ;;
 
     *)
-    echo "failed here"
     Usage
 esac
 
@@ -184,7 +184,6 @@ case $AUTH in
 	HDS_PROVIDER="lglap095.lss.emc.com"
 	HDS_PROVIDER_IP="2620:0:170:2858::95";;
     *)
-    echo "NO, failed here"
     Usage
 esac
 
@@ -242,7 +241,7 @@ VDC_TEST_REMOVE_PROJECT=testremove_vdc_project_$$
 #
 DR_SITE_B_NAME=dr_site_B_$$
 DR_SITE_B_DESCRIPTION="site b description"
-
+DR_SITE_A_NAME="Primary Site"
 #
 # Recovery Configuration
 #
@@ -6241,6 +6240,12 @@ monitor_tests()
 
 dr_setup()
 {
+    if [ -z "$DR_SITE_B_IP" ] ; then
+        echo -e "\nFail: Usage of dr sanity test is like:\n ./sanity 255.254.253.site1 dr 255.254.253.site2"
+        exit 1
+    fi
+
+
     #setting pipefail option to pipe exit codes
     set -o pipefail
 
@@ -6255,7 +6260,7 @@ dr_tests()
     projectid=$(project query $PROJECT)
     echo "Project id of $PROJECT is $projectid."
 
-    primary_site=$(dr list "Primary Site"|tail -1) || { echo "get dr primary site failed."; echo $primary_site; exit 1; }
+    primary_site=$(dr list "$DR_SITE_A_NAME"|tail -1) || { echo "get dr primary site failed."; echo $primary_site; exit 1; }
     echo "primary uuid is $primary_site"
     
     echo "---ADD STANDBY SITE---"

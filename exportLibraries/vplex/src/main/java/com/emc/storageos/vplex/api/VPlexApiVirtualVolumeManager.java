@@ -316,10 +316,9 @@ public class VPlexApiVirtualVolumeManager {
      */
     public void attachMirror(String locality, String sourceVirtualVolumeName, String mirrorDeviceName)
             throws VPlexApiException {
-        String sourceDeviceName = sourceVirtualVolumeName.substring(0,
-                sourceVirtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
-
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        VPlexVirtualVolumeInfo vplexVirtualVolumeInfo = findVirtualVolumeAndUpdateInfo(sourceVirtualVolumeName, discoveryMgr);
+        String sourceDeviceName = vplexVirtualVolumeInfo.getSupportingDevice();
 
         // Find mirror device
         VPlexDeviceInfo mirrorLocalDevice = discoveryMgr.findLocalDevice(mirrorDeviceName);
@@ -1361,8 +1360,11 @@ public class VPlexApiVirtualVolumeManager {
             VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
         // Determine the "local" device
         String virtualVolumeName = virtualVolume.getName();
-        String localDeviceName = virtualVolumeName.substring(0,
-                virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+        String localDeviceName = virtualVolume.getSupportingDevice();
+        if (!virtualVolumeName.equals(localDeviceName + VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
+            // We don't want to rename if original volume is not following default naming convention.
+            rename = false;
+        }
 
         // Find the storage volumes corresponding to the passed remote
         // volume information, discovery them if required.
@@ -1437,11 +1439,8 @@ public class VPlexApiVirtualVolumeManager {
 
         try {
             // Find virtual volume and return.
-            StringBuilder volumeNameBuilder = new StringBuilder();
-            volumeNameBuilder.append(localDeviceName);
-            volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
             VPlexVirtualVolumeInfo vvInfo = discoveryMgr.findVirtualVolume(
-                    localDevice.getCluster(), volumeNameBuilder.toString(), false);
+                    localDevice.getCluster(), virtualVolumeName, false);
 
             // Compute updated name and rename the distributed virtual volume.
             if (rename) {
@@ -2122,11 +2121,10 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-            discoveryMgr.findVirtualVolume(virtualVolumeName, false);
+            VPlexVirtualVolumeInfo vplexVirtualVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName, discoveryMgr);
 
             // Find the distributed device for the virtual volume.
-            String ddName = virtualVolumeName.substring(0,
-                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+            String ddName = vplexVirtualVolumeInfo.getSupportingDevice();
             VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(ddName);
             if (ddInfo == null) {
                 throw VPlexApiException.exceptions

@@ -71,8 +71,8 @@ import com.emc.vipr.model.sys.ClusterInfo;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class DisasterRecoveryService {
-    private static final int STANDBY_ADD_TIMEOUT = 1000 * 60 * 10;
-    private static final int SITE_ERROR_UPDATE_INTERVAL = 1000*10;
+    public static final int STANDBY_ADD_TIMEOUT = 1000 * 60 * 10;
+    public static final int SITE_ERROR_UPDATE_INTERVAL = 1000*10;
 
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     
@@ -88,7 +88,12 @@ public class DisasterRecoveryService {
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
-        
+    }
+    
+    /**
+     * Initialize service
+     */
+    public void initialize(){
         if (isPrimarySite()) {
             log.info("This site is primary site, launch site error updater");
             siteErrorUpdater = new SiteErrorUpdater();

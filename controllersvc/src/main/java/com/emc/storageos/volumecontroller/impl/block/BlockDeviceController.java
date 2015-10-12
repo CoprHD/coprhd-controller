@@ -4274,24 +4274,26 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         _log.info("Rollback list clone");
         List<Volume> clones = _dbClient.queryObject(Volume.class, cloneList);
         List<Volume> clonesNoRollback = new ArrayList<Volume>();
+        List<URI> clonesToRollback = new ArrayList<URI>();
         try {
             for (Volume clone : clones) {
                 if (isNullOrEmpty(clone.getNativeId())) {
                     clone.setInactive(true);
                     clonesNoRollback.add(clone);
+                } else {
+                    clonesToRollback.add(clone.getId());
                 }
             }
 
             if (!clonesNoRollback.isEmpty()) {
                 _dbClient.persistObject(clonesNoRollback);
-                clones.removeAll(clonesNoRollback);
             }
 
-            if (!clones.isEmpty()) {
+            if (!clonesToRollback.isEmpty()) {
                 _log.info("Detach list clone for rollback");
-                detachListClone(storage, cloneList, taskId);
+                detachListClone(storage, clonesToRollback, taskId);
                 _log.info("Delete clones for rollback");
-                deleteVolumes(storage, cloneList, taskId);
+                deleteVolumes(storage, clonesToRollback, taskId);
             }
 
             WorkflowStepCompleter.stepSucceded(taskId);

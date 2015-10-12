@@ -8,7 +8,7 @@ import argparse
 import sys
 import os
 from bourne import Bourne
-import sysmgr as SysMgr
+import time
 
 #----------------------------------------------------------------------
 # dr cli functions
@@ -32,7 +32,7 @@ def dr_list_standby(args):
 
 def dr_get_standby(args):
     bourne.connect(args.ip)
-    standby=bourne.dr_get_standby(args.uri)
+    standby=bourne.dr_get_standby(args.uuid)
     if args.property:
     	print standby[args.property]
 
@@ -42,7 +42,7 @@ def dr_get_standby(args):
 
 def dr_delete_standby(args):
     bourne.connect(args.ip)
-    bourne.dr_delete_standby(args.uri)
+    bourne.dr_delete_standby(args.uuid)
 
 def dr_local_config(args):
     bourne.connect(args.ip)
@@ -54,6 +54,26 @@ def dr_nat_check(args):
     bourne.connect(args.ip)
     resp=bourne.dr_nat_check(args.ipv4, args.ipv6)
     print resp['isNodesReachable']
+
+def wait_for_state(args):
+    timeCounter = 0
+    print "Waiting for standby state to become "+args.state
+    bourne.connect(args.ip)
+    while True:
+        try:
+            resp=bourne.dr_get_standby(args.uuid)
+            if (resp['state'] == args.state):
+                print "Standby state is "+args.state
+                return
+        except:
+            print "Exception while checking for api success"
+            pass
+        time.sleep(args.sleep)
+        timeCounter += args.sleep
+        print  "Retrying... time elapsed: [" + str(timeCounter) + "s]"
+        if (timeCounter >= args.length):
+            print("giving up wait_for_state. counter %s args.length %s" % (timeCounter, args.length))
+            raise Exception("Timeout occurred while waiting for standby state to become "+args.state)
 
 
 #----------------------------------------------------------------------
@@ -84,7 +104,7 @@ drliststandby.add_argument('name', nargs='?',        help = 'return uuid of stan
 
 # get dr standby
 drgetstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-drgetstandby.add_argument('uri',    		 	help = 'uri of standby site')
+drgetstandby.add_argument('uuid',    		 	help = 'uuid of standby site')
 drgetstandby.add_argument('property', nargs='?',	help = 'return property of standby site')
 
 # sync dr standby
@@ -94,7 +114,7 @@ drgetstandby.add_argument('property', nargs='?',	help = 'return property of stan
 
 # delete dr standby
 drdeletestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-drdeletestandby.add_argument('uri', help = 'uri of standby site')
+drdeletestandby.add_argument('uuid', help = 'uuid of standby site')
 
 # dr get site config
 drgetconfig = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -102,8 +122,15 @@ drgetconfig.add_argument('property', nargs='?',        help = 'return property o
 
 # dr natcheck
 drnatchecksite = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-drnatchecksite.add_argument('--ipv4',  metavar = 'ipaddr4', help = 'uri of standby site')
-drnatchecksite.add_argument('--ipv6',  metavar = 'ipaddr6', help = 'uri of standby site')
+drnatchecksite.add_argument('--ipv4',  metavar = 'ipaddr4', help = 'uuid of standby site')
+drnatchecksite.add_argument('--ipv6',  metavar = 'ipaddr6', help = 'uuid of standby site')
+
+# "waitforsync"
+waitforsync = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+waitforsync.add_argument('uuid',		help = 'uuid of standby site')
+waitforsync.add_argument('state',         help = 'state of standby site')
+waitforsync.add_argument('sleep', help = 'sleep of waiting time', type=float)
+waitforsync.add_argument('length', help = 'the whole waiting time', type=float)
 
 #----------------------------------------------------------------------
 # Main script
@@ -135,6 +162,9 @@ try:
     elif (cmd == "natcheck"):
         args = drnatchecksite.parse_args()
         dr_nat_check(args)
+    elif (cmd == "waitforstate"):
+        args = waitforsync.parse_args()
+        wait_for_state(args)
     # elif (cmd == "sync"):
     #     args = drsyncstandby.parse_args()
     #     dr_sync_standby(args)

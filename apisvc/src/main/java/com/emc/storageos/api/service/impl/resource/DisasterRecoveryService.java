@@ -72,6 +72,7 @@ import com.emc.vipr.model.sys.ClusterInfo;
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class DisasterRecoveryService {
     private static final int STANDBY_ADD_TIMEOUT = 1000 * 60 * 10;
+    private static final int SITE_ERROR_UPDATE_INTERVAL = 1000*10;
 
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     
@@ -83,9 +84,12 @@ public class DisasterRecoveryService {
     private SysUtils sysUtils;
     private CoordinatorClient coordinator;
     private DbClient dbClient;
+    private SiteErrorUpdater siteErrorUpdater;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
+        siteErrorUpdater = new SiteErrorUpdater();
+        (new Thread(siteErrorUpdater)).start();
     }
 
     /**
@@ -184,6 +188,8 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @ExcludeLicenseCheck
     public Response syncSites(SiteConfigParam configParam) {
+        log.info("sync sites from primary site");
+        
         try {
             // update vdc
             VirtualDataCenter vdc = queryLocalVDC();
@@ -458,17 +464,9 @@ public class DisasterRecoveryService {
             }
 
             Site standby = new Site(config);
-            if (SiteState.STANDBY_ADDING.equals(standby.getState())) {
-                if ((new Date()).getTime() - standby.getCreationTime() > STANDBY_ADD_TIMEOUT ) {
-                    SiteError error = new SiteError(SiteError.ERROR_DESCRIPTION_ADD, "New added standby site is not stable after 10 minutes");
-                    coordinator.setTargetInfo(uuid,  error);
-                    return error.toResponse();
-                }
-            } 
             
-            SiteError error = coordinator.getTargetInfo(uuid, SiteError.class);
-            if (error != null && error.getErrorMessage() != null) {
-                return error.toResponse();
+            if (standby.getState().equals(SiteState.STANDBY_ERROR)) {
+                return coordinator.getTargetInfo(uuid, SiteError.class).toResponse();
             }
         } catch (Exception e) {
             log.error("Find find site from ZK for UUID " + uuid, e);
@@ -683,5 +681,35 @@ public class DisasterRecoveryService {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
+    }
+    
+    class SiteErrorUpdater implements Runnable {
+
+        @Override
+        public void run() {
+            
+            while (true) {
+                try {
+                    URI vdcId = queryLocalVDC().getId();
+                    List<Site> sites = getSites(vdcId);
+                    for (Site site : sites) {
+                        if (SiteState.STANDBY_ADDING.equals(site.getState())
+                                || (new Date()).getTime() - site.getCreationTime() > STANDBY_ADD_TIMEOUT) {
+    
+                            SiteError error = new SiteError(SiteError.ERROR_DESCRIPTION_ADD,
+                                    "New added standby site is not stable after 10 minutes");
+                            coordinator.setTargetInfo(site.getUuid(), error);
+    
+                            site.setState(SiteState.STANDBY_ERROR);
+                            coordinator.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+                        }
+                    }
+                    Thread.sleep(SITE_ERROR_UPDATE_INTERVAL);
+                } catch (Exception e) {
+                    log.error("Error occurs during update site errors {}", e);
+                }
+            }
+        }
+        
     }
 }

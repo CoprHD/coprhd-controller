@@ -622,7 +622,7 @@ public class VdcSiteManager extends AbstractManager {
                             removeSiteFromReplication(site);
                         }
                     } catch (Exception e) { 
-                        populateStandbySiteErrorIfNecessary(site.getUuid(), SiteError.ERROR_DESCRIPTION_REMOVE, e);
+                        populateStandbySiteErrorIfNecessary(site, SiteError.ERROR_DESCRIPTION_REMOVE, e);
                         throw e;
                     }
                 }
@@ -711,9 +711,9 @@ public class VdcSiteManager extends AbstractManager {
         for (Site site : sites) {
             if (site.getUuid().equals(siteId)) {
                 if (site.getState().equals(SiteState.STANDBY_ADDING)) {
-                    populateStandbySiteErrorIfNecessary(site.getUuid(), SiteError.ERROR_DESCRIPTION_ADD, e);
+                    populateStandbySiteErrorIfNecessary(site, SiteError.ERROR_DESCRIPTION_ADD, e);
                 } else if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
-                    populateStandbySiteErrorIfNecessary(site.getUuid(), SiteError.ERROR_DESCRIPTION_REMOVE, e);
+                    populateStandbySiteErrorIfNecessary(site, SiteError.ERROR_DESCRIPTION_REMOVE, e);
                 }
                 
                 break;
@@ -726,11 +726,14 @@ public class VdcSiteManager extends AbstractManager {
      * 
      * @return
      */
-    private void populateStandbySiteErrorIfNecessary(String siteId, String description, Exception e) {
+    private void populateStandbySiteErrorIfNecessary(Site site, String description, Exception e) {
         SiteError error = new SiteError(description, e.getMessage());
         
         log.info("populateStandbySiteErrorIfNecessary for site: {}", error.toString());
-        coordinator.getCoordinatorClient().setTargetInfo(siteId,  error);
+        coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
+        
+        site.setState(SiteState.STANDBY_ERROR);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
     }
     
     private void cleanupSiteErrorIfNecessary() {

@@ -153,6 +153,7 @@
                 <entry key="scaleio" value-ref="scaleioStorageDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
                 <entry key="xtremio" value-ref="xtremioStorageDevice"/>
+                <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
             </map>
         </property>
         <property name="dbClient" ref="dbclient"/>
@@ -356,6 +357,10 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
+    </bean>
+
+    <bean id="externalBlockStorageDevice" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalBlockStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
     </bean>
 
     <bean id="vmaxFindProviderFactory" class="com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory">

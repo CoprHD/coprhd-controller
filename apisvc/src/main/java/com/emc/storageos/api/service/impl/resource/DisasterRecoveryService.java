@@ -88,8 +88,12 @@ public class DisasterRecoveryService {
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
-        siteErrorUpdater = new SiteErrorUpdater();
-        (new Thread(siteErrorUpdater)).start();
+        
+        if (isPrimarySite()) {
+            log.info("This site is primary site, launch site error updater");
+            siteErrorUpdater = new SiteErrorUpdater();
+            (new Thread(siteErrorUpdater)).start();
+        }
     }
 
     /**
@@ -173,6 +177,8 @@ public class DisasterRecoveryService {
             log.error("Internal error for updating coordinator on standby", e);
             setSiteSate(siteId, SiteState.STANDBY_ERROR);
             throw APIException.internalServerErrors.addStandbyFailed(e.getMessage());
+        } finally {
+            siteErrorUpdater.notify();
         }
     }
 
@@ -658,6 +664,11 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(siteId, site.toConfiguration());
         }
     }
+    
+    private boolean isPrimarySite() {
+        String primaryID = coordinator.getPrimarySiteId();
+        return primaryID != null && primaryID.equals(coordinator.getSiteId());
+    }
 
     public InternalApiSignatureKeyGenerator getApiSignatureGenerator() {
         return apiSignatureGenerator;
@@ -692,9 +703,12 @@ public class DisasterRecoveryService {
                 try {
                     URI vdcId = queryLocalVDC().getId();
                     List<Site> sites = getSites(vdcId);
+                    boolean hasAddingState = false;
                     for (Site site : sites) {
+                        hasAddingState |= SiteState.STANDBY_ADDING.equals(site.getState());
+                        
                         if (SiteState.STANDBY_ADDING.equals(site.getState())
-                                || (new Date()).getTime() - site.getCreationTime() > STANDBY_ADD_TIMEOUT) {
+                                && (new Date()).getTime() - site.getCreationTime() > STANDBY_ADD_TIMEOUT) {
     
                             SiteError error = new SiteError(SiteError.ERROR_DESCRIPTION_ADD,
                                     "New added standby site is not stable after 10 minutes");
@@ -704,7 +718,11 @@ public class DisasterRecoveryService {
                             coordinator.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
                         }
                     }
-                    Thread.sleep(SITE_ERROR_UPDATE_INTERVAL);
+                    
+                    if (hasAddingState)
+                        Thread.sleep(SITE_ERROR_UPDATE_INTERVAL);
+                    else
+                        wait();
                 } catch (Exception e) {
                     log.error("Error occurs during update site errors {}", e);
                 }

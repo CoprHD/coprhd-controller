@@ -1386,10 +1386,10 @@ public class BlockStorageScheduler {
      * @param overrideNumPaths - if greater than zero, will override the calculation and be returned.
      * @return numPaths
      */
-    public ExportPathParams calculateExportPathParmForVolumes(Collection<URI> blockObjectURIs,
-            Integer overrideNumPaths) {
-        return calculateExportPathParamForVolumes(blockObjectURIs, overrideNumPaths, null);
-    }
+//    public ExportPathParams calculateExportPathParmForVolumes(Collection<URI> blockObjectURIs,
+//            Integer overrideNumPaths) {
+//        return calculateExportPathParamForVolumes(blockObjectURIs, overrideNumPaths, null);
+//    }
 
     /**
      * Given a collection of volume URIs, generates the ExportPathParam
@@ -1405,8 +1405,10 @@ public class BlockStorageScheduler {
      * @return numPaths
      */
     public ExportPathParams calculateExportPathParamForVolumes(Collection<URI> blockObjectURIs,
-            Integer overrideNumPaths, URI storageSystemURI) {
+            Integer overrideNumPaths, URI storageSystemURI, URI exportGroupURI) {
         ExportPathParams param = new ExportPathParams(0, 0, 0);
+        // Look up the exportGroup
+        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         // If overrideNumPaths is set, do that with pathsPerInitiator=2
         if (overrideNumPaths != null && overrideNumPaths > 0) {
             param = new ExportPathParams(overrideNumPaths, 0, 0);
@@ -1423,9 +1425,19 @@ public class BlockStorageScheduler {
                         !storageSystemURI.equals(blockObject.getStorageController())) {
                     continue;
                 }
-
-                URI vPoolURI = getBlockObjectVPoolURI(blockObject, _dbClient);
-                ExportPathParams volParam = getExportPathParam(blockObject, vPoolURI, _dbClient);
+                
+                ExportPathParams volParam = null;
+                if (exportGroup != null) {
+                    // Check to see if the ExportGroup has path parameters for volume
+                    if (exportGroup.getPathParameters().containsKey(uri)) {
+                        volParam = _dbClient.queryObject(ExportPathParams.class, uri);
+                    }
+                }
+                if (volParam == null) {
+                    // Otherwise check use the Vpool path parameters
+                    URI vPoolURI = getBlockObjectVPoolURI(blockObject, _dbClient);
+                    volParam = getExportPathParam(blockObject, vPoolURI, _dbClient);
+                }
                 if (volParam.getMaxPaths() > param.getMaxPaths()) {
                     param = volParam;
                 }
@@ -1615,14 +1627,16 @@ public class BlockStorageScheduler {
      * 
      * @param mask -- The ExportMask being manipulated
      * @param varray -- The Virtual Array (normally from the ExportGroup)
+     * @param exportGroupURI -- URI of the ExportGroup
      * 
      *            Assumption: the export mask has up to date initiators and storage ports
      */
-    public void updateZoningMap(ExportMask mask, URI varray) {
+    public void updateZoningMap(ExportMask mask, URI varray, URI exportGroupURI) {
         // Convert the volumes to a Collection.
         List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(mask);
         // Determine the number of paths required for the volumes in the export mask.
-        ExportPathParams pathParams = calculateExportPathParamForVolumes(volumeURIs, 0, mask.getStorageDevice());
+        ExportPathParams pathParams = calculateExportPathParamForVolumes(
+                volumeURIs, 0, mask.getStorageDevice(), exportGroupURI);
         _log.info(String.format("Updating zoning map for ExportMask %s (%s) pathParams %s",
                 mask.getMaskName(), mask.getId(), pathParams.toString()));
 

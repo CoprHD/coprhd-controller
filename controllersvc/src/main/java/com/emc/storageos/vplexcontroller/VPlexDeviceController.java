@@ -1994,8 +1994,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             _dbClient.createObject(exportMask);
 
-            ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                    blockObjectMap.keySet(), exportGroup.getNumPaths());
+            ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                    blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
 
             // Try to assign new ports by passing in existingMap
             Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
@@ -2047,8 +2047,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         exportMasksToUpdateOnDevice.add(viprExportMask);
         exportGroup.addExportMask(viprExportMask.getId());
         _dbClient.updateAndReindexObject(exportGroup);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                blockObjectMap.keySet(), exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(exportGroup.getType());
         }
@@ -2151,8 +2151,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
         _dbClient.updateAndReindexObject(sharedVplexExportMask);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                blockObjectMap.keySet(), exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
 
         // Try to assign new ports by passing in existingMap
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
@@ -3390,7 +3390,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
-                    volumeURIs, exportGroup.getNumPaths(), exportMask.getStorageDevice());
+                    volumeURIs, exportGroup.getNumPaths(), exportMask.getStorageDevice(), exportGroup.getId());
             if (exportGroup.getType() != null) {
                 pathParams.setExportGroupType(exportGroup.getType());
             }
@@ -7719,8 +7719,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Collection<URI> volumeURIs =
                 (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                volumeURIs, exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeURIs, exportGroup.getNumPaths(), vplex.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(exportGroup.getType());
         }
@@ -9813,7 +9813,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, String opId) throws Exception {
         List<Initiator> initiators = _dbClient
                 .queryObject(Initiator.class, initiatorURIs);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(volumeMap.keySet(), 0);
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeMap.keySet(), 0, storage.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(exportGroup.getType());
         }

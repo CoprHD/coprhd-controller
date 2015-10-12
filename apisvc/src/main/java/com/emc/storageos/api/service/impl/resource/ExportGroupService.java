@@ -1752,7 +1752,7 @@ public class ExportGroupService extends TaskResourceService {
                         _log.info(String.format("Validating port assignments varray %s initiators %s",
                                 varrayKey.toString(), initiatorAddresses));
                         validatePortAssignment(storageSystem, varrayKey, _blockStorageScheduler,
-                                initiators, varrayToVolumes.get(varrayKey));
+                                initiators, varrayToVolumes.get(varrayKey), exportGroup.getId());
                     }
                 }
                 if (nValidations == 0) {
@@ -1765,7 +1765,7 @@ public class ExportGroupService extends TaskResourceService {
                         CommonTransformerFunctions.fctnInitiatorToPortName());
                 _log.info(String.format("Validating port assignments varray %s initiators %s",
                         varray.toString(), initiatorAddresses));
-                validatePortAssignment(storageSystem, varray, _blockStorageScheduler, initiators, volumes);
+                validatePortAssignment(storageSystem, varray, _blockStorageScheduler, initiators, volumes, exportGroup.getId());
             }
         }
     }
@@ -1781,10 +1781,11 @@ public class ExportGroupService extends TaskResourceService {
      * @param numPaths
      */
     private void validatePortAssignment(StorageSystem storageSystem, URI varray,
-            BlockStorageScheduler blockScheduler, List<Initiator> initiators, Collection<URI> volumes) {
+            BlockStorageScheduler blockScheduler, List<Initiator> initiators, 
+            Collection<URI> volumes, URI exportGroupURI) {
         try {
             ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(
-                    volumes, 0, storageSystem.getId());
+                    volumes, 0, storageSystem.getId(), exportGroupURI);
             blockScheduler.assignStoragePorts(storageSystem,
                     varray, initiators, pathParams, null, volumes);
         } catch (ControllerException ex) {

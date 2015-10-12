@@ -121,8 +121,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs :
                 (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                volumeURIs, exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeURIs, exportGroup.getNumPaths(), storage.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(exportGroup.getType());
         }

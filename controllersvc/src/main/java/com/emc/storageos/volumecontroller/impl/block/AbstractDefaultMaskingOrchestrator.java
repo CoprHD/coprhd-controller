@@ -298,8 +298,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         // allocating the Storage Ports (targets).
         List<Initiator> initiators =
                 _dbClient.queryObject(Initiator.class, initiatorURIs);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                volumeMap.keySet(), exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeMap.keySet(), exportGroup.getNumPaths(), storage.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(exportGroup.getType());
         }
@@ -503,8 +503,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs :
                 (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                volumeURIs, exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeURIs, exportGroup.getNumPaths(), storageURI, exportGroupURI);
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(exportGroup.getType());
         }
@@ -1551,7 +1551,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             volumes = Collections2.transform(exportGroup.getVolumes().keySet(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI);
         }
-        ExportPathParams exportPathParams = _blockScheduler.calculateExportPathParamForVolumes(volumes, 0, storage);
+        ExportPathParams exportPathParams = _blockScheduler
+                .calculateExportPathParamForVolumes(volumes, 0, storage, exportGroup.getId());
         _log.info(String.format("determineInitiatorToExportMaskPlacements - ExportGroup=%s, exportPathParams=%s",
                 exportGroup.getId().toString(), exportPathParams));
         // Update mapping based on what is seen on the array

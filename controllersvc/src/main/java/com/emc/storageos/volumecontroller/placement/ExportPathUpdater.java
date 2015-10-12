@@ -190,7 +190,8 @@ public class ExportPathUpdater {
             BlockObject volume, String token) throws Exception {
         Set<URI> volumeURISet = new HashSet<URI>();
         volumeURISet.add(volume.getId());
-        ExportPathParams newParam = blockScheduler.calculateExportPathParmForVolumes(volumeURISet, 0);
+        ExportPathParams newParam = blockScheduler.calculateExportPathParamForVolumes(
+                volumeURISet, 0, storage.getId(), exportGroup.getId());
 
         // Search through the Export Masks looking for any containing this Volume.
         // We only process ViPR created Export Masks, others are ignored.

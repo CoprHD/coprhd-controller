@@ -169,6 +169,8 @@ public class ComputeImageServers extends ViprResourceController {
 
         public List<NamedRelatedResourceRep> computeImages;
 
+        public List<NamedRelatedResourceRep> failedImages;
+
         @MaxSize(2048)
         @Required
         public String userName;
@@ -192,7 +194,8 @@ public class ComputeImageServers extends ViprResourceController {
             this.userName = computeImageServer.getImageServerUser();
             this.osInstallTimeOut = computeImageServer.getOsInstallTimeoutMs();
             this.computeImages = computeImageServer.getComputeImages();
-            System.out.println("ComputeImageServerForm computeImages " + this.computeImages.toString());
+            this.failedImages = computeImageServer.getFailedImages();
+            System.out.println("ComputeImageServerForm computeImages " + this.failedImages.toString());
             this.password = ""; // the platform will never return the real password //NOSONAR
             // ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
         }
@@ -215,9 +218,6 @@ public class ComputeImageServers extends ViprResourceController {
                 if (!HostNameOrIpAddressCheck.isValidIp(osInstallNetworkAddress)) {
                     Validation.addError(fieldName + ".osInstallNetworkAddress",
                             MessagesUtils.get("computeSystem.invalid.ipAddress"));
-                }
-                if (StringUtils.equals(StringUtils.trim(password),
-                        StringUtils.trim(confirmPassword))) {
                 }
                 if (!StringUtils.equals(StringUtils.trim(password),
                         StringUtils.trim(confirmPassword))) {

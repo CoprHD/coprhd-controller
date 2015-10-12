@@ -16,7 +16,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -376,7 +378,7 @@ public class DbClientImpl implements DbClient {
         List<URI> ids = new ArrayList<>(1);
         ids.add(id);
 
-        List<T> objs = queryObject(clazz, ids);
+        List<T> objs = internalQueryObject(clazz, ids, false);
 
         if (objs.isEmpty()) {
             return null;
@@ -391,24 +393,23 @@ public class DbClientImpl implements DbClient {
     @Override
     @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id) {
-        return queryObject(clazz, Arrays.asList(id));
+        return new ObjectQueryResultList(clazz, Arrays.asList(id).iterator());
     }
 
     /**
      * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
      */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids) {
-        return queryObject(clazz, ids, false);
+        return new ObjectQueryResultList<T>(clazz, ids.iterator());
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly) {
+        return new ObjectQueryResultList<T>(clazz, ids.iterator());
+    }
+    
+    private <T extends DataObject> List<T> internalQueryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly) {
         DataObjectType doType = TypeMap.getDoType(clazz);
 
         if (doType == null) {
@@ -476,7 +477,7 @@ public class DbClientImpl implements DbClient {
                         currentIt = null;
                         getNextBatch();
                         while (!nextBatch.isEmpty()) {
-                            List<T> currBatchResults = queryObject(clazz, nextBatch, activeOnly);
+                            List<T> currBatchResults = internalQueryObject(clazz, nextBatch, activeOnly);
                             if (!currBatchResults.isEmpty()) {
                                 currentIt = currBatchResults.iterator();
                                 break;
@@ -1886,5 +1887,186 @@ public class DbClientImpl implements DbClient {
         String clazzVersion = clazz.getAnnotation(AllowedGeoVersion.class).version();
         String fieldVersion = property.getReadMethod().getAnnotation(AllowedGeoVersion.class).version();
         return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion) > 0 ? fieldVersion : clazzVersion;
+    
+    }
+    
+    /**
+     * A read-only list implementation for queryObject API. We construct this list from an iterator of object URI.
+     * Object Ids are loaded in to memory on demand, and object itself
+     * 
+     * @param <T> a subclass of DataObject
+     */
+    private class ObjectQueryResultList<T extends DataObject> implements List<T> {
+        private List<URI> ids;
+        private Class<T> clazz; 
+        private Iterator<URI> iterativeIds;
+        
+        /**
+         * Construct a queryObject result list implementation for object IDs
+         * 
+         * @param clazz
+         * @param ids
+         */
+        private ObjectQueryResultList(Class<T> clazz, Iterator<URI> iterativeIds) {
+            this.clazz = clazz;
+            this.iterativeIds = iterativeIds;
+            ids = new LinkedList<URI>();
+        }
+        
+        private void iterateAllIds() {
+            while (iterativeIds.hasNext()) {
+                ids.add(iterativeIds.next());
+            }
+        }
+        
+        private void iterateNextId() {
+            if (iterativeIds.hasNext()) {
+                ids.add(iterativeIds.next());
+            }
+        }
+        
+        private boolean isIdsIterated() {
+            return iterativeIds.hasNext();
+        }
+        
+        @Override
+        public int size() {
+            iterateAllIds();
+            return ids.size();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            if (ids.size() == 0 && !isIdsIterated()) {
+                iterateNextId();
+            }
+            return ids.isEmpty();
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            if (!(o instanceof DataObject)) {
+                return false;
+            }
+            
+            DataObject obj = (DataObject)o;
+            iterateAllIds();
+            return ids.contains(obj.getId());
+        }
+
+        @Override
+        public Iterator<T> iterator() {
+            return queryIterativeObjects(clazz, ids);
+        }
+
+        @Override
+        public Object[] toArray() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <T> T[] toArray(T[] a) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean add(T t) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean remove(Object o) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean containsAll(Collection<?> c) {
+            for (Object o : c) {
+                if(!contains(o))
+                    return false;
+            }
+            return true;
+        }
+
+        @Override
+        public boolean addAll(Collection<? extends T> c) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean addAll(int index, Collection<? extends T> c) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean removeAll(Collection<?> c) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean retainAll(Collection<?> c) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void clear() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public T get(int index) {
+            URI id = ids.get(index);
+            return queryObject(clazz, id);
+        }
+
+        @Override
+        public T set(int index, T element) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void add(int index, T element) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public T remove(int index) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int indexOf(Object o) {
+            if (!(o instanceof DataObject)) {
+                return -1;
+            }
+            iterateAllIds();
+            return ids.indexOf(((DataObject)o).getId());
+        }
+
+        @Override
+        public int lastIndexOf(Object o) {
+            if (!(o instanceof DataObject)) {
+                return -1;
+            }
+            iterateAllIds();
+            return ids.lastIndexOf(((DataObject)o).getId());
+        }
+
+        @Override
+        public ListIterator<T> listIterator() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public ListIterator<T> listIterator(int index) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<T> subList(int fromIndex, int toIndex) {
+            iterateAllIds();
+            List<URI> subIdList = ids.subList(fromIndex, toIndex);
+            return new ObjectQueryResultList<T>(clazz, subIdList.iterator());
+        }
     }
 }

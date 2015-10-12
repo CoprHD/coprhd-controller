@@ -72,8 +72,6 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         for (BlockObject sourceObj : sourceObjList) {
             URI sourceURI = sourceObj.getId();
             if (URIUtil.isType(sourceURI, Volume.class)) {
-                // TBD - Add a check in case this is called with a backend volume.
-
                 // Get the platform specific implementation for the source side
                 // backend storage system and call the validation routine.
                 Volume vplexVolume = (Volume) sourceObj;
@@ -84,6 +82,9 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
                         .getPlatformSpecificImplForSystem(srcSideBackendSystem);
                 snapSessionImpl.validateSnapshotSessionCreateRequest(srcSideBackendVolume, Arrays.asList(srcSideBackendVolume),
                         project, name, newTargetsCount, newTargetsName, newTargetCopyMode, true, fcManager);
+
+                // Check for pending tasks on the VPLEX source volume.
+                checkForPendingTasks(vplexVolume, vplexVolume.getTenant().getURI());
             } else {
                 // We don't currently support snaps of BlockSnapshot instances
                 // so should never be called.
@@ -251,6 +252,12 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.validateRestoreSnapshotSession(srcSideBackendVolume, project);
+
+            // Check for pending tasks on the VPLEX source volume.
+            checkForPendingTasks(vplexVolume, vplexVolume.getTenant().getURI());
+
+            // Verify no active mirrors on the VPLEX volume.
+            verifyActiveMirrors(vplexVolume);
         } else {
             // We don't currently support snaps of BlockSnapshot instances
             // so should never be called.
@@ -294,6 +301,9 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.validateDeleteSnapshotSession(snapSession, srcSideBackendVolume, project);
+
+            // Check for pending tasks on the VPLEX source volume.
+            checkForPendingTasks(snapSession, vplexVolume.getTenant().getURI());
         } else {
             // We don't currently support snaps of BlockSnapshot instances
             // so should never be called.
@@ -390,25 +400,8 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    protected void checkPendingTasksOnSourceVolume(Volume sourceVolume) {
-        // We'll check the passed backend volume for tasks.
-        super.checkPendingTasksOnSourceVolume(sourceVolume);
-
-        // Check for pending tasks on the VPLEX volume too.
-        Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, sourceVolume);
-        BlockServiceUtils.checkForPendingTasks(Arrays.asList(vplexVolume.getTenant().getURI()),
-                Arrays.asList(vplexVolume), _dbClient);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     protected void verifyActiveMirrors(Volume sourceVolume) {
-        // We'll check the passed backend volume active mirrors.
-        super.checkPendingTasksOnSourceVolume(sourceVolume);
-
-        // Check the VPLEX volume too.
+        // Check for VPLEX mirrors.
         Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, sourceVolume);
         List<URI> activeMirrorsForSource = BlockServiceUtils.getActiveMirrorsForVplexVolume(vplexVolume, _dbClient);
         if (!activeMirrorsForSource.isEmpty()) {

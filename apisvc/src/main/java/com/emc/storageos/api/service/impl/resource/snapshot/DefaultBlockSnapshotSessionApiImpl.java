@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
@@ -133,7 +134,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
                 // Make sure that we don't have some pending
                 // operation against the volume.
-                checkPendingTasksOnSourceVolume(sourceVolume);
+                checkForPendingTasks(sourceVolume, sourceVolume.getTenant().getURI());
 
                 // Verify the operation is supported for ingested volumes.
                 VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(sourceVolume,
@@ -191,13 +192,14 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
     }
 
     /**
-     * Checks for pending tasks on the passed source volume.
+     * Checks for pending tasks on the passed data object.
      * 
-     * @param sourceVolume A reference to a source volume.
+     * @param object A reference to a data object.
+     * @param tenantURI The URI of the tenant.
      */
-    protected void checkPendingTasksOnSourceVolume(Volume sourceVolume) {
-        BlockServiceUtils.checkForPendingTasks(Arrays.asList(sourceVolume.getTenant().getURI()),
-                Arrays.asList(sourceVolume), _dbClient);
+    protected <T extends DataObject> void checkForPendingTasks(T object, URI tenantURI) {
+        BlockServiceUtils.checkForPendingTasks(Arrays.asList(tenantURI),
+                Arrays.asList(object), _dbClient);
     }
 
     /**
@@ -516,7 +518,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             // Make sure that we don't have some pending
             // operation against the volume.
             Volume sourceVolume = (Volume) snapSessionSourceObj;
-            checkPendingTasksOnSourceVolume(sourceVolume);
+            checkForPendingTasks(sourceVolume, sourceVolume.getTenant().getURI());
 
             // On some platforms it is not possible to restore an array snapshot
             // point-in-time copy to a source volume if the volume has active mirrors.
@@ -563,8 +565,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         // Verify no pending tasks on the snapshot session.
         if (URIUtil.isType(snapSessionSourceObj.getId(), Volume.class)) {
             // Make sure that we don't have some pending
-            // operation against the volume.
-            checkPendingTasksOnSourceVolume((Volume) snapSessionSourceObj);
+            // operation against the snapshot session.
+            checkForPendingTasks(snapSession, ((Volume) snapSessionSourceObj).getTenant().getURI());
         }
 
         // Verify the snapshot session has no linked targets.

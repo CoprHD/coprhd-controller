@@ -11,6 +11,8 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
@@ -72,7 +74,6 @@ import com.emc.vipr.model.sys.ClusterInfo;
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class DisasterRecoveryService {
     public static final int STANDBY_ADD_TIMEOUT = 1000 * 60 * 10;
-    public static final int SITE_ERROR_UPDATE_INTERVAL = 1000*10;
 
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     
@@ -84,23 +85,19 @@ public class DisasterRecoveryService {
     private SysUtils sysUtils;
     private CoordinatorClient coordinator;
     private DbClient dbClient;
-    private SiteErrorUpdater siteErrorUpdater;
+    private ScheduledThreadPoolExecutor siteErrorThreadExecutor = new ScheduledThreadPoolExecutor(1);
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
-        siteErrorUpdater = new SiteErrorUpdater();
     }
     
     /**
      * Initialize service
      */
     public void initialize(){
-        if (isPrimarySite()) {
-            log.info("This site is primary site, launch site error updater");
-            (new Thread(siteErrorUpdater)).start();
-        }
+        siteErrorThreadExecutor.schedule(new SiteErrorUpdater(null), 0, TimeUnit.MILLISECONDS);
     }
-
+    
     /**
      * Attach one fresh install site to this primary as standby
      * Or attach a primary site for the local standby site when it's first being added.
@@ -177,10 +174,13 @@ public class DisasterRecoveryService {
             }
             configParam.setStandbySites(standbySites);
             viprClient.site().syncSite(configParam);
+            
+            siteErrorThreadExecutor.schedule(new SiteErrorUpdater(standbySite.getUuid()), STANDBY_ADD_TIMEOUT, TimeUnit.MILLISECONDS);
+            
             return siteMapper.map(standbySite);
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
-            setSiteSate(siteId, SiteState.STANDBY_ERROR);
+            setSiteError(siteId, SiteError.ERROR_DESCRIPTION_ADD, e.getMessage());
             throw APIException.internalServerErrors.addStandbyFailed(e.getMessage());
         }
     }
@@ -656,21 +656,19 @@ public class DisasterRecoveryService {
         return VdcUtil.getLocalVdc();
     }
     
-    private void setSiteSate(String siteId, SiteState state) {
+    private void setSiteError(String siteId, String description, String message) {
         if (siteId == null || siteId.isEmpty())
             return;
         
         Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, siteId);
         if (config != null) {
             Site site = new Site(config);
-            site.setState(state);
+            site.setState(SiteState.STANDBY_ERROR);
             coordinator.persistServiceConfiguration(siteId, site.toConfiguration());
+            
+            SiteError error = new SiteError(description, message);
+            coordinator.setTargetInfo(site.getUuid(), error);
         }
-    }
-    
-    private boolean isPrimarySite() {
-        String primaryID = coordinator.getPrimarySiteId();
-        return primaryID != null && primaryID.equals(coordinator.getSiteId());
     }
 
     public InternalApiSignatureKeyGenerator getApiSignatureGenerator() {
@@ -698,32 +696,48 @@ public class DisasterRecoveryService {
     }
     
     class SiteErrorUpdater implements Runnable {
+        private String siteId;
+
+        public SiteErrorUpdater(String siteId) {
+            this.siteId = siteId;
+        }
 
         @Override
         public void run() {
-            
-            while (true) {
-                try {
+            log.info("launch site error updater");
+            try {
+                if (siteId == null) {
                     URI vdcId = queryLocalVDC().getId();
                     List<Site> sites = getSites(vdcId);
-                    //boolean hasAddingState = false;
+
                     for (Site site : sites) {
-                        if (SiteState.STANDBY_ADDING.equals(site.getState())
-                                && (new Date()).getTime() - site.getCreationTime() > STANDBY_ADD_TIMEOUT) {
-    
-                            SiteError error = new SiteError(SiteError.ERROR_DESCRIPTION_ADD,
-                                    "New added standby site is not stable after 10 minutes");
-                            coordinator.setTargetInfo(site.getUuid(), error);
-    
-                            site.setState(SiteState.STANDBY_ERROR);
-                            coordinator.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
-                        }
+                        setSiteError(site);
                     }
-                } catch (Exception e) {
-                    log.error("Error occurs during update site errors {}", e);
+                } else {
+                    Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, siteId);
+                    if (config == null)
+                        return;
+
+                    Site site = new Site(config);
+                    setSiteError(site);
                 }
+            } catch (Exception e) {
+                log.error("Error occurs during update site errors {}", e);
+            }
+
+        }
+
+        private void setSiteError(Site site) {
+            if (SiteState.STANDBY_ADDING.equals(site.getState())
+                    && (new Date()).getTime() - site.getCreationTime() > STANDBY_ADD_TIMEOUT) {
+                log.info("site state of {} be set to error", site.getName());
+                SiteError error = new SiteError(SiteError.ERROR_DESCRIPTION_ADD,
+                        "New added standby site is not stable after 10 minutes");
+                coordinator.setTargetInfo(site.getUuid(), error);
+
+                site.setState(SiteState.STANDBY_ERROR);
+                coordinator.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
             }
         }
-        
     }
 }

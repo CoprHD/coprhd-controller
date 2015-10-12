@@ -2188,7 +2188,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-        	_log.error("Problem while removing volume from CG :{}", consistencyGroup, e);
+            _log.error("Problem while removing volume from CG :{}", consistencyGroupId, e);
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
                             consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));

@@ -70,6 +70,8 @@ import com.google.common.collect.ListMultimap;
  */
 public class ControllerUtils {
 
+    private static final String SMI81_VERSION_STARTING_STR = "V8.1";
+
     // Logger reference.
     private static final Logger s_logger = LoggerFactory.getLogger(ControllerUtils.class);
 
@@ -1222,7 +1224,7 @@ public class ControllerUtils {
             StorageProvider provider = dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
             if (provider != null) {
                 String providerVersion = provider.getVersionString();
-                status = providerVersion != null && providerVersion.startsWith("V8.1");
+                status = providerVersion != null && providerVersion.startsWith(SMI81_VERSION_STARTING_STR);
             }
         }
         return status;

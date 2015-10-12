@@ -223,6 +223,7 @@
         <property name="powerOffStateProbeInterval" value="3000" />
         <property name="loopInterval"  value="600000" />
         <property name="retryInterval"  value="4000" />
+        <property name="service" ref="serviceinfo" />
     </bean>
 
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">

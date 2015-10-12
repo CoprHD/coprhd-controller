@@ -105,6 +105,19 @@ public interface CoordinatorClient {
             throws CoordinatorException;
 
     /**
+     * Look up all services with site uuid, given name, version, tag, and endpointKey
+     * 
+     * @param uuid site uuid
+     * @param name service name
+     * @param version service version
+     * @param tag service tag. if null, does not filter on tag
+     * @param endpointKey endpoint key. if null, does not filter on endpoint key
+     * @return matching services
+     */
+    public List<Service> locateAllServices(String uuid, String name, String version, String tag, String endpointKey)
+            throws CoordinatorException;
+    
+    /**
      * Look up all services of all versions with given name
      * 
      * @param name service name

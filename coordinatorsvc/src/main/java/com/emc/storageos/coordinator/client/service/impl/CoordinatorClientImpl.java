@@ -224,11 +224,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         String siteStatePath = String.format("%1$s/%2$s", sitePath, Constants.SITE_STATE);
         try {
             EnsurePath ePath = new EnsurePath(siteStatePath);
-            log.info("init site state to {}", SiteState.ACTIVE.name());
+            log.info("init site state to {}", SiteState.PRIMARY.name());
             ePath.ensure(zkConnection.curator().getZookeeperClient());
-            zkConnection.curator().setData().forPath(siteStatePath, SiteState.ACTIVE.name().getBytes());
+            zkConnection.curator().setData().forPath(siteStatePath, SiteState.PRIMARY.name().getBytes());
         } catch (Exception e) {
-            log.error("Failed to init site state {}", SiteState.ACTIVE.name());
+            log.error("Failed to init site state {}", SiteState.PRIMARY.name());
             throw e;
         }
     }
@@ -596,7 +596,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
     
     private boolean isSiteSpecific(String kind) {
-        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equals(SiteInfo.CONFIG_KIND) || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND)) {
+        if (kind.startsWith(Constants.GEODB_CONFIG) 
+                || kind.startsWith(Constants.DB_CONFIG) 
+                || kind.equals(SiteInfo.CONFIG_KIND) 
+                || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND) 
+                || kind.equals(PowerOffState.CONFIG_KIND)) {
             return true;
         }
         return false;
@@ -727,7 +731,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return data;
     }
 
-    protected List<Service> locateAllServices(String siteId, String name, String version, String tag,
+    @Override
+    public List<Service> locateAllServices(String siteId, String name, String version, String tag,
             String endpointKey) throws CoordinatorException {
         String serviceRoot = String.format("%1$s/%2$s", name, version);
         List<String> servicePaths = lookupServicePath(siteId, serviceRoot);
@@ -756,12 +761,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
             if (endpointKey == null) {
                 // default endpoint
-                ((ServiceImpl) service).setEndpoint(getInetAddessLookupMap().expandURI(
-                        service.getEndpoint()));
+                URI endpoint = expandEndpointURI(service.getEndpoint());
+                ((ServiceImpl) service).setEndpoint(endpoint);
             } else {
                 // swap the ip for the entry with the endpointkey in the map
-                ((ServiceImpl) service).setEndpoint(endpointKey, getInetAddessLookupMap()
-                        .expandURI(service.getEndpoint(endpointKey)));
+                URI endpoint = expandEndpointURI(service.getEndpoint(endpointKey));
+                ((ServiceImpl) service).setEndpoint(endpointKey, endpoint);
             }
             log.debug("locateAllServices->service endpoint: " + service.getEndpoint());
             filtered.add(service);
@@ -769,6 +774,20 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return Collections.unmodifiableList(filtered);
     }
 
+    /**
+     * Replace node id in endpoint URI to real Ip address. Do it for local site only 
+     * since we don't have node address map on other site
+     * 
+     * @param endpoint
+     * @return
+     */
+    private URI expandEndpointURI(URI endpoint) {
+        if (getSiteId().equals(siteId)) {
+            return getInetAddessLookupMap().expandURI(endpoint);
+        }
+        return endpoint;
+    }
+    
     @Override
     public List<Service> locateAllServices(String name, String version, String tag,
             String endpointKey) throws CoordinatorException {

@@ -169,16 +169,15 @@ public class VdcConfigUtil {
     }
 
     private void genSiteProperties(Map<String, String> vdcConfig, VirtualDataCenter vdc) {
-        String address;
-
         String shortId = vdc.getShortId();
         String primarySiteId = coordinator.getPrimarySiteId();
+        String currentSiteId = coordinator.getSiteId();
         
         // Sort the sites by creation time - ascending order
         List<Site> siteList = new ArrayList<>();
         for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
-            if (site.getVdc().equals(vdc.getId()) && site.getState() != SiteState.ACTIVE) {
+            if (site.getVdc().equals(vdc.getId()) && site.getState() != SiteState.PRIMARY) {
                 siteList.add(site);
             }
         }
@@ -197,8 +196,10 @@ public class VdcConfigUtil {
 
             // exclude the paused sites from the standby site list on every site except the paused site
             // this will make it easier to resume the data replication.
-            if (site.getState().equals(SiteState.STANDBY_PAUSED) && !isLocalSite(site)) {
-                continue;
+            if (!isLocalSite(site)) {
+                if (site.getState().equals(SiteState.STANDBY_PAUSED) || site.getState().equals(SiteState.STANDBY_REMOVING) ) {
+                    continue;
+                }
             }
             
             int standbyNodeCnt = 0;
@@ -210,7 +211,7 @@ public class VdcConfigUtil {
             
             for (String hostName : standbyHosts) {
                 standbyNodeCnt++;
-                address = standbyIPv4Addrs.get(hostName);
+                String address = standbyIPv4Addrs.get(hostName);
                 vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, shortId, standbyShortId, standbyNodeCnt),
                         address == null ? "" : address);
 
@@ -228,7 +229,7 @@ public class VdcConfigUtil {
         Collections.sort(shortIds);
         vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
         
-        String currentSiteId = coordinator.getSiteId();
+        
         boolean isStandby = !currentSiteId.equals(primarySiteId);
         vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
     }

@@ -53,6 +53,14 @@ public class SiteError implements CoordinatorSerializable{
         this.errorMessage = errorMessage;
     }
 
+    public String getErrorDescription() {
+        return errorDescription;
+    }
+
+    public void setErrorDescription(String errorDescription) {
+        this.errorDescription = errorDescription;
+    }
+
     @Override
     public String encodeAsString() {
         StringBuilder builder = new StringBuilder();

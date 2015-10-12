@@ -88,6 +88,7 @@ public class DisasterRecoveryService {
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
+        siteErrorUpdater = new SiteErrorUpdater();
     }
     
     /**
@@ -96,7 +97,6 @@ public class DisasterRecoveryService {
     public void initialize(){
         if (isPrimarySite()) {
             log.info("This site is primary site, launch site error updater");
-            siteErrorUpdater = new SiteErrorUpdater();
             (new Thread(siteErrorUpdater)).start();
         }
     }
@@ -182,8 +182,6 @@ public class DisasterRecoveryService {
             log.error("Internal error for updating coordinator on standby", e);
             setSiteSate(siteId, SiteState.STANDBY_ERROR);
             throw APIException.internalServerErrors.addStandbyFailed(e.getMessage());
-        } finally {
-            siteErrorUpdater.notify();
         }
     }
 
@@ -708,10 +706,8 @@ public class DisasterRecoveryService {
                 try {
                     URI vdcId = queryLocalVDC().getId();
                     List<Site> sites = getSites(vdcId);
-                    boolean hasAddingState = false;
+                    //boolean hasAddingState = false;
                     for (Site site : sites) {
-                        hasAddingState |= SiteState.STANDBY_ADDING.equals(site.getState());
-                        
                         if (SiteState.STANDBY_ADDING.equals(site.getState())
                                 && (new Date()).getTime() - site.getCreationTime() > STANDBY_ADD_TIMEOUT) {
     
@@ -723,11 +719,6 @@ public class DisasterRecoveryService {
                             coordinator.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
                         }
                     }
-                    
-                    if (hasAddingState)
-                        Thread.sleep(SITE_ERROR_UPDATE_INTERVAL);
-                    else
-                        wait();
                 } catch (Exception e) {
                     log.error("Error occurs during update site errors {}", e);
                 }

@@ -1562,21 +1562,21 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         }
         if (snapCount > 1) {
             throw APIException.badRequests
-                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getId(), "snapshots");
+                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "snapshots");
         }
 
         // multiple clone check
         StringSet fullCopies = volume.getFullCopies();
         if (fullCopies != null && fullCopies.size() > 1) {
             throw APIException.badRequests
-                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getId(), "full copies");
+                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "full copies");
         }
 
         // multiple mirror check
         StringSet mirrors = volume.getMirrors();
         if (mirrors != null && mirrors.size() > 1) {
             throw APIException.badRequests
-                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getId(), "mirrors");
+                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "mirrors");
         }
     }
 

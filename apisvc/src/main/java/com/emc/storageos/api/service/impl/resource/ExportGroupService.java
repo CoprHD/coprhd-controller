@@ -1170,7 +1170,7 @@ public class ExportGroupService extends TaskResourceService {
         validateUpdateInputForExportType(param, exportGroup);
         validateUpdateRemoveInitiators(param, exportGroup);
         validateUpdateIsNotForVPlexBackendVolumes(param, exportGroup);
-
+        
         // call the controller to handle all updated
         String task = UUID.randomUUID().toString();
         Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
@@ -2490,7 +2490,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param exportGroup -- ExportGroup
      * @return ExportPathParam suitable for persistence
      */
-    private ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param, ExportGroup exportGroup) {
+    ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param, ExportGroup exportGroup) {
         // If minPaths is specified, or pathsPerInitiator is specified, maxPaths must be specified
         if ((param.getMinPaths() != null || param.getPathsPerInitiator() != null) && param.getMaxPaths() == null) {
             throw APIException.badRequests.maxPathsRequired();

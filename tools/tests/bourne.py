@@ -4558,8 +4558,6 @@ class Bourne:
         if (pathParam['max_paths'] > 0):
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
-        else:
-            print 'No path parameters'
 
         # Build volume parameter, if specified
         if (volspec):
@@ -4612,8 +4610,14 @@ class Bourne:
 	s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         return (o, s)
 
-    def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList):
+    def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList, pathParam):
         parms = {}
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+
         # Build volume change input, if specified
         volChanges = {}
         if (addVolspec):

@@ -1429,8 +1429,9 @@ public class BlockStorageScheduler {
                 ExportPathParams volParam = null;
                 if (exportGroup != null) {
                     // Check to see if the ExportGroup has path parameters for volume
-                    if (exportGroup.getPathParameters().containsKey(uri)) {
-                        volParam = _dbClient.queryObject(ExportPathParams.class, uri);
+                    if (exportGroup.getPathParameters().containsKey(uri.toString())) {
+                        URI exportPathParamsUri = URI.create(exportGroup.getPathParameters().get(uri.toString()));
+                        volParam = _dbClient.queryObject(ExportPathParams.class, exportPathParamsUri);
                     }
                 }
                 if (volParam == null) {

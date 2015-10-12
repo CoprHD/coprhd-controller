@@ -7,7 +7,7 @@ import java.util.List;
 
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 
-@Cf("ExportPathParam")
+@Cf("ExportPathParams")
 public class ExportPathParams extends DataObject {
     Integer maxPaths;
     Integer minPaths;

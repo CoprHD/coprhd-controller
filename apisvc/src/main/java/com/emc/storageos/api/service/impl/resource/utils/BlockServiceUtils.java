@@ -41,9 +41,11 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
@@ -258,6 +260,28 @@ public class BlockServiceUtils {
      */
     public static boolean hasMirrors(Volume volume) {
         return volume.getMirrors() != null && !volume.getMirrors().isEmpty();
+    }
+
+    /**
+     * Return a list of active VplexMirror URI's that are known to be active.
+     * 
+     * @param volume Volume to check for mirrors against.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return List of active VplexMirror URI's.
+     */
+    public static List<URI> getActiveMirrorsForVplexVolume(Volume volume, DbClient dbClient) {
+        List<URI> activeMirrorURIs = new ArrayList<>();
+        if (BlockServiceUtils.hasMirrors(volume)) {
+            List<VplexMirror> mirrors = dbClient.queryObject(VplexMirror.class,
+                    StringSetUtil.stringSetToUriList(volume.getMirrors()));
+            for (VplexMirror mirror : mirrors) {
+                if (!mirror.getInactive()) {
+                    activeMirrorURIs.add(mirror.getId());
+                }
+            }
+        }
+        return activeMirrorURIs;
     }
 
     /**

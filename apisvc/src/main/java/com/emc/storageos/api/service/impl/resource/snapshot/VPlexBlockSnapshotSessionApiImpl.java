@@ -410,7 +410,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
 
         // Check the VPLEX volume too.
         Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, sourceVolume);
-        List<URI> activeMirrorsForSource = VPlexUtil.getActiveMirrorsForVolume(vplexVolume, _dbClient);
+        List<URI> activeMirrorsForSource = BlockServiceUtils.getActiveMirrorsForVplexVolume(vplexVolume, _dbClient);
         if (!activeMirrorsForSource.isEmpty()) {
             throw APIException.badRequests.snapshotSessionSourceHasActiveMirrors(
                     vplexVolume.getLabel(), activeMirrorsForSource.size());

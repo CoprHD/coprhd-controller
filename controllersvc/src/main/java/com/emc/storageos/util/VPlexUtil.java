@@ -19,7 +19,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -1067,27 +1066,5 @@ public class VPlexUtil {
             }
         }
         return result;
-    }
-
-    /**
-     * Return a list of active VplexMirror URI's that are known to be active.
-     * 
-     * @param volume Volume to check for mirrors against.
-     * @param dbClient A reference to a database client.
-     * 
-     * @return List of active VplexMirror URI's.
-     */
-    public static List<URI> getActiveMirrorsForVolume(Volume volume, DbClient dbClient) {
-        List<URI> activeMirrorURIs = new ArrayList<>();
-        if (BlockServiceUtils.hasMirrors(volume)) {
-            List<VplexMirror> mirrors = dbClient.queryObject(VplexMirror.class,
-                    StringSetUtil.stringSetToUriList(volume.getMirrors()));
-            for (VplexMirror mirror : mirrors) {
-                if (!mirror.getInactive()) {
-                    activeMirrorURIs.add(mirror.getId());
-                }
-            }
-        }
-        return activeMirrorURIs;
     }
 }

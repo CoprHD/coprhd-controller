@@ -58,7 +58,7 @@ ext {
         "org.codehaus.jackson:jackson-core-asl:1.9.2", 
         "com.github.stephenc:jamm:0.2.5", 
         "org.mindrot:jbcrypt:0.3m", 
-        "jline:jline:2.13",
+        "jline:jline:1.0",
         "com.googlecode.json-simple:json-simple:1.1", 
         "net.jpountz.lz4:lz4:1.2.0",
         "io.netty:netty:3.6.6.Final", 
@@ -85,7 +85,7 @@ ext {
     zookeeper = [
         slf4j,
         log4j,
-        "jline:jline:0.9.94",
+        "jline:jline:2.11",
         "org.jboss.netty:netty:3.2.8.Final",
         // note we have a trick in coordinatorsvc.jar to overrite official zk QuorumPeer in
         // order to support ipv6. When doing zookeeper version change, you need revisit

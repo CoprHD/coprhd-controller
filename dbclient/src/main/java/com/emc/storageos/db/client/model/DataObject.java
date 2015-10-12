@@ -438,4 +438,12 @@ public abstract class DataObject implements Serializable {
         }
         return isNullFound;
     }
+
+    public String forDisplay() {
+        if (_label != null) {
+            return String.format("%s (%s)", _label, _id);
+        } else {
+            return _id.toString();
+        }
+    }
 }

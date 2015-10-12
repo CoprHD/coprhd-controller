@@ -37,9 +37,7 @@
         $('#computeImageServers_confirmPassword').val('');  
         if (editMode) {
         	var computeImages = $('#computeImageServers_computeImages');
-    		console.log("compute images " + computeImages);
-        	if (computeImages.val()) {
-        		console.log("compute images exist ");
+        	if (computeImages) {
                 $('#computeImageServers_tftpBootDir').prop('disabled', true);
         	}
         }

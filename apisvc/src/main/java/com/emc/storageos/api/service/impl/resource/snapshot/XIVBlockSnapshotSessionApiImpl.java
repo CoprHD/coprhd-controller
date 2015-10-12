@@ -21,7 +21,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- *
+ * Block snapshot session implementation for volumes on XIV systems.
  */
 public class XIVBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionApiImpl {
 

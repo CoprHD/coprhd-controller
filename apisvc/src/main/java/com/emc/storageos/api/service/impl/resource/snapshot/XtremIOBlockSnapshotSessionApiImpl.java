@@ -21,7 +21,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- * 
+ * Block snapshot session implementation for volume on XIO systems.
  */
 public class XtremIOBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionApiImpl {
 

@@ -25,7 +25,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
 
 /**
- * 
+ * Block snapshot session implementation for volumes a VMAX3 systems.
  */
 public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionApiImpl {
 

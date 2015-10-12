@@ -132,9 +132,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 Volume sourceVolume = (Volume) sourceObj;
 
                 // Make sure that we don't have some pending
-                // operation against the volume
-                BlockServiceUtils.checkForPendingTasks(Arrays.asList(sourceVolume.getTenant().getURI()),
-                        Arrays.asList(sourceVolume), _dbClient);
+                // operation against the volume.
+                checkPendingTasksOnSourceVolume(sourceVolume);
 
                 // Verify the operation is supported for ingested volumes.
                 VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(sourceVolume,
@@ -189,6 +188,16 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         if (URIUtil.isType(requestSourceObjURI, Volume.class)) {
             fcManager.validateSnapshotCreateRequest((Volume) requestedSourceObj, sourceVolumeList);
         }
+    }
+
+    /**
+     * Checks for pending tasks on the passed source volume.
+     * 
+     * @param sourceVolume A reference to a source volume.
+     */
+    protected void checkPendingTasksOnSourceVolume(Volume sourceVolume) {
+        BlockServiceUtils.checkForPendingTasks(Arrays.asList(sourceVolume.getTenant().getURI()),
+                Arrays.asList(sourceVolume), _dbClient);
     }
 
     /**
@@ -503,10 +512,15 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project,
                 BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
 
-        // On some platforms it is not possible to restore an array snapshot
-        // point-in-time copy to a source volume if the volume has active mirrors.
         if (URIUtil.isType(snapSessionSourceObj.getId(), Volume.class)) {
-            verifyActiveMirrors((Volume) snapSessionSourceObj);
+            // Make sure that we don't have some pending
+            // operation against the volume.
+            Volume sourceVolume = (Volume) snapSessionSourceObj;
+            checkPendingTasksOnSourceVolume(sourceVolume);
+
+            // On some platforms it is not possible to restore an array snapshot
+            // point-in-time copy to a source volume if the volume has active mirrors.
+            verifyActiveMirrors(sourceVolume);
         }
     }
 
@@ -514,28 +528,15 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * Verifies there are no active mirrors for the snapshot session source volume.
      * Should be overridden when there are additional or different platform restrictions.
      * 
-     * @param snapSessionSourceVolume A reference to the snapshot session source.
+     * @param sourceVolume A reference to the snapshot session source.
      */
-    protected void verifyActiveMirrors(Volume snapSessionSourceVolume) {
+    protected void verifyActiveMirrors(Volume sourceVolume) {
         // By default, disallow if there are active mirrors on the volume.
-        List<URI> activeMirrorsForSource = getActiveMirrorsForSnapSessionSourceVolume(snapSessionSourceVolume);
+        List<URI> activeMirrorsForSource = BlockServiceUtils.getActiveMirrorsForVolume(sourceVolume, _dbClient);
         if (!activeMirrorsForSource.isEmpty()) {
             throw APIException.badRequests.snapshotSessionSourceHasActiveMirrors(
-                    snapSessionSourceVolume.getLabel(), activeMirrorsForSource.size());
+                    sourceVolume.getLabel(), activeMirrorsForSource.size());
         }
-    }
-
-    /**
-     * Get a list of the URIs of the active mirrors for the passed snapshot
-     * session source volume. Should be overridden when the active mirrors
-     * are determined in a different manner for the platform.
-     * 
-     * @param snapSessionSourceVolume A reference to a source volume for a snapshot session.
-     * 
-     * @return List of the URIs of the active mirrors for the volume.
-     */
-    protected List<URI> getActiveMirrorsForSnapSessionSourceVolume(Volume snapSessionSourceVolume) {
-        return BlockServiceUtils.getActiveMirrorsForVolume(snapSessionSourceVolume, _dbClient);
     }
 
     /**
@@ -558,6 +559,13 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         // Verify the user is authorized.
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project,
                 BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
+
+        // Verify no pending tasks on the snapshot session.
+        if (URIUtil.isType(snapSessionSourceObj.getId(), Volume.class)) {
+            // Make sure that we don't have some pending
+            // operation against the volume.
+            checkPendingTasksOnSourceVolume((Volume) snapSessionSourceObj);
+        }
 
         // Verify the snapshot session has no linked targets.
         StringSet linkedTargetIds = snapSession.getLinkedTargets();

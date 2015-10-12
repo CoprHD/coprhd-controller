@@ -19,6 +19,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -31,7 +32,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface;
@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -949,7 +950,6 @@ public class VPlexUtil {
         return sharedVplexExportMask;
     }
 
-    
     /**
      * Check if the backend volumes for the vplex volumes in a consistency group are in the same storage system.
      * 
@@ -960,25 +960,25 @@ public class VPlexUtil {
      * 
      */
     public static boolean isVPLEXCGBackendVolumesInSameStorage(List<Volume> vplexVolumes, DbClient dbClient) {
-        Set<String> backendSystems = new HashSet<String> ();
+        Set<String> backendSystems = new HashSet<String>();
         Set<String> haBackendSystems = new HashSet<String>();
         boolean result = true;
         for (Volume vplexVolume : vplexVolumes) {
             Volume srcVolume = getVPLEXBackendVolume(vplexVolume, true, dbClient);
             backendSystems.add(srcVolume.getStorageController().toString());
-            
+
             Volume haVolume = getVPLEXBackendVolume(vplexVolume, false, dbClient);
             if (haVolume != null) {
                 haBackendSystems.add(haVolume.getStorageController().toString());
             }
-            
+
         }
         if (backendSystems.size() > 1 || haBackendSystems.size() > 1) {
             result = false;
         }
         return result;
     }
-    
+
     /**
      * Verifies if the passed volumes are all the volumes in the same backend arrays in the passed
      * consistency group.
@@ -991,7 +991,7 @@ public class VPlexUtil {
         List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, dbClient, null);
         return verifyVolumesInCG(volumes, cgVolumes, dbClient);
     }
-    
+
     /**
      * Verifies if the passed volumes are all the volumes in the same backend arrays in the passed
      * consistency group volumes.
@@ -1040,16 +1040,17 @@ public class VPlexUtil {
             List<String> selectedVols = entry.getValue();
             List<String> cgVols = cgBackendSystemToVolumesMap.get(systemId);
             if (selectedVols.size() < cgVols.size()) {
-                //not all volumes from the same backend system are selected.
+                // not all volumes from the same backend system are selected.
                 result = false;
                 break;
             }
         }
         return result;
     }
-    
+
     /**
      * Check if the volume is in an ingested VPlex consistency group
+     * 
      * @param volume The volume to be checked on
      * @param dbClient
      * @return true or false
@@ -1066,5 +1067,27 @@ public class VPlexUtil {
             }
         }
         return result;
+    }
+
+    /**
+     * Return a list of active VplexMirror URI's that are known to be active.
+     * 
+     * @param volume Volume to check for mirrors against.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return List of active VplexMirror URI's.
+     */
+    public static List<URI> getActiveMirrorsForVolume(Volume volume, DbClient dbClient) {
+        List<URI> activeMirrorURIs = new ArrayList<>();
+        if (BlockServiceUtils.hasMirrors(volume)) {
+            List<VplexMirror> mirrors = dbClient.queryObject(VplexMirror.class,
+                    StringSetUtil.stringSetToUriList(volume.getMirrors()));
+            for (VplexMirror mirror : mirrors) {
+                if (!mirror.getInactive()) {
+                    activeMirrorURIs.add(mirror.getId());
+                }
+            }
+        }
+        return activeMirrorURIs;
     }
 }

@@ -21,7 +21,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- * 
+ * Block snapshot session implementation for volumes on VNX systems.
  */
 public class VNXBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionApiImpl {
     /**

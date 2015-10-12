@@ -387,18 +387,11 @@ public class DbClientImpl implements DbClient {
         return objs.get(0);
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id) {
         return new ObjectQueryResultList(clazz, Arrays.asList(id).iterator());
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids) {
         return new ObjectQueryResultList<T>(clazz, ids.iterator());
@@ -2015,6 +2008,9 @@ public class DbClientImpl implements DbClient {
 
         @Override
         public T get(int index) {
+            while (index >= ids.size() && !isIdsIterated()) {
+                iterateNextId();
+            }
             URI id = ids.get(index);
             return queryObject(clazz, id);
         }

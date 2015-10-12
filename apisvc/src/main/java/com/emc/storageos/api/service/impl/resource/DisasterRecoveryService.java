@@ -385,7 +385,7 @@ public class DisasterRecoveryService {
 
         try {
             standby.setState(SiteState.STANDBY_PAUSED);
-            coordinator.persistServiceConfiguration(uuid, standby.toConfiguration());
+            coordinator.persistServiceConfiguration(standby.toConfiguration());
 
             VirtualDataCenter vdc = queryLocalVDC();
 

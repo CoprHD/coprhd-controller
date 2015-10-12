@@ -44,11 +44,12 @@ public class DbClientContext {
     private static final long DEFAULT_CONNECTION_POOL_MONITOR_INTERVAL = 1000;
     private static final int MAX_QUERY_RETRY = 5;
     private static final int QUERY_RETRY_SLEEP_SECONDS = 1000;
-    public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
-    public static final String LOCAL_HOST = "127.0.0.1";
-    public static final int DB_THRIFT_PORT = 9160;
-    public static final int GEODB_THRIFT_PORT = 9260;
-    public static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
+    private static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
+    private static final int SCHEMA_RETRY_SLEEP_MILLIS = 1000;
+    private static final String LOCAL_HOST = "localhost";
+    private static final int DB_THRIFT_PORT = 9160;
+    private static final int GEODB_THRIFT_PORT = 9260;
+    private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
 
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
@@ -356,7 +357,7 @@ public class DbClientContext {
             }
 
             log.info("waiting for schema change ...");
-            Thread.sleep(1000);
+            Thread.sleep(SCHEMA_RETRY_SLEEP_MILLIS);
         }
         log.warn("Unable to sync schema version {}", schemaVersion);
     }

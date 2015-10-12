@@ -6,7 +6,11 @@
     <dd>${computeImageServer.tftpBootDir ?: '-'}</dd>
     #{if computeImageServer.computeImages}
         <dt>&{'computeImageServers.availableComputeImages'}</dt>
-        <dd>${computeImageServer.computeImages.collect{ it.id }.join(", ")?: '-'}</dd>
+        <dd>${computeImageServer.computeImages.collect{ it.name }.join(", ")?: '-'}</dd>
+    #{/if}
+    #{if computeImageServer.failedImages}
+        <dt>&{'computeImageServers.failedComputeImages'}</dt>
+        <dd>${computeImageServer.failedImages.collect{ it.name }.join(", ")?: '-'}</dd>
     #{/if}
 
 </dl>

@@ -2115,7 +2115,6 @@ public class FileService extends TaskResourceService {
             FileNfsACLUpdateParams param) throws InternalException {
         // log input received.
         _log.info("Update FS ACL : request received for {}  with {}", id, param);
-        String task = UUID.randomUUID().toString();
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
@@ -2134,14 +2133,10 @@ public class FileService extends TaskResourceService {
          */
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         FileController controller = getController(FileController.class, device.getSystemType());
-
+        String task = UUID.randomUUID().toString();
         String path = fs.getPath();
         _log.info("Export path found {} ", path);
-
-        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
-                task, ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_NFS_ACL);
-        op.setDescription("Filesystem NFS ACL update");
-
+        Operation op = new Operation();
         try {
             _log.info("Sub Dir Provided {}", subDir);
             // Set Sub Directory
@@ -2153,6 +2148,9 @@ public class FileService extends TaskResourceService {
             util.verifyNfsACLs(param);
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
+            op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                    task, ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_NFS_ACL);
+            op.setDescription("Filesystem NFS ACL update");
 
             controller.updateNFSAcl(device.getId(), fs.getId(), param, task);
 

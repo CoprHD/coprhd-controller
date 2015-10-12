@@ -67,9 +67,9 @@ public abstract class FileACL extends DataObject {
         return permissions;
     }
 
-    public void setPermissions(String permission) {
-        this.permissions = permission;
-        setChanged("permission");
+    public void setPermissions(String permissions) {
+        this.permissions = permissions;
+        setChanged("permissions");
     }
 
     @Name("fileSystemACLIndex")

@@ -190,10 +190,10 @@ public class FileDeviceInputOutput {
             this.nfsAclsToAdd = param.getAcesToAdd();
         }
         if (param.getAcesToModify() != null && !param.getAcesToModify().isEmpty()) {
-            this.nfsAclsToAdd = param.getAcesToAdd();
+            this.nfsAclsToModify = param.getAcesToModify();
         }
         if (param.getAcesToDelete() != null && !param.getAcesToDelete().isEmpty()) {
-            this.nfsAclsToAdd = param.getAcesToAdd();
+            this.nfsAclsToDelete = param.getAcesToDelete();
         }
 
     }

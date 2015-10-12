@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -26,10 +25,8 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACE.NfsPermission;
 import com.emc.storageos.model.file.NfsACE.NfsPermissionType;
-import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.volumecontroller.FileControllerConstants;
 
 public class NfsACLUtility {
 
@@ -40,8 +37,6 @@ public class NfsACLUtility {
     private FileShare fs;
     private Snapshot snapshot;
     private String subDir;
-    private String missingRequestParameterErrorString;
-    private List<String> userGroupList;
     public static final String REQUEST_PARAM_PERMISSION_TYPE = "permission_type";
     public static final String REQUEST_PARAM_PERMISSION = "permission";
 
@@ -54,7 +49,7 @@ public class NfsACLUtility {
         this.fs = fs;
         this.snapshot = snapshot;
         this.subDir = subDir;
-        this.userGroupList = new ArrayList<String>();
+
     }
 
     public <T extends Enum<T>> boolean isValidEnum(String value, Class<T> enumClass) {
@@ -69,8 +64,8 @@ public class NfsACLUtility {
     public void verifyNfsACLs(NfsACLUpdateParams param) {
 
         List<NfsACE> addList = param.getAcesToAdd();
-        List<NfsACE> modifyList = param.getAcesToAdd();
-        List<NfsACE> deleteList = param.getAcesToAdd();
+        List<NfsACE> modifyList = param.getAcesToModify();
+        List<NfsACE> deleteList = param.getAcesToDelete();
         List<NFSShareACL> dbACLList = queryDBSFileNfsACLs();
         Set<String> userSetDB = new HashSet<String>();
         for (NFSShareACL dbAcl : dbACLList) {
@@ -89,7 +84,12 @@ public class NfsACLUtility {
 
     }
 
-    private void validateNfsAce(List<NfsACE> nfsaces) {
+    /**
+     * To verify the syntax of payload
+     * 
+     * @param nfsaces
+     */
+    private void validateNfsAceSyntax(List<NfsACE> nfsaces) {
 
         for (NfsACE ace : nfsaces) {
 
@@ -112,6 +112,8 @@ public class NfsACLUtility {
 
     private void verifyNfsACLsAddList(List<NfsACE> addList, Set<String> userSet) {
 
+        validateNfsAceSyntax(addList);
+
         for (NfsACE ace : addList) {
 
             if (userSet.contains(ace.getUser())) {
@@ -124,6 +126,8 @@ public class NfsACLUtility {
     }
 
     private void verifyNfsACLsModifyOrDeleteList(List<NfsACE> changeList, Set<String> userSet) {
+
+        validateNfsAceSyntax(changeList);
         for (NfsACE ace : changeList) {
 
             if (!userSet.contains(ace.getUser())) {
@@ -180,12 +184,6 @@ public class NfsACLUtility {
 
     }
 
-    private NFSShareACL getExistingACL(NfsACL requestAcl) {
-        // TODO
-        return null;
-
-    }
-
     private NFSShareACL queryACLByIndex(String index) {
 
         _log.info("Querying ACL in DB by alternate Id: {}", index);
@@ -215,30 +213,6 @@ public class NfsACLUtility {
         return acl;
     }
 
-    private void validatePermissions(NfsACL acl) {
-
-    }
-
-    private void verifyUserGroup(NfsACL acl) {
-    }
-
-    private String getFormattedPermissionText(NfsPermission permission) {
-        String permissionText = null;
-
-        switch (permission) {
-            case READ:
-                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_READ;
-                break;
-            case WRITE:
-                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_CHANGE;
-                break;
-            case EXECUTE:
-                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_FULLCONTROL;
-                break;
-        }
-        return permissionText;
-    }
-
     public static void checkForUpdateCifsACLOperationOnStorage(
             String storageSystemType, String operation) {
 
@@ -249,6 +223,9 @@ public class NfsACLUtility {
             case vnxe:
             case vnxfile:
             case datadomain:
+            case netapp:
+            case netappc:
+
                 throw APIException.badRequests.operationNotSupportedForSystemType(
                         operation, storageSystemType);
         }

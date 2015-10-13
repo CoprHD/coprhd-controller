@@ -1560,13 +1560,28 @@ public class VPlexApiClient {
      * @return a map of WWNs to VPlexStorageVolumeInfo objects
      * @throws VPlexApiException
      */
-    public Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(String deviceName, String virtualVolumeType,
+    public Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(
+            String deviceName, String virtualVolumeType,
             String clusterName, boolean hasMirror) throws VPlexApiException {
         s_logger.info("Request to find storage volume wwns for {} on VPLEX at {}",
                 deviceName, _baseURI);
 
         List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
                 .getStorageVolumesForDevice(deviceName, virtualVolumeType, clusterName, hasMirror);
+
+        if (!storageVolumes.isEmpty()) {
+            s_logger.info("storage volumes found:");
+            Iterator<VPlexStorageVolumeInfo> it = storageVolumes.iterator();
+            while (it.hasNext()) {
+                VPlexStorageVolumeInfo info = it.next();
+                s_logger.info(info.toString());
+                if (!VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
+                    s_logger.warn("Unexpected component type {} found for volume {}", 
+                            info.getComponentType(), info.getName());
+                    it.remove();
+                }
+            }
+        }
 
         Map<String, VPlexStorageVolumeInfo> storageVolumeWwns = new HashMap<String, VPlexStorageVolumeInfo>();
         for (VPlexStorageVolumeInfo info : storageVolumes) {

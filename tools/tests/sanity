@@ -241,7 +241,7 @@ VDC_TEST_REMOVE_PROJECT=testremove_vdc_project_$$
 #
 DR_SITE_B_NAME=dr_site_B_$$
 DR_SITE_B_DESCRIPTION="site b description"
-DR_SITE_A_NAME="Primary Site"
+DR_SITE_A_NAME="Primary"
 #
 # Recovery Configuration
 #
@@ -6321,6 +6321,10 @@ dr_tests()
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr delete $standby_site
+
+    echo "---WAIT FOR REMOVED $standby_site---"
+    dr waitforstate $standby_site STANDBY_REMOVING 10 600 -n|| echo "standby removed"
+    echo "Removing dr done"
 
     # verify deleted
     echo "---VERIFY STANDBY DELETED $standby_site---"

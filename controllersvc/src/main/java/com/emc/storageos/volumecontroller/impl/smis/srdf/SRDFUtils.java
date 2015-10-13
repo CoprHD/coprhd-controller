@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -264,7 +265,7 @@ public class SRDFUtils implements SmisConstants {
     /**
      * return the targetSystem of the targetvolume.
      * 
-     * @param targetURIs
+     * @param systemURI
      * @return
      */
     public StorageSystem getStorageSystem(URI systemURI) {
@@ -668,4 +669,61 @@ public class SRDFUtils implements SmisConstants {
             }
         };
     }
+
+    public static final char REPLACE_RDF_STR_BEFORE = ' ';
+    public static final char REPLACE_RDF_STR_AFTER = '_';
+    public static final int RDF_GROUP_NAME_MAX_LENGTH = 10;
+    public static final String RDF_GROUP_PREFIX = "V-";
+
+    /**
+     * Get the qualifying RDF Group names allowed that we can match against.
+     * "V-<projectname>" or "<projectname>"
+     * 
+     * @param project
+     *            project requested
+     * @return string of a qualifying name
+     */
+    public static StringSet getQualifyingRDFGroupNames(final Project project) {
+        StringSet names = new StringSet();
+        String grpName1 = RDF_GROUP_PREFIX
+                + project.getLabel().replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER);
+        if (grpName1.length() > RDF_GROUP_NAME_MAX_LENGTH) {
+            names.add(grpName1.substring(0, RDF_GROUP_NAME_MAX_LENGTH));
+        } else {
+            names.add(grpName1);
+        }
+        String grpName2 = project.getLabel().replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER);
+        if (grpName2.length() > RDF_GROUP_NAME_MAX_LENGTH) {
+            names.add(grpName2.substring(0, RDF_GROUP_NAME_MAX_LENGTH));
+        } else {
+            names.add(grpName2);
+        }
+        String grpName3 = project.getLabel();
+        if (grpName3.length() > RDF_GROUP_NAME_MAX_LENGTH) {
+            grpName3 = grpName3.substring(0, RDF_GROUP_NAME_MAX_LENGTH);
+        }
+        names.add(grpName3
+                .trim()
+                .replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER));
+        return names;
+    }
+
+    /**
+     * Returns false if the label doesn't available in the grpNames
+     * Primary name check, "V-<projectname>" or "<projectname>"
+     * 
+     * @param grpNames list of potential names to match
+     * @param label label desired from project
+     * @return
+     */
+    public static boolean containsRaGroupName(StringSet grpNames, String label) {
+        // check on each name instead of .contains() as we need to ignore case difference.
+        for (String name : grpNames) {
+            if (name.equalsIgnoreCase(label)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

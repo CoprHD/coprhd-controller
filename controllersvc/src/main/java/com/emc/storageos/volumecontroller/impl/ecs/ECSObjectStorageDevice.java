@@ -87,26 +87,27 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota, Integer retention,
+    public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota,
+            Integer retention,
             String taskId) {
         // Update Quota
         ECSApi objectAPI = getAPI(storageObj);
         try {
-            objectAPI.updateBucketQuota(bucket.getLabel(), bucket.getNamespace(), softQuota, hardQuota);
+            objectAPI.updateBucketQuota(bucket.getName(), bucket.getNamespace(), softQuota, hardQuota);
             bucket.setHardQuota(hardQuota);
             bucket.setSoftQuota(softQuota);
         } catch (ECSException e) {
-            _log.error("Quota Update for Bucket : {} failed.", bucket.getLabel(), e);
+            _log.error("Quota Update for Bucket : {} failed.", bucket.getName(), e);
             completeTask(bucket.getId(), taskId, e);
             return BiosCommandResult.createErrorResult(e);
         }
 
         // Update Retention
         try {
-            objectAPI.updateBucketRetention(bucket.getLabel(), bucket.getNamespace(), retention);
+            objectAPI.updateBucketRetention(bucket.getName(), bucket.getNamespace(), retention);
             bucket.setRetention(retention);
         } catch (ECSException e) {
-            _log.error("Retention Update for Bucket : {} failed.", bucket.getLabel(), e);
+            _log.error("Retention Update for Bucket : {} failed.", bucket.getName(), e);
             completeTask(bucket.getId(), taskId, e);
             return BiosCommandResult.createErrorResult(e);
         }
@@ -121,13 +122,13 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         BiosCommandResult result;
         try {
             ECSApi objectAPI = getAPI(storageObj);
-            objectAPI.deleteBucket(bucket.getLabel(), bucket.getNamespace());
+            objectAPI.deleteBucket(bucket.getName(), bucket.getNamespace());
             bucket.setInactive(true);
             _dbClient.persistObject(bucket);
             result = BiosCommandResult.createSuccessfulResult();
             completeTask(bucket.getId(), taskId, "Bucket deleted successfully!");
         } catch (ECSException e) {
-            _log.error("Delete Bucket : {} failed.", bucket.getLabel(), e);
+            _log.error("Delete Bucket : {} failed.", bucket.getName(), e);
             result = BiosCommandResult.createErrorResult(e);
             completeTask(bucket.getId(), taskId, e);
         }

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
+import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
@@ -34,7 +35,7 @@ public class SmisVnxCreateCGCloneJob extends SmisReplicaCreationJobs {
     }
 
     public void updateStatus(JobContext jobContext) throws Exception {
-        CloseableIterator<CIMObjectPath> syncVolumeIter = null;
+        CloseableIterator<CIMInstance> syncVolumeIter = null;
         DbClient dbClient = jobContext.getDbClient();
         JobStatus jobStatus = getJobStatus();
         try {
@@ -48,7 +49,7 @@ public class SmisVnxCreateCGCloneJob extends SmisReplicaCreationJobs {
                 WBEMClient client = getWBEMClient(dbClient, cimConnectionFactory);
                 // generate a UUID for the set of clones
                 String setId = UUID.randomUUID().toString();
-                syncVolumeIter = client.associatorNames(getCimJob(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
+                syncVolumeIter = client.associatorInstances(getCimJob(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null, false, _volumeProps);
                 processCGClones(syncVolumeIter, client, dbClient, clones, setId, isSyncActive);
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 _log.info("Failed to create clone");

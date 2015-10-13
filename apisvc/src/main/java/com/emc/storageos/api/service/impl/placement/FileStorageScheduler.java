@@ -54,9 +54,11 @@ public class FileStorageScheduler {
     public final Logger _log = LoggerFactory
             .getLogger(FileStorageScheduler.class);
 
+    private static final String ENABLE_METERING = "enable-metering";
     private DbClient _dbClient;
     private StorageScheduler _scheduler;
     private CustomConfigHandler customConfigHandler;
+    private Map<String, String> configInfo;
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -70,7 +72,15 @@ public class FileStorageScheduler {
         this.customConfigHandler = customConfigHandler;
     }
 
-    /**
+    public Map<String, String> getConfigInfo() {
+		return configInfo;
+	}
+
+	public void setConfigInfo(Map<String, String> configInfo) {
+		this.configInfo = configInfo;
+	}
+
+	/**
      * Schedule storage for fileshare in the varray with the given CoS
      * capabilities.
      * 
@@ -327,20 +337,29 @@ public class FileStorageScheduler {
         }
 
         if (vNASList != null && !vNASList.isEmpty()) {
-
-            String dynamicPerformanceEnabled = customConfigHandler.getComputedCustomConfigValue(
-                    CustomConfigConstants.NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED, "vnxfile", null);
-
-            _log.info("NAS dynamic performance placement enabled? : {}", dynamicPerformanceEnabled);
-
-            if (Boolean.valueOf(dynamicPerformanceEnabled)) {
-                _log.debug("Considering dynamic load to sort virtual NASs");
-                sortVNASListOnDyanamicLoad(vNASList);
-            } else {
-                _log.debug("Considering static load to sort virtual NASs");
-                sortVNASListOnStaticLoad(vNASList);
-            }
-
+        	
+        	boolean meteringEnabled = Boolean.parseBoolean(configInfo.get(ENABLE_METERING));
+        	
+        	if(meteringEnabled) {
+        		
+        		_log.info("Metering collection is enabled. Sort  vNAS list based on performance.");
+        		
+	            String dynamicPerformanceEnabled = customConfigHandler.getComputedCustomConfigValue(
+	                    CustomConfigConstants.NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED, "vnxfile", null);
+	
+	            _log.info("NAS dynamic performance placement enabled? : {}", dynamicPerformanceEnabled);
+	
+	            if (Boolean.valueOf(dynamicPerformanceEnabled)) {
+	                _log.debug("Considering dynamic load to sort virtual NASs");
+	                sortVNASListOnDyanamicLoad(vNASList);
+	            } else {
+	                _log.debug("Considering static load to sort virtual NASs");
+	                sortVNASListOnStaticLoad(vNASList);
+	            }
+	
+	        } else {
+	        	Collections.shuffle(vNASList);
+	        }
         }
 
         for (VirtualNAS vNAS : vNASList) {

@@ -725,8 +725,9 @@ public abstract class BlockIngestOrchestrator {
         }
 
         _logger.info("Running algorithm to check all replicas ingested for parent");
+        boolean replicaTreeIngested = true;
         runReplicasIngestedCheck(rootUnManagedVolume, rootBlockObject, currentUnmanagedVolume, currentBlockObject, processedUnManagedGUIDS,
-                createdObjects, parentReplicaMap, taskStatusMap);
+                createdObjects, parentReplicaMap, taskStatusMap, replicaTreeIngested);
         _logger.info("Ended algorithm to check all replicas ingested for parent");
         List<UnManagedVolume> processedUnManagedVolumes = _dbClient.queryObject(UnManagedVolume.class,
                 VolumeIngestionUtil.getUnManagedVolumeUris(processedUnManagedGUIDS, _dbClient));
@@ -867,22 +868,9 @@ public abstract class BlockIngestOrchestrator {
      * @param taskStatusMap
      */
     protected void runReplicasIngestedCheck(UnManagedVolume rootUnmanagedVolume, BlockObject rootBlockObject,
-            UnManagedVolume currentUnManagedVolume,
-            BlockObject currentBlockObject, StringSet unManagedVolumeGUIDs, Map<String, BlockObject> createdObjectMap, Map<BlockObject,
-            List<BlockObject>> parentReplicaMap, Map<String, StringBuffer> taskStatusMap) {
-        if (rootBlockObject == null) {
-            _logger.warn("parent object {} not ingested yet.", rootUnmanagedVolume.getNativeGuid());
-            parentReplicaMap.clear();
-            StringBuffer taskStatus = taskStatusMap.get(currentUnManagedVolume.getNativeGuid());
-            if (taskStatus == null) {
-                taskStatus = new StringBuffer();
-                taskStatusMap.put(currentUnManagedVolume.getNativeGuid(), taskStatus);
-            }
-            taskStatus.append(String.format("Parent object %s not ingested yet for unmanaged volume %s.", rootUnmanagedVolume.getLabel(),
-                    currentUnManagedVolume.getLabel()));
-            return;
-        }
-        boolean traverseTree = true;
+            UnManagedVolume currentUnManagedVolume, BlockObject currentBlockObject, StringSet unManagedVolumeGUIDs, Map<String,
+            BlockObject> createdObjectMap, Map<BlockObject, List<BlockObject>> parentReplicaMap, Map<String, StringBuffer> taskStatusMap,
+            boolean replicaTreeIngested) {
 
         String unManagedVolumeNativeGUID = rootUnmanagedVolume.getNativeGuid();
         StringSetMap unManagedVolumeInformation = rootUnmanagedVolume.getVolumeInformation();
@@ -954,7 +942,6 @@ public abstract class BlockIngestOrchestrator {
                 parentReplicaMap.put(rootBlockObject, foundIngestedReplicas);
                 unManagedVolumeGUIDs.add(unManagedVolumeNativeGUID);
                 unManagedVolumeGUIDs.addAll(unmanagedReplicaGUIDs);
-                traverseTree = true;
             }
         } else {
             Set<String> unIngestedReplicas = VolumeIngestionUtil.getUnIngestedReplicas(expectedIngestedReplicas, foundIngestedReplicas);
@@ -964,10 +951,10 @@ public abstract class BlockIngestOrchestrator {
                 taskStatus = new StringBuffer();
                 taskStatusMap.put(currentUnManagedVolume.getNativeGuid(), taskStatus);
             }
-            // we don't need to include vplex backend 
+            // we don't need to include vplex backend
             // volume guids in the list returned to the user
             if (vplexBackendVolumeGUIDs != null) {
-                _logger.info("removing the subset of vplex backend volume GUIDs from the error message: " 
+                _logger.info("removing the subset of vplex backend volume GUIDs from the error message: "
                         + vplexBackendVolumeGUIDs);
                 // have to convert this because getUningestedReplicas returns an immutable set
                 Set<String> mutableSet = new HashSet<String>();
@@ -975,15 +962,21 @@ public abstract class BlockIngestOrchestrator {
                 mutableSet.removeAll(vplexBackendVolumeGUIDs);
                 unIngestedReplicas = mutableSet;
             }
-            taskStatus.append(String.format("The umanaged volume %s has been partially ingested, but not all replicas "
-                    + "have been ingested. Uningested replicas: %s.", currentUnManagedVolume.getLabel(), 
-                    Joiner.on("\t").join(unIngestedReplicas)));
+            if (rootBlockObject == null) {
+                taskStatus.append(String.format("The umanaged volume %s is not ingested. Also its replicas "
+                        + "have not been ingested. Uningested replicas: %s.", currentUnManagedVolume.getLabel(),
+                        Joiner.on("\t").join(unIngestedReplicas)));
+            } else {
+                taskStatus.append(String.format("The umanaged volume %s has been partially ingested, but not all replicas "
+                        + "have been ingested. Uningested replicas: %s.", currentUnManagedVolume.getLabel(),
+                        Joiner.on("\t").join(unIngestedReplicas)));
+            }
             // clear the map and stop traversing
             parentReplicaMap.clear();
-            traverseTree = false;
+            replicaTreeIngested = false;
         }
 
-        if (traverseTree && !unmanagedReplicaGUIDs.isEmpty()) {
+        if (!unmanagedReplicaGUIDs.isEmpty()) {
             // get all the unmanaged volume replicas and traverse through them
             List<UnManagedVolume> replicaUnManagedVolumes = _dbClient.queryObject(UnManagedVolume.class,
                     VolumeIngestionUtil.getUnManagedVolumeUris(unmanagedReplicaGUIDs, _dbClient));
@@ -1002,8 +995,7 @@ public abstract class BlockIngestOrchestrator {
                 }
 
                 runReplicasIngestedCheck(replica, replicaBlockObject, currentUnManagedVolume, currentBlockObject, unManagedVolumeGUIDs,
-                        createdObjectMap, parentReplicaMap, taskStatusMap);
-                // TODO- break out if the parent-replica map is empty
+                        createdObjectMap, parentReplicaMap, taskStatusMap, replicaTreeIngested);
             }
         }
     }

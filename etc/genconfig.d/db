@@ -65,7 +65,7 @@ _is_empty_dir() {
 # Note that: Cassandra doesn't depend on jline since 2.2, so this method should and need to be removed
 # after upgrading Cassandra to 2.2 or later version.
 _change_cassandracli_dependent_jline() {
-    sed 's/\(^export CLASSPATH=.*\)jline-2.13.jar\(.*\)/\1jline-1.0.jar\2/' /opt/storageos/bin/cassandra-cli
+    sed -i 's/\(^export CLASSPATH=.*\)jline-2.13.jar\(.*\)/\1jline-1.0.jar\2/' /opt/storageos/bin/cassandra-cli
 }
 
 _gen_startup_mode() {

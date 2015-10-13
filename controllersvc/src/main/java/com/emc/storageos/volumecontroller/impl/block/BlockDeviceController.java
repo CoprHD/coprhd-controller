@@ -25,7 +25,6 @@ import java.util.Map;
 
 import javax.xml.bind.DataBindingException;
 
-import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,6 +130,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DiscoverTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -4254,11 +4254,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void createListClone(URI storage, List<URI> cloneList, Boolean createInactive, String taskId) {
         try {
+            WorkflowStepCompleter.stepExecuting(taskId);
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             TaskCompleter taskCompleter = new CloneCreateCompleter(cloneList, taskId);
-            WorkflowStepCompleter.stepExecuting(taskId);
             getDevice(storageSystem.getSystemType()).doCreateListReplica(storageSystem, cloneList, createInactive, taskCompleter);
         } catch (Exception e) {
+            _log.error(e.getMessage(), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
             doFailTask(Volume.class, cloneList, taskId, serviceError);
@@ -4274,32 +4275,36 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         _log.info("Rollback list clone");
         List<Volume> clones = _dbClient.queryObject(Volume.class, cloneList);
         List<Volume> clonesNoRollback = new ArrayList<Volume>();
+        List<URI> clonesToRollback = new ArrayList<URI>();
         try {
             for (Volume clone : clones) {
                 if (isNullOrEmpty(clone.getNativeId())) {
                     clone.setInactive(true);
                     clonesNoRollback.add(clone);
+                } else {
+                    clonesToRollback.add(clone.getId());
                 }
             }
 
             if (!clonesNoRollback.isEmpty()) {
                 _dbClient.persistObject(clonesNoRollback);
-                clones.removeAll(clonesNoRollback);
             }
 
-            if (!clones.isEmpty()) {
+            if (!clonesToRollback.isEmpty()) {
                 _log.info("Detach list clone for rollback");
-                detachListClone(storage, cloneList, taskId);
+                detachListClone(storage, clonesToRollback, taskId);
                 _log.info("Delete clones for rollback");
-                deleteVolumes(storage, cloneList, taskId);
+                deleteVolumes(storage, clonesToRollback, taskId);
             }
 
             WorkflowStepCompleter.stepSucceded(taskId);
         } catch (InternalException ie) {
             _log.error(String.format("rollbackListClone failed - Array: %s, clones: %s", storage, Joiner.on("\t").join(cloneList)));
+            _log.error(ie.getMessage(), ie);
             doFailTask(Volume.class, cloneList, taskId, ie);
             WorkflowStepCompleter.stepFailed(taskId, ie);
         } catch (Exception e) {
+            _log.error(e.getMessage(), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
             doFailTask(Volume.class, cloneList, taskId, serviceError);

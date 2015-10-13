@@ -188,7 +188,7 @@ public class DbRepairRunnable implements Runnable {
     @Override
     public void run() {
         try (ScopeNotifier notifier = new ScopeNotifier(this)) {
-            log.info("prepair db repair");
+            log.info("prepare db repair");
             // use same lock:DB_REPAIR_LOCK for both local/geo db to ensure db repair sequentially
             try (InterProcessLockHolder holder = new InterProcessLockHolder(this.coordinator, DB_REPAIR_LOCK, log)) {
                 log.info("get {} lock, start to do db repair", DB_REPAIR_LOCK);

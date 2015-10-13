@@ -956,8 +956,10 @@ public class ExportMaskUtils {
                 // Rule 3: Prefer masks that are less utilized
                 Integer e1Count = e1.mask.returnTotalVolumeCount();
                 Integer e2Count = e2.mask.returnTotalVolumeCount();
-                _log.info("Volume count :" + e1.mask.getMaskName() + ":" + e1Count + "...." + e2.mask.getMaskName() + ":" + e2Count);
-                return e1Count.compareTo(e2Count);
+                int result = e1Count.compareTo(e2Count);
+                _log.info(String.format("Comparing %s (#vols: %d) to %s (#vols: %d) result = %d", e1.mask.getMaskName(), e1Count,
+                        e2.mask.getMaskName(), e2Count, result));
+                return result;
             }
         }
         List<ExportMaskComparatorContainer> exportMaskContainerList = new ArrayList<ExportMaskComparatorContainer>();
@@ -967,7 +969,12 @@ public class ExportMaskUtils {
         Collections.sort(exportMaskContainerList, new ExportMaskComparator());
         List<ExportMask> sortedMasks = new ArrayList<ExportMask>();
         for (ExportMaskComparatorContainer container : exportMaskContainerList) {
-            _log.info("Sorted storage group by Eligibility: " + container.mask.getMaskName());
+            ExportMaskPolicy policy = container.policy;
+            ExportMask mask = container.mask;
+            _log.info(String.format(
+                    "Sorted ExportMasks by eligibility: %s { isSimple:%s, igType:%s, xpType:%s, localAutoTier:%s, autoTiers:%s }",
+                    mask.getMaskName(), policy.isSimpleMask(), policy.getIgType(), policy.getExportType(),
+                    policy.localTierPolicy, CommonTransformerFunctions.collectionToString(policy.getTierPolicies())));
             sortedMasks.add(container.mask);
         }
         return sortedMasks;

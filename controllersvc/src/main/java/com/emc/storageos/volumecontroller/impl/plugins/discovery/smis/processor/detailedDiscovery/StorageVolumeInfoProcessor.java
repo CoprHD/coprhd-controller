@@ -269,6 +269,16 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
 
                 UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(unManagedVolumeNativeGuid,
                         _dbClient);
+
+                // DO NOT MERGE THIS INTO MAIN BRANCH; FOR EASE OF USE WITH REAL HARDWARE WJEIV
+                // IF YOU SEE THIS IN A PULL REQUEST, PLEASE POINT IT OUT!!
+                String label = getCIMPropertyValue(volumeViewInstance, "ElementName") != null ? 
+                        getCIMPropertyValue(volumeViewInstance, "ElementName") : getCIMPropertyValue(volumeViewInstance, "SVElementName");
+                if (label == null || !label.startsWith("rpingest")) {
+                    continue;
+                }
+                _logger.error("WARNING: Unmanaged Volumes Not Starting with \"rpingest\" are being filtered out!");
+                
                 unManagedVolume = createUnManagedVolume(unManagedVolume, volumeViewInstance,
                         unManagedVolumeNativeGuid, pool, system, volumeNativeGuid,
                         exportedVolumes, existingVolumesInCG, volumeToRAGroupMap,

@@ -139,10 +139,6 @@ try:
     elif (cmd == "waitforstate"):
         args = waitforsync.parse_args()
         wait_for_state(args)
-    # elif (cmd == "sync"):
-    #     args = drsyncstandby.parse_args()
-    #     dr_sync_standby(args)
-
     else:
         parser.print_help()
 except:

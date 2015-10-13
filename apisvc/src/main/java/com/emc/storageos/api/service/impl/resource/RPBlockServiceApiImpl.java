@@ -3296,7 +3296,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     // Ensure targets are not exported
                     if (targetVolume.isVolumeExported(_dbClient, true, true)) {  
                         String warningMessage = String.format("Target Volume [%s] (%s) is exported to Host, please "
-                                + "un-export the volume from all exports and place the order again.", 
+                                + "un-export the volume from all exports and place the order again", 
                                 targetVolume.getLabel(), targetVolume.getId());
                         _log.warn(warningMessage);                        
                         throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
@@ -3309,7 +3309,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             // user. The user should first un-export those bookmarks.
                             if (snapshot.isSnapshotExported(_dbClient)) { 
                                 String warningMessage = String.format("RP Bookmark/Snapshot [%s] (%s) is exported to Host, "
-                                        + "please un-export the Bookmark/Snapshot from all exports and place the order again.", 
+                                        + "please un-export the Bookmark/Snapshot from all exports and place the order again", 
                                         snapshot.getLabel(), snapshot.getId());
                                 _log.warn(warningMessage);
                                 throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
@@ -3324,7 +3324,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             // user. We do not want to auto-clean up the snapshots on the target.
                             // The user should first clean up those snapshots.
                             String warningMessage = String.format("Target Volume [%s] (%s) has a snapshot, please delete the "
-                                    + "snapshot [%s] (%s) and place the order again.", 
+                                    + "snapshot [%s] (%s) and place the order again", 
                                     volume.getLabel(), volume.getId(), snapshot.getLabel(), snapshot.getId());
                             _log.warn(warningMessage);
                             throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);

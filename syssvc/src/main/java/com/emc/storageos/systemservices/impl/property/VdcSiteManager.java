@@ -77,16 +77,12 @@ public class VdcSiteManager extends AbstractManager {
     
     private SiteInfo targetSiteInfo;
 
-    private String vdcShortId;
-    
     private Service service;
     
     private String currentSiteId;
-   
-    public void setVdcShortId(String vdcId) {
-        vdcShortId = vdcId;
-    }
     
+    private VirtualDataCenter localVdc;
+   
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
@@ -148,7 +144,8 @@ public class VdcSiteManager extends AbstractManager {
     protected void innerRun() {
         final String svcId = coordinator.getMySvcId();
         currentSiteId = coordinator.getCoordinatorClient().getSiteId();
-        
+        localVdc = VdcUtil.getLocalVdc();
+                
         addSiteInfoListener();
 
         while (doRun) {
@@ -355,9 +352,9 @@ public class VdcSiteManager extends AbstractManager {
      */
     private String getCassandraDcId(Site site) {
         if (site.getState().equals(SiteState.PRIMARY)) {
-            return vdcShortId;
+            return localVdc.getShortId();
         } else {
-            return String.format("%s-%s", vdcShortId, site.getStandbyShortId());
+            return String.format("%s-%s", localVdc.getShortId(), site.getStandbyShortId());
         }
     }
 
@@ -573,8 +570,7 @@ public class VdcSiteManager extends AbstractManager {
      * @return
      */
     private boolean isRemovingStandby() {
-        VirtualDataCenter vdc = VdcUtil.getLocalVdc();
-        List<Site> sites = listSites(vdc);
+        List<Site> sites = listSites(localVdc);
 
         for(Site site : sites) {
             if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
@@ -593,7 +589,6 @@ public class VdcSiteManager extends AbstractManager {
      */
     private void checkAndRemoveStandby() throws Exception{
         String svcId = coordinator.getMySvcId();
-        VirtualDataCenter vdc = VdcUtil.getLocalVdc();
         String primarySiteId = coordinator.getCoordinatorClient().getPrimarySiteId();
         
         while (isRemovingStandby()) {
@@ -609,7 +604,7 @@ public class VdcSiteManager extends AbstractManager {
             }
             
             try {
-                List<Site> sites = listSites(vdc);
+                List<Site> sites = listSites(localVdc);
                 for(Site site : sites) {
                     try {
                         if (!site.getState().equals(SiteState.STANDBY_REMOVING)) {
@@ -654,6 +649,7 @@ public class VdcSiteManager extends AbstractManager {
         ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcName);
         
         coordinatorClient.removeServiceConfiguration(site.toConfiguration());
+        log.info("Removed site {} configuration from ZK", site.getUuid());
     }
     
     private List<Site> listSites(VirtualDataCenter vdc) {

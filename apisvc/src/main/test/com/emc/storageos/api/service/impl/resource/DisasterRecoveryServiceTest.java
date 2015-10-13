@@ -40,6 +40,8 @@ import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.model.dr.DRNatCheckParam;
@@ -62,7 +64,7 @@ import com.emc.vipr.model.sys.ClusterInfo;
 public class DisasterRecoveryServiceTest {
 
     private DisasterRecoveryService drService;
-    private DbClient dbClientMock;
+    private DbClientImpl dbClientMock;
     private CoordinatorClient coordinator;
     private Site standbySite1;
     private Site standbySite2;
@@ -135,7 +137,7 @@ public class DisasterRecoveryServiceTest {
         localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
         
         // mock DBClient
-        dbClientMock = mock(DbClient.class);
+        dbClientMock = mock(DbClientImpl.class);
         
         // mock coordinator client
         coordinator = mock(CoordinatorClient.class);
@@ -148,8 +150,6 @@ public class DisasterRecoveryServiceTest {
         localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
         localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
 
-        // mock DBClient
-        dbClientMock = mock(DbClient.class);
         apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
         
         drService = spy(new DisasterRecoveryService());
@@ -305,9 +305,18 @@ public class DisasterRecoveryServiceTest {
         doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
         doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
         
-        SiteRestRep response = drService.pauseStandby(standbySite2.getUuid());
-        
-        assertEquals(response.getState(), SiteState.STANDBY_PAUSED.toString());
+        try {
+            DbClientContext mockDBClientContext = mock(DbClientContext.class);
+            doNothing().when(mockDBClientContext).removeDcFromStrategyOptions(any(String.class));
+            doReturn(mockDBClientContext).when(dbClientMock).getLocalContext();
+            doReturn(mockDBClientContext).when(dbClientMock).getGeoContext();
+            
+            SiteRestRep response = drService.pauseStandby(standbySite2.getUuid());
+            
+            assertEquals(response.getState(), SiteState.STANDBY_PAUSED.toString());
+        } catch (Exception e) {
+            fail();
+        }
     }
     
     @Test

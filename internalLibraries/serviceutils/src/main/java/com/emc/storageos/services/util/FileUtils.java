@@ -27,6 +27,20 @@ import org.slf4j.LoggerFactory;
 
 public class FileUtils {
     private static final Logger log = LoggerFactory.getLogger(FileUtils.class);
+    private static final String tmpDir;
+
+    static {
+        // Initialize tmp directory, remove possible existing separator at last position.
+        String rawDir = System.getProperty("java.io.tmpdir");
+        tmpDir = rawDir.endsWith(File.separator) ? rawDir.substring(0, rawDir.length() - 1) : rawDir;
+    }
+
+    public static String generateTmpFileName(String fileName) {
+        if (fileName == null || fileName.contains(File.separator)) {
+            throw new RuntimeException("File name can't be null or contain file separator");
+        }
+        return Strings.join(File.separator, tmpDir, fileName);
+    }
 
     /**
      * Read serialized object from a file

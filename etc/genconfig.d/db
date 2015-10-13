@@ -58,16 +58,6 @@ _is_empty_dir() {
     echo $?
 }
 
-# Currently we ship 2 jline libraries: 1.0 (for cassandra 2.0.10) and 2.13 (for ZooKeeper 3.5).
-# Cassandra 2.0.10 need to use jline 1.0 in cassandra-cli, because it's not compatible with jline 2.13
-# Default generated cassandra-cli script use jline 2.13, it would result cassandra-cli fail to start.
-# This method is used to put jline 1.0 into cassandra-cli's class path instead of jline 2.13.
-# Note that: Cassandra doesn't depend on jline since 2.2, so this method should and need to be removed
-# after upgrading Cassandra to 2.2 or later version.
-_change_cassandracli_dependent_jline() {
-    sed -i 's/\(^export CLASSPATH=.*\)jline-2.13.jar\(.*\)/\1jline-1.0.jar\2/' /opt/storageos/bin/cassandra-cli
-}
-
 _gen_startup_mode() {
    is_db_empty=$(_is_empty_dir "/data/db")
    is_geodb_empty=$(_is_empty_dir "/data/geodb")
@@ -82,4 +72,3 @@ _genconfig_exec _gen_template_cluster   /opt/storageos/conf/db-var.xml      $(_g
 _genconfig_exec _gen_template           /opt/storageos/conf/db-jmx-var.xml  $(_get_db_jmx_props)
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/db-conf.yaml    $(_get_dbconf_props)
 _gen_startup_mode
-_change_cassandracli_dependent_jline

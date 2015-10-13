@@ -101,7 +101,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             BlockConsistencyGroup cgObj = null;
             boolean isCG = false;
             Volume vol = volumes.get(0);
-            if (vol.getConsistencyGroup() != null && !vol.checkForRp()) {
+            if (vol.getConsistencyGroup() != null && !vol.checkForRp() && 
+            		!Volume.checkForProtectedVplexBackendVolume(dbClient, vol)) {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                 isCG = true;
             }
@@ -252,7 +253,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             for (Volume volume : volumes) {
                 try {
                     if (null != XtremIOProvUtils.isVolumeAvailableInArray(client, volume.getLabel(), clusterName)) {
-                        if (volume.getConsistencyGroup() != null) {
+                        if (volume.getConsistencyGroup() != null && !volume.checkForRp() &&
+                        		!Volume.checkForProtectedVplexBackendVolume(dbClient, volume)) {
                             BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
                                     volume.getConsistencyGroup());
                             if (null != XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroupObj.getLabel(), clusterName)) {
@@ -260,6 +262,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                                 _log.info("Removing the volume {} from consistency group {}", volume.getLabel(),
                                         consistencyGroupObj.getLabel());
                                 client.removeVolumeFromConsistencyGroup(volume.getLabel(), consistencyGroupObj.getLabel(), clusterName);
+                                XtremIOConsistencyGroup xioCG = XtremIOProvUtils.isCGAvailableInArray(client,
+                                        consistencyGroupObj.getLabel(), clusterName);
+                                // Check if there are no volumes in the CG
+                                if (null == xioCG.getVolList() || xioCG.getVolList().isEmpty()) {
+                                    client.removeConsistencyGroup(consistencyGroupObj.getLabel(), clusterName);
+                                }
                             }
                         }
                         _log.info("Deleting the volume {}", volume.getLabel());
@@ -441,7 +449,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("SnapShot Creation..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
-        if (ControllerUtils.inReplicationGroup(snapshots, dbClient)) {
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
             snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive, readOnly, taskCompleter);
         } else {
             URI snapshot = snapshots.get(0).getId();
@@ -456,7 +464,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         _log.info("SnapShot Deletion..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-        if (ControllerUtils.inReplicationGroup(snapshots, dbClient)) {
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
             snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
             snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -469,7 +477,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         _log.info("SnapShot Restore..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-        if (ControllerUtils.inReplicationGroup(snapshots, dbClient)) {
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
             snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
@@ -482,7 +490,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         _log.info("SnapShot resync..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-        if (ControllerUtils.inReplicationGroup(snapshots, dbClient)) {
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
             snapshotOperations.resyncGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             snapshotOperations.resyncSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
@@ -495,23 +503,29 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
         try {
-            // Check if the consistency group exists
+        	// Check if the consistency group exists
             BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
-            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-
-            if (null != XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroup.getLabel(), clusterName)) {
-                client.removeConsistencyGroup(consistencyGroup.getLabel(), clusterName);
+            if(!client.isVersion2()) {
+        		_log.info("{} Operation deleteConsistencyGroup not supported for the xtremio array version");            	
+            } else {
+	            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+	            Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
+	
+	            if (null != XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroup.getLabel(), clusterName)) {
+	                client.removeConsistencyGroup(consistencyGroup.getLabel(), clusterName);
+	            }
+	            // Set the consistency group to inactive
+	            URI systemURI = storage.getId();
+	            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
+	                    consistencyGroup.getLabel());
+	            client.deleteTag(cgProject.getLabel(), XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
+	            if (markInactive) {
+	                consistencyGroup.setInactive(true);
+	            }
+	            dbClient.persistObject(consistencyGroup);
             }
-            // Set the consistency group to inactive
-            URI systemURI = storage.getId();
-            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
-                    consistencyGroup.getLabel());
-            if (markInactive) {
-                consistencyGroup.setInactive(true);
-            }
-            dbClient.persistObject(consistencyGroup);
-            taskCompleter.ready(dbClient);
+	        taskCompleter.ready(dbClient);
             _log.info("{} doDeleteConsistencyGroup END ...", storage.getSerialNumber());
         } catch (Exception e) {
             _log.error(String.format("Delete Consistency Group operation failed %s", e));
@@ -525,17 +539,23 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doCreateConsistencyGroup START ...", storage.getSerialNumber());
         try {
-            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
-            BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
-            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-
-            client.createConsistencyGroup(consistencyGroup.getLabel(), clusterName);
-            consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), consistencyGroup.getLabel());
-            consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
-            if (NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
-                consistencyGroup.setStorageController(storage.getId());
+        	XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+        	if(!client.isVersion2()) {
+        		_log.info("{} Operation deleteConsistencyGroup not supported for the xtremio array version");            	
+            } else {
+	            BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+	            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+	            Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
+	            String cgTagName = XtremIOProvUtils.createTagsForConsistencyGroup(client, cgProject.getLabel(), clusterName);
+	            client.createConsistencyGroup(consistencyGroup.getLabel(), clusterName);
+	            consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), consistencyGroup.getLabel());
+	            consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
+	            client.tagObject(cgTagName, XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), consistencyGroup.getLabel(), clusterName);
+	            if (NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
+	                consistencyGroup.setStorageController(storage.getId());
+	            }
+	            dbClient.persistObject(consistencyGroup);
             }
-            dbClient.persistObject(consistencyGroup);
             taskCompleter.ready(dbClient);
             _log.info("{} doCreateConsistencyGroup END ...", storage.getSerialNumber());
         } catch (Exception e) {

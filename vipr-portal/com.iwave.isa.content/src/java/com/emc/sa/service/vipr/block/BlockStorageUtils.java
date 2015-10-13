@@ -4,6 +4,15 @@
  */
 package com.emc.sa.service.vipr.block;
 
+import static com.emc.sa.service.ServiceParams.CONSISTENCY_GROUP;
+import static com.emc.sa.service.ServiceParams.HLU;
+import static com.emc.sa.service.ServiceParams.HOST;
+import static com.emc.sa.service.ServiceParams.NAME;
+import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
+import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
+import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
+import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResources;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addRollback;
@@ -15,6 +24,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +35,7 @@ import org.apache.log4j.Logger;
 
 import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
@@ -35,6 +46,7 @@ import com.emc.sa.service.vipr.block.tasks.CreateContinuousCopy;
 import com.emc.sa.service.vipr.block.tasks.CreateExport;
 import com.emc.sa.service.vipr.block.tasks.CreateExportNoWait;
 import com.emc.sa.service.vipr.block.tasks.CreateFullCopy;
+import com.emc.sa.service.vipr.block.tasks.CreateMultipleBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.CreateSnapshotFullCopy;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockExport;
 import com.emc.sa.service.vipr.block.tasks.DeactivateBlockSnapshot;
@@ -65,10 +77,12 @@ import com.emc.sa.service.vipr.block.tasks.RestoreFromFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ResynchronizeFullCopy;
 import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
+import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
+import com.emc.sa.service.vipr.tasks.GetVirtualArray;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Cluster;
@@ -90,6 +104,7 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -177,6 +192,10 @@ public class BlockStorageUtils {
         return execute(new GetBlockConsistencyGroup(resourceId));
     }
 
+    public static VirtualArrayRestRep getVirtualArray(URI id) {
+        return execute(new GetVirtualArray(id));
+    }
+
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();
         for (URI resourceId : resourceIds) {
@@ -225,6 +244,18 @@ public class BlockStorageUtils {
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();
+            addAffectedResource(volumeId);
+            volumeIds.add(volumeId);
+        }
+        return volumeIds;
+    }
+
+    public static List<URI> createMultipleVolumes(List<CreateBlockVolumeHelper> helpers) {
+        Tasks<VolumeRestRep> tasks = execute(new CreateMultipleBlockVolumes(helpers));
+        List<URI> volumeIds = Lists.newArrayList();
+        for (Task<VolumeRestRep> task : tasks.getTasks()) {
+            URI volumeId = task.getResourceId();
+            addRollback(new DeactivateVolume(volumeId, VolumeDeleteTypeEnum.FULL));
             addAffectedResource(volumeId);
             volumeIds.add(volumeId);
         }
@@ -361,9 +392,9 @@ public class BlockStorageUtils {
         removeExportIfEmpty(exportId);
     }
 
-    static final int MAX_RETRY_COUNT =30;
+    static final int MAX_RETRY_COUNT = 30;
     static final int RETRY_DELAY_MSEC = 60000;
-    
+
     public static void removeExportIfEmpty(URI exportId) {
         boolean retryNeeded = false;
         int retryCount = 0;
@@ -377,22 +408,22 @@ public class BlockStorageUtils {
                     addAffectedResource(response);
                 } catch (ExecutionException e) {
                     if (e.getCause() instanceof ServiceErrorException) {
-                        ServiceErrorException svcexp =(ServiceErrorException) e.getCause();
-                        if (retryCount++ < MAX_RETRY_COUNT 
+                        ServiceErrorException svcexp = (ServiceErrorException) e.getCause();
+                        if (retryCount++ < MAX_RETRY_COUNT
                                 && ServiceCode.toServiceCode(svcexp.getCode()) == ServiceCode.API_TASK_EXECUTION_IN_PROGRESS) {
                             log.info(String.format("ExportGroup %s deletion waiting on pending task execution", export.getId()));
                             retryNeeded = true;
                             try {
                                 Thread.sleep(RETRY_DELAY_MSEC);
                             } catch (InterruptedException ex) {
-                            	log.debug("Sleep interrupted");
+                                log.debug("Sleep interrupted");
                             }
                         } else {
                             throw e;
                         }
                     }
                 }
-            } 
+            }
         } while (retryNeeded);
     }
 
@@ -707,6 +738,12 @@ public class BlockStorageUtils {
         return copies;
     }
 
+    public static Tasks<BlockConsistencyGroupRestRep> swapCGContinuousCopy(URI protectionSource, URI protectionTarget, String type) {
+        Tasks<BlockConsistencyGroupRestRep> copies = execute(new SwapCGContinuousCopies(protectionSource, protectionTarget, type));
+        addAffectedResources(copies);
+        return copies;
+    }
+
     public static Task<BlockConsistencyGroupRestRep> addVolumesToConsistencyGroup(URI consistencyGroupId, List<URI> volumeIds) {
         Task<BlockConsistencyGroupRestRep> task = execute(new AddVolumesToConsistencyGroup(consistencyGroupId, volumeIds));
         addAffectedResource(task);
@@ -715,7 +752,7 @@ public class BlockStorageUtils {
 
     /**
      * Finds the exports (itl) for the given initiators.
-     * 
+     *
      * @param exports
      *            the list of all exports (itl)
      * @param initiators
@@ -809,6 +846,82 @@ public class BlockStorageUtils {
         }
 
         return null;
+    }
+
+    /**
+     * Stores the virtual pool, virtual array, project, host, consistency group,
+     * and HLU values for volume create services.
+     */
+    public static class VolumeParams {
+        @Param(VIRTUAL_POOL)
+        public URI virtualPool;
+        @Param(VIRTUAL_ARRAY)
+        public URI virtualArray;
+        @Param(PROJECT)
+        public URI project;
+        @Param(HOST)
+        public URI hostId;
+        @Param(value = CONSISTENCY_GROUP, required = false)
+        public URI consistencyGroup;
+        @Param(value = HLU, required = false)
+        public Integer hlu;
+
+        @Override
+        public String toString() {
+            return "Virtual Pool=" + virtualPool + ", Virtual Array=" + virtualArray + ", Project=" + project
+                    + ", Host Id=" + hostId + ", Consistency Group=" + consistencyGroup
+                    + ", HLU=" + hlu;
+        }
+
+        public Map<String, Object> getParams() {
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put(VIRTUAL_POOL, virtualPool);
+            map.put(VIRTUAL_ARRAY, virtualArray);
+            map.put(PROJECT, project);
+            map.put(HOST, hostId);
+            map.put(CONSISTENCY_GROUP, consistencyGroup);
+            map.put(HLU, hlu);
+            return map;
+        }
+    }
+
+    /**
+     * Stores the name, size, and count of volumes for multi-volume create services.
+     */
+    public static class VolumeTable {
+        @Param(NAME)
+        protected String nameParam;
+        @Param(SIZE_IN_GB)
+        protected Double sizeInGb;
+        @Param(value = NUMBER_OF_VOLUMES, required = false)
+        protected Integer count;
+
+        @Override
+        public String toString() {
+            return "Volume=" + nameParam + ", size=" + sizeInGb + ", count=" + count;
+        }
+
+        public Map<String, Object> getParams() {
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put(NAME, nameParam);
+            map.put(SIZE_IN_GB, sizeInGb);
+            map.put(NUMBER_OF_VOLUMES, count);
+            return map;
+        }
+    }
+
+    /**
+     * Helper method for creating a list of all the params for the createBlockVolumesHelper.
+     *
+     * @param table volume table
+     * @param params for volume creation
+     * @return map of all params
+     */
+    public static Map<String, Object> createVolumeParam(VolumeTable table, VolumeParams params) {
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.putAll(table.getParams());
+        map.putAll(params.getParams());
+        return map;
     }
 
 }

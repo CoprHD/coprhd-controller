@@ -71,7 +71,7 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
         BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
         
         // Create a step to create the CG.
-        String stepMsg = String.format("Create and add volumes to VPLEX consistency group. VPlEX: %s (%s) Consistency group: %s (%s) Volumes: %s (%s) ", 
+        String stepMsg = String.format("Create and add volumes to VPLEX consistency group. VPLEX: %s (%s) Consistency group: %s (%s) Volumes: %s (%s) ", 
         		vplexSystem.getLabel(), vplexURI, cg.getLabel(), cg.getId(), 
         		getVolumeLabels(vplexVolumeURIs), StringUtils.collectionToCommaDelimitedString(vplexVolumeURIs));
         nextStep = workflow.createStep(CREATE_CG_STEP, stepMsg,

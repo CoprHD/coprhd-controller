@@ -7,11 +7,15 @@ package com.emc.storageos.auth.ldap;
 import com.emc.storageos.auth.AuthenticationManager.ValidationFailureReason;
 import com.emc.storageos.auth.StorageOSPersonAttributeDao;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.AuthnProvider.ProvidersType;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.UserGroup;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.usergroup.UserAttributeParam;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
@@ -491,8 +495,10 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             return null;
         }
 
+        StringSet authnProviderDomains = getAuthnProviderDomains(domain);
+
         List<String> attrs = new ArrayList<String>();
-        Map<URI, List<UserMapping>> tenantToMappingMap = permissionsHelper.getAllUserMappingsForDomain(domain);
+        Map<URI, List<UserMapping>> tenantToMappingMap = permissionsHelper.getAllUserMappingsForDomain(authnProviderDomains);
         if (_searchControls.getReturningAttributes() != null) {
             Collections.addAll(attrs, _searchControls.getReturningAttributes());
         }
@@ -572,22 +578,26 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         // Add the user's group based on the attributes.
         addUserGroupsToUserGroupList(permissionsHelper, domain, storageOSUser);
 
-        return new UserAndTenants(storageOSUser, mapUserToTenant(domain, storageOSUser, userMappingAttributes, tenantToMappingMap,
+        return new UserAndTenants(storageOSUser, mapUserToTenant(authnProviderDomains, storageOSUser, userMappingAttributes, tenantToMappingMap,
                 failureReason));
     }
 
     /**
      * Match the user to one and only one tenant if found user there attributes/groups
      * 
-     * @param domain
+     * @param domains
      * @param storageOSUser
      * @param attributeKeyValuesMap
      * @param tenantToMappingMap
      */
-    private Map<URI, UserMapping> mapUserToTenant(String domain, StorageOSUserDAO storageOSUser,
+    private Map<URI, UserMapping> mapUserToTenant(StringSet domains, StorageOSUserDAO storageOSUser,
             Map<String, List<String>> attributeKeyValuesMap, Map<URI,
             List<UserMapping>> tenantToMappingMap, ValidationFailureReason[] failureReason) {
         Map<URI, UserMapping> tenants = new HashMap<URI, UserMapping>();
+        if (CollectionUtils.isEmpty(domains)) {
+            return tenants;
+        }
+
         List<UserMappingAttribute> userMappingAttributes = new ArrayList<UserMappingAttribute>();
 
         for (Entry<String, List<String>> attributeKeyValues : attributeKeyValuesMap.entrySet()) {
@@ -610,9 +620,11 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
                 continue;
             }
 
-            for (UserMapping userMapping : tenantToMappingMapEntry.getValue()) {
-                if (userMapping.isMatch(domain, userMappingAttributes, userMappingGroups)) {
-                    tenants.put(tenantToMappingMapEntry.getKey(), userMapping);
+            for (String domain : domains) {
+                for (UserMapping userMapping : tenantToMappingMapEntry.getValue()) {
+                    if (userMapping.isMatch(domain, userMappingAttributes, userMappingGroups)) {
+                        tenants.put(tenantToMappingMapEntry.getKey(), userMapping);
+                    }
                 }
             }
         }
@@ -1305,5 +1317,41 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
                 _log.debug(key + " = " + maps.get(key).toString());
             }
         }
+    }
+
+    /**
+     * Gets all the domains supported by the authn providers that supports
+     * the particular domain.
+     *
+     * @param domain to find the supported authn provider.
+     * @return returns all the supported domains of each authn provider
+     * supports the domain.
+     */
+    private StringSet getAuthnProviderDomains(String domain) {
+        StringSet authnProviderDomains = new StringSet();
+        URIQueryResultList providers = new URIQueryResultList();
+        try {
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getAuthnProviderDomainConstraint(domain.toLowerCase()), providers);
+        } catch (DatabaseException ex) {
+            _log.error(
+                    "Could not query for authn providers to check for existing domain {}",
+                    domain, ex.getStackTrace());
+            throw ex;
+        }
+
+        //Add all the domains of the AuthnProvider if it is not in disabled state.
+        //We expect only one authn provider here because, we cannot have multiple
+        //authn provider supporting same domain.
+        Iterator<URI> it = providers.iterator();
+        if (it.hasNext()) {
+            URI providerURI = it.next();
+            AuthnProvider provider = _dbClient.queryObject(AuthnProvider.class, providerURI);
+            if (provider != null && provider.getDisable() == false) {
+                authnProviderDomains.addAll(provider.getDomains());
+            }
+        }
+
+        return authnProviderDomains;
     }
 }

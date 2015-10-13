@@ -52,10 +52,14 @@ public enum ResourceOperationTypeEnum {
     ADD_INITIATOR_WORKFLOW_STEP("ADD INITIATOR WF STEP", "add initiator workflow step"),
     DELETE_INITIATOR_WORKFLOW_STEP("DELETE INITIATOR WF STEP", "delete initiator workflow step"),
     CREATE_VOLUME_FULL_COPY("CREATE VOLUME FULL COPY", "create a volume full copy"),
+    CREATE_CONSISTENCY_GROUP_FULL_COPY("CREATE CONSISTENCY GROUP FULL COPY", "create a consistency group full copy"),
     ACTIVATE_VOLUME_FULL_COPY("ACTIVATE VOLUME FULL COPY", "activate a volume full copy"),
     DETACH_VOLUME_FULL_COPY("DETACH VOLUME FULL COPY", "detach a volume full copy"),
+    DETACH_CONSISTENCY_GROUP_FULL_COPY("DETACH CONSISTENCY GROUP FULL COPY", "detach a consistency group's full copies"),
     RESTORE_VOLUME_FULL_COPY("RESTORE VOLUME FULL COPY", "restore a volume from a full copy"),
+    RESTORE_CONSISTENCY_GROUP_FULL_COPY("RESTORE CONSISTENCY GROUP FULL COPY", "restore a consistency group from a full copy"),
     RESYNCHRONIZE_VOLUME_FULL_COPY("RESYNCHRONIZE VOLUME FULL COPY", "resynchronize a full copy from its source"),
+    RESYNCHRONIZE_CONSISTENCY_GROUP_FULL_COPY("RESYNCHRONIZE CONSISTENCY GROUP FULL COPY", "resynchronize full copies from a consistency group"),
     ESTABLISH_VOLUME_FULL_COPY("ESTABLISH VOLUME FULL COPY GROUP", "establish group relation between volume group and full copy group"),
     CREATE_VOLUME_SNAPSHOT("CREATE VOLUME SNAPSHOT", "create a volume snapshot"),
     ASSIGN_VOLUME_TAG("ASSIGN VOLUME TAG", "tag a volume"),
@@ -283,8 +287,9 @@ public enum ResourceOperationTypeEnum {
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
     ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "add journal volume to consistency group"),
     SYS_EVENT("SYSTEM EVENT", "System Event"),
-    CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER","Create and verify a compute image server"),
-    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER","Update and verify a compute image server");
+    CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER", "Create and verify a compute image server"),
+    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "Update and verify a compute image server"),
+    CREATE_VPLEX_VOLUME_FROM_SNAPSHOT("CREATE VPLEX VOLUME FROM SNAPSHOT", "Create a VPLEX volume on top of a block snapshot target volume");
 
     private final String name;
     private final String description;

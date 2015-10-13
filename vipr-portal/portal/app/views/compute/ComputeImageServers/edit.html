@@ -7,6 +7,7 @@
 #{set navSelected: ['nav.assets', 'nav.computeImageServers'] /}
 #{set 'title'}&{titleKey}#{/set}
 #{set editMode:computeImageServers?.id ? true : false/}
+#{set computeImagesAvailable:computeImageServers?.computeImages ? true : false/}
 
 #{breadcrumb.container}
 #{breadcrumb.item @list()}&{'ComputeImageServers.list.title'}#{/breadcrumb.item}
@@ -30,16 +31,14 @@
     $(document).ready(function() {
 
         var editMode = #{get 'editMode'/};
+        var computeImages = #{get 'computeImagesAvailable'/};
         if (!editMode && !errors) {
             setDefaults();
         }
         $('#computeImageServers_password').val('');        
         $('#computeImageServers_confirmPassword').val('');  
-        if (editMode) {
-        	var computeImages = $('#computeImageServers_computeImages');
-        	if (computeImages) {
+        if (editMode && computeImages) {
                 $('#computeImageServers_tftpBootDir').prop('disabled', true);
-        	}
         }
     });
 

@@ -85,7 +85,7 @@ ext {
     zookeeper = [
         slf4j,
         log4j,
-        "jline:jline:2.11",
+        "jline:jline:2.13",
         "org.jboss.netty:netty:3.2.8.Final",
         // note we have a trick in coordinatorsvc.jar to overrite official zk QuorumPeer in
         // order to support ipv6. When doing zookeeper version change, you need revisit

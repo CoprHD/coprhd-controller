@@ -76,7 +76,7 @@ _gen_startup_mode() {
     echo "startupmode=hibernate" > /data/db/startupmode
     echo "startupmode=hibernate" > /data/geodb/startupmode
   fi 
-  _change_cassandracli_jline_lib
+  _change_cassandracli_dependent_jline
 }
 
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/db-var.xml      $(_get_dbvar_props)

@@ -6756,4 +6756,22 @@ public class SmisCommandHelper implements SmisConstants {
         }
         return modifiedInstance;
     }
+
+    /**
+     * Return the CIMObjectPath representing the StoragePool to which 'volume belongs
+     *
+     * @param storage [IN] - StorageSystem object where 'volume' resides
+     * @param volume [IN] - Volume object
+     * @return CIMObjectPath of StoragePool where 'volume' belongs
+     */
+    public CIMObjectPath getVolumeStoragePoolPath(StorageSystem storage, Volume volume) {
+        CIMObjectPath poolPath = null;
+        if (volume != null && volume.getPool() != null) {
+            StoragePool storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
+            if (storagePool != null) {
+                poolPath = getPoolPath(storage, storagePool);
+            }
+        }
+        return poolPath;
+    }
 }

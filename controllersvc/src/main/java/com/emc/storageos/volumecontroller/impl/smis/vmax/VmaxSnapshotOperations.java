@@ -269,7 +269,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMArgument[] outArgs = new CIMArgument[5];
             if (storage.checkIfVmax3()) {
                 CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, volume, null);
-                CIMObjectPath poolPath = findSnapStoragePoolOrNull(storage);
+                // COP-17240: For VMAX3, we will derive the target volumes from the source volumes SRP Pool
+                CIMObjectPath poolPath = _helper.getVolumeStoragePoolPath(storage, volume);
                 targetDeviceIds = createTargetDevices(storage, poolPath, volumeGroupPath, null, "SingleSnapshot", snapLabelToUse,
                         createInactive, 1, volume.getCapacity(), taskCompleter);
                 CIMInstance replicaSettingData = _helper.getReplicationSettingData(storage, targetDeviceIds.get(0), false);

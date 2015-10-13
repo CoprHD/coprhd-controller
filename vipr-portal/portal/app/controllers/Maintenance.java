@@ -20,7 +20,6 @@ import play.mvc.With;
 import plugin.StorageOsPlugin;
 import util.BourneUtil;
 
-//@With(Deadbolt.class)
 public class Maintenance extends Controller {
     public static void maintenance(String targetUrl) {
         ClusterInfo clusterInfo = null;
@@ -32,7 +31,6 @@ public class Maintenance extends Controller {
             Logger.info(e, "Failed to get cluster state");
             clusterInfo = defaultClusterInfo(clusterInfo);
         }
-        
         render(targetUrl, clusterInfo);
     }
     

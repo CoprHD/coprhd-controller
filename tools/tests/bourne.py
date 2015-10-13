@@ -122,8 +122,6 @@ URI_FILE_QUOTA_DIR_DELETE       = URI_FILE_QUOTA_DIR + '/deactivate'
 URI_DR                     = URI_SERVICES_BASE  + '/site'
 URI_DR_GET                 = URI_DR    + '/{0}'
 URI_DR_DELETE              = URI_DR    + '/{0}'
-URI_DR_CONFIG              = URI_DR    + '/localconfig'
-URI_DR_NATCHECK            = URI_DR    + '/natcheck'
 
 URI_VDC                     = URI_SERVICES_BASE  + '/vdc'
 URI_VDC_GET                 = URI_VDC    + '/{0}'

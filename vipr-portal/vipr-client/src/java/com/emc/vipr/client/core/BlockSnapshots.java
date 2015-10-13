@@ -343,6 +343,10 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
         return postTask(getByConsistencyGroupUrl() + "/{id}/restore", consistencyGroupId, id);
     }
 
+    public Task<BlockSnapshotRestRep> createVplexVolume(URI id) {
+        return postTask(getIdUrl() + "/create-vplex-volume", id);
+    }
+
     public Tasks<BlockSnapshotRestRep> createFullCopy(URI id, VolumeFullCopyCreateParam input) {
         return postTasks(input, getFullCopyUrl(), id);
     }

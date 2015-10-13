@@ -2181,6 +2181,11 @@ public class DbClientTest extends DbsvcTestBase {
         private Map<Class<? extends DataObject>, Set<URI>> objMap = new HashMap<Class<? extends DataObject>, Set<URI>>();
 
         @Override
+        public String getGeoVersion() {
+            return "2.4";
+        }
+
+        @Override
         public <T extends DataObject> void createObject(Collection<T> dataobjects)
                 throws DatabaseException {
             addToMap(dataobjects);

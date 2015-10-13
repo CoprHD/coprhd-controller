@@ -2058,6 +2058,10 @@ public interface BadRequestExceptions {
             final URI sourceVolumeUri, final URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(
+            final String volumeName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVarrayForVplexVolumeInAppConsistenctCG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

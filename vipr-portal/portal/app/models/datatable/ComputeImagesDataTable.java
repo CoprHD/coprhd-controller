@@ -5,6 +5,7 @@
 package models.datatable;
 
 import models.ComputeImageTypes;
+import util.ComputeImageUtils;
 import util.datatable.DataTable;
 
 import com.emc.storageos.model.compute.ComputeImageRestRep;
@@ -28,7 +29,6 @@ public class ComputeImagesDataTable extends DataTable {
         public String imageUrl;
         public String computeImageStatus;
         public String discoveryStatus;
-        public String failedImageServers;// Image Servers that the compute image failed to import to
 
         public ComputeImagesInfo() {
         }
@@ -39,12 +39,12 @@ public class ComputeImagesDataTable extends DataTable {
             this.imageName = computeImage.getImageName();
             this.imageType = ComputeImageTypes.getDisplayValue(computeImage.getImageType());
             this.imageUrl = computeImage.getImageUrl();
-            this.failedImageServers = computeImage.getFailedImageServers().toString();
             this.computeImageStatus = computeImage.getComputeImageStatus();
             String displayStatus = computeImage.getComputeImageStatus();
-            if (displayStatus.equalsIgnoreCase("AVAILABLE") && this.failedImageServers == null) {
+            ComputeImageRestRep cirr = ComputeImageUtils.getComputeImage(id);
+            if (displayStatus.equalsIgnoreCase("AVAILABLE") && cirr.getFailedImageServers().size() == 0) {
                 this.discoveryStatus = "COMPLETE";
-            } else if (displayStatus.equalsIgnoreCase("AVAILABLE") && this.failedImageServers != null) {
+            } else if (displayStatus.equalsIgnoreCase("AVAILABLE") && cirr.getFailedImageServers().size() > 0) {
                 this.discoveryStatus = "PARTIAL_SUCCESS";
             } else if (displayStatus.equalsIgnoreCase("NOT_AVAILABLE")) {
                 this.discoveryStatus = "ERROR";

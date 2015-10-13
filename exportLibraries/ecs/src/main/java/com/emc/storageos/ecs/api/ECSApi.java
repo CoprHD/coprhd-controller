@@ -286,7 +286,7 @@ public class ECSApi {
         _log.debug("ECSApi:updateBucketOwner Update bucket initiated for : {}", bucketName);
 
         ClientResponse clientResp = null;
-        String bodyOnr = " { \"new_owner\": \"" + owner + "\", \"namespace\": \"" + namespace + "\"}  ";
+        String bodyOnr = " { \"namespace\": \"" + namespace + "\"," + " \"new_owner\": \"" + owner + "\"}" ;
 
         final String path = MessageFormat.format(URI_UPDATE_BUCKET_OWNER, bucketName);
         try {
@@ -297,7 +297,7 @@ public class ECSApi {
             if (null == clientResp) {
                 throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Owner", "no response from ECS");
             } else if (clientResp.getStatus() == 400) {
-                _log.warn("Current user and user to be modified are same");
+                _log.error("Non-existing/Invalid owner specified: %s", getResponseDetails(clientResp));
             } else if (clientResp.getStatus() != 200) {
                 throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Owner", getResponseDetails(clientResp));
             }

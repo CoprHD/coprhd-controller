@@ -302,6 +302,11 @@ public class TenantsService extends TaggedResource {
         }
         
         if (param.getNamespace() != null) {
+        	/*if (!tenant.getNamespace().equalsIgnoreCase(param.getNamespace()))*/ {
+                //Check for namespace duplication if present
+                checkForDuplicateName(param.getNamespace(), TenantOrg.class, null, null, _dbClient);
+                 //tenant.getParentTenant().getURI(), "parentTenant", _dbClient);
+        	}
             tenant.setNamespace(param.getNamespace());
         }
 
@@ -394,6 +399,8 @@ public class TenantsService extends TaggedResource {
 
         ArgValidator.checkFieldNotEmpty(param.getLabel(), "name");
         checkForDuplicateName(param.getLabel(), TenantOrg.class, id, "parentTenant", _dbClient);
+        //Check for namespace duplication if present
+        checkForDuplicateName(param.getNamespace(), TenantOrg.class, id, "parentTenant", _dbClient);
         TenantOrg subtenant = new TenantOrg();
         subtenant.setId(URIUtil.createId(TenantOrg.class));
         subtenant.setParentTenant(new NamedURI(parent.getId(), param.getLabel()));
@@ -417,7 +424,7 @@ public class TenantsService extends TaggedResource {
         // perform user tenant check before persistent
         mapOutProviderTenantCheck(subtenant);
 
-        _dbClient.createObject(subtenant);
+        //_dbClient.createObject(subtenant);
         // To Do - add attributes to the set of attributes to pull from AD/LDAP
 
         recordOperation(OperationTypeEnum.CREATE_TENANT, parent.getId(), subtenant);

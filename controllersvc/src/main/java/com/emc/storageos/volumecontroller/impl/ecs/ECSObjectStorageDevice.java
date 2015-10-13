@@ -63,7 +63,13 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool());
             ecsApi.updateBucketRetention(args.getName(), args.getNamespace(), args.getRetentionPeriod());
             ecsApi.updateBucketQuota(args.getName(), args.getNamespace(), args.getNotSizeSQ(), args.getBlkSizeHQ());
+            //Get current owner and verify passed args->owner is different
+            //bucketInfo = ecsApi.getBucketInfo()
+            //if (!bucketInfo.getOwner().equals(args.getOwner())
+            //call updateowner
             ecsApi.updateBucketOwner(args.getName(), args.getNamespace(), args.getOwner());
+            //if updaetonwer failed
+            //throw exception or explicit bucketDelete????
             _log.info("Successfully created Bucket. Name : {} Namespace : {}", args.getName(), args.getNamespace());
             bucket.setNativeId(bktNativeId);
             completeTask(bucket.getId(), taskId, "Successfully created Bucket.");

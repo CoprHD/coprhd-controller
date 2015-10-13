@@ -499,10 +499,8 @@ public class FileStorageUtils {
     public static List<String> getInvalidFileACLs(FileSystemACLs[] fileACLs) {
         List<String> names = new ArrayList<String>();
         for (FileStorageUtils.FileSystemACLs acl : fileACLs) {
-            if (acl.aclName != null && !acl.aclName.isEmpty()) {
-                if (acl.aclName.contains("\\")) {
-                    names.add(acl.aclName);
-                }
+            if (StringUtils.contains(acl.aclName, "\\")) {
+                names.add(acl.aclName);
             }
         }
         

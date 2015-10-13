@@ -15,13 +15,8 @@ CONFIG_FILE=${1}
 Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
-<<<<<<< HEAD
- vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | ecs | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>]'
-=======
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>] | sanzoning'
->>>>>>> 3cefcfb193c2eef2736f6548453e210e965b57b3
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -125,11 +120,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-<<<<<<< HEAD
-    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|ecs|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore)
-=======
     all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
->>>>>>> 3cefcfb193c2eef2736f6548453e210e965b57b3
     ;;
 
     # These tests are handled by sanity integration tests written with the code

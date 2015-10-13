@@ -291,7 +291,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // already taken by a pre-existing volume.
                             Integer requestedHLU = volumeMap.get(boURI);
                             StringMap existingVolumesInMask = exportMask.getExistingVolumes();
-                            if (existingVolumesInMask != null &&
+                            if (existingVolumesInMask != null && requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);

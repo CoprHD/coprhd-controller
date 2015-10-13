@@ -732,7 +732,7 @@ public abstract class BlockIngestOrchestrator {
         List<UnManagedVolume> processedUnManagedVolumes = _dbClient.queryObject(UnManagedVolume.class,
                 VolumeIngestionUtil.getUnManagedVolumeUris(processedUnManagedGUIDS, _dbClient));
 
-        if (!parentReplicaMap.isEmpty()) {
+        if (replicaTreeIngested && !parentReplicaMap.isEmpty()) {
             setupParentReplicaRelationships(currentUnmanagedVolume, parentReplicaMap, unManagedVolumes, createdObjects, updatedObjects,
                     processedUnManagedVolumes);
             return true;

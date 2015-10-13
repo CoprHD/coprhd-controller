@@ -86,6 +86,7 @@ nav.systemNodeRecovery=Recovery
 nav.properties=General Configuration
 nav.clusterInfo=Network Configuration
 nav.adminDashboard=System
+nav.backup=Backup
 nav.dbHealthDashboard=Database Housekeeping Status
 nav.adminDashboardPage=Dashboard
 nav.localPasswords=Local Passwords
@@ -843,6 +844,12 @@ system.about.license=Licenses
 
 #Database Consistency Page
 db.healthdashboard.title=Database Housekeeping Status
+
+# Backup page
+Backup.list.title=Backup
+backup.name=Name
+backup.size=Size
+backup.creationtime=Creation Time
 
 # System Node Recovery
 system.noderecovery.title=Node Recovery

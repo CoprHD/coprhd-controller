@@ -21,6 +21,7 @@ import com.emc.fapiclient.ws.ClusterSANVolumes;
 import com.emc.fapiclient.ws.ClusterSplittersSettings;
 import com.emc.fapiclient.ws.ClusterUID;
 import com.emc.fapiclient.ws.ConnectionOutThroughput;
+import com.emc.fapiclient.ws.ConsistencyGroupCopySettings;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyUID;
 import com.emc.fapiclient.ws.ConsistencyGroupSettings;
 import com.emc.fapiclient.ws.ConsistencyGroupUID;
@@ -137,8 +138,8 @@ public class RecoverPointUtils {
         }
         impl.enableConsistencyGroup(cgUID, true);
         // Make sure the CG is ready
-        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-        imageManager.waitForCGLinkState(impl, cgUID, PipeState.ACTIVE);
+        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();        
+        imageManager.waitForCGLinkState(impl, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(impl, cgUID));
         logger.info("End enableNewConsistencyGroup.");
     }
 
@@ -565,4 +566,28 @@ public class RecoverPointUtils {
                 + " for the new consistency group");
         return preferredRPA;
     }
+    
+    /**
+     * Determine the NAA identifier of the xtremio volume in the format RP requires
+     * 
+     * @param nativeGuid string
+     * @return the NAA identifier for the xtremio volume
+     */
+    public static String getXioNativeGuid(String nativeGuid) {    	
+    	// nativeGuid coming in XTREMIO+APM00142114518+VOLUME+ea85e053e92a4076bc7c6b76935e14a2
+    	// we want the final value after the third + sign
+    	return nativeGuid.split("\\+")[3];
+    }
+    
+    /**
+     * Determines if the volume is an xtremio volume
+     * 
+     * @param nativeGuid string
+     * @return boolean indicating if this is an xtremio volume
+     */
+    public static boolean isXioVolume(String nativeGuid) {    	
+    	// nativeGuid coming in XTREMIO+APM00142114518+VOLUME+ea85e053e92a4076bc7c6b76935e14a2
+    	return nativeGuid.contains("XTREMIO");
+    }
+    
 }

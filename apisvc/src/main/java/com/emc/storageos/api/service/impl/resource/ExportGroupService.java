@@ -1225,7 +1225,7 @@ public class ExportGroupService extends TaskResourceService {
      *            the added or removed volumes in the request object.
      * @return a map of volume-lun as specified in the update export group request
      */
-    private Map<URI, Integer> getChangedVolumes(ExportUpdateParam param, boolean added) {
+    Map<URI, Integer> getChangedVolumes(ExportUpdateParam param, boolean added) {
         Map<URI, Integer> newVolumes = new HashMap<URI, Integer>();
         if (param.getVolumes() != null) {
             if (added && param.getVolumes().getAdd() != null) {

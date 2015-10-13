@@ -77,13 +77,13 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             _log.info("Added volumes: {}", Joiner.on(',').join(addedBlockObjectsMap.keySet()));
             _log.info("Removed volumes: {}", Joiner.on(',').join(removedBlockObjectsMap.keySet()));
             
-            // If ExportPathParameter block is presnet, and volumes are present, capture those arguments.
+            // If ExportPathParameter block is present, and volumes are added, capture ExportPathParameters arguments.
+            Map<URI, Integer> addedVolumeParams = exportGroupService.getChangedVolumes(exportUpdateParam, true);
             ExportPathParams exportPathParam = null;
-            if (exportUpdateParam.getExportPathParameters() != null && !addedBlockObjectsMap.keySet().isEmpty()) {
+            if (exportUpdateParam.getExportPathParameters() != null && !addedVolumeParams.keySet().isEmpty()) {
                 exportPathParam = exportGroupService.validateAndCreateExportPathParam(exportUpdateParam.getExportPathParameters(), exportGroup);
-                exportGroupService.addBlockObjectsToPathParamMap(addedBlockObjectsMap.keySet(), exportPathParam.getId(), exportGroup);
+                exportGroupService.addBlockObjectsToPathParamMap(addedVolumeParams.keySet(), exportPathParam.getId(), exportGroup);
             }
-
 
             // Validate updated entries
             List<URI> newInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());

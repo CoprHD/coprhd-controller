@@ -35,11 +35,13 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
+import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
@@ -88,6 +90,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -430,7 +433,7 @@ public class VolumeService extends TaskResourceService {
 		} else if ((snapshotId == null) && (sourceVolId == null))
 		{        
 			_log.debug("Creating New Volume snapshotId ={}, sourceVolId ={}",snapshotId,sourceVolId);
-			tasklist = newVolume(volumeCreate,project,api,capabilities,varray,task,vpool,param,volumeCount,tasklist);
+			tasklist = newVolume(volumeCreate,project,api,capabilities,varray,task,vpool,param,volumeCount, requestedSize, name);
 		}
 
 		if (imageId != null){
@@ -1003,7 +1006,7 @@ public class VolumeService extends TaskResourceService {
 	protected TaskList newVolume(VolumeCreate volumeCreate,Project project,BlockServiceApi api,
 			VirtualPoolCapabilityValuesWrapper capabilities,
 			VirtualArray varray,String task,VirtualPool vpool,
-			VolumeCreateRequestGen param,int volumeCount, TaskList tasklist)
+			VolumeCreateRequestGen param,int volumeCount, long  requestedSize,String name)
 	{
 		List recommendations = _placementManager.getRecommendationsForVolumeCreateRequest(
 				varray, project, vpool, capabilities);
@@ -1022,8 +1025,8 @@ public class VolumeService extends TaskResourceService {
 				volname, volumeCount, varray.getId().toString(), project.getId().toString());
 
 		_log.debug("Block Service API call for : Create New Volume ");
-		//RAGA
-		return  api.createVolumes(volumeCreate, project, varray, vpool, recommendations, tasklist, task,
+		TaskList passedTaskist = createTaskList(requestedSize, project, varray, vpool,name, task, volumeCount);
+		return  api.createVolumes(volumeCreate, project, varray, vpool, recommendations, passedTaskist, task,
 				capabilities);
 	}        
 
@@ -1060,6 +1063,27 @@ public class VolumeService extends TaskResourceService {
 		Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
 
 	}	
+	
+    private TaskList createTaskList(long size, Project project, VirtualArray varray, VirtualPool vpool, String label, String task,
+            Integer volumeCount) {
+        TaskList taskList = new TaskList();
+
+        // For each volume requested, pre-create a volume object/task object
+        //long lsize = SizeUtil.translateSize(size);
+        for (int i = 0; i < volumeCount; i++) {
+            Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, size, project, varray, vpool, label, i, volumeCount);
+            Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
+                    task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+            volume.getOpStatus().put(task, op);
+            TaskResourceRep volumeTask = toTask(volume, task, op);
+            taskList.getTaskList().add(volumeTask);
+            _log.info(String.format("Volume and Task Pre-creation Objects [Init]--  Source Volume: %s, Task: %s, Op: %s",
+                    volume.getId(), volumeTask.getId(), task));
+        }
+
+        return taskList;
+    }	
+	
 	   
 	    private void validateSourceVolumeHasExported(Volume requestedVolume) {
 	    	URI id = requestedVolume.getId();
@@ -1423,9 +1447,6 @@ public class VolumeService extends TaskResourceService {
 	    private static BlockServiceApi getBlockServiceImpl(VirtualPool vpool, DbClient dbClient) {
 	        // Mutually exclusive logic that selects an implementation of the block service
 	        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
-	           /* RAGA if ((VirtualPool.vPoolSpecifiesHighAvailability(vpool))) {
-	                return BlockService.getBlockServiceImpl(DiscoveredDataObject.Type.rpvplex.name());
-	            }*/
 	            return BlockService.getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
 	        } else if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
 	            return BlockService.getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());

@@ -916,6 +916,8 @@ public class StorageScheduler implements Scheduler {
                             task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
                     volume.getOpStatus().put(task, op);
                     TaskResourceRep volumeTask = toTask(volume, task, op);
+                    _log.debug("RAGA  VolumeTask ={}", volumeTask);
+                    _log.debug("RAGA  taskList size ={}", taskList.getTaskList().size());
                     // This task addition is inconsequential since we've already returned the source volume tasks.
                     // It is good to continue to have a task associated with this volume AND store its status in the volume.
                     taskList.getTaskList().add(volumeTask);

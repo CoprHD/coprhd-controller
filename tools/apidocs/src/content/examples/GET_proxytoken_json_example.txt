@@ -1,0 +1,9 @@
+GET https://192.168.0.0:4443/proxytoken HTTP/1.1
+
+Content-Type: application/json 
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/json
+X-SDS-AUTH-PROXY-TOKEN: <PROXY_AUTH_TOKEN>

@@ -8,8 +8,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -22,7 +22,6 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -69,7 +68,7 @@ public class VplexBackendIngestionContext {
     private VPlexResourceInfo topLevelDevice;
     private List<UnManagedVolume> unmanagedBackendVolumes;
     private List<UnManagedVolume> unmanagedSnapshots;
-    private Map<UnManagedVolume, UnManagedVolume> unmanagedFullClones;
+    private Map<UnManagedVolume, Set<UnManagedVolume>> unmanagedVplexClones;
     private Map<UnManagedVolume, Set<UnManagedVolume>> unmanagedBackendOnlyClones;
     private Map<UnManagedVolume, String> unmanagedMirrors;
     private Map<String, Map<String, VPlexDeviceInfo>> mirrorMap;
@@ -109,6 +108,7 @@ public class VplexBackendIngestionContext {
         this.getUnmanagedBackendVolumes();
         this.getUnmanagedVplexMirrors();
         this.getUnmanagedVplexClones();
+        this.getUnmanagedBackendOnlyClones();
     }
 
     /**
@@ -293,7 +293,7 @@ public class VplexBackendIngestionContext {
             backendVolumeWwnToInfoMap =
                     VPlexControllerUtils.getStorageVolumeInfoForDevice(
                             getSupportingDeviceName(), getLocality(), getClusterName(), false,
-                            _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
+                            getVplexUri(), _dbClient);
             success = true;
         } catch (VPlexApiException ex) {
             _logger.warn("failed to find wwn to storage volume map on "
@@ -314,7 +314,7 @@ public class VplexBackendIngestionContext {
                     backendVolumeWwnToInfoMap =
                             VPlexControllerUtils.getStorageVolumeInfoForDevice(
                                     getSupportingDeviceName(), getLocality(), getClusterName(), hasMirror,
-                                    _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
+                                    getVplexUri(), _dbClient);
                     success = true;
                 } catch (VPlexApiException ex) {
                     String reason = "could not determine backend storage volumes for "
@@ -418,27 +418,21 @@ public class VplexBackendIngestionContext {
         _logger.info("getting unmanaged backend-only clones");
         unmanagedBackendOnlyClones = new HashMap<UnManagedVolume, Set<UnManagedVolume>>();
 
-        for (UnManagedVolume sourceVolume : getUnmanagedBackendVolumes()) {
-            Set<UnManagedVolume> backendClonesFound = new HashSet<UnManagedVolume>();
-            backendClonesFound.addAll(getUnManagedClones(sourceVolume));
-            if (!backendClonesFound.isEmpty()) {
-                for (UnManagedVolume foundClone : backendClonesFound) {
-                    boolean addIt = true;
-                    // we need to check if this backend-only clone has a 
-                    // virtual volume in front of it, and if so, it should
-                    // be considered a "full clone" and be excluded from this
-                    // backend-only clone collection
-                    if (!getUnmanagedVplexClones().isEmpty()) {
-                        for (UnManagedVolume knownClone : getUnmanagedVplexClones().keySet()) {
-                            if (knownClone.getId().toString().equals(foundClone.getId().toString())) {
-                                _logger.info("clone {} is already part of a full (virtual volume) clone, "
-                                        + "excluding it from backend-only clones", knownClone.getLabel());
-                                addIt = false;
-                            }
+        for (UnManagedVolume backendVolume : getUnmanagedBackendVolumes()) {
+            List<UnManagedVolume> clonesForThisVolume = getUnManagedClones(backendVolume);
+            if (clonesForThisVolume != null) {
+                for (UnManagedVolume clone : clonesForThisVolume) {
+                    String parentVvol = extractValueFromStringSet(
+                            SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), 
+                            clone.getVolumeInformation());
+                    if (parentVvol == null || parentVvol.isEmpty()) {
+                        if (!unmanagedBackendOnlyClones.containsKey(backendVolume)) {
+                            Set<UnManagedVolume> cloneSet = new HashSet<UnManagedVolume>();
+                            unmanagedBackendOnlyClones.put(backendVolume, cloneSet);
                         }
-                    }
-                    if (addIt) {
-                        unmanagedBackendOnlyClones.put(sourceVolume, backendClonesFound);
+                        _logger.info("could not find a parent virtual volume for backend clone {}", 
+                                clone.getLabel());
+                        unmanagedBackendOnlyClones.get(backendVolume).add(clone);
                     }
                 }
             }
@@ -461,139 +455,39 @@ public class VplexBackendIngestionContext {
      * 
      * @return a Map of UnManagedVolume backend objects to UnManagedVolume front-end objects
      */
-    public Map<UnManagedVolume, UnManagedVolume> getUnmanagedVplexClones() {
-        if (null != unmanagedFullClones) {
-            return unmanagedFullClones;
+    public Map<UnManagedVolume, Set<UnManagedVolume>> getUnmanagedVplexClones() {
+        if (null != unmanagedVplexClones) {
+            return unmanagedVplexClones;
         }
 
-        if (!isDiscoveryInProgress()) {
-            // first check the database for this unmanaged volume's backend full clones
-            StringSet fullCloneMap = extractValuesFromStringSet(
-                    SupportedVolumeInformation.VPLEX_FULL_CLONE_MAP.toString(),
-                    _unmanagedVirtualVolume.getVolumeInformation());
-            if (null != fullCloneMap && !fullCloneMap.isEmpty()) {
-                _logger.info("checking the database for full clone map");
-                for (String fullCloneEntry : fullCloneMap) {
-                    
-                    // extract 'n' parse the full clone info from the database
-                    // pair[0] contains the id of the backend clone (backendClone)
-                    // pair[1] contains the id of the front end virtual volume clone (vvolClone)
-                    String[] pair = fullCloneEntry.split("=");
-                    UnManagedVolume backendClone = null;
-                    UnManagedVolume vvolClone = null;
-                    
-                    // fetch of the UnManagedVolume objects
-                    URIQueryResultList unManagedVolumeList = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                            .getVolumeInfoNativeIdConstraint(pair[0]), unManagedVolumeList);
-                    if (unManagedVolumeList.iterator().hasNext()) {
-                        backendClone = _dbClient.queryObject(UnManagedVolume.class,
-                                unManagedVolumeList.iterator().next());
-                    }
-                    unManagedVolumeList = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                            .getVolumeInfoNativeIdConstraint(pair[1]), unManagedVolumeList);
-                    if (unManagedVolumeList.iterator().hasNext()) {
-                        vvolClone = _dbClient.queryObject(UnManagedVolume.class,
-                                unManagedVolumeList.iterator().next());
-                    }
-                    if (null == unmanagedFullClones) {
-                        unmanagedFullClones = new HashMap<UnManagedVolume, UnManagedVolume>();
-                    }
-                    
-                    // put in the clone map that will return from this method
-                    unmanagedFullClones.put(backendClone, vvolClone);
-                }
-                if (null != unmanagedFullClones && !unmanagedFullClones.isEmpty()) {
-                    _logger.info("found full clones: " + unmanagedFullClones);
-                    return unmanagedFullClones;
-                }
-            }
-        }
-
-        // if they couldn't be found in the database,
-        // we will query the VPLEX API for this information
         long start = System.currentTimeMillis();
-        _logger.info("getting unmanaged full clones");
-        unmanagedFullClones = new HashMap<UnManagedVolume, UnManagedVolume>();
+        _logger.info("getting unmanaged full virtual volume clones");
+        unmanagedVplexClones = new HashMap<UnManagedVolume, Set<UnManagedVolume>>();
 
-        // if we're in discovery only mode, don't check again during ingestion
-        if (isIngestionInProgress() && isInDiscoveryOnlyMode()) {
-            return unmanagedFullClones;
-        }
-
-        List<UnManagedVolume> backendClonesFound = new ArrayList<UnManagedVolume>();
-        for (UnManagedVolume sourceVolume : getUnmanagedBackendVolumes()) {
-            backendClonesFound.addAll(getUnManagedClones(sourceVolume));
-        }
-
-        if (backendClonesFound.isEmpty()) {
-            _logger.info("no clones found for source volumes: " + getUnmanagedBackendVolumes());
-        } else {
-
-            Map<String, URI> deviceToUnManagedVolumeMap = getVplexDeviceToUnManagedVolumeMap();
-
-            for (UnManagedVolume backendClone : backendClonesFound) {
-                String volumeNativeId = extractValueFromStringSet(
-                        SupportedVolumeInformation.NATIVE_ID.toString(),
-                        backendClone.getVolumeInformation());
-
-                StorageSystem backendSystem =
-                        _dbClient.queryObject(StorageSystem.class, backendClone.getStorageSystemUri());
-
-                String deviceName = VPlexControllerUtils.getDeviceNameForStorageVolume(
-                        volumeNativeId, backendClone.getWwn(), backendSystem.getSerialNumber(),
-                        _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
-
-                if (null != deviceName) {
-                    _logger.info("found device name {} for native id {}", deviceName, volumeNativeId);
-                    URI umvUri = deviceToUnManagedVolumeMap.get(deviceName);
-                    if (null != umvUri) {
-                        // virtualVolumeClone is the UnManagedVolume that is the front-end of this full clone
-                        // backendClone is the UnManagedVolume that is the backend volume for virtualVolumeClone
-                        UnManagedVolume virtualVolumeClone = _dbClient.queryObject(UnManagedVolume.class, umvUri);
-                        if (null != virtualVolumeClone) {
-                            
-                            // 1. add a mapping for the backend to the frontend UnManagedVolumes of the full clone
-                            _logger.info("adding mapping for backend clone {} to vvol clone {)",
-                                        backendClone, virtualVolumeClone);
-                            unmanagedFullClones.put(backendClone, virtualVolumeClone);
-                            
-                            // 2. remove the backend-clone from the backend-only clone collection
-                            _logger.info("   because this clone has a virtual volume "
-                                    + "in front of it, removing from backend only clone set");
-                            Iterator<Entry<UnManagedVolume, Set<UnManagedVolume>>> backendOnlyCloneEntries =
-                                    getUnmanagedBackendOnlyClones().entrySet().iterator();
-                            while (backendOnlyCloneEntries.hasNext()) {
-                                Entry<UnManagedVolume, Set<UnManagedVolume>> backendCloneEntry = 
-                                        backendOnlyCloneEntries.next();
-                                if (backendCloneEntry.getKey().getId().toString().equals(
-                                        backendClone.getId().toString())) {
-                                    getUnmanagedBackendOnlyClones().remove(backendCloneEntry.getKey());
-                                }
-                            }
-                        }
+        for (UnManagedVolume backendVolume : getUnmanagedBackendVolumes()) {
+            List<UnManagedVolume> clonesForThisVolume = getUnManagedClones(backendVolume);
+            if (clonesForThisVolume != null) {
+                for (UnManagedVolume clone : clonesForThisVolume) {
+                    if (!unmanagedVplexClones.containsKey(backendVolume)) {
+                        Set<UnManagedVolume> cloneSet = new HashSet<UnManagedVolume>();
+                        unmanagedVplexClones.put(backendVolume, cloneSet);
                     }
-                } else {
-                    _logger.info("could not determine supporting device name for native id " + volumeNativeId);
+                    String parentVvol = extractValueFromStringSet(
+                            SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), 
+                            clone.getVolumeInformation());
+                    if (parentVvol != null && !parentVvol.isEmpty()) {
+                        _logger.info("found parent virtual volume {} for backend clone {}", 
+                                parentVvol, clone.getLabel());
+                        unmanagedVplexClones.get(backendVolume).add(clone);
+                    }
                 }
             }
         }
 
-        _logger.info("unmanaged full clones found: " + unmanagedFullClones);
-        _tracker.fetchFullClones = System.currentTimeMillis() - start;
-        if (!unmanagedFullClones.isEmpty()) {
-            StringSet cloneEntries = new StringSet();
-            for (Entry<UnManagedVolume, UnManagedVolume> cloneEntry : unmanagedFullClones.entrySet()) {
-                cloneEntries.add(cloneEntry.getKey().getNativeGuid() + "=" + cloneEntry.getValue().getNativeGuid());
-            }
-            if (cloneEntries != null && !cloneEntries.isEmpty()) {
-                _logger.info("setting VPLEX_FULL_CLONE_MAP: " + cloneEntries);
-                _unmanagedVirtualVolume.putVolumeInfo(SupportedVolumeInformation.VPLEX_FULL_CLONE_MAP.name(), cloneEntries);
-            }
-        }
+        _logger.info("unmanaged full virtual volume clones found: " + unmanagedVplexClones);
+        _tracker.fetchVplexClones = System.currentTimeMillis() - start;
 
-        return unmanagedFullClones;
+        return unmanagedVplexClones;
     }
 
     /**
@@ -897,8 +791,7 @@ public class VplexBackendIngestionContext {
         _logger.info("getting top level device");
         topLevelDevice = VPlexControllerUtils.getDeviceInfo(
                 getSupportingDeviceName(), getLocality(),
-                getUnmanagedVirtualVolume().getStorageSystemUri(),
-                _dbClient);
+                getVplexUri(), _dbClient);
 
         _logger.info("top level device is: " + topLevelDevice);
         _tracker.fetchTopLevelDevice = System.currentTimeMillis() - start;
@@ -1236,7 +1129,7 @@ public class VplexBackendIngestionContext {
      * @return a Map of backend supporting device name to its UnManagedVolume
      */
     public Map<String, URI> getVplexDeviceToUnManagedVolumeMap() {
-        URI vplexUri = _unmanagedVirtualVolume.getStorageSystemUri();
+        URI vplexUri = getVplexUri();
         Iterator<UnManagedVolume> allUnmanagedVolumes = null;
         long dingleTimer = new Date().getTime();
         Map<String, URI> deviceToUnManagedVolumeMap = new HashMap<String, URI>();
@@ -1292,7 +1185,7 @@ public class VplexBackendIngestionContext {
         if (null == distributedDevicePathToClusterMap) {
             distributedDevicePathToClusterMap = 
                 VPlexControllerUtils.getDistributedDevicePathToClusterMap(
-                        getUnmanagedVirtualVolume().getStorageSystemUri(), _dbClient);
+                        getVplexUri(), _dbClient);
         }
         
         return distributedDevicePathToClusterMap;
@@ -1309,6 +1202,26 @@ public class VplexBackendIngestionContext {
         this.distributedDevicePathToClusterMap = distributedDevicePathToClusterMap;
     }
 
+    /**
+     * Returns the URI of the VPLEX containing the UnManagedVolume of this context.
+     * 
+     * @return a VPLEX device URI
+     */
+    public URI getVplexUri() {
+        return getUnmanagedVirtualVolume().getStorageSystemUri();
+    }
+    
+    /**
+     * Validates the structure of the supporting device for acceptable structures
+     * that can be ingested.
+     */
+    public void validateSupportingDeviceStructure() {
+        _logger.info("validating the supporting device structure of " + getSupportingDeviceName());
+        VPlexControllerUtils.validateSupportingDeviceStructure(
+                getSupportingDeviceName(), getVplexUri(), _dbClient);
+    }
+    
+    
     /**
      * Returns the performance report string.
      * 
@@ -1327,7 +1240,7 @@ public class VplexBackendIngestionContext {
         public long fetchBackendVolumes = 0;
         public long fetchSnapshots = 0;
         public long fetchBackendOnlyClones = 0;
-        public long fetchFullClones = 0;
+        public long fetchVplexClones = 0;
         public long fetchMirrors = 0;
         public long fetchTopLevelDevice = 0;
 
@@ -1339,7 +1252,7 @@ public class VplexBackendIngestionContext {
             report.append("\tfetch backend volumes: ").append(fetchBackendVolumes).append("ms\n");
             report.append("\tfetch snapshots: ").append(fetchSnapshots).append("ms\n");
             report.append("\tfetch backend clones: ").append(fetchBackendOnlyClones).append("ms\n");
-            report.append("\tfetch full clones: ").append(fetchFullClones).append("ms\n");
+            report.append("\tfetch full clones: ").append(fetchVplexClones).append("ms\n");
             report.append("\tfetch mirrors: ").append(fetchMirrors).append("ms\n");
             report.append("\tfetch top-level device: ").append(fetchTopLevelDevice).append("ms\n");
 

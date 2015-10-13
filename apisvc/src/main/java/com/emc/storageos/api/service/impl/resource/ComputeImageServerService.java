@@ -324,18 +324,11 @@ public class ComputeImageServerService extends TaskResourceService {
                 imageServer.setLabel(param.getName());
             }
             if (StringUtils.isNotBlank(imageServerAddress)
-                    && !imageServerAddress
-                            .equalsIgnoreCase(imageServer.getImageServerIp())) {
-                checkDuplicateImageServer(id, imageServerAddress, imageServerName);
-                if (!CollectionUtils.isEmpty(availImages)
-                        && !imageServer.getImageServerIp().equals(
-                                imageServerAddress)) {
-                    log.info("Cannot update imageServer IP, while "
-                            + "an image server has associated successful import images.");
-                    throw APIException.badRequests.cannotUpdateImageServerIP();
-                } else {
-                    imageServer.setImageServerIp(imageServerAddress);
-                }
+                    && !imageServerAddress.equalsIgnoreCase(imageServer
+                            .getImageServerIp())) {
+                checkDuplicateImageServer(id, imageServerAddress, null);
+                disassociateComputeImages(imageServer);
+                imageServer.setImageServerIp(imageServerAddress);
             }
             if(StringUtils.isNotBlank(osInstallAddress)){
                 imageServer.setImageServerSecondIp(osInstallAddress);
@@ -366,7 +359,7 @@ public class ComputeImageServerService extends TaskResourceService {
                     null, imageServer.getId().toString(),
                     imageServer.getImageServerIp());
 
-            _dbClient.persistObject(imageServer);
+            _dbClient.updateObject(imageServer);
 
             ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
             String taskId = UUID.randomUUID().toString();
@@ -487,7 +480,7 @@ public class ComputeImageServerService extends TaskResourceService {
                         computeSystem
                                 .setComputeImageServer(NullColumnValueGetter
                                         .getNullURI());
-                        _dbClient.persistObject(computeSystem);
+                        _dbClient.updateObject(computeSystem);
                         log.info(
                                 "Disassociating imageServer {} from ComputeSystem id {} ",
                                 imageServerID, computeSystem.getId());
@@ -529,4 +522,24 @@ public class ComputeImageServerService extends TaskResourceService {
         }
     }
 
+    /**
+     * Remove computeImage associations (both success image and failed images
+     * associations)for a given imageServer
+     *
+     * @param imageServer {@link ComputeImageServer} instance
+     */
+    private void disassociateComputeImages(ComputeImageServer imageServer) {
+        StringSet successImages = imageServer.getComputeImages();
+        if (!CollectionUtils.isEmpty(successImages)) {
+            for (String image : successImages) {
+                imageServer.getComputeImages().remove(image);
+            }
+        }
+        StringSet failedImages = imageServer.getFailedComputeImages();
+        if (!CollectionUtils.isEmpty(failedImages)) {
+            for (String image : failedImages) {
+                imageServer.getFailedComputeImages().remove(image);
+            }
+        }
+    }
 }

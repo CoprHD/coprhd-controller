@@ -41,5 +41,4 @@
     <bean id="networkIpAddress" class="java.lang.String">
         <constructor-arg type="java.lang.String" value="${network_ipaddr_effective}" />
     </bean>
-
 </beans>

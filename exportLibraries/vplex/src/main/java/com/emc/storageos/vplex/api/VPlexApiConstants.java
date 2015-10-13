@@ -57,6 +57,7 @@ public class VPlexApiConstants {
     public static final URI URI_CLUSTERS_RELATIVE = URI.create("/clusters/");
     public static final URI URI_STORAGE_SYSTEMS = URI.create("/storage-elements/storage-arrays/");
     public static final URI URI_STORAGE_VOLUMES = URI.create("/storage-elements/storage-volumes/");
+    public static final URI URI_STORAGE_VOLUMES_DETAILS = URI.create("/storage-elements/storage-volumes/*");
     public static final URI URI_SYSTEM_VOLUMES = URI.create("/system-volumes/");
     public static final URI URI_EXTENTS = URI.create("/storage-elements/extents/");
     public static final URI URI_DEVICES = URI.create("/devices/");
@@ -69,6 +70,7 @@ public class VPlexApiConstants {
     public static final URI URI_DISTRIBUTED_DEVICES = URI.create("/vplex/distributed-storage/distributed-devices/");
     public static final URI URI_CLAIM_VOLUME = URI.create("/vplex/storage-volume+claim");
     public static final URI URI_UNCLAIM_VOLUME = URI.create("/vplex/storage-volume+unclaim");
+    public static final URI URI_STORAGE_VOLUME_USED_BY = URI.create("/vplex/storage-volume+used-by");
     public static final URI URI_CREATE_EXTENT = URI.create("/vplex/extent+create");
     public static final URI URI_DESTROY_EXTENT = URI.create("/vplex/extent+destroy");
     public static final URI URI_CREATE_LOCAL_DEVICE = URI.create("/vplex/local-device+create");
@@ -114,6 +116,7 @@ public class VPlexApiConstants {
     public static final URI URI_INVALIDATE_VOLUME_CACHE = URI.create("/vplex/virtual-volume+cache-invalidate");
     public static final URI URI_INVALIDATE_VOLUME_CACHE_STATUS = URI.create("/vplex/virtual-volume+cache-invalidate-status");
     public static final URI URI_DEVICE_DETACH_MIRROR = URI.create("/vplex/device+detach-mirror");
+    public static final URI URI_DEVICE_COLLAPSE = URI.create("/vplex/device+collapse");
     public static final URI URI_REFRESH_CONTEXT = URI.create("/vplex/ls");
 
     // Keys found in JSON responses to HTTP requests
@@ -131,6 +134,7 @@ public class VPlexApiConstants {
     public static final String REBUILD_STATUS_ERROR = "error";
     public static final String ATTRIBUTE_CG_RP_ENABLED = "recoverpoint-enabled";
     public static final String ATTRIBUTE_CG_AUTO_RESUME = "auto-resume-at-loser";
+    public static final String ATTRIBUTE_DEVICE_VISIBILITY = "visibility";
     public static final String EXCEPTION_MSG_JSON_KEY = "exception";
 
     // Constant defines the JSON key for arguments passed as POST data in
@@ -159,6 +163,8 @@ public class VPlexApiConstants {
     public static final String ARG_PAUSED = "--paused";
     public static final String ARG_DISCARD = "--discard";
     public static final String ARG_GEOMETRY_RAID0 = "raid-0";
+    public static final String ARG_GEOMETRY_RAID1 = "raid-1";
+    public static final String ARG_GEOMETRY_RAIDC = "raid-C";
     public static final String ARG_UNCLAIM = "--unclaim-storage-volumes";
     public static final String ARG_APPC = "--appc";
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";
@@ -175,6 +181,11 @@ public class VPlexApiConstants {
     // Virtual Volume Locality
     public static final String LOCAL_VIRTUAL_VOLUME = "local";
     public static final String DISTRIBUTED_VIRTUAL_VOLUME = "distributed";
+
+    public static final String LOCAL_DEVICE = "local";
+
+    // Virtual Volume VPD-ID
+    public static final String VOLUME_WWN_PREFIX = "VPD83T3:";
 
     // The prefix and suffix VPlex applies to an extent when created
     // for a storage volume. Note that the suffix implies that only
@@ -229,6 +240,9 @@ public class VPlexApiConstants {
 
     // Type for a system volume that is a logging volume
     public static final String LOGGING_VOLUME_TYPE = "logging-volume";
+
+    // Component type for a storage volume
+    public static final String STORAGE_VOLUME_TYPE = "storage-volume";
 
     // When trying to find storage volumes these parameters control how
     // long we will try and find those volumes before giving up.

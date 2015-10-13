@@ -38,6 +38,7 @@ import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -57,6 +58,8 @@ import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.services.util.SysUtils;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.sys.ClusterInfo;
@@ -93,7 +96,7 @@ public class DisasterRecoveryServiceTest {
         
         // setup local VDC
         localVDC = new VirtualDataCenter();
-        localVDC.setId(URIUtil.createId(VirtualDataCenter.class));
+        localVDC.setId(URI.create("urn:storageos:VirtualDataCenter:a81058b2-a241-4a77-a89a-d9402d80ea55:vdc1"));
         
         standby = new SiteConfigRestRep();
         standby.setClusterStable(true);
@@ -108,19 +111,19 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr1", "10.247.101.111");
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
-        standbySite1.setState(SiteState.ACTIVE);
+        standbySite1.setState(SiteState.PRIMARY);
         standbySite1.setVdc(localVDC.getId());
         
 
         standbySite2 = new Site();
         standbySite2.setUuid("site-uuid-2");
-        standbySite2.setState(SiteState.ACTIVE);
+        standbySite2.setState(SiteState.STANDBY_SYNCED);
         standbySite2.setVdc(localVDC.getId());
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
         standbySite3.setVdc(new URI("fake-vdc-id"));
-        standbySite3.setState(SiteState.ACTIVE);
+        standbySite3.setState(SiteState.PRIMARY);
         standbySite3.setVdc(localVDC.getId());
 
         primarySiteParam = new SiteParam();
@@ -202,7 +205,7 @@ public class DisasterRecoveryServiceTest {
         newAdded.setUuid(uuid);
         newAdded.setVip(vip);
         newAdded.getHostIPv4AddressMap().put("vipr1", "1.1.1.1");
-        newAdded.setState(SiteState.ACTIVE);
+        newAdded.setState(SiteState.PRIMARY);
         doReturn(newAdded.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, newAdded.getUuid());
 
         // mock checking and validating methods
@@ -261,7 +264,50 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testRemoveStandby() {
-        //TODO this test case will be add when implement detach standby feature
+        String invalidSiteId = "invalid_site_id";
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
+                standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
+                standbySite2.getUuid());
+
+        doReturn(localVDC).when(drService).queryLocalVDC();
+        doNothing().when(coordinator).persistServiceConfiguration(any(Configuration.class));
+        doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
+        doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
+
+        SiteRestRep response = drService.removeStandby(standbySite2.getUuid());
+    }
+
+    @Test
+    public void testPauseStandby() {
+        String invalidSiteId = "invalid_site_id";
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
+                standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
+                standbySite2.getUuid());
+        doReturn(null).when(coordinator).queryConfiguration(Site.CONFIG_KIND, invalidSiteId);
+
+        try {
+            // primary site
+            drService.pauseStandby(standbySite1.getUuid());
+        } catch (APIException e) {
+            assertEquals(e.getServiceCode(), ServiceCode.API_BAD_REQUEST);
+        }
+        
+        try {
+            drService.pauseStandby(invalidSiteId);
+        } catch (APIException e) {
+            assertEquals(e.getServiceCode(), ServiceCode.API_PARAMETER_INVALID);
+        }
+        
+        doReturn(localVDC).when(drService).queryLocalVDC();
+        doNothing().when(coordinator).persistServiceConfiguration(any(Configuration.class));
+        doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
+        doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
+        
+        SiteRestRep response = drService.pauseStandby(standbySite2.getUuid());
+        
+        assertEquals(response.getState(), SiteState.STANDBY_PAUSED.toString());
     }
     
     @Test
@@ -305,7 +351,7 @@ public class DisasterRecoveryServiceTest {
         
         doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
         Site site = new Site();
-        site.setState(SiteState.ACTIVE);
+        site.setState(SiteState.PRIMARY);
         doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, coordinator.getSiteId());
         SiteConfigRestRep response = drService.getStandbyConfig();
         compareSiteResponse(response, standbyConfig);

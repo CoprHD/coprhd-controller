@@ -69,7 +69,7 @@ public class VMWareProvider extends BaseHostProvider {
     }
 
     protected List<VcenterDataCenterRestRep> listDatacentersByVCenter(AssetOptionsContext context, URI vcenterId) {
-        return api(context).vcenterDataCenters().getByVcenter(vcenterId);
+        return api(context).vcenterDataCenters().getByVcenter(vcenterId, context.getTenant());
     }
 
     protected List<VcenterDataCenterRestRep> listDatacentersByVCenterAndCluster(AssetOptionsContext context, URI vcenterId, URI clusterId) {
@@ -77,7 +77,7 @@ public class VMWareProvider extends BaseHostProvider {
         RelatedResourceRep vcenterDatacenter = clusterRestRep.getVcenterDataCenter();
         if (vcenterDatacenter == null) {
             // return all datacenters for this datacenter
-            return api(context).vcenterDataCenters().getByVcenter(vcenterId);
+            return api(context).vcenterDataCenters().getByVcenter(vcenterId, context.getTenant());
         }
         else {
             // return the datacenter this vipr cluster is already associated with in vcenter

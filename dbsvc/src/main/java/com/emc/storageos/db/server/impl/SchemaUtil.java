@@ -7,89 +7,89 @@ package com.emc.storageos.db.server.impl;
 
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
-import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.security.password.PasswordUtils;
-import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.Cluster;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.SSLConnectionContext;
-
+import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-
-import com.netflix.astyanax.*;
+import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.Cluster;
+import com.netflix.astyanax.CassandraOperationType;
+import com.netflix.astyanax.KeyspaceTracerFactory;
 import com.netflix.astyanax.connectionpool.ConnectionContext;
 import com.netflix.astyanax.connectionpool.ConnectionPool;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.exceptions.OperationException;
-import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.ddl.ColumnFamilyDefinition;
 import com.netflix.astyanax.ddl.KeyspaceDefinition;
-import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
-import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
-
-import org.apache.cassandra.service.StorageService;
-import org.apache.cassandra.thrift.Cassandra;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.emc.storageos.db.client.impl.TimeSeriesType;
+import com.emc.storageos.db.client.impl.TypeMap;
+import com.emc.storageos.db.client.model.LongMap;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.PasswordHistory;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VdcVersion;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.db.client.DbClient;
-
-import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
+import com.emc.storageos.security.password.PasswordUtils;
 
 /**
  * Utility class for initializing DB schema from model classes
  */
 public class SchemaUtil {
     private static final Logger _log = LoggerFactory.getLogger(SchemaUtil.class);
-    private static final String SOURCE_VERSION = "1.0";
     private static final String COMPARATOR_PACKAGE = "org.apache.cassandra.db.marshal.";
-    private static final String REPLICATION_FACTOR = "replication_factor";
     private static final String DB_BOOTSTRAP_LOCK = "dbbootstrap";
     private static final String VDC_NODE_PREFIX = "node";
     private static final String GEODB_BOOTSTRAP_LOCK = "geodbbootstrap";
 
     private static final int DEFAULT_REPLICATION_FACTOR = 1;
     private static final int MAX_REPLICATION_FACTOR = 5;
-    public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
     private static final int DBINIT_RETRY_INTERVAL = 2;
     private static final int DBINIT_RETRY_MAX = 5;
 
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
-
-    private static final String KEYSPACE_SIMPLE_STRATEGY = "SimpleStrategy";
-    private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
-    private static final String DEFAULT_VDC_DB_VERSION = "2.2";
 
     private CoordinatorClient _coordinator;
     private Service _service;
@@ -263,18 +263,14 @@ public class SchemaUtil {
      * @param waitForSchema - indicate we should wait from schema from other site.
      *            false to create keyspace by our own
      */
-    public void scanAndSetupDb(boolean waitForSchema) {
+    public void scanAndSetupDb(boolean waitForSchema) throws Exception{
         int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
         int retryTimes = 0;
         while (true) {
-            AstyanaxContext<Cluster> clusterContext = null;
             _log.info("try scan and setup db ...");
             retryTimes++;
             try {
-                int replicationFactor = getReplicationFactor();
-                clusterContext = connectCluster();
-                Cluster cluster = clusterContext.getClient();
-                KeyspaceDefinition kd = cluster.describeKeyspace(_keyspaceName);
+                KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
                 if (kd == null) {
                     _log.info("keyspace not exist yet");
 
@@ -286,18 +282,27 @@ public class SchemaUtil {
                         setCurrentVersion(_service.getVersion());
 
                         // this must be a new cluster - no schema is present so we create keyspace first
-                        kd = cluster.makeKeyspaceDefinition();
-                        setStrategyOptions(kd, replicationFactor);
-                        waitForSchemaChange(cluster.addKeyspace(kd).getResult().getSchemaId(), cluster);
+                        Map<String, String> strategyOptions = new HashMap<String, String>(){{
+                            put(_vdcShortId, Integer.toString(getReplicationFactor()));
+                        }};
+                        clientContext.setCassandraStrategyOptions(strategyOptions, true);
                     }
                 } else {
-                    checkStrategyOptions(kd, cluster);
+                    _log.info("keyspace exist already");
+
+                    String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
+                    if (currentDbSchemaVersion == null && onStandby) {
+                        _log.info("set current version for standby {}", _service.getVersion());
+                        setCurrentVersion(_service.getVersion());
+                    }
+
+                    checkStrategyOptions();
                 }
 
                 // create CF's
                 if (kd != null) {
                     if (!onStandby)
-                        checkCf(kd, clusterContext);
+                        checkCf();
                     _log.info("scan and setup db schema succeed");
                     return;
                 }
@@ -308,10 +313,6 @@ public class SchemaUtil {
             } catch (IllegalStateException e) {
                 _log.warn("IllegalStateException: ", e);
                 throw e;
-            } finally {
-                if (clusterContext != null) {
-                    clusterContext.shutdown();
-                }
             }
 
             if (retryTimes > DBINIT_RETRY_MAX) {
@@ -327,95 +328,107 @@ public class SchemaUtil {
     }
 
     /**
-     * Generate Cassandra data center id. 
-     * Primary site - we use vdc short id
-     * Standby site - we use vdc short id + standby short id
-     * 
-     * @return
-     */
-    private String generateCassandraDataCenterId() {
-        return onStandby ? String.format("%s-%s",_vdcShortId,_standbyId) : _vdcShortId;
-    }
-    
-    /**
-     * Set keyspace strategy class and options for a keyspace whose name specified by
-     * _keyspaceName. New keyspace is created if it does exist.
-     * 
-     * @param keyspace
-     * @param replicas
+     * Remove paused sites from db/geodb strategy options on the primary site.
+     *
+     * @param strategyOptions
      * @return true to indicate keyspace strategy option is changed
      */
-    protected boolean setStrategyOptions(KeyspaceDefinition keyspace, int replicas) {
-        keyspace.setName(_keyspaceName);
+    private boolean excludePausedSites(Map<String, String> strategyOptions) {
+        boolean changed = false;
 
-        // Get existing strategy options if the keyspace exists
-        Map<String, String> strategyOptions = keyspace.getStrategyOptions();
-        if (isGeoDbsvc() || onStandby) {
-            String vdcShortId = generateCassandraDataCenterId();
-            _log.info("vdcList={} strategyOptions={}", _vdcList, strategyOptions);
-            if (!onStandby && _vdcList.size() == 1) {
-                // the current vdc is removed
-                strategyOptions.clear();
-            }
-
-            if (strategyOptions.containsKey(vdcShortId)) {
-                _log.info("The strategy options contains {}", vdcShortId);
-                return false;
-            }
-
-            _log.info("The strategy doesn't have {} so set it", vdcShortId);
-            if (_vdcShortId == null) {
-                _log.error("No vdc id specified for geodbsvc");
-                throw new IllegalStateException("Unexpected error. No vdc short id specified");
-            }
-
-            keyspace.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-            strategyOptions.put(vdcShortId, Integer.toString(replicas));
-        } else {
-        	// Todo - add standby to strategy options
-            keyspace.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-            strategyOptions.put(_vdcShortId, Integer.toString(replicas));
+        // this should only be done on primary site since the only standby site might be unavailable
+        // and we want the paused site to be able to resume without extra operations
+        if (onStandby) {
+            return changed;
         }
 
-        keyspace.setStrategyOptions(strategyOptions);
+        // iterate through all the sites and exclude the paused ones
+        for(Configuration config : _coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
+            Site site = new Site(config);
+            String dcId = String.format("%s-%s", _vdcShortId, site.getStandbyShortId());
+            if (site.getState().equals(SiteState.STANDBY_PAUSED) && strategyOptions.containsKey(dcId)) {
+                _log.info("Remove dc {} from strategy options", dcId);
+                strategyOptions.remove(dcId);
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    /**
+     * Add new standby site into the db/geodb strategy options on each new standby site
+     *
+     * @param strategyOptions
+     * @return true to indicate keyspace strategy option is changed
+     */
+    private boolean addNewSite(Map<String, String> strategyOptions) {
+        // no need to add new site on primary site, since dbsvc/geodbsvc are not restarted
+        if (!onStandby) {
+            return false;
+        }
+
+        String dcId = String.format("%s-%s", _vdcShortId, _standbyId);
+
+        if (strategyOptions.containsKey(dcId)) {
+            return false;
+        }
+
+        Configuration config = _coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId());
+        Site localSite = new Site(config);
+        if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
+            // don't add back the paused site
+            _log.warn("local standby site has been paused and removed from strategy options. Do nothing");
+            return false;
+        }
+
+        _log.info("Add {} to strategy options", dcId);
+        strategyOptions.put(dcId, Integer.toString(getReplicationFactor()));
+        return true;
+    }
+
+    /**
+     * Add new VDC into the geodb strategy options
+     *
+     * @param strategyOptions
+     * @return true to indicate keyspace strategy option is changed
+     */
+    private boolean addNewVdc(Map<String, String> strategyOptions) {
+        // no need to add new vdc for local db
+        // TODO: need to consider DR in future
+        if (!isGeoDbsvc()) {
+            return false;
+        }
+
+        _log.info("vdcList={}", _vdcList);
+        if (!onStandby && _vdcList.size() == 1) {
+            // the current vdc is removed
+            strategyOptions.clear();
+        }
+
+        if (strategyOptions.containsKey(_vdcShortId)) {
+            return false;
+        }
+
+        _log.info("Add {} to strategy options", _vdcShortId);
+        strategyOptions.put(_vdcShortId, Integer.toString(getReplicationFactor()));
         return true;
     }
 
     /**
      * Check keyspace strategy options for an existing keyspace and update if necessary
-     * 
-     * @param kd
-     * @param cluster
      */
-    private void checkStrategyOptions(KeyspaceDefinition kd, Cluster cluster)
-            throws ConnectionException, InterruptedException {
-        _log.info("keyspace exist already");
+    private void checkStrategyOptions() throws Exception {
+        KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
+        Map<String, String> strategyOptions = kd.getStrategyOptions();
+        _log.info("strategyOptions={}", strategyOptions);
 
-        String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
-        if (currentDbSchemaVersion == null) {
-            if (onStandby) {
-                _log.info("set current version for standby {}", _service.getVersion());
-                setCurrentVersion(_service.getVersion());
-            } else {
-                _log.info("missing current version in zk, assuming upgrade from {}", SOURCE_VERSION);
-                setCurrentVersion(SOURCE_VERSION);
-            }
-        }
+        boolean changed = excludePausedSites(strategyOptions);
+        changed |= addNewSite(strategyOptions);
+        changed |= addNewVdc(strategyOptions);
 
-        // Update keyspace strategy option
-        Map<String, String> options = kd.getStrategyOptions();
-
-        String dcId = generateCassandraDataCenterId();
-        if (isGeoDbsvc() && !options.containsKey(dcId)
-                || onStandby && !options.containsKey(dcId)) {
-            KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
-            update.setStrategyOptions(options);
-
-            boolean changed = setStrategyOptions(update, getReplicationFactor());
-
-            if (changed) {
-                waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
-            }
+        if (changed) {
+            _log.info("strategyOptions changed to {}", strategyOptions);
+            clientContext.setCassandraStrategyOptions(strategyOptions, true);
         }
     }
 
@@ -431,13 +444,11 @@ public class SchemaUtil {
     /**
      * Checks all required CF's against keyspace definition. Any missing
      * CF's are created on the fly.
-     * 
-     * @param kd
-     * @param clusterContext
+     *
      */
-    private void checkCf(KeyspaceDefinition kd, AstyanaxContext<Cluster> clusterContext)
-            throws InterruptedException, ConnectionException {
-        Cluster cluster = clusterContext.getClient();
+    private void checkCf() throws InterruptedException, ConnectionException {
+        KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
+        Cluster cluster = clientContext.getCluster();
 
         // Get default GC grace period for all index CFs in local DB
         Integer indexGcGrace = isGeoDbsvc() ? null : getIntProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD, null);
@@ -487,7 +498,7 @@ public class SchemaUtil {
                     _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace.intValue());
                     cfd.setGcGraceSeconds(cfGcGrace.intValue());
                 }
-                latestSchemaVersion = addColumnFamily(cfd, clusterContext);
+                latestSchemaVersion = addColumnFamily(cfd);
             } else {
                 boolean modified = false;
                 String existingComparator = cfd.getComparatorType();
@@ -522,13 +533,13 @@ public class SchemaUtil {
                     modified = true;
                 }
                 if (modified) {
-                    latestSchemaVersion = updateColumnFamily(cfd, clusterContext);
+                    latestSchemaVersion = updateColumnFamily(cfd);
                 }
             }
         }
 
         if (latestSchemaVersion != null) {
-            waitForSchemaChange(latestSchemaVersion, cluster);
+            clientContext.waitForSchemaChange(latestSchemaVersion);
         }
     }
 
@@ -836,12 +847,13 @@ public class SchemaUtil {
         // insert DR primary site info to ZK
         Site site = new Site();
         site.setUuid(_coordinator.getSiteId());
-        site.setName("Primary Site");
+        site.setName("Primary");
         site.setVdc(vdc.getId());
         site.setHostIPv4AddressMap(ipv4Addresses);
         site.setHostIPv6AddressMap(ipv6Addresses);
-        site.setState(SiteState.ACTIVE);
+        site.setState(SiteState.PRIMARY);
         site.setCreationTime(System.currentTimeMillis());
+        site.setVip(_vdcEndpoint);
         _coordinator.persistServiceConfiguration(site.toConfiguration());
     }
 
@@ -976,11 +988,11 @@ public class SchemaUtil {
      * Adds CF to keyspace
      * 
      * @param def
-     * @param context
      * @return
      */
     @SuppressWarnings("unchecked")
-    public String addColumnFamily(final ColumnFamilyDefinition def, AstyanaxContext<Cluster> context) {
+    public String addColumnFamily(final ColumnFamilyDefinition def) {
+        AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
         _log.info("Adding CF: {}", def.getName());
@@ -1006,12 +1018,11 @@ public class SchemaUtil {
      * Updates CF
      * 
      * @param def
-     * @param context
      * @return
      */
     @SuppressWarnings("unchecked")
-    public String updateColumnFamily(final ColumnFamilyDefinition def,
-            AstyanaxContext<Cluster> context) {
+    public String updateColumnFamily(final ColumnFamilyDefinition def) {
+        AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
         _log.info("Updating CF: {}", def.getName());
@@ -1041,8 +1052,7 @@ public class SchemaUtil {
      * @return
      */
     @SuppressWarnings("unchecked")
-    public String dropColumnFamily(final String cfName,
-            AstyanaxContext<Cluster> context) {
+    public String dropColumnFamily(final String cfName, AstyanaxContext<Cluster> context) {
         final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
         ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
         _log.info("Dropping CF: {}", cfName);
@@ -1061,123 +1071,6 @@ public class SchemaUtil {
         } catch (final ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
-    }
-
-    /**
-     * Waits for schema change to propagate through cluster
-     * 
-     * @param schemaVersion version we are waiting for
-     * @param cluster
-     * @throws InterruptedException
-     */
-    private void waitForSchemaChange(String schemaVersion, Cluster cluster) throws InterruptedException {
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
-            Map<String, List<String>> versions;
-            try {
-                versions = cluster.describeSchemaVersions();
-            } catch (final ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
-            }
-
-            _log.info("schema version to sync to: {}", schemaVersion);
-            _log.info("schema versions found: {}", versions);
-
-            if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
-                _log.info("schema version sync to: {} done", schemaVersion);
-                return;
-            }
-
-            _log.info("waiting for schema change ...");
-            Thread.sleep(1000);
-        }
-        _log.warn("Unable to sync schema version {}", schemaVersion);
-    }
-
-    public void removeVdcFromStrageOption(String shortVdcId) throws Exception {
-        AstyanaxContext<Cluster> clusterContext = null;
-        clusterContext = connectCluster();
-        Cluster cluster = clusterContext.getClient();
-        KeyspaceDefinition kd = cluster.describeKeyspace(_keyspaceName);
-        Map<String, String> strategyOptions = kd.getStrategyOptions();
-        strategyOptions.remove(shortVdcId);
-        Map<String, Object> options = new HashMap(strategyOptions.size());
-        Set<Map.Entry<String, String>> strategyOpts = strategyOptions.entrySet();
-        for (Map.Entry<String, String> opt : strategyOpts) {
-            options.put(opt.getKey(), opt.getValue());
-        }
-
-        waitForSchemaChange(cluster.updateKeyspace(options).getResult().getSchemaId(), cluster);
-    }
-
-    public void waitForStrategyOptionChange(String shortVdcId, boolean isDisconnect) throws InterruptedException {
-        AstyanaxContext<Cluster> clusterContext = connectCluster();
-
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
-            Map<String, String> options;
-            try {
-                Cluster cluster = clusterContext.getClient();
-                KeyspaceDefinition ksd = cluster.describeKeyspace(DbClientContext.GEO_KEYSPACE_NAME);
-                options = ksd.getStrategyOptions();
-
-                if (isDisconnect) {
-                    if (!options.containsKey(shortVdcId)) {
-                        _log.info("The strategy option has been changed");
-                        return;
-                    }
-                } else {
-                    // this is reconnect operation
-                    if (options.containsKey(shortVdcId)) {
-                        _log.info("The strategy option has been changed");
-                        return;
-                    }
-                }
-            } catch (final ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
-            } finally {
-                if (clusterContext != null) {
-                    clusterContext.shutdown();
-                }
-            }
-
-            _log.info("waiting for strategy option change: {}", options);
-            Thread.sleep(1000);
-        }
-    }
-
-    /**
-     * Connects to local dbsvc
-     * 
-     * @return
-     */
-    private AstyanaxContext<Cluster> connectCluster() {
-        String host = _service.getEndpoint().getHost();
-        _log.info("host: " + host);
-        CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
-        _log.info("nodeMap: " + nodeMap);
-        URI uri = nodeMap.expandURI(_service.getEndpoint());
-        _log.info("uri: " + uri);
-
-        ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(_clusterName)
-                .setMaxConnsPerHost(1)
-                .setSeeds(String.format("%1$s:%2$d", uri.getHost(),
-                        uri.getPort()));
-
-        if (clientContext.isClientToNodeEncrypted()) {
-            SSLConnectionContext sslContext = clientContext.getSSLConnectionContext();
-            cfg.setSSLConnectionContext(sslContext);
-        }
-
-        AstyanaxContext<Cluster> clusterContext = new AstyanaxContext.Builder()
-                .forCluster(_clusterName)
-                .forKeyspace(_keyspaceName)
-                .withAstyanaxConfiguration(new AstyanaxConfigurationImpl()
-                        .setRetryPolicy(new QueryRetryPolicy(10, 1000)))
-                .withConnectionPoolConfiguration(cfg)
-                .buildCluster(ThriftFamilyFactory.getInstance());
-        clusterContext.start();
-        return clusterContext;
     }
 
     /**
@@ -1256,7 +1149,7 @@ public class SchemaUtil {
     }
     
     public boolean dropUnusedCfsIfExists() {
-        AstyanaxContext<Cluster> context =  connectCluster();
+        AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         try {
             KeyspaceDefinition kd = context.getClient().describeKeyspace(_clusterName);
             if (kd == null) {
@@ -1269,7 +1162,7 @@ public class SchemaUtil {
                 if (cfd != null) {
             	    _log.info("drop cf {} from db", cfName);
             	    String schemaVersion = dropColumnFamily(cfName, context);
-                    waitForSchemaChange(schemaVersion, context.getClient());
+                    clientContext.waitForSchemaChange(schemaVersion);
                 }
             }
         } catch (Exception e){

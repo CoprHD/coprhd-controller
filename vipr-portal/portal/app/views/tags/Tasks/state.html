@@ -10,10 +10,16 @@
   else if ("PENDING".equalsIgnoreCase(state)) {
     taskState = "PENDING"
   }
+  else if ("QUEUED".equalsIgnoreCase(state)) {
+    taskState = "QUEUED"
+  }
 }%
-#{if taskState == "PENDING"}
-  <span class="glyphicon glyphicon-refresh rotate"></span> &{'resources.tasks.pending'}
+#{if taskState == "QUEUED"}
+  <span class="glyphicon glyphicon-lock"></span> &{'resources.tasks.queued'}
 #{/if}
+#{elseif taskState == "PENDING"}
+  <span class="glyphicon glyphicon-refresh rotate"></span> &{'resources.tasks.pending'}
+#{/elseif}
 #{elseif taskState == "READY"}
   <span class="glyphicon glyphicon-ok"></span> &{'resources.tasks.ready'}
 #{/elseif}

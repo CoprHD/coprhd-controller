@@ -102,6 +102,10 @@ public class DataCollectionJobUtil {
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateSMISAccessProfile(profile, (StorageProvider) taskObject);
             profile.setnamespace(Constants.IBM_NAMESPACE);
+        } else if (clazz == StorageProvider.class &&
+                StorageProvider.InterfaceType.xtremio.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
+            populateXtremIOAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageSystem.class) {
             populateAccessProfile(profile, (StorageSystem) taskObject, nameSpace);
         } else if (clazz == ProtectionSystem.class) {
@@ -323,6 +327,23 @@ public class DataCollectionJobUtil {
         accessProfile.setPortNumber(providerInfo.getPortNumber());
         accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
     }
+    
+    /**
+     * inject details needed for Scanning
+     * 
+     * @param accessProfile
+     * @param providerInfo
+     */
+    private void populateXtremIOAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
+        accessProfile.setSystemId(providerInfo.getId());
+        accessProfile.setSystemClazz(providerInfo.getClass());
+        accessProfile.setIpAddress(providerInfo.getIPAddress());
+        accessProfile.setUserName(providerInfo.getUserName());
+        accessProfile.setPassword(providerInfo.getPassword());
+        accessProfile.setSystemType(DiscoveredDataObject.Type.xtremio.name());
+        accessProfile.setPortNumber(providerInfo.getPortNumber());
+        accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
+    }
 
     /**
      * inject Details needed for Discovery
@@ -473,13 +494,7 @@ public class DataCollectionJobUtil {
             }
         } else if (storageDevice.getSystemType().equals(
                 Type.scaleio.toString())) {
-            accessProfile.setSystemType(storageDevice.getSystemType());
-            accessProfile.setIpAddress(storageDevice.getSmisProviderIP());
-            accessProfile.setUserName(storageDevice.getSmisUserName());
-            accessProfile.setserialID(storageDevice.getSerialNumber());
-            accessProfile.setPassword(storageDevice.getSmisPassword());
-            accessProfile.setPortNumber(storageDevice.getSmisPortNumber());
-            accessProfile.setLastSampleTime(0L);
+            injectDiscoveryProfile(accessProfile, storageDevice);
             if (null != nameSpace) {
                 accessProfile.setnamespace(nameSpace);
             }
@@ -495,9 +510,21 @@ public class DataCollectionJobUtil {
         } else if (storageDevice.getSystemType().equals(
                 Type.xtremio.toString())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
+            accessProfile.setIpAddress(storageDevice.getSmisProviderIP());
+            accessProfile.setUserName(storageDevice.getSmisUserName());
+
+            accessProfile.setPassword(storageDevice.getSmisPassword());
+            accessProfile.setPortNumber(storageDevice.getSmisPortNumber());
+            accessProfile.setLastSampleTime(0L);
+            if (null != nameSpace) {
+                accessProfile.setnamespace(nameSpace);
+            }
+        }  else if (storageDevice.getSystemType().equals(
+                Type.ecs.toString())) {
+            accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());
             accessProfile.setUserName(storageDevice.getUsername());
-
+            accessProfile.setserialID(storageDevice.getSerialNumber());
             accessProfile.setPassword(storageDevice.getPassword());
             accessProfile.setPortNumber(storageDevice.getPortNumber());
             accessProfile.setLastSampleTime(0L);
@@ -868,12 +895,7 @@ public class DataCollectionJobUtil {
                                                 .getRegistrationStatus())) {
                             injectReachableStatusInSystem(storageSystemInDb,
                                     null, NullColumnValueGetter.getNullURI(), false);
-                        } else {
-                            // Case 4: not registered and not managed by
-                            // provider,
-                            // delete it.
-                            // deleteUnregisteredStorageSystems(storageSystemInDb);
-                        }
+                        } 
                     }
                 }
             } catch (Exception e) {

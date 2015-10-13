@@ -49,6 +49,7 @@ public class VolumeDetachRequest {
         public String initiator;
         /** to be filled in for FC detach */
         public String[] wwpns;
+        public String[] wwnns;
         public String host;
     }
 }

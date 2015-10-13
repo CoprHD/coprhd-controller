@@ -76,6 +76,8 @@ import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
+import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
+import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.LicenseInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.WorkPool;
@@ -127,6 +129,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private NodeCacheWatcher nodeWatcher = new NodeCacheWatcher();
 
     private String siteId;
+    private DistributedAroundHook ownerLockAroundHook;
 
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
@@ -221,11 +224,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         String siteStatePath = String.format("%1$s/%2$s", sitePath, Constants.SITE_STATE);
         try {
             EnsurePath ePath = new EnsurePath(siteStatePath);
-            log.info("init site state to {}", SiteState.ACTIVE.name());
+            log.info("init site state to {}", SiteState.PRIMARY.name());
             ePath.ensure(zkConnection.curator().getZookeeperClient());
-            zkConnection.curator().setData().forPath(siteStatePath, SiteState.ACTIVE.name().getBytes());
+            zkConnection.curator().setData().forPath(siteStatePath, SiteState.PRIMARY.name().getBytes());
         } catch (Exception e) {
-            log.error("Failed to init site state {}", SiteState.ACTIVE.name());
+            log.error("Failed to init site state {}", SiteState.PRIMARY.name());
             throw e;
         }
     }
@@ -593,7 +596,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
     
     private boolean isSiteSpecific(String kind) {
-        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG) || kind.equals(SiteInfo.CONFIG_KIND) || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND)) {
+        if (kind.startsWith(Constants.GEODB_CONFIG) 
+                || kind.startsWith(Constants.DB_CONFIG) 
+                || kind.equals(SiteInfo.CONFIG_KIND) 
+                || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND) 
+                || kind.equals(PowerOffState.CONFIG_KIND)) {
             return true;
         }
         return false;
@@ -724,7 +731,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return data;
     }
 
-    protected List<Service> locateAllServices(String siteId, String name, String version, String tag,
+    @Override
+    public List<Service> locateAllServices(String siteId, String name, String version, String tag,
             String endpointKey) throws CoordinatorException {
         String serviceRoot = String.format("%1$s/%2$s", name, version);
         List<String> servicePaths = lookupServicePath(siteId, serviceRoot);
@@ -753,12 +761,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
             if (endpointKey == null) {
                 // default endpoint
-                ((ServiceImpl) service).setEndpoint(getInetAddessLookupMap().expandURI(
-                        service.getEndpoint()));
+                URI endpoint = expandEndpointURI(service.getEndpoint());
+                ((ServiceImpl) service).setEndpoint(endpoint);
             } else {
                 // swap the ip for the entry with the endpointkey in the map
-                ((ServiceImpl) service).setEndpoint(endpointKey, getInetAddessLookupMap()
-                        .expandURI(service.getEndpoint(endpointKey)));
+                URI endpoint = expandEndpointURI(service.getEndpoint(endpointKey));
+                ((ServiceImpl) service).setEndpoint(endpointKey, endpoint);
             }
             log.debug("locateAllServices->service endpoint: " + service.getEndpoint());
             filtered.add(service);
@@ -766,6 +774,20 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return Collections.unmodifiableList(filtered);
     }
 
+    /**
+     * Replace node id in endpoint URI to real Ip address. Do it for local site only 
+     * since we don't have node address map on other site
+     * 
+     * @param endpoint
+     * @return
+     */
+    private URI expandEndpointURI(URI endpoint) {
+        if (getSiteId().equals(siteId)) {
+            return getInetAddessLookupMap().expandURI(endpoint);
+        }
+        return endpoint;
+    }
+    
     @Override
     public List<Service> locateAllServices(String name, String version, String tag,
             String endpointKey) throws CoordinatorException {
@@ -809,6 +831,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 serializer, name, maxThreads);
         queue.start();
         return queue;
+    }
+
+    @Override
+    public <T> DistributedLockQueueManager getLockQueue(DistributedLockQueueTaskConsumer<T> consumer)
+            throws CoordinatorException {
+        DistributedLockQueueManager<T> lockQueue = new DistributedLockQueueManagerImpl<>(_zkConnection,
+                ZkPath.LOCKQUEUE.toString(), consumer);
+        lockQueue.start();
+        return lockQueue;
     }
 
     @Override
@@ -1543,6 +1574,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         nodeWatcher.removeListener(listener);
     }
 
+    @Override
+    public boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception {
+        Stat stat = _zkConnection.curator().checkExists().forPath(lockPath);
+        return stat == null;
+    }
+
     /**
      * To share NodeCache for listeners listening same path.
      * The empty NodeCache (counter zero) means the NodeCache should be closed.
@@ -1688,4 +1725,25 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 	public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty) {
 	    return new DistributedDoubleBarrier(_zkConnection.curator(), barrierPath, memberQty);
 	}
+
+	/**
+     * Set an instance of {@link DistributedAroundHook} that exposes the ability to wrap arbitrary code
+     * with before and after hooks that lock and unlock the owner locks "globalLock", respectively.
+     *
+     * @param ownerLockAroundHook An instance to help with owner lock management.
+     */
+    @Override
+    public void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook) {
+        this.ownerLockAroundHook = ownerLockAroundHook;
+    }
+
+    /**
+     * Gets the instance of {@link DistributedAroundHook} for owner lock management.
+     *
+     * @return An instance to help with owner lock management.
+     */
+    @Override
+    public DistributedAroundHook getDistributedOwnerLockAroundHook() {
+        return ownerLockAroundHook;
+    }
 }

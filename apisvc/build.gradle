@@ -23,13 +23,15 @@ dependencies {
             project(":security"),
             project(":processmonitor"),
             project(":serviceutils"),
-            project(":vipr-client")
+            project(":vipr-client"),
+            "com.unboundid:unboundid-ldapsdk:3.0.0"
 
     testCompile library(enunciate),
             rootProject.toolsJar,
             project(":coordinatorsvc"),
             "org.testng:testng:6.7",
             "org.mockito:mockito-all:1.9.5"
+
     testRuntime library(log4j)
     testRuntime library(commons_logging)
 }
@@ -43,9 +45,10 @@ test {
     exclude "com/emc/storageos/api/service/TrustStoreTest.class"
     exclude "com/emc/storageos/api/service/ComputeSystemServiceApiTest.class"
     exclude "com/emc/storageos/api/service/ComputeVirtualPoolTest.class"
-    exclude "com/emc/storageos/api/service/ApiTest_AuthnProviders.class"
-    exclude "com/emc/storageos/api/service/ApiTest_Tenants.class"
-    exclude "com/emc/storageos/api/service/ApiTest_UserGroup.class"
+    exclude "com/emc/storageos/api/service/ApiTestAuthnProviders.class"
+    exclude "com/emc/storageos/api/service/ApiTestTenants.class"
+    exclude "com/emc/storageos/api/service/ApiTestUserGroup.class"
+    exclude "com/emc/storageos/api/service/ApiTestVcenter.class"
 }
 
 // ./gradlew :apisvc:TrustStoreTest -PAPP_HOST_NAMES="lglw0061,lglw0062,lglw0061"
@@ -77,10 +80,12 @@ task InternalVdcApiTest(type: Test, dependsOn: compileTestJava) {
 
 // ./gradlew :apisvc:ApiTest -PAPP_HOST_NAMES="lglw0061,lglw0062,lglw0061"
 task ApiTest(type: Test, dependsOn: compileTestJava) {
+    systemProperty 'logback.configurationFile', new File(projectDir,'src/main/resources/logback-test.xml').absolutePath
     //include "com/emc/storageos/api/service/ApiTest.class"
-    include "com/emc/storageos/api/service/ApiTest_AuthnProviders.class"
-    include "com/emc/storageos/api/service/ApiTest_Tenants.class"
-    include "com/emc/storageos/api/service/ApiTest_UserGroup.class"
+    include "com/emc/storageos/api/service/ApiTestAuthnProviders.class"
+    include "com/emc/storageos/api/service/ApiTestTenants.class"
+    include "com/emc/storageos/api/service/ApiTestUserGroup.class"
+    include "com/emc/storageos/api/service/ApiTestVcenter.class"
     environment "API_TEST_VERBOSE", project.ext.has('API_TEST_VERBOSE') ? project.ext.API_TEST_VERBOSE : "true"
     environment "APP_HOST_NAMES", project.ext.has('APP_HOST_NAMES') ? project.ext.APP_HOST_NAMES : "localhost"
 }

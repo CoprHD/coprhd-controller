@@ -5,6 +5,7 @@
 package models.datatable;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
+import models.StorageSystemTypes;
 import models.SupportedResourceTypes;
 
 import org.apache.commons.lang.StringUtils;
@@ -19,6 +20,7 @@ import com.emc.vipr.client.core.util.CachedResources;
 
 public class StoragePoolDataTable extends DataTable {
 
+	protected static final String OBJECT = "object";
     public StoragePoolDataTable() {
         addColumn("name");
         addColumn("registrationStatus").setRenderFunction("render.registrationStatus");
@@ -67,6 +69,9 @@ public class StoragePoolDataTable extends DataTable {
 
             this.freeCapacity = storagePool.getFreeCapacity();
             this.subscribedCapacity = storagePool.getSubscribedCapacity();
+            if (storagePool.getPoolServiceType().equals(OBJECT)) {
+            	this.subscribedCapacity = storagePool.getUsedCapacity();
+            }
             this.totalCapacity = storagePool.getTotalCapacity();
             this.registrationStatus = storagePool.getRegistrationStatus();
             this.volumeTypes = SupportedResourceTypes.getDisplayValue(storagePool.getSupportedResourceTypes());

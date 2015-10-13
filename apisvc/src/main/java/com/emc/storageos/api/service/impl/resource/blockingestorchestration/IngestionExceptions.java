@@ -96,7 +96,7 @@ public interface IngestionExceptions {
     public IngestionException unmanagedVolumeIsNotVisible(String unManagedVolume, String taskStatus);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
-    public IngestionException unmanagedVolumeMasksNotIngested(String unManagedVolume);
+    public IngestionException unmanagedVolumeMasksNotIngested(String unManagedVolume, String messages);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException snapshotVpoolSpecifiesSrdf(String unManagedVolume);
@@ -105,7 +105,8 @@ public interface IngestionExceptions {
     public IngestionException unmanagedVolumeVolumeTypeNotSet(String unManagedVolume);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
-    public IngestionException unmanagedVolumeRDFGroupMismatch(String unManagedVolume, String umvRDFGroupName, String projectName);
+    public IngestionException unmanagedVolumeRDFGroupMismatch(String unManagedVolume, String umvRDFGroupName, String projectName,
+            String validGroupNames);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException unmanagedVolumeRDFGroupMissing(String unManagedVolume);
@@ -120,7 +121,7 @@ public interface IngestionExceptions {
     public IngestionException unmanagedVolumeVpoolTieringPolicyMismatch(String unManagedVolume, String vpool);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
-    public IngestionException varrayIsInvalidForVplexVolume(String varray, String unManagedVolume);
+    public IngestionException varrayIsInvalidForVplexVolume(String unManagedVolume, String reason);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException unmanagedVolumeHasNoStoragePool(String unManagedVolume);
@@ -142,4 +143,19 @@ public interface IngestionExceptions {
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException inconsistentZoningAcrossHosts(String messages);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException failedToIngestVplexBackend(String message);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException failedToGetStorageVolumeInfoForDevice(String supportingDeviceName, String reason);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException validationException(String reason);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException exportedVolumeIsMissingWwn(String unManagedVolume);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException vplexBackendVolumeHasNoParent(String unManagedVolume);
 }

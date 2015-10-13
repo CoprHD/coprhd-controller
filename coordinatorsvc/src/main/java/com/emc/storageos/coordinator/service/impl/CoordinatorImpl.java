@@ -75,6 +75,10 @@ public class CoordinatorImpl implements Coordinator {
             _log.error("Uncommitted data revision detected. Manual relink db/zk data directory");
             throw new RuntimeException("Uncommited data revision");
         }
+        
+        // Enable readonly mode if current node is reachable to others
+        System.setProperty("readonlymode.enabled", String.valueOf(true));
+        
         // snapshot clean up runs at regular interval and leaves desired snapshots
         // behind
         _exe.scheduleWithFixedDelay(

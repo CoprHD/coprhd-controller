@@ -10,7 +10,6 @@ import java.util.List;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.volumecontroller.TaskCompleter;
 
 /**
  * Interfaces for block snapshot operations
@@ -29,10 +28,12 @@ public interface SnapshotOperations {
      * @param storage [required] - StorageSystem object representing the array
      * @param snapshot [required] - BlockSnapshot URI representing the previously created
      *            snap for the volume
+     * @param readOnly create snapshot as read only or writable.
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      * @throws DeviceControllerException
      */
-    void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, TaskCompleter taskCompleter)
+    void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException;
 
     /**
@@ -42,10 +43,12 @@ public interface SnapshotOperations {
      * @param storage [required] - StorageSystem object representing the array
      * @param snapshotList [required] - BlockSnapshot URI representing the previously created
      *            snap for the volume
+     * @param readOnly create snapshot as read only or writable.
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      * @throws DeviceControllerException
      */
-    void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, TaskCompleter taskCompleter)
+    void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException;
 
     /**
@@ -168,4 +171,48 @@ public interface SnapshotOperations {
      */
     public void terminateAnyRestoreSessions(StorageSystem storage, BlockObject from, URI volume,
             TaskCompleter taskCompleter) throws Exception;
+
+    /**
+     * Implementation for a single volume snapshot resynchronization.
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param volume [required] - Volume URI for the volume to be resynchronized from
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
+     * @param taskCompleter - TaskCompleter object used for the updating operation status.
+     * @throws DeviceControllerException
+     */
+    void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
+
+    /**
+     * Implementation should resynchronize the set of snapshots that were taken for a set of
+     * volumes in a consistency group. That is, at some time there was a consistency
+     * group of volumes created and snapshot was taken of these; these snapshots would
+     * belong to a "snap-set". This operation will resynchronize the snap-set from the volumes
+     * in the consistency group. Any snapshot from the snap-set can be provided to resync the whole snap-set.
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param volume [required] - URI of the snapshot's parent volume
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
+     * @param taskCompleter - TaskCompleter object used for the updating operation status.
+     * @throws DeviceControllerException
+     */
+    void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
+
+
+    /**
+     * Establish group relation between volume group and snapshot group.
+     *
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param snapshot the snapshot
+     * @param taskCompleter the task completer
+     * @throws DeviceControllerException the device controller exception
+     */
+    void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException;
+
 }

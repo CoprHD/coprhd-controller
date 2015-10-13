@@ -62,7 +62,7 @@ public class OpenstackBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
             String name, boolean createInactive, int count, String taskId) {
         // Setting createInactive to true for openstack as it is not
         // needed to wait for synchronization to complete and detach.
-        return super.create(fcSourceObjList, varray, name, true, count, taskId);
+        return super.create(fcSourceObjList, varray, name, false, count, taskId);
     }
 
     /**

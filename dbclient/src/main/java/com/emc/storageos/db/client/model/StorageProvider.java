@@ -6,8 +6,8 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -30,6 +30,11 @@ import com.emc.storageos.model.valid.EnumType;
  */
 @Cf("StorageProvider")
 public class StorageProvider extends DataObject {
+
+    /**
+     * serialVersionUID
+     */
+    private static final long serialVersionUID = -860528426935487712L;
 
     private static final Logger logger = LoggerFactory.getLogger(StorageProvider.class);
 
@@ -144,7 +149,8 @@ public class StorageProvider extends DataObject {
         vplex,
         cinder,
         ibmxiv,
-        scaleioapi;
+        scaleioapi,
+        xtremio;
 
         /**
          * Gets the supported system types for the given interface type.
@@ -166,6 +172,8 @@ public class StorageProvider extends DataObject {
                 systemTypes.add(Type.datadomain.name());
             } else if (scaleioapi.equals(interfaceType)) {
                 systemTypes.add(Type.scaleio.name());
+            } else if (xtremio.equals(interfaceType)) {
+                systemTypes.add(Type.xtremio.name());
             }
             return systemTypes;
         }
@@ -503,7 +511,7 @@ public class StorageProvider extends DataObject {
             setStorageSystems(new StringSet());
         }
         getStorageSystems().add(storage.getId().toString());
-        dbClient.persistObject(this);
+        dbClient.updateAndReindexObject(this);
     }
 
     public void removeStorageSystem(DbClient dbClient, StorageSystem storage) throws DatabaseException {
@@ -514,17 +522,17 @@ public class StorageProvider extends DataObject {
         if (storage.getActiveProviderURI().equals(getId())) {
             if (null != storage.getProviders() && !storage.getProviders().isEmpty()) {
                 Iterator<String> iter = storage.getProviders().iterator();
-	            if (iter.hasNext())  {
-	                try {
-	                    storage.setActiveProviderURI(new URI(iter.next()));
-	                } catch (URISyntaxException ex) {
-	                	logger.error("URISyntaxException occurred: {}", ex.getMessage());
-	                }
-	            }
-	            else {
-	                storage.setActiveProviderURI(null);
-	            }
-        	}
+                if (iter.hasNext()) {
+                    try {
+                        storage.setActiveProviderURI(new URI(iter.next()));
+                    } catch (URISyntaxException ex) {
+                        logger.error("URISyntaxException occurred: {}", ex.getMessage());
+                    }
+                }
+                else {
+                    storage.setActiveProviderURI(null);
+                }
+            }
         }
         dbClient.persistObject(storage);
 

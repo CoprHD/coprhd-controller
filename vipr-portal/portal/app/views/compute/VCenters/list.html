@@ -1,19 +1,21 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.assets', 'nav.vcenters'] /}
 
-#{tenantSelector /}
+#{vCenterTenantSelector /}
 #{DataTable.formAction @introspect(), id:'rediscoverForm', table:'vCenter'/}
 #{DataTable.header titleKey:'VCenters.list.title'/}
 #{DataTable.baseCrudTable id:'vCenter',
                       dataTable:dataTable,
                       expandable:true,
                       deleteConfirm:messages.get('VCenters.deleteConfirm')}
-  #{DataTable.baseCrudButtonBar createHref:@create(), deleteAction:'showModalDialog()'}                    
+  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
+    #{DataTable.baseCrudButtonBar createHref:@create(), deleteAction:'showModalDialog()'}
     #{Form.button name:'button.rediscover', class:'info', icon:'repeat', submit:'rediscoverForm', 
                 data:['enabled':'selected', 'property':'discoveryStatus', 'not-value':'IN_PROGRESS']/}
   	#{Form.button name:'button.detachStorage', class:'default', icon:'hdd', submit:'detachStorageForm',
                 data:['enabled':'selected']/}  
-  #{/DataTable.baseCrudButtonBar}
+    #{/DataTable.baseCrudButtonBar}
+  #{/deadbolt.restrict}
 #{/DataTable.baseCrudTable}
 #{DataTable.expandHtml @itemDetails(':id'), table:'vCenter'/}
 #{DataTable.formAction @detachStorage(), id:'detachStorageForm', table:'vCenter', confirm:messages.get('VCenters.detachStorageConfirm')/}
@@ -40,6 +42,30 @@
   #{/Modal.dialog}
 #{/DataTable.formAction}
 
+#{Modal.dialog id:'editVcenterDataCenterDialog'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'vCenter.dataCenter.updateTenant'}</h4>
+    <p>&{'vCenter.dataCenter.updateTenant.description'}</p>
+  #{/Modal.header}
+  #{form @editVcenterDataCenter(), class: 'form form-horizontal'}
+    #{Modal.body}
+        #{field 'tenant'}
+            #{Form.selectOneControlGroup field:field /}
+        #{/field}
+        <fieldset>
+            #{field 'vcenterDataCenterId'}
+                #{Form.inputTextControlGroup field:field /}
+            #{/field}
+        </fieldset>
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Modal.buttonBar}
+        #{Form.saveButton /}
+      #{/Modal.buttonBar}
+    #{/Modal.footer}
+  #{/form}
+#{/Modal.dialog}
+
 <script type="text/javascript">
 $(document).ready(function() {
     var oTable = $('#vCenter table').dataTable();
@@ -48,6 +74,41 @@ $(document).ready(function() {
 });
 
 function showModalDialog() {
-    $('.modal').modal();
+    $(deleteVcenterDialog).modal();
 }
+
+function showDatacenterTenantUpdateDialog(id, name, dataCenterTenantId, vcenterId) {
+    $(".modal-body #vcenterDataCenterId").val( id );
+    $(".modal-body #vcenterDataCenterId").closest($("fieldset")).hide();
+
+    $(".modal-body #tenant").empty();
+
+    var vcenterTenantOptionsHandler = function(data, textStatus, jqXHR) {
+        for (var i = 0; i < data.length; i++) {
+            option ='<option value="'+data[i].id+'"';
+
+            if (dataCenterTenantId == data[i].id) {
+                option += "selected";
+            }
+
+            option += '>'+data[i].name+'</option>';
+
+            $(".modal-body #tenant").append(option);
+        }
+        $(".modal-body #tenant").trigger('chosen:updated');
+        $(".modal-body #tenant").trigger("change");
+    };
+
+    $.ajaxSetup({async: false});
+    $.get("@{getVcenterTenantOptions()}", "id="+vcenterId, vcenterTenantOptionsHandler, 'json');
+    $.ajaxSetup({async: true});
+
+    var helpText = Messages.get("vCenter.dataCenter.updateTenant.help");
+    helpText = helpText + ' ' + name;
+    $('#tenantControlGroup span.help-block').remove();
+    $('.modal-body #tenant').parent().append('<span class="help-block">'+helpText+'</span>');
+
+    $(editVcenterDataCenterDialog).modal();
+}
+
 </script>

@@ -121,10 +121,11 @@ public class Volume extends BlockObject implements ProjectResource {
         }
     }
 
-    public static enum LinkStatus {
+    public enum LinkStatus {
         FAILED_OVER("6014"),
         IN_SYNC("6002 6015"),
         SUSPENDED("6013"),
+        CONSISTENT("6111"),
         SPLIT(""),
         SWAPPED(""),
         DETACHED(""),
@@ -581,6 +582,15 @@ public class Volume extends BlockObject implements ProjectResource {
         // If the SRDF parent is set, this is an SRDF device
         return getSrdfParent() != null;
     }
+    
+    /**
+     * Checks whether the volume is a SRDF source volume or not
+     * 
+     * @return true if the volume is a SRDF source volume
+     */
+    public boolean isSRDFSource() {
+    	return (getSrdfTargets() != null && !getSrdfTargets().isEmpty());
+    }
 
     /**
      * Get all of the volumes in this SRDF set; the source and all of its targets. For a
@@ -868,5 +878,14 @@ public class Volume extends BlockObject implements ProjectResource {
             return states.get(state);
         }
 
+    }
+
+    /**
+     * Uses a field in the volume to determine if the volume is part of a CG.
+     *
+     * @return true if the volume is part of a CG
+     */
+    public boolean isInCG() {
+        return !NullColumnValueGetter.isNullURI(getConsistencyGroup());
     }
 }

@@ -46,7 +46,7 @@ public class Site {
     private Map<String, String> hostIPv6AddressMap = new HashMap<String, String>();
     private String standbyShortId = "";
     private long creationTime = 0;
-    private SiteState state = SiteState.ACTIVE;
+    private SiteState state = SiteState.PRIMARY;
     
     public Site() {
     }

@@ -10,6 +10,10 @@ FileService
 FileSnapshotService
 FileQuotaDirectoryService
 
+=Object Service
+BucketService
+ObjectVirtualPoolService
+
 =Compute Services
 ClusterService
 HostService
@@ -23,6 +27,7 @@ ComputeSystemService
 ComputeElementService
 ComputeVirtualPoolService
 ComputeImageService
+ComputeImageServerService
 
 =Virtual Data Center Services
 AuthnConfigurationService
@@ -47,6 +52,8 @@ VirtualArrayService
 VirtualDataCenterCapacityService
 VirtualDataCenterService
 UserGroupService
+VirtualNasService
+
 
 =Tenant Services
 ProjectService
@@ -90,7 +97,6 @@ com.emc.storageos.systemservices.impl.resource.UpgradeService
 
 =Other Services
 com.emc.storageos.api.service.impl.resource.AuditService
-AuthnConfigurationService
 AuthenticationResource
 FIEnablerService
 UserInfoPage

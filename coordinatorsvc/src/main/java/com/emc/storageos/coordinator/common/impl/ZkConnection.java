@@ -91,6 +91,7 @@ public class ZkConnection {
         try {
             _zkConnection = CuratorFrameworkFactory.builder().connectString(_connectString)
                     .connectionTimeoutMs(DEFAULT_CONN_TIMEOUT)
+                    .canBeReadOnly(true)
                     .sessionTimeoutMs(_timeoutMs).retryPolicy(
                             new RetryUntilElapsed(_timeoutMs, RETRY_INTERVAL_MS)).build();
             _zkConnection.getUnhandledErrorListenable().addListener(new UnhandledErrorListener() {

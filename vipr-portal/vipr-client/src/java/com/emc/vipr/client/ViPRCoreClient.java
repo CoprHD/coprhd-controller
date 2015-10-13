@@ -169,6 +169,14 @@ public class ViPRCoreClient {
         return new FileVirtualPools(this, client);
     }
 
+    public ObjectVirtualPools objectVpools() {
+        return new ObjectVirtualPools(this, client);
+    }
+    
+    public ObjectBuckets objectBuckets() {
+        return new ObjectBuckets(this, client);
+    }
+    
     public ComputeVirtualPools computeVpools() {
         return new ComputeVirtualPools(this, client);
     }
@@ -236,6 +244,10 @@ public class ViPRCoreClient {
 
     public StorageSystems storageSystems() {
         return new StorageSystems(this, client);
+    }
+    
+    public VirtualNasServers virtualNasServers() {
+        return new VirtualNasServers(this, client);
     }
 
     public StorageTiers storageTiers() {

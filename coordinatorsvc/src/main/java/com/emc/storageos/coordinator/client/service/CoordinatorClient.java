@@ -410,6 +410,13 @@ public interface CoordinatorClient {
      * @throws Exception
      */
     public <T extends CoordinatorSerializable> void persistRuntimeState(String key, T state) throws CoordinatorException;
+    
+    /**
+     * Removes runtime state of specified key.
+     * 
+     * @param key
+     */
+    public void removeRuntimeState(String key) throws CoordinatorException;
 
     /**
      * The method to identify and return the node which is currently holding the

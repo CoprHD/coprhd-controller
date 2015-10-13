@@ -732,7 +732,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         lock.close();
                     }
                 }
-                volumeURIs.add(sourceJournal.getId());
                 volumeURIs.add(standbyJournal.getId());
                 volumeInfoBuffer.append(logVolumeInfo(standbyJournal));
             }

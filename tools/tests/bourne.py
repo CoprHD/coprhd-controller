@@ -3266,39 +3266,9 @@ class Bourne:
         self.assert_is_dict(resp)
         return resp
 
-    # def dr_sync_standby(self, standby_sites, primary_site):
-    #     parms = {
-    #         'standby_sites'      : standby_sites,
-    #         'primary_site'       : primary_site,
-    #     }
-    #
-    #     print "DR SYNC STANDBY Params = ", parms
-    #     resp = self.api('PUT', URI_DR, parms, {})
-    #     print "DR SYNC STANDBY RESP = ",resp
-    #     self.assert_is_dict(resp)
-    #     return resp
-
     def dr_delete_standby(self,uri):
         resp = self.api('DELETE', URI_DR_DELETE.format(uri))
         print "DR DELETE STANDBY RESP = ",resp
-        self.assert_is_dict(resp)
-        return resp
-
-    def dr_local_config(self):
-        resp = self.api('GET', URI_DR_CONFIG)
-        print "DR LOCAL CONFIG RESP = ",resp
-        self.assert_is_dict(resp)
-        return resp
-
-    def dr_nat_check(self, ipv4, ipv6):
-        parms = {
-            'ipv4'              : ipv4,
-            'ipv6'              : ipv6
-        }
-
-        print "DR NAT CHECK Params = ", parms
-        resp = self.api('POST', URI_DR_NATCHECK, parms, {})
-        print "DR NAT CHECK RESP = ", resp
         self.assert_is_dict(resp)
         return resp
 

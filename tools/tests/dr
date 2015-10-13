@@ -44,17 +44,6 @@ def dr_delete_standby(args):
     bourne.connect(args.ip)
     bourne.dr_delete_standby(args.uuid)
 
-def dr_local_config(args):
-    bourne.connect(args.ip)
-    config=bourne.dr_local_config()
-    if args.property:
-        print config[args.property]
-
-def dr_nat_check(args):
-    bourne.connect(args.ip)
-    resp=bourne.dr_nat_check(args.ipv4, args.ipv6)
-    print resp['isNodesReachable']
-
 def wait_for_state(args):
     timeCounter = 0
     print "Waiting for standby state to become "+args.state
@@ -116,15 +105,6 @@ drgetstandby.add_argument('property', nargs='?',	help = 'return property of stan
 drdeletestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 drdeletestandby.add_argument('uuid', help = 'uuid of standby site')
 
-# dr get site config
-drgetconfig = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-drgetconfig.add_argument('property', nargs='?',        help = 'return property of standby site')
-
-# dr natcheck
-drnatchecksite = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-drnatchecksite.add_argument('--ipv4',  metavar = 'ipaddr4', help = 'uuid of standby site')
-drnatchecksite.add_argument('--ipv6',  metavar = 'ipaddr6', help = 'uuid of standby site')
-
 # "waitforsync"
 waitforsync = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 waitforsync.add_argument('uuid',		help = 'uuid of standby site')
@@ -156,12 +136,6 @@ try:
     elif (cmd == "delete"):
         args = drdeletestandby.parse_args()
         dr_delete_standby(args)
-    elif (cmd == "config"):
-        args = drgetconfig.parse_args()
-        dr_local_config(args)
-    elif (cmd == "natcheck"):
-        args = drnatchecksite.parse_args()
-        dr_nat_check(args)
     elif (cmd == "waitforstate"):
         args = waitforsync.parse_args()
         wait_for_state(args)

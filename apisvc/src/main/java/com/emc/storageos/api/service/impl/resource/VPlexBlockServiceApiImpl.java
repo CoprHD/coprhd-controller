@@ -2265,13 +2265,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 for (Volume cgVolume : cgVolumes) {
                     cgVolumesURISet.add(cgVolume.getId().toString());
                 }
-                List<URI> volumes = new ArrayList<URI>(addVolumes);
-
-                for (URI volumeURI : volumes) {
-                    if (cgVolumesURISet.contains(volumeURI.toString())) {
-                        addVolumes.remove(volumeURI);
+                Iterator<URI> iter = addVolumes.iterator();
+                while (iter.hasNext()) {
+                    if (cgVolumesURISet.contains(iter.next().toString())) {
+                         iter.remove();
                     }
                 }
+                
                 if (addVolumes.isEmpty()) {
                     // All volumes in the addVolumes list have been in the CG. return success
                     s_logger.info("The volumes have been added to the CG");

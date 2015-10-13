@@ -472,5 +472,6 @@ public interface SmisConstants {
     public static int DIFFERENTIAL_CLONE_VALUE = 5;
     public static int COPY_BEFORE_ACTIVATE = 10;
     public static int PROVISIONING_TARGET_SAME_AS_SOURCE = 5;
+    public static int SMIS810_TF_DIFFERENTIAL_CLONE_VALUE = 32770;
 
 }

@@ -195,7 +195,6 @@ public class ComputeImageServers extends ViprResourceController {
             this.osInstallTimeOut = computeImageServer.getOsInstallTimeoutMs();
             this.computeImages = computeImageServer.getComputeImages();
             this.failedImages = computeImageServer.getFailedImages();
-            System.out.println("ComputeImageServerForm computeImages " + this.failedImages.toString());
             this.password = ""; // the platform will never return the real password //NOSONAR
             // ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
         }
@@ -208,8 +207,8 @@ public class ComputeImageServers extends ViprResourceController {
             Validation.valid(fieldName, this);
             if (isNew()) {
                 Validation.required(fieldName + ".password", this.password);
-                Validation.required(fieldName + ".imageServerIp", this.imageServerIp);
                 Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
+                Validation.required(fieldName + ".imageServerIp", this.imageServerIp);
                 if (!HostNameOrIpAddressCheck.isValidIp(imageServerIp)) {
                     Validation.addError(fieldName + ".imageServerIp",
                             MessagesUtils.get("computeSystem.invalid.ipAddress"));

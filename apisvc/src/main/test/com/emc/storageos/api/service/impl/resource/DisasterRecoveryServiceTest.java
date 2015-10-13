@@ -260,6 +260,9 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testRemoveStandby() {
         String invalidSiteId = "invalid_site_id";
+        
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        
         doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
                 standbySite1.getUuid());
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
@@ -281,7 +284,9 @@ public class DisasterRecoveryServiceTest {
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
                 standbySite2.getUuid());
         doReturn(null).when(coordinator).queryConfiguration(Site.CONFIG_KIND, invalidSiteId);
-
+        
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        
         try {
             // primary site
             drService.pauseStandby(standbySite1.getUuid());

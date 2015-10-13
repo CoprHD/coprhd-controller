@@ -10,7 +10,6 @@ package com.emc.storageos.coordinator.client.model;
  * */
 public enum SiteState {
     PRIMARY, // Primary site. Eligible for all provisioning operations
-    STANDBY_ADDING, // Standby site. Adding
     STANDBY_SYNCING, // Standby site. Syncing from an active one
     STANDBY_SYNCED,  // Standby site. Synced with active one 
     STANDBY_PAUSED,  // Standby site. Replication is paused 

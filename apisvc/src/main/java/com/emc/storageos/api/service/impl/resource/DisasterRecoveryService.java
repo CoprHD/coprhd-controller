@@ -139,7 +139,7 @@ public class DisasterRecoveryService {
             String shortId = generateShortId(existingSites);
             standbySite.setStandbyShortId(shortId);
             standbySite.setDescription(param.getDescription());
-            standbySite.setState(SiteState.STANDBY_ADDING);
+            standbySite.setState(SiteState.STANDBY_SYNCING);
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }
@@ -728,7 +728,7 @@ public class DisasterRecoveryService {
         }
 
         private void setSiteError(Site site) {
-            if (SiteState.STANDBY_ADDING.equals(site.getState())
+            if (SiteState.STANDBY_SYNCING.equals(site.getState())
                     && (new Date()).getTime() - site.getCreationTime() > STANDBY_ADD_TIMEOUT) {
                 log.info("site state of {} be set to error", site.getName());
                 SiteError error = new SiteError(SiteError.ERROR_DESCRIPTION_ADD,

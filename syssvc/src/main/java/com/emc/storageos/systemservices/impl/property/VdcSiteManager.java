@@ -32,10 +32,9 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.util.VdcConfigUtil;
-import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Exec;
@@ -710,9 +709,7 @@ public class VdcSiteManager extends AbstractManager {
         String siteId = coordinator.getCoordinatorClient().getSiteId();
         for (Site site : sites) {
             if (site.getUuid().equals(siteId)) {
-                if (site.getState().equals(SiteState.STANDBY_ADDING)) {
-                    populateStandbySiteErrorIfNecessary(site, SiteError.ERROR_DESCRIPTION_ADD, e);
-                } else if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
+                if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
                     populateStandbySiteErrorIfNecessary(site, SiteError.ERROR_DESCRIPTION_REMOVE, e);
                 }
                 
@@ -721,11 +718,6 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
     
-    /**
-     * set standby site error to ZK
-     * 
-     * @return
-     */
     private void populateStandbySiteErrorIfNecessary(Site site, String description, Exception e) {
         SiteError error = new SiteError(description, e.getMessage());
         
@@ -745,18 +737,12 @@ public class VdcSiteManager extends AbstractManager {
         
         log.info("site: {}", site.toString());
         
-        if (site.getState().equals(SiteState.STANDBY_ADDING) && site.getState().equals(SiteState.STANDBY_REMOVING)) {
+        if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
             log.info("Cleanup site error");
             SiteError siteError = coordinator.getCoordinatorClient().getTargetInfo(siteId, SiteError.class);
             siteError.cleanup();
             
             coordinator.getCoordinatorClient().setTargetInfo(siteId, siteError);
-        }
-        
-        if (site.getState().equals(SiteState.STANDBY_ADDING)) {
-            log.info("Set site state from adding to syncing");
-            site.setState(SiteState.STANDBY_SYNCING);
-            coordinator.getCoordinatorClient().persistServiceConfiguration(siteId, site.toConfiguration());
         }
     }
 }

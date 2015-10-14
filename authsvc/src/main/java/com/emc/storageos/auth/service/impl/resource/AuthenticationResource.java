@@ -282,6 +282,8 @@ public class AuthenticationResource {
             newService += "#" + uriObject.getFragment();
         }
 
+        newService = SecurityUtils.stripXSS(newService);
+
         _log.debug("Updated service = " + newService);
         return URI.create(newService);
     }

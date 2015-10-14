@@ -3176,75 +3176,69 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         String copyName = param.getName();
         String internalSiteName = null;
-        String sourceInternalSiteName = null;
         boolean isSource = false;
-        boolean isMPStandby = false;
         boolean isTarget = false;
+        boolean isMPStandby = copyName.contains("Standby");
         List<Volume> cgVolumes = RPHelper.getCgVolumes(consistencyGroup.getId(), _dbClient);
         if (cgVolumes.isEmpty()) {
             throw APIException.badRequests.noExistingVolumesInCG(consistencyGroup.getId().toString());
         }
 
+        // get the list of source and target volumes; for metropoint, source volumes include both sides of the source metro volume
+        List<Volume> sourceVolumes = new ArrayList<Volume>();
+        List<Volume> targetVolumes = new ArrayList<Volume>();
         for (Volume cgVolume : cgVolumes) {
-            if (cgVolume.getPersonality() != null) {
-                if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
-                    sourceInternalSiteName = cgVolume.getInternalSiteName();
-                    if (_rpHelper.isMetroPointVolume(cgVolume)) {
-                        // we need to add mp standby copy to the list of Volumes, active copy is already there
-                        StringSet associatedVolumes = cgVolume.getAssociatedVolumes();
-                        if (associatedVolumes != null && !associatedVolumes.isEmpty()) {
-                            for (String associatedVolumeStr : associatedVolumes) {
-                                URI associatedVolumeURI = URI.create(associatedVolumeStr);
-                                Volume associatedVolume = _dbClient.queryObject(Volume.class, associatedVolumeURI);
-                                if (associatedVolume.getRpCopyName().equalsIgnoreCase(copyName)
-                                        && !associatedVolume.getRpCopyName().equalsIgnoreCase(cgVolume.getRpCopyName())) {
-                                    sourceInternalSiteName = associatedVolume.getInternalSiteName();
-                                    associatedVolume.setPersonality(Volume.PersonalityTypes.SOURCE.name());
-                                    cgVolumes.add(associatedVolume);
-                                    break;
-                                }
-                            }
+            if (cgVolume.getPersonality() != null && cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
+                if (_rpHelper.isMetroPointVolume(cgVolume)) {
+                    StringSet associatedVolumes = cgVolume.getAssociatedVolumes();
+                    if (associatedVolumes != null && !associatedVolumes.isEmpty()) {
+                        for (String associatedVolumeStr : associatedVolumes) {
+                            URI associatedVolumeURI = URI.create(associatedVolumeStr);
+                            Volume associatedVolume = _dbClient.queryObject(Volume.class, associatedVolumeURI);
+                            sourceVolumes.add(associatedVolume);
                         }
                     }
-                    break;
+                } else {
+                    sourceVolumes.add(cgVolume);
                 }
+            } else if (cgVolume.getPersonality() != null && cgVolume.getPersonality().equals((Volume.PersonalityTypes.TARGET.name()))) {
+                targetVolumes.add(cgVolume);
             }
         }
 
-        if (sourceInternalSiteName == null) {
-            throw APIException.badRequests.noSourceVolumesInCG(consistencyGroup.getId().toString());
+        // get the internal site where we want to add the journal volume
+        for (Volume cgVolume : sourceVolumes) {
+            if (cgVolume.getRpCopyName().equals(copyName)) {
+                internalSiteName = cgVolume.getInternalSiteName();
+                isSource = !isMPStandby;
+                break;
+            }
         }
 
-        boolean foundCopy = false;
-        int copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
-        for (Volume cgVolume : cgVolumes) {
-            if (cgVolume.getPersonality() != null) {
-                if (!cgVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.name())
-                        && cgVolume.getRpCopyName().equals(copyName)) {
-                    foundCopy = true;
+        if (internalSiteName == null) {
+            for (Volume cgVolume : targetVolumes) {
+                if (cgVolume.getRpCopyName().equals(copyName)) {
                     internalSiteName = cgVolume.getInternalSiteName();
-                    if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
-                        if (cgVolume.getRpCopyName().contains("Standby")) {
-                            isMPStandby = true;
-                        } else {
-                            isSource = true;
-                        }
-                        copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
-                    } else {
-                        isTarget = true;
-                        if (internalSiteName.equalsIgnoreCase(sourceInternalSiteName)) {
-                            copyType = RecoverPointCGCopyType.LOCAL.getCopyNumber();
-                        } else {
-                            copyType = RecoverPointCGCopyType.REMOTE.getCopyNumber();
-                        }
-                    }
+                    isTarget = true;
                     break;
                 }
             }
         }
 
-        if (!foundCopy) {
+        if (internalSiteName == null) {
             throw APIException.badRequests.unableToFindTheSpecifiedCopy(copyName);
+        }
+
+        // if we're adding volumes to a taraget, we need to know if it's local or remote
+        int copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
+        if (isTarget) {
+            for (Volume cgVolume : sourceVolumes) {
+                if (internalSiteName.equals(cgVolume.getInternalSiteName())) {
+                    copyType = RecoverPointCGCopyType.LOCAL.getCopyNumber();
+                } else {
+                    copyType = RecoverPointCGCopyType.REMOTE.getCopyNumber();
+                }
+            }
         }
 
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_COPY_TYPE, copyType);

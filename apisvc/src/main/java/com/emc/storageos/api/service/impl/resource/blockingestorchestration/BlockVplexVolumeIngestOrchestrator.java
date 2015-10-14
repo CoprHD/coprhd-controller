@@ -240,6 +240,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         }
 
+        // validate the supporting device structure is compatible with vipr
+        context.validateSupportingDeviceStructure();
+
         for (UnManagedVolume vol : unManagedBackendVolumes) {
             _logger.info("checking for non native mirrors on backend volume " + vol.getNativeGuid());
             StringSet mirrors = PropertySetterUtil.extractValuesFromStringSet(

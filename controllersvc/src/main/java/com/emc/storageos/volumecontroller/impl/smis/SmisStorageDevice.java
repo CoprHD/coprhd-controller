@@ -2188,6 +2188,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
+            _log.error("Problem while removing volume from CG :{}", consistencyGroupId, e);
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
                             consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
@@ -2256,6 +2257,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _dbClient.updateAndReindexObject(replicaList);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
+            _log.error("Problem while adding replica to device masking group :{}",consistencyGroupId, e);
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToAddMembersToReplicationGroup(replicationGroupName,
                             storage.getLabel(), e.getMessage()));

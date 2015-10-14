@@ -2,6 +2,7 @@ package com.emc.storageos.volumecontroller.impl.utils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -95,5 +96,34 @@ public class ConsistencyUtils {
      */
     public static boolean isSnapshotInConsistencyGroup(List<BlockSnapshot> snapshots, DbClient dbClient) {
         return getSnapshotsConsistencyGroup(snapshots, dbClient) != null;
+    }
+
+    /**
+     * Gets the {@BlockConsistencyGroup} associated with a mirror in the given list of mirrors.
+     *
+     * @param mirrors
+     * @param dbClient
+     * @return
+     */
+    public static BlockConsistencyGroup getMirrorsConsistencyGroup(List<URI> mirrors, DbClient dbClient) {
+        BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrors.get(0));
+        Volume source = dbClient.queryObject(Volume.class, mirror.getSource().getURI());
+        BlockConsistencyGroup cgResult = null;
+
+        if (source != null && !isNullURI(source.getConsistencyGroup())) {
+            cgResult = dbClient.queryObject(BlockConsistencyGroup.class, source.getConsistencyGroup());
+        }
+        return cgResult;
+    }
+
+    /**
+     * Returns true, if a mirror in the given list of mirrors is in a consistency group, false otherwise.
+     *
+     * @param mirrors
+     * @param dbClient
+     * @return
+     */
+    public static boolean isMirrorInConsistencyGroup(List<URI> mirrors, DbClient dbClient) {
+        return getMirrorsConsistencyGroup(mirrors, dbClient) != null;
     }
 }

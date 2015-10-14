@@ -86,6 +86,7 @@ public interface SmisConstants {
     static final int FILTER_CONNECTED_VALUE = 2;
     static final int STORAGE_SYNCHRONIZED_VALUE = 2;
     static final int VP_SNAP_VALUE = 32768;
+    static final int INSTRUMENTATION_DECIDES_VALUE = 2;
     static final int CREATE_NEW_TARGET_VALUE = 2;
     static final int STORAGE_ELEMENT_CAPACITY_EXPANSION_VALUE = 12;
 
@@ -472,5 +473,6 @@ public interface SmisConstants {
     public static int DIFFERENTIAL_CLONE_VALUE = 5;
     public static int COPY_BEFORE_ACTIVATE = 10;
     public static int PROVISIONING_TARGET_SAME_AS_SOURCE = 5;
+    public static int SMIS810_TF_DIFFERENTIAL_CLONE_VALUE = 32770;
 
 }

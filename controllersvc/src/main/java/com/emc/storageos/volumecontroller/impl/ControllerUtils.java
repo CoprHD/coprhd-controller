@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -68,6 +69,8 @@ import com.google.common.collect.ListMultimap;
  * Utilities class encapsulates controller utility methods.
  */
 public class ControllerUtils {
+
+    private static final String SMI81_VERSION_STARTING_STR = "V8.1";
 
     // Logger reference.
     private static final Logger s_logger = LoggerFactory.getLogger(ControllerUtils.class);
@@ -1024,7 +1027,7 @@ public class ControllerUtils {
     }
 
     /**
-     * Gets snapshot replication group names from clones of all volumes in CG.
+     * Gets snapshot replication group names from source volumes in CG.
      *
      * @param volumes
      * @param dbClient
@@ -1178,6 +1181,25 @@ public class ControllerUtils {
 
     /**
      * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
+     *
+     * @param mirrors
+     * @param dbClient
+     * @param completer Optional TaskCompleter instance.
+     * @return true/false dependent on the clone being part of a consistency group.
+     */
+    public static boolean checkMirrorConsistencyGroup(List<URI> mirrors, DbClient dbClient, TaskCompleter completer) {
+        BlockConsistencyGroup group = ConsistencyUtils.getMirrorsConsistencyGroup(mirrors, dbClient);
+        if (group != null) {
+            if (completer != null) {
+                completer.addConsistencyGroupId(group.getId());
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
      * 
      * @param volume
      * @param dbClient
@@ -1203,5 +1225,24 @@ public class ControllerUtils {
             existingSnapSnapSetLabel = snapshots.get(0).getSnapsetLabel();
         }
         return existingSnapSnapSetLabel;
+    }
+
+    /**
+     * Check whether the given storage system is managed by SMI 8.1
+     * 
+     * @param storage
+     * @param dbClient
+     * @return status
+     */
+    public static boolean isVmaxUsing81SMIS(StorageSystem storage, DbClient dbClient) {
+        boolean status = false;
+        if (storage != null) {
+            StorageProvider provider = dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
+            if (provider != null) {
+                String providerVersion = provider.getVersionString();
+                status = providerVersion != null && providerVersion.startsWith(SMI81_VERSION_STARTING_STR);
+            }
+        }
+        return status;
     }
 }

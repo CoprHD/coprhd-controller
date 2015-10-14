@@ -213,6 +213,18 @@ public class FileControllerImplTest {
         }
 
         @Override
+        public <T extends DataObject> void updateObject(T object) {
+        }
+
+        @Override
+        public <T extends DataObject> void updateObject(Collection<T> objects) {
+        }
+
+        @Override
+        public <T extends DataObject> void updateObject(T... object) {
+        }
+
+        @Override
         public Operation ready(Class<? extends DataObject> clazz, URI id, String opId)
                 throws DatabaseException {
             return null;

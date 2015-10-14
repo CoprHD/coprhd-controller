@@ -6,6 +6,7 @@ package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResources;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
+import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -60,8 +61,9 @@ final class ConsistencyUtils {
     }
 
     static Tasks<BlockConsistencyGroupRestRep> removeFullCopy(final ViPRCoreClient client, URI consistencyGroupId) {
+        List<NamedRelatedResourceRep> fullcopies = client.blockConsistencyGroups().getFullCopies(consistencyGroupId);
         Tasks<BlockConsistencyGroupRestRep> tasks = execute(new DetachConsistencyGroupFullCopy(consistencyGroupId));
-        removeChildVolumes(client, client.blockConsistencyGroups().getFullCopies(consistencyGroupId));
+        removeChildVolumes(client, fullcopies);
         return tasks;
     }
 
@@ -100,9 +102,11 @@ final class ConsistencyUtils {
     private static void removeChildVolumes(final ViPRCoreClient client, final List<NamedRelatedResourceRep> volumes) {
         List<URI> toRemove = new ArrayList<URI>();
         for (NamedRelatedResourceRep volume : volumes) {
+            logInfo("Adding volume to delete " + volume.getName());
             toRemove.add(volume.getId());
         }
         if (!toRemove.isEmpty()) {
+            logInfo("Removing all volumes now");
             BlockStorageUtils.removeBlockResources(toRemove, VolumeDeleteTypeEnum.FULL);
         }
     }

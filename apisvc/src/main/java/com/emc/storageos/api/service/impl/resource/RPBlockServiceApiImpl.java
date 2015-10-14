@@ -681,7 +681,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     _log.info("Attempting to acquire lock: " + lockKey);
                     lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_SECONDS);
                     // get a unique journal volume name
-                    String journalName = _rpHelper.getJournalVolumeName(varray, consistencyGroup);
+                    String journalName = _rpHelper.createJournalVolumeName(varray, consistencyGroup);
 
                     // Create source journal
                     sourceJournal = createRecoverPointVolume(rpProtectionRec.getSourceJournalRecommendation(), journalName, project,
@@ -721,7 +721,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     _log.info("Attempting to acquire lock: " + lockKey);
                     lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_SECONDS);
                     // get a unique journal volume name
-                    String journalName = _rpHelper.getJournalVolumeName(varray, consistencyGroup);
+                    String journalName = _rpHelper.createJournalVolumeName(varray, consistencyGroup);
 
                     // If MetroPoint is enabled we need to create the standby journal volume
                     standbyJournal = createRecoverPointVolume(rpProtectionRec.getStandbyJournalRecommendation(), journalName, project,
@@ -813,7 +813,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         _log.info("Attempting to acquire lock: " + lockKey);
                         lock = InterProcessLockHolder.acquire(_coordinator, lockKey, _log, LOCK_WAIT_SECONDS);
                         // get a unique journal volume name
-                        String journalName = _rpHelper.getJournalVolumeName(targetCopyVarray, consistencyGroup);
+                        String journalName = _rpHelper.createJournalVolumeName(targetCopyVarray, consistencyGroup);
 
                         // Create target journal
                         Volume targetJournalVolume = createRecoverPointVolume(targetJournalRec, journalName, project, capabilities,
@@ -1094,7 +1094,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             if (RPHelper.protectXtremioVolume(volume, _dbClient)) {
             	capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_MAX_SNAPS, 128);
             }
-            
+
             VolumeDescriptor desc = null;
             // Vpool Change flow, mark the production volume as already existing, so it doesn't get created
             if (recommendation != null && (recommendation.getVpoolChangeVolume() != null) &&

@@ -69,6 +69,10 @@ import com.google.common.base.Joiner;
  */
 public class RPHelper {
 
+    /**
+     *
+     */
+    private static final String VOL_DELIMITER = "-";
     private static final double RP_DEFAULT_JOURNAL_POLICY = 0.25;
     public static final String REMOTE = "remote";
     public static final String LOCAL = "local";
@@ -1180,11 +1184,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     * 
+     *
      * @param sourceSizeStr size of the source volume
-     * 
+     *
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     * 
+     *
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1582,6 +1586,12 @@ public class RPHelper {
         return volume;
     }
 
+    /**
+     * returns the list of all journal volumes in the CG
+     *
+     * @param consistencyGroup
+     * @return
+     */
     private List<Volume> getJournalVolumesInCg(BlockConsistencyGroup consistencyGroup) {
         List<Volume> journalVols = new ArrayList<Volume>();
         List<Volume> volsInCg = getCgVolumes(consistencyGroup.getId(), _dbClient);
@@ -1595,6 +1605,13 @@ public class RPHelper {
         return journalVols;
     }
 
+    /**
+     * returns the list of journal volumes for one copy
+     * 
+     * @param varray
+     * @param consistencyGroup
+     * @return
+     */
     private List<Volume> getJournalVolumesForCopy(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
         List<Volume> journalVols = new ArrayList<Volume>();
         List<Volume> volsInCg = getCgVolumes(consistencyGroup.getId(), _dbClient);
@@ -1617,8 +1634,9 @@ public class RPHelper {
      * @param consistencyGroup
      * @return
      */
-    public String getJournalVolumeName(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
-        String journalPrefix = new StringBuilder(varray.getLabel()).append("-").append(consistencyGroup.getLabel()).append("-")
+    public String createJournalVolumeName(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
+        String journalPrefix = new StringBuilder(varray.getLabel()).append(VOL_DELIMITER).append(consistencyGroup.getLabel())
+                .append(VOL_DELIMITER)
                 .append(JOURNAL).toString();
         List<Volume> existingJournals = getJournalVolumesForCopy(varray, consistencyGroup);
 
@@ -1635,7 +1653,7 @@ public class RPHelper {
         // calculate the largest index
         int largest = 0;
         for (Volume journalVol : newStyleJournals) {
-            String[] parts = StringUtils.split(journalVol.getLabel(), "-");
+            String[] parts = StringUtils.split(journalVol.getLabel(), VOL_DELIMITER);
             try {
                 int idx = Integer.parseInt(parts[parts.length - 1]);
                 if (idx > largest) {
@@ -1647,31 +1665,31 @@ public class RPHelper {
             }
         }
 
-        String journalName = new StringBuilder(journalPrefix).append("-").append(Integer.toString(largest + 1)).toString();
+        String journalName = new StringBuilder(journalPrefix).append(VOL_DELIMITER).append(Integer.toString(largest + 1)).toString();
 
         return journalName;
     }
-    
+
     /**
      * Determine the wwn of the volume in the format RP is looking for.  For xtremio
      * this is the 128 bit identifier.  For other array types it is the deafault.
-     * 
+     *
      * @param volumeURI the URI of the volume the operation is being performed on
      * @param dbClient
      * @return the wwn of the volume which rp requires to perform the operation
      *         in the case of xtremio this is the 128 bit identifier
      */
     public static String getRPWWn(URI volumeURI, DbClient dbClient) {
-    	Volume volume = dbClient.queryObject(Volume.class, volumeURI);    	
+    	Volume volume = dbClient.queryObject(Volume.class, volumeURI);
     	if (volume.getNativeGuid() != null && RecoverPointUtils.isXioVolume(volume.getNativeGuid())) {
     		return RecoverPointUtils.getXioNativeGuid(volume.getNativeGuid());
-    	}    	    	    	
+    	}
     	return volume.getWWN();
     }
-    
+
     /**
      * Determine if the volume being protected is provisioned on an Xtremio Storage array
-     * 
+     *
      * @param volume The volume being provisioned
      * @param dbClient DBClient object
      * @return boolean indicating if the volume being protected is provisioned on an Xtremio Storage array

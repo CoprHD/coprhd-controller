@@ -7,7 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolChangeRep;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
-import static com.emc.storageos.db.client.model.BlockMirror.SynchronizationState.FRACTURED;
+import static com.emc.storageos.db.client.model.SynchronizationState.FRACTURED;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.google.common.collect.Collections2.transform;
 

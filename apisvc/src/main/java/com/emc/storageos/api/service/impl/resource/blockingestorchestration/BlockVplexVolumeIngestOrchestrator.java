@@ -175,7 +175,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 setFlags(context);
                 createVplexMirrorObjects(context, (Volume) virtualVolume);
                 _logger.info(context.toStringDebug());
-                _logger.info(context.getPerformanceReport());
             }
 
             return virtualVolume;
@@ -476,16 +475,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             String unManagedVolumeGUID = entry.getKey();
             UnManagedVolume processedUnManagedVolume = entry.getValue();
 
-            // we only need to worry about creating export masks for the
-            // actual backend volumes. if any replicas have unmanaged export
-            // masks, they should be ingested separately for the hosts
-            // they are exported to, not the backend of the VPLEX
-            if (!context.isBackendVolume(processedUnManagedVolume)) {
-                _logger.info("export mask processing is only required for backend volumes, skipping {}",
-                        processedUnManagedVolume.getLabel());
-                continue;
-            }
-
             if (processedUnManagedVolume.getUnmanagedExportMasks().isEmpty()) {
                 String reason = "the backend volume has no unmanaged export masks "
                         + processedUnManagedVolume.getLabel();
@@ -669,7 +658,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                                 context.getBackendProject().getId(), mirrorVolume.getLabel()));
 
                         // update flags on mirror volume
-                        mirrorVolume.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+                        List<DataObject> updatedObjects = 
+                                context.getUpdatedObjectMap().get(mirrorVolume.getNativeGuid());
+                        if (updatedObjects == null) {
+                            updatedObjects = new ArrayList<DataObject>();
+                            context.getUpdatedObjectMap().put(mirrorVolume.getNativeGuid(), updatedObjects);
+                        }
+                        VolumeIngestionUtil.clearInternalFlags(mirrorVolume, updatedObjects, _dbClient);
                         // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
                         mirrorVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
 
@@ -678,9 +673,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         String deviceName = devicePathParts[devicePathParts.length - 1];
                         vplexMirror.setDeviceLabel(deviceName);
 
-                        // save the new VplexMirror & persist backend
+                        // save the new VplexMirror & persist backend & updated objects
                         _dbClient.createObject(vplexMirror);
                         _dbClient.updateAndReindexObject(mirrorVolume);
+                        for (DataObject updatedObject : updatedObjects) {
+                            _dbClient.persistObject(updatedObject);
+                        }
 
                         // set mirrors property on the parent virtual volume
                         StringSet mirrors = virtualVolume.getMirrors();

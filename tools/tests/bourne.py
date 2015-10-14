@@ -46,6 +46,7 @@ URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'
 URI_CATALOG_VPOOL_FILE            = URI_CATALOG_VPOOL   + '/file'
 URI_CATALOG_VPOOL_BLOCK           = URI_CATALOG_VPOOL   + '/block'
+URI_CATALOG_VPOOL_OBJECT          = URI_CATALOG_VPOOL   + '/object'
 URI_VPOOLS                         = URI_SERVICES_BASE + '/{0}/vpools'
 URI_VPOOLS_MATCH                   = URI_SERVICES_BASE + '/{0}/vpools/matching-pools'
 URI_OBJ_VPOOL                     = URI_SERVICES_BASE + '/{0}/data-services-vpools'
@@ -210,6 +211,11 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_TASKS      = URI_BLOCK_CONSISTENCY_GROUP_SN
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_ACTIVATE   = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/activate"
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_DEACTIVATE = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/deactivate"
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_RESTORE    = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/restore"
+
+#Object Platform ECS bucket definitions
+URI_ECS_BUCKET_LIST                     = URI_SERVICES_BASE             + '/object/buckets'
+URI_ECS_BUCKET                          = URI_SERVICES_BASE             + '/object/buckets/{0}'
+
 
 URI_NETWORKSYSTEMS              = URI_SERVICES_BASE   + '/vdc/network-systems'
 URI_NETWORKSYSTEM               = URI_NETWORKSYSTEMS  + '/{0}'
@@ -1345,12 +1351,6 @@ class Bourne:
         return cos_params
 
     def cos_list(self, type):
-        if(type == 'object'):
-            o = self.api('GET', URI_OBJ_VPOOL.format(type))
-            if (not o):
-                return {};
-            return o['data_services_vpools']
-        else:
             o = self.api('GET', URI_VPOOLS.format(type))
             if (not o):
                 return {};
@@ -1513,6 +1513,9 @@ class Bourne:
         if (host_io_limit_iops):
             parms['host_io_limit_iops'] = host_io_limit_iops
             
+        if (type == 'object'):
+            del parms['protection']
+
         print "VPOOL CREATE Params = ", parms
         return self.api('POST', URI_VPOOLS.format(type), parms)
 
@@ -1726,10 +1729,7 @@ class Bourne:
         return cos['name']
 
     def cos_show(self, type, uri):
-        if(type=='object'):
-            return self.api('GET', URI_OBJ_VPOOL_INSTANCE.format(type, uri))
-        else:
-            return self.api('GET', URI_VPOOL_INSTANCE.format(type, uri))
+        return self.api('GET', URI_VPOOL_INSTANCE.format(type, uri))
 
     def cos_query(self, type, name):
         if (self.__is_uri(name)):
@@ -1928,6 +1928,19 @@ class Bourne:
                      }]}
                  }
         print parms
+        self.api('PUT', URI_TENANTS.format(uri), parms)
+
+    def tenant_update_namespace(self, tenant, namespace):
+        if( 'urn:storageos:' in tenant ):
+            print "URI passed in Tenant Namespace = ", tenant
+            uri = tenant
+        else:
+            uri = self.__tenant_id_from_label(tenant)
+            print "URI mapped in tenant namespace = ", uri
+
+        parms = {
+                 'namespace' : namespace
+                 }
         self.api('PUT', URI_TENANTS.format(uri), parms)
 
     def project_list(self, tenant):
@@ -8236,3 +8249,40 @@ class Bourne:
         for tr in tr_list:
            result.append(tr['id'])
         return result
+
+    #
+    # ECS Bucket oprations
+    #
+    def ecs_bucket_show_task(self, bkt, task):
+        uri_bucket_task = URI_ECS_BUCKET + '/tasks/{1}'
+        return self.api('GET', uri_bucket_task.format(bkt, task))
+
+    def ecs_bucket_create(self, label, project, neighbourhood, cos,
+						soft_quota, hard_quota, owner):
+		params = {
+			'name'          : label,
+			'varray'        : neighbourhood,
+			'vpool'         : cos,
+   			'soft_quota'    : soft_quota,
+			'hard_quota'    : hard_quota,
+			'owner'         : owner
+			}
+
+		print "ECS BUCKET CREATE Params = ", params
+		o = self.api('POST', URI_ECS_BUCKET_LIST, params, {'project': project})
+		self.assert_is_dict(o)
+		s = self.api_sync_2(o['resource']['id'], o['op_id'], self.ecs_bucket_show_task)
+		return s
+
+    # input param to be changed to label
+    def ecs_bucket_delete(self, uri):
+        params = {
+        'forceDelete'   : 'false'
+        }
+
+        print "ECS bucket delete = ", URI_RESOURCE_DEACTIVATE.format(URI_ECS_BUCKET.format(uri), params)
+        o = self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_ECS_BUCKET.format(uri)), params)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.ecs_bucket_show_task)
+        return (o, s)
+

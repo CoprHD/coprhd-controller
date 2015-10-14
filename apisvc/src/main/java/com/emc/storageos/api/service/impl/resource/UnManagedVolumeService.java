@@ -317,7 +317,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                         StringBuffer taskStatus = taskStatusMap.get(unManagedVolume.getNativeGuid());
                         if (taskStatus == null) {
                             // No task status found. Put in a default message.
-                            taskMessage = String.format("Not all the parent/replicas of unManagedVolume %s have been ingested",
+                            taskMessage = String.format("Not all the parent/replicas of unmanaged volume %s have been ingested",
                                     unManagedVolume.getLabel());
                         } else {
                             taskMessage = taskStatus.toString();
@@ -482,7 +482,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                     String taskMessage = "";
                     if (taskStatus == null) {
                         // No task status found. Put in a default message.
-                        taskMessage = String.format("Not all the parent/replicas of unManagedVolume %s have been ingested",
+                        taskMessage = String.format("Not all the parent/replicas of unmanaged volume %s have been ingested",
                                 processedUnManagedVolume.getLabel());
                     } else {
                         taskMessage = taskStatus.toString();

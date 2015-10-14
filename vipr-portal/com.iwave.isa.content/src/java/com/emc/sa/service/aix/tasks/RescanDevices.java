@@ -14,6 +14,6 @@ public class RescanDevices extends AixExecutionTask<Void> {
     @Override
     public void execute() throws Exception {
         RescanDevicesCommand command = new RescanDevicesCommand();
-        executeCommand(command, SHORT_TIMEOUT);
+        executeCommand(command, MEDIUM_TIMEOUT);
     }
 }

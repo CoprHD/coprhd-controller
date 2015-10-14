@@ -316,10 +316,9 @@ public class VPlexApiVirtualVolumeManager {
      */
     public void attachMirror(String locality, String sourceVirtualVolumeName, String mirrorDeviceName)
             throws VPlexApiException {
-        String sourceDeviceName = sourceVirtualVolumeName.substring(0,
-                sourceVirtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
-
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        VPlexVirtualVolumeInfo vplexVirtualVolumeInfo = findVirtualVolumeAndUpdateInfo(sourceVirtualVolumeName, discoveryMgr);
+        String sourceDeviceName = vplexVirtualVolumeInfo.getSupportingDevice();
 
         // Find mirror device
         VPlexDeviceInfo mirrorLocalDevice = discoveryMgr.findLocalDevice(mirrorDeviceName);
@@ -1361,8 +1360,11 @@ public class VPlexApiVirtualVolumeManager {
             VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
         // Determine the "local" device
         String virtualVolumeName = virtualVolume.getName();
-        String localDeviceName = virtualVolumeName.substring(0,
-                virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+        String localDeviceName = virtualVolume.getSupportingDevice();
+        if (!virtualVolumeName.equals(localDeviceName + VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
+            // We don't want to rename if original volume is not following default naming convention.
+            rename = false;
+        }
 
         // Find the storage volumes corresponding to the passed remote
         // volume information, discovery them if required.
@@ -1432,25 +1434,13 @@ public class VPlexApiVirtualVolumeManager {
             // the mirror and unclaim the storage volume.
             s_logger.info("Exception occurred creating and attaching remote mirror " +
                     " to local VPLEX volume, attempting to cleanup VPLEX artifacts");
-            try {
-                // This will look for any artifacts, starting with a virtual
-                // volume, that use the passed native volume info and destroy
-                // them and then unclaim the volume.
-                deleteVirtualVolume(Collections.singletonList(newRemoteVolume));
-            } catch (Exception ex) {
-                s_logger.error("Failed attempting to cleanup VPLEX after failed attempt " +
-                        "to attach a remote mirror to virtual volume {}", virtualVolume.getPath(), ex);
-            }
             throw e;
         }
 
         try {
             // Find virtual volume and return.
-            StringBuilder volumeNameBuilder = new StringBuilder();
-            volumeNameBuilder.append(localDeviceName);
-            volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
             VPlexVirtualVolumeInfo vvInfo = discoveryMgr.findVirtualVolume(
-                    localDevice.getCluster(), volumeNameBuilder.toString(), false);
+                    localDevice.getCluster(), virtualVolumeName, false);
 
             // Compute updated name and rename the distributed virtual volume.
             if (rename) {
@@ -2041,11 +2031,10 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-            discoveryMgr.findVirtualVolume(virtualVolumeName, false);
+            VPlexVirtualVolumeInfo virtualVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName, discoveryMgr);
 
             // Find the distributed device for the virtual volume.
-            String ddName = virtualVolumeName.substring(0,
-                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+            String ddName = virtualVolumeInfo.getSupportingDevice();
             VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(ddName);
             if (ddInfo == null) {
                 throw VPlexApiException.exceptions
@@ -2132,11 +2121,10 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-            discoveryMgr.findVirtualVolume(virtualVolumeName, false);
+            VPlexVirtualVolumeInfo vplexVirtualVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName, discoveryMgr);
 
             // Find the distributed device for the virtual volume.
-            String ddName = virtualVolumeName.substring(0,
-                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+            String ddName = vplexVirtualVolumeInfo.getSupportingDevice();
             VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(ddName);
             if (ddInfo == null) {
                 throw VPlexApiException.exceptions
@@ -2224,8 +2212,11 @@ public class VPlexApiVirtualVolumeManager {
      * @param discoveryMgr reference to VPlexApiDiscoveryManager
      * @return VPlexVirtualVolumeInfo object with updated info.
      */
-    private VPlexVirtualVolumeInfo findVirtualVolumeAndUpdateInfo(String virtualVolumeName, VPlexApiDiscoveryManager discoveryMgr) {
+    public VPlexVirtualVolumeInfo findVirtualVolumeAndUpdateInfo(String virtualVolumeName, VPlexApiDiscoveryManager discoveryMgr) {
         VPlexVirtualVolumeInfo virtualVolumeInfo = null;
+        if (null == discoveryMgr) {
+            discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        }
         List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterName = clusterInfo.getName();
@@ -2241,6 +2232,119 @@ public class VPlexApiVirtualVolumeManager {
             throw VPlexApiException.exceptions.cantFindRequestedVolume(virtualVolumeName);
         }
         return virtualVolumeInfo;
+    }
+
+    /**
+     * This method collapses the one legged device for the passed virtual volume device.
+     * After this device will change back to local device.
+     * 
+     * @param sourceDeviceName source device name
+     */
+    public void deviceCollapse(String sourceDeviceName) {
+        ClientResponse response = null;
+        try {
+            VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+
+            // Find the source device.
+            VPlexDistributedDeviceInfo sourceDevice = discoveryMgr.findDistributedDevice(sourceDeviceName);
+            if (sourceDevice == null) {
+                throw VPlexApiException.exceptions.cantFindLocalDevice(sourceDeviceName);
+            }
+            String devicePath = sourceDevice.getPath();
+            s_logger.info("Found the local device {}", devicePath);
+
+            URI requestURI = _vplexApiClient.getBaseURI().resolve(
+                    VPlexApiConstants.URI_DEVICE_COLLAPSE);
+            s_logger.info("Device collapse URI is {}", requestURI.toString());
+            Map<String, String> argsMap = new HashMap<String, String>();
+            argsMap.put(VPlexApiConstants.ARG_DASH_D, devicePath);
+
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
+            s_logger.info("Device collapse POST data is {}", postDataObject.toString());
+
+            response = _vplexApiClient.post(requestURI, postDataObject.toString());
+            String responseStr = response.getEntity(String.class);
+            s_logger.info("Device collapse response is {}", responseStr);
+            if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
+                if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
+                    s_logger.info("Device collapse completing asynchronously");
+                    _vplexApiClient.waitForCompletion(response);
+                } else {
+                    String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                    throw VPlexApiException.exceptions.failedDeviceCollapseStatus(
+                            sourceDeviceName, String.valueOf(response.getStatus()), cause);
+                }
+            }
+            s_logger.info("Successfully did device collapse for device {}", devicePath);
+        } catch (VPlexApiException vae) {
+            throw vae;
+        } catch (Exception e) {
+            throw VPlexApiException.exceptions.failedDeviceCollapse(sourceDeviceName, e);
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+    }
+
+    /**
+     * This method sets device visibility to local.
+     * 
+     * @param sourceDeviceName source device name
+     * @throws VPlexApiException
+     */
+    public void setDeviceVisibility(String sourceDeviceName) {
+        ClientResponse response = null;
+        try {
+            VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+
+            // Find the source local device.
+            VPlexDeviceInfo sourceLocalDevice = discoveryMgr.findLocalDevice(sourceDeviceName);
+            if (sourceLocalDevice == null) {
+                throw VPlexApiException.exceptions.cantFindLocalDevice(sourceDeviceName);
+            }
+            String devicePath = sourceLocalDevice.getPath();
+            s_logger.info("Found the local device {}", devicePath);
+
+            // Build the request path.
+            StringBuilder pathBuilder = new StringBuilder();
+            pathBuilder.append(VPlexApiConstants.VPLEX_PATH);
+            pathBuilder.append(devicePath);
+            pathBuilder.append(VPlexApiConstants.QUESTION_MARK);
+            pathBuilder.append(VPlexApiConstants.ATTRIBUTE_DEVICE_VISIBILITY);
+            pathBuilder.append(VPlexApiConstants.EQUALS);
+            pathBuilder.append(VPlexApiConstants.LOCAL_DEVICE);
+
+            URI requestURI = _vplexApiClient.getBaseURI().resolve(
+                    URI.create(pathBuilder.toString()));
+            s_logger.info("Set device visibility URI is {}", requestURI.toString());
+
+            response = _vplexApiClient.put(requestURI);
+            String responseStr = response.getEntity(String.class);
+            s_logger.info("Set device visibility response is {}", responseStr);
+            int status = response.getStatus();
+            if (status != VPlexApiConstants.SUCCESS_STATUS) {
+                if (status == VPlexApiConstants.ASYNC_STATUS) {
+                    s_logger.info("Set device visibility  is completing asynchronously");
+                    _vplexApiClient.waitForCompletion(response);
+                    response.close();
+                } else {
+                    response.close();
+                    String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                    throw VPlexApiException.exceptions.failedSettingDeviceVisibilityStatus(
+                            sourceDeviceName, String.valueOf(response.getStatus()), cause);
+                }
+            }
+            s_logger.info("Successfully set {} visibility for device {}", VPlexApiConstants.LOCAL_DEVICE, devicePath);
+        } catch (VPlexApiException vae) {
+            throw vae;
+        } catch (Exception e) {
+            throw VPlexApiException.exceptions.failedSettingDeviceVisibility(sourceDeviceName, e);
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
     }
 
 }

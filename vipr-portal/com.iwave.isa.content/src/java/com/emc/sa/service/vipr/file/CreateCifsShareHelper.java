@@ -12,7 +12,9 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.VOLUME_NAME;
 
 import java.net.URI;
+import java.util.List;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -44,6 +46,10 @@ public class CreateCifsShareHelper {
 
     public void precheckFileACLs() {
         if (fileSystemShareACLs != null && fileSystemShareACLs.length > 0) {
+            List<String> invalidNames = FileStorageUtils.getInvalidFileACLs(fileSystemShareACLs);
+            if (!invalidNames.isEmpty()) {
+                ExecutionUtils.fail("failTask.CreateCifsShareHelper.invalidName", invalidNames, invalidNames);
+            }
             fileSystemShareACLs = FileStorageUtils.clearEmptyFileACLs(fileSystemShareACLs);
         }
     }

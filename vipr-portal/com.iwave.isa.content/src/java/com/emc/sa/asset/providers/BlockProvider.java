@@ -160,10 +160,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     static boolean isConsistencyGroupType(URI urlId) {
-        if (BlockProviderUtils.isType(urlId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
-            return true;
-        }
-        return false;
+        return BlockProviderUtils.isType(urlId, BLOCK_CONSISTENCY_GROUP_TYPE);
     }
 
     protected static boolean isInConsistencyGroup(BlockObjectRestRep volume) {

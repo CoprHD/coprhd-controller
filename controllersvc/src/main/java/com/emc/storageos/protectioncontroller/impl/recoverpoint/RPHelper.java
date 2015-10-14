@@ -1631,10 +1631,10 @@ public class RPHelper {
     /**
      * returns a unique journal volume name by evaluating all journal volumes for the copy and increasing the count journal volume name is
      * in the form varrayName-cgname-journal-[count]
-     * 
+     *
      * @param varray
      * @param consistencyGroup
-     * @return
+     * @return a journal name unique within the site
      */
     public String createJournalVolumeName(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
         String journalPrefix = new StringBuilder(varray.getLabel()).append(VOL_DELIMITER).append(consistencyGroup.getLabel())

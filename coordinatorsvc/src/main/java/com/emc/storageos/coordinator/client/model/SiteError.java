@@ -22,7 +22,7 @@ public class SiteError implements CoordinatorSerializable{
     public static final String ERROR_DESCRIPTION_ADD = "Error occurs during adding new standby site";
     public static final String ERROR_DESCRIPTION_REMOVE = "Error occurs during removing standby site";
     
-    private static final String ENCODING_SEPARATOR = ";";
+    private static final String ENCODING_SEPARATOR = "\0";
     
     private long creationTime = 0;
     private String errorDescription;
@@ -66,8 +66,11 @@ public class SiteError implements CoordinatorSerializable{
         StringBuilder builder = new StringBuilder();
         builder.append(creationTime);
         builder.append(ENCODING_SEPARATOR);
-        if (errorDescription != null) 
+        if (errorDescription != null) {
+            builder.append(errorDescription);
+            builder.append(ENCODING_SEPARATOR);
             builder.append(errorMessage);
+        }
         return builder.toString();
     }
 
@@ -78,8 +81,10 @@ public class SiteError implements CoordinatorSerializable{
         
         siteError.setCreationTime(Long.parseLong(strings[0]));
         
-        if (strings.length == 2)
-            siteError.setErrorMessage(strings[1]);
+        if (strings.length > 1) {
+            siteError.setErrorDescription(strings[1]);
+            siteError.setErrorMessage(strings[2]);
+        }
         
         return siteError;
     }

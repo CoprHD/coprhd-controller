@@ -73,7 +73,7 @@ import com.emc.vipr.model.sys.ClusterInfo;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class DisasterRecoveryService {
-    public static final int STANDBY_ADD_TIMEOUT = 1000 * 60 * 10;
+    public static final int STANDBY_ADD_TIMEOUT = 1000 * 60 * 20;
 
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     
@@ -139,7 +139,7 @@ public class DisasterRecoveryService {
             String shortId = generateShortId(existingSites);
             standbySite.setStandbyShortId(shortId);
             standbySite.setDescription(param.getDescription());
-            standbySite.setState(SiteState.STANDBY_SYNCING);
+            standbySite.setState(SiteState.STANDBY_ADDING);
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }
@@ -728,7 +728,7 @@ public class DisasterRecoveryService {
         }
 
         private void setSiteError(Site site) {
-            if (SiteState.STANDBY_SYNCING.equals(site.getState())
+            if (SiteState.STANDBY_ADDING.equals(site.getState())
                     && (new Date()).getTime() - site.getCreationTime() > STANDBY_ADD_TIMEOUT) {
                 log.info("site state of {} be set to error", site.getName());
                 SiteError error = new SiteError(SiteError.ERROR_DESCRIPTION_ADD,

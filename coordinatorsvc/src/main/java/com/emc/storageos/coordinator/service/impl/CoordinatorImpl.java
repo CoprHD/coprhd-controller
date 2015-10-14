@@ -120,7 +120,6 @@ public class CoordinatorImpl implements Coordinator {
                 main.runFromConfig(_config);
             }
             
-            _log.info("coordinator service started");
         }catch(AdminServer.AdminServerException e) {
             _log.info("Fail to start ZK server e:", e);
             throw new RuntimeException(e);

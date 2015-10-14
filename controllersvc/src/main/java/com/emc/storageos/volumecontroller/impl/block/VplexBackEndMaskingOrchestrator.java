@@ -71,7 +71,9 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * distinct port group. The mapping of available ports to port groups
      * is array dependent.
      * <p>
-     * Each PortGroup is a Map of Network URI to a List of StoragePort objects. TODO update doc
+     * Each PortGroup is a Map of Network URI to a List of StoragePort objects. For XtremIO, it is a Map of Network URI to a list of list of
+     * StoragePorts. i.e Each network has multiple sets of StoragePorts. This is needed so that each director will map to different set of
+     * StoragePorts for a network.
      * 
      * <p>
      * 

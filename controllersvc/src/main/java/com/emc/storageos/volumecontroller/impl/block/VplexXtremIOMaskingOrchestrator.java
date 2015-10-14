@@ -100,7 +100,6 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             Map<URI, List<StoragePort>> allocatablePorts, Map<URI, NetworkLite> networkMap,
             URI varrayURI, int nInitiatorGroups) {
         /**
-         * TODO add detailed info
          * Number of Port Group for XtremIO is always one.
          * - If multiple port groups, each VPLEX Director's initiators will be mapped to multiple ports
          * 
@@ -108,6 +107,9 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
          * so that each VPLEX director's initiators will map to different port set.
          * 
          * why allocatePorts() not required:
+         * allocatePorts() would return required number of storage ports from a network from unique X-bricks.
+         * But we need to select storage ports uniquely across X-bricks & StorageControllers and we need
+         * to make use of all storage ports.
          * 
          */
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
@@ -121,10 +123,8 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         _log.info("Calculating PortGroups for Networks: {}", netNames.toString());
 
         Map<URI, List<List<StoragePort>>> useablePorts = new HashMap<URI, List<List<StoragePort>>>();
-        // Map<URI, List<List<StoragePort>>> allocatablePortsNew = new HashMap<URI, List<List<StoragePort>>>();
         Set<String> usedPorts = new HashSet<String>();
 
-        boolean allPortsLooped = false;
         // map of selected X-brick to Storage Controllers across all networks
         Map<String, List<String>> xBricksToSelectedSCs = new HashMap<String, List<String>>();
         // map of network to selected X-bricks
@@ -142,9 +142,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                 }
                 useablePorts.get(networkURI).add(useablePortsSet.get(networkURI));
             }
-
-            allPortsLooped = isAllPortsLooped(orderedNetworks, allocatablePorts, usedPorts);
-        } while (!allPortsLooped);
+        } while (!isAllPortsLooped(orderedNetworks, allocatablePorts, usedPorts));
 
 
         // TODO required?
@@ -186,11 +184,11 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
 
         do {
             int PreviousSize = usedPortsSet.size();
-            for (URI networkURI : orderedNetworks) {
-                // TODO move log level to DEBUG mode after testing
-                _log.debug("network: {}", networkURI);
-                _log.debug("xBricksToSelectedSCs: {}, networkToSelectedXbricks: {}",
-                        xBricksToSelectedSCs.entrySet(), networkToSelectedXbricks.get(networkURI));
+            Iterator<URI> networkItr = orderedNetworks.iterator();
+            while (networkItr.hasNext() && usedPortsSet.size() < 4) {
+                URI networkURI = networkItr.next();
+                _log.debug(String.format("network: %s, xBricksToSelectedSCs: %s, networkToSelectedXbricks: %s",
+                        networkURI, xBricksToSelectedSCs.entrySet(), networkToSelectedXbricks.get(networkURI)));
                 StoragePort port = getNetworkPortUniqueXbrick(networkURI, allocatablePorts.get(networkURI),
                         portsSelected, networkToSelectedXbricks, xBricksToSelectedSCs);
                 _log.debug("Port selected {} for network {}", port != null ? port.getPortName() : null, networkURI);
@@ -202,30 +200,22 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                     }
                     useablePorts.get(networkURI).add(port);
                 }
-                // Stop processing more networks if 4 ports have been selected
-                if (usedPortsSet.size() == 4) {
-                    break;
-                }
             }
-            boolean allPortsLooped = isAllPortsLooped(orderedNetworks, allocatablePorts, portsSelected);
-            if (allPortsLooped) {
-                // no more ports to process
-                if (usedPortsSet.size() < 2) {
-                    return null;  // requirement not met
-                } else if (usedPortsSet.size() >= 2) {
-                    break;  // satisfies minimum requirement
-                }
-            } else {
-                // still ports available AND no ports selected in this round,
-                // clear the X-bricks map
-                if (PreviousSize == usedPortsSet.size()) {
-                    xBricksToSelectedSCs.clear();
-                    networkToSelectedXbricks.clear();
-                }
+
+            // If No ports have been selected in this round, then clear the X-bricks map
+            if (PreviousSize == usedPortsSet.size()) {
+                xBricksToSelectedSCs.clear();
+                networkToSelectedXbricks.clear();
             }
-            _log.debug("Ports selected in this set : {}", usedPortsSet);
-        } while (usedPortsSet.size() < 4);
+            _log.debug("Ports selected so far : {}", usedPortsSet);
+        } while (usedPortsSet.size() < 4 && !isAllPortsLooped(orderedNetworks, allocatablePorts, portsSelected));
         _log.info("Set Done: Ports selected in this set: {}", usedPortsSet);
+
+        if (usedPortsSet.size() < 2) {
+            return null;  // requirement not met
+        }
+        // if usedPortsSet.size() >= 2, satisfies minimum requirement, min 2 paths
+
         // add to all usedPorts list
         usedPorts.addAll(usedPortsSet);
         return useablePorts;
@@ -391,7 +381,6 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         // if X-bricks count is less than director count, choose only 2 initiators from each director
         // leaving other initiators for future scale of X-bricks
         int pathsPerDirector = 4;   // default 4 initiators in director
-        // TODO determine which of the Director-Xbrick combinations require lesser number of paths per director
         if (xtremIOXbricksCount < vplexDirectorCount) {
             pathsPerDirector = 2;
         }

@@ -563,6 +563,9 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         return context;
     }
 
+    /**
+     * VPLEX Single Engine
+     */
     private static void getInitiatorsVplex154Clus1(
             Map<String, Set<String>> directorToInitiators,
             Map<String, URI> initiatorIdToNetwork,
@@ -591,6 +594,9 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         }
     }
 
+    /**
+     * VPLEX Dual Engine
+     */
     private static void getInitiatorsVplex154Clus1DualEngines(
             Map<String, Set<String>> directorToInitiators,
             Map<String, URI> initiatorIdToNetwork,
@@ -620,6 +626,9 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         }
     }
 
+    /**
+     * VPLEX Quad Engine
+     */
     private static void getInitiatorsVplex154Clus1QuadEngines(
             Map<String, Set<String>> directorToInitiators,
             Map<String, URI> initiatorIdToNetwork,

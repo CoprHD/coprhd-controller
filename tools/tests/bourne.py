@@ -119,6 +119,10 @@ URI_FILE_QUOTA_DIR_BASE         = URI_SERVICES_BASE + '/file/quotadirectories'
 URI_FILE_QUOTA_DIR              = URI_FILE_QUOTA_DIR_BASE + '/{0}'
 URI_FILE_QUOTA_DIR_DELETE       = URI_FILE_QUOTA_DIR + '/deactivate'
 
+URI_DR                     = URI_SERVICES_BASE  + '/site'
+URI_DR_GET                 = URI_DR    + '/{0}'
+URI_DR_DELETE              = URI_DR    + '/{0}'
+
 URI_VDC                     = URI_SERVICES_BASE  + '/vdc'
 URI_VDC_GET                 = URI_VDC    + '/{0}'
 URI_VDC_DISCONNECT_POST     = URI_VDC    + '/{0}/disconnect'
@@ -3228,6 +3232,47 @@ class Bourne:
 
     def show_element(self, uri, resourceuri):
         return self.api('GET', resourceuri.format(uri))
+
+    #
+    #Disaster Recovery APIs
+    #
+
+    def dr_add_standby(self, name, description, vip, username, password):
+        parms = {
+            'name'              : name,
+            'description'       : description,
+            'vip'               : vip,
+            'username'          : username,
+            'password'          : password
+        }
+
+        print "DR ADD STANDBY Params = ", parms
+        resp = self.api('POST', URI_DR, parms, {})
+        print "DR ADD STANDBY RESP = ", resp
+        self.assert_is_dict(resp)
+        return resp
+
+    def dr_list_standby(self):
+        resp = self.api('GET', URI_DR)
+        print "DR LIST STANDBY RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
+    def dr_get_standby(self,uri):
+        resp = self.api('GET', URI_DR_GET.format(uri))
+        print "DR GET STANDBY RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
+    def dr_delete_standby(self,uri):
+        resp = self.api('DELETE', URI_DR_DELETE.format(uri))
+        print "DR DELETE STANDBY RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
+    #
+    #VDC APIs
+    #
 
     def vdc_show(self, uri):
         return self.api('GET', URI_VDC_GET.format(uri))

@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>] | sanzoning'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore| dr} [local|ldap] [<timeslot>] | sanzoning'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -42,6 +42,7 @@ else
     echo "Configuration file $CONFIG_FILE not found"
     Usage
 fi
+
 
 
 [ $# -ge 3 ] || Usage
@@ -103,6 +104,14 @@ elif [ ${SS} = "vdc" ]; then
             AUTH=ldap
         fi
         echo AUTH=$AUTH
+elif [ ${SS} = "dr" ]; then
+        DR_SITE_B_IP=${4:-$DR_SITE_B_IP}
+        if [ -n "${BOURNE_IPV6_MODE}" ]; then
+            AUTH=ipv6
+        else
+            AUTH=ldap
+        fi
+        echo AUTH=$AUTH
 else
 
 	# By default, we're not running quick sanity
@@ -120,7 +129,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
+    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -227,6 +236,12 @@ VDC_TEST_PROJECT=vdc_project_$$
 VDC_TEST_DISCONN_RECONN_PROJECT=disrecon_vdc_project_$$
 VDC_TEST_REMOVE_PROJECT=testremove_vdc_project_$$
 
+#
+# Disaster Recovery Configuration
+#
+DR_SITE_B_NAME=dr_site_B_$$
+DR_SITE_B_DESCRIPTION="site b description"
+DR_SITE_A_NAME="Primary"
 #
 # Recovery Configuration
 #
@@ -6222,6 +6237,104 @@ monitor_tests()
     fi
     monitor query $timeslot $language
 }
+
+dr_setup()
+{
+    if [ -z "$DR_SITE_B_IP" ] ; then
+        echo -e "\nFail: Usage of dr sanity test is like:\n ./sanity 255.254.253.site1 dr 255.254.253.site2"
+        exit 1
+    fi
+
+
+    #setting pipefail option to pipe exit codes
+    set -o pipefail
+
+    DR_SITE_A_IP=$BOURNE_IPADDR
+    security login $SYSADMIN $SYSADMIN_PASSWORD
+    project_setup
+
+}
+
+dr_tests()
+{
+    projectid=$(project query $PROJECT)
+    echo "Project id of $PROJECT is $projectid."
+
+    primary_site=$(dr list "$DR_SITE_A_NAME"|tail -1) || { echo "get dr primary site failed."; echo $primary_site; exit 1; }
+    echo "primary uuid is $primary_site"
+    
+    echo "---ADD STANDBY SITE---"
+    echo "Adding new standby into current vipr system"
+    standby_site=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" $DR_SITE_B_IP $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site; exit 1; }
+    echo "Adding dr done"
+    echo "stanby uuid is $standby_site"    
+
+    echo "---GET SITES---"
+    dr list
+
+    echo "---GET SITE $standby_site---"
+    dr get $standby_site
+
+    echo "---VERIFY SITE $standby_site---"
+    name=$(dr get $standby_site name|tail -1)
+    description=$(dr get $standby_site description|tail -1)
+    vip=$(dr get $standby_site vip|tail -1)
+
+    if [ "$vip" != "$DR_SITE_B_IP" ] ; then
+        echo -e "Fail: site vip \"$vip\" isn't equalt to \"$DR_SITE_B_IP\""
+        exit 1
+    fi
+
+    if [ "$name" != "$DR_SITE_B_NAME" ] ; then
+        echo -e "Fail: site name \"$name\" isn't equalt to \"$DR_SITE_B_NAME\""
+        exit 1
+    fi
+
+    if [ "$description" != "$DR_SITE_B_DESCRIPTION" ] ; then
+        echo -e "Fail: site description \"$description\" isn't equalt to \"$DR_SITE_B_DESCRIPTION\""
+        exit 1
+    fi
+
+    
+    echo "---WAIT FOR SYNC $standby_site---"
+    dr waitforstate $standby_site STANDBY_SYNCED 10 600
+    echo "Syncing dr done"
+
+    # verify project
+    echo "---VERIFY PROJECT SYNCED $standby_site---"
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $SYSADMIN $SYSADMIN_PASSWORD
+    project show $projectid
+
+    # login to standby with auth
+    echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site---"
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+
+    # verify sites in standby
+    echo "---VERIFY sites from standby $standby_site---"
+    dr get $standby_site
+    dr get $primary_site
+
+    # delete standby
+    echo "---DELETE STANDBY $standby_site---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr delete $standby_site
+
+    echo "---WAIT FOR REMOVED $standby_site---"
+    dr waitforstate $standby_site STANDBY_REMOVING 10 600 -n|| echo "standby removed"
+    echo "Removing dr done"
+
+    # verify deleted
+    echo "---VERIFY STANDBY DELETED $standby_site---"
+    dr list $DR_SITE_B_NAME || echo "standby removed from site list"
+    dr get $standby_site || echo "standby uuid removed from primary"
+
+    #disabling pipefail option to pipe exit codes
+    set +o pipefail
+}
+
 
 vdc_setup()
 {

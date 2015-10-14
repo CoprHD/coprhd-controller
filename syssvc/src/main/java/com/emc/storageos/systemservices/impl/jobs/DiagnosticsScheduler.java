@@ -8,6 +8,7 @@ import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.systemservices.impl.healthmonitor.DiagConstants;
 import com.emc.storageos.systemservices.impl.healthmonitor.DiagnosticsExec;
 import com.emc.storageos.systemservices.impl.healthmonitor.LogAnalyser;
+import com.emc.storageos.systemservices.impl.healthmonitor.ServiceMonitor;
 import com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata;
 import com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestsMetadata;
 import com.emc.vipr.model.sys.healthmonitor.DiagTest;
@@ -37,6 +38,7 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
     private LogAnalyser _dbLogAnalyser;
     private LogAnalyser _zkLogAnalyser;
     private LogAnalyser _controllerSvcLogAnalyser;
+    private ServiceMonitor _serviceMonitor;
 
     public void setDbLogAnalyser(LogAnalyser dbLogAnalyser) {
         _dbLogAnalyser = dbLogAnalyser;
@@ -48,6 +50,10 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
 
     public void setControllerSvcLogAnalyser(LogAnalyser controllerSvcLogAnalyser) {
         _controllerSvcLogAnalyser = controllerSvcLogAnalyser;
+    }
+
+    public void setServiceMonitor(ServiceMonitor serviceMonitor) {
+        _serviceMonitor = serviceMonitor;
     }
 
     /**
@@ -62,6 +68,7 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
 
     @Override
     public void run() {
+        _log.info("Begin to run diagnostics");
         List<DiagTest> diagTests = DiagnosticsExec.getDiagToolResults(DiagConstants
                 .VERBOSE);
         DiagTestMetadata diagTestMetadata;
@@ -85,9 +92,14 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
             }
         }
 
+        _log.info("Finish to run diagnostics");
+        // Update dbsvc and geodbsvc monitor info to ZK
+        _serviceMonitor.monitor();
+
         // Analysis db and zk logs, if the errors match pre-define patterns, alter it in SystemEvents.
         _dbLogAnalyser.analysisLogs();
         _zkLogAnalyser.analysisLogs();
         _controllerSvcLogAnalyser.analysisLogs();
     }
 }
+

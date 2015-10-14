@@ -68,6 +68,8 @@
 
     <bean id="recoveryManager" class="com.emc.storageos.systemservices.impl.recovery.RecoveryManager"/>
 
+    <bean id="serviceMonitor" class="com.emc.storageos.systemservices.impl.healthmonitor.ServiceMonitor"/>
+
     <bean id="auditLogManager"
         class="com.emc.storageos.security.audit.AuditLogManager">
       <property name="dbClient" ref="dbclient"/>
@@ -286,6 +288,7 @@
         <property name="dbLogAnalyser" ref="dbLogAnalyser" />
         <property name="zkLogAnalyser" ref="zkLogAnalyser" />
         <property name="controllerSvcLogAnalyser" ref="controllerSvcLogAnalyser" />
+        <property name="serviceMonitor" ref="serviceMonitor" />
     </bean>
 
     <bean id="logSvcPropertiesLoader" class="com.emc.storageos.systemservices.impl.logsvc.LogSvcPropertiesLoader" />

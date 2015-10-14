@@ -9,9 +9,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.lang.Math;
 
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -47,9 +51,9 @@ import com.emc.storageos.db.server.impl.StartupMode.GeodbRestoreMode;
 import com.emc.storageos.db.server.impl.StartupMode.HibernateMode;
 import com.emc.storageos.db.server.impl.StartupMode.NormalMode;
 import com.emc.storageos.db.server.impl.StartupMode.ObsoletePeersCleanupMode;
-import com.emc.storageos.services.util.JmxServerWrapper;
-import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+import com.emc.storageos.services.util.*;
 import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
+import static com.emc.storageos.services.util.FileUtils.getLastModified;
 
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
@@ -70,6 +74,10 @@ public class DbServiceImpl implements DbService {
     // run failure detector every 5 min by default
     private static final int DEFAULT_DETECTOR_RUN_INTERVAL_MIN = 5;
     private int _detectorInterval = DEFAULT_DETECTOR_RUN_INTERVAL_MIN;
+
+    // Service outage time should be less than 5 days, or else service will not be allowed to get started any more.
+    private static final long MAX_SERVICE_OUTAGE_TIME = 5 * TimeUtils.DAYS;
+    private AlertsLogger alertLog = AlertsLogger.getAlertsLogger();
 
     private String _config;
     private CoordinatorClient _coordinator;
@@ -365,6 +373,76 @@ public class DbServiceImpl implements DbService {
     }
 
     /**
+     * check service monitor info to see if dbsvc/geodbsvc on this node could get started
+     */
+    private void checkServiceMonitorConfiguration() {
+        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();
+        Map<String, String> monitorInfo = queryServiceMonitorInfo(_serviceInfo.getName());
+
+        Map<String, String> timestampInfo = convertStringToMap(monitorInfo.get(Constants.MONITOR_TIMESTAMP_INFO));
+        String zkTimeStampStr = timestampInfo.get(localNodeId);
+        long zkTimeStamp = (zkTimeStampStr == null) ? TimeUtils.getCurrentTime() : Long.parseLong(zkTimeStampStr);
+
+        File localDbDir = new File(dbDir);
+        boolean isDirEmpty = localDbDir.list().length == 0;
+        long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : getLastModified(localDbDir).getTime();
+
+        _log.info("Local timestamp is: {}, ZK timestamp is: {}", localTimeStamp, zkTimeStamp);
+        long diffTime = Math.abs(zkTimeStamp - localTimeStamp);
+        if (diffTime >= MAX_SERVICE_OUTAGE_TIME) {
+            _log.warn("The time difference between timestamps persisted in ZK and local is {} msec", diffTime);
+            String errMsg = "Database is out of date. Please do not rollback node to so long ago";
+            alertLog.error(errMsg);
+            throw new IllegalStateException(errMsg);
+        }
+
+        Map<String, String> offlineTimeMap = convertStringToMap(monitorInfo.get(Constants.MONITOR_OFFLINE_INFO));
+        String offlineTime = offlineTimeMap.get(localNodeId);
+        if (offlineTime != null && Long.parseLong(offlineTime) >= MAX_SERVICE_OUTAGE_TIME) {
+            String errMsg = "Database is out of date due to too long outage time. " +
+                    "Please power off this node and then trigger node recovery to replace it";
+            alertLog.error(errMsg);
+            throw new IllegalStateException(errMsg);
+        }
+    }
+
+    /**
+     * Query service monitor info from ZK
+     */
+    private Map<String, String> queryServiceMonitorInfo(String serviceName) {
+        Map<String, String> monitorInfo = new HashMap<String, String>();
+        Configuration config = _coordinator.queryConfiguration(
+                Constants.SERVICE_MONITOR_CONFIG, serviceName);
+        if (config == null) {
+            return monitorInfo;
+        }
+        String offlineInfo = config.getConfig(Constants.MONITOR_OFFLINE_INFO);
+        if (offlineInfo != null && offlineInfo.length() > 0) {
+            _log.info("Get service offline info: {}", offlineInfo);
+            monitorInfo.put(Constants.MONITOR_OFFLINE_INFO, offlineInfo);
+        }
+        String timestampInfo = config.getConfig(Constants.MONITOR_TIMESTAMP_INFO);
+        if (timestampInfo != null && timestampInfo.length() > 0) {
+            _log.info("Get service timestamp info: {}", timestampInfo);
+            monitorInfo.put(Constants.MONITOR_TIMESTAMP_INFO, timestampInfo);
+        }
+        _log.info("Service monitor info: {}", monitorInfo.toString());
+        return monitorInfo;
+    }
+
+    private Map<String, String> convertStringToMap(String stringInfo) {
+        Map<String, String> mapInfo = new HashMap<String, String>();
+        if (stringInfo != null) {
+            List<String> nodeIds = Arrays.asList(stringInfo.split("\\s*,\\s*"));
+            for (String node : nodeIds) {
+                String[] nodeInfo = node.split("=");
+                mapInfo.put(nodeInfo[0], nodeInfo[1]);
+            }
+        }
+        return mapInfo;
+    }
+
+    /**
      * Checks and sets INIT_DONE state
      * this means we are done with the actual cf changes on the cassandra side for the target version
      */
@@ -510,6 +588,7 @@ public class DbServiceImpl implements DbService {
             config = checkConfiguration();
             checkGlobalConfiguration();
             checkVersionedConfiguration();
+            checkServiceMonitorConfiguration();
             removeStaleConfiguration();
 
             // The num_tokens in ZK is what we previously running at, which could be different from in current .yaml
@@ -885,3 +964,4 @@ public class DbServiceImpl implements DbService {
 
     }
 }
+

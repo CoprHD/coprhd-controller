@@ -402,35 +402,13 @@ public class RecoveryManager implements Runnable {
 
     private boolean isNodeAvailable(String nodeId) {
         for (String serviceName : serviceNames) {
-            List<String> availableNodes = getServiceAvailableNodes(serviceName);
+            List<String> availableNodes = coordinator.getServiceAvailableNodes(serviceName);
             if (!availableNodes.contains(nodeId)) {
                 log.debug("Service({}) on node({}) is unavailable");
                 return false;
             }
         }
         return true;
-    }
-
-    /**
-     * Get the nodes list of specific service have started
-     */
-    private List<String> getServiceAvailableNodes(String serviceName) {
-        List<String> availableNodes = new ArrayList<String>();
-        try {
-            List<Service> services = coordinator.locateAllServices(
-                    serviceName, dbClient.getSchemaVersion(), null, null);
-            for (Service svc : services) {
-                final String svcId = svc.getId();
-                if (svcId != null) {
-                    String nodeId = "vipr" + svcId.substring(svcId.lastIndexOf("-") + 1);
-                    availableNodes.add(nodeId);
-                }
-            }
-        } catch (Exception ex) {
-            log.warn("Check service({}) beacon error", serviceName, ex);
-        }
-        log.debug("Get available nodes by check {}: {}", serviceName, availableNodes);
-        return availableNodes;
     }
 
     /**
@@ -988,3 +966,4 @@ public class RecoveryManager implements Runnable {
         return null;
     }
 }
+

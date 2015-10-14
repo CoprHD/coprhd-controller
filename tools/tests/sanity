@@ -2848,7 +2848,7 @@ recoverpoint_tests()
 
             if [ "$RP_TESTS" = "1" ]; then
                 echo 'RP change vpool...'
-                recoverpoint_vpool_change_test ${rpvolume}{volume_name_modifier} ${rp_noprotection_vpool} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
+                recoverpoint_vpool_change_test ${rpvolume}${volume_name_modifier} ${rp_noprotection_vpool} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
             fi
 
             if [ "$RPVPLEX_TESTS" = "1" ]; then

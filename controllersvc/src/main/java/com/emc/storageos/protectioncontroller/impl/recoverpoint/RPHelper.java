@@ -1606,13 +1606,15 @@ public class RPHelper {
     }
 
     /**
-     * returns the list of journal volumes for one copy
-     * 
+     * returns the list of journal volumes for one site
+     *
+     * If this is a CDP volume, journal volumes from both the production and target copies are returned
+     *
      * @param varray
      * @param consistencyGroup
      * @return
      */
-    private List<Volume> getJournalVolumesForCopy(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
+    private List<Volume> getJournalVolumesForSite(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
         List<Volume> journalVols = new ArrayList<Volume>();
         List<Volume> volsInCg = getCgVolumes(consistencyGroup.getId(), _dbClient);
         if (volsInCg != null) {
@@ -1628,8 +1630,8 @@ public class RPHelper {
 
     /**
      * returns a unique journal volume name by evaluating all journal volumes for the copy and increasing the count journal volume name is
-     * in the form varrayName-cgname-journal-<count>
-     *
+     * in the form varrayName-cgname-journal-[count]
+     * 
      * @param varray
      * @param consistencyGroup
      * @return
@@ -1638,7 +1640,7 @@ public class RPHelper {
         String journalPrefix = new StringBuilder(varray.getLabel()).append(VOL_DELIMITER).append(consistencyGroup.getLabel())
                 .append(VOL_DELIMITER)
                 .append(JOURNAL).toString();
-        List<Volume> existingJournals = getJournalVolumesForCopy(varray, consistencyGroup);
+        List<Volume> existingJournals = getJournalVolumesForSite(varray, consistencyGroup);
 
         // filter out old style journal volumes
         // new style journal volumes are named with the virtual array as the first component

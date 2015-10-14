@@ -11,6 +11,9 @@ import java.net.URI;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.tasks.CreateVplexVolumeFromSnapshot;
+import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.vipr.client.Task;
 
 @Service("CreateVplexVolumeFromSnapshot")
 public class CreateVplexVolumeFromSnapshotService extends ViPRService {
@@ -20,6 +23,8 @@ public class CreateVplexVolumeFromSnapshotService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        getClient().blockSnapshots().createVplexVolume(this.snapshotId);
+        Task<BlockSnapshotRestRep> task = execute(new CreateVplexVolumeFromSnapshot(snapshotId));
+        URI volume = task.getResourceId();
+        addAffectedResource(volume);
     }
 }

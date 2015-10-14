@@ -172,13 +172,6 @@ public class BlockStorageUtils {
         return execute(new GetStorageSystem(storageSystemId));
     }
 
-    public static URI createVplexVolumeFromSnapshot(URI volumeId) {
-        Task<BlockSnapshotRestRep> task = execute(new CreateVplexVolumeFromSnapshot(volumeId));
-        URI volume = task.getResourceId();
-        addAffectedResource(volume);
-        return volume;
-    }
-
     public static List<BlockObjectRestRep> getVolumes(List<URI> volumeIds) {
         List<BlockObjectRestRep> volumes = Lists.newArrayList();
         for (URI volumeId : volumeIds) {

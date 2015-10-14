@@ -62,6 +62,7 @@ import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonStoragePool;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
+import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -106,6 +107,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String SYSSECURITY = "sys";
     private static final Long TBsINKB = 1073741824L;
+    private static final Long MAX_NFS_EXPORTS = 1500L;
+    private static final Long MAX_STORAGE_OBJS = 40000L; 
 
     private IsilonApiFactory _factory;
 
@@ -266,23 +269,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
         
         StringMap dbMetrics = null;
-        VirtualNAS virtualNAS = null;
-        PhysicalNAS physicalNAS = null;
-        
-        Long totalStorObj = 0L;
-        Long totalStorCap = 0L;
-        String systemAZId = null;
-        
-        List<VirtualNAS> virtualNASList = new ArrayList<VirtualNAS>();
+        String accessZoneId = null;
         try {
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-            
+            VirtualNAS virtualNAS = null;
             ////step-1 process the dbmetrics for user define access zones
             List<IsilonAccessZone> accessZoneList = isilonApi.getAccessZones();
             for(IsilonAccessZone isAccessZone: accessZoneList) {
+                accessZoneId = isAccessZone.getZone_id().toString();
                 //get the total fs count and capacity for AZ
                 if( isAccessZone.isSystem() != true) {
-                    virtualNAS = findvNasByNativeId(storageSystem, isAccessZone.getZone_id().toString());
+                    virtualNAS = findvNasByNativeId(storageSystem, accessZoneId);
                     if(virtualNAS != null) {
                         _log.info("process db metrics for access zone : {}", isAccessZone.getName());
                         dbMetrics = virtualNAS.getMetrics();
@@ -291,73 +288,30 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         }
                         /*get the fs objects and their capacity*/ 
                         _log.info("get the total objs and capacity dbmetrics for access zone : {}", isAccessZone.getName());
-                        getDBmetricsAZ(isAccessZone.getPath(), isilonApi, dbMetrics);
-                        //sum of all user define AZ's
-                        //totalStorObj = totalStorObj + MetricsKeys.getLong(MetricsKeys.storageObjects, dbMetrics);
-                        //totalStorCap = totalStorCap + MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, dbMetrics);
+                        populateDbMetricsAz(isAccessZone, isilonApi, dbMetrics);
+                       
                         //set AZ dbMetrics in db
                         virtualNAS.setMetrics(dbMetrics);
-                        virtualNASList.add(virtualNAS);
+                        _dbClient.persistObject(virtualNAS);
                     }
                 } else {
-                    systemAZId = isAccessZone.getZone_id().toString();
+                    dbMetrics = null;
+                    PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, accessZoneId);
+                    if(physicalNAS == null) {
+                        _log.error(String.format("computeStaticLoadMetrics is failed for  Storagesystemid: %s", storageSystemId));
+                        return;
+                    } 
+                    dbMetrics = physicalNAS.getMetrics();
+                    if(dbMetrics == null) {
+                        dbMetrics = new StringMap();
+                    }
+                    /*process the system accesszone dbmetrics*/
+                    _log.info("get dbmetrics total objs and capacity for system access zone : {}", accessZoneId);
+                    populateDbMetricsAz(isAccessZone, isilonApi, dbMetrics);
+                    physicalNAS.setMetrics(dbMetrics);
+                    _dbClient.persistObject(physicalNAS);
                 }
             }
-            
-            physicalNAS = findPhysicalNasByNativeId(storageSystem, systemAZId);
-            if(physicalNAS == null) {
-                _log.error(String.format("computeStaticLoadMetrics is failed for  Storagesystemid: %s", storageSystemId));
-                return;
-            } 
-            
-            ////step-2 process dbmetrics for system access zone
-            
-            dbMetrics = physicalNAS.getMetrics();
-            if(dbMetrics == null) {
-                dbMetrics = new StringMap();
-            }
-            
-            /*process the system accesszone dbmetrics*/
-            _log.info("get dbmetrics total objs and capacity for system access zone : {}", systemAZId);
-            getDBmetricsAZ(IFS_ROOT, isilonApi, dbMetrics);
-            
-            
-            ////step-3 set the overload and percent load metrics for all access zones
-            
-            Long maxObjects = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
-            Long maxCapacity =  MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
-            String overLoaded = "false";
-            if (totalStorObj >= maxObjects || totalStorObj >= maxCapacity) {
-                overLoaded = "true";
-            }
-            _log.info("Is isilon access zone Overload !: {}", overLoaded);
-            //set overload for system access zone
-            dbMetrics.put(MetricsKeys.overLoaded.name(), overLoaded);
-            //calculate percentage load
-            double percentageLoad = ((double) totalStorObj / maxObjects) * 100;
-            dbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
-            
-            //AZ : set over load and percentload for all user defind AZs
-            if(virtualNASList != null && !virtualNASList.isEmpty()) {
-                for (VirtualNAS vNas : virtualNASList) {
-                    // Update dbMetrics for vNAS!!
-                    dbMetrics = vNas.getMetrics();
-                    maxObjects = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
-                    Long StorageObj = MetricsKeys.getLong(MetricsKeys.storageObjects, vNas.getMetrics());
-                    percentageLoad = ((double) StorageObj / maxObjects) * 100;
-                    //update db metrics with percentload and overload
-                    dbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
-                    dbMetrics.put(MetricsKeys.overLoaded.name(), overLoaded);
-                }
-                //persist userdefine dbmetrics
-                _dbClient.persistObject(virtualNASList);
-            }
-            
-            ////step4 - persist the access zone objects into db
-            
-            physicalNAS.setMetrics(dbMetrics);
-            _dbClient.persistObject(physicalNAS);
-
         } catch (Exception e) {
             _log.error("CollectStatisticsInformation failed. Storage system: " + storageSystemId, e);
         }
@@ -369,12 +323,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param isilonApi
      * @param dbMetrics
      */
-    void getDBmetricsAZ(final String baseDirPath, IsilonApi isilonApi, StringMap dbMetrics) {
+    void populateDbMetricsAz(IsilonAccessZone accessZone, IsilonApi isilonApi, StringMap dbMetrics) {
         //filesystem query
-        String resumeToken = null;
+        
         Long totalProvCap = 0L;
         Long totalFsCount = 0L;
-        
+        String resumeToken = null;
+        String baseDirPath = accessZone.getPath();
+        String zoneName = accessZone.getName();
         //filesystems count & Capacity
         IsilonApi.IsilonList<IsilonSmartQuota> quotas = null;
         do {
@@ -390,8 +346,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         
         //snapshots count & capacity
         IsilonApi.IsilonList<IsilonSnapshot> snapshots = null;
+        resumeToken = null;
         do {
-            resumeToken = null;
             snapshots = isilonApi.listSnapshots(resumeToken, baseDirPath);
             if(snapshots != null) {
                 for(IsilonSnapshot isiSnap: snapshots.getList()) {
@@ -406,9 +362,57 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if(dbMetrics != null) {
             dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalFsCount));
             dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalProvCap));
-            
             _log.error("totals StorageObjs{} on base directory path {}: ",  totalFsCount, baseDirPath);
         }
+        
+        //get total exports
+        int nfsExportsCount = 0;
+        int cifsSharesCount = 0;
+        resumeToken = null;
+        do {
+            
+            IsilonList<IsilonExport> isilonNfsExportList= isilonApi.listExports(resumeToken, zoneName);
+            if(isilonNfsExportList != null) {
+                nfsExportsCount = isilonNfsExportList.size();
+                resumeToken = isilonNfsExportList.getToken();
+            }
+        } while(resumeToken != null);
+        
+        //get cifs exports
+        resumeToken = null;
+        do {
+            IsilonList<IsilonSMBShare> isilonCifsExportList = isilonApi.listShares(resumeToken, zoneName);
+            if(isilonCifsExportList != null) {
+                nfsExportsCount = isilonCifsExportList.size();
+                resumeToken = isilonCifsExportList.getToken();
+            }
+        } while(resumeToken != null);
+        
+        // set total fs objects and their sum of capacity for give AZ
+        if(dbMetrics != null) {
+            dbMetrics.put(MetricsKeys.totalNfsExports.name(), String.valueOf(nfsExportsCount));
+            dbMetrics.put(MetricsKeys.totalCifsShares.name(), String.valueOf(cifsSharesCount));
+        }
+        
+        //setting overLoad factor (true or false)
+        Long maxNfsExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics);
+        Long maxCifsShares = MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
+        Long maxCapacity =  MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
+        
+        String overLoaded = "false";
+        if (nfsExportsCount >= maxNfsExports || cifsSharesCount >= maxCifsShares || totalProvCap >= maxCapacity) {
+            overLoaded = "true";
+        }
+        
+        //percentage calculator
+        double percentageLoadExports = ((double) (nfsExportsCount + cifsSharesCount) / maxNfsExports + maxCifsShares) * 100;
+        
+        double percentageLoadStorObj = ((double) (totalProvCap)/maxCapacity) *100;
+        double percentageLoad = (percentageLoadExports + percentageLoadStorObj)/2;
+        
+        dbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
+        dbMetrics.put(MetricsKeys.overLoaded.name(), overLoaded);
+        return;
     }
     
     
@@ -450,6 +454,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             discoverUmanagedFileSystems(accessProfile);
         } else {
             discoverAll(accessProfile);
+            
         }
     }
 
@@ -2298,14 +2303,35 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if (dbMetrics == null) {
            dbMetrics = new StringMap(); 
         }
-        // Set the Limit Metric keys!!
-        Long MaxObjects = 2048L;
+        //set the Limitation Metrics keys
+        setMaxDbMetricsAz(system, dbMetrics);
+        vNas.setMetrics(dbMetrics);
+        return vNas;
+    }
+    
+    /**
+     * set the Max limits for static db metrics
+     * @param system
+     * @param dbMetrics
+     */
+    private void setMaxDbMetricsAz(final StorageSystem system, StringMap dbMetrics) {
+     // Set the Limit Metric keys!!
+        Long MaxObjects = 40000L;
         Long MaxCapacity = 200L * TBsINKB;
+        
         dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
         dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
-        vNas.setMetrics(dbMetrics);
         
-        return vNas;
+        Long MaxNfsExports = 0L;
+        Long MaxCifsShares = 30000L;
+        if(system.getFirmwareVersion().charAt(0) >= '7' && system.getFirmwareVersion().charAt(2) >= 2) {
+            MaxNfsExports = 1500L;
+            MaxCifsShares = 40000L;
+        }
+        
+        dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(MaxNfsExports));
+        dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(MaxCifsShares));
+        return;
     }
 
     
@@ -2335,13 +2361,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if(dbMetrics == null) {
             dbMetrics = new StringMap();
         }
-        // Set the Limit Metric keys!!
-        Long MaxObjects = 2048L;
-        Long MaxCapacity = 200L * TBsINKB;
-        String modelStr = system.getModel();
-        
-        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
-        dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+        //set the Limitation Metrics keys
+        setMaxDbMetricsAz(system, dbMetrics);
         phyNas.setMetrics(dbMetrics);
         
         return phyNas;

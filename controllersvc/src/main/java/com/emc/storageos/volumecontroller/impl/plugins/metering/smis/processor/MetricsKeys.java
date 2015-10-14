@@ -55,8 +55,15 @@ public enum MetricsKeys {
     usedStorageCapacity,
     /** Indicate load on datamover in compared with all dataMover combined. */
     percentLoad,
-
+    /** nfs export on virtulaNAS for nfs protocol */
+    totalNfsExports,
+    /** cifs export on virtulaNAS for cifs protocol */
+    totalCifsShares,
     /** Indicates whether the storage server is overloaded or not */
+    
+    maxNFSExports,
+    maxCifsShares,
+    
     overLoaded,
     /** The ViPR time this port/cpu was last processed. */
     lastProcessingTime;

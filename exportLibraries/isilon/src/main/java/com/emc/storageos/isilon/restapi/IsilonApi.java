@@ -601,6 +601,17 @@ public class IsilonApi {
     public IsilonList<IsilonExport> listExports(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_NFS_EXPORTS), "exports", IsilonExport.class, resumeToken);
     }
+    
+    /**
+     * List all exports
+     * 
+     * @return IsilonList of IsilonExport objects
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonExport> listExports(String resumeToken, String zoneName) throws IsilonException {
+        return list(_baseUrl.resolve(URI_NFS_EXPORTS), "exports", IsilonExport.class, resumeToken);
+    }
+
 
     /**
      * Create export
@@ -681,10 +692,13 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonList<IsilonSmartQuota> listQuotas(String resumeToken, String pathBaseDir) throws IsilonException {
-        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_QUOTAS).toString());
-        URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
-        URI uri = URI.create(URLBuffer.toString());
-        return list(_baseUrl.resolve(URI_QUOTAS), "quotas", IsilonSmartQuota.class, resumeToken);
+        URI uri = URI_QUOTAS;
+        if(pathBaseDir != null) {
+            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+            URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
+            uri = URI.create(URLBuffer.toString());
+        }
+        return list(_baseUrl.resolve(uri), "quotas", IsilonSmartQuota.class, resumeToken);
     }
 
     /**
@@ -855,6 +869,16 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonList<IsilonSMBShare> listShares(String resumeToken) throws IsilonException {
+        return list(_baseUrl.resolve(URI_SMB_SHARES), "shares", IsilonSMBShare.class, resumeToken);
+    }
+    
+    /**
+     * List all SMB Shares
+     * 
+     * @return IsilonList of IsilonSMBShare objects
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSMBShare> listShares(String resumeToken, String zoneName) throws IsilonException {
         return list(_baseUrl.resolve(URI_SMB_SHARES), "shares", IsilonSMBShare.class, resumeToken);
     }
 

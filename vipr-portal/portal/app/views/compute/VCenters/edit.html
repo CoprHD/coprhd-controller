@@ -6,6 +6,7 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.assets', 'nav.vcenters'] /}
 #{set 'title'}&{titleKey}#{/set}
+#{set editMode:vCenter?.id ? true : false/}
 
 #{breadcrumb.container}
   #{breadcrumb.item @list()}&{'VCenters.list.title'}#{/breadcrumb.item}
@@ -99,33 +100,67 @@
   #{/deadbolt.restrict}
 
   *{ tenantOptions are only available for users that can set tenant ACLs }*
-  #{if tenantOptions}
-  <fieldset>
-    <legend>&{'security.tenantControlList'}<small>&{'security.tenantControlList.description.vcenter'}</small></legend>
-    #{field 'vCenter.cascadeTenancy'}
-      %{
-        field.disabled = disableCascadeTenancy;
-        field.helpTextKey = field.name + '.description'
-      }%
-      #{Form.booleanCheckBoxControlGroup field:field /}
-    #{/field}
-    <fieldset>
-        #{field 'vCenter.tenants'}
-        %{
-          field.helpTextKey = field.name + '.description'
-        }%
-        #{Form.selectManyControlGroup field:field, options:tenantOptions /}
-      #{/field}
-    </fieldset>
-    <fieldset>
-      #{field 'vCenter.tenant'}
-        %{
-          field.helpTextKey = field.name + '.description'
-        }%
-        #{Form.selectOneControlGroup field:field, options:tenantOptionsWithNone /}
-      #{/field}
-    </fieldset>
-  </fieldset>
+  #{if tenantOptions }
+    #{if !editMode }
+      #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
+        <fieldset>
+          <legend>&{'security.tenantControlList'}<small>&{'security.tenantControlList.description.vcenter'}</small></legend>
+          #{field 'vCenter.cascadeTenancy'}
+            %{
+              field.disabled = disableCascadeTenancy;
+              field.helpTextKey = field.name + '.description'
+            }%
+            #{Form.booleanCheckBoxControlGroup field:field /}
+          #{/field}
+          <fieldset>
+              #{field 'vCenter.tenants'}
+              %{
+                field.helpTextKey = field.name + '.description'
+              }%
+              #{Form.selectManyControlGroup field:field, options:tenantOptions /}
+            #{/field}
+          </fieldset>
+          <fieldset>
+            #{field 'vCenter.tenant'}
+              %{
+                field.helpTextKey = field.name + '.description'
+              }%
+              #{Form.selectOneControlGroup field:field, options:tenantOptionsWithNone /}
+            #{/field}
+          </fieldset>
+        </fieldset>
+      #{/deadbolt.restrict}
+    #{/if}
+    #{else}
+      #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['SECURITY_ADMIN']]}
+        <fieldset>
+          <legend>&{'security.tenantControlList'}<small>&{'security.tenantControlList.description.vcenter'}</small></legend>
+          #{field 'vCenter.cascadeTenancy'}
+            %{
+            field.disabled = disableCascadeTenancy;
+            field.helpTextKey = field.name + '.description'
+            }%
+            #{Form.booleanCheckBoxControlGroup field:field /}
+          #{/field}
+          <fieldset>
+            #{field 'vCenter.tenants'}
+              %{
+              field.helpTextKey = field.name + '.description'
+              }%
+              #{Form.selectManyControlGroup field:field, options:tenantOptions /}
+            #{/field}
+          </fieldset>
+          <fieldset>
+            #{field 'vCenter.tenant'}
+              %{
+              field.helpTextKey = field.name + '.description'
+              }%
+              #{Form.selectOneControlGroup field:field, options:tenantOptionsWithNone /}
+            #{/field}
+          </fieldset>
+        </fieldset>
+      #{/deadbolt.restrict}
+    #{/else}
   #{/if}
   #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
      #{Form.saveValidateCancelButtonBar size:'large'/}

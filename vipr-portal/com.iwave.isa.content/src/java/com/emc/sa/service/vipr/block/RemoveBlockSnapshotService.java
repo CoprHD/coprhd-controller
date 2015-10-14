@@ -38,7 +38,6 @@ public class RemoveBlockSnapshotService extends ViPRService {
             if (!ConsistencyUtils.validateConsistencyGroupSnapshots(getClient(), consistencyGroupId)) {
                 ExecutionUtils.fail("failTask.ConsistencyGroup.noSnapshots", consistencyGroupId, consistencyGroupId);
             }
-        } else {
             if (consistencyGroupId == null) {
                 ExecutionUtils.fail("failTask.ConsistencyGroup.noConsistencyGroup", consistencyGroupId);
             }

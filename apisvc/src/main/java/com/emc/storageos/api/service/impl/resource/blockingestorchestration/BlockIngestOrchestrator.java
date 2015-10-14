@@ -934,8 +934,8 @@ public abstract class BlockIngestOrchestrator {
 
         _logger.info("Expected replicas : {} -->Found replica URIs : {}", expectedIngestedReplicas.size(),
                 foundIngestedReplicaNativeGuids.size());
-        _logger.info("Expected replicas {} : Found {} : ", Joiner.on("\t").join(expectedIngestedReplicas),
-                Joiner.on("\t").join(foundIngestedReplicaNativeGuids));
+        _logger.info("Expected replicas {} : Found {} : ", Joiner.on(", ").join(expectedIngestedReplicas),
+                Joiner.on(", ").join(foundIngestedReplicaNativeGuids));
 
         if (foundIngestedReplicas.size() == expectedIngestedReplicas.size()) {
             if (null != rootBlockObject && !foundIngestedReplicas.isEmpty()) {
@@ -945,7 +945,7 @@ public abstract class BlockIngestOrchestrator {
             }
         } else {
             Set<String> unIngestedReplicas = VolumeIngestionUtil.getUnIngestedReplicas(expectedIngestedReplicas, foundIngestedReplicas);
-            _logger.info("The replicas {} not ingested for volume {}", Joiner.on("\t").join(unIngestedReplicas), unManagedVolumeNativeGUID);
+            _logger.info("The replicas {} not ingested for volume {}", Joiner.on(", ").join(unIngestedReplicas), unManagedVolumeNativeGUID);
             StringBuffer taskStatus = taskStatusMap.get(currentUnManagedVolume.getNativeGuid());
             if (taskStatus == null) {
                 taskStatus = new StringBuffer();
@@ -962,15 +962,17 @@ public abstract class BlockIngestOrchestrator {
                 mutableSet.removeAll(vplexBackendVolumeGUIDs);
                 unIngestedReplicas = mutableSet;
             }
+
             if (rootBlockObject == null) {
                 taskStatus.append(String.format("The umanaged volume %s is not ingested. Also its replicas "
                         + "have not been ingested. Uningested replicas: %s.", currentUnManagedVolume.getLabel(),
-                        Joiner.on("\t").join(unIngestedReplicas)));
+                        Joiner.on(", ").join(unIngestedReplicas)));
             } else {
                 taskStatus.append(String.format("The umanaged volume %s has been partially ingested, but not all replicas "
                         + "have been ingested. Uningested replicas: %s.", currentUnManagedVolume.getLabel(),
-                        Joiner.on("\t").join(unIngestedReplicas)));
+                        Joiner.on(", ").join(unIngestedReplicas)));
             }
+
             // clear the map and stop traversing
             parentReplicaMap.clear();
             replicaTreeIngested = false;

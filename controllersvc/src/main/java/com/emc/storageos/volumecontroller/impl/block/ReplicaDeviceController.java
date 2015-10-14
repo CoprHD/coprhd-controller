@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -429,7 +430,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         createdMirror.setTenant(new NamedURI(volume.getTenant().getURI(), createdMirror.getLabel()));
         createdMirror.setPool(recommendedPoolURI);
         createdMirror.setVirtualPool(vPoolURI);
-        createdMirror.setSyncState(BlockMirror.SynchronizationState.UNKNOWN.toString());
+        createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());
         createdMirror.setSyncType(BlockMirror.MIRROR_SYNC_TYPE);
         createdMirror.setThinlyProvisioned(volume.getThinlyProvisioned());
         _dbClient.createObject(createdMirror);

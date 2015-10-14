@@ -406,7 +406,7 @@ public class Tasks extends Controller {
             resourceType = task.getResource() == null ? "" : URIUtil.getTypeName(task.getResource().getId());
             resourceName = task.getResource().getName();
             resourceId = task.getResource().getId().toString();
-            isComplete = !task.getState().equals("pending") || !task.getState().equals("queued");
+            isComplete = !task.getState().equals("pending") && !task.getState().equals("queued");
 
             queuedStartTime = task.getQueuedStartTime() == null ? 0 : task.getQueuedStartTime().getTimeInMillis();
 

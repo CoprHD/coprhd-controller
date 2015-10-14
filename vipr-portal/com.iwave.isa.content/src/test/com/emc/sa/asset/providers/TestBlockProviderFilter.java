@@ -61,7 +61,7 @@ public final class TestBlockProviderFilter {
     public static void main(String[] args) throws URISyntaxException {
         Logger.getRootLogger().setLevel(Level.OFF);
         ViPRCoreClient client =
-                new ViPRCoreClient("lglw6141.lss.emc.com", true).withLogin("root", "ChangeMe1!");
+                new ViPRCoreClient("host", true).withLogin("root", "password");
         try {
 
             for (ProjectRestRep project : client.projects().getByUserTenant()) {

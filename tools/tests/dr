@@ -36,10 +36,6 @@ def dr_get_standby(args):
     if args.property:
     	print standby[args.property]
 
-# def dr_sync_standby(args):
-#     bourne.connect(args.ip)
-#     bourne.dr_sync_standby(args.standby_sites, args.primary_site)
-
 def dr_delete_standby(args):
     bourne.connect(args.ip)
     bourne.dr_delete_standby(args.uuid)
@@ -97,11 +93,6 @@ drliststandby.add_argument('name', nargs='?',        help = 'return uuid of stan
 drgetstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 drgetstandby.add_argument('uuid',    		 	help = 'uuid of standby site')
 drgetstandby.add_argument('property', nargs='?',	help = 'return property of standby site')
-
-# sync dr standby
-# drsyncstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-# drsyncstandby.add_argument('standby_sites',	      help = 'name of standby site')
-# drsyncstandby.add_argument('primary_site', help = 'the description of standby site to be added')
 
 # delete dr standby
 drdeletestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

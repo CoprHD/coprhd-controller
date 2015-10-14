@@ -281,6 +281,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 if (targetHost != null && !NullColumnValueGetter.isNullURI(targetHost.getVcenterDataCenter())) {
                     VcenterDataCenter hostDataCenter = getModelClient().datacenters().findById(targetHost.getVcenterDataCenter());
                     if (hostDataCenter != null && !NullColumnValueGetter.isNullURI(hostDataCenter.getVcenter())
+                            && !NullColumnValueGetter.isNullURI(dataCenter.getVcenter())
                             && !hostDataCenter.getVcenter().equals(dataCenter.getVcenter())) {
                         return true;
                     }

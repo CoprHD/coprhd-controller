@@ -7331,9 +7331,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get the native volume info for the mirror volume.
             Volume mirrorVolume = getDataObject(Volume.class, mirrorVolumeURI, _dbClient);
-
-            // Get the cluster id for this storage volume.
-            String clusterId = VPlexControllerUtils.getVPlexClusterName(_dbClient, mirrorVolume);
+            String clusterId = VPlexControllerUtils.getVPlexClusterName(_dbClient, mirrorVolume.getVirtualArray(), vplexURI);
+            
 
             // Detach the mirror.
             String detachedDeviceName = client.detachMirrorFromDistributedVolume(

@@ -195,6 +195,38 @@ public class VPlexControllerUtils {
 
         return clusterName;
     }
+    
+    /**
+     * Determines the cluster name based on the volume's virtual array.
+     * 
+     * @param dbClient db client
+     * @param vplexVolume The VPlex volume whose cluster we want to find.
+     * @return The VPlex cluster name
+     * @throws Exception
+     * @throws URISyntaxException
+     */
+    public static String getVPlexClusterName(DbClient dbClient, URI vaURI, URI vplexURI) throws Exception {
+        String clusterName = null;
+        
+        // Get the vplex storage system so we can a handle on the vplex client
+        StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, dbClient);
+        VPlexApiClient client = null;
+
+        try {
+            client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplexSystem, dbClient);
+        } catch (URISyntaxException e) {
+            throw VPlexApiException.exceptions.connectionFailure(vplexURI.toString());
+        }
+
+        String vplexCluster = ConnectivityUtil.getVplexClusterForVarray(vaURI, vplexSystem.getId(), dbClient);
+        if (vplexCluster.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
+            throw new Exception("Unable to find VPLEX cluster for the varray " + vaURI);
+        }
+
+        clusterName = client.getClusterName(vplexCluster);
+
+        return clusterName;
+    }
 
     /**
      * Returns the cluster name (free form, user-configurable)

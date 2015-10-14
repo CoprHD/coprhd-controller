@@ -1285,7 +1285,7 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Get the nodes list of specific service have started
+     * Get the nodes list on which specific service are available
      */
     public List<String> getServiceAvailableNodes(String serviceName) {
         List<String> availableNodes = new ArrayList<String>();

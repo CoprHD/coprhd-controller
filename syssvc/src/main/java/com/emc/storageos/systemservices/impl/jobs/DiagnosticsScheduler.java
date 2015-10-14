@@ -68,7 +68,6 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
 
     @Override
     public void run() {
-        _log.info("Begin to run diagnostics");
         List<DiagTest> diagTests = DiagnosticsExec.getDiagToolResults(DiagConstants
                 .VERBOSE);
         DiagTestMetadata diagTestMetadata;
@@ -92,7 +91,6 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
             }
         }
 
-        _log.info("Finish to run diagnostics");
         // Update dbsvc and geodbsvc monitor info to ZK
         _serviceMonitor.monitor();
 

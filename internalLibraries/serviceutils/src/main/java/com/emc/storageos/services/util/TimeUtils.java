@@ -4,7 +4,6 @@ import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.Date;
 
-
 public class TimeUtils {
     public static long SECONDS = 1000;
     public static long MINUTES = 60 * SECONDS;

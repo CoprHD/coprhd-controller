@@ -121,7 +121,7 @@ public class ControllerUtils {
             tenantOrgURI = URI.create(TenantOrg.PROVIDER_TENANT_ORG);
         }
 
-        s_logger.debug("Returning tenant {} for project {}.", new Object[]{tenantOrgURI, projectURI});
+        s_logger.debug("Returning tenant {} for project {}.", new Object[] { tenantOrgURI, projectURI });
 
         return tenantOrgURI;
     }
@@ -897,14 +897,14 @@ public class ControllerUtils {
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
-            .getSnapshotReplicationGroupInstanceConstraint(replicationGroupInstance),
-            uriQueryResultList);
+                .getSnapshotReplicationGroupInstanceConstraint(replicationGroupInstance),
+                uriQueryResultList);
         Iterator<BlockSnapshot> snapIterator = dbClient.queryIterativeObjects(BlockSnapshot.class,
                 uriQueryResultList);
         while (snapIterator.hasNext()) {
-        	BlockSnapshot snapshot = snapIterator.next();
+            BlockSnapshot snapshot = snapIterator.next();
             if (snapshot != null && !snapshot.getInactive()) {
-            	snapshots.add(snapshot);
+                snapshots.add(snapshot);
             }
         }
         return snapshots;
@@ -969,7 +969,7 @@ public class ControllerUtils {
     /**
      * Check if CG has any group relationship
      *
-     * Note - on array side,  if replica has been removed from replication group, but source volume has not been removed from CG yet,
+     * Note - on array side, if replica has been removed from replication group, but source volume has not been removed from CG yet,
      * the CG will not have group relationship until the source volume get removed from the CG.
      *
      * As a result, getting associator names cannot be used to check if CG has group relationship.
@@ -1026,7 +1026,8 @@ public class ControllerUtils {
         return false;
     }
 
-    /** Gets snapshot replication group names from clones of all volumes in CG.
+    /**
+     * Gets snapshot replication group names from clones of all volumes in CG.
      *
      * @param volumes
      * @param dbClient
@@ -1062,7 +1063,7 @@ public class ControllerUtils {
     /**
      * Gets clone replication group names from clones of all volumes in CG.
      */
-    public static Set<String> getCloneReplicationGroupNames(List<Volume> volumes , DbClient dbClient) {
+    public static Set<String> getCloneReplicationGroupNames(List<Volume> volumes, DbClient dbClient) {
         Set<String> groupNames = new HashSet<String>();
 
         // check if replica of any of these volumes have replicationGroupInstance set
@@ -1141,12 +1142,12 @@ public class ControllerUtils {
      * added to it.
      *
      * @param snapshots List of snapshot URI's
-     * @param dbClient  DbClient instance
+     * @param dbClient DbClient instance
      * @param completer Optional TaskCompleter instance.
-     * @return          true/false dependent on a snapshot being part of a consistency group.
+     * @return true/false dependent on a snapshot being part of a consistency group.
      */
     public static boolean checkSnapshotsInConsistencyGroup(List<BlockSnapshot> snapshots, DbClient dbClient,
-                                                           TaskCompleter completer) {
+            TaskCompleter completer) {
         BlockConsistencyGroup group = ConsistencyUtils.getSnapshotsConsistencyGroup(snapshots, dbClient);
         if (group != null) {
             if (completer != null) {
@@ -1162,10 +1163,10 @@ public class ControllerUtils {
      * In addition to this, if a non-null {@link TaskCompleter} is provided the {@BlockConsistencyGroup} instance
      * added to it.
      *
-     * @param clone     URI of the clone/fullcopy
-     * @param dbClient  DbClient instance
+     * @param clone URI of the clone/fullcopy
+     * @param dbClient DbClient instance
      * @param completer Optional TaskCompleter instance.
-     * @return          true/false dependent on the clone being part of a consistency group.
+     * @return true/false dependent on the clone being part of a consistency group.
      */
     public static boolean checkCloneConsistencyGroup(URI clone, DbClient dbClient, TaskCompleter completer) {
         BlockConsistencyGroup group = ConsistencyUtils.getCloneConsistencyGroup(clone, dbClient);
@@ -1183,10 +1184,10 @@ public class ControllerUtils {
      * In addition to this, if a non-null {@link TaskCompleter} is provided the {@BlockConsistencyGroup} instance
      * added to it.
      *
-     * @param mirrors   List of mirror URIs
-     * @param dbClient  DbClient instance
+     * @param mirrors List of mirror URIs
+     * @param dbClient DbClient instance
      * @param completer Optional TaskCompleter instance.
-     * @return          true/false dependent on the clone being part of a consistency group.
+     * @return true/false dependent on the clone being part of a consistency group.
      */
     public static boolean checkMirrorConsistencyGroup(List<URI> mirrors, DbClient dbClient, TaskCompleter completer) {
         BlockConsistencyGroup group = ConsistencyUtils.getMirrorsConsistencyGroup(mirrors, dbClient);
@@ -1228,5 +1229,24 @@ public class ControllerUtils {
             }
         }
         return status;
+    }
+
+    /**
+     * return the cause of the exception.
+     * 
+     * @param ex
+     * @return
+     */
+    public static String getMessage(final Exception ex) {
+        String cause = ex.getCause() != null ? ex.getCause().toString() : "";
+        String message = ex.getMessage() != null ? ex.getMessage() : "";
+        String error = "";
+        if (!cause.isEmpty()) {
+            error = cause;
+        }
+        if (!message.isEmpty()) {
+            error = error + "-" + message;
+        }
+        return error;
     }
 }

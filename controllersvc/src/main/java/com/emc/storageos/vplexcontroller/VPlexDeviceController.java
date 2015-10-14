@@ -976,7 +976,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // any Mirrors but will leave the Virtual Volume intact on the VPLEX.
             List<URI> doNotFullyDeleteVolumeList = new ArrayList<URI>();
             for (VolumeDescriptor descriptor : vplexVolumes) {
-                if (descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null) {
+                if (descriptor.getParameters() != null
+                        && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null) {
                     _log.info(String.format("Volume (%s) has been flagged to not be deleted, "
                             + "clean up Mirrors and remove from VPLEX CG only.", descriptor.getVolumeURI()));
                     doNotFullyDeleteVolumeList.add(descriptor.getVolumeURI());

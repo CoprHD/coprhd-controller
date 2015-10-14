@@ -38,21 +38,30 @@ public final class TestBlockProviderFilter {
         List<AssetOption> options = Lists.newArrayList();
         for (VolumeDetail detail : volumeDetails) {
 
-            if ((isLocalSnapshotSupported(detail.vpool) && (isRPSourceVolume(detail.volume) || isRPTargetVolume(detail.volume)))
-                    || !BlockProvider.isInConsistencyGroup(detail.volume)) {
+            boolean localSnapSupported = isLocalSnapshotSupported(detail.vpool);
+            boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
+            boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
+            boolean isInConsistencyGroup = BlockProvider.isInConsistencyGroup(detail.volume);
+
+            if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume))) {
                 options.add(BlockProvider.createVolumeOption(client, null, detail.volume, volumeNames));
-                System.out.print("* " + detail.volume.getName());
+                System.out.println("\t* " + detail.volume.getName());
             } else {
-                System.out.print(detail.volume.getName());
+                System.out.println("\t" + detail.volume.getName());
             }
-            System.out.println(String.format(" [ %s ]", getVolumePersonality(detail.volume)));
+
+            String extra = String.format("[localSnapSupported: %s, isRPTargetVolume: %s, isRPSourceVolume: %s, isInConsistencyGroup: %s]",
+                    localSnapSupported,
+                    isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup);
+
+            System.out.println(String.format("\t\t[ %s ] [ %s ]", getVolumePersonality(detail.volume), extra));
         }
     }
 
     public static void main(String[] args) throws URISyntaxException {
         Logger.getRootLogger().setLevel(Level.OFF);
         ViPRCoreClient client =
-                new ViPRCoreClient("localhost", true).withLogin("root", "password");
+                new ViPRCoreClient("host", true).withLogin("root", "password");
         try {
 
             for (ProjectRestRep project : client.projects().getByUserTenant()) {

@@ -53,14 +53,14 @@ public class ExportPathParameters {
         this.minPaths = minPaths;
     }
     
-    @XmlElementWrapper(required=false)
-    @XmlElement(name = "storage_port")
+    @XmlElementWrapper(name="storage_ports", required=false)
     /**
      * Optional list of storage ports to be used for the export.
      * Any ports that are listed must also be available in the applicable
      * virtual array(s) for the export group in order to be considered
      * for allocation.
      */
+    @XmlElement(name = "storage_port")
     public List<URI> getStoragePorts() {
         return storagePorts;
     }

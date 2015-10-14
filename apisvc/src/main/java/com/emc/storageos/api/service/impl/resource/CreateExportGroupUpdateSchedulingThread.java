@@ -81,7 +81,8 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             Map<URI, Integer> addedVolumeParams = exportGroupService.getChangedVolumes(exportUpdateParam, true);
             ExportPathParams exportPathParam = null;
             if (exportUpdateParam.getExportPathParameters() != null && !addedVolumeParams.keySet().isEmpty()) {
-                exportPathParam = exportGroupService.validateAndCreateExportPathParam(exportUpdateParam.getExportPathParameters(), exportGroup);
+                exportPathParam = exportGroupService.validateAndCreateExportPathParam(
+                        exportUpdateParam.getExportPathParameters(), exportGroup, addedVolumeParams.keySet());
                 exportGroupService.addBlockObjectsToPathParamMap(addedVolumeParams.keySet(), exportPathParam.getId(), exportGroup);
             }
 

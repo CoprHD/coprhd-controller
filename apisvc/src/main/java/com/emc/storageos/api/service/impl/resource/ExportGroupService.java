@@ -73,6 +73,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -295,7 +296,8 @@ public class ExportGroupService extends TaskResourceService {
         // If ExportPathParameter block is presnet, and volumes are present, capture those arguments.
         ExportPathParams exportPathParam = null;
         if (param.getExportPathParameters() != null && !volumeMap.keySet().isEmpty()) {
-            exportPathParam = validateAndCreateExportPathParam(param.getExportPathParameters(), exportGroup);
+            exportPathParam = validateAndCreateExportPathParam(param.getExportPathParameters(), 
+                                exportGroup, volumeMap.keySet());
             addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
         }
 
@@ -2488,9 +2490,11 @@ public class ExportGroupService extends TaskResourceService {
      * 
      * @param param -- ExportPathParameters block
      * @param exportGroup -- ExportGroup
+     * @param blockObjectURIs -- Collection of block object URIs, used only for validating ports
      * @return ExportPathParam suitable for persistence
      */
-    ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param, ExportGroup exportGroup) {
+    ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param, 
+            ExportGroup exportGroup, Collection<URI> blockObjectURIs) {
         // If minPaths is specified, or pathsPerInitiator is specified, maxPaths must be specified
         if ((param.getMinPaths() != null || param.getPathsPerInitiator() != null) && param.getMaxPaths() == null) {
             throw APIException.badRequests.maxPathsRequired();
@@ -2521,7 +2525,9 @@ public class ExportGroupService extends TaskResourceService {
         if (param.getPathsPerInitiator() > param.getMaxPaths()) {
             throw APIException.badRequests.pathsPerInitiatorGreaterThanMaxPaths();
         }
-        // TODO: validate if ports are supplied, they are in the ExportGroup varray
+        
+        // validate storage ports if they are supplied
+        validateExportPathParmPorts(param, exportGroup, blockObjectURIs);
 
         ExportPathParams pathParam = new ExportPathParams();
         pathParam.setId(URIUtil.createId(ExportPathParams.class));
@@ -2530,10 +2536,53 @@ public class ExportGroupService extends TaskResourceService {
         pathParam.setMinPaths(param.getMinPaths());
         pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
         if (param.getStoragePorts() != null) { 
-            pathParam.getStoragePorts().addAll(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
+            pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
         }
         pathParam.setExplicitlyCreated(false);
         return pathParam;
+    }
+    
+    /**
+     * Validate that if ports are supplied in the ExportPathParameters, then ports are supplied
+     * for every array in the list of volumes to be provisioned. Also verify
+     * the ports can be located, and there are at least as many ports as maxPaths.
+     * @param param
+     * @param exportGroup
+     * @param blockObjectURIs - URI Collection of volumes to be provisioned.
+     */
+    private void validateExportPathParmPorts(ExportPathParameters param, ExportGroup exportGroup, 
+            Collection<URI> blockObjectURIs) {
+        if (param.getClass() == null || param.getStoragePorts().isEmpty()) return;
+        // Collect the list of Storage Systems used by the block objects.
+        Set<URI> storageArrays = new HashSet<URI>();
+        for (URI blockObjectURI : blockObjectURIs) {
+            BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
+            if (blockObject == null) continue;
+            storageArrays.add(blockObject.getStorageController());
+        }
+        // Get database entries for all the ports in a map of array URI to set of StoragePort.
+        Map<URI, Set<StoragePort>> arrayToStoragePorts = new HashMap<URI, Set<StoragePort>>();
+        for (URI portURI : param.getStoragePorts()) {
+            StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
+            ArgValidator.checkEntityNotNull(port, portURI, false);
+            URI arrayURI = port.getStorageDevice();
+            if (!arrayToStoragePorts.containsKey(arrayURI)) {
+                arrayToStoragePorts.put(arrayURI, new HashSet<StoragePort>());
+            }
+            arrayToStoragePorts.get(arrayURI).add(port);
+        }
+        // Check that there are entries for all the arrays used by the volumes.
+        for (URI storageArray : storageArrays) {
+            if (!arrayToStoragePorts.containsKey(storageArray)) {
+                throw APIException.badRequests.pathParameterPortsDoNotIncludeArray(storageArray);
+            }
+        }
+        // Now check that each array has at least maxpaths number of ports supplied.
+        for (Map.Entry<URI, Set<StoragePort>> entry : arrayToStoragePorts.entrySet()) {
+            if (entry.getValue().size() < param.getMaxPaths()) {
+                throw APIException.badRequests.notEnoughPortsForMaxpath(entry.getKey(), entry.getValue().size(), param.getMaxPaths());
+            }
+        }
     }
     
     /**

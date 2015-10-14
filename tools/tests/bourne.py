@@ -4402,7 +4402,7 @@ class Bourne:
     def storageport_query(self, name):
         #
         # name = { port_uri | concat(storagedevice, port) }
-        #
+        # 
         try:
             (sdname, port) = name.split('/', 1)
         except:

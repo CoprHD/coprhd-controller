@@ -709,7 +709,8 @@ public class VPlexBackendManager {
         Map<URI, List<StoragePort>> map = new HashMap<URI, List<StoragePort>>();
 
         // find all the available storage ports
-        Map<NetworkLite, List<StoragePort>> tempMap = _blockStorageScheduler.selectStoragePortsInNetworks(array.getId(), networks, varray);
+        Map<NetworkLite, List<StoragePort>> tempMap = _blockStorageScheduler
+                .selectStoragePortsInNetworks(array.getId(), networks, varray, null);
 
         // if the user requests to use only pre-zoned ports, then filter to pre-zoned ports only
         if (_networkDeviceController.getNetworkScheduler().portAllocationUseExistingZones(array.getSystemType(), true)) {

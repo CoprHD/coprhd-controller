@@ -104,27 +104,28 @@ public class BlockStorageScheduler {
      * @return the ports determined to be usable
      * @throws PlacementException
      */
-    public List<URI> getAllocatableStorageSystemTargetPorts(StorageSystem storage, URI varray, Initiator initiator) {
-        List<URI> sports = new ArrayList<URI>();
-        NetworkLite network = getInitiatorNetwork(initiator, _dbClient);
-        if (network == null) {
-            return sports;
-        }
-        Map<URI, NetworkLite> networkMap = new HashMap<URI, NetworkLite>();
-        networkMap.put(network.getId(), network);
-        StoragePortsAllocator allocator = new StoragePortsAllocator();
-        Set<StoragePort> previouslyAllocatedPorts = new HashSet<StoragePort>();
-        List<URI> orderedNetworks = new ArrayList<URI>();
-        Map<URI, Map<StoragePort, Long>> portUsageMap =
-                computeStoragePortUsageMap(storage.getId(), networkMap, varray, orderedNetworks);
-        if (portUsageMap.get(network.getId()).isEmpty()) {
-            throw PlacementException.exceptions.cannotAllocateRequestedPorts(
-                    network.getLabel(), storage.getNativeGuid(), 1, 0, 0);
-        }
-        sports.addAll(getPortURIs(allocatePortsFromNetwork(storage.getId(), network, varray, 1,
-                portUsageMap.get(network.getId()), allocator, previouslyAllocatedPorts, false)));
-        return sports;
-    }
+    // DEAD CODE? TLW
+//    public List<URI> getAllocatableStorageSystemTargetPorts(StorageSystem storage, URI varray, Initiator initiator) {
+//        List<URI> sports = new ArrayList<URI>();
+//        NetworkLite network = getInitiatorNetwork(initiator, _dbClient);
+//        if (network == null) {
+//            return sports;
+//        }
+//        Map<URI, NetworkLite> networkMap = new HashMap<URI, NetworkLite>();
+//        networkMap.put(network.getId(), network);
+//        StoragePortsAllocator allocator = new StoragePortsAllocator();
+//        Set<StoragePort> previouslyAllocatedPorts = new HashSet<StoragePort>();
+//        List<URI> orderedNetworks = new ArrayList<URI>();
+//        Map<URI, Map<StoragePort, Long>> portUsageMap =
+//                computeStoragePortUsageMap(storage.getId(), networkMap, varray, orderedNetworks);
+//        if (portUsageMap.get(network.getId()).isEmpty()) {
+//            throw PlacementException.exceptions.cannotAllocateRequestedPorts(
+//                    network.getLabel(), storage.getNativeGuid(), 1, 0, 0);
+//        }
+//        sports.addAll(getPortURIs(allocatePortsFromNetwork(storage.getId(), network, varray, 1,
+//                portUsageMap.get(network.getId()), allocator, previouslyAllocatedPorts, false)));
+//        return sports;
+//    }
 
     /**
      * Invoke placement to select storage ports for export, and then
@@ -202,7 +203,7 @@ public class BlockStorageScheduler {
         Map<NetworkLite, List<Initiator>> initiatorsByNetwork = getNewInitiatorsByNetwork(newInitiators, existingZoningMap, _dbClient);
         // Get the storage ports in the storage system that can be used in the initiators networks
         Map<NetworkLite, List<StoragePort>> portsByNetwork =
-                selectStoragePortsInNetworks(system.getId(), initiatorsByNetwork.keySet(), varray);
+                selectStoragePortsInNetworks(system.getId(), initiatorsByNetwork.keySet(), varray, pathParams);
         // allocate ports balancing across networks and considering port metrics
         Map<NetworkLite, List<StoragePort>> allocatedPorts = allocatePorts(system,
                 varray, initiatorsByNetwork, portsByNetwork, volumeURIs, pathParams, existingZoningMap);
@@ -802,13 +803,14 @@ public class BlockStorageScheduler {
      * @return
      * @throws PlacementException
      */
-    private Map<URI, Map<StoragePort, Long>> computeStoragePortUsageMap(
-            URI storageUri, Map<URI, NetworkLite> networkMap, URI varrayURI, List<URI> orderedNetworks)
-            throws PlacementException {
-        Map<NetworkLite, List<StoragePort>> selectedStoragePortsMap =
-                selectStoragePortsInNetworks(storageUri, networkMap.values(), varrayURI);
-        return computeStoragePortUsageMapForPorts(storageUri, networkMap, varrayURI, orderedNetworks, selectedStoragePortsMap);
-    }
+// DEAD CODE ? TLW
+//    private Map<URI, Map<StoragePort, Long>> computeStoragePortUsageMap(
+//            URI storageUri, Map<URI, NetworkLite> networkMap, URI varrayURI, List<URI> orderedNetworks)
+//            throws PlacementException {
+//        Map<NetworkLite, List<StoragePort>> selectedStoragePortsMap =
+//                selectStoragePortsInNetworks(storageUri, networkMap.values(), varrayURI);
+//        return computeStoragePortUsageMapForPorts(storageUri, networkMap, varrayURI, orderedNetworks, selectedStoragePortsMap);
+//    }
 
     /**
      * Inner class for sorting Network Usage.
@@ -1030,13 +1032,16 @@ public class BlockStorageScheduler {
      * @param storageSystemURI The URI of the storage system
      * @param networkURI The URI of the network.
      * @param varrayURI The URI of the virtual array.
+     * @param pathParams The ExportPathParameter settings which may contain a set of allowed ports. 
+     *              Optional, can be null.
      * 
      * @return The list of storage ports.
      */
     public Map<NetworkLite, List<StoragePort>> selectStoragePortsInNetworks(URI storageSystemURI, Collection<NetworkLite> networks,
-            URI varrayURI) {
+            URI varrayURI, ExportPathParams pathParams) {
         Map<NetworkLite, List<StoragePort>> portsInNetwork = new HashMap<NetworkLite, List<StoragePort>>();
-        List<StoragePort> storagePorts = ExportUtils.getStorageSystemAssignablePorts(_dbClient, storageSystemURI, varrayURI);
+        List<StoragePort> storagePorts = ExportUtils.getStorageSystemAssignablePorts(
+                                                _dbClient, storageSystemURI, varrayURI, pathParams);
         for (NetworkLite networkLite : networks) {
             URI networkURI = networkLite.getId();
             _log.info("Selecting ports for network {} {}", networkLite.getLabel(), networkLite.getId());
@@ -1973,7 +1978,7 @@ public class BlockStorageScheduler {
                 // discover existing zones that are for the storage system and varray
                 // At this time we are not discovering routed zones but we will take care of this
                 Collection<StoragePort> ports = ExportUtils.getStorageSystemAssignablePorts(
-                        _dbClient, storage.getId(), virtualArrayUri);
+                        _dbClient, storage.getId(), virtualArrayUri, pathParams);
                 Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(newInitiators, _dbClient);
                 Map<NetworkLite, List<StoragePort>> portByNetwork = ExportUtils.mapStoragePortsToNetworks(ports,
                         initiatorsByNetwork.keySet(), _dbClient);

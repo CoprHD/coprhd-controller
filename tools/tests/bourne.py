@@ -3550,9 +3550,10 @@ class Bourne:
     def volume_full_copies(self, uri):
         return self.api('GET', URI_VOLUME_FULL_COPY.format(uri))
 
-    def volume_change_cos(self, uri, cos_uri):
+    def volume_change_cos(self, uri, cos_uri, cg_uri):
         parms = {
             'vpool' : cos_uri,
+            'consistency_group' : cg_uri
         }
         tr = self.api('PUT', URI_VOLUME_CHANGE_VPOOL.format(uri), parms, {})
 

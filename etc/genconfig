@@ -235,6 +235,12 @@ _gen_prop2() {
         done
     done
 
+    #'vdc_vdc1_network_vip')
+    local var="_GENCONFIG_vdc_vdc1_network_vip"
+    if [ -z "${!var}" ]; then
+        eval export ${var}="${_GENCONFIG_network_vip}"
+    fi
+
     #'vdc_'*'_network_vip6')
     for vdc in ${_GENCONFIG_vdc_ids}; do
         local var="_GENCONFIG_vdc_${vdc}_network_vip6"

@@ -1175,7 +1175,7 @@ public class NetAppFileCommunicationInterface extends
 
         // On netapp Systems this currently true.
         unManagedFileSystemCharacteristics.put(
-                SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+        		UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                         .toString(), FALSE);
 
         if (null != storagePort) {
@@ -1876,7 +1876,7 @@ public class NetAppFileCommunicationInterface extends
                         unManagedFs.setUnManagedSmbShareMap(tempUnManagedSMBShareMap);
                         unManagedFs.setHasShares(true);
                         unManagedFs.getFileSystemInformation().put(
-                                SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                        		UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                                         .toString(), TRUE);
                         _logger.debug("SMB Share map for NetApp UMFS {} = {}",
                                 unManagedFs.getLabel(), unManagedFs.getUnManagedSmbShareMap());
@@ -2129,7 +2129,7 @@ public class NetAppFileCommunicationInterface extends
                             }
                             unManagedFs.setHasExports(true);
                             unManagedFs.getFileSystemInformation().put(
-                                    SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                            		UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                                             .toString(), TRUE);
                             _dbClient.persistObject(unManagedFs);
                             _logger.info("File System {} has Exports and their size is {}", unManagedFs.getId(),

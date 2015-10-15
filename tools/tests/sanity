@@ -2732,8 +2732,8 @@ recoverpoint_tests()
         mp_src_varray=$RECOVERPOINT_VARRAY1
 
         rp_noprotection_vpool='rp_noprotection'
-        rpvplexlocal_noprotection_vpool='rpvplexlocal_noprotection'
-        rpvplexdist_noprotection_vpool='rpvplexdist_noprotection'
+        rpvplex_noprotection_vpool='rpvplexdist_noprotection'
+        mp_noprotection_vpool='rpvplexdist_noprotection'
 
         rp_type=''
 
@@ -2750,6 +2750,8 @@ recoverpoint_tests()
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
 			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rpvplex_tgt_vpool='rpvplex_targets'
+            # RP+VPLEX CDP uses VPLEX local, set this for no protection vpool
+            rpvplex_noprotection_vpool='rpvplexlocal_noprotection'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
@@ -2852,12 +2854,13 @@ recoverpoint_tests()
             fi
 
             if [ "$RPVPLEX_TESTS" = "1" ]; then
-                echo 'RP+VPLEX change vpool...NOT SUPPORTED YET!!'
-                #recoverpoint_vpool_change_test ${rpvplexvolume} ${rpvplex_base_cvp1} ${rpvplex_src_varray} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+                echo 'RP+VPLEX change vpool'
+                recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
             fi
 
-                if [ "$MP_TESTS" = "1" ]; then
-                echo 'MP change vpool...NOT SUPPORTED YET!!'
+            if [ "$MP_TESTS" = "1" ]; then
+                echo 'MP change vpool'
+                recoverpoint_vpool_change_test ${mpvolume}${volume_name_modifier} ${mp_noprotection_vpool} ${mp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
             fi
         fi
 

@@ -53,6 +53,7 @@ import com.emc.sa.service.vmware.tasks.FindDatastore;
 import com.emc.sa.service.vmware.tasks.FindESXHost;
 import com.emc.sa.service.vmware.tasks.GetVcenter;
 import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
+import com.emc.sa.service.vmware.tasks.UnmountVmfsVolume;
 import com.emc.sa.service.vmware.tasks.VerifyDatastoreDoesNotExist;
 import com.emc.sa.service.vmware.tasks.VerifyDatastoreForRemoval;
 import com.emc.sa.service.vmware.tasks.VerifySupportedMultipathPolicy;
@@ -232,6 +233,10 @@ public class VMwareSupport {
 
     public void unmountVmfsDatastore(HostSystem host, Datastore datastore) {
         execute(new UnmountVmfsDatastore(host, datastore));
+    }
+
+    public void unmountVmfsDatastore(HostSystem host, String vmfsUuid) {
+        execute(new UnmountVmfsVolume(host, vmfsUuid));
     }
 
     /**

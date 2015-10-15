@@ -70,7 +70,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
 
     @Override
     public void execute() throws Exception {
-
+        connectAndInitializeHost();
         for (BlockObjectRestRep volume : volumes) {
             vmware.detachLuns(host, cluster, volume);
         }
@@ -109,7 +109,6 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
                 vmware.removeVmfsDatastoreTag(volume, hostId);
             }
         }
-        connectAndInitializeHost();
         vmware.refreshStorage(host, cluster);
     }
 }

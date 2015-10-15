@@ -68,6 +68,7 @@ public class DbsvcTestBase {
     protected static Map<String, List<BaseCustomMigrationCallback>> customMigrationCallbacks = new HashMap<>();
     protected static DbServiceStatusChecker statusChecker = null;
     protected static GeoDependencyChecker _geoDependencyChecker;
+    protected static SchemaUtil schemaUtil;
 
     // This controls whether the JMX server is started with DBSVC or not. JMX server is used to snapshot Cassandra
     // DB files and dump SSTables to JSON files. However, current JmxServerWrapper.start() implementation blindly
@@ -77,6 +78,9 @@ public class DbsvcTestBase {
     // throw an exception. There's no standard way to shutdown a RMI Registry server.
     protected static boolean _startJmx;
 
+    private static final String args[] = {
+            "dbversion-info.xml",
+    };
     /**
      * Deletes given directory
      * 
@@ -95,8 +99,9 @@ public class DbsvcTestBase {
 
     @BeforeClass
     public static void setup() throws IOException {
-        _dbVersionInfo = new DbVersionInfo();
-        _dbVersionInfo.setSchemaVersion("2.2");
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("dbversion-info.xml");
+
+        _dbVersionInfo = (DbVersionInfo)ctx.getBean("dbVersionInfo");
         _dataDir = new File("./dbtest");
         if (_dataDir.exists() && _dataDir.isDirectory()) {
             cleanDirectory(_dataDir);
@@ -183,27 +188,27 @@ public class DbsvcTestBase {
         statusChecker.setDbVersionInfo(_dbVersionInfo);
         statusChecker.setServiceName(service.getName());
 
-        SchemaUtil util = new MockSchemaUtil();
-        util.setKeyspaceName("Test");
-        util.setClusterName("Test");
-        util.setDataObjectScanner(scanner);
-        util.setService(service);
-        util.setStatusChecker(statusChecker);
-        util.setCoordinator(_coordinator);
-        util.setVdcShortId("vdc1");
+        schemaUtil  = new MockSchemaUtil();
+        schemaUtil.setKeyspaceName("Test");
+        schemaUtil.setClusterName("Test");
+        schemaUtil.setDataObjectScanner(scanner);
+        schemaUtil.setService(service);
+        schemaUtil.setStatusChecker(statusChecker);
+        schemaUtil.setCoordinator(_coordinator);
+        schemaUtil.setVdcShortId("vdc1");
 
         DbClientContext dbctx = new DbClientContext();
         dbctx.setClusterName("Test");
         dbctx.setKeyspaceName("Test");
-        util.setClientContext(dbctx);
+        schemaUtil.setClientContext(dbctx);
 
         Properties props = new Properties();
         props.put(DbClientImpl.DB_STAT_OPTIMIZE_DISK_SPACE, "false");
-        util.setDbCommonInfo(props);
+        schemaUtil.setDbCommonInfo(props);
         List<String> vdcHosts = new ArrayList();
         vdcHosts.add("127.0.0.1");
-        util.setVdcNodeList(vdcHosts);
-        util.setDbCommonInfo(new java.util.Properties());
+        schemaUtil.setVdcNodeList(vdcHosts);
+        schemaUtil.setDbCommonInfo(new java.util.Properties());
 
         JmxServerWrapper jmx = new JmxServerWrapper();
         if (_startJmx) {
@@ -223,7 +228,7 @@ public class DbsvcTestBase {
         passwordUtils.setCoordinator(_coordinator);
         passwordUtils.setEncryptionProvider(_encryptionProvider);
         passwordUtils.setDbClient(_dbClient);
-        util.setPasswordUtils(passwordUtils);
+        schemaUtil.setPasswordUtils(passwordUtils);
 
         MigrationHandlerImpl handler = new MigrationHandlerImpl();
         handler.setPackages(pkgsArray);
@@ -231,7 +236,7 @@ public class DbsvcTestBase {
         handler.setStatusChecker(statusChecker);
         handler.setCoordinator(_coordinator);
         handler.setDbClient(_dbClient);
-        handler.setSchemaUtil(util);
+        handler.setSchemaUtil(schemaUtil);
         handler.setPackages(pkgsArray);
 
         handler.setCustomMigrationCallbacks(customMigrationCallbacks);
@@ -241,7 +246,7 @@ public class DbsvcTestBase {
 
         _dbsvc = new TestMockDbServiceImpl();
         _dbsvc.setConfig("db-test.yaml");
-        _dbsvc.setSchemaUtil(util);
+        _dbsvc.setSchemaUtil(schemaUtil);
         _dbsvc.setCoordinator(_coordinator);
         _dbsvc.setStatusChecker(statusChecker);
         _dbsvc.setService(service);

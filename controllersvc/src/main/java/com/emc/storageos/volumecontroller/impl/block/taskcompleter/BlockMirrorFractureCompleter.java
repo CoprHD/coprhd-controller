@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +46,7 @@ public class BlockMirrorFractureCompleter extends BlockMirrorTaskCompleter {
                         dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
                         break;
                     default:
-                        mirror.setSyncState(BlockMirror.SynchronizationState.FRACTURED.toString());
+                        mirror.setSyncState(SynchronizationState.FRACTURED.toString());
                         dbClient.persistObject(mirror);
                         dbClient.ready(Volume.class, volume.getId(), getOpId());
                 }

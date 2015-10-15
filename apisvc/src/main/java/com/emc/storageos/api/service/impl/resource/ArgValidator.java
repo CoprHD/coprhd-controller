@@ -487,7 +487,7 @@ public class ArgValidator {
     public static void
             checkFieldRange(final long value, final long minimum, final long maximum, final String units, final String fieldName) {
         if (value < minimum || value > maximum) {
-            throw APIException.badRequests.parameterNotWithinRange(fieldName, value, minimum, maximum, "");
+            throw APIException.badRequests.parameterNotWithinRange(fieldName, value, minimum, maximum, units);
         }
     }
 

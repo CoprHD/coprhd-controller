@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.smis;
 
 import static java.util.Arrays.asList;
+import static javax.cim.CIMDataType.UINT16_T;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -51,10 +52,11 @@ import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockMirror.SynchronizationState;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -6309,13 +6311,34 @@ public class SmisCommandHelper implements SmisConstants {
      * @param sourceVolumePath
      * @param labels
      * @param synType
+     * @param createInactive
      */
-    public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice, CIMObjectPath[] sourceVolumePath, List<String> labels, int syncType) {
+    public CIMArgument[] getCreateListReplicaInputArguments(StorageSystem storageDevice, CIMObjectPath[] sourceVolumePath, List<String> labels, int syncType, boolean createInactive) {
         List<CIMArgument> args = new ArrayList<CIMArgument>();
+        int inactiveValue = (syncType == SmisConstants.CLONE_VALUE) ? PREPARED_VALUE : INACTIVE_VALUE;
+        int waitForCopyState = (createInactive) ? inactiveValue : ACTIVATE_VALUE;
         args.add(_cimArgument.referenceArray(CP_SOURCE_ELEMENTS, sourceVolumePath));
         args.add(_cimArgument.stringArray(CP_ELEMENT_NAMES, labels.toArray(new String[]{})));
         args.add(_cimArgument.uint16(CP_SYNC_TYPE, syncType));
-        args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, ACTIVATE_VALUE));
+        args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, waitForCopyState));
+
+        if (syncType == SmisConstants.CLONE_VALUE && storageDevice.deviceIsType(Type.vmax)) {
+            CIMInstance repSettingData = null;
+            if (createInactive && storageDevice.getUsingSmis80()) {
+                repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, COPY_BEFORE_ACTIVATE);
+            } else if (storageDevice.checkIfVmax3() && ControllerUtils.isVmaxUsing81SMIS(storageDevice, _dbClient)) {
+                /**
+                 * VMAX3 using SMI 8.1 provider needs to send DesiredCopyMethodology=32770
+                 * to create TimeFinder differential clone.
+                 */
+                repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice,
+                        SMIS810_TF_DIFFERENTIAL_CLONE_VALUE);
+            } else {
+                repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageDevice, DIFFERENTIAL_CLONE_VALUE);
+            }
+
+            args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingData));
+        }
 
         return args.toArray(new CIMArgument[args.size()]);
     }
@@ -6689,5 +6712,48 @@ public class SmisCommandHelper implements SmisConstants {
         }
 
         return BlockObject.fetch(_dbClient, sourceURI);
+    }
+
+    /*
+     * Get ReplicationSettingData instance.
+     *
+     * @param storageSystem
+     * @param desiredValue DesiredCopyMethodology value
+     */
+    @SuppressWarnings("rawtypes")
+    public CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, int desiredValue) {
+        CIMInstance modifiedInstance = null;
+        // only for vmax, otherwise, return null
+        if (!storageSystem.deviceIsType(Type.vmax)) {
+            return modifiedInstance;
+        }
+        try {
+            CIMObjectPath replicationSettingCapabilities = _cimPath
+                    .getReplicationServiceCapabilitiesPath(storageSystem);
+            CIMArgument[] inArgs = getReplicationSettingDataInstance();
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(storageSystem, replicationSettingCapabilities,
+                    GET_DEFAULT_REPLICATION_SETTING_DATA, inArgs, outArgs);
+            for (CIMArgument<?> outArg : outArgs) {
+                if (null == outArg) {
+                    continue;
+                }
+                if (outArg.getName().equalsIgnoreCase(SmisConstants.DEFAULT_INSTANCE)) {
+                    CIMInstance repInstance = (CIMInstance) outArg.getValue();
+                    if (null != repInstance) {
+                        CIMProperty<?> desiredMethod = new CIMProperty<Object>(SmisConstants.DESIRED_COPY_METHODOLOGY, UINT16_T,
+                                new UnsignedInteger16(desiredValue));
+                        CIMProperty<?> targetElementSupplier = new CIMProperty<Object>(TARGET_ELEMENT_SUPPLIER,
+                                UINT16_T, new UnsignedInteger16(CREATE_NEW_TARGET_VALUE));
+                        CIMProperty<?>[] propArray = new CIMProperty<?>[] { desiredMethod, targetElementSupplier };
+                        modifiedInstance = repInstance.deriveInstance(propArray);
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            _log.error("Error retrieving Replication Setting Data Instance ", e);
+        }
+        return modifiedInstance;
     }
 }

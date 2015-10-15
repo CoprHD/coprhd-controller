@@ -159,6 +159,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return true;
     }
 
+    static boolean isConsistencyGroupType(URI urlId) {
+        return BlockProviderUtils.isType(urlId, BLOCK_CONSISTENCY_GROUP_TYPE);
+    }
+
     protected static boolean isInConsistencyGroup(BlockObjectRestRep volume) {
         return volume.getConsistencyGroup() != null;
     }
@@ -742,38 +746,37 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("blockSnapshotType")
-    @AssetDependencies("blockVolumeOrConsistencyType")
-    public List<AssetOption> getBlockSnapshotTypeLockable(AssetOptionsContext ctx, String type) {
-        if (isVolumeType(type)) {
-            debug("getting blockSnapshotTypes");
-            List<AssetOption> options = Lists.newArrayList();
-            options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
-            options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
-            return options;
-        } else {
-            return Lists.newArrayList();
-        }
+    public List<AssetOption> getBlockSnapshotTypeLockable(AssetOptionsContext ctx) {
+        debug("getting blockSnapshotTypes");
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
+        options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
+        return options;
     }
 
     @Asset("blockSnapshotType")
     @AssetDependencies("snapshotBlockVolume")
     public List<AssetOption> getBlockSnapshotType(AssetOptionsContext ctx, URI blockVolume) {
-        debug("getting blockSnapshotTypes (blockVolume=%s)", blockVolume);
-        // These are hard coded values for now. In the future, this may be available through an API
-        List<AssetOption> options = Lists.newArrayList();
-        ViPRCoreClient client = api(ctx);
-        VolumeRestRep volume = client.blockVolumes().get(blockVolume);
-        BlockVirtualPoolRestRep virtualPool = client.blockVpools().get(volume.getVirtualPool());
 
-        if (isLocalSnapshotSupported(virtualPool)) {
-            options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
+        if (isConsistencyGroupType(blockVolume)) {
+            return new ArrayList<AssetOption>();
+        } else {
+            debug("getting blockSnapshotTypes (blockVolume=%s)", blockVolume);
+            // These are hard coded values for now. In the future, this may be available through an API
+            List<AssetOption> options = Lists.newArrayList();
+            ViPRCoreClient client = api(ctx);
+            VolumeRestRep volume = client.blockVolumes().get(blockVolume);
+            BlockVirtualPoolRestRep virtualPool = client.blockVpools().get(volume.getVirtualPool());
+
+            if (isLocalSnapshotSupported(virtualPool)) {
+                options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
+            }
+
+            if (isRPSourceVolume(volume)) {
+                options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
+            }
+            return options;
         }
-
-        if (isRPSourceVolume(volume)) {
-            options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
-        }
-
-        return options;
     }
 
     private List<AssetOption> getBlockVolumesForHost(ViPRCoreClient client, URI tenant, URI host, boolean mounted) {
@@ -1077,8 +1080,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<AssetOption> options = Lists.newArrayList();
             for (VolumeDetail detail : volumeDetails) {
 
-                if ((isLocalSnapshotSupported(detail.vpool) && (isRPSourceVolume(detail.volume) || isRPTargetVolume(detail.volume)))
-                        || !isInConsistencyGroup(detail.volume)) {
+                boolean localSnapSupported = isLocalSnapshotSupported(detail.vpool);
+                boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
+                boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
+                boolean isInConsistencyGroup = BlockProvider.isInConsistencyGroup(detail.volume);
+
+                debug("filter[ localSnapSupported=%s, isRPTargetVolume=%s, isRPSourceVolume=%s, isInConsistencyGroup=%s ]",
+                        localSnapSupported, isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup);
+
+                if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume))) {
                     options.add(createVolumeOption(client, null, detail.volume, volumeNames));
                 }
             }

@@ -19,6 +19,8 @@ public class BlockSnapshotRestRep extends BlockObjectRestRep {
     private String newVolumeNativeId;
     private String sourceNativeId;
     private Boolean syncActive;
+    private String replicaState;
+    private Boolean readOnly;
 
     /**
      * URI and reference link to the volume that is the
@@ -90,5 +92,29 @@ public class BlockSnapshotRestRep extends BlockObjectRestRep {
 
     public void setSourceNativeId(String sourceNativeId) {
         this.sourceNativeId = sourceNativeId;
+    }
+
+    @XmlElement(name = "replica_state")
+    public String getReplicaState() {
+        return replicaState;
+    }
+
+    public void setReplicaState(String replicaState) {
+        this.replicaState = replicaState;
+    }
+
+    /**
+     * Returns the read-only status of the snapshot.
+     *
+     * @valid true
+     * @valid false
+     */
+    @XmlElement(name = "read_only")
+    public Boolean getReadOnly() {
+        return readOnly;
+    }
+
+    public void setReadOnly(Boolean readOnly) {
+        this.readOnly = readOnly;
     }
 }

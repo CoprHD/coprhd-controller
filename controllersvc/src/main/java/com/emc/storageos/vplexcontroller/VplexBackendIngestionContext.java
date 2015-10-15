@@ -175,13 +175,9 @@ public class VplexBackendIngestionContext {
                     }
                 }
                 if (!umvUris.isEmpty()) {
-                    if ((isLocal() && umvUris.size() == 1) || (isDistributed() && umvUris.size() == 2)) {
-                        // only return vols from the database if we have the correct number
-                        // of backend volumes for this type of unmanaged vplex virtual volume
-                        unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, umvUris, true);
-                        _logger.info("\treturning unmanaged backend volume objects: " + unmanagedBackendVolumes);
-                        return unmanagedBackendVolumes;
-                    }
+                    unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, umvUris, true);
+                    _logger.info("\treturning unmanaged backend volume objects: " + unmanagedBackendVolumes);
+                    return unmanagedBackendVolumes;
                 }
             }
         }
@@ -287,50 +283,53 @@ public class VplexBackendIngestionContext {
         }
 
         _logger.info("getting backend volume wwn to api info map");
-        boolean success = false;
-        try {
-            // first trying without checking for a top-level device mirror to save some time
-            backendVolumeWwnToInfoMap =
-                    VPlexControllerUtils.getStorageVolumeInfoForDevice(
-                            getSupportingDeviceName(), getLocality(), getClusterName(), false,
-                            getVplexUri(), _dbClient);
-            success = true;
-        } catch (VPlexApiException ex) {
-            _logger.warn("failed to find wwn to storage volume map on "
-                    + "first try with no mirror map, will analyze mirrors and try again", ex);
-            _shouldCheckForMirrors = true;
-        }
+        // first trying without checking for a top-level device mirror to save some time
+        backendVolumeWwnToInfoMap =
+                VPlexControllerUtils.getStorageVolumeInfoForDevice(
+                        getSupportingDeviceName(), getLocality(), getClusterName(), false,
+                        getVplexUri(), _dbClient);
+        
+        _logger.info("found these wwns: " + backendVolumeWwnToInfoMap.keySet());
 
-        if (!success) {
-            // we didn't succeed the first time, so try again and check for mirrors first
+        boolean notEnoughWwnsFound = 
+                (isLocal() && backendVolumeWwnToInfoMap.isEmpty()) ||
+                (isDistributed() && backendVolumeWwnToInfoMap.size() < 2);
+
+        if (notEnoughWwnsFound) {
+            _logger.info("not enough volume wwns were found, search deeper in the component tree");
+            
+            // try again and check for mirrors first
             boolean hasMirror = !getMirrorMap().isEmpty();
+            _shouldCheckForMirrors = true;
 
             if (hasMirror) {
                 // the volume has a mirrored top-level device, so we need to
                 // send the hasMirror flag down so that the VPLEX client will
                 // know to look one level deeper in the components tree for
                 // the backend storage volumes
-                try {
-                    backendVolumeWwnToInfoMap =
-                            VPlexControllerUtils.getStorageVolumeInfoForDevice(
-                                    getSupportingDeviceName(), getLocality(), getClusterName(), hasMirror,
-                                    getVplexUri(), _dbClient);
-                    success = true;
-                } catch (VPlexApiException ex) {
-                    String reason = "could not determine backend storage volumes for "
-                            + getSupportingDeviceName() + ": " + ex.getLocalizedMessage();
-                    _logger.error(reason);
-                    throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
+                Map<String, VPlexStorageVolumeInfo> deeperBackendVolumeWwnToInfoMap =
+                        VPlexControllerUtils.getStorageVolumeInfoForDevice(
+                                getSupportingDeviceName(), getLocality(), getClusterName(), hasMirror,
+                                getVplexUri(), _dbClient);
+                _logger.info("went deeper and found these wwns: " + deeperBackendVolumeWwnToInfoMap.keySet());
+                for (Entry<String, VPlexStorageVolumeInfo> entry : deeperBackendVolumeWwnToInfoMap.entrySet()) {
+                    backendVolumeWwnToInfoMap.put(entry.getKey(), entry.getValue());
                 }
-            } else {
-                String reason = "could not determine backend storage volumes for "
-                        + getSupportingDeviceName()
-                        + ": failed for both simple and RAID-1 top-level device configurations";
-                _logger.error(reason);
-                throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
             }
         }
 
+        notEnoughWwnsFound = 
+                (isLocal() && backendVolumeWwnToInfoMap.isEmpty()) ||
+                (isDistributed() && backendVolumeWwnToInfoMap.size() < 2);
+        
+        if (notEnoughWwnsFound) {
+            String reason = "could not find enough backend storage volume wwns for "
+                    + getSupportingDeviceName()
+                    + ", but did find these: " + backendVolumeWwnToInfoMap.keySet();
+            _logger.error(reason);
+            throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
+        }
+        
         _logger.info("backend volume wwn to api info map: " + backendVolumeWwnToInfoMap);
         return backendVolumeWwnToInfoMap;
     }

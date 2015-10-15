@@ -7,7 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolChangeRep;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
-import static com.emc.storageos.db.client.model.BlockMirror.SynchronizationState.FRACTURED;
+import static com.emc.storageos.db.client.model.SynchronizationState.FRACTURED;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.google.common.collect.Collections2.transform;
 
@@ -1538,6 +1538,48 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
         // Don't allow partially ingested volume to be added to CG.
         BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
+
+        // Don't allow volume with multiple replicas
+        // Currently we do not have a way to group replicas based on their time stamp
+        // and put them into different groups on array.
+        verifyIfVolumeHasMultipleReplicas(volume);
+    }
+
+    /**
+     * Verify if volume has multiple replicas (snapshots/clones/mirrors).
+     * This is not yet supported via add Volume/Replica to CG.
+     *
+     * @param volume the volume
+     */
+    private void verifyIfVolumeHasMultipleReplicas(Volume volume) {
+        // multiple snapshot check
+        URIQueryResultList list = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
+                list);
+        Iterator<URI> it = list.iterator();
+        int snapCount = 0;
+        while (it.hasNext()) {
+            it.next();
+            snapCount++;
+        }
+        if (snapCount > 1) {
+            throw APIException.badRequests
+                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "snapshots");
+        }
+
+        // multiple clone check
+        StringSet fullCopies = volume.getFullCopies();
+        if (fullCopies != null && fullCopies.size() > 1) {
+            throw APIException.badRequests
+                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "full copies");
+        }
+
+        // multiple mirror check
+        StringSet mirrors = volume.getMirrors();
+        if (mirrors != null && mirrors.size() > 1) {
+            throw APIException.badRequests
+                    .volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(volume.getLabel(), "mirrors");
+        }
     }
 
     /**

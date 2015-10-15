@@ -39,7 +39,7 @@ import com.emc.vipr.client.impl.RestClient;
 import static com.emc.vipr.client.core.util.VirtualPoolUtils.*;
 
 /**
- * File Virtual Pools resources.
+ * Object Virtual Pools resources.
  * <p>
  * Base URL: <tt>/object/vpools</tt>
  */
@@ -80,11 +80,11 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
     }
 
     /**
-     * Lists all file virtual pools.
+     * Lists all object virtual pools.
      * <p>
      * API Call: <tt>GET /object/vpools</tt>
      * 
-     * @return the list of all file virtual pool references.
+     * @return the list of all object virtual pool references.
      */
     @Override
     public List<NamedRelatedVirtualPoolRep> list() {
@@ -106,11 +106,11 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
     }
 
     /**
-     * Gets a list of all file virtual pools.
+     * Gets a list of all object virtual pools.
      * <p>
      * This is a convenience method for: <tt>getByRefs(list())</tt>
      * 
-     * @return the list of file virtual pools.
+     * @return the list of object virtual pools.
      */
     @Override
     public List<ObjectVirtualPoolRestRep> getAll() {
@@ -118,13 +118,13 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
     }
 
     /**
-     * Gets a list of all file virtual pools, optionally filtering the results.
+     * Gets a list of all object virtual pools, optionally filtering the results.
      * <p>
      * This is a convenience method for: <tt>getByRefs(list(), filter)</tt>
      * 
      * @param filter
      *            the resource filter to apply to the results as they are returned (optional).
-     * @return the list of file virtual pools.
+     * @return the list of object virtual pools.
      */
     @Override
     public List<ObjectVirtualPoolRestRep> getAll(ResourceFilter<ObjectVirtualPoolRestRep> filter) {
@@ -139,7 +139,7 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
      * 
      * @param input
      *            the virtual pool configuration.
-     * @return the newly created file virtual pool.
+     * @return the newly created object virtual pool.
      */
     public ObjectVirtualPoolRestRep create(ObjectVirtualPoolParam input) {
         return client.post(ObjectVirtualPoolRestRep.class, input, baseUrl);
@@ -151,7 +151,7 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
      * API Call: <tt>PUT /object/vpools/{id}</tt>
      * 
      * @param id
-     *            the ID of the file virtual pool to update.
+     *            the ID of the object virtual pool to update.
      * @param input
      * @return
      */
@@ -160,12 +160,12 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
     }
 
     /**
-     * Deactivates a file virtual pool.
+     * Deactivates a object virtual pool.
      * <p>
      * API Call: <tt>POST /object/vpools/{id}/deactivate</tt>
      * 
      * @param id
-     *            the ID of the file virtual pool.
+     *            the ID of the object virtual pool.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
@@ -244,12 +244,12 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
     }
 
     /**
-     * Get the capacity of the file virtual pool on the given virtual array.
+     * Get the capacity of the object virtual pool on the given virtual array.
      * <p>
-     * API Call: <tt>GET /file/vpools/{id}/varrays/{virtualArrayId}/capacity</tt>
+     * API Call: <tt>GET /object/vpools/{id}/varrays/{virtualArrayId}/capacity</tt>
      * 
      * @param id
-     *            the ID of the file virtual pool.
+     *            the ID of the object virtual pool.
      * @param virtualArrayId
      *            the virtual array.
      * @return the capacity on the virtual array.
@@ -259,12 +259,12 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
     }
 
     /**
-     * Lists the storage pools for the given file virtual pool by ID.
+     * Lists the storage pools for the given object virtual pool by ID.
      * <p>
-     * API Call: <tt>GET /file/vpools/{id}/storage-pools</tt>
+     * API Call: <tt>GET /object/vpools/{id}/storage-pools</tt>
      * 
      * @param id
-     *            the ID of the file virtual pool.
+     *            the ID of the object virtual pool.
      * @return the list of storage pool references.
      */
     public List<NamedRelatedResourceRep> listStoragePools(URI id) {
@@ -273,11 +273,11 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
     }
 
     /**
-     * Gets the list of storage pools for the given file virtual pool by ID. This is a convenience method for:
+     * Gets the list of storage pools for the given object virtual pool by ID. This is a convenience method for:
      * <tt>getByRefs(listStoragePools(id))</tt>.
      * 
      * @param id
-     *            the ID of the file virtual pool.
+     *            the ID of the object virtual pool.
      * @return the list of storage pools.
      */
     public List<StoragePoolRestRep> getStoragePools(URI id) {
@@ -286,12 +286,12 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
     }
 
     /**
-     * Lists all storage pools that would match the given file virtual pool configuration.
+     * Lists all storage pools that would match the given object virtual pool configuration.
      * <p>
      * API Call: <tt>POST /object/vpools/matching-pools</tt>
      * 
      * @param input
-     *            the file virtual pool configuration.
+     *            the object virtual pool configuration.
      * @return the list of matching storage pool references.
      */
     public List<NamedRelatedResourceRep> listMatchingStoragePools(ObjectVirtualPoolParam input) {
@@ -300,10 +300,10 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
     }
 
     /**
-     * Gets all storage pools that would match the given file virtual pool configuration.
+     * Gets all storage pools that would match the given object virtual pool configuration.
      * 
      * @param input
-     *            the file virtual pool configuration.
+     *            the object virtual pool configuration.
      * @return the list of matching storage pools.
      */
     public List<StoragePoolRestRep> getMatchingStoragePools(ObjectVirtualPoolParam input) {
@@ -317,7 +317,7 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
      * API Call: <tt>GET /object/vpools/{id}/refresh-matched-pools</tt>
      * 
      * @param id
-     *            the ID of the file virtual pool.
+     *            the ID of the object virtual pool.
      * @return the list of currently matching storage pool references.
      */
     public List<NamedRelatedResourceRep> refreshMatchingStoragePools(URI id) {
@@ -331,10 +331,10 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
      * API Call: <tt>PUT /object/vpools/{id}/assign-matched-pools</tt>
      * 
      * @param id
-     *            the ID of the file virtual pool.
+     *            the ID of the object virtual pool.
      * @param input
      *            the configuration of the storage pool assignments.
-     * @return the updated file virtual pool.
+     * @return the updated object virtual pool.
      */
     public ObjectVirtualPoolRestRep assignStoragePools(URI id, VirtualPoolPoolUpdateParam input) {
         return client.put(ObjectVirtualPoolRestRep.class, input, getIdUrl() + "/assign-matched-pools", id);

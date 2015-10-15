@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.ProtectionSet;
@@ -56,6 +57,7 @@ import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
+import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
@@ -213,7 +215,10 @@ public class RPHelper {
             for (Volume vol : allVolsInRSet) {
                 volumeIDs.add(vol.getId());
                 if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
-                protectionSetIds.add(vol.getProtectionSet().getURI());
+                    protectionSetIds.add(vol.getProtectionSet().getURI());
+                } else {
+                    _log.info(String.format("Excluding Volume %s because it has no ProtectionSet reference.", vol.getId()));
+                }
             }
         }
         }
@@ -886,7 +891,8 @@ public class RPHelper {
  
         for (Volume cgTargetVolume : cgTargetVolumes) {
             // Make sure we only consider existing CG target volumes from the same virtual array
-            if (cgTargetVolume.getVirtualArray().equals(varray) && cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
+            if (cgTargetVolume.getVirtualArray().equals(varray)
+                    && cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
                 if (null != cgTargetVolume.getRpJournalVolume()) {
                     Volume targetJournal = _dbClient.queryObject(Volume.class, cgTargetVolume.getRpJournalVolume());
                     if (!cgTargetJournalsBySize.containsKey(targetJournal.getProvisionedCapacity())) {
@@ -1172,16 +1178,16 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
 	 * the source size and apply the policy string to come up with a resulting size.
-     *
-	 * @param sourceSizeStr size of the source volume
      * 
-	 * @param journalSizePolicy the policy of the journal size.  ("10gb", "min", or "3.5x" formats)
+     * @param sourceSizeStr size of the source volume
      * 
-	 * @return journal volume size result
-	 */
-	public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {       
-	    // first, normalize the size. user can specify as GB,MB, TB, etc
-	    Long sourceSizeInBytes = 0L;   
+     * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
+     * 
+     * @return journal volume size result
+     */
+    public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
+        // first, normalize the size. user can specify as GB,MB, TB, etc
+        Long sourceSizeInBytes = 0L;
 
 	    // Convert the source size into bytes, if specified in KB, MB, etc.
 	    if (sourceSizeStr.contains(SizeUtil.SIZE_TB) || sourceSizeStr.contains(SizeUtil.SIZE_GB) 
@@ -1430,7 +1436,7 @@ public class RPHelper {
                 // Only rollback the Journals if there is only one volume in the CG and it's the one we're
                 // trying to roll back.
                 boolean lastSourceVolumeInCG = (cgSourceVolumes != null && cgSourceVolumes.size() == 1
-                                            && cgSourceVolumes.get(0).getId().equals(volume.getId()));
+                        && cgSourceVolumes.get(0).getId().equals(volume.getId()));
 
                 // Potentially rollback the journal volume
                 if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) {
@@ -1534,7 +1540,8 @@ public class RPHelper {
                 }
             }
 
-            _log.info(String.format("Rollback of RP protection changes for volume [%s] (%s) has completed.", volume.getLabel(), volume.getId()));
+            _log.info(String.format("Rollback of RP protection changes for volume [%s] (%s) has completed.", volume.getLabel(),
+                    volume.getId()));
             dbClient.persistObject(volume);
         }
     }
@@ -1573,6 +1580,38 @@ public class RPHelper {
         }
 
         return volume;
+    }
+    
+    /**
+     * Determine the wwn of the volume in the format RP is looking for.  For xtremio
+     * this is the 128 bit identifier.  For other array types it is the deafault.
+     * 
+     * @param volumeURI the URI of the volume the operation is being performed on
+     * @param dbClient
+     * @return the wwn of the volume which rp requires to perform the operation
+     *         in the case of xtremio this is the 128 bit identifier
+     */
+    public static String getRPWWn(URI volumeURI, DbClient dbClient) {
+    	Volume volume = dbClient.queryObject(Volume.class, volumeURI);    	
+    	if (volume.getNativeGuid() != null && RecoverPointUtils.isXioVolume(volume.getNativeGuid())) {
+    		return RecoverPointUtils.getXioNativeGuid(volume.getNativeGuid());
+    	}    	    	    	
+    	return volume.getWWN();
+    }
+    
+    /**
+     * Determine if the volume being protected is provisioned on an Xtremio Storage array
+     * 
+     * @param volume The volume being provisioned
+     * @param dbClient DBClient object
+     * @return boolean indicating if the volume being protected is provisioned on an Xtremio Storage array
+     */
+    public static boolean protectXtremioVolume(Volume volume, DbClient dbClient) {
+    	StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+    	if (storageSystem.getSystemType() != null && storageSystem.getSystemType().equalsIgnoreCase(Type.xtremio.toString())) {
+    		return true;
+    	}
+    	return false;
     }
 
     /**

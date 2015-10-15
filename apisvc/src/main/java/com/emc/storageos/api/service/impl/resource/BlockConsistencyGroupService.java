@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.BlockMapper;
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.mapper.functions.MapBlockConsistencyGroup;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
@@ -455,8 +456,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
         if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
             snapshotType = BlockSnapshot.TechnologyType.RP.toString();
-        } else if ((!volumeList.isEmpty()) && (volumeList.get(0).checkForSRDF())) {
-            snapshotType = BlockSnapshot.TechnologyType.SRDF.toString();
         }
 
         // Determine the snapshot volume for RP.
@@ -494,6 +493,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         for (BlockSnapshot snapshot : snapshotList) {
             response.getTaskList().add(toTask(snapshot, taskId));
         }
+
+        addConsistencyGroupTask(consistencyGroup, response, taskId,
+                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT);
+
         blockServiceApiImpl.createSnapshot(snapVolume, snapIdList, snapshotType, createInactive, readOnly, taskId);
 
         auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
@@ -708,9 +711,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         for (BlockSnapshot snap : snapshots) {
             Operation snapOp = _dbClient.createTaskOpStatus(BlockSnapshot.class, snap.getId(), task,
-                    ResourceOperationTypeEnum.DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT);
+                    ResourceOperationTypeEnum.DEACTIVATE_VOLUME_SNAPSHOT);
             response.getTaskList().add(toTask(snap, task, snapOp));
         }
+
+        addConsistencyGroupTask(consistencyGroup, response, task,
+                ResourceOperationTypeEnum.DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT);
 
         Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
         BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
@@ -1077,6 +1083,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 if (URIUtil.isType(volumeURI, Volume.class)) {
                     Volume volume = _permissionsHelper.getObjectById(volumeURI, Volume.class);
                     ArgValidator.checkEntity(volume, volumeURI, false);
+                    /**
+                     * Remove SRDF volume from CG is not supported.
+                     */
+                    if (volume.checkForSRDF()) {
+                        throw APIException.badRequests.notAllowedOnSRDFConsistencyGroups();
+                    }
                     if (!BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) {
                         blockServiceApiImpl.verifyRemoveVolumeFromCG(volume, cgVolumes);
                     }
@@ -1560,5 +1572,21 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     .fullCopyOperationNotAllowedSourceNotInCG(fullCopyVolume.getLabel());
         }
         return fcSourceURI;
+    }
+
+    /**
+     * Creates tasks against consistency groups associated with a request and adds them to the given task list.
+     *
+     * @param group
+     * @param taskList
+     * @param taskId
+     * @param operationTypeEnum
+     */
+    protected void addConsistencyGroupTask(BlockConsistencyGroup group, TaskList taskList,
+            String taskId,
+            ResourceOperationTypeEnum operationTypeEnum) {
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
+                operationTypeEnum);
+        taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
     }
 }

@@ -15,7 +15,7 @@ CONFIG_FILE=${1}
 Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
- vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
+ vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | ecs | init | quick |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>] | sanzoning'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
@@ -120,7 +120,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
+    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|ecs|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -326,6 +326,7 @@ COS_HDS=coshds
 COS_VNXEBLOCK_CG=cosvnxe_cg
 COS_VNXEBLOCK_FC=cosvnxe_fc
 COS_VNXEBLOCK_ISCSI=cosvnxe_iscsi
+COS_ECS=ecs_vpool
 
 #
 # Isilon configuration
@@ -337,6 +338,15 @@ ISI_SMBFILESHARE1=smbfileshare1$(date +%Y%m%d%H%M%S)
 ISI_SMBFILESHARE2=smbfileshare2$(date +%Y%m%d%H%M%S)
 ISI_SMBSNAPSHARE1=smbsnapshare1$(date +%Y%m%d%H%M%S)
 ISI_SMBSNAPSHARE2=smbsnapshare2$(date +%Y%m%d%H%M%S) 
+
+#
+# ECS configuration
+#
+ECS_DEV=ecs_device
+ECS_NATIVEGUID=ECS+$ECS_SN
+ECS_SOFT_QUOTA=1024
+ECS_HARD_QUOTA=2048
+ECS_BUCKET=bucket-${RANDOM}
 
 #
 # VNX file device configuration
@@ -820,6 +830,12 @@ isilon_cos_setup()
         cos tag "$COS_ISIFILE" "file" $TAG
         cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
     fi
+}
+
+ecs_cos_setup()
+{
+    echo "setting up ECS cos-vpool"
+    cos create object $COS_ECS --description 'cos_vpool for ECS' true --protocols S3 --provisionType 'Thick' --neighborhoods $NH
 }
 
 vnxfile_cos_setup()
@@ -3192,6 +3208,29 @@ isilon_setup()
 }
 
 #
+# add ECS storage device and storage pool
+#
+ecs_setup_once()
+{
+    #discoveredsystem show $ECS_DEV &> /dev/null && return $?
+    discoveredsystem create $ECS_DEV ecs $ECS_IP 4443 $ECS_USER $ECS_PASSWD
+
+    storagepool update $ECS_NATIVEGUID --nhadd $NH
+    storageport update $ECS_NATIVEGUID IP --addvarrays $NH
+
+    ecs_cos_setup
+    
+    tenant update_namespace $TENANT  $ECS_NAMESPACE
+    project create $PROJECT --tenant $TENANT 
+}
+
+ecs_setup()
+{
+    echo "Performing ecs_setup"
+    ecs_setup_once
+}
+
+#
 # add vnx file device with a storage pool that supports NFS and COS_VNX_PROTECTION protection
 # add server_{2,3,4} data mover storage ports to this device, connected to the IP transport zone
 #
@@ -4719,6 +4758,14 @@ isilon_tests()
         bulkapi fileshares $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1 $NH $COS_ISIFILE $FS_SIZE
     fi
 }
+
+ecs_tests()
+{
+    echo "Performing ecs_tests"
+    bucket create $ECS_BUCKET $PROJECT $NH $COS_ECS $ECS_SOFT_QUOTA $ECS_HARD_QUOTA $ECS_BUCKET_OWNER
+    #bucket delete bkt_id  #currently create itself deletes bucket
+}
+
 
 #
 # do fileshare tests using isilon specific cos to exercise Isilon tests

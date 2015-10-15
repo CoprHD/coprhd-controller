@@ -1059,6 +1059,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volumeType = VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE;
             }
 
+            // If the volume being provisioned is an xtremio volume, set the max
+            // number of snaps to the default value of 128.  It is necessary to set
+            // the default because xtremio uses snap technology for replication
+            // Eventually this value should be configurable and passed as part of the VPool RecoverPoint settings
+            if (RPHelper.protectXtremioVolume(volume, _dbClient)) {
+            	capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_MAX_SNAPS, 128);
+            }
+            
             VolumeDescriptor desc = null;
             // Vpool Change flow, mark the production volume as already existing, so it doesn't get created
             if (recommendation != null && (recommendation.getVpoolChangeVolume() != null) &&

@@ -46,6 +46,7 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.HostIOLimitsParam;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumesOnAdoptedMaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
@@ -249,7 +250,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // the determineInitiatorToExportMaskPlacements() would have found the ExportMask for
                     // the cluster to place the initiators, but it would not have them added
                     // yet. The below logic will add the volumes necessary.
-                    if (mask.hasInitiator(initiatorURI.toString())) {
+                    if (mask.hasInitiator(initiatorURI.toString()) && !ExportUtils.isInitiatorShared(_dbClient, 
+                            initiatorURI, mask, exportMaskURIs)) {
                         _log.info(String.format("mask %s has initiator %s", mask.getMaskName(),
                                 initiator.getInitiatorPort()));
                         // Loop through all the block objects that have been exported
@@ -690,8 +692,16 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             for (Map.Entry<URI, List<URI>> entry : existingMasksToRemoveInitiator.entrySet()) {
                 ExportMask mask = _dbClient.queryObject(ExportMask.class, entry.getKey());
                 List<URI> initiatorsToRemove = entry.getValue();
-                // CTRL-8846 fix : Compare against all the initiators
-                if (initiatorsToRemove.size() >= ExportUtils.getExportMaskAllInitiators(mask, _dbClient).size()) {
+                List<URI> initiatorsToRemoveOnStorage = new ArrayList<URI>();
+                for (URI initiatorURI : initiatorsToRemove) {
+                    if (!ExportUtils.isInitiatorShared(_dbClient, initiatorURI, mask, existingMasksToRemoveInitiator.keySet())) {
+                        initiatorsToRemoveOnStorage.add(initiatorURI);
+                    }
+                }
+                //CTRL-8846 fix : Compare against all the initiators
+                List<URI> allMaskInitiators = ExportUtils.getExportMaskAllInitiators(mask, _dbClient);
+                allMaskInitiators.removeAll(initiatorsToRemove);
+                if (allMaskInitiators.isEmpty()) {
                     masksGettingRemoved.add(mask.getId());
                     // For this case, we are attempting to remove all the
                     // initiators in the mask. This means that we will have to delete the
@@ -717,8 +727,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     previousStep = generateZoningRemoveInitiatorsWorkflow(workflow, previousStep, exportGroup,
                             maskToInitiatorsMap);
 
+                    ExportMaskRemoveInitiatorCompleter exportTaskCompleter = new ExportMaskRemoveInitiatorCompleter(exportGroupURI,
+                            mask.getId(), initiatorsToRemove, null);
                     previousStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep, storage,
-                            exportGroup, mask, initiatorsToRemove, true);
+                            exportGroup, mask, initiatorsToRemoveOnStorage, true, exportTaskCompleter);
                     anyOperationsToDo = true;
                 }
 
@@ -1400,6 +1412,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             Integer requestedHLU = volumesWithNoMask.get(initiatorId).get(boURI);
                             StringMap existingVolumesInMask = mask.getExistingVolumes();
                             if (existingVolumesInMask != null && requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED &&
+                                    !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
@@ -1842,7 +1855,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
         // Dummy/non-essential data
         ExportGroup dummyExportGroup = new ExportGroup();
-        dummyExportGroup.setType(ExportGroupType.Initiator.name());
+        dummyExportGroup.setType(ExportGroupType.Host.name());
 
         // InitiatorHelper for processing the initiators
         InitiatorHelper initiatorHelper = new InitiatorHelper(initiators).process(dummyExportGroup);

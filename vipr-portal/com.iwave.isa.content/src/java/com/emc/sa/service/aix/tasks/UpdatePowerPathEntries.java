@@ -16,9 +16,9 @@ public class UpdatePowerPathEntries extends AixExecutionTask<Void> {
 
     @Override
     public void execute() throws Exception {
-        executeCommand(new PowermtConfigCommand(), SHORT_TIMEOUT);
-        executeCommand(new PowermtRestoreCommand(), SHORT_TIMEOUT);
-        executeCommand(new PowermtSaveCommand(), SHORT_TIMEOUT);
+        executeCommand(new PowermtConfigCommand(), MEDIUM_TIMEOUT);
+        executeCommand(new PowermtRestoreCommand(), MEDIUM_TIMEOUT);
+        executeCommand(new PowermtSaveCommand(), MEDIUM_TIMEOUT);
         setDetail("powermt config; powermt restore; powermt save;");
     }
 }

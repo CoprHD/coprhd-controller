@@ -292,6 +292,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             Integer requestedHLU = volumeMap.get(boURI);
                             StringMap existingVolumesInMask = exportMask.getExistingVolumes();
                             if (existingVolumesInMask != null && requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED &&
+                                    !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
@@ -601,6 +602,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             StringMap existingVolumesInMask = mask.getExistingVolumes();
                             // DO NOT CHECK-IN!  WJEIV  Email out to Ameer.  After latest merge from master, -1 isn't working anymore
                             if (existingVolumesInMask != null && requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED &&
+                                    !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);

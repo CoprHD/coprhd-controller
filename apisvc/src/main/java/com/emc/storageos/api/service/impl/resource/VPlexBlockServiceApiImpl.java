@@ -24,12 +24,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
@@ -52,6 +54,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
@@ -99,9 +102,11 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.vplexcontroller.VPlexController;
@@ -2205,40 +2210,120 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<URI> addVolumesList, List<URI> removeVolumesList, String taskId)
             throws ControllerException {
 
+        // addVolumesList could be volumes, or full copies, or snapshots or mirrors.
+        List<URI> addVolumes = new ArrayList<URI> ();
+        List<URI> addSnapshots = new ArrayList<URI> ();
+        List<URI> addFullcopies = new ArrayList<URI> ();
+        for (URI volumeURI : addVolumesList) {
+            BlockObject blockObject = BlockObject.fetch(_dbClient, volumeURI);
+            if (blockObject instanceof BlockMirror) {
+                throw APIException.badRequests.actionNotApplicableForVplexVolumeMirrors(
+                        ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP.name());
+            } else if (blockObject instanceof BlockSnapshot) {
+                addSnapshots.add(volumeURI);
+            } else if(blockObject instanceof Volume) {
+                boolean isFullCopy = ControllerUtils.isVolumeFullCopy((Volume) blockObject, _dbClient);
+                if (isFullCopy) {
+                    addFullcopies.add(volumeURI);
+                } else {
+                    addVolumes.add(volumeURI);
+                }
+            } 
+        }
+        if ((!addVolumes.isEmpty() && (!addSnapshots.isEmpty() || !addFullcopies.isEmpty())) ||
+                (!addSnapshots.isEmpty() && !addFullcopies.isEmpty())) {
+            throw APIException.badRequests.cantUpdateCGWithMixedBlockObjects(consistencyGroup.getLabel());
+        }
+        
         // When adding volumes to a VPLEX CG, the volumes must be of the same
         // type and have the same virtual array as those already in the consistency
         // group.
-        Iterator<Volume> cgVolumesIter = cgVolumes.iterator();
-        if (cgVolumesIter.hasNext()) {
-            Volume cgVolume = cgVolumesIter.next();
-            VirtualPool cgVPool = _permissionsHelper.getObjectById(
-                    cgVolume.getVirtualPool(), VirtualPool.class);
-            URI cgVArrayURI = cgVolume.getVirtualArray();
-            String cgHAType = cgVPool.getHighAvailability();
-            for (URI volumeURI : addVolumesList) {
-                Volume addVolume = _permissionsHelper.getObjectById(volumeURI, Volume.class);
-                VirtualPool addVolumeVPool = _permissionsHelper.getObjectById(
-                        addVolume.getVirtualPool(), VirtualPool.class);
-                if (!addVolumeVPool.getHighAvailability().equals(cgHAType)) {
-                    throw APIException.badRequests.invalidParameterConsistencyGroupVolumeHasIncorrectHighAvailability(cgVolume.getId(),
-                            cgHAType);
-                } else if (!cgVArrayURI.equals(addVolume.getVirtualArray())) {
-                    throw APIException.badRequests.invalidParameterConsistencyGroupVolumeHasIncorrectVArray(cgVolume.getId(), cgVArrayURI);
+        if (!addVolumes.isEmpty()) {
+            Iterator<Volume> cgVolumesIter = cgVolumes.iterator();
+            if (cgVolumesIter.hasNext()) {
+                Volume cgVolume = cgVolumesIter.next();
+                VirtualPool cgVPool = _permissionsHelper.getObjectById(
+                        cgVolume.getVirtualPool(), VirtualPool.class);
+                URI cgVArrayURI = cgVolume.getVirtualArray();
+                String cgHAType = cgVPool.getHighAvailability();
+                for (URI volumeURI : addVolumes) {
+                    Volume addVolume = _permissionsHelper.getObjectById(volumeURI, Volume.class);
+                    VirtualPool addVolumeVPool = _permissionsHelper.getObjectById(
+                            addVolume.getVirtualPool(), VirtualPool.class);
+                    if (!addVolumeVPool.getHighAvailability().equals(cgHAType)) {
+                        throw APIException.badRequests.invalidParameterConsistencyGroupVolumeHasIncorrectHighAvailability(cgVolume.getId(),
+                                cgHAType);
+                    } else if (!cgVArrayURI.equals(addVolume.getVirtualArray())) {
+                        throw APIException.badRequests.invalidParameterConsistencyGroupVolumeHasIncorrectVArray(cgVolume.getId(), cgVArrayURI);
+                    }
                 }
             }
+            
+            // Check if the volumes have been in the CG, and not ingestion case
+            if (consistencyGroup.getTypes().contains(Types.LOCAL.toString()) && !cgVolumes.isEmpty()) {
+                Set<String> cgVolumesURISet = new HashSet<String>();
+                for (Volume cgVolume : cgVolumes) {
+                    cgVolumesURISet.add(cgVolume.getId().toString());
+                }
+                Iterator<URI> iter = addVolumes.iterator();
+                while (iter.hasNext()) {
+                    if (cgVolumesURISet.contains(iter.next().toString())) {
+                         iter.remove();
+                    }
+                }
+                
+                if (addVolumes.isEmpty()) {
+                    // All volumes in the addVolumes list have been in the CG. return success
+                    s_logger.info("The volumes have been added to the CG");
+                    Operation op = new Operation();
+                    op.setResourceType(ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
+                    op.ready("Volumes have been added to the consistency group");
+                    _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(), taskId, op);      
+                    return toTask(consistencyGroup, taskId, op);
+                }
+                
+            }
         }
-        // If the CG is ingested, and we would like to add back end CGs for those virtual volumes in the CG,
-        // all the virtual volumes in the CG have to be selected.
-        verifyAddVolumesToIngestedCG(consistencyGroup, addVolumesList);
+        
+        // Only add snapshot or full copies to CG if backend volumes are from the same storage system.
+        if (!addSnapshots.isEmpty() || !addFullcopies.isEmpty()) {
+            if (!VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(cgVolumes, _dbClient)) {
+                throw APIException.badRequests.cantUpdateCGWithReplicaFromMultipleSystems(consistencyGroup.getLabel());
+            }
+        }
+        
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(),
                 taskId, ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
-
-        // Get VPlex controller and delete the consistency group.
+        
+        // When adding snapshots to CG, just call block implementation.
+        if (!addSnapshots.isEmpty()) {
+            BlockSnapshot snapshot = _permissionsHelper.getObjectById(addSnapshots.get(0), BlockSnapshot.class);
+            URI systemURI = snapshot.getStorageController();
+            StorageSystem system = _permissionsHelper.getObjectById(systemURI, StorageSystem.class);
+            BlockController controller = getController(BlockController.class, system.getSystemType());
+            controller.updateConsistencyGroup(system.getId(), consistencyGroup.getId(),
+                    addVolumesList, removeVolumesList, taskId);
+            return toTask(consistencyGroup, taskId, op);
+            
+        }
+        
+        // If the CG is ingested, and we would like to add back end CGs for those virtual volumes in the CG,
+        // all the virtual volumes in the CG have to be selected.
+        if (!addVolumes.isEmpty()) {
+            verifyAddVolumesToIngestedCG(consistencyGroup, addVolumes);
+        }
+        
+        if (!addFullcopies.isEmpty()) {
+            addVolumes.addAll(addFullcopies);   
+        }
+       
+        // Get VPlex controller 
         VPlexController controller = getController();
         controller.updateConsistencyGroup(cgStorageSystem.getId(),
-                consistencyGroup.getId(), addVolumesList, removeVolumesList, taskId);
-
+                consistencyGroup.getId(), addVolumes, removeVolumesList, taskId);
+    
         return toTask(consistencyGroup, taskId, op);
+        
     }
 
     /**

@@ -85,7 +85,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
 
             int syncType = getSyncType(replicaList.get(0));
             CIMObjectPath[] sourceVolumePaths = _cimPath.getVolumePaths(storage, sourceIds.toArray(new String[sourceIds.size()]));
-            CIMArgument[] inArgs = _helper.getCreateListReplicaInputArguments(storage, sourceVolumePaths, labels, syncType);
+            CIMArgument[] inArgs = _helper.getCreateListReplicaInputArguments(storage, sourceVolumePaths, labels, syncType, createInactive);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             _helper.invokeMethod(storage, replicationSvc, CREATE_LIST_REPLICA, inArgs, outArgs);

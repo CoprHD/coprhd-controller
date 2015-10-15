@@ -175,7 +175,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 setFlags(context);
                 createVplexMirrorObjects(context, (Volume) virtualVolume);
                 _logger.info(context.toStringDebug());
-                _logger.info(context.getPerformanceReport());
             }
 
             return virtualVolume;
@@ -239,6 +238,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 throw IngestionException.exceptions.validationException(reason);
             }
         }
+
+        // validate the supporting device structure is compatible with vipr
+        context.validateSupportingDeviceStructure();
 
         for (UnManagedVolume vol : unManagedBackendVolumes) {
             _logger.info("checking for non native mirrors on backend volume " + vol.getNativeGuid());
@@ -473,16 +475,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             String unManagedVolumeGUID = entry.getKey();
             UnManagedVolume processedUnManagedVolume = entry.getValue();
 
-            // we only need to worry about creating export masks for the
-            // actual backend volumes. if any replicas have unmanaged export
-            // masks, they should be ingested separately for the hosts
-            // they are exported to, not the backend of the VPLEX
-            if (!context.isBackendVolume(processedUnManagedVolume)) {
-                _logger.info("export mask processing is only required for backend volumes, skipping {}",
-                        processedUnManagedVolume.getLabel());
-                continue;
-            }
-
             if (processedUnManagedVolume.getUnmanagedExportMasks().isEmpty()) {
                 String reason = "the backend volume has no unmanaged export masks "
                         + processedUnManagedVolume.getLabel();
@@ -645,7 +637,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         vplexMirror.setAllocatedCapacity(mirrorVolume.getAllocatedCapacity());
                         vplexMirror.setProvisionedCapacity(mirrorVolume.getProvisionedCapacity());
                         vplexMirror.setSource(new NamedURI(virtualVolume.getId(), virtualVolume.getLabel()));
-                        vplexMirror.setStorageController(mirrorVolume.getStorageController());
+                        vplexMirror.setStorageController(virtualVolume.getStorageController());
                         vplexMirror.setTenant(mirrorVolume.getTenant());
                         vplexMirror.setThinPreAllocationSize(mirrorVolume.getThinVolumePreAllocationSize());
                         vplexMirror.setThinlyProvisioned(mirrorVolume.getThinlyProvisioned());
@@ -665,13 +657,28 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         mirrorVolume.setProject(new NamedURI(
                                 context.getBackendProject().getId(), mirrorVolume.getLabel()));
 
+                        // update flags on mirror volume
+                        List<DataObject> updatedObjects = 
+                                context.getUpdatedObjectMap().get(mirrorVolume.getNativeGuid());
+                        if (updatedObjects == null) {
+                            updatedObjects = new ArrayList<DataObject>();
+                            context.getUpdatedObjectMap().put(mirrorVolume.getNativeGuid(), updatedObjects);
+                        }
+                        VolumeIngestionUtil.clearInternalFlags(mirrorVolume, updatedObjects, _dbClient);
+                        // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
+                        mirrorVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
+
                         // deviceLabel will be the very last part of the native guid
                         String[] devicePathParts = entry.getValue().split("/");
                         String deviceName = devicePathParts[devicePathParts.length - 1];
                         vplexMirror.setDeviceLabel(deviceName);
 
-                        // save the new VplexMirror
+                        // save the new VplexMirror & persist backend & updated objects
                         _dbClient.createObject(vplexMirror);
+                        _dbClient.updateAndReindexObject(mirrorVolume);
+                        for (DataObject updatedObject : updatedObjects) {
+                            _dbClient.persistObject(updatedObject);
+                        }
 
                         // set mirrors property on the parent virtual volume
                         StringSet mirrors = virtualVolume.getMirrors();

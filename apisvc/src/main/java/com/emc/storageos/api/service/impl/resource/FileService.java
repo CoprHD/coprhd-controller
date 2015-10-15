@@ -2022,6 +2022,15 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         // top level acls which contains many acl inside.
+
+        /*
+         * VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+         * if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+         * // Throw an error
+         * throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
+         * + StorageProtocol.File.NFSv4.name() + " protocol");
+         * }
+         */
         NfsACLs acls = new NfsACLs();
         List<NfsACL> nfsAclList = new ArrayList<NfsACL>();
         List<NfsACE> nfsAceList = new ArrayList<>();
@@ -2122,8 +2131,8 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         // Check for VirtualPool whether it has NFS v4 enabled
+
         /*
-         * uncomment it when nfsv4 code is done
          * VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
          * if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
          * // Throw an error
@@ -2131,6 +2140,7 @@ public class FileService extends TaskResourceService {
          * + StorageProtocol.File.NFSv4.name() + " protocol");
          * }
          */
+
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         FileController controller = getController(FileController.class, device.getSystemType());
         String task = UUID.randomUUID().toString();
@@ -2242,7 +2252,14 @@ public class FileService extends TaskResourceService {
             dest.setPermissionType("allow");
 
         }
-        dest.setType(orig.getType());
+        if (orig.getType() != null && !orig.getType().isEmpty()) {
+
+            dest.setType(orig.getType());
+        } else {
+            dest.setType("user");
+
+        }
+
         dest.setUser(orig.getUser());
 
     }

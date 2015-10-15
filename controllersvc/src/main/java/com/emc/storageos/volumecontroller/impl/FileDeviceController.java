@@ -2626,11 +2626,11 @@ public class FileDeviceController implements FileController {
         String index = null;
         URIQueryResultList result = new URIQueryResultList();
         if (args.getFileOperation()) {
-            index = dbShareAcl.getFileSystemACLIndex();
+            index = dbShareAcl.getFileSystemNfsACLIndex();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getFileSystemNfsACLConstraint(index), result);
         } else {
-            index = dbShareAcl.getSnapshotACLIndex();
+            index = dbShareAcl.getSnapshotNfsACLIndex();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getSnapshotNfsACLConstraint(index), result);
         }

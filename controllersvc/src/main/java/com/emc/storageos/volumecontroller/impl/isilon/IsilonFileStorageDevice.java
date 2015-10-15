@@ -1781,7 +1781,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
 
         IsilonNFSACL isilonAcl = new IsilonNFSACL();
-        ArrayList<IsilonNFSACL.Acl> aclAddList = new ArrayList<IsilonNFSACL.Acl>();
+        ArrayList<IsilonNFSACL.Acl> aclCompleteList = new ArrayList<IsilonNFSACL.Acl>();
         List<NfsACE> aceToAdd = args.getNfsAclsToAdd();
         for (NfsACE nfsACE : aceToAdd) {
             IsilonNFSACL.Acl acl = isilonAcl.new Acl();
@@ -1795,11 +1795,11 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             acl.setAccesstype(nfsACE.getPermissionType());
             IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
             acl.setTrustee(trustee);
-            aclAddList.add(acl);
+            aclCompleteList.add(acl);
         }
 
-        ArrayList<IsilonNFSACL.Acl> aclModifyList = new ArrayList<IsilonNFSACL.Acl>();
-        List<NfsACE> aceToModify = args.getNfsAclsToAdd();
+        // ArrayList<IsilonNFSACL.Acl> aclModifyList = new ArrayList<IsilonNFSACL.Acl>();
+        List<NfsACE> aceToModify = args.getNfsAclsToModify();
         for (NfsACE nfsACE : aceToModify) {
             IsilonNFSACL.Acl acl = isilonAcl.new Acl();
             ArrayList<String> inheritFlags = new ArrayList<String>();
@@ -1811,11 +1811,11 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             acl.setAccesstype(nfsACE.getPermissionType());
             IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
             acl.setTrustee(trustee);
-            aclModifyList.add(acl);
+            aclCompleteList.add(acl);
         }
 
-        ArrayList<IsilonNFSACL.Acl> aclDeleteList = new ArrayList<IsilonNFSACL.Acl>();
-        List<NfsACE> aceToDelete = args.getNfsAclsToAdd();
+        // ArrayList<IsilonNFSACL.Acl> aclDeleteList = new ArrayList<IsilonNFSACL.Acl>();
+        List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
         for (NfsACE nfsACE : aceToDelete) {
             IsilonNFSACL.Acl acl = isilonAcl.new Acl();
             ArrayList<String> inheritFlags = new ArrayList<String>();
@@ -1827,12 +1827,12 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             acl.setAccesstype(nfsACE.getPermissionType());
             IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
             acl.setTrustee(trustee);
-            aclDeleteList.add(acl);
+            aclCompleteList.add(acl);
         }
 
         isilonAcl.setAction("update");
         isilonAcl.setAuthoritative("acl");
-        isilonAcl.setAcl(aclAddList);
+        isilonAcl.setAcl(aclCompleteList);
         String path = args.getFileSystemPath();
         if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
             path = path.concat(args.getSubDirectory());

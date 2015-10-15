@@ -48,7 +48,7 @@ public class NFSShareACL extends FileACL {
                         .append(this.domain == null ? "" : this.domain)
                         .append(this.user);
 
-                this.setFileSystemACLIndex(aclIndexBuffer.toString());
+                this.setFileSystemNfsACLIndex(aclIndexBuffer.toString());
             }
 
             if (this.snapshotId != null) {
@@ -56,7 +56,7 @@ public class NFSShareACL extends FileACL {
                         .append(this.fileSystemPath)
                         .append(this.domain == null ? "" : this.domain)
                         .append(this.user);
-                this.setSnapshotACLIndex(aclIndexBuffer.toString());
+                this.setSnapshotNfsACLIndex(aclIndexBuffer.toString());
             }
 
         }
@@ -77,14 +77,14 @@ public class NFSShareACL extends FileACL {
             builder.append(snapshotId);
             builder.append(", ");
         }
-        if (fileSystemACLIndex != null) {
-            builder.append("fileSystemACLIndex=");
-            builder.append(fileSystemACLIndex);
+        if (fileSystemNfsACLIndex != null) {
+            builder.append("fileSystemNfsACLIndex=");
+            builder.append(fileSystemNfsACLIndex);
             builder.append(", ");
         }
-        if (snapshotACLIndex != null) {
-            builder.append("snapshotACLIndex=");
-            builder.append(snapshotACLIndex);
+        if (snapshotNfsACLIndex != null) {
+            builder.append("snapshotNfsACLIndex=");
+            builder.append(snapshotNfsACLIndex);
             builder.append(", ");
         }
         if (user != null) {

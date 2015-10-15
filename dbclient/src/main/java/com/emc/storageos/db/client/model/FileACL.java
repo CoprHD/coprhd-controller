@@ -18,9 +18,9 @@ public abstract class FileACL extends DataObject {
     // permissionType can be allow or deny
     protected String permissionType;
 
-    protected String fileSystemACLIndex;
+    protected String fileSystemNfsACLIndex;
 
-    protected String snapshotACLIndex;
+    protected String snapshotNfsACLIndex;
 
     @Name("user")
     public String getUser() {
@@ -72,26 +72,26 @@ public abstract class FileACL extends DataObject {
         setChanged("permissions");
     }
 
-    @Name("fileSystemACLIndex")
-    @AlternateId("fileSystemACLIndexTable")
-    public String getFileSystemACLIndex() {
-        return fileSystemACLIndex;
+    @Name("fileSystemNfsACLIndex")
+    @AlternateId("fileSystemNfsACLIndexTable")
+    public String getFileSystemNfsACLIndex() {
+        return fileSystemNfsACLIndex;
     }
 
-    public void setFileSystemACLIndex(String fileSystemACLIndex) {
-        this.fileSystemACLIndex = fileSystemACLIndex;
-        setChanged("fileSystemExportACLIndex");
+    public void setFileSystemNfsACLIndex(String fileSystemNfsACLIndex) {
+        this.fileSystemNfsACLIndex = fileSystemNfsACLIndex;
+        setChanged("fileSystemNfsACLIndex");
     }
 
-    @Name("snapshotACLIndex")
-    @AlternateId("snapshotACLIndexTable")
-    public String getSnapshotACLIndex() {
-        return snapshotACLIndex;
+    @Name("snapshotNfsACLIndex")
+    @AlternateId("snapshotNfsACLIndexTable")
+    public String getSnapshotNfsACLIndex() {
+        return snapshotNfsACLIndex;
     }
 
-    public void setSnapshotACLIndex(String snapshotACLIndex) {
-        this.snapshotACLIndex = snapshotACLIndex;
-        setChanged("snapshotACLIndex");
+    public void setSnapshotNfsACLIndex(String snapshotNfsACLIndex) {
+        this.snapshotNfsACLIndex = snapshotNfsACLIndex;
+        setChanged("snapshotNfsACLIndex");
     }
 
     @Name("permission_type")

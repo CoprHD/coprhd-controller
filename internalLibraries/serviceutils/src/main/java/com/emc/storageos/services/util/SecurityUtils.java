@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.safety.Whitelist;
 import org.owasp.esapi.ESAPI;
 import org.slf4j.Logger;
@@ -59,7 +60,7 @@ public class SecurityUtils {
         // any valid values shouldn't contain any html tags.
         // value = ESAPI.encoder().canonicalize(value);
         value = value.replaceAll("\0", "");
-        value = Jsoup.clean(value, Whitelist.none());
+        value = Jsoup.clean(value, "", Whitelist.none(), new Document.OutputSettings().prettyPrint(false));
 
         return value;
     }

@@ -912,6 +912,8 @@ public class SchemaUtil {
                 
                 //Potential issue here, we need to wait for all nodes finish rebuilding date and then set SYNCED
                 StorageService.instance.rebuild(_vdcShortId);
+                
+                currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
                 currentSite.setState(SiteState.STANDBY_SYNCED);
                 _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
                 _log.info("Update current standby site state to SYNCED");

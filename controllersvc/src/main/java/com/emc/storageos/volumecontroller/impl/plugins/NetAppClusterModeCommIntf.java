@@ -500,7 +500,7 @@ public class NetAppClusterModeCommIntf extends
                                 unManagedExportRulesUpdate.addAll(unManagedExportRulesToUpdate);
                                 unManagedFs.setHasExports(true);
                                 unManagedFs.getFileSystemInformation().put(
-                                        UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                                        SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                                                 .toString(), TRUE);
                                 _dbClient.persistObject(unManagedFs);
                                 _logger.info("File System {} has Exports and their size is {}", unManagedFs.getId(),
@@ -1246,7 +1246,7 @@ public class NetAppClusterModeCommIntf extends
                             unManagedFs.setUnManagedSmbShareMap(tempUnManagedSMBShareMap);
                             unManagedFs.setHasShares(true);
                             unManagedFs.getFileSystemInformation().put(
-                                    UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                                    SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                                             .toString(), TRUE);
                             _logger.debug("SMB Share map for NetAppC UMFS {} = {}",
                                     unManagedFs.getLabel(), unManagedFs.getUnManagedSmbShareMap());

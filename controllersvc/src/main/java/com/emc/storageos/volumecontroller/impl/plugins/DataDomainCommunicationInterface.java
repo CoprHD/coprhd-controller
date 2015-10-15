@@ -1244,6 +1244,9 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                     associateCifsExportWithFS(unManagedFS, share, storagePort);
 
                     unManagedFS.setHasShares(true);
+                    unManagedFS.putFileSystemCharacterstics(
+                            UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                                    .toString(), TRUE);
 
                     _log.debug("Export map for VNX UMFS {} = {}", unManagedFS.getLabel(), unManagedFS.getUnManagedSmbShareMap());
 

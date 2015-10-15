@@ -890,7 +890,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
         }
     }
-
+    
     /**
      * Get all SMB shares of storagesystem
      * 
@@ -1225,6 +1225,39 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
             }
             _log.info("File System id {} and Number of shares : {}", unManagedFileSystem.getId(), unManagedSmbShareMap.size());
+
+        }
+        return;
+    }
+    
+    /**
+     * get UnManaged Cifs Shares and their ACLs
+     * 
+     * @param unManagedFileSystem
+     * @param smbShares
+     * @param unManagedCifsShareACLList
+     * @param fsPath
+     * @param isilonApi
+     */
+    private void getUnmanagedNfsShareACL(UnManagedFileSystem unManagedFileSystem,
+            HashSet<String> smbShares,
+            List<UnManagedCifsShareACL> unManagedCifsShareACLList,
+            StoragePort storagePort,
+            String fsname,
+            IsilonApi isilonApi) {
+        _log.info("getUnmanagedCifsShareACL for UnManagedFileSystem file path{} - start", fsname);
+
+        // HashSet<String> smbShares = allShares.get(fsPath);
+        if (null != smbShares && !smbShares.isEmpty()) {
+            UnManagedSMBShareMap unManagedSmbShareMap = null;
+            if (null == unManagedFileSystem.getUnManagedSmbShareMap()) {
+                unManagedSmbShareMap = new UnManagedSMBShareMap(); // initialise
+                unManagedFileSystem.setUnManagedSmbShareMap(unManagedSmbShareMap);
+            }
+            unManagedSmbShareMap = unManagedFileSystem.getUnManagedSmbShareMap();
+            UnManagedSMBFileShare unManagedSMBFileShare = null;
+
+           
 
         }
         return;

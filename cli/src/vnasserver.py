@@ -226,12 +226,31 @@ def list_parser(subcommand_parsers, common_parser):
 def vnasserver_list(args):
     obj = VnasServer(args.ip, args.port)
     from common import TableGenerator
+    from project import Project
     try:
         vnasServerList = obj.list_vnasserver_names()
         resultList = []
-    
         for iter in vnasServerList:
             rslt = obj.vnasserver_show(iter['name'])
+            
+            #rslt['parent_nas']['name'] should be printed under PARENT_NAS_SERVER.
+            #Updating it as a new element in the map
+            if('parent_nas' in rslt) and ('name' in rslt['parent_nas']):
+                rslt['parent_nas_server'] = rslt['parent_nas']['name']
+                
+            pr_object = None
+            if ('project' in rslt) and ('id' in rslt['project']):
+                pr_object = Project(args.ip, args.port).project_show_by_uri(rslt['project']['id']) 
+            
+            st_object = None
+            if ('storage_device' in rslt) and ('id' in rslt['storage_device']):
+                st_object = StorageSystem(args.ip, args.port).show_by_uri(rslt['storage_device']['id']) 
+                
+            if pr_object and ('name' in pr_object):
+                rslt['project_name'] = pr_object['name']
+                
+            if st_object and ('name' in st_object):
+                rslt['storage_system'] = st_object['name']
             if(rslt is not None):
                 resultList.append(rslt)
          
@@ -241,12 +260,12 @@ def vnasserver_list(args):
             if(args.verbose is False and args.long is False):
                 TableGenerator(vnasServerList,
                                ["name"]).printTable()
-                
+            
             # show a long table
             if(args.verbose is False and args.long is True):
                 TableGenerator(
                     resultList,
-                    ["nas_name","parent_nas/name","assigned_varrays","nas_state","storage_domains","project/id","protocols"]).printTable()
+                    ["nas_name","parent_nas_server","nas_state","storage_domains","project_name","protocols", "storage_system"]).printTable()
                     
             # show all items in json format
             if(args.verbose):

@@ -59,7 +59,7 @@ public class ObjectProvider extends BaseAssetOptionsProvider {
         String hardQuota = getBucketObjectHardQuota(bucketObject);
         String softQuota = getBucketObjectSoftQuota(bucketObject);
         String retention = getBucketObjectRetention(bucketObject);
-        String label = getMessage("object.bucket.label", name, hardQuota, softQuota, retention);
+        String label = getMessage("object.bucket.label", name, softQuota, hardQuota, retention);
         return new AssetOption(bucketObject.getId(), label);
     }
 

@@ -97,7 +97,6 @@ com.emc.storageos.systemservices.impl.resource.UpgradeService
 
 =Other Services
 com.emc.storageos.api.service.impl.resource.AuditService
-AuthnConfigurationService
 AuthenticationResource
 FIEnablerService
 UserInfoPage

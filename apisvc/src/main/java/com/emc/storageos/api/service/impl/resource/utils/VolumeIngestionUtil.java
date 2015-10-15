@@ -592,7 +592,7 @@ public class VolumeIngestionUtil {
                 spoolName = spool.getLabel();
             }
         } 
-        if (null == supportedVPoolUris) {
+        if (null == supportedVPoolUris || supportedVPoolUris.isEmpty()) {
             if (isVplexVolume(unManagedVolume)) {
                 throw APIException.internalServerErrors.noMatchingVplexVirtualPool(
                         unManagedVolume.getLabel(), unManagedVolume.getId());
@@ -2423,13 +2423,13 @@ public class VolumeIngestionUtil {
         return blockObjectClass;
     }
 
-    public static Set<String> getUnIngestedReplicas(StringSet replicaVoluemGUIDs, List<BlockObject> replicaObjects) {
+    public static Set<String> getUnIngestedReplicas(StringSet replicaVolumeGUIDs, List<BlockObject> replicaObjects) {
         StringSet replicas = new StringSet();
         for (BlockObject replica : replicaObjects) {
             replicas.add(replica.getNativeGuid().replace(VolumeIngestionUtil.VOLUME, VolumeIngestionUtil.UNMANAGEDVOLUME));
         }
 
-        return Sets.difference(replicaVoluemGUIDs, replicas);
+        return Sets.difference(replicaVolumeGUIDs, replicas);
     }
 
     public static URI getBlockProject(BlockObject block) {

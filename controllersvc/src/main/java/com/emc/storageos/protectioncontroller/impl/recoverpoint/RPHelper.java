@@ -151,36 +151,85 @@ public class RPHelper {
      * @param vol
      * @return
      */
-    private List<Volume> getVolumesInRSet(Volume volume) {
+    public List<Volume> getVolumesInRSet(Volume volume) {
         List<Volume> allVolumesInRSet = new ArrayList<Volume>();
 
-        Volume sourceVol = null;
-        if (volume.getRpTargets() != null && !volume.getRpTargets().isEmpty()) {
-            sourceVol = volume;
-        } else {
-            sourceVol = getRPSourceVolumeFromTarget(_dbClient, volume);
-        }
-        if (sourceVol != null) {
-            allVolumesInRSet.add(sourceVol);
+        if (volume == null) {
+            _log.warn("Cannot find replication set volumes from null volume.");
+            return allVolumesInRSet;
         }
 
-        for (String tgtVolId : sourceVol.getRpTargets()) {
-            if (tgtVolId.equals(volume.getId().toString())) {
-                allVolumesInRSet.add(volume);
-            } else {
-                Volume tgt = _dbClient.queryObject(Volume.class, URI.create(tgtVolId));
-                if (tgt != null && !tgt.getInactive()) {
-                    allVolumesInRSet.add(tgt);
+        if (NullColumnValueGetter.isNullValue(volume.getRSetName())) {
+            _log.warn(String.format("Cannot find replication set volumes for %s. The volume has a null replication set reference.",
+                    volume.getId()));
+            return allVolumesInRSet;
+        }
+
+        if (volume != null && NullColumnValueGetter.isNotNullValue(volume.getRSetName())) {
+            _log.info(String.format("Finding all volumes in replication set %s, corresonding to volume %s.", volume.getRSetName(),
+                    volume.getId()));
+            List<Volume> rsetVolumes =
+                    getReplicationSetVolumesByCg(volume.getRSetName(), volume.getConsistencyGroup());
+
+            for (Volume vol : rsetVolumes) {
+                if (!vol.getInactive() && NullColumnValueGetter.isNotNullValue(vol.getPersonality())) {
+                    if (vol.getPersonality().equals(PersonalityTypes.SOURCE.name()) ||
+                            vol.getPersonality().equals(PersonalityTypes.TARGET.name())) {
+                        allVolumesInRSet.add(vol);
+                    }
                 }
+            }
 
-                // if this target was previously the Metropoint active source, go out and get the standby copy
-                if (isMetroPointVolume(tgt)) {
-                    allVolumesInRSet.addAll(getMetropointStandbyCopies(tgt));
+            _log.info(String.format("Found the following volumes corresponding to replication set %s: %s", volume.getRSetName(),
+                    allVolumesInRSet.toString()));
+        }
+
+        return allVolumesInRSet;
+    }
+
+    /**
+     * Gets a volumes associated target volumes.
+     *
+     * @param volume the volume whose targets we want to find.
+     * @return the list of associated target volumes.
+     */
+    public List<Volume> getTargetVolumes(Volume volume) {
+        List<Volume> targets = new ArrayList<Volume>();
+
+        if (volume != null && PersonalityTypes.SOURCE.name().equals(volume.getPersonality())) {
+            List<Volume> rsetVolumes = getVolumesInRSet(volume);
+
+            for (Volume rsetVolume : rsetVolumes) {
+                if (PersonalityTypes.TARGET.name().equals(rsetVolume.getPersonality())) {
+                    targets.add(rsetVolume);
                 }
             }
         }
 
-        return allVolumesInRSet;
+        return targets;
+    }
+
+    /**
+     * This method gets volumes from a CG that belong to the given replication set name.
+     *
+     * @param replicationSet the replication set name.
+     * @param consistencyGroupURI the BlockConsistencyGroup.
+     * @param _dbClient the db client.
+     * @return a list of volumes that belong to the same replication set
+     */
+    private List<Volume> getReplicationSetVolumesByCg(String replicationSet, URI consistencyGroupURI) {
+        List<Volume> volumesByCg = new ArrayList<Volume>();
+        List<Volume> rsetVolumes =
+                CustomQueryUtility.getActiveVolumesByReplicationSet(_dbClient, replicationSet);
+
+        for (Volume volume : rsetVolumes) {
+            if (!NullColumnValueGetter.isNullURI(consistencyGroupURI) &&
+                    consistencyGroupURI.equals(volume.getConsistencyGroup())) {
+                volumesByCg.add(volume);
+            }
+        }
+
+        return volumesByCg;
     }
 
     /**
@@ -193,11 +242,14 @@ public class RPHelper {
      * @throws URISyntaxException
      */
     public Set<URI> getVolumesToDelete(Collection<URI> reqDeleteVolumes) throws InternalException {
+        _log.info(String.format("Getting all RP volumes to delete for requested list: %s", reqDeleteVolumes));
 
         Set<URI> volumeIDs = new HashSet<URI>();
-        Set<URI> protectionSetIds = new HashSet<URI>();
-
         Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, reqDeleteVolumes, true);
+
+        // Divide the RP volumes by BlockConsistencyGroup so we can determine if all Volume's in the
+        // RP consistency group are being removed.
+        Map<URI, Set<URI>> cgsToVolumesForDelete = new HashMap<URI, Set<URI>>();
 
         // for each volume requested to be deleted, add that volume plus any source or target related
         // to that volume to the list of volumes to be deleted
@@ -207,56 +259,61 @@ public class RPHelper {
             // volume passed in
             List<Volume> allVolsInRSet = getVolumesInRSet(volume);
             for (Volume vol : allVolsInRSet) {
-                volumeIDs.add(vol.getId());
-                if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
-                    protectionSetIds.add(vol.getProtectionSet().getURI());
-                } else {
-                    _log.info(String.format("Excluding Volume %s because it has no ProtectionSet reference.", vol.getId()));
+                if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
+                    if (cgsToVolumesForDelete.get(vol.getConsistencyGroup()) == null) {
+                        cgsToVolumesForDelete.put(vol.getConsistencyGroup(), new HashSet<URI>());
+                    }
+                    cgsToVolumesForDelete.get(vol.getConsistencyGroup()).add(vol.getId());
+
+                    // Add the volume ID to the list of volumes to be deleted
+                    _log.info(String.format("Adding volume %s to the list of volumes to be deleted", vol.getId()));
+                    volumeIDs.add(vol.getId());
                 }
             }
         }
 
         // if we're deleting all of the volumes in this protection set, we can add the journal volumes
-        for (URI protSetId : protectionSetIds) {
-            ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, protSetId);
+        for (Map.Entry<URI, Set<URI>> cgToVolumesForDelete : cgsToVolumesForDelete.entrySet()) {
+            List<Volume> cgVolumes = getCgVolumes(cgToVolumesForDelete.getKey(), _dbClient);
 
-            // determine if all of the source and target volumes in the protection set are on the list
+            // determine if all of the source and target volumes in the consistency group are on the list
             // of volumes to delete; if so, we will add the journal volumes to the list.
             // also create a list of stale volumes to be removed from the protection set
-            List<URI> protSetJournalVols = new ArrayList<URI>();
-            List<String> staleVolumes = new ArrayList<String>();
+            List<URI> journalVols = new ArrayList<URI>();
             boolean wholeCG = true;
-            if (protectionSet.getVolumes() != null) {
-                for (String protSetVol : protectionSet.getVolumes()) {
-                    URI protSetVolUri = URI.create(protSetVol);
-                    if (!volumeIDs.contains(protSetVolUri)) {
-                        Volume vol = _dbClient.queryObject(Volume.class, protSetVolUri);
-                        if (vol == null || vol.getInactive()) {
-                            // The ProtectionSet references a stale volume that no longer exists in the DB.
-                            _log.info("ProtectionSet " + protectionSet.getLabel() + " references volume " + protSetVol
-                                    + " that no longer exists in the DB.  Removing this volume reference.");
-                            staleVolumes.add(protSetVol);
-                        } else if (!Volume.PersonalityTypes.METADATA.toString().equals(vol.getPersonality())) {
-                            // the volume is either a source or target; this means there are other volumes in the rset
-                            wholeCG = false;
-                        } else {
-                            protSetJournalVols.add(vol.getId());
+            if (cgVolumes != null) {
+                for (Volume cgVol : cgVolumes) {
+                    Set<URI> cgVolsToDelete = cgToVolumesForDelete.getValue();
+
+                    // If the CG volume is not in the list of volumes to delete for this CG, we must
+                    // determine if it's a journal or another source/target not being deleted.
+                    if (!cgVolsToDelete.contains(cgVol.getId())) {
+                        if (!cgVol.getInactive()) {
+                            if (!Volume.PersonalityTypes.METADATA.toString().equals(cgVol.getPersonality())) {
+                                // the volume is either a source or target; this means there are other volumes in the rset
+                                wholeCG = false;
+                            } else {
+                                journalVols.add(cgVol.getId());
+                            }
                         }
                     }
                 }
             }
 
             if (wholeCG) {
-                volumeIDs.addAll(protSetJournalVols);
+                _log.info(String
+                        .format("Determined that this is a request to delete consistency group %s.  Adding journal volumes to the list of volumes to delete: %s",
+                                cgToVolumesForDelete.getKey(), journalVols.toString()));
+                volumeIDs.addAll(journalVols);
+            } else {
+                _log.info(String.format(
+                        "Consistency group %s will not be removed.  Only a subset of the replication sets are being removed.",
+                        cgToVolumesForDelete.getKey()));
             }
 
-            // remove stale entries from protection set
-            if (!staleVolumes.isEmpty()) {
-                for (String vol : staleVolumes) {
-                    protectionSet.getVolumes().remove(vol);
-                }
-                _dbClient.persistObject(protectionSet);
-            }
+            // Clean-up stale ProtectionSet volume references. This is just a cautionary operation to prevent
+            // "bad things" from happening.
+
         }
 
         return volumeIDs;
@@ -380,6 +437,47 @@ public class RPHelper {
         }
 
         _log.info("Found that all of the source volumes in the protection set are in the request.");
+        return true;
+    }
+
+    /**
+     * Determine if the consistency group's source volumes are represented in the volumeIDs list.
+     * Used to figure out if we can perform full CG operations or just partial CG operations.
+     *
+     * @param dbClient db client
+     * @param consistencyGroupUri the BlockConsistencyGroup ID
+     * @param volumeIDs volume IDs
+     * @return true if volumeIDs contains all of the source volumes in the protection set
+     */
+    public static boolean cgContainsSourceVolumes(DbClient dbClient, URI consistencyGroupUri, Collection<URI> volumeIDs) {
+
+        // find all source volumes.
+        List<URI> sourceVolumeIDs = new ArrayList<URI>();
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupUri);
+        _log.info("Inspecting consisency group: " + cg.getLabel() + " to see if request contains all source volumes");
+
+        List<Volume> cgVolumes = getCgSourceVolumes(consistencyGroupUri, dbClient);
+
+        for (Volume volume : cgVolumes) {
+            if (volume != null) {
+                _log.debug("Looking at volume: " + volume.getLabel());
+                if (!volume.getInactive() && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                    _log.debug("Adding volume: " + volume.getLabel());
+                    sourceVolumeIDs.add(volume.getId());
+                }
+            }
+        }
+
+        // go through all volumes sent in, remove any volumes you find in the source list.
+        sourceVolumeIDs.removeAll(volumeIDs);
+
+        if (!sourceVolumeIDs.isEmpty()) {
+            _log.info("Found that the volumes requested do not contain all source volumes in the consistency group, namely: " +
+                    Joiner.on(',').join(sourceVolumeIDs));
+            return false;
+        }
+
+        _log.info("Found that all of the source volumes in the consistency group are in the request.");
         return true;
     }
 

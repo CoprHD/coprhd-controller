@@ -499,13 +499,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
         UnManagedExportMask uem = null;
         Iterator<URI> it = result.iterator();
         while (it.hasNext()) {
-            uem = dbClient.queryObject(UnManagedExportMask.class, it.next());
+            UnManagedExportMask potentialUem = dbClient.queryObject(UnManagedExportMask.class, it.next());
             // Check whether the uem belongs to the same storage system. This to avoid in picking up the
             // vplex uem.
-            if (!URIUtil.identical(uem.getStorageSystemUri(), systemURI)) {
-                continue;
+            if (URIUtil.identical(potentialUem.getStorageSystemUri(), systemURI)) {
+                uem = potentialUem;
+                unManagedExportMasksToUpdate.add(uem);
+                break;
             }
-            unManagedExportMasksToUpdate.add(uem);
         }
         if (uem != null && !uem.getInactive()) {
             // clean up collections (we'll be refreshing them)

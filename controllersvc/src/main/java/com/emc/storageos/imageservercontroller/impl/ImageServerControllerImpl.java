@@ -1135,7 +1135,7 @@ public class ImageServerControllerImpl implements ImageServerController {
      * Updates the imageServer with the image that failed import, this method updates
      * it as failed only after making sure that the image was not previously successful.
      * @param imageServerURI {@link URI} imageServerURI instance to which import was made.
-     * @param image {@link String} URI string of the image that failed the import.
+     * @param image {@link ComputeImage} instance that failed the import.
      */
     private void updateFailedImages(URI imageServerURI, ComputeImage image) {
         if (null != imageServerURI && null != image) {

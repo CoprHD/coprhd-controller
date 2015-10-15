@@ -51,6 +51,7 @@ public class Maintenance extends Controller {
         ClusterInfo clusterInfo = null;
         try {
             clusterInfo = getClusterState();
+            Logger.info("cluster status %s", clusterInfo.getCurrentState());
         } catch (ViPRHttpException e) {
             Common.handleExpiredToken(e);
             Logger.error(e, "Failed to get cluster state");
@@ -59,7 +60,6 @@ public class Maintenance extends Controller {
             Logger.error(e, "Failed to get cluster state");
             error(e.getMessage());
         }
-        Logger.info("cluster status %s", clusterInfo.getCurrentState());
         renderJSON(clusterInfo);
     }
 

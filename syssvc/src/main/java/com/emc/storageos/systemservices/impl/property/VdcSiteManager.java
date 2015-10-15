@@ -39,6 +39,7 @@ import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
@@ -616,7 +617,7 @@ public class VdcSiteManager extends AbstractManager {
                             removeSiteFromReplication(site);
                         }
                     } catch (Exception e) { 
-                        populateStandbySiteErrorIfNecessary(site, SiteError.ERROR_DESCRIPTION_REMOVE, e);
+                        populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
                         throw e;
                     }
                 }
@@ -706,7 +707,7 @@ public class VdcSiteManager extends AbstractManager {
         for (Site site : sites) {
             if (site.getUuid().equals(siteId)) {
                 if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
-                    populateStandbySiteErrorIfNecessary(site, SiteError.ERROR_DESCRIPTION_REMOVE, e);
+                    populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
                 }
                 
                 break;
@@ -714,8 +715,8 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
     
-    private void populateStandbySiteErrorIfNecessary(Site site, String description, Exception e) {
-        SiteError error = new SiteError(description, e.getMessage());
+    private void populateStandbySiteErrorIfNecessary(Site site, InternalServerErrorException e) {
+        SiteError error = new SiteError(e);
         
         log.info("populateStandbySiteErrorIfNecessary for site: {}", error.toString());
         coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);

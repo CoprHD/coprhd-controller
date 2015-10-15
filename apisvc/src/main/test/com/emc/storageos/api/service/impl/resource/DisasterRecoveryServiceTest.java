@@ -39,7 +39,6 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
@@ -453,19 +452,17 @@ public class DisasterRecoveryServiceTest {
         SiteErrorResponse siteError = drService.getSiteError("site-uuid-1");
         
         assertEquals(0, siteError.getCreationTime());
-        assertEquals(null, siteError.getErrorDescription());
         assertEquals(null, siteError.getErrorMessage());
         
         standbySite2.setState(SiteState.STANDBY_ERROR);
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
         
-        SiteError error = new SiteError("Error description", "error message");
+        SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(DisasterRecoveryService.STANDBY_ADD_TIMEOUT_MINUTES));
         doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);
         
         siteError = drService.getSiteError(standbySite2.getUuid());
         
         assertEquals(error.getCreationTime(), siteError.getCreationTime());
-        assertEquals(error.getErrorDescription(), siteError.getErrorDescription());
         assertEquals(error.getErrorMessage(), siteError.getErrorMessage());
         
         try {

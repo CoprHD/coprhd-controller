@@ -62,6 +62,7 @@ import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.sys.ClusterInfo;
 
@@ -73,7 +74,7 @@ import com.emc.vipr.model.sys.ClusterInfo;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class DisasterRecoveryService {
-    public static final int STANDBY_ADD_TIMEOUT = 1000 * 60 * 20;
+    public static final int STANDBY_ADD_TIMEOUT_MINUTES = 20;
 
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     
@@ -175,13 +176,14 @@ public class DisasterRecoveryService {
             configParam.setStandbySites(standbySites);
             viprClient.site().syncSite(configParam);
             
-            siteErrorThreadExecutor.schedule(new SiteErrorUpdater(standbySite.getUuid()), STANDBY_ADD_TIMEOUT, TimeUnit.MILLISECONDS);
+            siteErrorThreadExecutor.schedule(new SiteErrorUpdater(standbySite.getUuid()), STANDBY_ADD_TIMEOUT_MINUTES, TimeUnit.MINUTES);
             
             return siteMapper.map(standbySite);
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
-            setSiteError(siteId, SiteError.ERROR_DESCRIPTION_ADD, e.getMessage());
-            throw APIException.internalServerErrors.addStandbyFailed(e.getMessage());
+            InternalServerErrorException addStandbyFailedException = APIException.internalServerErrors.addStandbyFailed(e.getMessage());
+            setSiteError(siteId, addStandbyFailedException);
+            throw addStandbyFailedException;
         }
     }
 
@@ -656,7 +658,7 @@ public class DisasterRecoveryService {
         return VdcUtil.getLocalVdc();
     }
     
-    private void setSiteError(String siteId, String description, String message) {
+    private void setSiteError(String siteId, InternalServerErrorException exception) {
         if (siteId == null || siteId.isEmpty())
             return;
         
@@ -666,7 +668,7 @@ public class DisasterRecoveryService {
             site.setState(SiteState.STANDBY_ERROR);
             coordinator.persistServiceConfiguration(siteId, site.toConfiguration());
             
-            SiteError error = new SiteError(description, message);
+            SiteError error = new SiteError(exception);
             coordinator.setTargetInfo(site.getUuid(), error);
         }
     }
@@ -729,10 +731,9 @@ public class DisasterRecoveryService {
 
         private void setSiteError(Site site) {
             if (SiteState.STANDBY_ADDING.equals(site.getState())
-                    && (new Date()).getTime() - site.getCreationTime() > STANDBY_ADD_TIMEOUT) {
+                    && (new Date()).getTime() - site.getCreationTime() > (STANDBY_ADD_TIMEOUT_MINUTES * 1000 * 60)) {
                 log.info("site state of {} be set to error", site.getName());
-                SiteError error = new SiteError(SiteError.ERROR_DESCRIPTION_ADD,
-                        "New added standby site is not stable after 10 minutes");
+                SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(STANDBY_ADD_TIMEOUT_MINUTES));
                 coordinator.setTargetInfo(site.getUuid(), error);
 
                 site.setState(SiteState.STANDBY_ERROR);

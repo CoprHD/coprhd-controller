@@ -8,6 +8,8 @@ import java.util.Date;
 
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 import com.emc.storageos.model.dr.SiteErrorResponse;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 /**
  * 
@@ -19,46 +21,19 @@ public class SiteError implements CoordinatorSerializable{
     public static final String CONFIG_KIND = "siteError";
     public static final String CONFIG_ID = "global";
     
-    public static final String ERROR_DESCRIPTION_ADD = "Error occurs during adding new standby site";
-    public static final String ERROR_DESCRIPTION_REMOVE = "Error occurs during removing standby site";
-    
     private static final String ENCODING_SEPARATOR = "\0";
     
     private long creationTime = 0;
-    private String errorDescription;
+    private ServiceCode serviceCode;
     private String errorMessage;
     
     public SiteError() {
     }
     
-    public SiteError(String errorDescription, String errorMessage) {
-        this.errorDescription = errorDescription;
-        this.errorMessage = errorMessage;
+    public SiteError(InternalServerErrorException exception) {
+        this.serviceCode = exception.getServiceCode();
+        this.errorMessage = exception.getMessage();
         this.creationTime = (new Date()).getTime();
-    }
-
-    public long getCreationTime() {
-        return creationTime;
-    }
-
-    public void setCreationTime(long creationTime) {
-        this.creationTime = creationTime;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
-
-    public String getErrorDescription() {
-        return errorDescription;
-    }
-
-    public void setErrorDescription(String errorDescription) {
-        this.errorDescription = errorDescription;
     }
 
     @Override
@@ -66,8 +41,8 @@ public class SiteError implements CoordinatorSerializable{
         StringBuilder builder = new StringBuilder();
         builder.append(creationTime);
         builder.append(ENCODING_SEPARATOR);
-        if (errorDescription != null) {
-            builder.append(errorDescription);
+        if (serviceCode != null) {
+            builder.append(serviceCode.toString());
             builder.append(ENCODING_SEPARATOR);
             builder.append(errorMessage);
         }
@@ -79,14 +54,25 @@ public class SiteError implements CoordinatorSerializable{
         final String[] strings = infoStr.split(ENCODING_SEPARATOR);
         SiteError siteError = new SiteError();
         
-        siteError.setCreationTime(Long.parseLong(strings[0]));
+        siteError.creationTime = Long.parseLong(strings[0]);
         
         if (strings.length > 1) {
-            siteError.setErrorDescription(strings[1]);
-            siteError.setErrorMessage(strings[2]);
+            siteError.serviceCode = ServiceCode.valueOf(strings[1]);
+            siteError.errorMessage = strings[2];
         }
-        
         return siteError;
+    }
+
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    public ServiceCode getServiceCode() {
+        return serviceCode;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
     }
 
     @Override
@@ -99,25 +85,24 @@ public class SiteError implements CoordinatorSerializable{
         StringBuilder builder = new StringBuilder();
         builder.append("SiteError [creationTime=");
         builder.append(creationTime);
-        builder.append(", errorDescription=");
-        builder.append(errorDescription);
+        builder.append(", serviceCode=");
+        builder.append(serviceCode);
         builder.append(", errorMessage=");
         builder.append(errorMessage);
         builder.append("]");
         return builder.toString();
     }
-
-    public void cleanup() {
-        this.creationTime = 0;
-        this.errorDescription = null;
-        this.errorMessage = null;
-    }
     
     public SiteErrorResponse toResponse() {
         SiteErrorResponse response = new SiteErrorResponse();
         response.setCreationTime(this.creationTime);
-        response.setErrorDescription(this.errorDescription);
         response.setErrorMessage(this.errorMessage);
         return response;
+    }
+    
+    public void cleanup() {
+        this.creationTime = 0;
+        this.serviceCode = null;
+        this.errorMessage = null;
     }
 }

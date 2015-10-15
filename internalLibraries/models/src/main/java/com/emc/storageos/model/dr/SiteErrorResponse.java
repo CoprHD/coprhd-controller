@@ -15,7 +15,6 @@ public class SiteErrorResponse {
     private static SiteErrorResponse noError = new SiteErrorResponse();
 
     private long creationTime;
-    private String errorDescription;
     private String errorMessage;
 
     @XmlElement(name = "creationTime")
@@ -25,15 +24,6 @@ public class SiteErrorResponse {
 
     public void setCreationTime(long creationTime) {
         this.creationTime = creationTime;
-    }
-
-    @XmlElement(name = "errorDescription")
-    public String getErrorDescription() {
-        return errorDescription;
-    }
-
-    public void setErrorDescription(String errorDescription) {
-        this.errorDescription = errorDescription;
     }
 
     @XmlElement(name = "errorMessage")
@@ -50,8 +40,6 @@ public class SiteErrorResponse {
         StringBuilder builder = new StringBuilder();
         builder.append("SiteErrorResponse [creationTime=");
         builder.append(creationTime);
-        builder.append(", errorDescription=");
-        builder.append(errorDescription);
         builder.append(", errorMessage=");
         builder.append(errorMessage);
         builder.append("]");

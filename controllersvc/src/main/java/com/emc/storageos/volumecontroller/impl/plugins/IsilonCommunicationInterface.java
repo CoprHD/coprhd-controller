@@ -295,7 +295,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         _dbClient.persistObject(virtualNAS);
                     }
                 } else {
-                    dbMetrics = null;
+
                     PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, accessZoneId);
                     if(physicalNAS == null) {
                         _log.error(String.format("computeStaticLoadMetrics is failed for  Storagesystemid: %s", storageSystemId));
@@ -323,14 +323,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param isilonApi
      * @param dbMetrics
      */
-    void populateDbMetricsAz(IsilonAccessZone accessZone, IsilonApi isilonApi, StringMap dbMetrics) {
-        //filesystem query
+    void populateDbMetricsAz(final IsilonAccessZone accessZone, IsilonApi isilonApi, StringMap dbMetrics) {
         
         Long totalProvCap = 0L;
         Long totalFsCount = 0L;
         String resumeToken = null;
-        String baseDirPath = accessZone.getPath();
         String zoneName = accessZone.getName();
+        String baseDirPath = accessZone.getPath();
+        
         //filesystems count & Capacity
         IsilonApi.IsilonList<IsilonSmartQuota> quotas = null;
         do {
@@ -345,8 +345,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         } while (resumeToken != null);
         
         //snapshots count & capacity
-        IsilonApi.IsilonList<IsilonSnapshot> snapshots = null;
         resumeToken = null;
+        IsilonApi.IsilonList<IsilonSnapshot> snapshots = null;
         do {
             snapshots = isilonApi.listSnapshots(resumeToken, baseDirPath);
             if(snapshots != null) {
@@ -369,9 +369,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         int nfsExportsCount = 0;
         int cifsSharesCount = 0;
         resumeToken = null;
+        IsilonList<IsilonExport> isilonNfsExportList = null; 
         do {
             
-            IsilonList<IsilonExport> isilonNfsExportList= isilonApi.listExports(resumeToken, zoneName);
+            isilonNfsExportList = isilonApi.listExports(resumeToken, zoneName);
             if(isilonNfsExportList != null) {
                 nfsExportsCount = isilonNfsExportList.size();
                 resumeToken = isilonNfsExportList.getToken();
@@ -380,8 +381,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         
         //get cifs exports
         resumeToken = null;
+        IsilonList<IsilonSMBShare> isilonCifsExportList = null;
         do {
-            IsilonList<IsilonSMBShare> isilonCifsExportList = isilonApi.listShares(resumeToken, zoneName);
+            isilonCifsExportList = isilonApi.listShares(resumeToken, zoneName);
             if(isilonCifsExportList != null) {
                 nfsExportsCount = isilonCifsExportList.size();
                 resumeToken = isilonCifsExportList.getToken();
@@ -395,19 +397,20 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         
         //setting overLoad factor (true or false)
-        Long maxNfsExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics);
-        Long maxCifsShares = MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
-        Long maxCapacity =  MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
+        Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics) + 
+                                MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
+        Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
+        Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
         
+        int totalExports = (nfsExportsCount + cifsSharesCount);
         String overLoaded = "false";
-        if (nfsExportsCount >= maxNfsExports || cifsSharesCount >= maxCifsShares || totalProvCap >= maxCapacity) {
+        if (totalExports >= maxExports || totalProvCap >= maxCapacity || totalFsCount >= maxStorObjs) {
             overLoaded = "true";
         }
         
         //percentage calculator
-        double percentageLoadExports = ((double) (nfsExportsCount + cifsSharesCount) / maxNfsExports + maxCifsShares) * 100;
-        
-        double percentageLoadStorObj = ((double) (totalProvCap)/maxCapacity) *100;
+        double percentageLoadExports = ((double) (totalExports) / maxExports) * 100;
+        double percentageLoadStorObj = ((double) (totalProvCap) / maxCapacity) *100;
         double percentageLoad = (percentageLoadExports + percentageLoadStorObj)/2;
         
         dbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));

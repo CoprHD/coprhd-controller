@@ -4,7 +4,7 @@ import com.emc.storageos.storagedriver.CapabilityInstance;
 
 import java.util.List;
 
-public class StorageSystem {
+public class StorageSystem extends StorageObject {
 
     // system type, ex. isilon, netapp, etc. . Type: Input.
     private String systemType;

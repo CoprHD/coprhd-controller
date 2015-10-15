@@ -22,6 +22,10 @@ public class StorageObject {
     // Consistency group for this storage object. Type: input/output.
     private String consistencyGroup;
 
+    private CommonStorageCapabilities commonCapabilities;
+
+    private CustomStorageCapabilities customCapabilities;
+
     public String getNativeId() {
         return nativeId;
     }

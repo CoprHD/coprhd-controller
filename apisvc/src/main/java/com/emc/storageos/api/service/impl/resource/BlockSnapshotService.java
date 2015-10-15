@@ -743,13 +743,11 @@ public class BlockSnapshotService extends TaskResourceService {
     }
 
     /**
-     * Creates a VPLEX volume using the target volume associated with
-     * BlockSnapshot instance with the passed id as the source side
-     * backend volume for the VPLEX volume. The BlockSnapshot instance
-     * must represent a snapshot whose parent volume is the backend
-     * volume for a VPLEX volume. That is, it must be a VLPEX snapshot.
-     * The purpose is to be able to export the snapshot to a host
-     * through the VPLEX as a VPLEX volume.
+     * Creates a ViPR Volume using the target volume associated with BlockSnapshot instance
+     * with the passed id. Currently, the BlockSnapshot instance must represent a snapshot
+     * whose parent volume is the backend volume for a VPLEX volume. That is, it must be a
+     * VPLEX snapshot. The purpose is to be able to export the snapshot to a host through the
+     * VPLEX as a VPLEX volume.
      * 
      * @brief Create volume from a block snapshot.
      * 

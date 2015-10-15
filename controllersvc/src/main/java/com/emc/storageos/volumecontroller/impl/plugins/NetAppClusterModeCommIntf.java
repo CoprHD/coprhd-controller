@@ -478,9 +478,12 @@ public class NetAppClusterModeCommIntf extends
                             } else {
                                 dbExportRule.setNativeGuid(fsUnManagedFileExportRuleNativeGuid);
                                 dbExportRule.setId(URIUtil.createId(UnManagedFileExportRule.class));
-                                unManagedExportRulesToUpdate.add(dbExportRule);
+                                unManagedExportRulesToInsert.add(dbExportRule);
                                 // Build all export rules list.
                                 unManagedExportRules.add(dbExportRule);
+                                // Delete the existing rule!!
+                                unManagedExportRule.setInactive(true);
+                                unManagedExportRulesToUpdate.add(unManagedExportRule);
                                 _logger.info("Unmanaged File Export Rule : {}", dbExportRule);
                             }
 
@@ -490,18 +493,24 @@ public class NetAppClusterModeCommIntf extends
                         // apply as per API SVC Validations.
                         if (!unManagedExportRules.isEmpty()) {
                             boolean isAllRulesValid = validationUtility
-                                    .validateUnManagedExportRules(unManagedExportRules);
+                                    .validateUnManagedExportRules(unManagedExportRules, false);
                             if (isAllRulesValid) {
                                 _logger.info("Validating rules success for export {}", filesystem);
                                 unManagedExportRulesInsert.addAll(unManagedExportRulesToInsert);
                                 unManagedExportRulesUpdate.addAll(unManagedExportRulesToUpdate);
                                 unManagedFs.setHasExports(true);
+                                unManagedFs.getFileSystemInformation().put(
+                                        UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                                                .toString(), TRUE);
                                 _dbClient.persistObject(unManagedFs);
                                 _logger.info("File System {} has Exports and their size is {}", unManagedFs.getId(),
                                         newUnManagedExportRules.size());
                             } else {
                                 _logger.warn("Validating rules failed for export {}. Ignroing to import these rules into ViPR DB",
                                         filesystem);
+                                // Delete the UMFS as it having invalid rule!!!
+                                unManagedFs.setInactive(true);
+                                _dbClient.persistObject(unManagedFs);
                             }
                         }
                         // Adding this additional logic to avoid OOM
@@ -1236,6 +1245,9 @@ public class NetAppClusterModeCommIntf extends
                         if (tempUnManagedSMBShareMap.size() > 0 && !tempUnManagedSMBShareMap.isEmpty()) {
                             unManagedFs.setUnManagedSmbShareMap(tempUnManagedSMBShareMap);
                             unManagedFs.setHasShares(true);
+                            unManagedFs.getFileSystemInformation().put(
+                                    UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                                            .toString(), TRUE);
                             _logger.debug("SMB Share map for NetAppC UMFS {} = {}",
                                     unManagedFs.getLabel(), unManagedFs.getUnManagedSmbShareMap());
                         }
@@ -1692,6 +1704,8 @@ public class NetAppClusterModeCommIntf extends
                     .createId(UnManagedFileSystem.class));
             unManagedFileSystem.setNativeGuid(unManagedFileSystemNativeGuid);
             unManagedFileSystem.setStorageSystemUri(system.getId());
+            unManagedFileSystem.setHasExports(false);
+            unManagedFileSystem.setHasShares(false);
         }
 
         Map<String, StringSet> unManagedFileSystemInformation = new HashMap<String, StringSet>();
@@ -1720,7 +1734,7 @@ public class NetAppClusterModeCommIntf extends
 
         unManagedFileSystemCharacteristics.put(
                 SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(), TRUE);
+                        .toString(), FALSE);
 
         if (null != storagePort) {
             StringSet storagePorts = new StringSet();

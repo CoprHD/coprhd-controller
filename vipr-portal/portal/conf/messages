@@ -846,13 +846,19 @@ system.about.license=Licenses
 db.healthdashboard.title=Database Housekeeping Status
 
 # Backup page
-Backup.list.title=Backup
+Backup.list.title=Backups
 backup.name=Name
 backup.size=Size
 backup.creationtime=Creation Time
-BackupForm.title=Create Backup
-backupForm.name=Name
-backupForm.force=Force
+backup.create.description=Enter the information needed to create backup
+BackupForm.title=Add Backup
+backupForm.name=Backup Name
+backupForm.force=Force Creation
+backupForm.force.help=When checked it ignores the error during operation and force creation of backup
+backup.save.success=Saved '%s'
+backup.deleteConfirm=Are you sure you want to delete these Backup(s)?
+backups.deleted=Backup(s) deleted successfully.
+
 
 # System Node Recovery
 system.noderecovery.title=Node Recovery

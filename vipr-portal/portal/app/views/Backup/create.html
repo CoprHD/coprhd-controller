@@ -1,10 +1,24 @@
+%{
+  titleKey = "BackupForm.title"
+  descriptionKey = "backup.create.description"
+  image = '/public/img/assets/VirtualPool.png'
+  
+  
+}%
+
 #{extends 'main.html' /}
 #{set 'title'}&{'BackupForm.title'}#{/set}
   #{set 'moreScripts'}
     #{get 'moreScripts'/}
   #{/set}
+  
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'Backup.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
 <div class="container">
-  #{Form.header titleKey:'BackupForm.title' /}
+  #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image  /}
 
   #{alerts/}
 

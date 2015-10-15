@@ -1,5 +1,6 @@
 package models.datatable;
 
+import java.net.URI;
 import java.util.List;
 
 import util.BackupUtils;
@@ -31,8 +32,9 @@ public class BackupDataTable extends DataTable {
         public String name;
         public long creationtime;
         public long size;
-
+        public String id;
         public Backup(BackupSet backup) {
+        	id=backup.getName();
         	name = backup.getName();
         	creationtime = backup.getCreateTime();
         	size = backup.getSize();

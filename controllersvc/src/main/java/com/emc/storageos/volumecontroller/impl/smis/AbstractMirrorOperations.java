@@ -17,6 +17,7 @@ import javax.cim.UnsignedInteger32;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
+import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +101,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                         storage.getId(), !createInactive, taskCompleter)));
                 // Resynchronizing state applies to the initial copy as well as future
                 // re-synchronization's.
-                mirrorObj.setSyncState(BlockMirror.SynchronizationState.RESYNCHRONIZING.toString());
+                mirrorObj.setSyncState(SynchronizationState.RESYNCHRONIZING.toString());
                 _dbClient.persistObject(mirrorObj);
             }
         } catch (final InternalException e) {

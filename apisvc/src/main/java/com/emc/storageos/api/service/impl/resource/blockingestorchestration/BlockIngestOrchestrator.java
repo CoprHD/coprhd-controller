@@ -931,9 +931,10 @@ public abstract class BlockIngestOrchestrator {
         StringSet vplexBackendVolumes = PropertySetterUtil.extractValuesFromStringSet(
                 SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
                 unManagedVolumeInformation);
+        StringSet vplexBackendVolumeGUIDs = null;
         if (vplexBackendVolumes != null && !vplexBackendVolumes.isEmpty()) {
             unmanagedReplicaGUIDs.addAll(vplexBackendVolumes);
-            StringSet vplexBackendVolumeGUIDs = VolumeIngestionUtil.getListofVolumeIds(vplexBackendVolumes);
+            vplexBackendVolumeGUIDs = VolumeIngestionUtil.getListofVolumeIds(vplexBackendVolumes);
             expectedIngestedReplicas.addAll(vplexBackendVolumeGUIDs);
             foundIngestedReplicas.addAll(VolumeIngestionUtil.getVolumeObjects(vplexBackendVolumeGUIDs, createdObjectMap, _dbClient));
         }
@@ -945,8 +946,8 @@ public abstract class BlockIngestOrchestrator {
 
         _logger.info("Expected replicas : {} -->Found replica URIs : {}", expectedIngestedReplicas.size(),
                 foundIngestedReplicaNativeGuids.size());
-        _logger.info("Expected replicas {} : Found {} : ", Joiner.on("\t").join(expectedIngestedReplicas),
-                Joiner.on("\t").join(foundIngestedReplicaNativeGuids));
+        _logger.info("Expected replicas {} : Found {} : ", Joiner.on(", ").join(expectedIngestedReplicas),
+                Joiner.on(", ").join(foundIngestedReplicaNativeGuids));
 
         if (foundIngestedReplicas.size() == expectedIngestedReplicas.size()) {
             if (null != rootBlockObject && !foundIngestedReplicas.isEmpty()) {
@@ -957,15 +958,26 @@ public abstract class BlockIngestOrchestrator {
             }
         } else {
             Set<String> unIngestedReplicas = VolumeIngestionUtil.getUnIngestedReplicas(expectedIngestedReplicas, foundIngestedReplicas);
-            _logger.info("The replicas {} not ingested for volume {}", Joiner.on("\t").join(unIngestedReplicas), unManagedVolumeNativeGUID);
+            _logger.info("The replicas {} not ingested for volume {}", Joiner.on(", ").join(unIngestedReplicas), unManagedVolumeNativeGUID);
             StringBuffer taskStatus = taskStatusMap.get(currentUnManagedVolume.getNativeGuid());
             if (taskStatus == null) {
                 taskStatus = new StringBuffer();
                 taskStatusMap.put(currentUnManagedVolume.getNativeGuid(), taskStatus);
             }
+            // we don't need to include vplex backend 
+            // volume guids in the list returned to the user
+            if (vplexBackendVolumeGUIDs != null) {
+                _logger.info("removing the subset of vplex backend volume GUIDs from the error message: " 
+                        + vplexBackendVolumeGUIDs);
+                // have to convert this because getUningestedReplicas returns an immutable set
+                Set<String> mutableSet = new HashSet<String>();
+                mutableSet.addAll(unIngestedReplicas);
+                mutableSet.removeAll(vplexBackendVolumeGUIDs);
+                unIngestedReplicas = mutableSet;
+            }
             taskStatus.append(String.format("The umanaged volume %s has been partially ingested, but not all replicas "
                     + "have been ingested. Uningested replicas: %s.", currentUnManagedVolume.getLabel(), 
-                    Joiner.on("\t").join(unIngestedReplicas)));
+                    Joiner.on(", ").join(unIngestedReplicas)));
             // clear the map and stop traversing
             parentReplicaMap.clear();
             traverseTree = false;

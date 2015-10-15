@@ -25,6 +25,7 @@ import java.util.Map;
 
 import javax.xml.bind.DataBindingException;
 
+import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,31 +37,11 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockMirror.SynchronizationState;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.Migration;
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.InterfaceType;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.factories.VolumeFactory;
@@ -130,6 +111,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DiscoverTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -2126,6 +2108,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             List<URI> volumesWithTasks = new ArrayList<URI>(promotees);
             volumesWithTasks.addAll(getSourceVolumesFromURIs(mirrors));
             taskCompleter = new BlockMirrorTaskCompleter(Volume.class, volumesWithTasks, opId);
+            ControllerUtils.checkMirrorConsistencyGroup(mirrors, _dbClient, taskCompleter);
 
             workflow.executePlan(taskCompleter, "Successfully detached continuous copies");
         } catch (Exception e) {
@@ -2199,6 +2182,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doFractureMirror(storageObj, mirrorList.get(0), sync, completer);
             } else {
+                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doFractureGroupMirrors(storageObj, mirrorList, sync, completer);
             }
         } catch (Exception e) {
@@ -2271,10 +2255,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter taskCompleter = null;
         List<BlockMirror> mirrorList = _dbClient.queryObject(BlockMirror.class, mirrors);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        boolean isCG = isCGMirror(mirrors.get(0), _dbClient);
         List<URI> sourceVolumes = getSourceVolumes(mirrorList);
 
         try {
+            taskCompleter = new BlockMirrorTaskCompleter(Volume.class, sourceVolumes, opId);
+            boolean isCG = ControllerUtils.checkMirrorConsistencyGroup(mirrors, _dbClient, taskCompleter);
+
             if (!isCG) {
                 for (BlockMirror blockMirror : mirrorList) {
                     if (SynchronizationState.FRACTURED.toString().equals(blockMirror.getSyncState())) {
@@ -2288,7 +2274,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             this.getClass(), resumeNativeContinuousCopyMethod(storage, mirrors, isCG), null, null);
                 }
             }
-            taskCompleter = new BlockMirrorTaskCompleter(Volume.class, sourceVolumes, opId);
+
             workflow.executePlan(taskCompleter, "Successfully resumed continuous copies");
         } catch (Exception e) {
             String msg = String.format("Failed to execute resume continuous copies workflow for volume %s",
@@ -2325,6 +2311,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doResumeNativeContinuousCopy(storageObj, mirrorList.get(0), completer);
             } else {
+                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doResumeGroupNativeContinuousCopies(storageObj, mirrorList, completer);
             }
         } catch (Exception e) {
@@ -2352,6 +2339,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doDetachMirror(storageObj, mirrorList.get(0), completer);
             } else {
+                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doDetachGroupMirrors(storageObj, mirrorList, deleteGroup, completer);
             }
         } catch (Exception e) {
@@ -2676,6 +2664,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             Workflow workflow = _workflowService.getNewWorkflow(this, "deactivateMirror", true, opId);
             taskCompleter = new BlockMirrorDeactivateCompleter(mirrorList, opId);
+
+            ControllerUtils.checkMirrorConsistencyGroup(mirrorList, _dbClient, taskCompleter);
 
             String detachStep = workflow.createStepId();
             Workflow.Method detach = detachMirrorMethod(storage, mirrorList, isCG);
@@ -4245,11 +4235,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void createListClone(URI storage, List<URI> cloneList, Boolean createInactive, String taskId) {
         try {
+            WorkflowStepCompleter.stepExecuting(taskId);
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             TaskCompleter taskCompleter = new CloneCreateCompleter(cloneList, taskId);
-            WorkflowStepCompleter.stepExecuting(taskId);
             getDevice(storageSystem.getSystemType()).doCreateListReplica(storageSystem, cloneList, createInactive, taskCompleter);
         } catch (Exception e) {
+            _log.error(e.getMessage(), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
             doFailTask(Volume.class, cloneList, taskId, serviceError);
@@ -4265,32 +4256,36 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         _log.info("Rollback list clone");
         List<Volume> clones = _dbClient.queryObject(Volume.class, cloneList);
         List<Volume> clonesNoRollback = new ArrayList<Volume>();
+        List<URI> clonesToRollback = new ArrayList<URI>();
         try {
             for (Volume clone : clones) {
                 if (isNullOrEmpty(clone.getNativeId())) {
                     clone.setInactive(true);
                     clonesNoRollback.add(clone);
+                } else {
+                    clonesToRollback.add(clone.getId());
                 }
             }
 
             if (!clonesNoRollback.isEmpty()) {
                 _dbClient.persistObject(clonesNoRollback);
-                clones.removeAll(clonesNoRollback);
             }
 
-            if (!clones.isEmpty()) {
+            if (!clonesToRollback.isEmpty()) {
                 _log.info("Detach list clone for rollback");
-                detachListClone(storage, cloneList, taskId);
+                detachListClone(storage, clonesToRollback, taskId);
                 _log.info("Delete clones for rollback");
-                deleteVolumes(storage, cloneList, taskId);
+                deleteVolumes(storage, clonesToRollback, taskId);
             }
 
             WorkflowStepCompleter.stepSucceded(taskId);
         } catch (InternalException ie) {
             _log.error(String.format("rollbackListClone failed - Array: %s, clones: %s", storage, Joiner.on("\t").join(cloneList)));
+            _log.error(ie.getMessage(), ie);
             doFailTask(Volume.class, cloneList, taskId, ie);
             WorkflowStepCompleter.stepFailed(taskId, ie);
         } catch (Exception e) {
+            _log.error(e.getMessage(), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
             doFailTask(Volume.class, cloneList, taskId, serviceError);

@@ -179,21 +179,22 @@ public class RecoveryManager implements Runnable {
         corruptedNodes.clear();
 
         for (String serviceName : serviceNames) {
-            DbManagerOps dbManagerOps = new DbManagerOps(serviceName);
-            Map<String, Boolean> statusMap = dbManagerOps.getNodeStates();
-            for (Map.Entry<String, Boolean> statusEntry : statusMap.entrySet()) {
-                log.info("status map entry: {}-{}", statusEntry.getKey(), statusEntry.getValue());
-                String nodeId = statusEntry.getKey();
-                if (statusEntry.getValue().equals(Boolean.TRUE)) {
-                    if (!aliveNodes.contains(nodeId)) {
-                        aliveNodes.add(nodeId);
-                    }
-                } else {
-                    if (!corruptedNodes.contains(nodeId)) {
-                        corruptedNodes.add(nodeId);
-                    }
-                    if (aliveNodes.contains(nodeId)) {
-                        aliveNodes.remove(nodeId);
+            try (DbManagerOps dbManagerOps = new DbManagerOps(serviceName)) {
+                Map<String, Boolean> statusMap = dbManagerOps.getNodeStates();
+                for (Map.Entry<String, Boolean> statusEntry : statusMap.entrySet()) {
+                    log.info("status map entry: {}-{}", statusEntry.getKey(), statusEntry.getValue());
+                    String nodeId = statusEntry.getKey();
+                    if (statusEntry.getValue().equals(Boolean.TRUE)) {
+                        if (!aliveNodes.contains(nodeId)) {
+                            aliveNodes.add(nodeId);
+                        }
+                    } else {
+                        if (!corruptedNodes.contains(nodeId)) {
+                            corruptedNodes.add(nodeId);
+                        }
+                        if (aliveNodes.contains(nodeId)) {
+                            aliveNodes.remove(nodeId);
+                        }
                     }
                 }
             }
@@ -285,11 +286,11 @@ public class RecoveryManager implements Runnable {
      */
     private void runDbRepair() {
         try {
-            Iterator serviceIter = serviceNames.iterator();
-            while (serviceIter.hasNext()) {
-                DbManagerOps dbManagerOps = new DbManagerOps((String) serviceIter.next());
-                dbManagerOps.removeNodes(corruptedNodes);
-                dbManagerOps.startNodeRepairAndWaitFinish(true, false);
+            for (String svcName : serviceNames) {
+                try (DbManagerOps dbManagerOps = new DbManagerOps(svcName)) {
+                    dbManagerOps.removeNodes(corruptedNodes);
+                    dbManagerOps.startNodeRepairAndWaitFinish(true, false);
+                }
             }
         } catch (Exception e) {
             log.error("Node repair failed", e);
@@ -370,8 +371,7 @@ public class RecoveryManager implements Runnable {
 
     private boolean isNodeHibernating(String nodeId) {
         for (String serviceName : serviceNames) {
-            try {
-                DbManagerOps dbManagerOps = new DbManagerOps(serviceName);
+            try (DbManagerOps dbManagerOps = new DbManagerOps(serviceName)) {
                 Map<String, Boolean> statusMap = dbManagerOps.getNodeStates();
                 if (!statusMap.keySet().contains(nodeId)) {
                     log.debug("Node({}) is still hibernating", nodeId);
@@ -955,31 +955,36 @@ public class RecoveryManager implements Runnable {
         Date endTime = null;
 
         log.info("Try to get repair status of {}", svcName);
-        DbManagerOps dbManagerOps = new DbManagerOps(svcName);
-        DbRepairStatus repairState = dbManagerOps.getLastRepairStatus(true);
-        if (repairState != null) {
-            log.info("Current repair status of {} is: {}", svcName, repairState.toString());
-            progress = repairState.getProgress();
-            status = repairState.getStatus();
-            startTime = repairState.getStartTime();
-            endTime = repairState.getLastCompletionTime();
-        }
-        if (endTime != null) {
-            return repairState;
-        }
+        try (DbManagerOps dbManagerOps = new DbManagerOps(svcName)) {
+            DbRepairStatus repairState = dbManagerOps.getLastRepairStatus(true);
 
-        repairState = dbManagerOps.getLastSucceededRepairStatus(true);
-        if (repairState != null) {
-            log.info("Last successful repair status of {} is: {}", svcName, repairState.toString());
-            progress = (progress == -1) ? repairState.getProgress() : progress;
-            status = (status == null) ? repairState.getStatus() : status;
-            startTime = (startTime == null) ? repairState.getStartTime() : startTime;
-            endTime = (endTime == null) ? repairState.getLastCompletionTime() : endTime;
+            if (repairState != null) {
+                log.info("Current repair status of {} is: {}", svcName, repairState.toString());
+                progress = repairState.getProgress();
+                status = repairState.getStatus();
+                startTime = repairState.getStartTime();
+                endTime = repairState.getLastCompletionTime();
+            }
+
+            if (endTime != null) {
+                return repairState;
+            }
+
+            repairState = dbManagerOps.getLastSucceededRepairStatus(true);
+
+            if (repairState != null) {
+                log.info("Last successful repair status of {} is: {}", svcName, repairState.toString());
+                progress = (progress == -1) ? repairState.getProgress() : progress;
+                status = (status == null) ? repairState.getStatus() : status;
+                startTime = (startTime == null) ? repairState.getStartTime() : startTime;
+                endTime = (endTime == null) ? repairState.getLastCompletionTime() : endTime;
+            }
         }
 
         if (status != null) {
             return new DbRepairStatus(status, startTime, endTime, progress);
         }
+
         return null;
     }
 }

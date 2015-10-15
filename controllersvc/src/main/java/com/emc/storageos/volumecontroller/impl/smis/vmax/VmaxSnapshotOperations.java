@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
@@ -60,6 +61,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
 import com.emc.storageos.volumecontroller.impl.smis.AbstractSnapshotOperations;
@@ -75,6 +77,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJ
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResyncSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisSnapvxSessionCreateJob;
 import com.google.common.base.Predicate;
 
 public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
@@ -527,8 +530,33 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             CIMObjectPath cimJob;
             if (storage.checkIfVmax3()) {
+            	/**
+            	 * Create new session and terminate the old one. 
+            	 */
+            	
+                 _log.info("create new sesssion operation START");
+                 String oldSettingInstance = from.getSettingsInstance();
+                 _log.info("Current snap settingsInstance value :{}",oldSettingInstance);
+                 TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, vol.getTenant().getURI());
+                 String tenantName = tenant.getLabel();
+                 String snapSessionLabelToUse = _nameGenerator.generate(tenantName, from.getLabel(),
+                		 snapshot.toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
+                 CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
+                 CIMObjectPath snapshotPath = _cimPath.getBlockObjectPath(storage, from);
+                 CIMArgument[] inArgs = null;
+                 CIMArgument[] outArgs = new CIMArgument[5];
+                 inArgs = _helper.getCreateSynchronizationAspectInput(snapshotPath, false, snapSessionLabelToUse, new Integer(
+                         SmisConstants.MODE_SYNCHRONOUS));
+                 
+                 String taskId = UUID.randomUUID().toString();
+                 TaskCompleter completer = new SimpleTaskCompleter(BlockSnapshot.class, snapshot, taskId);
+                 
+                 _helper.invokeMethodSynchronously(storage, replicationSvcPath, 
+                		 SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs, 
+                		 new SmisSnapvxSessionCreateJob(null, storage.getId(), completer));
                 Volume to = _dbClient.queryObject(Volume.class, volume);
                 cimJob = _helper.callModifySettingsDefineState(storage, _helper.getRestoreFromSnapshotInputArguments(storage, to, from));
+                _dbClient.persistObject(from);
             }
             else {
                 cimJob = _helper.callModifyReplica(storage, _helper.getRestoreFromReplicaInputArguments(syncObjectPath));

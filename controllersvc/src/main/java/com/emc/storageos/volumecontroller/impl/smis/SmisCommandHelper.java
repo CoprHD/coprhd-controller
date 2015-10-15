@@ -4348,6 +4348,40 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE)
         };
     }
+    
+    /**
+     * Get the SMI-S input arguments when creating a CIM_SynchronizedAspectForSource, i.e,
+     * an array snapshot point-in-time copy, for the source with the passed path.
+     * 
+     * @param sourcePath The CIM object path for the array snapshot source.
+     * @param skipRefresh true if the skipRefresh argument should be included.
+     * @param name The name for the array snapshot, or null for no name.
+     * @param mode The update mode, or null.
+     * 
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getCreateSynchronizationAspectInput(CIMObjectPath sourcePath, boolean skipRefresh, String name, Integer mode) {
+        List<CIMArgument> argList = new ArrayList<CIMArgument>();
+        argList.add(_cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE));
+        argList.add(_cimArgument.reference(CP_SOURCE_ELEMENT, sourcePath));
+
+        // If skip refresh, add argument.
+        if (skipRefresh) {
+            argList.add(_cimArgument.bool(CP_EMC_SKIP_REFRESH, true));
+        }
+
+        // Add argument if name is specified.
+        if (name != null) {
+            argList.add(_cimArgument.string(CP_NAME, name));
+        }
+
+        // Add argument if mode is specified.
+        if (mode != null) {
+            argList.add(_cimArgument.uint16(CP_MODE, mode.intValue()));
+        }
+
+        return argList.toArray(new CIMArgument[argList.size()]);
+    }
 
     public CIMArgument[] getDeleteStorageHardwareIDArgs(StorageSystem storage, Initiator
             initiator)

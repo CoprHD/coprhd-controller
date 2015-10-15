@@ -2018,8 +2018,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                         storagePort);
                                 vnxufs.setHasShares(true);
                                 vnxufs.putFileSystemCharacterstics(
-                                        UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString(), TRUE);
-
+                                        UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                                        .toString(), TRUE);
+                                
                                 _logger.debug("Export map for VNX UMFS {} = {}",
                                         vnxufs.getLabel(), vnxufs.getUnManagedSmbShareMap());
 
@@ -2408,9 +2409,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                                 }
                                             }
                                             vnxufs.setHasExports(true);
-                                            vnxufs.getFileSystemInformation().put(
+                                            vnxufs.putFileSystemCharacterstics(
                                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                                            .toString(), TRUE);
+                                                    .toString(), TRUE);
                                             
                                             // Set the correct storage port
                                             if (null != storagePort) {

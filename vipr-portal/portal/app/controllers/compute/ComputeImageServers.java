@@ -157,8 +157,6 @@ public class ComputeImageServers extends ViprResourceController {
         @MaxSize(2048)
         public String imageServerSecondIp;
 
-        public String imageServerName;
-
         public String osInstallNetworkAddress;
 
         public Integer osInstallTimeOut;

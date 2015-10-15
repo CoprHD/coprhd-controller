@@ -286,8 +286,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         if(dbMetrics == null) {
                             dbMetrics = new StringMap();
                         }
-                        /*get the fs objects and their capacity*/ 
-                        _log.info("get the total objs and capacity dbmetrics for access zone : {}", isAccessZone.getName());
+                        //processdb metrics
                         populateDbMetricsAz(isAccessZone, isilonApi, dbMetrics);
                        
                         //set AZ dbMetrics in db
@@ -306,7 +305,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         dbMetrics = new StringMap();
                     }
                     /*process the system accesszone dbmetrics*/
-                    _log.info("get dbmetrics total objs and capacity for system access zone : {}", accessZoneId);
+                    _log.info("process db metrics for access zone : {}", isAccessZone.getName());
                     populateDbMetricsAz(isAccessZone, isilonApi, dbMetrics);
                     physicalNAS.setMetrics(dbMetrics);
                     _dbClient.persistObject(physicalNAS);
@@ -340,6 +339,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     totalProvCap = totalProvCap + quota.getThresholds().getHard();
                     totalFsCount ++;
                 }
+                
                 resumeToken = quotas.getToken();
             }
         } while (resumeToken != null);
@@ -357,52 +357,54 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 resumeToken = snapshots.getToken();
             }
         } while (resumeToken != null);
+        _log.info("db metrics- total fs Count {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
+        _log.info("db metrics- total fs Capacity {} for access zone : {}", totalProvCap.toString(), accessZone.getName());
         
-        // set total fs objects and their sum of capacity for give AZ
-        if(dbMetrics != null) {
-            dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalFsCount));
-            dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalProvCap));
-            _log.error("totals StorageObjs{} on base directory path {}: ",  totalFsCount, baseDirPath);
+        
+        if(dbMetrics == null) {
+            dbMetrics = new StringMap();
         }
-        
         //get total exports
         int nfsExportsCount = 0;
         int cifsSharesCount = 0;
         resumeToken = null;
-        IsilonList<IsilonExport> isilonNfsExportList = null; 
+        IsilonList<IsilonExport> isilonNfsExports = null; 
         do {
-            
-            isilonNfsExportList = isilonApi.listExports(resumeToken, zoneName);
-            if(isilonNfsExportList != null) {
-                nfsExportsCount = isilonNfsExportList.size();
-                resumeToken = isilonNfsExportList.getToken();
+            isilonNfsExports = isilonApi.listExports(resumeToken, zoneName);
+            if(isilonNfsExports != null) {
+                nfsExportsCount = isilonNfsExports.size();
+                resumeToken = isilonNfsExports.getToken();
             }
         } while(resumeToken != null);
-        
+        _log.info("db metrics- total NFS exports {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
+
         //get cifs exports
         resumeToken = null;
-        IsilonList<IsilonSMBShare> isilonCifsExportList = null;
+        IsilonList<IsilonSMBShare> isilonCifsExports = null;
         do {
-            isilonCifsExportList = isilonApi.listShares(resumeToken, zoneName);
-            if(isilonCifsExportList != null) {
-                nfsExportsCount = isilonCifsExportList.size();
-                resumeToken = isilonCifsExportList.getToken();
+            isilonCifsExports = isilonApi.listShares(resumeToken, zoneName);
+            if(isilonCifsExports != null) {
+                nfsExportsCount = isilonCifsExports.size();
+                resumeToken = isilonCifsExports.getToken();
             }
         } while(resumeToken != null);
-        
+        _log.info("db metrics- total CIFS exports {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
+
+        // set total nfs and cifs exports for give AZ
+        dbMetrics.put(MetricsKeys.totalNfsExports.name(), String.valueOf(nfsExportsCount));
+        dbMetrics.put(MetricsKeys.totalCifsShares.name(), String.valueOf(cifsSharesCount));
         // set total fs objects and their sum of capacity for give AZ
-        if(dbMetrics != null) {
-            dbMetrics.put(MetricsKeys.totalNfsExports.name(), String.valueOf(nfsExportsCount));
-            dbMetrics.put(MetricsKeys.totalCifsShares.name(), String.valueOf(cifsSharesCount));
-        }
+        dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalFsCount));
+        dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalProvCap));
         
-        //setting overLoad factor (true or false)
+        
         Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics) + 
                                 MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
         Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
         Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
         
         int totalExports = (nfsExportsCount + cifsSharesCount);
+        //setting overLoad factor (true or false)
         String overLoaded = "false";
         if (totalExports >= maxExports || totalProvCap >= maxCapacity || totalFsCount >= maxStorObjs) {
             overLoaded = "true";

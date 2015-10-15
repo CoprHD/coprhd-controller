@@ -69,8 +69,12 @@
    
 
   <fieldset>
-    #{field 'computeImageServers.imageServerIp'}
+    #{field 'computeImageServers.name'}
       #{Form.inputTextControlGroup field:field, required:!editMode, cssClass:'initialFocus' /}
+    #{/field}
+    
+    #{field 'computeImageServers.imageServerIp'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
     #{/field}
     
     #{field 'computeImageServers.osInstallNetworkAddress'}

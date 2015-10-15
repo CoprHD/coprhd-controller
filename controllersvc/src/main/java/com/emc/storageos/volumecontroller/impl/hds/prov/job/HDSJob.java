@@ -72,6 +72,7 @@ public class HDSJob extends Job implements Serializable
         return (URI) _map.get(STORAGE_SYSTEM_URI_NAME);
     }
 
+    @Override
     public TaskCompleter getTaskCompleter() {
         return (TaskCompleter) _map.get(TASK_COMPLETER_NAME);
     }
@@ -118,6 +119,7 @@ public class HDSJob extends Job implements Serializable
         _errorDescription = errorDescription;
     }
 
+    @Override
     public JobPollResult poll(JobContext jobContext, long trackingPeriodInMillis) {
         String messageId = getHDSJobMessageId();
         try {
@@ -132,23 +134,32 @@ public class HDSJob extends Job implements Serializable
                 processTransientError(messageId, trackingPeriodInMillis, errorMessage, null);
             } else {
                 JavaResult javaResult = hdsApiClient.checkAsyncTaskStatus(messageId);
-                EchoCommand command = javaResult.getBean(EchoCommand.class);
-                _pollResult.setJobName(getJobName());
-                _pollResult.setJobId(messageId);
-                if (HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
-                    _status = JobStatus.SUCCESS;
-                    _pollResult.setJobPercentComplete(100);
-                    _javaResult = javaResult;
-                    logger.info("HDSJob: {} succeeded", messageId);
-                } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
-                    Error error = javaResult.getBean(Error.class);
+                if (null == javaResult) {
                     _pollResult.setJobPercentComplete(100);
                     _errorDescription = String
-                            .format("Async task failed for messageID %s due to %s with error code: %d",
-                                    messageId, error.getDescription(),
-                                    error.getCode());
+                            .format("Async task failed for messageID %s due to no response from server",
+                                    messageId);
                     _status = JobStatus.FAILED;
                     logger.error("HDSJob: {} failed; Details: {}", getJobName(), _errorDescription);
+                } else {
+                    EchoCommand command = javaResult.getBean(EchoCommand.class);
+                    _pollResult.setJobName(getJobName());
+                    _pollResult.setJobId(messageId);
+                    if (HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                        _status = JobStatus.SUCCESS;
+                        _pollResult.setJobPercentComplete(100);
+                        _javaResult = javaResult;
+                        logger.info("HDSJob: {} succeeded", messageId);
+                    } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
+                        Error error = javaResult.getBean(Error.class);
+                        _pollResult.setJobPercentComplete(100);
+                        _errorDescription = String
+                                .format("Async task failed for messageID %s due to %s with error code: %d",
+                                        messageId, error.getDescription(),
+                                        error.getCode());
+                        _status = JobStatus.FAILED;
+                        logger.error("HDSJob: {} failed; Details: {}", getJobName(), _errorDescription);
+                    }
                 }
             }
         } catch (Exception e) {

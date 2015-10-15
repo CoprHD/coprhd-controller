@@ -435,7 +435,7 @@ public class HDSApiClient {
      * @param messageID : Task status for messageID
      * @return Parsed java result of response stream.
      */
-    public JavaResult checkAsyncTaskStatus(String messageID) throws Exception {
+    public JavaResult checkAsyncTaskStatus(String messageID) {
         InputStream responseStream = null;
         JavaResult result = null;
         try {
@@ -449,6 +449,8 @@ public class HDSApiClient {
                 throw HDSException.exceptions
                         .asyncTaskInvalidResponse(response.getStatus());
             }
+        } catch (Exception ex) {
+            log.error("Exception occurred while checking async task {}", messageID, ex);
         } finally {
             try {
                 if (null != responseStream) {

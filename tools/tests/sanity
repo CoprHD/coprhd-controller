@@ -2600,10 +2600,10 @@ recoverpoint_vpool_change_test()
     rp_vpool=${3}
     rp_cg=${4}
 
-    echo 'Change Virtual - Remove Protection'
+    echo 'Change Virtual Pool - Remove Protection'
     run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
 
-    echo 'Change Virtual - Add Protection'
+    echo 'Change Virtual Pool - Add Protection'
     run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
 }
 

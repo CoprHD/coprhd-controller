@@ -1006,8 +1006,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<URI> backendVolURIs = new ArrayList<URI>();
             for (URI vplexVolumeURI : allVplexVolumeURIs) {
                 Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
-                if ((vplexVolume == null) || (vplexVolume.getInactive()) ||
-                        (vplexVolume.isIngestedVolume(_dbClient))) {
+                if ((vplexVolume == null) 
+                        || (vplexVolume.getInactive()) 
+                        || (vplexVolume.isIngestedVolume(_dbClient))
+                        || doNotFullyDeleteVolumeList.contains(vplexVolumeURI)) {
                     continue;
                 }
                 for (String assocVolumeId : vplexVolume.getAssociatedVolumes()) {

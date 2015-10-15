@@ -168,12 +168,12 @@ public class ComputeSystems extends ViprResourceController {
                     renderArgs.put("computeSystemVlanList", vlanOptions);
                 }
 
+                List<StringOption> computeImageServerOptions = new ArrayList<StringOption>();
+                computeImageServerOptions.add(ComputeImageServerListTypes
+                        .option(ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE));
                 List<ComputeImageServerRestRep> computeImageServersList = ComputeImageServerUtils.getComputeImageServers();
                 if (computeImageServersList != null) {
-                    List<StringOption> computeImageServerOptions = new ArrayList<StringOption>();
                     List<String> computeImageServersArrayList = new ArrayList<String>();
-                    computeImageServerOptions.add(ComputeImageServerListTypes
-                            .option(ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE));
                     for (ComputeImageServerRestRep cisrr : computeImageServersList) {
                         if (cisrr.getComputeImageServerStatus().equalsIgnoreCase(AVAILABLE)) {
                             computeImageServersArrayList.add(cisrr.getName());
@@ -184,9 +184,7 @@ public class ComputeSystems extends ViprResourceController {
                     }
                     renderArgs.put("availableComputeImageServersList", computeImageServerOptions);
                 }
-                ComputeSystemForm computeSystems = new ComputeSystemForm(
-                        computeSystem);
-
+                ComputeSystemForm computeSystems = new ComputeSystemForm(computeSystem);
                 render("@edit", computeSystems);
             } else {
                 flash.error(MessagesUtils.get(UNKNOWN, id));
@@ -386,12 +384,14 @@ public class ComputeSystems extends ViprResourceController {
             this.userName = computeSystem.getUsername();
             this.password = ""; // the platform will never return the real password //NOSONAR
                                 // ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
-            this.unregistered = RegistrationStatus.isUnregistered(computeSystem
-                    .getRegistrationStatus());
-            if (computeSystem.getComputeImageServer() != null) {
+            this.unregistered = RegistrationStatus.isUnregistered(computeSystem.getRegistrationStatus());
+            if (computeSystem.getComputeImageServer().equalsIgnoreCase("null")) {
+                this.computeImageServer = ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE;
+            } else {
                 ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(computeSystem.getComputeImageServer());
                 this.computeImageServer = cisrr.getName();
             }
+
         }
 
         public boolean isNew() {
@@ -459,8 +459,19 @@ public class ComputeSystems extends ViprResourceController {
                 createParam.setOsInstallNetwork(this.osInstallNetwork);
             }
             if (this.computeImageServer != null) {
-                ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServerByName(this.computeImageServer);
-                createParam.setComputeImageServer(cisrr.getId());
+                if (this.computeImageServer.equalsIgnoreCase(ComputeImageServerListTypes.NO_COMPUTE_IMAGE_SERVER_NONE)) {
+                    URI computeImageServerUrl = null;
+                    try {
+                        computeImageServerUrl = new URI("");
+                    } catch (URISyntaxException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                    createParam.setComputeImageServer(computeImageServerUrl);
+                } else {
+                    ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServerByName(this.computeImageServer);
+                    createParam.setComputeImageServer(cisrr.getId());
+                }
             }
             return ComputeSystemUtils.create(createParam);
         }

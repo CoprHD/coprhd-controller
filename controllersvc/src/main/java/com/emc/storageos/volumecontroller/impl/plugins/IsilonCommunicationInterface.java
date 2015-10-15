@@ -268,6 +268,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private void computeStaticLoadMetrics(final URI storageSystemId) throws BaseCollectionException{
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
         
+        _log.info("started computeStaticLoadMetrics for storagesystem: {}", storageSystem.getLabel());
         StringMap dbMetrics = null;
         String accessZoneId = null;
         try {

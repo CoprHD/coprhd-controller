@@ -850,6 +850,9 @@ Backup.list.title=Backup
 backup.name=Name
 backup.size=Size
 backup.creationtime=Creation Time
+BackupForm.title=Create Backup
+backupForm.name=Name
+backupForm.force=Force
 
 # System Node Recovery
 system.noderecovery.title=Node Recovery

@@ -25,7 +25,7 @@ public class RemoveBlockSnapshotService extends ViPRService {
     @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;
 
-    @Param(CONSISTENCY_GROUP)
+    @Param(value = CONSISTENCY_GROUP, required = false)
     protected URI consistencyGroupId;
 
     @Param(SNAPSHOTS)
@@ -37,6 +37,9 @@ public class RemoveBlockSnapshotService extends ViPRService {
         if (!ConsistencyUtils.isVolumeStorageType(storageType)) {
             if (!ConsistencyUtils.validateConsistencyGroupSnapshots(getClient(), consistencyGroupId)) {
                 ExecutionUtils.fail("failTask.ConsistencyGroup.noSnapshots", consistencyGroupId, consistencyGroupId);
+            }
+            if (consistencyGroupId == null) {
+                ExecutionUtils.fail("failTask.ConsistencyGroup.noConsistencyGroup", consistencyGroupId);
             }
         }
     }

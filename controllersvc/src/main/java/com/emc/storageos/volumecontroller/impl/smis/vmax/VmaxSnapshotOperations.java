@@ -687,7 +687,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             URI storagePoolUri, long capacity,
             TaskCompleter taskCompleter) throws Exception {
         if (storage.checkIfVmax3()) {
-            CIMObjectPath poolPath = findSnapStoragePoolOrThrow(storage);
+            StoragePool storagePool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
+            CIMObjectPath poolPath = _helper.getPoolPath(storage, storagePool);
             return createTargetDevices(storage, poolPath, volumeGroupPath, null, sourceGroupName, null, createInactive,
                     count, capacity, taskCompleter);
         } else if (thinlyProvisioned) {

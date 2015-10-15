@@ -2604,7 +2604,7 @@ recoverpoint_vpool_change_test()
     run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
 
     echo 'Change Virtual - Add Protection'
-    run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} ${rp_cg}
+    run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
 }
 
 recoverpoint_add_journal_volume()

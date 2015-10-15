@@ -1134,12 +1134,17 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
+
+        // Check for common Vpool updates handled by generic code. It returns true if handled.
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
+            return;
+        }
+
         // Check if any of the volumes passed is a VPLEX volume
         // in a VPLEX CG with corresponding local consistency
         // group(s) for the backend volumes.
         BlockConsistencyGroup cg = null;
-        if ((!checkCommonVpoolUpdates(volumes, vpool, taskId)) &&
-                ((cg = isVPlexVolumeInCgWithLocalType(volumes)) != null)) {
+        if ((cg = isVPlexVolumeInCgWithLocalType(volumes)) != null) {
             s_logger.info("Change vpool request for volume in VPLEX CG with backing local CGs");
             // If any of the volumes is in such a CG and if this is a data
             // migration of the volumes, then the volumes passed must be all

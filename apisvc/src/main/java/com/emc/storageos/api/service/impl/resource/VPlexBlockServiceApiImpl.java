@@ -2220,9 +2220,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             throws ControllerException {
 
         // addVolumesList could be volumes, or full copies, or snapshots or mirrors.
-        List<URI> addVolumes = new ArrayList<URI> ();
-        List<URI> addSnapshots = new ArrayList<URI> ();
-        List<URI> addFullcopies = new ArrayList<URI> ();
+        List<URI> addVolumes = new ArrayList<URI>();
+        List<URI> addSnapshots = new ArrayList<URI>();
+        List<URI> addFullcopies = new ArrayList<URI>();
         for (URI volumeURI : addVolumesList) {
             BlockObject blockObject = BlockObject.fetch(_dbClient, volumeURI);
             if (blockObject instanceof BlockMirror) {
@@ -2230,20 +2230,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP.name());
             } else if (blockObject instanceof BlockSnapshot) {
                 addSnapshots.add(volumeURI);
-            } else if(blockObject instanceof Volume) {
+            } else if (blockObject instanceof Volume) {
                 boolean isFullCopy = ControllerUtils.isVolumeFullCopy((Volume) blockObject, _dbClient);
                 if (isFullCopy) {
                     addFullcopies.add(volumeURI);
                 } else {
                     addVolumes.add(volumeURI);
                 }
-            } 
+            }
         }
         if ((!addVolumes.isEmpty() && (!addSnapshots.isEmpty() || !addFullcopies.isEmpty())) ||
                 (!addSnapshots.isEmpty() && !addFullcopies.isEmpty())) {
             throw APIException.badRequests.cantUpdateCGWithMixedBlockObjects(consistencyGroup.getLabel());
         }
-        
+
         // When adding volumes to a VPLEX CG, the volumes must be of the same
         // type and have the same virtual array as those already in the consistency
         // group.
@@ -2263,22 +2263,23 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         throw APIException.badRequests.invalidParameterConsistencyGroupVolumeHasIncorrectHighAvailability(cgVolume.getId(),
                                 cgHAType);
                     } else if (!cgVArrayURI.equals(addVolume.getVirtualArray())) {
-                        throw APIException.badRequests.invalidParameterConsistencyGroupVolumeHasIncorrectVArray(cgVolume.getId(), cgVArrayURI);
+                        throw APIException.badRequests.invalidParameterConsistencyGroupVolumeHasIncorrectVArray(cgVolume.getId(),
+                                cgVArrayURI);
                     }
                 }
             }
         }
-        
+
         // Only add snapshot or full copies to CG if backend volumes are from the same storage system.
         if (!addSnapshots.isEmpty() || !addFullcopies.isEmpty()) {
             if (!VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(cgVolumes, _dbClient)) {
                 throw APIException.badRequests.cantUpdateCGWithReplicaFromMultipleSystems(consistencyGroup.getLabel());
             }
         }
-        
+
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(),
                 taskId, ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
-        
+
         // When adding snapshots to CG, just call block implementation.
         if (!addSnapshots.isEmpty()) {
             BlockSnapshot snapshot = _permissionsHelper.getObjectById(addSnapshots.get(0), BlockSnapshot.class);
@@ -2288,26 +2289,26 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             controller.updateConsistencyGroup(system.getId(), consistencyGroup.getId(),
                     addVolumesList, removeVolumesList, taskId);
             return toTask(consistencyGroup, taskId, op);
-            
+
         }
-        
+
         // If the CG is ingested, and we would like to add back end CGs for those virtual volumes in the CG,
         // all the virtual volumes in the CG have to be selected.
         if (!addVolumes.isEmpty()) {
             verifyAddVolumesToIngestedCG(consistencyGroup, addVolumes);
         }
-        
+
         if (!addFullcopies.isEmpty()) {
-            addVolumes.addAll(addFullcopies);   
+            addVolumes.addAll(addFullcopies);
         }
-       
-        // Get VPlex controller 
+
+        // Get VPlex controller
         VPlexController controller = getController();
         controller.updateConsistencyGroup(cgStorageSystem.getId(),
                 consistencyGroup.getId(), addVolumes, removeVolumesList, taskId);
-    
+
         return toTask(consistencyGroup, taskId, op);
-        
+
     }
 
     /**
@@ -3033,8 +3034,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     @Override
     public List<BlockSnapshot> getSnapshots(Volume vplexVolume) {
         if (!vplexVolume.isIngestedVolume(_dbClient)) {
-            Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
-            return super.getSnapshots(snapshotSourceVolume);
+            // Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
+            return super.getSnapshots(vplexVolume);
         }
 
         return new ArrayList<BlockSnapshot>();

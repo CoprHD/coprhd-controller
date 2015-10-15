@@ -227,7 +227,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FULL_COPY_STEP = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_STEP = "detachFullCopy";
     private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
-    private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP="volumeFullcopyRelationStep";
+    private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP = "volumeFullcopyRelationStep";
     private static final String RESYNC_SNAPSHOT_STEP = "ResyncSnapshotStep";
 
     // Workflow controller method names.
@@ -5939,6 +5939,34 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 existingVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
                 _dbClient.persistObject(existingVolume);
 
+                vplexVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
+                _dbClient.persistObject(vplexVolume);
+
+                List<BlockSnapshot> snaps = CustomQueryUtility
+                        .getActiveBlockSnapshotByNativeGuid(_dbClient, existingVolume.getNativeGuid());
+                if (!snaps.isEmpty()) {
+                    BlockSnapshot snap = snaps.get(0);
+                    snap.addInternalFlags(Flag.INTERNAL_OBJECT);
+                    _dbClient.persistObject(snap);
+
+                    BlockSnapshot snapshot = new BlockSnapshot();
+                    snapshot.setId(URIUtil.createId(BlockSnapshot.class));
+                    snapshot.setSourceNativeId(vplexVolume.getNativeId());
+                    snapshot.setParent(new NamedURI(vplexVolume.getId(), vplexVolume.getLabel()));
+                    snapshot.setLabel(snap.getLabel());
+                    snapshot.setStorageController(vplexVolume.getStorageController());
+                    snapshot.setVirtualArray(vplexVolume.getVirtualArray());
+                    snapshot.setProtocol(new StringSet());
+                    snapshot.setProject(new NamedURI(vplexVolume.getProject().getURI(), vplexVolume.getProject().getName()));
+                    snapshot.setSnapsetLabel(snap.getSnapsetLabel());
+                    URI cgUri = vplexVolume.getConsistencyGroup();
+                    if (cgUri != null) {
+                        snapshot.setConsistencyGroup(cgUri);
+                    }
+
+                    _dbClient.createObject(snapshot);
+                }
+
                 // If the VPLEX volume is being upgraded to distributed, it's provisioned
                 // should be set and does not change. However, when importing an existing
                 // volume to a VPLEX volume, we need to set the provisioned capacity
@@ -10140,7 +10168,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             throw VPlexApiException.exceptions.addStepsForChangeVirtualPoolFailed(ex);
         }
     }
-    
+
     @Override
     public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId)
             throws InternalException {
@@ -10156,7 +10184,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             URI nativeSystemURI = nativeFullCopyVolume.getStorageController();
             StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
 
-            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD, 
+            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD,
                     nativeSystemURI, nativeSourceVolumeURI, nativeFullCopyVolume.getId());
             workflow.createStep(VOLUME_FULLCOPY_GROUP_RELATION_STEP,
                     "create group relation between Volume group and Full copy group", null,
@@ -10178,8 +10206,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     fullCopy.toString(), e);
             completer.error(_dbClient, sc);
         }
-            
-        
+
     }
 
     /**

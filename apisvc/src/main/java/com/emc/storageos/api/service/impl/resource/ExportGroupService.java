@@ -109,7 +109,6 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -252,9 +251,6 @@ public class ExportGroupService extends TaskResourceService {
             throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
         }
 
-        // validate input for the type of export
-        validateCreateInputForExportType(param);
-
         // Validate that the create is not attempting to add VPLEX
         // backend volumes to a group.
         if (param.getVolumes() != null && !param.getVolumes().isEmpty()) {
@@ -264,6 +260,27 @@ public class ExportGroupService extends TaskResourceService {
             }
             BlockService.validateNoInternalBlockObjects(_dbClient, addVolumeURIs, false);
         }
+
+        List<VolumeParam> newParms = new ArrayList<VolumeParam>();
+        List<VolumeParam> volParms = param.getVolumes();
+        for (VolumeParam volParm : volParms) {
+            URI volURI = volParm.getId();
+            if (URIUtil.isType(volURI, BlockSnapshot.class)) {
+                BlockSnapshot snap = (BlockSnapshot) BlockSnapshot.fetch(_dbClient, volURI);
+                List<Volume> vols = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snap.getNativeGuid());
+                if (!vols.isEmpty()) {
+                    VolumeParam newParm = new VolumeParam(vols.get(0).getId());
+                    newParm.setLun(volParm.getLun());
+                    newParms.add(newParm);
+                }
+            }
+        }
+        if (!newParms.isEmpty()) {
+            param.setVolumes(newParms);
+        }
+
+        // validate input for the type of export
+        validateCreateInputForExportType(param);
 
         // Validate the project and check its permissions
         Project project = queryObject(Project.class, param.getProject(), true);
@@ -1454,7 +1471,7 @@ public class ExportGroupService extends TaskResourceService {
         Operation op = null;
         ExportGroup exportGroup = lookupExportGroup(groupId);
         Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(exportGroup, true, _dbClient);
-        
+
         // Don't allow deactivation if there is an operation in progress.
         Set<URI> tenants = new HashSet<URI>();
         tenants.add(exportGroup.getTenant().getURI());

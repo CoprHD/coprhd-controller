@@ -141,13 +141,13 @@ def snapshot_search(args):
     else:
         print 'Result: ', array
 
-def snapshot_create_vplex_volume(args):
+def snapshot_create_volume(args):
     bourne.connect(args.ip)
     uri = bourne.block_snapshot_query(args.name)
     start = time.time()
-    (o, s, m) = bourne.block_snapshot_create_vplex_volume(uri)
+    (o, s, m) = bourne.block_snapshot_create_volume(uri)
     total = time.time() - start
-    print "Create VPLEX volume from snapshot completed in", "{0:.2f}".format(total), "seconds, status is " + s + "\n" + m
+    print "Create volume from snapshot completed in", "{0:.2f}".format(total), "seconds, status is " + s + "\n" + m
 
 #----------------------------------------------------------------------
 # command-line parsing
@@ -221,9 +221,9 @@ search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search n
 search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
 search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
 
-# create_vplex_volume
-create_vplex_volume = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-create_vplex_volume.add_argument('name', help = 'name of snapshot')
+# create_volume
+create_volume = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create_volume.add_argument('name', help = 'name of snapshot')
 
 #----------------------------------------------------------------------
 # Main script
@@ -271,9 +271,9 @@ try:
     elif(cmd == "search"):
         args = search.parse_args()
         snapshot_search(args)
-    elif(cmd == "create_vplex_volume"):
-        args = create_vplex_volume.parse_args()
-        snapshot_create_vplex_volume(args)
+    elif(cmd == "create_volume"):
+        args = create_volume.parse_args()
+        snapshot_create_volume(args)
     else:
         parser.print_help()
 

@@ -155,7 +155,7 @@ URI_BLOCK_SNAPSHOTS_EXPORTS     = URI_BLOCK_SNAPSHOTS + '/exports'
 URI_BLOCK_SNAPSHOTS_UNEXPORTS   = URI_BLOCK_SNAPSHOTS + '/exports/{1},{2},{3}'
 URI_BLOCK_SNAPSHOTS_RESTORE     = URI_BLOCK_SNAPSHOTS + '/restore'
 URI_BLOCK_SNAPSHOTS_ACTIVATE    = URI_BLOCK_SNAPSHOTS + '/activate'
-URI_BLOCK_SNAPSHOTS_CREATE_VPLEX_VOLUME    = URI_BLOCK_SNAPSHOTS + '/create-vplex-volume'
+URI_BLOCK_SNAPSHOTS_CREATE_VOLUME    = URI_BLOCK_SNAPSHOTS + '/create-volume'
 URI_BLOCK_SNAPSHOTS_TASKS       = URI_BLOCK_SNAPSHOTS + '/tasks/{1}'
 URI_VOLUME_CHANGE_VPOOL           = URI_VOLUME          + '/vpool'
 URI_VOLUME_CHANGE_VPOOL_MATCH     = URI_VOLUME          + '/vpool-change/vpool'
@@ -4964,10 +4964,10 @@ class Bourne:
         vuri = self.block_snapshot_query(snapshot).strip()
         return self.api('GET', URI_BLOCK_SNAPSHOTS_EXPORTS.format(vuri))
 
-    def block_snapshot_create_vplex_volume(self, snapshot):
+    def block_snapshot_create_volume(self, snapshot):
         vuri = self.block_snapshot_query(snapshot)
         vuri = vuri.strip()
-        o = self.api('POST', URI_BLOCK_SNAPSHOTS_CREATE_VPLEX_VOLUME.format(vuri))
+        o = self.api('POST', URI_BLOCK_SNAPSHOTS_CREATE_VOLUME.format(vuri))
         self.assert_is_dict(o)
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.block_snapshot_show_task)
         return (o, s['state'], s['message'])

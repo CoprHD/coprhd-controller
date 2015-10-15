@@ -221,7 +221,6 @@ public class RPHelper {
                 }
             }
         }
-        }
         
         // if we're deleting all of the volumes in this protection set, we can add the journal volumes
         for (URI protSetId : protectionSetIds) {

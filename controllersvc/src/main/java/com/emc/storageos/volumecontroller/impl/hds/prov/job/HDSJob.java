@@ -129,7 +129,8 @@ public class HDSJob extends Job implements Serializable
             logger.info("HDSJob: Looking up job: id {}, provider: {} ", messageId, storageSystem.getActiveProviderURI());
             HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
-
+            _pollResult.setJobName(getJobName());
+            _pollResult.setJobId(messageId);
             if (hdsApiClient == null) {
                 String errorMessage = "No HDS client found for provider ip: " + storageSystem.getActiveProviderURI();
                 processTransientError(messageId, trackingPeriodInMillis, errorMessage, null);
@@ -144,8 +145,6 @@ public class HDSJob extends Job implements Serializable
                     logger.error("HDSJob: {} failed; Details: {}", getJobName(), _errorDescription);
                 } else {
                     EchoCommand command = javaResult.getBean(EchoCommand.class);
-                    _pollResult.setJobName(getJobName());
-                    _pollResult.setJobId(messageId);
                     if (HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
                         _status = JobStatus.SUCCESS;
                         _pollResult.setJobPercentComplete(100);
@@ -165,6 +164,7 @@ public class HDSJob extends Job implements Serializable
             }
         } catch (NoHttpResponseException ex) {
             _status = JobStatus.FAILED;
+            _pollResult.setJobPercentComplete(100);
             _errorDescription = ex.getMessage();
             logger.error(String.format("HDS job not found. Marking as failed as we cannot determine status. " +
                     "User may retry the operation to be sure: Name: %s, ID: %s, Desc: %s",

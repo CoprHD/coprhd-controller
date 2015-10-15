@@ -19,6 +19,7 @@ import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -357,8 +358,11 @@ public class ControlService {
         } catch (Exception e) {
             throw APIException.internalServerErrors.setObjectToError("target poweroff state", "coordinator", e);
         }
-
-        auditControl(OperationTypeEnum.POWER_OFF_CLUSTER, AuditLogManager.AUDITLOG_SUCCESS, null);
+        
+        // ignore audit log for internal calls
+        if (sc != null && sc.getUserPrincipal() != null) {
+            auditControl(OperationTypeEnum.POWER_OFF_CLUSTER, AuditLogManager.AUDITLOG_SUCCESS, null);
+        }
         try {
             return Response.status(Response.Status.ACCEPTED).build();
         } finally {
@@ -376,6 +380,17 @@ public class ControlService {
         _log.info("Poweroff node");
         recoveryManager.poweroff();
         return Response.status(Response.Status.ACCEPTED).build(); // Return the accepted status code
+    }
+
+    /**
+     * Internal calls to power off current cluster. Use trusted secret key
+     */
+    @POST
+    @Path("internal/cluster/poweroff")
+    @Produces({ MediaType.APPLICATION_JSON })
+    public Response internalPowerOffCluster(@QueryParam("force") String forceSet) throws Exception {
+        _log.info("Poweroff cluster");
+        return powerOffCluster(forceSet);
     }
 
     /**

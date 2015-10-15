@@ -7,27 +7,31 @@ package com.emc.sa.service.vipr.file.tasks;
 import java.net.URI;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
+import com.emc.sa.asset.providers.FileProvider;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
-import com.emc.vipr.client.core.filters.UnmanagedFileSystemVirtualPoolFilter;
 
 public class GetUnmanagedFilesystems extends ViPRExecutionTask<List<UnManagedFileSystemRestRep>> {
-    private URI storageSystem;
-    private URI virtualPool;
+    private final URI storageSystem;
+    private final URI virtualPool;
+    private final String type;
 
-    public GetUnmanagedFilesystems(String storageSystem, String virtualPool) {
-        this(uri(storageSystem), uri(virtualPool));
+    public GetUnmanagedFilesystems(String storageSystem, String virtualPool, String type) {
+        this(uri(storageSystem), uri(virtualPool), type);
     }
 
-    public GetUnmanagedFilesystems(URI storageSystem, URI virtualPool) {
+    public GetUnmanagedFilesystems(URI storageSystem, URI virtualPool, String type) {
         this.storageSystem = storageSystem;
         this.virtualPool = virtualPool;
-        provideDetailArgs(storageSystem, virtualPool);
+        this.type = type;
+        provideDetailArgs(storageSystem, virtualPool, type);
     }
 
     @Override
     public List<UnManagedFileSystemRestRep> executeTask() throws Exception {
-        UnmanagedFileSystemVirtualPoolFilter filter = new UnmanagedFileSystemVirtualPoolFilter(virtualPool);
-        return getClient().unmanagedFileSystems().getByStorageSystem(storageSystem, filter);
+        boolean exported = StringUtils.equalsIgnoreCase(type, FileProvider.EXPORTED_TYPE);
+        return getClient().unmanagedFileSystems().getByStorageSystemVirtualPool(storageSystem, virtualPool, exported, null);
     }
 }

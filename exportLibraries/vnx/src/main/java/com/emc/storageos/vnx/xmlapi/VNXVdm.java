@@ -14,14 +14,16 @@ public class VNXVdm extends VNXBaseClass {
     private String _vdmName;
 
     private List<String> _interfaces;
+    private String _vdmState;
 
     public VNXVdm() {
     }
 
-    public VNXVdm(String vdmName, String moverId, String vdmId) {
+    public VNXVdm(String vdmName, String moverId, String vdmId, String vdmState) {
         _vdmName = vdmName;
         _moverId = moverId;
         _vdmId = vdmId;
+        _vdmState = vdmState;
     }
 
     public String getVdmName() {
@@ -54,6 +56,14 @@ public class VNXVdm extends VNXBaseClass {
 
     public List<String> getInterfaces() {
         return this._interfaces;
+    }
+
+    public String getState() {
+        return _vdmState;
+    }
+
+    public void setState(String state) {
+        this._vdmState = state;
     }
 
     public static String discoverVdm() {

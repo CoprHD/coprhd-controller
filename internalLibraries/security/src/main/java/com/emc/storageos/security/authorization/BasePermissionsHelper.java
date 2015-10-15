@@ -13,9 +13,13 @@ import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.DataObjectUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.exceptions.FatalDatabaseException;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.tenant.UserMappingAttributeParam;
 import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.model.usergroup.UserAttributeParam;
@@ -718,8 +722,6 @@ public class BasePermissionsHelper {
                 ret = getObjectById(id, Host.class);
             } else if (URIUtil.isType(id, VcenterDataCenter.class)) {
                 ret = getObjectById(id, VcenterDataCenter.class);
-            } else if (URIUtil.isType(id, Vcenter.class)) {
-                ret = getObjectById(id, Vcenter.class);
             } else if (URIUtil.isType(id, Cluster.class)) {
                 ret = getObjectById(id, Cluster.class);
             } else if (URIUtil.isType(id, Initiator.class)) {
@@ -1985,5 +1987,181 @@ public class BasePermissionsHelper {
 
         TenantOrg tenantOrg = _dbClient.queryObject(TenantOrg.class, URI.create(tenantID));
         return tenantOrg != null ? tenantOrg.getLabel() : null;
+    }
+
+    /**
+     * Converts StringSetMap of acls into a list of ACLEntry as used by the API
+     *
+     * @param acls to be converted into the ACLEntry list.
+     * @return the converted ACLEntry list.
+     */
+    public static List<ACLEntry> convertToACLEntries(StringSetMap acls) {
+        List<ACLEntry> assignments = new ArrayList<ACLEntry>();
+        if (CollectionUtils.isEmpty(acls)) {
+            return assignments;
+        }
+
+        for (Map.Entry<String, AbstractChangeTrackingSet<String>> ace : acls.entrySet()) {
+            PermissionsKey rowKey = new PermissionsKey();
+            rowKey.parseFromString(ace.getKey());
+            ACLEntry entry = new ACLEntry();
+            if (rowKey.getType().equals(PermissionsKey.Type.GROUP)) {
+                entry.setGroup(rowKey.getValue());
+            } else if (rowKey.getType().equals(PermissionsKey.Type.SID)) {
+                entry.setSubjectId(rowKey.getValue());
+            } else if (rowKey.getType().equals(PermissionsKey.Type.TENANT)) {
+                entry.setTenant(rowKey.getValue());
+            }
+            for (String priv : ace.getValue()) {
+                // skip owner
+                if (priv.equalsIgnoreCase(ACL.OWN.toString())) {
+                    continue;
+                }
+                entry.getAces().add(priv);
+            }
+            if (!entry.getAces().isEmpty()) {
+                assignments.add(entry);
+            }
+        }
+
+        return assignments;
+    }
+
+    /**
+     * Gets the USE URIs from the acl string set map. It converts
+     * the acls string set map to the list of ACLEntry and then
+     * fetches the URI list from the ACLEntry list.
+     *
+     * @param acls to be used to fetch the usage URIs.
+     * @return a set of URIs retrived from the acls.
+     */
+    public static Set<URI> getUsageURIsFromAcls(StringSetMap acls) {
+        Set<URI> tenantUris = new HashSet<URI>();
+        if (CollectionUtils.isEmpty(acls)) {
+            return tenantUris;
+        }
+
+        List<ACLEntry> aclEntries = convertToACLEntries(acls);
+        tenantUris = getUsageURIsFromAclEntries(aclEntries);
+        return tenantUris;
+    }
+
+    /**
+     * Gets the USE URIs from the list of ACLEntry.
+     *
+     * @param aclEntries to be used to fetch the usage URIs.
+     * @return a set of URIs retrived from the acls.
+     */
+    public static Set<URI> getUsageURIsFromAclEntries(List<ACLEntry> aclEntries) {
+        Set<URI> tenantUris = new HashSet<URI>();
+        if (CollectionUtils.isEmpty(aclEntries)) {
+            return tenantUris;
+        }
+
+        Iterator<ACLEntry> aclEntryIt = aclEntries.iterator();
+        while (aclEntryIt.hasNext()) {
+            ACLEntry aclEntry = aclEntryIt.next();
+            if (!CollectionUtils.isEmpty(aclEntry.getAces())) {
+                tenantUris.add(URI.create(aclEntry.getTenant()));
+            }
+        }
+
+        return tenantUris;
+    }
+
+    /**
+     * Get the USE permission key for the provided tenant.
+     *
+     * @param tenantId to which a permission key to be created.
+     * @return a string format of a permission key.
+     */
+    public static String getTenantUsePermissionKey(String tenantId) {
+        if (StringUtils.isBlank(tenantId)) {
+            throw APIException.badRequests.invalidEntryACLEntryMissingTenant();
+        }
+
+        PermissionsKey key = new PermissionsKey(PermissionsKey.Type.TENANT, tenantId);
+        return key.toString();
+    }
+
+    /**
+     * Get the vCenter tenant based on its acls. Basically
+     * if there is only one acl entry configured for the vCenter
+     * it returns the tenant of that acl entry and if there are
+     * more than one acl entry configured for the system, it returns
+     * null uri.
+     *
+     * @param acls to be used to find out the tenant of the resource.
+     * @return the URI of the resource if the resource contains only
+     *          one acl entry otherwise null URI.
+     */
+    public static URI getTenant(StringSetMap acls) {
+        Set<URI> usageUris = getUsageURIsFromAcls(acls);
+        if (CollectionUtils.isEmpty(usageUris) ||
+                usageUris.size() != 1) {
+            return NullColumnValueGetter.getNullURI();
+        }
+        return usageUris.iterator().next();
+    }
+
+    /**
+     * Get the USE ACLEntry for the tenant.
+     *
+     * @param tenantId to be used in the USE ACLEntry.
+     * @return the ACLEntry.
+     */
+    public ACLEntry getUseAclEntry(String tenantId) {
+        ACLEntry aclEntry = new ACLEntry();
+        aclEntry.setTenant(tenantId);
+        aclEntry.getAces().add(ACL.USE.name());
+
+        return aclEntry;
+    }
+
+    /**
+     * Get tenant id from a project id retrieved from uri
+     *
+     * @param childId
+     * @return
+     */
+    public Set<URI> getTenantResourceTenantIds(String childId) {
+        if (childId == null) {
+            return null;
+        }
+
+        try {
+            URI id = URI.create(childId);
+            Vcenter ret = null;
+            if (URIUtil.isType(id, Vcenter.class)) {
+                ret = getObjectById(id, Vcenter.class);
+            }
+            return getUsageURIsFromAcls(ret.getAcls());
+        } catch (DatabaseException ex) {
+            throw SecurityException.fatals.failedGettingTenant(ex);
+        }
+    }
+
+    /**
+     * Gets the user mappings of the all the domains.
+     *
+     * @param domains to get all the user mappings.
+     * @return returns the map of tenantID to user mappings
+     * of the domains.
+     */
+    public Map<URI, List<UserMapping>> getAllUserMappingsForDomain(StringSet domains) {
+        Map<URI, List<UserMapping>> tenantUserMappingMap = new HashMap<URI, List<UserMapping>>();
+        if (CollectionUtils.isEmpty(domains)) {
+            return tenantUserMappingMap;
+        }
+
+        Iterator<String> domainsIterator = domains.iterator();
+        while (domainsIterator.hasNext()) {
+            Map<URI, List<UserMapping>> singleTenantUserMappingMap = getAllUserMappingsForDomain(domainsIterator.next());
+            if (!CollectionUtils.isEmpty(singleTenantUserMappingMap)) {
+                tenantUserMappingMap.putAll(singleTenantUserMappingMap);
+            }
+        }
+
+        return tenantUserMappingMap;
     }
 }

@@ -1,0 +1,51 @@
+%{
+  titleKey = 'disasterRecovery.create.title';
+  descriptionKey = 'disasterRecovery.description';
+  image = '/public/img/assets/Cluster.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.config', 'nav.disasterRecovery'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'disasterRecovery.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container" >
+  <form-header title-key="${titleKey}"
+               description-key="disasterRecovery.description"
+               image-val="/public/img/assets/Cluster.png"></form-header>
+
+  #{alerts/}
+
+  #{form @save(), id:'DisasterRecoveryForm', class:'form form-horizontal', autocomplete:"off"}
+    #{field 'referrer'}
+      <input type="hidden" name="${field.name}" value="${referrer}">
+    #{/field}
+
+    <fieldset>
+      <control-group v-field="disasterRecovery.name" required>
+        <input-text class="initialFocus"></input-text>
+      </control-group>
+
+      <control-group v-field="disasterRecovery.VirtualIP" required>
+        <input-text></input-text>
+      </control-group>
+      
+      <control-group v-field="disasterRecovery.userName" required >
+        <input-text></input-text>
+      </control-group>
+
+      <control-group v-field="disasterRecovery.userPassword" required>
+        <input-password></input-password>
+      </control-group>
+
+      <control-group v-field="disasterRecovery.confirmPassword" required>
+        <input-password></input-password>
+      </control-group>
+
+    </fieldset>	
+    #{Form.saveCancel cancelHref:referrer/}  
+  #{/form}
+</div>

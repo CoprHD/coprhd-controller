@@ -8,6 +8,7 @@ import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 
 import java.util.Map;
+
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 
 public interface DbManagerMBean {
@@ -59,4 +60,12 @@ public interface DbManagerMBean {
     @ManagedOperation(description = "Adjust number of tokens for this node to expected value in this software version, if it's not done already.")
     public
             boolean adjustNumTokens() throws InterruptedException;
+    
+    /**
+     * Remove nodes in a specified data center
+     * 
+     * @param dcName
+     */
+    @ManagedOperation(description = "Remove all ndoes in a data center")
+    public void removeDataCenter(String dcName);
 }

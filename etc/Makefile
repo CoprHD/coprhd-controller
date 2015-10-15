@@ -33,26 +33,14 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/geo \
     $(ETCDIR)/genconfig.d/geodb \
     $(ETCDIR)/genconfig.d/nginx \
+    $(ETCDIR)/genconfig.d/password \
     $(ETCDIR)/genconfig.d/portal \
+    $(ETCDIR)/genconfig.d/security \
     $(ETCDIR)/genconfig.d/ssh \
     $(ETCDIR)/genconfig.d/ssh_auth_key \
     $(ETCDIR)/genconfig.d/ssl \
     $(ETCDIR)/genconfig.d/syssvc \
     $(ETCDIR)/genconfig.d/test \
-    $(ETCDIR)/genconfig.d/ipsec \
-    $(ETCDIR)/genconfig.d/boot/10api \
-    $(ETCDIR)/genconfig.d/boot/10auth \
-    $(ETCDIR)/genconfig.d/boot/10controller \
-    $(ETCDIR)/genconfig.d/boot/10coordinator \
-    $(ETCDIR)/genconfig.d/boot/10db \
-    $(ETCDIR)/genconfig.d/boot/10dbclient \
-    $(ETCDIR)/genconfig.d/boot/10geo \
-    $(ETCDIR)/genconfig.d/boot/10geodb \
-    $(ETCDIR)/genconfig.d/boot/10nginx \
-    $(ETCDIR)/genconfig.d/boot/10portal \
-    $(ETCDIR)/genconfig.d/boot/00ssl \
-    $(ETCDIR)/genconfig.d/boot/10syssvc \
-    $(ETCDIR)/genconfig.d/boot/10ipsec \
     $(ETCDIR)/gentmpl \
     $(ETCDIR)/diagtool \
     $(ETCDIR)/powerofftool \
@@ -173,29 +161,22 @@ ETCFILES_APPLIANCE = diskresizetool \
     genconfig.d/firewall \
     genconfig.d/network \
     genconfig.d/ntp \
-    genconfig.d/password \
-    genconfig.d/security \
     genconfig.d/system \
     genconfig.d/vasa \
-    genconfig.d/boot/10connectemc \
-    genconfig.d/boot/00dns \
-    genconfig.d/boot/00firewall \
-    genconfig.d/boot/00network \
-    genconfig.d/boot/00ntp \
-    genconfig.d/boot/00security \
-    genconfig.d/boot/00system \
-    genconfig.d/boot/10vasa \
+    genconfig.d/boot.manifest \
     nginx/vasasvc-server-common.conf \
     nginx/vasasvc-server-dual-template.conf \
     nginx/vasasvc-server-IPv4-template.conf \
     nginx/vasasvc-server-IPv6-template.conf \
     nginx/storageos-vasasvc.conf \
     storageos/boot-ovfenv \
+    systemd/system/auditd.service \
     systool
 
 # The files that should be added into the rpm for oss builds only
 ETCFILES_LINUX = \
     storageos/boot-ovfenv \
+    genconfig.d/boot.manifest \
     systool
 
 ifeq ($(BUILD_TYPE),emc)

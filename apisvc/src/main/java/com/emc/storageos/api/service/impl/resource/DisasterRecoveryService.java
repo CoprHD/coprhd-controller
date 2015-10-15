@@ -4,10 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.COMPLETE;
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
-import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
-
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -15,7 +11,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -42,9 +37,10 @@ import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.model.uimodels.InitialSetup;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
@@ -168,7 +164,8 @@ public class DisasterRecoveryService {
     /**
      * Sync all the site information from the primary site to the new standby
      * The current site will be demoted from primary to standby during the process
-     * @param param
+     * 
+     * @param configParam
      * @return
      */
     @PUT
@@ -220,6 +217,7 @@ public class DisasterRecoveryService {
 
     /**
      * Get all sites including standby and primary
+     * 
      * @return site list contains all sites with detail information
      */
     @GET
@@ -237,6 +235,7 @@ public class DisasterRecoveryService {
     
     /**
      * Get specified site according site UUID
+     * 
      * @param uuid site UUID
      * @return site response with detail information
      */
@@ -259,31 +258,48 @@ public class DisasterRecoveryService {
         return null;
     }
 
+    /**
+     * Remove a standby. After successfully done, it stops data replication to this site
+     * 
+     * @param uuid standby site uuid
+     * @return
+     */
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{uuid}")
     public SiteRestRep removeStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to remove standby site from local vdc by uuid: {}", uuid);
-        
-        try {
-            Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
-            if (config != null) {
-                Site site = new Site(config);
-                log.info("Find standby site in local VDC and remove it");
-                VirtualDataCenter vdc = queryLocalVDC();
-                coordinator.removeServiceConfiguration(config);
-                
-                updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
-                for (Site standbySite : getStandbySites(vdc.getId())) {
-                    updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
-                }
-                return siteMapper.map(site);
-            }
-        } catch (Exception e) {
-            log.error("Find find site from ZK for UUID {}, {}", uuid, e);
+        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
+        if (config == null) {
+            log.error("Can't find site {} from ZK", uuid);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+
+        if (!isClusterStable()) {
+            throw APIException.internalServerErrors.removeStandbyFailed(uuid, "Cluster is not stable");
+        }
+
+        Site toBeRemovedSite = new Site(config);
+        if (toBeRemovedSite.getState().equals(SiteState.PRIMARY)) {
+            log.error("Unable to remove this site {}. It is primary", uuid);
+            throw APIException.badRequests.operationNotAllowedOnPrimarySite();
         }
         
-        return null;
+        try {
+            log.info("Find standby site in local VDC and remove it");
+            toBeRemovedSite.setState(SiteState.STANDBY_REMOVING);
+            coordinator.persistServiceConfiguration(toBeRemovedSite.toConfiguration());
+
+            log.info("Notify all sites for reconfig");
+            VirtualDataCenter vdc = queryLocalVDC();
+            for (Site standbySite : getSites(vdc.getId())) {
+                updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
+            }
+            return siteMapper.map(toBeRemovedSite);
+        } catch (Exception e) {
+            log.error("Failed to remove site {}", uuid, e);
+            throw APIException.internalServerErrors.removeStandbyFailed(uuid, e.getMessage());
+        }
     }
     
     /**
@@ -316,7 +332,7 @@ public class DisasterRecoveryService {
             Site site = new Site(config);
             siteConfigRestRep.setState(site.getState().toString());
         } else {
-            siteConfigRestRep.setState(SiteState.ACTIVE.toString());
+            siteConfigRestRep.setState(SiteState.PRIMARY.toString());
         }
         
         try {
@@ -327,34 +343,6 @@ public class DisasterRecoveryService {
 
         log.info("Return result: {}", siteConfigRestRep);
         return siteConfigRestRep;
-    }
-    
-    private void updateVdcTargetVersion(String siteId, String action) throws Exception {
-        SiteInfo siteInfo;
-        SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
-        if (currentSiteInfo != null) {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), action, currentSiteInfo.getTargetDataRevision());
-        } else {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), action);
-        }
-        coordinator.setTargetInfo(siteId, siteInfo);
-        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
-    }
-    
-    private void updateVdcTargetVersionAndDataRevision(String action) throws Exception {
-        int ver = 1;
-        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
-        if (siteInfo != null) {
-            if (!siteInfo.isNullTargetDataRevision()) {
-                String currentDataRevision = siteInfo.getTargetDataRevision();
-                ver = Integer.valueOf(currentDataRevision);
-            }
-        }
-        String targetDataRevision = String.valueOf(++ver);
-        siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
-        coordinator.setTargetInfo(siteInfo);
-        log.info("VDC target version updated to {}, revision {}", 
-                siteInfo.getVdcConfigVersion(),  targetDataRevision);
     }
     
     @POST
@@ -386,6 +374,86 @@ public class DisasterRecoveryService {
 
         return resp;
     }
+
+    /**
+     * Pause a standby site that is already sync'ed with the primary
+     * @param uuid site UUID
+     * @return updated standby site representation
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/pause/{uuid}")
+    public SiteRestRep pauseStandby(@PathParam("uuid") String uuid) {
+        log.info("Begin to pause data sync between standby site from local vdc by uuid: {}", uuid);
+        if (!isClusterStable()) {
+            log.error("Cluster is unstable");
+            throw APIException.serviceUnavailable.clusterStateNotStable();
+        }
+
+        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
+        if (config == null) {
+            log.error("Can't find site {} from ZK", uuid);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+
+        Site standby = new Site(config);
+        if (!standby.getState().equals(SiteState.STANDBY_SYNCED)) {
+            log.error("site {} is in state {}, should be STANDBY_SYNCED", uuid, standby.getState());
+            throw APIException.badRequests.operationOnlyAllowedOnSyncedSite(uuid, standby.getState().toString());
+        }
+
+        try {
+            standby.setState(SiteState.STANDBY_PAUSED);
+            coordinator.persistServiceConfiguration(standby.toConfiguration());
+
+            VirtualDataCenter vdc = queryLocalVDC();
+
+            // exclude the paused site from strategy options of dbsvc and geodbsvc
+            String dcId = String.format("%s-%s", vdc.getShortId(), standby.getStandbyShortId());
+            ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcId);
+            ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcId);
+
+            for (Site site : getStandbySites(vdc.getId())) {
+                updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+            }
+
+            // update the local(primary) site last
+            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+
+            return siteMapper.map(standby);
+        } catch (Exception e) {
+            log.error("Error pausing site {}", uuid, e);
+            throw APIException.internalServerErrors.pauseStandbyFailed(uuid, e.getMessage());
+        }
+    }
+
+    private void updateVdcTargetVersion(String siteId, String action) throws Exception {
+        SiteInfo siteInfo;
+        SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
+        if (currentSiteInfo != null) {
+            siteInfo = new SiteInfo(System.currentTimeMillis(), action, currentSiteInfo.getTargetDataRevision());
+        } else {
+            siteInfo = new SiteInfo(System.currentTimeMillis(), action);
+        }
+        coordinator.setTargetInfo(siteId, siteInfo);
+        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
+    }
+
+    private void updateVdcTargetVersionAndDataRevision(String action) throws Exception {
+        int ver = 1;
+        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
+        if (siteInfo != null) {
+            if (!siteInfo.isNullTargetDataRevision()) {
+                String currentDataRevision = siteInfo.getTargetDataRevision();
+                ver = Integer.valueOf(currentDataRevision);
+            }
+        }
+        String targetDataRevision = String.valueOf(++ver);
+        siteInfo = new SiteInfo(System.currentTimeMillis(), action, targetDataRevision);
+        coordinator.setTargetInfo(siteInfo);
+        log.info("VDC target version updated to {}, revision {}",
+                siteInfo.getVdcConfigVersion(), targetDataRevision);
+    }
     
     /*
      * Internal method to check whether standby can be attached to current primary site
@@ -409,7 +477,8 @@ public class DisasterRecoveryService {
             String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
             String standbyDbSchemaVersion = standby.getDbSchemaVersion();
             if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
-                throw new Exception(String.format("Standby db schema version %s is not same as primary %s", standbyDbSchemaVersion, currentDbSchemaVersion));
+                throw new Exception(String.format("Standby db schema version %s is not same as primary %s",
+                        standbyDbSchemaVersion, currentDbSchemaVersion));
             }
             
             //software version should be matched
@@ -423,7 +492,8 @@ public class DisasterRecoveryService {
             }
             
             if (!isVersionMatchedForStandbyAttach(currentSoftwareVersion,standbySoftwareVersion)) {
-                throw new Exception(String.format("Standby site version %s is not equals to current version %s", standbySoftwareVersion, currentSoftwareVersion));
+                throw new Exception(String.format("Standby site version %s is not equals to current version %s",
+                        standbySoftwareVersion, currentSoftwareVersion));
             }
             
             //this site should not be standby site
@@ -475,7 +545,7 @@ public class DisasterRecoveryService {
         List<Site> result = new ArrayList<Site>();
         for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
-            if (site.getVdc().equals(vdcId) && site.getState() != SiteState.ACTIVE) {
+            if (site.getVdc().equals(vdcId) && site.getState() != SiteState.PRIMARY) {
                 result.add(site);
             }
         }
@@ -498,9 +568,9 @@ public class DisasterRecoveryService {
     }
     
     protected boolean isFreshInstallation() {
-        Configuration setupConfig = coordinator.queryConfiguration(CONFIG_KIND, CONFIG_ID);
+        Configuration setupConfig = coordinator.queryConfiguration(InitialSetup.CONFIG_KIND, InitialSetup.CONFIG_ID);
         
-        boolean freshInstall = (setupConfig == null) || Boolean.parseBoolean(setupConfig.getConfig(COMPLETE)) == false;
+        boolean freshInstall = (setupConfig == null) || !Boolean.parseBoolean(setupConfig.getConfig(InitialSetup.COMPLETE));
         log.info("Fresh installation {}", freshInstall);
         
         boolean hasDataInDB = dbClient.hasUsefulData();

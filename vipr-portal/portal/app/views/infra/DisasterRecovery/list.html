@@ -1,0 +1,10 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.config', 'nav.disasterRecovery'] /}
+
+#{DataTable.header titleKey:'disasterRecovery.title'/}
+#{DataTable.crudTable id:'disasterRecovery', 
+                      dataTable:dataTable,
+                      expandable: true, 
+                      actions: ['disasterRecovery.standby.pauseButton': @pause ,'disasterRecovery.standby.resumeButton': @resume, 'disasterRecovery.standby.testButton': @testMode],
+                      deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
+#{/DataTable.crudTable}

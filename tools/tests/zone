@@ -47,7 +47,7 @@ def zone_update(args):
 def zone_list(args):
     bourne.connect(args.ip)
     uri = bourne.networksystem_query(args.ns)
-    zones_list = bourne.zone_list(uri, args.fabricid, args.zone_name, args.exclude_members)
+    zones_list = bourne.zone_list(uri, args.fabricid, args.zone_name, args.exclude_members, args.exclude_aliases)
     zones = zones_list['san_zone']
     zone_display_fmt='{0:40s} {1:40s} {2:s}'
     print zone_display_fmt.format('Zone Name','Member Address (WWN)', 'Alias')
@@ -121,6 +121,7 @@ list.add_argument('ns',         help = 'Name of network system')
 list.add_argument('--fabricid', help = 'Name of fabric or vsan')
 list.add_argument('--zone_name', help = 'search only for zone with given name')
 list.add_argument('--exclude_members', help = 'true - to not include zone members, otherwise include zone members in listing')
+list.add_argument('--exclude_aliases', help = 'true - to not include zone aliases, otherwise include zone aliases in listing')
 
 # list of port zones for a network system
 activate = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

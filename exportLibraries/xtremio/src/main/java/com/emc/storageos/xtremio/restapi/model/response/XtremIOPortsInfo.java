@@ -14,13 +14,13 @@ public class XtremIOPortsInfo {
 
     @SerializedName("targets")
     @JsonProperty(value = "targets")
-    private XtremIOPortInfo[] portInfo;
+    private XtremIOObjectInfo[] portInfo;
 
-    public XtremIOPortInfo[] getPortInfo() {
+    public XtremIOObjectInfo[] getPortInfo() {
         return portInfo != null ? portInfo.clone() : portInfo;
     }
 
-    public void setPortInfo(XtremIOPortInfo[] portInfo) {
+    public void setPortInfo(XtremIOObjectInfo[] portInfo) {
         if (portInfo != null) {
             this.portInfo = portInfo.clone();
         }

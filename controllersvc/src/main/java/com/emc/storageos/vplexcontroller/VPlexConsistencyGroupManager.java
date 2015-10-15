@@ -11,12 +11,14 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.exceptions.DeviceControllerException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +30,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -37,6 +38,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.utils.ClusterConsistencyGroupWrapper;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -78,7 +80,32 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             log.info("No consistency group for volume creation.");
             return waitFor;
         }
+        return addStepsForCreateConsistencyGroup(workflow, waitFor, vplexSystem, vplexVolumeURIs, 
+                willBeRemovedByEarlierStep, cgURI);
+        
+    }
+    
+    /**
+     * Create consistency group and add volumes to it
+     * @param workflow The workflow
+     * @param waitFor The previous step that it needs to wait for
+     * @param vplexSystem The vplex system
+     * @param vplexVolumeURIs The vplex volumes to be added to the consistency group
+     * @param willBeRemovedByEarlierStep if the consistency group could be removed by previous step
+     * @param cgURI The consistency group URI
+     * @return
+     * @throws ControllerException
+     */
+    private String addStepsForCreateConsistencyGroup(Workflow workflow, String waitFor,
+            StorageSystem vplexSystem, List<URI> vplexVolumeURIs,
+            boolean willBeRemovedByEarlierStep, URI cgURI) throws ControllerException {
 
+        // No volumes, all done.
+        if (vplexVolumeURIs.isEmpty()) {
+            log.info(String.format("No volumes specified to add to the consistency group %s", cgURI.toString()));
+            return waitFor;
+        }
+        
         URI vplexURI = vplexSystem.getId();
         String nextStep = waitFor;
         BlockConsistencyGroup cg = null;
@@ -138,10 +165,11 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 nextStep, vplexURI, vplexSystem.getSystemType(), this.getClass(),
                 createAddVolumesToCGMethod(vplexURI, cgURI, volumeList),
                 createRemoveVolumesFromCGMethod(vplexURI, cgURI, volumeList), null);
-        log.info("Created step for add volumes to consistency group.");
+        log.info(String.format("Created step for adding volumes to the consistency group %s", cgURI.toString()));
 
         return nextStep;
     }
+
 
     /**
      * A method the creates the method to create a new VPLEX consistency group.
@@ -178,7 +206,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
 
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(cgURI, vplexURI));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(dbClient, cgURI, vplexURI));
             workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.RP_VPLEX_CG));
 
             // Get the API client.
@@ -299,9 +327,12 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             }
             log.info("Got VPLEX volume names.");
 
+            long startTime = System.currentTimeMillis();
             // Add the volumes to the CG.
             client.addVolumesToConsistencyGroup(cgName, vplexVolumeNames);
-            log.info("Added volumes to consistency group.");
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.info(String.format("TIMER: Adding %s virtual volume(s) %s to the consistency group %s took %f seconds",
+                    vplexVolumeNames.size(), vplexVolumeNames, cgName, (double) elapsed / (double) 1000));
 
             // Make sure the volumes are updated. Necessary when
             // adding volumes to a CG after volume creation.
@@ -363,7 +394,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
 
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(cgURI, vplexURI));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(dbClient, cgURI, vplexURI));
             workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.RP_VPLEX_CG));
 
             // Get the API client.
@@ -420,15 +451,29 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
 
             // Lock the CG for the duration of update CG workflow.
             List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(cgURI, vplexURI));
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(dbClient, cgURI, vplexURI));
             boolean acquiredLocks = workflowService.acquireWorkflowLocks(workflow, lockKeys, LockTimeoutValue.get(LockType.RP_VPLEX_CG));
             if (!acquiredLocks) {
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
                         "UpdateConsistencyGroup: " + cg.getLabel());
             }
-
+            
+            // The addVolumesList could be full copies or volumes. 
+            boolean isFullCopy = false;
+            if (addVolumesList != null && !addVolumesList.isEmpty()) {
+                URI volURI = addVolumesList.get(0);
+                Volume vol = getDataObject(Volume.class, volURI, dbClient);
+                isFullCopy = ControllerUtils.isVolumeFullCopy(vol, dbClient);
+            }
+            // Users could use updateConsistencyGroup operation to add backend CGs for ingested CGs.
+            // if that's the case, we will only add the backend CGs, but not add those virtual volumes to 
+            // the VPlex CG.
+            boolean isIngestedCG = isAddingBackendCGForIngestedCG(cg, addVolumesList);
+            
+            // Check if the CG has been created in VPlex yet
+            boolean isNewCg = !cg.created();
             // If necessary, create a step to update the local CGs.
-            if (cg.getTypes().contains(Types.LOCAL.toString())) {
+            if (cg.getTypes().contains(Types.LOCAL.toString()) || isIngestedCG || isNewCg) {
                 // We need to determine the backend systems that own the local CGs and the
                 // volumes to be added/removed from each. There should really only be either
                 // one of two backend systems depending upon whether or not the volumes are
@@ -476,7 +521,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             }
 
             // Now create a step to add volumes to the CG.
-            if ((addVolumesList != null) && !addVolumesList.isEmpty()) {
+            if ((addVolumesList != null) && !addVolumesList.isEmpty() && !isIngestedCG && !isNewCg && !isFullCopy) {
                 // See if the CG contains no volumes. If so, we need to
                 // make sure the visibility and storage cluster info for
                 // the VPLEX CG is correct for these volumes we are adding.
@@ -514,6 +559,9 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                         waitFor, vplexURI, vplexSystem.getSystemType(), this.getClass(),
                         addMethod, rollbackMethodNullMethod(), null);
                 log.info("Created step for add volumes to consistency group.");
+            } else if (isNewCg && addVolumesList != null && !addVolumesList.isEmpty() && !isFullCopy) {
+                addStepsForCreateConsistencyGroup(workflow, waitFor, vplexSystem, addVolumesList, false, cgURI);
+                
             }
 
             TaskCompleter completer = new VPlexTaskCompleter(BlockConsistencyGroup.class,
@@ -641,5 +689,28 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 removeMethod, removeRollbackMethod, null);
         log.info("Created step for remove volumes from consistency group.");
         return waitFor;
+    }
+    
+    /**
+     * Check if update consistency group operation is for adding back end consistency groups for ingested CG.
+     * @param cg
+     * @param addVolumesList
+     * @return true or false
+     */
+    private boolean isAddingBackendCGForIngestedCG(BlockConsistencyGroup cg, List<URI>addVolumesList) {
+        boolean result = false;
+        if (cg.getTypes().contains(Types.LOCAL.toString())) {
+            // Not ingested CG
+            return result;
+        }
+        List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, dbClient, null);
+        Set<String> cgVolumeURIs = new HashSet<String>();
+        for (Volume cgVolume : cgVolumes) {
+            cgVolumeURIs.add(cgVolume.getId().toString());
+        }
+        if (!addVolumesList.isEmpty() && cgVolumeURIs.contains(addVolumesList.get(0).toString())) {
+            result = true;
+        }
+        return result;
     }
 }

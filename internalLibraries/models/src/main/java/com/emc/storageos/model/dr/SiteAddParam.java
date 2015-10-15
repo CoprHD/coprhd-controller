@@ -17,6 +17,16 @@ public class SiteAddParam {
     private String vip;
     private String username;
     private String password;
+    private String id;
+
+    @XmlElement(name = "uuid")
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     @XmlElement(name = "name")
     public String getName() {

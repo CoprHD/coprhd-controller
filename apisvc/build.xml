@@ -39,19 +39,21 @@
     <jar jarfile="dist/storageos-${jarfile}.jar">
         <fileset dir="bin"/>
     </jar>
-    <scp file="dist/storageos-${jarfile}.jar" trust="true" todir="root:ChangeMe1!@${storageos.ip}:/opt/storageos/lib"/>
+    <scp file="dist/storageos-${jarfile}.jar" trust="true" todir="root:${storageos.passwd}@${storageos.ip}:/opt/storageos/lib"/>
     <delete dir="dist" />
   </target>
 	
   <target name="StopServices" description="Stop the StorageOS services.">
     <!--  Stop the services -->
-    <sshexec host="${storageos.ip}" username="root" password="ChangeMe1!" command="/etc/storageos/storageos stop" trust="true"/>
-    <sshexec host="${storageos.ip}" username="root" password="ChangeMe1!" command="chmod 777 /opt/storageos/lib/storageos-${jarfile}.jar" trust="true"/>
+  	<!-- This no longer worked with jsch-0.49 for some newly deployed hosts.  I upgraded to jsch-0.53 and it worked again. (actually -->
+  	<!-- with eclipse kepler, I had to rename jsch-0.53 to jsch-0.49, which is a hack) -->
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="/etc/storageos/storageos stop" trust="true"/>
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="chmod 777 /opt/storageos/lib/storageos-${jarfile}.jar" trust="true"/>
   </target>
   	
   <target name="StartServices" description="Start the StorageOS services.">
     <!--  Start the services -->
-    <sshexec host="${storageos.ip}" username="root" password="ChangeMe1!" command="/etc/storageos/storageos start" trust="true"/>
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="/etc/storageos/storageos start" trust="true"/>
   </target>	
   
 </project>

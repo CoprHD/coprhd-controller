@@ -1,0 +1,26 @@
+<div class="metricDetails">
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <dt>&{'vNasServers.storageObjects'}</dt>
+		  <dd>${vNas?.storageObjects != null? vNas?.storageObjects : messages.get('vNasServersDataTable.notApplicable') }</dd>
+	  </dl>
+	</div>
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <dt>&{'vNasServers.usedStorageCapacity'}</dt>
+		  <dd>${vNas?.usedStorageCapacity != null? (vNas?.usedStorageCapacity +" "+ messages.get('SizeUnit.GB')) : messages.get('vNasServersDataTable.notApplicable') }</dd>
+	  </dl>
+	</div>
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <dt>&{'vNasServers.avgPercentagebusy'}</dt>
+		  <dd>${vNas?.avgPercentagebusy != null? vNas?.avgPercentagebusy : messages.get('vNasServersDataTable.notApplicable') }</dd>
+	  </dl>
+	</div>
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <dt>&{'vNasServers.percentLoad'}</dt>
+		  <dd>${vNas?.percentLoad != null? vNas?.percentLoad : messages.get('vNasServersDataTable.notApplicable') }</dd>
+	  </dl>
+	</div>
+</div>

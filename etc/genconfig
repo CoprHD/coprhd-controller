@@ -378,6 +378,14 @@ _genconfig_setup_versioning_dir() {
     chown -h storageos:storageos ${curdir}
 }
 
+_genconfig_exec_boot_scripts() {
+    script="/etc/genconfig.d/boot.manifest"
+
+    for sub_script in $(cat ${script}); do
+        . "/etc/genconfig.d/${sub_script}"
+    done
+}
+
 _genconfig_init
 
 # Parse flags and hacks
@@ -417,7 +425,7 @@ if [ $# -ge 1 ]; then
     _genconfig_exit
 fi
 
-_genconfig_exec_scripts boot
+_genconfig_exec_boot_scripts
 _genconfig_exec _gen_config_version      /etc/config_version
 
 # adding compliance requirements

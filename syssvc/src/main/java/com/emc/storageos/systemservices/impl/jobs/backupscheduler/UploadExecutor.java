@@ -57,6 +57,8 @@ public abstract class UploadExecutor {
             this.cfg.reload();
             cleanupCompletedTags();
             upload();
+        } catch (Exception e) {
+            log.error("Fail to run upload backup", e);
         }
     }
 

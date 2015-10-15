@@ -90,7 +90,6 @@ public class VdcConfigHelper {
 
     public static final String ENCRYPTION_CONFIG_KIND = "encryption";
     public static final String ENCRYPTION_CONFIG_ID = "geoid";
-    public static final String LOCAL_HOST = "127.0.0.1";
 
     private final static int NODE_CHECK_TIMEOUT = 60 * 1000; // one minute
 
@@ -1014,7 +1013,7 @@ public class VdcConfigHelper {
 
         options.put(shortVdcId, vdc.getHostCount().toString());
 
-        setCassandraStrategyOptions(options, wait);
+        dbClient.getGeoContext().setCassandraStrategyOptions(options, wait);
     }
 
     public void removeStrategyOption(String shortVdcId, boolean wait) throws Exception {
@@ -1027,94 +1026,7 @@ public class VdcConfigHelper {
 
         options.remove(shortVdcId);
 
-        setCassandraStrategyOptions(options, wait);
-    }
-
-    private void setCassandraStrategyOptions(Map<String, String> options, boolean wait)
-            throws CharacterCodingException, TException, NoSuchFieldException, IllegalAccessException, InstantiationException,
-            InterruptedException, ConnectionException, ClassNotFoundException {
-        int port = InternalDbClient.DbJmxClient.DEFAULTTHRIFTPORT;
-
-        log.info("The dbclient encrypted={}", dbClient.isGeoDbClientEncrypted());
-
-        if (dbClient.isGeoDbClientEncrypted()) {
-            CliOptions cliOptions = new CliOptions();
-            List<String> args = new ArrayList<String>();
-
-            args.add("-h");
-            args.add(LOCAL_HOST);
-
-            args.add("-p");
-            args.add(Integer.toString(port));
-
-            args.add("-ts");
-            DbClientContext ctx = dbClient.getGeoContext();
-            String geoDBTrustStoreFile = ctx.getTrustStoreFile();
-            String trustStorePassword = ctx.getTrustStorePassword();
-            args.add(geoDBTrustStoreFile);
-
-            args.add("-tspw");
-            args.add(trustStorePassword);
-
-            args.add("-tf");
-            args.add(DbConfigConstants.SSLTransportFactoryName);
-
-            String[] cmdArgs = args.toArray(new String[0]);
-
-            cliOptions.processArgs(CliMain.sessionState, cmdArgs);
-        }
-
-        CliMain.connect(LOCAL_HOST, port);
-
-        String useGeoKeySpaceCmd = "use " + DbClientContext.GEO_KEYSPACE_NAME + ";";
-        CliMain.processStatement(useGeoKeySpaceCmd);
-
-        String command = genUpdateStrategyOptionCmd(options);
-        CliMain.processStatement(command);
-        CliMain.disconnect();
-
-        if (wait) {
-            waitForStrategyOptionsSynced();
-        }
-    }
-
-    private void waitForStrategyOptionsSynced() throws InterruptedException, ConnectionException {
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < SchemaUtil.MAX_SCHEMA_WAIT_MS) {
-            Map<String, List<String>> versions = dbClient.getGeoSchemaVersions();
-
-            if (versions.size() == 2) {
-                break;
-            }
-
-            log.info("waiting for schema change ...");
-            Thread.sleep(1000);
-        }
-    }
-
-    private String genUpdateStrategyOptionCmd(Map<String, String> strategyOptions) {
-        // prepare update command
-        Set<Map.Entry<String, String>> options = strategyOptions.entrySet();
-        StringBuilder updateKeySpaceCmd = new StringBuilder("update keyspace ");
-        updateKeySpaceCmd.append(DbClientContext.GEO_KEYSPACE_NAME);
-        updateKeySpaceCmd.append(" with strategy_options={");
-        boolean isFirst = true;
-        for (Map.Entry<String, String> option : options) {
-            if (isFirst) {
-                isFirst = false;
-            } else {
-                updateKeySpaceCmd.append(",");
-            }
-
-            updateKeySpaceCmd.append(option.getKey());
-            updateKeySpaceCmd.append(":");
-            updateKeySpaceCmd.append(option.getValue());
-        }
-        updateKeySpaceCmd.append("};");
-
-        String cmd = updateKeySpaceCmd.toString();
-        log.info("update keyspace cmd={}", cmd);
-        return cmd;
+        dbClient.getGeoContext().setCassandraStrategyOptions(options, wait);
     }
 
     public VirtualDataCenter getDisconnectingVdc() {

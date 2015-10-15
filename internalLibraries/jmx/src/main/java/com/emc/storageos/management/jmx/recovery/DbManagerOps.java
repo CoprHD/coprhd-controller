@@ -71,7 +71,7 @@ public class DbManagerOps implements AutoCloseable {
     private JMXConnector initJMXConnector(String svcName) throws IOException, AttachNotSupportedException, AgentLoadException,
             AgentInitializationException {
         int pid = PlatformUtils.getServicePid(svcName);
-        log.info("{} service pid {}", svcName, pid);
+        log.info("Connecting to JMX of {} service with pid {}", svcName, pid);
 
         VirtualMachine vm = VirtualMachine.attach(String.valueOf(pid));
         try {
@@ -161,6 +161,11 @@ public class DbManagerOps implements AutoCloseable {
         }
     }
 
+    public void removeDataCenter(String dcName) {
+        log.info("Removing Cassandra nodes for {}", dcName);
+        mbean.removeDataCenter(dcName);
+    }
+    
     public void startNodeRepairAndWaitFinish(boolean canResume, boolean crossVdc) throws Exception {
         if (canResume && getLastSucceededRepairStatus(true) != null) {
             log.info("Resume last successful repair");

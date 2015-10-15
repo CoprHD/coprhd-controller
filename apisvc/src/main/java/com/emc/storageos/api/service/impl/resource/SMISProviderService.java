@@ -78,6 +78,7 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
  * This information can be used to get the indications from block devices.
  * 2. User can register and deregister SMISProvider.
  * 
+ * This class is deprecated class. Use /vdc/storage-providers instead of /vdc/smis-providers.
  */
 @Deprecated
 @Path("/vdc/smis-providers")
@@ -745,7 +746,8 @@ public class SMISProviderService extends TaskResourceService {
     }
 
     /**
-     * Retrieve resource representations based on input ids.The method is deprecated. Use /vdc/storage-providers/bulk
+     * Retrieve resource representations based on input ids.
+     * The method is deprecated. Use /vdc/storage-providers/bulk
      * 
      * @param param POST data containing the id list.
      * @brief List data of SMI-S provider resources

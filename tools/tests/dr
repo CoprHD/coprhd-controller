@@ -40,6 +40,10 @@ def dr_delete_standby(args):
     bourne.connect(args.ip)
     bourne.dr_delete_standby(args.uuid)
 
+def dr_pause_standby(args):
+    bourne.connect(args.ip)
+    bourne.dr_pause_standby(args.uuid)
+
 def wait_for_state(args):
     timeCounter = 0
     modifier=''
@@ -74,7 +78,7 @@ except:
 
 # dr <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
-parser.add_argument('cmd', help = 'cmd = (add|list|get|delete|waitforstate)')
+parser.add_argument('cmd', help = 'cmd = (add|list|get|delete|pause|waitforstate)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # add dr standby
@@ -106,6 +110,10 @@ waitforsync.add_argument('sleep', help = 'sleep of waiting time', type=float)
 waitforsync.add_argument('length', help = 'the whole waiting time', type=float)
 waitforsync.add_argument('-n', action='store_true',  help = 'wait for state to NOT equal')
 
+# pause dr standby
+drpausestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drpausestandby.add_argument('uuid', help = 'uuid of standby site')
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -129,6 +137,9 @@ elif (cmd == "get"):
 elif (cmd == "delete"):
     args = drdeletestandby.parse_args()
     dr_delete_standby(args)
+elif (cmd == "pause"):
+    args = drpausestandby.parse_args()
+    dr_pause_standby(args)
 elif (cmd == "waitforstate"):
     args = waitforsync.parse_args()
     wait_for_state(args)

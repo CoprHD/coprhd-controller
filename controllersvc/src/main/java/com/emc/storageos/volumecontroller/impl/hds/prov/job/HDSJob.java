@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.httpclient.NoHttpResponseException;
 import org.milyn.payload.JavaResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -162,6 +163,12 @@ public class HDSJob extends Job implements Serializable
                     }
                 }
             }
+        } catch (NoHttpResponseException ex) {
+            _status = JobStatus.FAILED;
+            _errorDescription = ex.getMessage();
+            logger.error(String.format("HDS job not found. Marking as failed as we cannot determine status. " +
+                    "User may retry the operation to be sure: Name: %s, ID: %s, Desc: %s",
+                    getJobName(), messageId, _errorDescription), ex);
         } catch (Exception e) {
             processTransientError(messageId, trackingPeriodInMillis, e.getMessage(), e);
         } finally {

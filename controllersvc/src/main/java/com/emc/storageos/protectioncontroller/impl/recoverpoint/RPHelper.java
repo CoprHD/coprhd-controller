@@ -318,14 +318,15 @@ public class RPHelper {
                     volumeDescriptors.add(descriptor);                                        
                 }
                 
-                // if this is a virtual volume, add a descriptor for the virtual volume
-                if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
-                    // VPLEX virtual volume, no descriptor needed if this is a Source volume and the deletion type
-                    // is Remove Protection.                                        
+                // If this is a virtual volume, add a descriptor for the virtual volume
+                if (RPHelper.isVPlexVolume(volume)) {
+                    // VPLEX virtual volume                                      
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(),
                             volume.getId(), null, null);
                     String operationType = LOG_MSG_OPERATION_TYPE_DELETE;
-                    if (REMOVE_PROTECTION.equals(deletionType)) {
+                    // Add a flag to not delete this virtual volume if this is a Source volume and
+                    // the deletion type is Remove Protection
+                    if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
                         operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
                         volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);

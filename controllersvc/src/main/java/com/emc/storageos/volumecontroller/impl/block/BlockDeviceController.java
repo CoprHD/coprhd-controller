@@ -1520,21 +1520,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_TARGET
                 }, null);
+        // Check to see if there are any volumes flagged to not be fully deleted.
+        // Any flagged volumes will be removed from the list of volumes to delete.
+        List<VolumeDescriptor> descriptorsToRemove = VolumeDescriptor.getDoNotDeleteDescriptors(volumes);
+        volumes.removeAll(descriptorsToRemove);
+        
+        // If there are no volumes, just return
         if (volumes.isEmpty()) {
             return waitFor;
         }
-
-        // Check to see if there are any volumes flagged to not be fully deleted.
-        // Any flagged volumes will be removed from the list of volumes to delete.
-        List<VolumeDescriptor> descriptorsToRemove = new ArrayList<VolumeDescriptor>();
-        for (VolumeDescriptor descriptor : volumes) {
-            if (descriptor.getParameters() != null
-                    && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null) {
-                _log.info(String.format("Volume (%s) has been flagged to not be deleted, skipping delete.", descriptor.getVolumeURI()));
-                descriptorsToRemove.add(descriptor);
-            }
-        }
-        volumes.removeAll(descriptorsToRemove);
         
         // Segregate by device.
         Map<URI, List<VolumeDescriptor>> deviceMap = VolumeDescriptor.getDeviceMap(volumes);

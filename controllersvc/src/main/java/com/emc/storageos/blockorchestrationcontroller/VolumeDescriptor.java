@@ -312,6 +312,26 @@ public class VolumeDescriptor implements Serializable {
             }
         });
     }
+    
+    /**
+     * Returns all descriptors that have the PARAM_DO_NOT_DELETE_VOLUME flag set to true.
+     * 
+     * @param descriptors List of descriptors to check
+     * @return all descriptors that have the PARAM_DO_NOT_DELETE_VOLUME flag set to true
+     */
+    public static List<VolumeDescriptor> getDoNotDeleteDescriptors(List<VolumeDescriptor> descriptors) {
+        List<VolumeDescriptor> doNotDeleteDescriptors = new ArrayList<VolumeDescriptor>();
+        if (descriptors != null && !descriptors.isEmpty()) {
+            for (VolumeDescriptor descriptor : descriptors) {
+                if (descriptor.getParameters() != null
+                        && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null
+                        && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME).equals(Boolean.TRUE)) {                
+                    doNotDeleteDescriptors.add(descriptor);
+                }
+            } 
+        }
+        return doNotDeleteDescriptors;
+    }
 
     @Override
     public String toString() {

@@ -974,16 +974,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Check to see if there are any volumes flagged to not be fully deleted.
             // This will still remove the volume from it's VPLEX CG and also clean up
             // any Mirrors but will leave the Virtual Volume intact on the VPLEX.
-            List<URI> doNotFullyDeleteVolumeList = new ArrayList<URI>();
-            for (VolumeDescriptor descriptor : vplexVolumes) {
-                if (descriptor.getParameters() != null
-                        && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null) {
-                    _log.info(String.format("Volume (%s) has been flagged to not be deleted, "
-                            + "clean up Mirrors and remove from VPLEX CG only.", descriptor.getVolumeURI()));
-                    doNotFullyDeleteVolumeList.add(descriptor.getVolumeURI());
-                }
-            }
-
+            List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(vplexVolumes);
+            List<URI> doNotFullyDeleteVolumeList = VolumeDescriptor.getVolumeURIs(doNotDeleteDescriptors);
+            
             List<URI> allVplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexVolumes);
 
             // Segregate by device.
@@ -1133,16 +1126,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // Filter to get only the VPlex volumes.
         List<VolumeDescriptor> vplexVolumes = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
-                new VolumeDescriptor.Type[] {});
+                new VolumeDescriptor.Type[] {});        
+        // Check to see if there are any volumes flagged to not be fully deleted.
+        // Any flagged volumes will be removed from the list of volumes to delete.
+        List<VolumeDescriptor> descriptorsToRemove = VolumeDescriptor.getDoNotDeleteDescriptors(vplexVolumes);
+        vplexVolumes.removeAll(descriptorsToRemove);
+        
         // If there are no VPlex volumes, just return
         if (vplexVolumes.isEmpty()) {
             return waitFor;
         }
+        
         URI vplexURI = vplexVolumes.get(0).getDeviceURI();
-
+        
         // Get the VPlex Volume URIs
         List<URI> allVplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexVolumes);
-
+                
         // Add a step to the Workflow to mark the Virtual Volumes inactive.
         // Rollback does the same thing.
         waitFor = workflow.createStep(null, "Mark virtual volumes inactive", waitFor,

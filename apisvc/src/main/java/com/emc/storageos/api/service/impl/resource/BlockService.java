@@ -3813,7 +3813,20 @@ public class BlockService extends TaskResourceService {
                         new Object[] { newVpool.getId() });
             } else {
                 notSuppReasonBuff.setLength(0);
-                if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
+                // Check to see if this is a RP protected VPLEX volume and
+                // if the request is trying to remove RP protection.
+                if (volume.checkForRp() 
+                        && VirtualPool.vPoolSpecifiesProtection(currentVpool)
+                        && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+                    notSuppReasonBuff.setLength(0);
+                    if (!VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool, 
+                            _dbClient, notSuppReasonBuff)) {
+                        _log.info("VirtualPool change to Remove RP Protection for volume is not supported:: {}",
+                                notSuppReasonBuff.toString());
+                        throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                                notSuppReasonBuff.toString());
+                    }
+                } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
                     notSuppReasonBuff.setLength(0);
 
                     // If the current vpool also has Protection and High Availability, check to see if we can change the

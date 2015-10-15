@@ -406,7 +406,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
-            if (inReplicationGroup(dbClient, snapshots)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
                 snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive,
                         readOnly, taskCompleter);
             } else {
@@ -437,7 +437,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             List<BlockSnapshot> groupSnapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(blockSnapshot, dbClient);
 
             // We check the snapset size here because SIO consistency groups require more than 1 device
-            if (inReplicationGroup(dbClient, asList(blockSnapshot)) && groupSnapshots.size() > 1) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(Arrays.asList(blockSnapshot), dbClient, taskCompleter)
+                && groupSnapshots.size() > 1) {
                 snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
             } else {
                 snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);

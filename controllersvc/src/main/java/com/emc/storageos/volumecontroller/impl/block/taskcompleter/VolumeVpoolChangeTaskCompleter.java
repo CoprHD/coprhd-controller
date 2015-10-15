@@ -129,7 +129,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
         if (backendSrc != null) {
             _log.info("Rolling back virtual pool on VPLEX backend Source volume {}({})", backendSrc.getId(), backendSrc.getLabel());
 
-            volume.setVirtualPool(oldVpool);
+            backendSrc.setVirtualPool(oldVpool);
             _log.info("Set volume's virtual pool back to {}", oldVpool);
             volumesToUpdate.add(backendSrc);
 
@@ -143,7 +143,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                 if (oldHAVpool == null) { // it may not be set
                     oldHAVpool = oldVpoolObj;
                 }
-                volume.setVirtualPool(oldHAVpool.getId());
+                backendHa.setVirtualPool(oldHAVpool.getId());
                 _log.info("Set volume's virtual pool back to {}", oldHAVpool.getId());
                 volumesToUpdate.add(backendHa);
             }

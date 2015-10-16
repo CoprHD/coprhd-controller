@@ -530,12 +530,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports.get(NEW),
                     allExistPorts, _dbClient, _coordinator, poolsToMatchWithVpool);
             
+            //discover the access zone and it's network interfaces
+            discoverAccessZones(storageSystem);
+            
             // Update the virtual nas association with virtual arrays!!!
             // For existing virtual nas ports!!
             StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistPorts, null, _dbClient);
-            
-            //discover the access zone and it's network interfaces
-            discoverAccessZones(storageSystem);
             _completer.statusPending(_dbClient, "Completed Access Zone discovery");
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Isilon: %s",

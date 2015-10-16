@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.xtremio.prov.utils;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
@@ -342,5 +344,58 @@ public class XtremIOProvUtils {
                         URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
                                 system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword(), true);
         return client;
+    }
+
+    /**
+     * Refresh the XIO Providers & its client connections.
+     * 
+     * @param xioProviderList the XIO provider list
+     * @param dbClient the db client
+     * @return the list of active providers
+     */
+    public static List<URI> refreshXtremeIOConnections(final List<StorageProvider> xioProviderList,
+            DbClient dbClient, XtremIOClientFactory xtremioRestClientFactory) {
+        List<URI> activeProviders = new ArrayList<URI>();
+        for (StorageProvider provider : xioProviderList) {
+            boolean isConnectionLive = false;
+            try {
+                XtremIOClient clientFromCache = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
+                                provider.getPortNumber())), provider.getUserName(), provider.getPassword(), true);
+                if (null != clientFromCache.getXtremIOXMSVersion()) {
+                    isConnectionLive = true;
+                } else {
+                    _log.debug("Connection from cache is not valid trying with new credentials {}", provider.getProviderID());
+                    // remove the existing client connection
+                    xtremioRestClientFactory.removeRESTClient(
+                            URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
+                                    provider.getPortNumber())), provider.getUserName(), provider.getPassword());
+                    // Initialize with the new provider credentials.
+                    XtremIOClient newXIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
+                            URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
+                                    provider.getPortNumber())), provider.getUserName(), provider.getPassword(), true);
+                    if (null != newXIOClient.getXtremIOXMSVersion()) {
+                        isConnectionLive = true;
+                    }
+                }
+                // Now update provider status based on connection live check.
+                if (isConnectionLive) {
+                    provider.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED
+                            .toString());
+                    activeProviders.add(provider.getId());
+                } else {
+                    _log.info("XIO Connection is not active {}", provider.getProviderID());
+                    provider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED
+                            .toString());
+                }
+            } catch (Exception ex) {
+                _log.error("Exception occurred while validating xio client for {}", provider.getProviderID());
+                provider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED
+                        .toString());
+            } finally {
+                dbClient.updateObject(provider);
+            }
+        }
+        return activeProviders;
     }
 }

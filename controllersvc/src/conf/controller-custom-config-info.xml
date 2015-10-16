@@ -813,6 +813,24 @@
         </property>
     </bean>
     
+    <bean id="UsePhysicalNAS" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="UsePhysicalNAS"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+				<entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="false"/>
+            </map>
+        </property>
+    </bean>
+    
+    
     <bean id="portAllocationMetricsEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="PortAllocationMetricsEnabled"/>
         <property name="configType" value="SimpleValue"/>

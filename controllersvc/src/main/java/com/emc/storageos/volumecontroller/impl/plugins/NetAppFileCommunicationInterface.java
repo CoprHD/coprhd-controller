@@ -1150,6 +1150,8 @@ public class NetAppFileCommunicationInterface extends
                     .createId(UnManagedFileSystem.class));
             unManagedFileSystem.setNativeGuid(unManagedFileSystemNativeGuid);
             unManagedFileSystem.setStorageSystemUri(system.getId());
+            unManagedFileSystem.setHasExports(false);
+            unManagedFileSystem.setHasShares(false);
         }
 
         Map<String, StringSet> unManagedFileSystemInformation = new HashMap<String, StringSet>();
@@ -1173,8 +1175,8 @@ public class NetAppFileCommunicationInterface extends
 
         // On netapp Systems this currently true.
         unManagedFileSystemCharacteristics.put(
-                SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(), TRUE);
+        		UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                        .toString(), FALSE);
 
         if (null != storagePort) {
             StringSet storagePorts = new StringSet();
@@ -1873,6 +1875,9 @@ public class NetAppFileCommunicationInterface extends
                     if (!tempUnManagedSMBShareMap.isEmpty() && tempUnManagedSMBShareMap.size() > 0) {
                         unManagedFs.setUnManagedSmbShareMap(tempUnManagedSMBShareMap);
                         unManagedFs.setHasShares(true);
+                        unManagedFs.putFileSystemCharacterstics(
+                                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                                .toString(), TRUE);
                         _logger.debug("SMB Share map for NetApp UMFS {} = {}",
                                 unManagedFs.getLabel(), unManagedFs.getUnManagedSmbShareMap());
                     }
@@ -1904,18 +1909,7 @@ public class NetAppFileCommunicationInterface extends
                             unManagedCifsShareACLList.add(unManagedCifsShareACL);
                         }
                     }
-
-                    // store new SMB shares into DB
-                    if (unManagedSMBFileShareHashSet.isEmpty() && !unManagedFs.getHasExports())
-                    {
-                        unManagedFs.setHasShares(false);
-                        unManagedFs.putFileSystemCharacterstics(
-                                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_INGESTABLE.toString(), FALSE);
-                        unManagedFs.putFileSystemCharacterstics(
-                                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString(), FALSE);
-                        unManagedFs.setInactive(true);
-                        _logger.info("FS -> {} is ignored because it doesnt have exports and shares", unManagedFs.getPath());
-                    }
+                    
                     // save the object
                     {
                         _dbClient.persistObject(unManagedFs);
@@ -2118,16 +2112,32 @@ public class NetAppFileCommunicationInterface extends
                     // apply as per API SVC Validations.
                     if (!unManagedExportRules.isEmpty()) {
                         boolean isAllRulesValid = validationUtility
-                                .validateUnManagedExportRules(unManagedExportRules);
+                                .validateUnManagedExportRules(unManagedExportRules, false);
                         if (isAllRulesValid) {
                             _logger.info("Validating rules success for export {}", filesystem);
-                            newUnManagedExportRules.addAll(unManagedExportRules);
+                            for (UnManagedFileExportRule exportRule : unManagedExportRules) {
+                                UnManagedFileExportRule existingRule = checkUnManagedFsExportRuleExistsInDB(_dbClient,
+                                        exportRule.getNativeGuid());
+                                if (existingRule == null) {
+                                    newUnManagedExportRules.add(exportRule);
+                                } else {
+                                    // Remove the existing rule.
+                                    existingRule.setInactive(true);
+                                    _dbClient.persistObject(existingRule);
+                                    newUnManagedExportRules.add(exportRule);
+                                }
+                            }
                             unManagedFs.setHasExports(true);
+                            unManagedFs.putFileSystemCharacterstics(
+                                    UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                                    .toString(), TRUE);
                             _dbClient.persistObject(unManagedFs);
                             _logger.info("File System {} has Exports and their size is {}", unManagedFs.getId(),
                                     newUnManagedExportRules.size());
                         } else {
                             _logger.warn("Validating rules failed for export {}. Ignroing to import these rules into ViPR DB", filesystem);
+                            unManagedFs.setInactive(true);
+                            _dbClient.persistObject(unManagedFs);
                         }
                     }
                     // Adding this additional logic to avoid OOM

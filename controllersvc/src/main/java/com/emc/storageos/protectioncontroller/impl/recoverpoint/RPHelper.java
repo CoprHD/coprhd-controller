@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +69,10 @@ import com.google.common.base.Joiner;
  */
 public class RPHelper {
 
+    /**
+     *
+     */
+    private static final String VOL_DELIMITER = "-";
     private static final double RP_DEFAULT_JOURNAL_POLICY = 0.25;
     public static final String REMOTE = "remote";
     public static final String LOCAL = "local";
@@ -198,6 +203,7 @@ public class RPHelper {
 
         Set<URI> volumeIDs = new HashSet<URI>();
         Set<URI> protectionSetIds = new HashSet<URI>();
+        BlockConsistencyGroup cg = null;
 
         Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, reqDeleteVolumes, true);
 
@@ -216,6 +222,9 @@ public class RPHelper {
                     _log.info(String.format("Excluding Volume %s because it has no ProtectionSet reference.", vol.getId()));
                 }
             }
+            if (cg == null) {
+                cg = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+            }
         }
 
         // if we're deleting all of the volumes in this protection set, we can add the journal volumes
@@ -225,7 +234,6 @@ public class RPHelper {
             // determine if all of the source and target volumes in the protection set are on the list
             // of volumes to delete; if so, we will add the journal volumes to the list.
             // also create a list of stale volumes to be removed from the protection set
-            List<URI> protSetJournalVols = new ArrayList<URI>();
             List<String> staleVolumes = new ArrayList<String>();
             boolean wholeCG = true;
             if (protectionSet.getVolumes() != null) {
@@ -241,15 +249,18 @@ public class RPHelper {
                         } else if (!Volume.PersonalityTypes.METADATA.toString().equals(vol.getPersonality())) {
                             // the volume is either a source or target; this means there are other volumes in the rset
                             wholeCG = false;
-                        } else {
-                            protSetJournalVols.add(vol.getId());
                         }
                     }
                 }
             }
 
             if (wholeCG) {
-                volumeIDs.addAll(protSetJournalVols);
+                if (cg != null) {
+                    List<Volume> allJournals = getJournalVolumesInCg(cg);
+                    for (Volume vol : allJournals) {
+                        volumeIDs.add(vol.getId());
+                    }
+                }
             }
 
             // remove stale entries from protection set
@@ -1173,11 +1184,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     * 
+     *
      * @param sourceSizeStr size of the source volume
-     * 
+     *
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     * 
+     *
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1574,27 +1585,113 @@ public class RPHelper {
 
         return volume;
     }
-    
+
+    /**
+     * returns the list of all journal volumes in the CG
+     *
+     * @param consistencyGroup
+     * @return
+     */
+    private List<Volume> getJournalVolumesInCg(BlockConsistencyGroup consistencyGroup) {
+        List<Volume> journalVols = new ArrayList<Volume>();
+        List<Volume> volsInCg = getCgVolumes(consistencyGroup.getId(), _dbClient);
+        if (volsInCg != null) {
+            for (Volume volInCg : volsInCg) {
+                if (Volume.PersonalityTypes.METADATA.toString().equals(volInCg.getPersonality())) {
+                    journalVols.add(volInCg);
+                }
+            }
+        }
+        return journalVols;
+    }
+
+    /**
+     * returns the list of journal volumes for one site
+     *
+     * If this is a CDP volume, journal volumes from both the production and target copies are returned
+     *
+     * @param varray
+     * @param consistencyGroup
+     * @return
+     */
+    private List<Volume> getJournalVolumesForSite(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
+        List<Volume> journalVols = new ArrayList<Volume>();
+        List<Volume> volsInCg = getCgVolumes(consistencyGroup.getId(), _dbClient);
+        if (volsInCg != null) {
+            for (Volume volInCg : volsInCg) {
+                if (Volume.PersonalityTypes.METADATA.toString().equals(volInCg.getPersonality())
+                        && !NullColumnValueGetter.isNullURI(volInCg.getVirtualArray()) && volInCg.getVirtualArray().equals(varray.getId())) {
+                    journalVols.add(volInCg);
+                }
+            }
+        }
+        return journalVols;
+    }
+
+    /**
+     * returns a unique journal volume name by evaluating all journal volumes for the copy and increasing the count journal volume name is
+     * in the form varrayName-cgname-journal-[count]
+     *
+     * @param varray
+     * @param consistencyGroup
+     * @return a journal name unique within the site
+     */
+    public String createJournalVolumeName(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
+        String journalPrefix = new StringBuilder(varray.getLabel()).append(VOL_DELIMITER).append(consistencyGroup.getLabel())
+                .append(VOL_DELIMITER)
+                .append(JOURNAL).toString();
+        List<Volume> existingJournals = getJournalVolumesForSite(varray, consistencyGroup);
+
+        // filter out old style journal volumes
+        // new style journal volumes are named with the virtual array as the first component
+        List<Volume> newStyleJournals = new ArrayList<Volume>();
+        for (Volume journalVol : existingJournals) {
+            String volName = journalVol.getLabel();
+            if (volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
+                newStyleJournals.add(journalVol);
+            }
+        }
+
+        // calculate the largest index
+        int largest = 0;
+        for (Volume journalVol : newStyleJournals) {
+            String[] parts = StringUtils.split(journalVol.getLabel(), VOL_DELIMITER);
+            try {
+                int idx = Integer.parseInt(parts[parts.length - 1]);
+                if (idx > largest) {
+                    largest = idx;
+                }
+            } catch (NumberFormatException e) {
+                // this is not an error; just means the name is not in the standard format
+                continue;
+            }
+        }
+
+        String journalName = new StringBuilder(journalPrefix).append(VOL_DELIMITER).append(Integer.toString(largest + 1)).toString();
+
+        return journalName;
+    }
+
     /**
      * Determine the wwn of the volume in the format RP is looking for.  For xtremio
      * this is the 128 bit identifier.  For other array types it is the deafault.
-     * 
+     *
      * @param volumeURI the URI of the volume the operation is being performed on
      * @param dbClient
      * @return the wwn of the volume which rp requires to perform the operation
      *         in the case of xtremio this is the 128 bit identifier
      */
     public static String getRPWWn(URI volumeURI, DbClient dbClient) {
-    	Volume volume = dbClient.queryObject(Volume.class, volumeURI);    	
+    	Volume volume = dbClient.queryObject(Volume.class, volumeURI);
     	if (volume.getNativeGuid() != null && RecoverPointUtils.isXioVolume(volume.getNativeGuid())) {
     		return RecoverPointUtils.getXioNativeGuid(volume.getNativeGuid());
-    	}    	    	    	
+    	}
     	return volume.getWWN();
     }
-    
+
     /**
      * Determine if the volume being protected is provisioned on an Xtremio Storage array
-     * 
+     *
      * @param volume The volume being provisioned
      * @param dbClient DBClient object
      * @return boolean indicating if the volume being protected is provisioned on an Xtremio Storage array

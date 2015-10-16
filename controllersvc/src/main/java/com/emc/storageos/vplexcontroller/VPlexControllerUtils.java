@@ -172,18 +172,34 @@ public class VPlexControllerUtils {
      * @throws URISyntaxException
      */
     public static String getVPlexClusterName(DbClient dbClient, Volume vplexVolume) throws Exception {
-        String clusterName = null;
         // Get the virtual array from the vplex virtual volume. This will be used
         // to determine the volume's vplex cluster.
         URI vaURI = vplexVolume.getVirtualArray();
-        // Get the volume's vplex storage system so we can a handle on the vplex client
-        StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexVolume.getStorageController(), dbClient);
+        URI vplexURI = vplexVolume.getStorageController();
+        return getVPlexClusterName(dbClient, vaURI, vplexURI);
+    }
+    
+    /**
+     * Determines the cluster name based on the volume's virtual array.
+     * 
+     * @param dbClient db client
+     * @param vplexURI The vplex system URI
+     * @param vaURI The virtual array URI
+     * @return The VPlex cluster name
+     * @throws Exception
+     * @throws URISyntaxException
+     */
+    public static String getVPlexClusterName(DbClient dbClient, URI vaURI, URI vplexURI) throws Exception {
+        String clusterName = null;
+        
+        // Get the vplex storage system so we can a handle on the vplex client
+        StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, dbClient);
         VPlexApiClient client = null;
 
         try {
             client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplexSystem, dbClient);
         } catch (URISyntaxException e) {
-            throw VPlexApiException.exceptions.connectionFailure(vplexVolume.getStorageController().toString());
+            throw VPlexApiException.exceptions.connectionFailure(vplexURI.toString());
         }
 
         String vplexCluster = ConnectivityUtil.getVplexClusterForVarray(vaURI, vplexSystem.getId(), dbClient);

@@ -174,6 +174,7 @@ public class VPlexApiConstants {
     // Constants related to claimed storage volumes.
     public static final String VOLUME_NAME_PREFIX = "V";
     public static final int MAX_VOL_NAME_LENGTH = 27;
+    public static final int MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR = 47;
     public static final String DOT_OPERATOR = ".";
     public static final String UNDERSCORE_OPERATOR = "_";
     public static final String PLUS_OPERATOR = "+";

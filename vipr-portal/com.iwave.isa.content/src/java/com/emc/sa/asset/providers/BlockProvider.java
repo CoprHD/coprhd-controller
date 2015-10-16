@@ -578,7 +578,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("vplexBlockSnapshot")
-    @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType" })
+    @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "vplexVolumeWithSnapshots" })
     public List<AssetOption> getVplexBlockSnapshots(AssetOptionsContext ctx, URI projectId, String type, URI volumeOrCGId) {
         if (isVolumeType(type)) {
             List<BlockSnapshotRestRep> snapshots = api(ctx).blockSnapshots().getByVolume(volumeOrCGId);

@@ -5,7 +5,6 @@
 
 package com.emc.storageos.volumecontroller.impl.scaleio;
 
-import static com.emc.storageos.db.client.model.BlockSnapshot.inReplicationGroup;
 import static java.util.Arrays.asList;
 
 import java.net.URI;

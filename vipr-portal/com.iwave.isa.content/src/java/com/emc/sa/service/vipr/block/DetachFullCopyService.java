@@ -15,6 +15,8 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.vipr.client.Tasks;
 
 @Service("DetachFullCopy")
 public class DetachFullCopyService extends ViPRService {
@@ -40,11 +42,11 @@ public class DetachFullCopyService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             BlockStorageUtils.detachFullCopies(uris(copyIds));
         } else {
-            ConsistencyUtils.detachFullCopy(consistencyGroupId);
+            Tasks<? extends DataObjectRestRep> tasks = ConsistencyUtils.detachFullCopy(consistencyGroupId);
+            addAffectedResources(tasks);
         }
     }
 

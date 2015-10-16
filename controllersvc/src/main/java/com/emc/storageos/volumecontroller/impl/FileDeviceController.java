@@ -1634,7 +1634,7 @@ public class FileDeviceController implements FileController {
             if (fsExportMap != null && !fsExportMap.isEmpty()) {
                 // check the quota directory is exported
                 for (FileExport fileExport : fsExportMap.values()) {
-                    if (fileExport.getSubDirectory().equals(quotaName) &&
+                    if (quotaName.equals(fileExport.getSubDirectory()) &&
                             fileExport.getPath().endsWith(quotaName)) {
                         isExported = true;
                         _log.info("Delete the nfs sub directory export path {} and key {}",

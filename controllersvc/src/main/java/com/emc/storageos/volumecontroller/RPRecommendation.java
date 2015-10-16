@@ -239,8 +239,9 @@ public class RPRecommendation extends Recommendation {
    	    			
 		VirtualArray varray = dbClient.queryObject(VirtualArray.class, getVirtualArray());
 		VirtualPool vpool = getVirtualPool();
-		StoragePool storagePool = dbClient.queryObject(StoragePool.class, getSourceStoragePool());
-		StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getSourceStorageSystem());		
+		StoragePool storagePool = dbClient.queryObject(StoragePool.class, getSourceStoragePool());		
+		StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getSourceStorageSystem());
+		buff.append(String.format("%n"));
 		buff.append(printTabs + String.format("Resource Count	: %s %n", this.getResourceCount()));
 		String siteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(this.getInternalSiteName()) : "");	
 		String siteId =  this.getInternalSiteName();

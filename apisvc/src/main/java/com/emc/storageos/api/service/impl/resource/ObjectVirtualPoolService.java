@@ -31,6 +31,8 @@ import com.emc.storageos.api.mapper.VirtualPoolMapper;
 import com.emc.storageos.api.mapper.functions.MapObjectVirtualPool;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -126,6 +128,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     public ObjectVirtualPoolRestRep getObjectVirtualPool(@PathParam("id") URI id) {
         VirtualPool vpool = getVirtualPool(VirtualPool.Type.object, id);
         ObjectVirtualPoolRestRep restRep = toObjectVirtualPool(vpool);
+        restRep.setNumResources(getNumResources(vpool, _dbClient));
         if (null != vpool.getMaxRetention()) {
             restRep.setMaxRetention(vpool.getMaxRetention());
         }
@@ -272,13 +275,18 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
             throw APIException.badRequests.unexpectedValueForProperty("VPool type", VirtualPool.Type.object.name(), cos.getType());
         }
         VirtualPoolUtil.validateObjectVirtualPoolUpdateParams(cos, param, _dbClient);
+        
+        // Validate the attributes that could be change if resource is created.
+        if (getNumResources(cos, _dbClient) > 0 && checkAttributeValuesChanged(param, cos)) {
+            throw APIException.badRequests.vPoolUpdateNotAllowed("Bucket");
+        }
 
         // set common update VirtualPool Params here.
         populateCommonVirtualPoolUpdateParams(cos, param);
         if (null != param.getMaxRetention()) {
             cos.setMaxRetention(param.getMaxRetention());
         }
-
+        
         if (null != param.getSystemType()) {
             if (cos.getArrayInfo().containsKey(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                 for (String systemType : cos.getArrayInfo().get(
@@ -405,7 +413,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     private class mapObjectVirtualPoolWithResources implements Function<VirtualPool, ObjectVirtualPoolRestRep> {
         @Override
         public ObjectVirtualPoolRestRep apply(VirtualPool vpool) {
-            return VirtualPoolMapper.toObjectVirtualPool(vpool);
+            ObjectVirtualPoolRestRep resp = VirtualPoolMapper.toObjectVirtualPool(vpool);
+            resp.setNumResources(getNumResources(vpool, _dbClient));
+            return resp;
         }
     }
 
@@ -497,5 +507,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         }
 
         return vPool;
+    }
+    
+    private static Integer getNumResources(VirtualPool vpool, DbClient dbClient) {
+        return dbClient.countObjects(Bucket.class, "virtualPool", vpool.getId());
     }
 }

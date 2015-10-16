@@ -116,7 +116,9 @@ public class VPlexApiConstants {
     public static final URI URI_INVALIDATE_VOLUME_CACHE = URI.create("/vplex/virtual-volume+cache-invalidate");
     public static final URI URI_INVALIDATE_VOLUME_CACHE_STATUS = URI.create("/vplex/virtual-volume+cache-invalidate-status");
     public static final URI URI_DEVICE_DETACH_MIRROR = URI.create("/vplex/device+detach-mirror");
+    public static final URI URI_DEVICE_COLLAPSE = URI.create("/vplex/device+collapse");
     public static final URI URI_REFRESH_CONTEXT = URI.create("/vplex/ls");
+    public static final URI URI_DRILL_DOWN = URI.create("/vplex/drill-down");
 
     // Keys found in JSON responses to HTTP requests
     public static final String RESPONSE_JSON_KEY = "response";
@@ -133,6 +135,7 @@ public class VPlexApiConstants {
     public static final String REBUILD_STATUS_ERROR = "error";
     public static final String ATTRIBUTE_CG_RP_ENABLED = "recoverpoint-enabled";
     public static final String ATTRIBUTE_CG_AUTO_RESUME = "auto-resume-at-loser";
+    public static final String ATTRIBUTE_DEVICE_VISIBILITY = "visibility";
     public static final String EXCEPTION_MSG_JSON_KEY = "exception";
 
     // Constant defines the JSON key for arguments passed as POST data in
@@ -175,15 +178,17 @@ public class VPlexApiConstants {
     public static final String UNDERSCORE_OPERATOR = "_";
     public static final String PLUS_OPERATOR = "+";
     public static final String HYPHEN_OPERATOR = "-";
-    
+
     // Virtual Volume Locality
     public static final String LOCAL_VIRTUAL_VOLUME = "local";
     public static final String DISTRIBUTED_VIRTUAL_VOLUME = "distributed";
-    
-    // Virtual Volume VPD-ID 
+
+    public static final String LOCAL_DEVICE = "local";
+
+    // Virtual Volume VPD-ID
     public static final String VOLUME_WWN_PREFIX = "VPD83T3:";
-    
-    // The prefix and suffix VPlex applies to an extent when created 
+
+    // The prefix and suffix VPlex applies to an extent when created
     // for a storage volume. Note that the suffix implies that only
     // one extent is created for the storage volumes.
     public static final String EXTENT_PREFIX = "extent_";

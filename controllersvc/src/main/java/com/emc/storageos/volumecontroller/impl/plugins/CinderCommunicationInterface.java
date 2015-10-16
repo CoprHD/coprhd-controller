@@ -47,6 +47,7 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -87,7 +88,7 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
     private static final String CONFFILE = "/etc/cinder/cinder.conf";
     private static final String VOLUME_BACKEND_NAME = "volume_backend_name";
     private static final String VIPR_THICK_POOL = "vipr:is_thick_pool";
-    private static final long DEFAULT_STORAGE_POOL_SIZE = 10 * 1024 * 1024 * 1024; //10 TB
+    private static final long DEFAULT_STORAGE_POOL_SIZE = ControllerUtils.convertBytesToKBytes("10995116277760"); //10 TB in Kilo Bytes
     static final Integer timeout = 10000;           // in milliseconds
     static final Integer connectTimeout = 10000;    // in milliseconds
 
@@ -611,11 +612,11 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
         if (isThickPool) {
             pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THICK_ONLY
                     .toString());
-            pool.setMaximumThickVolumeSize(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB
+            pool.setMaximumThickVolumeSize(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB in Kilo Bytes
         } else {
             pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_ONLY
                     .toString());
-            pool.setMaximumThinVolumeSize(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB
+            pool.setMaximumThinVolumeSize(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB in Kilo Bytes
         }
         // UNSYNC_ASSOC -> snapshot, UNSYNC_UNASSOC -> clone
         StringSet copyTypes = new StringSet();
@@ -635,8 +636,8 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
          * Further these values will be adjusted as volume/snapshot gets created/deleted
          */
 
-        pool.setFreeCapacity(DEFAULT_STORAGE_POOL_SIZE); // 10 TB
-        pool.setTotalCapacity(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB
+        pool.setFreeCapacity(DEFAULT_STORAGE_POOL_SIZE); // 10 TB in Kilo Bytes
+        pool.setTotalCapacity(DEFAULT_STORAGE_POOL_SIZE);  // 10 TB in Kilo Bytes
 
         return pool;
     }

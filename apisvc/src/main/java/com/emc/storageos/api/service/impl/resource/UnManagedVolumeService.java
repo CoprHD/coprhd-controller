@@ -282,10 +282,10 @@ public class UnManagedVolumeService extends TaskResourceService {
                     processedUnManagedVolumeMap.put(unManagedVolume.getNativeGuid(), unManagedVolume);
 
                 } catch (APIException ex) {
-                    _logger.debug("APIException occurred", ex);
+                    _logger.error("APIException occurred", ex);
                     _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
                 } catch (Exception ex) {
-                    _logger.debug("Exception occurred", ex);
+                    _logger.error("Exception occurred", ex);
                     _dbClient.error(UnManagedVolume.class, unManagedVolumeUri,
                             taskId, IngestionException.exceptions.generalVolumeException(
                                     unManagedVolume.getLabel(), ex.getLocalizedMessage()));
@@ -317,7 +317,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                         StringBuffer taskStatus = taskStatusMap.get(unManagedVolume.getNativeGuid());
                         if (taskStatus == null) {
                             // No task status found. Put in a default message.
-                            taskMessage = String.format("Not all the parent/replicas of unManagedVolume %s have been ingested",
+                            taskMessage = String.format("Not all the parent/replicas of unmanaged volume %s have been ingested",
                                     unManagedVolume.getLabel());
                         } else {
                             taskMessage = taskStatus.toString();
@@ -482,7 +482,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                     String taskMessage = "";
                     if (taskStatus == null) {
                         // No task status found. Put in a default message.
-                        taskMessage = String.format("Not all the parent/replicas of unManagedVolume %s have been ingested",
+                        taskMessage = String.format("Not all the parent/replicas of unmanaged volume %s have been ingested",
                                 processedUnManagedVolume.getLabel());
                     } else {
                         taskMessage = taskStatus.toString();

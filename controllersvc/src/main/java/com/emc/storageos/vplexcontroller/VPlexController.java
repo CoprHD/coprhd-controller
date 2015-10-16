@@ -11,6 +11,7 @@ import java.util.Map;
 import com.emc.storageos.Controller;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 
 public interface VPlexController extends Controller {
@@ -248,5 +249,17 @@ public interface VPlexController extends Controller {
      * @return true if the Storage Provider connection is valid
      */
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber);
+    
+    /**
+     * Establishes group relation between volume group and full copy group.
+     *
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param fullCopy the full copy
+     * @param opId the op id
+     * @throws ControllerException the controller exception
+     */
+    public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId)
+            throws InternalException;
 
 }

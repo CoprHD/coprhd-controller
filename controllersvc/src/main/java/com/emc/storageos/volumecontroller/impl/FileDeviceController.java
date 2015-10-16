@@ -2591,6 +2591,10 @@ public class FileDeviceController implements FileController {
     private void copyToPersistNfsACL(NfsACE ace, NFSShareACL dbShareAcl,
             FileShare fs, FileDeviceInputOutput args) {
 
+        if (args.getFileSystemPath() != null) {
+            dbShareAcl.setFileSystemPath(args.getFileSystemPath());
+        }
+
         if (ace.getUser() != null) {
             dbShareAcl.setUser(ace.getUser());
         }
@@ -2607,9 +2611,7 @@ public class FileDeviceController implements FileController {
         } else {
             dbShareAcl.setSnapshotId(args.getSnapshotId());
         }
-        if (args.getFileSystemPath() != null) {
-            dbShareAcl.setFileSystemPath(args.getFileSystemPath());
-        }
+
         if (ace.getPermissions() != null) {
             dbShareAcl.setPermissions(ace.getPermissions());
         }

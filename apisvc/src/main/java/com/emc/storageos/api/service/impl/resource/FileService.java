@@ -2023,14 +2023,13 @@ public class FileService extends TaskResourceService {
         FileShare fs = queryResource(id);
         // top level acls which contains many acl inside.
 
-        /*
-         * VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-         * if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
-         * // Throw an error
-         * throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
-         * + StorageProtocol.File.NFSv4.name() + " protocol");
-         * }
-         */
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+            // Throw an error
+            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
+                    + StorageProtocol.File.NFSv4.name() + " protocol");
+        }
+
         NfsACLs acls = new NfsACLs();
         List<NfsACL> nfsAclList = new ArrayList<NfsACL>();
         List<NfsACE> nfsAceList = new ArrayList<>();
@@ -2132,14 +2131,12 @@ public class FileService extends TaskResourceService {
 
         // Check for VirtualPool whether it has NFS v4 enabled
 
-        /*
-         * VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-         * if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
-         * // Throw an error
-         * throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
-         * + StorageProtocol.File.NFSv4.name() + " protocol");
-         * }
-         */
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+            // Throw an error
+            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
+                    + StorageProtocol.File.NFSv4.name() + " protocol");
+        }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         FileController controller = getController(FileController.class, device.getSystemType());

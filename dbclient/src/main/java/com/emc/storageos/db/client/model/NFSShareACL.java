@@ -20,7 +20,7 @@ public class NFSShareACL extends FileACL {
 
     public void setSnapshotId(URI snapshotId) {
         this.snapshotId = snapshotId;
-        calculateACLIndex();
+        calculateNfsACLIndex();
         setChanged("snapshotId");
     }
 
@@ -32,33 +32,30 @@ public class NFSShareACL extends FileACL {
 
     public void setFileSystemId(URI fileSystemId) {
         this.fileSystemId = fileSystemId;
-        calculateACLIndex();
+        calculateNfsACLIndex();
         setChanged("fileSystemId");
     }
 
     @Override
-    public void calculateACLIndex() {
+    public void calculateNfsACLIndex() {
 
         StringBuffer aclIndexBuffer = new StringBuffer();
 
-        if (this.fileSystemPath != null && this.user != null) {
-            if (this.fileSystemId != null) {
-                aclIndexBuffer.append(this.fileSystemId.toString())
-                        .append(this.fileSystemPath)
-                        .append(this.domain == null ? "" : this.domain)
-                        .append(this.user);
+        if (this.fileSystemId != null && this.user != null) {
+            aclIndexBuffer.append(this.fileSystemId.toString())
+                    .append(this.fileSystemPath)
+                    .append(this.domain == null ? "" : this.domain)
+                    .append(this.user);
 
-                this.setFileSystemNfsACLIndex(aclIndexBuffer.toString());
-            }
+            this.setFileSystemNfsACLIndex(aclIndexBuffer.toString());
+        }
 
-            if (this.snapshotId != null) {
-                aclIndexBuffer.append(this.snapshotId.toString())
-                        .append(this.fileSystemPath)
-                        .append(this.domain == null ? "" : this.domain)
-                        .append(this.user);
-                this.setSnapshotNfsACLIndex(aclIndexBuffer.toString());
-            }
-
+        if (this.snapshotId != null && this.user != null) {
+            aclIndexBuffer.append(this.snapshotId.toString())
+                    .append(this.fileSystemPath)
+                    .append(this.domain == null ? "" : this.domain)
+                    .append(this.user);
+            this.setSnapshotNfsACLIndex(aclIndexBuffer.toString());
         }
 
     }

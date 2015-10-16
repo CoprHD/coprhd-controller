@@ -23,7 +23,6 @@ import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
-import com.emc.vipr.client.ViPRCoreClient;
 
 /**
  * Package level Utility class with static calls to Consistency Group Tasks
@@ -40,14 +39,6 @@ final class ConsistencyUtils {
             return true;
         }
         return VOLUME_STORAGE_TYPE.equals(storageType);
-    }
-
-    static boolean validateConsistencyGroupFullCopies(final ViPRCoreClient client, final URI consistencyGroupId) {
-        return !client.blockConsistencyGroups().getFullCopies(consistencyGroupId).isEmpty();
-    }
-
-    static boolean validateConsistencyGroupSnapshots(final ViPRCoreClient client, final URI consistencyGroupId) {
-        return !client.blockConsistencyGroups().getSnapshots(consistencyGroupId).isEmpty();
     }
 
     static Tasks<BlockConsistencyGroupRestRep> createFullCopy(URI consistencyGroupId, String name, Integer count) {

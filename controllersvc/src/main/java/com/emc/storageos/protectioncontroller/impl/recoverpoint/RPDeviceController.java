@@ -1918,7 +1918,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         _log.info(String.format("Volume %s has a null ProtectionSet reference.", volume.getId()));
                         invalidProtectionSetReferenceExists = true;
                     }
-                } else if (!protectionSet.getId().equals(volume.getProtectionSet().getURI())) {
+                } else if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())
+                        && !protectionSet.getId().equals(volume.getProtectionSet().getURI())) {
                     _log.error("Not all volumes belong to the same protection set.");
                     throw DeviceControllerExceptions.recoverpoint.cgDeleteStepInvalidParam("volumes from different protection sets");
                 }
@@ -1938,14 +1939,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             RecoverPointVolumeProtectionInfo volumeProtectionInfo = null;
             for (Volume volume : volumes) {
                 try {
-                    volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(), _dbClient));
-                    VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-                    volumeProtectionInfo.setMetroPoint(VirtualPool.vPoolSpecifiesMetroPoint(virtualPool));
+                    if (volumeProtectionInfo == null) {
+                        volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(), _dbClient));
+                        VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+                        volumeProtectionInfo.setMetroPoint(VirtualPool.vPoolSpecifiesMetroPoint(virtualPool));
+                    }
                 } catch (Exception e) {
-                    _log.warn("Looks like the volume(s) we're trying to remove from the RP appliance are no longer associated with a RP CG, continuing delete process.");
-                    WorkflowStepCompleter.stepSucceded(token);
-                    return true;
+                    // It might be the case that one of the volumes does not exist in RP because of
+                    // a previous rollback failure. So we do not want to exit this workflow step until
+                    // we verify there is protection information for at least one volume.
                 }
+            }
+
+            // If we haven't been able to find protection info for at least one volume, we know there
+            // is nothing in RP we need to cleanup.
+            if (volumeProtectionInfo == null) {
+                _log.warn("Looks like the volume(s) we're trying to remove from the RP appliance are no longer associated with a RP CG, continuing delete process.");
+                WorkflowStepCompleter.stepSucceded(token);
+                return true;
             }
 
             if (RPHelper.cgContainsSourceVolumes(_dbClient, cg.getId(), volumeIDs)) {

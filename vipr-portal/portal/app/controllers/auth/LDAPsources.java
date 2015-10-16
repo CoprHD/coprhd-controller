@@ -203,13 +203,13 @@ public class LDAPsources extends ViprResourceController {
 
         public String managerPassword;
 
-        @Required
+       
         public String searchBase;
 
-        @Required
+        
         public String searchFilter;
 
-        @Required
+       
         public String searchScope;
 
         @Required

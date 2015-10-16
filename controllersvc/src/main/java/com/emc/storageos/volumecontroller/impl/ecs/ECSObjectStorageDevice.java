@@ -57,13 +57,19 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             throws ControllerException {
         ECSApi ecsApi = getAPI(storageObj);
         BiosCommandResult result = null;
-        String bktNativeId = null;
+        String bktNativeId = null, currentOwner=null;
         try {
             _log.info("Initiated for Bucket createion. Name : {} Namespace : {}", args.getName(), args.getNamespace());
             bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool());
             ecsApi.updateBucketRetention(args.getName(), args.getNamespace(), args.getRetentionPeriod());
             ecsApi.updateBucketQuota(args.getName(), args.getNamespace(), args.getNotSizeSQ(), args.getBlkSizeHQ());
-            ecsApi.updateBucketOwner(args.getName(), args.getNamespace(), args.getOwner());
+            currentOwner = ecsApi.getBucketOwner(args.getName());
+            
+            //ECS throws error if we try to set new owner which is same as current owner
+            //This would lead to confusion as if there is an error
+            if (!currentOwner.equals(args.getOwner())) {
+            	ecsApi.updateBucketOwner(args.getName(), args.getNamespace(), args.getOwner());
+            }
             _log.info("Successfully created Bucket. Name : {} Namespace : {}", args.getName(), args.getNamespace());
             bucket.setNativeId(bktNativeId);
             completeTask(bucket.getId(), taskId, "Successfully created Bucket.");
@@ -73,7 +79,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             bucket.setInactive(true);
             if (null != bktNativeId) {
                 try {
-                    ecsApi.deleteBucket(bucket.getLabel(), bucket.getNamespace());
+                    ecsApi.deleteBucket(args.getName(), args.getNamespace());
                 } catch (Exception del) {
                     _log.error("Unable to delete the Bucket at source. Name : {} Storage : {}", bucket.getLabel(),
                             bucket.getStorageDevice());

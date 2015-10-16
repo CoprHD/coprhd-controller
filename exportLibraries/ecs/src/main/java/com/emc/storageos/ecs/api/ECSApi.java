@@ -40,6 +40,7 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_QUOTA = "/object/bucket/{0}/quota.json";
     private static final String URI_UPDATE_BUCKET_OWNER = "/object/bucket/{0}/owner.json";
     private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json?namespace={1}";
+    private static final String URI_BUCKET_INFO = "/object/bucket/{0}/info.json";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -204,7 +205,7 @@ public class ECSApi {
             response = response + response2;
             throw ECSException.exceptions.getStoragePoolsFailed(response, e);
         } finally {
-            _log.error("discovery of Pools success");
+            _log.info("discovery of Pools success");
             if (clientResp != null) {
                 clientResp.close();
             }
@@ -250,7 +251,7 @@ public class ECSApi {
         try {
             clientResp = post(URI_CREATE_BUCKET, body);
         } catch (Exception e) {
-            _log.error("Error occured while Owner update for bucket : {}", bucketName, e);
+            _log.error("Error occured while bucket base creation : {}", bucketName, e);
         } finally {
             if (null == clientResp) {
                 throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(URI_CREATE_BUCKET), 500,
@@ -296,8 +297,6 @@ public class ECSApi {
         } finally {
             if (null == clientResp) {
                 throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Owner", "no response from ECS");
-            } else if (clientResp.getStatus() == 400) {
-                _log.warn("Current user and user to be modified are same");
             } else if (clientResp.getStatus() != 200) {
                 throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Owner", getResponseDetails(clientResp));
             }
@@ -393,7 +392,48 @@ public class ECSApi {
             }
         }
     }
+    
+    /**
+     * Get current owner of the bucket
+     * 
+     * @param bucketName 	Name of the bucket
+     * @return				Owner of bucket
+     * @throws ECSException If error occurs
+     */
+    public String getBucketOwner(String bucketName) throws ECSException {
+    	ClientResponse clientResp = null;
+    	String owner = null;
 
+    	final String path = MessageFormat.format(URI_BUCKET_INFO, bucketName);
+    	try {
+    		clientResp = get(path);
+    		if (clientResp != null && clientResp.getStatus() == 200) {
+    			owner = getFieldValue(clientResp, "owner");
+    		}
+    	} catch (Exception e) {
+    		_log.error("Error occured while getting owner of bucket : {}", bucketName, e);
+    	} finally {
+    		if (clientResp == null) {
+    			throw ECSException.exceptions.getBucketOwnerFailed(bucketName, "no response");
+    		} else if (clientResp.getStatus() != 200) {
+    			String resp = getResponseDetails(clientResp);
+    			closeResponse(clientResp);
+    			throw ECSException.exceptions.getBucketOwnerFailed(bucketName, resp);
+    		}
+    		closeResponse(clientResp);
+    		return owner;
+    	}
+    }
+    
+    private ClientResponse get(final String uri) {
+        ClientResponse clientResp = _client.get_json(_baseUrl.resolve(uri), authToken);
+        if (clientResp != null && clientResp.getStatus() == 401) {
+            getAuthToken();
+            clientResp = _client.get_json(_baseUrl.resolve(uri), authToken);
+        }
+        return clientResp;
+    }
+    
     private ClientResponse post(final String uri, final String body) {
         ClientResponse clientResp = _client.post_json(_baseUrl.resolve(uri), authToken, body);
         if (clientResp.getStatus() == 401) {
@@ -431,5 +471,16 @@ public class ECSApi {
             detailedResponse = String.format("%1$s", (clientResp == null) ? "" : clientResp);
         }
         return detailedResponse;
+    }
+    
+    private String getFieldValue(ClientResponse clientResp, String field) {
+        String value = null;
+        try {
+            JSONObject jObj = clientResp.getEntity(JSONObject.class);
+            value = jObj.getString(field); 
+        } catch (Exception e) {
+            _log.error("Unable to get field value: %s", field);
+        }
+        return value;
     }
 }

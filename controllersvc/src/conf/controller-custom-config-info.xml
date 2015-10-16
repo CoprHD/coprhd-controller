@@ -813,7 +813,7 @@
         </property>
     </bean>
     
-    <bean id="UsePhysicalNAS" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    <bean id="usePhysicalNASForProvisioning" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="UsePhysicalNASForProvisioning"/>
         <property name="configType" value="SimpleValue"/>
         <property name="type" value="Boolean"/>

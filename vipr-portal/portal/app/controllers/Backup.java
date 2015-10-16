@@ -48,7 +48,7 @@ public class Backup extends Controller {
 	}
 
 	public static void cancel() {
-		create();
+		list();
 	}
 
 	@FlashException(keep = true, referrer = { "create"})

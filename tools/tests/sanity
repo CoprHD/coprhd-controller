@@ -14,9 +14,9 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>]'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>] | sanzoning'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -120,7 +120,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore)
+    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -1785,6 +1785,52 @@ vplexexport_setup() {
 vplexexport_tests() {
     echo "************* Running export-tests/vplexexport.sh  *****************"
     run export-tests/vplexexport.sh test1
+}
+
+sanzoning_setup()
+{
+    sanzoning_setup_once
+}
+
+sanzoning_setup_once()
+{
+    vmaxblock_discovery
+    vnxblock_discovery
+}
+
+# Sanzoning Tests
+sanzoning_tests()
+{
+    echo "************* Running export-tests/sanzoning.sh  *****************"
+#    run export-tests/sanzoning.sh addvolumezonecheck
+#   run export-tests/sanzoning.sh cleanup
+    run export-tests/sanzoning.sh sanzonereuse
+}
+
+vmaxblock_discovery()
+{
+    # do this only once
+    smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
+
+    if [ $QUICK -eq 0 ]; then
+       smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    fi
+
+    storagedevice discover_all --ignore_error
+}
+
+vnxblock_discovery()
+{
+    # Discover VNX block array
+    smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
+
+    if [ $QUICK -eq 0 ]; then
+       smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    else
+       smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    fi
+
+    storagedevice discover_all --ignore_error
 }
 
 ######################### Start of RecoverPoint ############################
@@ -6848,6 +6894,70 @@ output_conf(){
     echo "user=$WS_UID" >> "$file"
     echo "secretkey=$WS_SECRET" >> "$file"
     echo "bucket=${WS_SETUP_BUCKETS# }" >> "$file"
+}
+
+vplexsnap_setup()
+{
+    echo "**** Executing vplexsnap setup"
+    vplex_setup
+}
+
+vplexsnap_tests()
+{
+    echo "**** Executing VPLEX snapshot export tests"
+
+    hname=$(hostname)
+    if [ $hname = "standalone" ]; then
+        hname=$SHORTENED_HOST
+    fi
+    echo "hostname is $hname"
+
+    localVolume=$hname-${RANDOM}-VPlexLocal1
+    localSnapshot=$hname-${RANDOM}-VPlexLocalSnap
+    host=$PROJECT.lss.emc.com
+    hostLbl=$PROJECT
+    PWWN1=10:00:00:E0:7E:00:00:0F
+    WWNN1=20:00:00:E0:7E:00:00:0F
+    PWWN2=10:00:00:90:FA:18:0E:99
+    WWNN2=20:00:00:90:FA:18:0E:99
+
+    echo "**** Creating source VPLEX local volume"
+    run volume create $localVolume $PROJECT $NH cosvplexlocal $BLK_SIZE
+
+    echo "**** Creating VPLEX snapshot for source"
+    run blocksnapshot create $PROJECT/$localVolume $localSnapshot
+    blocksnapshot list $PROJECT/$localVolume
+    blocksnapshot show $PROJECT/$localVolume/$localSnapshot
+
+    echo "**** Creating VPLEX volume from snapshot"
+    blocksnapshot create_vplex_volume $PROJECT/$localVolume/$localSnapshot
+
+    echo "**** Creating host"
+    hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
+
+    echo "**** Creating initiators"
+    initiator create $hostLbl FC $PWWN1 --node $WWNN1
+    initiator create $hostLbl FC $PWWN2 --node $WWNN2
+
+    echo "**** Export VPLEX volume built from snapshot"
+    run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$localSnapshot+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
+
+    echo "**** Unexport VPLEX volume built from snapshot"
+    run export_group delete $PROJECT/$hname-1$host
+
+    echo "**** Deleting VPLEX volume built on snapshot"
+    run volume delete $PROJECT/$localSnapshot --wait
+
+    echo "**** Deleting snapshot"
+    run blocksnapshot delete $PROJECT/$localVolume/$localSnapshot
+
+    echo "**** Deleting source VPLEX local volume"
+    run volume delete $PROJECT/$localVolume --wait
+
+    echo "**** Deleting Host"
+    hosts delete $hostLbl
+
+    echo "**** Completed VPLEX snapshot export tests"
 }
 
 ${SS}_setup

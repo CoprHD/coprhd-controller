@@ -262,23 +262,18 @@ public class StoragePoolProcessor extends PoolProcessor {
             _logger.info(String.format("Maximum default limits for volume capacity in storage pool %s / %s : \n   " +
                     "max thin volume capacity: %s, max thick volume capacity: %s ",
                     pool.getPoolName(), pool.getId(), pool.getMaximumThinVolumeSize(), pool.getMaximumThickVolumeSize()));
-
-            // set default utilization/subscription limits
-            double poolSubscriptionPercent = CapacityMatcher.getMaxPoolSubscriptionPercentage(pool, _coordinator);
-            double poolUtilizationPercent = CapacityMatcher.getMaxPoolUtilizationPercentage(pool, _coordinator);
-            pool.setMaxThinPoolSubscriptionPercentage((int) poolSubscriptionPercent);
-            pool.setMaxPoolUtilizationPercentage((int) poolUtilizationPercent);
-
         }
 
         String maxSubscriptionPercent = getCIMPropertyValue(poolInstance, SmisConstants.CP_EMCMAXSUBSCRIPTIONPERCENT);
         _logger.info(String.format("Discovered maximum subscription percent of storage pool %s from array : %s ", pool.getPoolName(),
                 maxSubscriptionPercent));
-        // null value indicates "not available".
+        // null,0 values indicate "not available".
         Integer newMaxSubscriptionPercentFromArray = maxSubscriptionPercent == null ? null : new Integer(maxSubscriptionPercent);
         _logger.info(String.format("New maximum subscription percent of storage pool %s from array : %s ", pool.getPoolName(),
                 newMaxSubscriptionPercentFromArray));
-        processMaxSubscriptionPercent(newMaxSubscriptionPercentFromArray, pool, _dbClient, _eventManager);
+        processMaxSubscriptionPercent(newMaxSubscriptionPercentFromArray, pool);
+        _logger.info(String.format("StoragePool %s subscription/utilization percent limits after processing: %s / %s",
+                pool.getPoolName(), pool.getMaxThinPoolSubscriptionPercentage(), pool.getMaxPoolUtilizationPercentage()));
 
         String subscribedCapacity = getCIMPropertyValue(poolInstance, SmisConstants.CP_SUBSCRIBEDCAPACITY);
         if (null != subscribedCapacity) {
@@ -349,32 +344,48 @@ public class StoragePoolProcessor extends PoolProcessor {
         }
     }
 
-    static public void processMaxSubscriptionPercent(Integer newMaxSubscriptionPercentFromArray, StoragePool pool, DbClient dbClient,
-            RecordableEventManager eventManager) {
+    private void processMaxSubscriptionPercent(Integer newMaxSubscriptionPercentFromArray, StoragePool pool) {
 
-        // get limits in vipr
+        // get default limits from coordinator
+        int maxSubscriptionPercent = (int)CapacityMatcher.getMaxPoolSubscriptionPercentage(pool, _coordinator);
+        int maxUtilizationPercent = (int)CapacityMatcher.getMaxPoolUtilizationPercentage(pool, _coordinator);
+        _logger.info(String.format("Default max subscription/utilization percent limits in vipr: %s / %s",
+                maxSubscriptionPercent, maxUtilizationPercent));
+
+        // get pool limits in vipr
         int poolSubscriptionPercent = pool.getMaxThinPoolSubscriptionPercentage() == null ? 0 : pool.getMaxThinPoolSubscriptionPercentage();
         int poolUtilizationPercent = pool.getMaxPoolUtilizationPercentage() == null ? 0 : pool.getMaxPoolUtilizationPercentage();
         _logger.info(String.format("StoragePool %s subscription/utilization percent limits in vipr: %s / %s",
                 pool.getPoolName(), poolSubscriptionPercent, poolUtilizationPercent));
 
+        // check if we need to set pool max limits based on array limit for max subscription
+        if (isArrayLimitDefined(newMaxSubscriptionPercentFromArray)) {
+            // array limit is defined
+            if(poolSubscriptionPercent == 0 && newMaxSubscriptionPercentFromArray < maxSubscriptionPercent) {
+                // array limit is less than system default limit
+                pool.setMaxThinPoolSubscriptionPercentage(newMaxSubscriptionPercentFromArray);
+            }
+            if(poolUtilizationPercent == 0 && newMaxSubscriptionPercentFromArray < maxUtilizationPercent) {
+                // array limit is less than system default limit
+                pool.setMaxPoolUtilizationPercentage(newMaxSubscriptionPercentFromArray);
+            }
+        }
+
         Integer currentMaxSubscriptionPercentFromArray = pool.getMaxThinPoolSubscriptionPercentageFromArray();
         _logger.info(String.format("Current maximum subscription percent of storage pool %s from array in vipr : %s ",
                 pool.getPoolName(), currentMaxSubscriptionPercentFromArray));
 
-        // Currently smis uses value of 0 as indication that MaxSubscriptionPercent is not available.
+        // Currently smis uses value of 0 as indication that MaxSubscriptionPercent is not defined.
         // Some array clients explicitly set this array limit to 0 to indicate that the value is 0%.
         // The OPT was filed 448553 and it targeted for 4.6.2
-        // The plan is to use null to show that this property is not available, and 0 will show 0%.
-        // Until the fix for OPT is in, we will use 0 and null as indication for the property is not available.
-        // TODO!! Remove check for 0 when the OPT is in.
-        if (newMaxSubscriptionPercentFromArray != null && newMaxSubscriptionPercentFromArray != 0 &&
+        // Based on the OPT resolution, we use both, 0 and null, values as indication that the property is not defined.
+        if (isArrayLimitDefined(newMaxSubscriptionPercentFromArray) &&
                 newMaxSubscriptionPercentFromArray < poolSubscriptionPercent) {
             // reset vipr limit and send alert
             pool.setMaxThinPoolSubscriptionPercentage(newMaxSubscriptionPercentFromArray);
             recordBourneStoragePoolEvent(RecordableEventManager.EventType.StoragePoolUpdated,
                     pool, "Discovered pool max subscription percent is below current pool subscription limit. The limit will be reset.",
-                    RecordType.Alert, dbClient, eventManager);
+                    RecordType.Alert, _dbClient, _eventManager);
             // check if we need to reset max utilization percent in vipr
             // pool max utilization percent is always less or equal to pool max subscription percent,
             // so we do this check in this 'if' statement
@@ -383,26 +394,25 @@ public class StoragePoolProcessor extends PoolProcessor {
                 pool.setMaxPoolUtilizationPercentage(newMaxSubscriptionPercentFromArray);
                 recordBourneStoragePoolEvent(RecordableEventManager.EventType.StoragePoolUpdated,
                         pool, "Discovered pool max subscription percent is below current pool utilization limit. The limit will be reset.",
-                        RecordType.Alert, dbClient, eventManager);
+                        RecordType.Alert, _dbClient, _eventManager);
             }
-        } else if (currentMaxSubscriptionPercentFromArray != null &&
+        } else if (isArrayLimitDefined(currentMaxSubscriptionPercentFromArray) &&
                 currentMaxSubscriptionPercentFromArray == poolSubscriptionPercent &&
-                (newMaxSubscriptionPercentFromArray == null ||
+                (!isArrayLimitDefined(newMaxSubscriptionPercentFromArray)||
                 currentMaxSubscriptionPercentFromArray < newMaxSubscriptionPercentFromArray)) {
-            // In this case array limit went up from previous value and vipr max pool subscription percent is using old array value ---
+            // In this case array limit went up from previous value and max pool subscription percent is using old array value ---
             // send event that array value was increased so client may increase vipr limits if needed.
             recordBourneStoragePoolEvent(RecordableEventManager.EventType.StoragePoolUpdated,
                     pool, "Discovered pool max subscription percent is above current pool subscription limit",
-                    RecordType.Event, dbClient, eventManager);
+                    RecordType.Event, _dbClient, _eventManager);
         }
 
         // set array subscription percent in the pool
         pool.setMaxThinPoolSubscriptionPercentageFromArray(newMaxSubscriptionPercentFromArray);
-        // TODO!! Remove the "if" below when fix for OPT 448553 is in.
-        // Use 0 as not available until then.
-        if (newMaxSubscriptionPercentFromArray != null && newMaxSubscriptionPercentFromArray == 0) {
-            pool.setMaxThinPoolSubscriptionPercentageFromArray(null);
-        }
+    }
+
+    private boolean isArrayLimitDefined(Integer maxSubscriptionPercentFromArray) {
+        return (maxSubscriptionPercentFromArray != null && maxSubscriptionPercentFromArray != 0);
     }
 
     /*

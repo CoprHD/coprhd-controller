@@ -210,6 +210,8 @@ public class RPHelper {
                 volumeIDs.add(vol.getId());
                 if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
                     protectionSetIds.add(vol.getProtectionSet().getURI());
+                } else {
+                    _log.info(String.format("Excluding Volume %s because it has no ProtectionSet reference.", vol.getId()));
                 }
             }
         }
@@ -882,7 +884,8 @@ public class RPHelper {
 
         for (Volume cgTargetVolume : cgTargetVolumes) {
             // Make sure we only consider existing CG target volumes from the same virtual array
-            if (cgTargetVolume.getVirtualArray().equals(varray) && cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
+            if (cgTargetVolume.getVirtualArray().equals(varray)
+                    && cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
                 if (null != cgTargetVolume.getRpJournalVolume()) {
                     Volume targetJournal = _dbClient.queryObject(Volume.class, cgTargetVolume.getRpJournalVolume());
                     if (!cgTargetJournalsBySize.containsKey(targetJournal.getProvisionedCapacity())) {
@@ -1168,11 +1171,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     *
+     * 
      * @param sourceSizeStr size of the source volume
-     *
+     * 
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     *
+     * 
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1426,7 +1429,7 @@ public class RPHelper {
                 // Only rollback the Journals if there is only one volume in the CG and it's the one we're
                 // trying to roll back.
                 boolean lastSourceVolumeInCG = (cgSourceVolumes != null && cgSourceVolumes.size() == 1
-                                            && cgSourceVolumes.get(0).getId().equals(volume.getId()));
+                        && cgSourceVolumes.get(0).getId().equals(volume.getId()));
 
                 // Potentially rollback the journal volume
                 if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) {
@@ -1528,7 +1531,8 @@ public class RPHelper {
                 }
             }
 
-            _log.info(String.format("Rollback of RP protection changes for volume [%s] (%s) has completed.", volume.getLabel(), volume.getId()));
+            _log.info(String.format("Rollback of RP protection changes for volume [%s] (%s) has completed.", volume.getLabel(),
+                    volume.getId()));
             dbClient.persistObject(volume);
         }
     }

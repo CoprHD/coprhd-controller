@@ -155,6 +155,7 @@ URI_BLOCK_SNAPSHOTS_EXPORTS     = URI_BLOCK_SNAPSHOTS + '/exports'
 URI_BLOCK_SNAPSHOTS_UNEXPORTS   = URI_BLOCK_SNAPSHOTS + '/exports/{1},{2},{3}'
 URI_BLOCK_SNAPSHOTS_RESTORE     = URI_BLOCK_SNAPSHOTS + '/restore'
 URI_BLOCK_SNAPSHOTS_ACTIVATE    = URI_BLOCK_SNAPSHOTS + '/activate'
+URI_BLOCK_SNAPSHOTS_CREATE_VPLEX_VOLUME    = URI_BLOCK_SNAPSHOTS + '/create-vplex-volume'
 URI_BLOCK_SNAPSHOTS_TASKS       = URI_BLOCK_SNAPSHOTS + '/tasks/{1}'
 URI_VOLUME_CHANGE_VPOOL           = URI_VOLUME          + '/vpool'
 URI_VOLUME_CHANGE_VPOOL_MATCH     = URI_VOLUME          + '/vpool-change/vpool'
@@ -232,7 +233,7 @@ URI_NETWORKSYSTEM_ALIASES_FABRIC       = URI_NETWORKSYSTEM_ALIASES  + '?fabric-i
 URI_NETWORKSYSTEM_ALIASES_REMOVE       = URI_NETWORKSYSTEM_ALIASES  + '/remove'
 
 URI_NETWORKSYSTEM_ZONES           	   = URI_NETWORKSYSTEM  + '/san-fabrics/{1}/san-zones'
-URI_NETWORKSYSTEM_ZONES_QUERY      	   = URI_NETWORKSYSTEM_ZONES  + '?zone-name={2}&exclude-members={3}'
+URI_NETWORKSYSTEM_ZONES_QUERY      	   = URI_NETWORKSYSTEM_ZONES  + '?zone-name={2}&exclude-members={3}&exclude-aliases={4}'
 URI_NETWORKSYSTEM_ZONES_REMOVE         = URI_NETWORKSYSTEM_ZONES  + '/remove'
 URI_NETWORKSYSTEM_ZONES_ACTIVATE       = URI_NETWORKSYSTEM_ZONES  + '/activate'
 
@@ -2809,11 +2810,11 @@ class Bourne:
                     
                 return self.api_sync_2(o['resource']['id'], o['op_id'], self.networksystem_show_task)
 
-    def zone_list(self, uri, fabricId,zoneName, excludeMembers):
+    def zone_list(self, uri, fabricId,zoneName, excludeMembers, excludeAliases):
         if (fabricId):
             if ( zoneName == None ):
                 zoneName = ""
-            return self.api('GET', URI_NETWORKSYSTEM_ZONES_QUERY.format(uri, fabricId, zoneName,excludeMembers))     
+            return self.api('GET', URI_NETWORKSYSTEM_ZONES_QUERY.format(uri, fabricId, zoneName,excludeMembers, excludeAliases))     
         else:
             raise Exception('fabricid was not provided')
 
@@ -4962,6 +4963,14 @@ class Bourne:
     def block_snapshot_exports(self, snapshot):
         vuri = self.block_snapshot_query(snapshot).strip()
         return self.api('GET', URI_BLOCK_SNAPSHOTS_EXPORTS.format(vuri))
+
+    def block_snapshot_create_vplex_volume(self, snapshot):
+        vuri = self.block_snapshot_query(snapshot)
+        vuri = vuri.strip()
+        o = self.api('POST', URI_BLOCK_SNAPSHOTS_CREATE_VPLEX_VOLUME.format(vuri))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.block_snapshot_show_task)
+        return (o, s['state'], s['message'])
 
 #
 # protection system APIs

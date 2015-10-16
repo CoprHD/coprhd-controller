@@ -19,6 +19,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.FSExportMap;
@@ -66,6 +68,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
     private IsilonApiFactory _factory;
     private HashMap<String, String> configinfo;
+    private CustomConfigHandler customConfigHandler;
 
     private DbClient _dbClient;
 
@@ -99,8 +102,25 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
     }
-
+    
+    
     /**
+     * Get the controller config info
+     * @return
+     */
+    public CustomConfigHandler getCustomConfigHandler() {
+		return customConfigHandler;
+	}
+    
+    /**
+     * Set the controller config info
+     * @return
+     */
+	public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+		this.customConfigHandler = customConfigHandler;
+	}
+
+	/**
      * Get isilon device represented by the StorageDevice
      * 
      * @param device StorageDevice object
@@ -664,16 +684,12 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 tenantOrg = args.getTenantNameWithNoSpecialCharacters();
             }
 
+            String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.USE_PHYSICAL_NAS_FOR_PROVISIONING, "isilon", null);
+            _log.info("Use System access zone to provision filesystem? {}", usePhysicalNASForProvisioning);
+            
             String mountPath = null;
             // Update the mount path as required
-	        if (projName != null && tenantOrg != null) {
-	            mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
-	                    args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
-	                    args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
-	        } else {
-	            mountPath = String.format("%1$s/%2$s/%3$s/%4$s", IFS_ROOT, VIPR_DIR,
-	                    args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
-	        }
 	            
 	        if(vNASPath != null && vNASPath.length() > 0 && !"".equals(vNASPath.trim())) {
 	        	if (projName != null && tenantOrg != null) {
@@ -684,6 +700,19 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 		            mountPath = String.format("%1$s/%2$s/%3$s", vNASPath,
 		                    args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
 		        }
+	        }
+	        if(Boolean.valueOf(usePhysicalNASForProvisioning) && mountPath == null) {
+		        if (projName != null && tenantOrg != null) {
+		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
+		                    args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
+		                    args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
+		        } else {
+		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s", IFS_ROOT, VIPR_DIR,
+		                    args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
+		        }
+	        } else {
+	        	_log.error("Provisioning on System access zone is disabled");
+	        	throw DeviceControllerException.exceptions.createFileSystemOnPhysicalNASDisabled();
 	        }
 
             _log.info("Mount path to mount the Isilon File System {}", mountPath);

@@ -885,6 +885,37 @@ public class BlockStorageUtils {
         }
     }
 
+    
+    /**
+     * Stores the virtual pool, virtual array, project and consistency group,
+     * values for volume create services.
+     */
+    public static class NoHostVolumeParams {
+        @Param(VIRTUAL_POOL)
+        public URI virtualPool;
+        @Param(VIRTUAL_ARRAY)
+        public URI virtualArray;
+        @Param(PROJECT)
+        public URI project;
+        @Param(value = CONSISTENCY_GROUP, required = false)
+        public URI consistencyGroup;
+
+        @Override
+        public String toString() {
+            return "Virtual Pool=" + virtualPool + ", Virtual Array=" + virtualArray + ", Project=" + project
+                    + ", Consistency Group=" + consistencyGroup;
+        }
+
+        public Map<String, Object> getParams() {
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put(VIRTUAL_POOL, virtualPool);
+            map.put(VIRTUAL_ARRAY, virtualArray);
+            map.put(PROJECT, project);
+            map.put(CONSISTENCY_GROUP, consistencyGroup);
+            return map;
+        }
+    }
+    
     /**
      * Stores the name, size, and count of volumes for multi-volume create services.
      */
@@ -923,5 +954,18 @@ public class BlockStorageUtils {
         map.putAll(params.getParams());
         return map;
     }
-
+    
+    /**
+     * Helper method for creating a list of all the params for the createBlockVolumesHelper.
+     *
+     * @param table volume table
+     * @param params for volume creation
+     * @return map of all params
+     */
+    public static Map<String, Object> createNoHostVolumeParam(VolumeTable table, NoHostVolumeParams params) {
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.putAll(table.getParams());
+        map.putAll(params.getParams());
+        return map;
+    }
 }

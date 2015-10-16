@@ -6,14 +6,20 @@ package com.emc.vipr.client.core;
 
 import java.util.List;
 
-import com.sun.jersey.api.client.ClientResponse;
-
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.dr.*;
+import com.emc.storageos.model.dr.DRNatCheckParam;
+import com.emc.storageos.model.dr.DRNatCheckResponse;
+import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteConfigParam;
+import com.emc.storageos.model.dr.SiteConfigRestRep;
+import com.emc.storageos.model.dr.SiteErrorResponse;
+import com.emc.storageos.model.dr.SiteList;
+import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
+import com.sun.jersey.api.client.ClientResponse;
 
 /**
  * Disaster recovery primary/standby sites 
@@ -56,6 +62,10 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     
     public DRNatCheckResponse checkIfBehindNat(DRNatCheckParam checkParam) {
         return client.post(DRNatCheckResponse.class, checkParam, PathConstants.SITE_URL + "/natcheck");
+    }
+    
+    public SiteErrorResponse getSiteError(String uuid) {
+        return client.get(SiteErrorResponse.class, PathConstants.SITE_URL+"/"+uuid+"/error");
     }
 
     @Override

@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -40,6 +41,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSE
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -48,6 +50,7 @@ import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonClusterConfig;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
+import com.emc.storageos.isilon.restapi.IsilonNFSACL;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfo;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfoV2;
@@ -1240,27 +1243,23 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param isilonApi
      */
     private void getUnmanagedNfsShareACL(UnManagedFileSystem unManagedFileSystem,
-            HashSet<String> smbShares,
             List<UnManagedCifsShareACL> unManagedCifsShareACLList,
             StoragePort storagePort,
             String fsname,
             IsilonApi isilonApi) {
         _log.info("getUnmanagedCifsShareACL for UnManagedFileSystem file path{} - start", fsname);
-
-        // HashSet<String> smbShares = allShares.get(fsPath);
-        if (null != smbShares && !smbShares.isEmpty()) {
-            UnManagedSMBShareMap unManagedSmbShareMap = null;
-            if (null == unManagedFileSystem.getUnManagedSmbShareMap()) {
-                unManagedSmbShareMap = new UnManagedSMBShareMap(); // initialise
-                unManagedFileSystem.setUnManagedSmbShareMap(unManagedSmbShareMap);
-            }
-            unManagedSmbShareMap = unManagedFileSystem.getUnManagedSmbShareMap();
-            UnManagedSMBFileShare unManagedSMBFileShare = null;
-
-           
-
-        }
-        return;
+        
+        UnManagedNFSShareACL unManagedNFSShareACL = new UnManagedNFSShareACL();
+        
+        
+        IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(unManagedFileSystem.getPath());
+        
+        unManagedNFSShareACL.setFileSystemId(unManagedFileSystem.getId());
+        unManagedNFSShareACL.setFileSystemPath(unManagedFileSystem.getPath());
+        unManagedNFSShareACL.setUser(isilonNFSAcl.getOwner().getName());
+        unManagedNFSShareACL.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+        
+        
     }
 
     @Override

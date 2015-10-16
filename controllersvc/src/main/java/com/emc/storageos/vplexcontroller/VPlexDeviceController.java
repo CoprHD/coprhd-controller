@@ -2545,10 +2545,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         if (!volumeURIList.isEmpty()) {
                             removeVolumes = true;
                         }
-                    } else if (existingVolumes || existingInitiators) {
-                        // It won't make sense to leave the storage view with only existing volumes
-                        // or only existing initiators, so if there are existing volumes
-                        // or initiators we will delete ViPR created volumes and
+                    } else if (existingVolumes && existingInitiators) {
+                        // It won't make sense to leave the storage view with only exiting volumes
+                        // or only existing initiators, so only if there are both existing volumes
+                        // and initiators in that case we will delete ViPR created volumes and
                         // initiators.
                         _log.info("Export Mask " + exportMask.getMaskName()
                                 + " has existing volumes and initiators, so only remove user added volumes and initiator");
@@ -2680,7 +2680,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (existingVolumes || existingInitiators) {
                     _log.info("ExportMask {} still has non-ViPR-created existing volumes or initiators, "
                             + "so ViPR will not remove it from the VPLEX device", exportMask.getMaskName());
-                    _log.warn("We should not have called this method if there are existing volumes or existing initiators.");
+                    _log.warn("We should not have called this method if there are existing volumes and existing initiators.");
                 } else if (exportMask.getInactive()) {
                     _log.warn("ExportMask {} is already inactive, so there's "
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
@@ -3992,24 +3992,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         boolean otherExportGroupsPresent = !otherExportGroups.isEmpty();
         boolean existingInitiators = exportMask.getExistingInitiators() != null
                 && !exportMask.getExistingInitiators().isEmpty();
-        boolean existingVolumes = exportMask.getExistingVolumes() != null
-                && !exportMask.getExistingVolumes().isEmpty();
         boolean removeAllInits = (hostInitiatorURIs.size() >= exportMask.getInitiators().size());
 
         if (removeAllInits && !existingInitiators && !otherExportGroupsPresent) {
             _log.info("all initiators are being removed and no "
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
-            if (existingVolumes) {
-                _log.info("however, there are existing volumes, so we want to leave the storage view alone");
-            } else {
-                _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
-                Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId());
-                viewStep = workflow.createStep(DELETE_STORAGE_VIEW,
-                        String.format("Delete VPLEX Storage View %s for ExportGroup %s",
-                                exportMask.getMaskName(), exportGroup.getId()),
-                        zoneStep, vplex.getId(), vplex.getSystemType(),
-                        this.getClass(), storageViewExecuteMethod, null, null);
-            }
+            _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
+            Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId());
+            viewStep = workflow.createStep(DELETE_STORAGE_VIEW,
+                    String.format("Delete VPLEX Storage View %s for ExportGroup %s",
+                            exportMask.getMaskName(), exportGroup.getId()),
+                    zoneStep, vplex.getId(), vplex.getSystemType(),
+                    this.getClass(), storageViewExecuteMethod, null, null);
         } else if (otherExportGroupsPresent) {
 
             _log.info("there are other ExportGroups referencing ExportMask " + exportMask.getMaskName());

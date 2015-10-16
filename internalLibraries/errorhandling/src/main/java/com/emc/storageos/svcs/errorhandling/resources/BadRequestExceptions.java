@@ -748,6 +748,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidPermissionType(String permission);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidUserType(String type);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidPermissionForACL(String permission);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -776,8 +779,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException nfsACLNotFoundFound(String opType, String acl);
-
-   
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidProjectConflict(URI projectId);

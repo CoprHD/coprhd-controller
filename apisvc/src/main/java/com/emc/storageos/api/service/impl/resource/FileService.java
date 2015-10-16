@@ -2051,10 +2051,10 @@ public class FileService extends TaskResourceService {
             for (String mountpath : nfsAclMap.keySet()) {
                 NfsACL nfsAcl = new NfsACL(mountpath, nfsAclMap.get(mountpath));
                 nfsAcl.setFSMountPath(fs.getPath());
-                String getSubDir = mountpath.substring(fs.getPath().length());
-                if (getSubDir != null && !getSubDir.isEmpty()) {
+                String subDirValue = mountpath.substring(fs.getPath().length());
+                if (subDirValue != null && !subDirValue.isEmpty()) {
 
-                    nfsAcl.setSubDir(getSubDir);
+                    nfsAcl.setSubDir(subDirValue);
 
                 }
                 nfsAclList.add(nfsAcl);

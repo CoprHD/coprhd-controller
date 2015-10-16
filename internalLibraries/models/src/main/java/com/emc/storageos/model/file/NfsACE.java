@@ -31,6 +31,10 @@ public class NfsACE implements Serializable {
         ALLOW, DENY
     }
 
+    public enum NfsUserType {
+        user, group
+    }
+
     public enum NfsPermission {
         READ, WRITE, EXECUTE
     }

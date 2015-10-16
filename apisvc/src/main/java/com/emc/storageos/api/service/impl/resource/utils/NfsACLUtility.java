@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACE.NfsPermission;
 import com.emc.storageos.model.file.NfsACE.NfsPermissionType;
+import com.emc.storageos.model.file.NfsACE.NfsUserType;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
@@ -92,18 +93,38 @@ public class NfsACLUtility {
     private void validateNfsAceSyntax(List<NfsACE> nfsaces) {
 
         for (NfsACE ace : nfsaces) {
+            // PermissionType is optional , if provided check it is proper
+            if (ace.getPermissionType() != null && !ace.getPermissionType().isEmpty()) {
 
-            if (!isValidEnum(ace.getPermissionType(), NfsPermissionType.class)) {
+                if (!isValidEnum(ace.getPermissionType(), NfsPermissionType.class)) {
 
-                throw APIException.badRequests.invalidPermissionType(ace.getPermissionType());
+                    throw APIException.badRequests.invalidPermissionType(ace.getPermissionType());
+                }
             }
 
+            // user type is optional , if provided check it is proper
+            if (ace.getType() != null && !ace.getType().isEmpty()) {
+
+                if (!isValidEnum(ace.getType(), NfsUserType.class)) {
+
+                    throw APIException.badRequests.invalidUserType(ace.getType());
+                }
+            }
             for (String permission : ace.getPermissionSet()) {
                 if (!isValidEnum(permission, NfsPermission.class)) {
 
                     throw APIException.badRequests.invalidPermission(permission);
                 }
 
+            }
+            // check if two times domain is provided
+            if (ace.getDomain() != null && !ace.getDomain().isEmpty()) {
+
+                int index = ace.getUser().indexOf("\\");
+                if (index >= 0) {
+
+                    throw APIException.badRequests.multipleDomainsFound("update", ace.getDomain(), ace.getUser().substring(0, index));
+                }
             }
 
         }
@@ -184,7 +205,7 @@ public class NfsACLUtility {
 
     }
 
-    private NFSShareACL queryACLByIndex(String index) {
+    private NFSShareACL queryNFSACLByIndex(String index) {
 
         _log.info("Querying ACL in DB by alternate Id: {}", index);
 

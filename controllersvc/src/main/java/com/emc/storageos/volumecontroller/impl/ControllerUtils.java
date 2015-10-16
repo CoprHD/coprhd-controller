@@ -1245,4 +1245,23 @@ public class ControllerUtils {
         }
         return status;
     }
+
+    /**
+     * return the cause of the exception.
+     * 
+     * @param ex
+     * @return
+     */
+    public static String getMessage(final Exception ex) {
+        String cause = ex.getCause() != null ? ex.getCause().toString() : "";
+        String message = ex.getMessage() != null ? ex.getMessage() : "";
+        String error = "";
+        if (!cause.isEmpty()) {
+            error = cause;
+        }
+        if (!message.isEmpty()) {
+            error = error + "-" + message;
+        }
+        return error;
+    }
 }

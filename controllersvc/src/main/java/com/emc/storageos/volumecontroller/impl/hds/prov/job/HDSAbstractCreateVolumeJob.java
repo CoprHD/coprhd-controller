@@ -70,8 +70,6 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
             HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
 
-            JavaResult javaResult = hdsApiClient.checkAsyncTaskStatus(getHDSJobMessageId());
-
             // If terminal state update storage pool capacity and remove reservation for volumes capacity
             // from pool's reserved capacity map.
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
@@ -87,7 +85,7 @@ public abstract class HDSAbstractCreateVolumeJob extends HDSJob {
             boolean isThinVolumeRequest = checkThinVolumesRequest(getTaskCompleter().getIds(), dbClient);
             if (_status == JobStatus.SUCCESS) {
                 List<URI> volumes = new ArrayList<URI>();
-                luList = getLuListBasedOnModel(storageSystem, javaResult, isThinVolumeRequest);
+                luList = getLuListBasedOnModel(storageSystem, _javaResult, isThinVolumeRequest);
                 Iterator<LogicalUnit> luListItr = luList.iterator();
                 Calendar now = Calendar.getInstance();
                 while (luListItr.hasNext()) {

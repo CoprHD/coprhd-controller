@@ -23,6 +23,7 @@ import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.ViPRCoreClient;
 
 /**
  * Package level Utility class with static calls to Consistency Group Tasks
@@ -41,6 +42,14 @@ final class ConsistencyUtils {
         return VOLUME_STORAGE_TYPE.equals(storageType);
     }
 
+    static boolean validateConsistencyGroupFullCopies(final ViPRCoreClient client, final URI consistencyGroupId) {
+        return !client.blockConsistencyGroups().getFullCopies(consistencyGroupId).isEmpty();
+    }
+
+    static boolean validateConsistencyGroupSnapshots(final ViPRCoreClient client, final URI consistencyGroupId) {
+        return !client.blockConsistencyGroups().getSnapshots(consistencyGroupId).isEmpty();
+    }
+
     static Tasks<BlockConsistencyGroupRestRep> createFullCopy(URI consistencyGroupId, String name, Integer count) {
         int countValue = (count != null) ? count : 1;
         Tasks<BlockConsistencyGroupRestRep> copies = execute(new CreateConsistencyGroupFullCopy(consistencyGroupId, name, countValue));
@@ -54,16 +63,16 @@ final class ConsistencyUtils {
         return tasks;
     }
 
-    static Tasks<BlockConsistencyGroupRestRep> restoreFullCopy(URI consistencyGroupId, URI fullCopyId) {
-        return execute(new RestoreConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
+    static Tasks<BlockConsistencyGroupRestRep> restoreFullCopy(URI consistencyGroupId) {
+        return execute(new RestoreConsistencyGroupFullCopy(consistencyGroupId));
     }
 
     static Tasks<BlockConsistencyGroupRestRep> detachFullCopy(URI consistencyGroupId, URI fullCopyId) {
         return execute(new DetachConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
     }
 
-    static Tasks<BlockConsistencyGroupRestRep> resynchronizeFullCopy(URI consistencyGroupId, URI fullCopyId) {
-        return execute(new ResynchronizeConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
+    static Tasks<BlockConsistencyGroupRestRep> resynchronizeFullCopy(URI consistencyGroupId) {
+        return execute(new ResynchronizeConsistencyGroupFullCopy(consistencyGroupId));
     }
 
     static Tasks<BlockConsistencyGroupRestRep> activateFullCopy(URI consistencyGroupId, URI fullCopyId) {

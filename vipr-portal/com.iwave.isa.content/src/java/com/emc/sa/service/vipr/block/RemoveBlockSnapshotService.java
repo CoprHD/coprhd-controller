@@ -24,7 +24,7 @@ public class RemoveBlockSnapshotService extends ViPRService {
     @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;
 
-    @Param(CONSISTENCY_GROUP)
+    @Param(value = CONSISTENCY_GROUP, required = false)
     protected URI consistencyGroupId;
 
     @Param(SNAPSHOTS)

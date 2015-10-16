@@ -425,6 +425,28 @@ public class CinderHelpers{
     	
     	return objStats;
     }
+    
+    /**
+     * Get Consistency Group Snapshot Uris
+     * @param consistencyGroupsUris
+     * @return URI list
+     */
+    public URIQueryResultList getConsistencyGroupSnapshotUris(URIQueryResultList consistencyGroupsUris) {
+        URIQueryResultList blockSnapshotUris = new URIQueryResultList();
+        if (consistencyGroupsUris != null) {
+            for (URI blockCGUri : consistencyGroupsUris) {
+                BlockConsistencyGroup blockCG = _dbClient.queryObject(
+                        BlockConsistencyGroup.class, blockCGUri);
+                URIQueryResultList snapshotUris = new URIQueryResultList();
+                if (null != blockCG && !(blockCG.getInactive())) {
+                    _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup(blockCG.getId()),
+                            snapshotUris);
+                    blockSnapshotUris.addAll(snapshotUris);
+                }
+            }
+        }
+        return blockSnapshotUris;
+    }
         
     
 }

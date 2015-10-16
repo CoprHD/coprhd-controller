@@ -442,6 +442,18 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.cinder.ConsistencyGroupService">
                     <property name="dbClient" ref="dbclient"/>
                 </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.ConsistencyGroupSnapshotService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="placementManager" ref="placementManager"/>
+                    <property name="blockServiceApis">
+                    <map>
+                        <entry key="group" value-ref="defaultBlockServiceApiImpl" />
+                        <entry key="vplex" value-ref="vplexBlockServiceApiImpl" />
+                        <entry key="rp" value-ref="rpBlockServiceApiImpl" />
+                    </map>
+                    </property>
+                </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.cinder.SnapshotService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="placementManager" ref="placementManager"/>

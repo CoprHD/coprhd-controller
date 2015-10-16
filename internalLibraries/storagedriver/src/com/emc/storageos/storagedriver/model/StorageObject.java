@@ -19,7 +19,7 @@ public class StorageObject {
 
     }
 
-    // Consistency group for this storage object. Type: input/output.
+    // NativeID of Consistency group for this storage object. Type: input/output.
     private String consistencyGroup;
 
     private CommonStorageCapabilities commonCapabilities;

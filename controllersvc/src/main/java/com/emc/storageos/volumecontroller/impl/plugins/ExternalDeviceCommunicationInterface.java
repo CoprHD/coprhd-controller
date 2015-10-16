@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.storagedriver.DiscoveryDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
@@ -30,6 +31,28 @@ public class ExternalDeviceCommunicationInterface extends
     private Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
     private Map<String, AbstractStorageDriver> _drivers;
     private DbClient _dbClient;
+
+    // Initialized drivers map
+    private Map<String, DiscoveryDriver> discoveryDrivers;
+
+
+    private DiscoveryDriver getDriver(String driverType) {
+        // look up driver
+        DiscoveryDriver discoveryDriver = discoveryDrivers.get(driverType);
+        if (discoveryDriver != null) {
+            return discoveryDriver;
+        } else {
+            // init driver
+            AbstractStorageDriver driver = _drivers.get(driverType);
+            if (driver == null) {
+                _log.info("No driver entry defined for device type: {} . ", driverType);
+                return null;
+            }
+            init(driver);
+            discoveryDrivers.put(driverType, driver);
+            return driver;
+        }
+    }
 
 
     private void init(AbstractStorageDriver driver) {
@@ -56,13 +79,11 @@ public class ExternalDeviceCommunicationInterface extends
 
         // Get discovery driver class based on storage device type
         String deviceType = accessProfile.getSystemType();
-        AbstractStorageDriver driver = _drivers.get(deviceType);
+        DiscoveryDriver driver = getDriver(deviceType);
         if (driver == null) {
             _log.info("No driver entry defined for device type: {} . ", deviceType);
             return;
         }
-
-        init(driver);
 
         try {
             // discover storage system
@@ -79,7 +100,7 @@ public class ExternalDeviceCommunicationInterface extends
         }
     }
 
-    private void discoverStorageSystem(AbstractStorageDriver driver, AccessProfile accessProfile)
+    private void discoverStorageSystem(DiscoveryDriver driver, AccessProfile accessProfile)
             throws BaseCollectionException {
         StorageSystem storageSystem = new StorageSystem();
         storageSystem.setIpAddress(accessProfile.getIpAddress());
@@ -131,12 +152,12 @@ public class ExternalDeviceCommunicationInterface extends
         }
     }
 
-    private void discoverStoragePools(AbstractStorageDriver driver, AccessProfile accessProfile)
+    private void discoverStoragePools(DiscoveryDriver driver, AccessProfile accessProfile)
             throws BaseCollectionException {
 
     }
 
-    private void discoverStoragePorts(AbstractStorageDriver driver, AccessProfile accessProfile)
+    private void discoverStoragePorts(DiscoveryDriver driver, AccessProfile accessProfile)
             throws BaseCollectionException {
 
     }

@@ -78,7 +78,7 @@ public interface BlockStorageDriver extends StorageDriver {
      * @param capabilities
      * @return
      */
-    public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities);
+    public DriverTask  deleteVolumeSnapshot(List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities);
 
     // Block clone operations
 
@@ -201,7 +201,47 @@ public interface BlockStorageDriver extends StorageDriver {
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
                                                     List<CapabilityInstance> capabilities);
 
+    // Consistency group operations.
+    /**
+     * Create block consistency group.
+     * @param consistencyGroup input/output
+     * @return
+     */
+    public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup);
 
+    /**
+     * Create snapshot of consistency group.
+     * @param consistencyGroup input parameter
+     * @param snapshot   output parameter
+     * @param capabilities
+     * @return
+     */
+    public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, VolumeSnapshot snapshot,
+                                                     List<CapabilityInstance> capabilities);
+
+    /**
+     * Delete snapshot.
+     * @param snapshot  Input.
+     * @return
+     */
+    public DriverTask deleteConsistencyGroupSnapshot(VolumeSnapshot snapshot);
+
+    /**
+     * Create clone.
+     * @param consistencyGroup input/output
+     * @param clone output
+     * @param capabilities input
+     * @return
+     */
+    public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, VolumeClone clone,
+                                                     List<CapabilityInstance> capabilities);
+
+    /**
+     * Delete clone
+     * @param clone  output
+     * @return
+     */
+    public DriverTask deleteConsistencyGroupClone(VolumeClone clone);
 
 
 }

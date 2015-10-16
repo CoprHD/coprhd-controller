@@ -359,9 +359,24 @@
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
     </bean>
 
+    <!-- Storage drivers -->
     <bean id="externalBlockStorageDevice" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalBlockStorageDevice">
         <property name="dbClient" ref="dbclient"/>
+        <property name="locker" ref="locker"/>
+        <property name="drivers">
+            <map>
+                <entry key="scaleio" value-ref="scaleioStorageDriver"/>
+                <entry key="cloudarray" value-ref="cloudarrayStorageDriver"/>
+            </map>
+        </property>
     </bean>
+
+    <bean id="scaleioStorageDriver" class="com.emc.storageos.driver.scaleio.ScaleioStorageDriver">
+    </bean>
+    <bean id="cloudarrayStorageDriver" class="com.emc.storageos.driver.cloudarray.CloudArrayStorageDriver">
+    </bean>
+
+    <!-- Storage drivers End -->
 
     <bean id="vmaxFindProviderFactory" class="com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory">
         <constructor-arg ref="dbclient" />

@@ -78,6 +78,9 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             _log.info("Removed volumes: {}", Joiner.on(',').join(removedBlockObjectsMap.keySet()));
             
             // If ExportPathParameter block is present, and volumes are added, capture ExportPathParameters arguments.
+            // This looks weird, but isn't. We use the added volumes from ExportCreateParam instead of addedBlockObjectsMap
+            // because the user may want to change the parameters for volumes that are already exported. In this way,
+            // the same volume can have different parameters to different hosts.
             Map<URI, Integer> addedVolumeParams = exportGroupService.getChangedVolumes(exportUpdateParam, true);
             ExportPathParams exportPathParam = null;
             if (exportUpdateParam.getExportPathParameters() != null && !addedVolumeParams.keySet().isEmpty()) {
@@ -85,6 +88,8 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
                         exportUpdateParam.getExportPathParameters(), exportGroup, addedVolumeParams.keySet());
                 exportGroupService.addBlockObjectsToPathParamMap(addedVolumeParams.keySet(), exportPathParam.getId(), exportGroup);
             }
+            // Remove the block objects being deleted from any existing path parameters.
+            exportGroupService.removeBlockObjectsFromPathParamMap(removedBlockObjectsMap.keySet(), exportGroup);
 
             // Validate updated entries
             List<URI> newInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());

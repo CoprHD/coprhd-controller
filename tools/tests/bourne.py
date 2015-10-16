@@ -4607,7 +4607,10 @@ class Bourne:
 
         o = self.api('POST', URI_EXPORTGROUP_LIST, parms)
         self.assert_is_dict(o)
-	s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        try:
+	    s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        except:
+            print o
         return (o, s)
 
     def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList, pathParam):

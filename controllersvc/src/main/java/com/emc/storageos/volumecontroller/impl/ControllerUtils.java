@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -54,8 +55,10 @@ import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEvent;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
 import com.google.common.base.Joiner;
@@ -66,6 +69,8 @@ import com.google.common.collect.ListMultimap;
  * Utilities class encapsulates controller utility methods.
  */
 public class ControllerUtils {
+
+    private static final String SMI81_VERSION_STARTING_STR = "V8.1";
 
     // Logger reference.
     private static final Logger s_logger = LoggerFactory.getLogger(ControllerUtils.class);
@@ -116,7 +121,7 @@ public class ControllerUtils {
             tenantOrgURI = URI.create(TenantOrg.PROVIDER_TENANT_ORG);
         }
 
-        s_logger.debug("Returning tenant {} for project {}.", new Object[]{tenantOrgURI, projectURI});
+        s_logger.debug("Returning tenant {} for project {}.", new Object[] { tenantOrgURI, projectURI });
 
         return tenantOrgURI;
     }
@@ -892,14 +897,14 @@ public class ControllerUtils {
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
-            .getSnapshotReplicationGroupInstanceConstraint(replicationGroupInstance),
-            uriQueryResultList);
+                .getSnapshotReplicationGroupInstanceConstraint(replicationGroupInstance),
+                uriQueryResultList);
         Iterator<BlockSnapshot> snapIterator = dbClient.queryIterativeObjects(BlockSnapshot.class,
                 uriQueryResultList);
         while (snapIterator.hasNext()) {
-        	BlockSnapshot snapshot = snapIterator.next();
+            BlockSnapshot snapshot = snapIterator.next();
             if (snapshot != null && !snapshot.getInactive()) {
-            	snapshots.add(snapshot);
+                snapshots.add(snapshot);
             }
         }
         return snapshots;
@@ -964,7 +969,7 @@ public class ControllerUtils {
     /**
      * Check if CG has any group relationship
      *
-     * Note - on array side,  if replica has been removed from replication group, but source volume has not been removed from CG yet,
+     * Note - on array side, if replica has been removed from replication group, but source volume has not been removed from CG yet,
      * the CG will not have group relationship until the source volume get removed from the CG.
      *
      * As a result, getting associator names cannot be used to check if CG has group relationship.
@@ -1021,7 +1026,8 @@ public class ControllerUtils {
         return false;
     }
 
-    /** Gets snapshot replication group names from clones of all volumes in CG.
+    /**
+     * Gets snapshot replication group names from clones of all volumes in CG.
      *
      * @param volumes
      * @param dbClient
@@ -1057,7 +1063,7 @@ public class ControllerUtils {
     /**
      * Gets clone replication group names from clones of all volumes in CG.
      */
-    public static Set<String> getCloneReplicationGroupNames(List<Volume> volumes , DbClient dbClient) {
+    public static Set<String> getCloneReplicationGroupNames(List<Volume> volumes, DbClient dbClient) {
         Set<String> groupNames = new HashSet<String>();
 
         // check if replica of any of these volumes have replicationGroupInstance set
@@ -1131,30 +1137,67 @@ public class ControllerUtils {
     }
 
     /**
-     * Given a list of BlockSnapshot objects, determine if they were created as part of a
-     * consistency group.
+     * Returns true, if a snapshot is part of a consistency group, false otherwise.
+     * In addition to this, if a non-null {@link TaskCompleter} is provided the {@BlockConsistencyGroup} instance
+     * added to it.
      *
-     * @param snapshotList
-     *            [required] - List of BlockSnapshot objects
-     * @return true if the BlockSnapshots were created as part of volume consistency group.
-     * */
-    public static boolean inReplicationGroup(final List<BlockSnapshot> snapshotList, DbClient dbClient) {
-        boolean isCgCreate = false;
-        if (snapshotList.size() == 1) {
-            // snapshots will only have a single block consistency group
-            BlockSnapshot snapshot = snapshotList.get(0);
-            if (!NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup())) {
-                final URI cgId = snapshot.getConsistencyGroup();
-                if (cgId != null) {
-                    final BlockConsistencyGroup group = dbClient.queryObject(
-                            BlockConsistencyGroup.class, cgId);
-                    isCgCreate = group != null;
-                }
+     * @param snapshots List of snapshot URI's
+     * @param dbClient DbClient instance
+     * @param completer Optional TaskCompleter instance.
+     * @return true/false dependent on a snapshot being part of a consistency group.
+     */
+    public static boolean checkSnapshotsInConsistencyGroup(List<BlockSnapshot> snapshots, DbClient dbClient,
+            TaskCompleter completer) {
+        BlockConsistencyGroup group = ConsistencyUtils.getSnapshotsConsistencyGroup(snapshots, dbClient);
+        if (group != null) {
+            if (completer != null) {
+                completer.addConsistencyGroupId(group.getId());
             }
-        } else if (snapshotList.size() > 1) {
-            isCgCreate = true;
+            return true;
         }
-        return isCgCreate;
+        return false;
+    }
+
+    /**
+     * Returns true, if the clone is part of a consistency group, false otherwise.
+     * In addition to this, if a non-null {@link TaskCompleter} is provided the {@BlockConsistencyGroup} instance
+     * added to it.
+     *
+     * @param clone URI of the clone/fullcopy
+     * @param dbClient DbClient instance
+     * @param completer Optional TaskCompleter instance.
+     * @return true/false dependent on the clone being part of a consistency group.
+     */
+    public static boolean checkCloneConsistencyGroup(URI clone, DbClient dbClient, TaskCompleter completer) {
+        BlockConsistencyGroup group = ConsistencyUtils.getCloneConsistencyGroup(clone, dbClient);
+        if (group != null) {
+            if (completer != null) {
+                completer.addConsistencyGroupId(group.getId());
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true, if a mirror is part of a consistency group, false otherwise.
+     * In addition to this, if a non-null {@link TaskCompleter} is provided the {@BlockConsistencyGroup} instance
+     * added to it.
+     *
+     * @param mirrors List of mirror URIs
+     * @param dbClient DbClient instance
+     * @param completer Optional TaskCompleter instance.
+     * @return true/false dependent on the clone being part of a consistency group.
+     */
+    public static boolean checkMirrorConsistencyGroup(List<URI> mirrors, DbClient dbClient, TaskCompleter completer) {
+        BlockConsistencyGroup group = ConsistencyUtils.getMirrorsConsistencyGroup(mirrors, dbClient);
+        if (group != null) {
+            if (completer != null) {
+                completer.addConsistencyGroupId(group.getId());
+            }
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -1167,5 +1210,43 @@ public class ControllerUtils {
     public static boolean isVmaxVolumeUsing803SMIS(Volume volume, DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
+    }
+
+    /**
+     * Check whether the given storage system is managed by SMI 8.1
+     * 
+     * @param storage
+     * @param dbClient
+     * @return status
+     */
+    public static boolean isVmaxUsing81SMIS(StorageSystem storage, DbClient dbClient) {
+        boolean status = false;
+        if (storage != null) {
+            StorageProvider provider = dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
+            if (provider != null) {
+                String providerVersion = provider.getVersionString();
+                status = providerVersion != null && providerVersion.startsWith(SMI81_VERSION_STARTING_STR);
+            }
+        }
+        return status;
+    }
+
+    /**
+     * return the cause of the exception.
+     * 
+     * @param ex
+     * @return
+     */
+    public static String getMessage(final Exception ex) {
+        String cause = ex.getCause() != null ? ex.getCause().toString() : "";
+        String message = ex.getMessage() != null ? ex.getMessage() : "";
+        String error = "";
+        if (!cause.isEmpty()) {
+            error = cause;
+        }
+        if (!message.isEmpty()) {
+            error = error + "-" + message;
+        }
+        return error;
     }
 }

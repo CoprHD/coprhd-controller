@@ -55,11 +55,44 @@ copyConfs.finalizedBy(copyBinaryFiles)
 
 task generateConfigDefaults(dependsOn: copyConfs) << {
     def properties = new Properties()
-    def metadata = new XmlSlurper().parse(file("${workingDir}/conf/sys-metadata-var.xml"))
-    metadata.children().each { bean->
-        def name = bean.@id
-        def value = bean.property.find { it.@name == 'value' }?.@value
-        properties.setProperty("${name}", "${value}")
+
+    def definitions = ["storageos-properties-config.def","storageos-properties-iterable.def","storageos-properties-ovfenv.def"]
+    definitions.each { definition ->
+        File metadataFile = new File("${rootProject.projectDir}/packaging/"+definition)
+        def metadatas = [[:]]
+        // Split each line using whitespace:whitespace as the delimeter.
+        metadataFile.splitEachLine(/\s:\s/) { items ->
+            // Lines that did not have the delimeter will have 1 item.
+            // Add a new map to the end of the metadatas list.
+            if(items.size() == 1 && metadatas[-1] != [:]) {
+                metadatas << [:]
+            }
+            else if(items.size() == 1) return
+            else {
+                // Multiple assignment, items[0] => key and items[1] => value
+                // replace ${iter} and ${node_count} with 1 for standalone
+                items.eachWithIndex { item, index ->
+                    items[index]=item.replaceAll(/\$\{iter\}/,"1").replaceAll(/\$\{node_count\}/,"1")
+                }
+                def (key, value) = items
+                //clean up key and value
+                key=key.replaceAll("\\s","")
+                value=value.replaceAll(/"/, '').replaceAll(',','')
+                //replace secrets
+                if(value.contains('@{')) {
+                    value=value.replaceAll(/\@\{/,'').replaceAll(/\}/,'')
+                    File secretFile = new File("${rootProject.projectDir}/packaging/"+value)
+                    value = secretFile.text.replaceAll("\\n","\\\\n")
+                }
+                metadatas[-1][key] = value
+            }
+        }
+
+        metadatas.eachWithIndex { metadata, index ->
+            if(metadata.key != null && metadata.value != null){
+                properties.setProperty(metadata.key,metadata.value)
+            }
+        }
     }
     
     def input = file("etc/config.defaults").newInputStream()

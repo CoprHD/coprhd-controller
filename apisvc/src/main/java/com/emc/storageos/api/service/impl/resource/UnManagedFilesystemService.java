@@ -324,8 +324,12 @@ public class UnManagedFilesystemService extends TaggedResource {
                 Long lusedCapacity = Long.valueOf(usedCapacity);
                 // pool uri cannot be null
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
-                StoragePort port = _dbClient.queryObject(StoragePort.class,
-                        URI.create(storagePortUri));
+                
+                StoragePort port = null;
+                if(storagePortUri != null ) {
+                    port = _dbClient.queryObject(StoragePort.class, URI.create(storagePortUri));
+                }
+                
                 StorageHADomain dataMover = null;
                 if (port != null && port.getStorageHADomain() != null) {
                     dataMover = _dbClient.queryObject(StorageHADomain.class, port.getStorageHADomain());

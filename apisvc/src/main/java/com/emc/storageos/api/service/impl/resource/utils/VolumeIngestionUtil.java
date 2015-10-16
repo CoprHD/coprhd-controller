@@ -1108,10 +1108,8 @@ public class VolumeIngestionUtil {
 
         Map<String, Integer> wwnToHluMap = extractWwnToHluMap(eligibleMask, dbClient);
 
-        ExportMaskUtils.initializeExportMaskWithVolumes(
-                system, exportGroup, eligibleMask.getMaskName(), exportMaskLabel, allInitiators,
-                null, storagePortUris, eligibleMask.getZoningMap(), volume, 
-                eligibleMask.getUnmanagedInitiatorNetworkIds(),
+        ExportMaskUtils.initializeExportMaskWithVolumes(system, exportGroup, eligibleMask.getMaskName(), exportMaskLabel, allInitiators,
+                null, storagePortUris, eligibleMask.getZoningMap(), volume, eligibleMask.getUnmanagedInitiatorNetworkIds(),
                 eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap);
 
         // remove unmanaged mask if created if the block object is not marked as internal

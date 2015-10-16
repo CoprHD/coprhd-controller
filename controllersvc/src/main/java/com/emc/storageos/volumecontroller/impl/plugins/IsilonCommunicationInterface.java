@@ -379,17 +379,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         } while(resumeToken != null);
         _log.info("db metrics- total NFS exports {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
 
-        //get cifs exports
+        //get cifs exports for given access zone
         resumeToken = null;
         IsilonList<IsilonSMBShare> isilonCifsExports = null;
         do {
             isilonCifsExports = isilonApi.listShares(resumeToken, zoneName);
             if(isilonCifsExports != null) {
-                nfsExportsCount = isilonCifsExports.size();
+                cifsSharesCount = isilonCifsExports.size();
                 resumeToken = isilonCifsExports.getToken();
             }
         } while(resumeToken != null);
-        _log.info("db metrics- total CIFS exports {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
+        _log.info("db metrics- total CIFS sharess {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
 
         // set total nfs and cifs exports for give AZ
         dbMetrics.put(MetricsKeys.totalNfsExports.name(), String.valueOf(nfsExportsCount));
@@ -404,15 +404,18 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
         Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
         
-        int totalExports = (nfsExportsCount + cifsSharesCount);
+        double totalExports = (double)(nfsExportsCount + cifsSharesCount);
         //setting overLoad factor (true or false)
         String overLoaded = "false";
         if (totalExports >= maxExports || totalProvCap >= maxCapacity || totalFsCount >= maxStorObjs) {
             overLoaded = "true";
         }
         
+        double percentageLoadExports = 0;
         //percentage calculator
-        double percentageLoadExports = ((double) (totalExports) / maxExports) * 100;
+        if (totalExports > 0) {
+            percentageLoadExports = ((double) (totalExports) / maxExports) * 100;
+        }
         double percentageLoadStorObj = ((double) (totalProvCap) / maxCapacity) *100;
         double percentageLoad = (percentageLoadExports + percentageLoadStorObj)/2;
         
@@ -673,6 +676,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             for (IsilonAccessZone isilonAccessZone : accessZoneList) {
                //is System access zone ?
                 isilonNetworkPoolTemp = null;
+                _log.info("process the user define access zone {} ", isilonAccessZone.toString());
                 for(IsilonNetworkPool isilonNetworkPool : isilonNetworkPoolList) {
                     if( isilonNetworkPool.getAccess_zone().equalsIgnoreCase(isilonAccessZone.getName()) ){
                         isilonNetworkPoolTemp = isilonNetworkPool;
@@ -680,11 +684,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     }
                 }
                if (isilonAccessZone.isSystem() == false) {
+                   
                    virtualNAS = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                    if(virtualNAS == null) {
                        virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
                        newvNasList.add(virtualNAS);
                    } else {
+                       setMaxDbMetricsAz(storageSystem, virtualNAS.getMetrics());
                        exitingvNASList.add(virtualNAS);
                    }
                   //authenticate providers
@@ -707,6 +713,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                        physicalNAS = createPhysicalNas(storageSystem, isilonAccessZone);
                        newPhyList.add(physicalNAS);
                    } else {
+                       setMaxDbMetricsAz(storageSystem, physicalNAS.getMetrics());
                        exitingPhyList.add(physicalNAS);
                    }
                    //add authenticate providers

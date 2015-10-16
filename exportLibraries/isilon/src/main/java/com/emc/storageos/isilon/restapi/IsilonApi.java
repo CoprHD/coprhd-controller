@@ -609,7 +609,13 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonList<IsilonExport> listExports(String resumeToken, String zoneName) throws IsilonException {
-        return list(_baseUrl.resolve(URI_NFS_EXPORTS), "exports", IsilonExport.class, resumeToken);
+        URI uri = URI_NFS_EXPORTS;
+        if(zoneName != null) {
+            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+            URLBuffer.append("?zone=").append(zoneName);
+            uri = URI.create(URLBuffer.toString());
+        }
+        return list(_baseUrl.resolve(uri), "exports", IsilonExport.class, resumeToken);
     }
 
 
@@ -879,7 +885,13 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonList<IsilonSMBShare> listShares(String resumeToken, String zoneName) throws IsilonException {
-        return list(_baseUrl.resolve(URI_SMB_SHARES), "shares", IsilonSMBShare.class, resumeToken);
+        URI uri = URI_SMB_SHARES;
+        if(zoneName != null) {
+            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+            URLBuffer.append("?zone=").append(zoneName);
+            uri = URI.create(URLBuffer.toString());
+        }
+        return list(_baseUrl.resolve(uri), "shares", IsilonSMBShare.class, resumeToken);
     }
 
     /**

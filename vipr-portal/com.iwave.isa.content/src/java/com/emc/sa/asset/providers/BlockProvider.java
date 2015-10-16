@@ -39,6 +39,7 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.StringComparator;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -542,7 +543,59 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return getSnapshotOptionsForProject(ctx, projectId, unexportedSnapshotFilter);
     }
 
+    @Asset("vplexVolumeWithSnapshots")
+    @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
+    public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
+        final ViPRCoreClient client = api(ctx);
+        if (isVolumeType(volumeOrConsistencyType)) {
+            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
+                @Override
+                public boolean accept(VolumeRestRep volume) {
+                    if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()
+                            && !client.blockSnapshots().getByVolume(volume.getId()).isEmpty() && !isInConsistencyGroup(volume)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            });
+            return createVolumeOptions(client, volumes);
+        } else {
+            List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups().findByProject(project,
+                    new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
+                        @Override
+                        public boolean accept(BlockConsistencyGroupRestRep cg) {
+                            if (cg.getTypes() != null && cg.getTypes().contains(Types.VPLEX)) {
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        }
+
+                    });
+            return createBaseResourceOptions(consistencyGroups);
+        }
+    }
+
     @Asset("vplexBlockSnapshot")
+    @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType" })
+    public List<AssetOption> getVplexBlockSnapshots(AssetOptionsContext ctx, URI projectId, String type, URI volumeOrCGId) {
+        if (isVolumeType(type)) {
+            List<BlockSnapshotRestRep> snapshots = api(ctx).blockSnapshots().getByVolume(volumeOrCGId);
+            return constructSnapshotOptions(api(ctx), projectId, snapshots);
+        } else {
+            if (type == null) {
+                error("Consistency type invalid : %s", type);
+                return new ArrayList<AssetOption>();
+            }
+            if (!BlockProviderUtils.isType(volumeOrCGId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
+                error("Consistency Group field is required for Storage Type [%s, %s]", type, volumeOrCGId);
+                return new ArrayList<AssetOption>();
+            }
+            return getConsistencyGroupSnapshots(ctx, volumeOrCGId);
+        }
+    }
+
     @AssetDependencies({ "project" })
     public List<AssetOption> getVplexBlockSnapshots(AssetOptionsContext ctx, URI projectId) {
         // get a list of all vplex snapshots that are in this project

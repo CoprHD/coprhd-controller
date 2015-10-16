@@ -4,9 +4,10 @@
  */
 package com.emc.sa.service.vipr.block;
 
-import static com.emc.sa.service.ServiceParams.VOLUME;
+import static com.emc.sa.service.ServiceParams.SNAPSHOTS;
 
 import java.net.URI;
+import java.util.List;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -18,13 +19,15 @@ import com.emc.vipr.client.Task;
 @Service("CreateVplexVolumeFromSnapshot")
 public class CreateVplexVolumeFromSnapshotService extends ViPRService {
 
-    @Param(value = VOLUME)
-    protected URI snapshotId;
+    @Param(value = SNAPSHOTS)
+    protected List<URI> snapshotIds;
 
     @Override
     public void execute() throws Exception {
-        Task<BlockSnapshotRestRep> task = execute(new CreateVplexVolumeFromSnapshot(snapshotId));
-        URI volume = task.getResourceId();
-        addAffectedResource(volume);
+        for (URI snapshotId : snapshotIds) {
+            Task<BlockSnapshotRestRep> task = execute(new CreateVplexVolumeFromSnapshot(snapshotId));
+            URI volume = task.getResourceId();
+            addAffectedResource(volume);
+        }
     }
 }

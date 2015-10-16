@@ -565,7 +565,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
                         @Override
                         public boolean accept(BlockConsistencyGroupRestRep cg) {
-                            if (cg.getTypes() != null && cg.getTypes().contains(Types.VPLEX)) {
+                            if (cg.getTypes() != null && cg.getTypes().contains(Types.VPLEX.name())) {
                                 return true;
                             } else {
                                 return false;

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,7 @@ public class FileUtils {
         if (fileName == null || fileName.contains(File.separator)) {
             throw new RuntimeException("File name can't be null or contain file separator");
         }
-        return Strings.join(File.separator, tmpDir, fileName);
+        return StringUtils.join(new String[] {tmpDir, fileName}, File.separator);
     }
 
     /**

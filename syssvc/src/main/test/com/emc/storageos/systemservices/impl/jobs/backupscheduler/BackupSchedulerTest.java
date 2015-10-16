@@ -12,6 +12,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.systemservices.TestProductName;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -73,12 +74,12 @@ public class BackupSchedulerTest {
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
             Assert.assertTrue(
                     String.format("Missing backup: %s in %s", aliveBackupsAt20141231[i],
-                            Strings.join(",", cli.localBackups.toArray(new String[1]))),
+                            StringUtils.join(cli.localBackups, ',')),
                     cli.localBackups.contains(aliveBackupsAt20141231[i]));
         }
 
         Set<String> tags = cli.getClusterBackupTags(false);
-        Assert.assertEquals(String.format("Incorrect local backup copies: {%s}", Strings.join(",", tags.toArray(new String[tags.size()]))),
+        Assert.assertEquals(String.format("Incorrect local backup copies: {%s}", StringUtils.join(tags, ',')),
                 aliveBackupsAt20141231.length, cli.localBackups.size());
     }
 
@@ -119,7 +120,7 @@ public class BackupSchedulerTest {
         // Verify the backups are uploaded
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
             Assert.assertTrue(String.format("Backup %s is not uploaded: %s", aliveBackupsAt20141231[i],
-                    Strings.join(",", upExec.fileMap.keySet().toArray(new String[upExec.fileMap.size()]))),
+                    StringUtils.join(upExec.fileMap.keySet(), ',')),
                     upExec.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1-1.zip")
                     );
         }

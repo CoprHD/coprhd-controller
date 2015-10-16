@@ -7,6 +7,8 @@ package com.emc.sa.service.vmware.block.tasks;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.storageos.services.util.Strings;
 import com.vmware.vim25.HostScsiDisk;
@@ -26,7 +28,7 @@ public class DetachLunsFromHost extends ExecutionTask<Void> {
         	deviceNames.add(disk.getDeviceName());
         }
         
-        String lunsString = Strings.join(",", deviceNames);
+        String lunsString = StringUtils.join(deviceNames, ',');
         provideDetailArgs(lunsString, host.getName());
     }
 

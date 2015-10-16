@@ -7,8 +7,9 @@ package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
-
 import com.emc.storageos.services.util.Strings;
+
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,20 +134,18 @@ public abstract class UploadExecutor {
         this.cfg.persist();
 
         if (!succUploads.isEmpty()) {
-            List<String> descParams = this.cli.getDescParams(
-                    Strings.join(", ", succUploads.toArray(new String[succUploads.size()])));
+            List<String> descParams = this.cli.getDescParams(StringUtils.join(succUploads, ", "));
             this.cli.auditBackup(OperationTypeEnum.UPLOAD_BACKUP,
                     AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         }
         if (!failureUploads.isEmpty()) {
-            String failureTags = Strings.join(", ", failureUploads.toArray(new String[failureUploads.size()]));
+            String failureTags = StringUtils.join(failureUploads, ", ");
             List<String> descParams = this.cli.getDescParams(failureTags);
-            descParams.add(Strings.join(", ", errMsgs.toArray(new String[errMsgs.size()])));
+            descParams.add(StringUtils.join(errMsgs, ", "));
             this.cli.auditBackup(OperationTypeEnum.UPLOAD_BACKUP,
                     AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             log.info("Sending update failures to root user");
-            this.cfg.sendUploadFailureToRoot(failureTags,
-                    Strings.join("\r\n", errMsgs.toArray(new String[errMsgs.size()])));
+            this.cfg.sendUploadFailureToRoot(failureTags, StringUtils.join(errMsgs, "\r\n"));
         }
         log.info("Finish upload");
     }

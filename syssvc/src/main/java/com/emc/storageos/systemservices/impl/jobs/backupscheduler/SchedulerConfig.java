@@ -29,6 +29,7 @@ import com.emc.vipr.model.sys.recovery.RecoveryStatus;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -198,10 +199,8 @@ public class SchedulerConfig {
         ConfigurationImpl cfg = new ConfigurationImpl();
         cfg.setKind(Constants.BACKUP_SCHEDULER_CONFIG);
         cfg.setId(Constants.GLOBAL_ID);
-        cfg.setConfig(BackupConstants.BACKUP_TAGS_RETAINED,
-                Strings.join(",", this.retainedBackups.toArray(new String[this.retainedBackups.size()])));
-        cfg.setConfig(BackupConstants.BACKUP_TAGS_UPLOADED,
-                Strings.join(",", this.uploadedBackups.toArray(new String[this.uploadedBackups.size()])));
+        cfg.setConfig(BackupConstants.BACKUP_TAGS_RETAINED, StringUtils.join(this.retainedBackups, ','));
+        cfg.setConfig(BackupConstants.BACKUP_TAGS_UPLOADED, StringUtils.join(this.uploadedBackups, ','));
         this.coordinatorClient.persistServiceConfiguration(cfg);
     }
 

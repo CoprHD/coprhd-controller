@@ -71,6 +71,7 @@ nav.file.virtualPools=File Virtual Pools
 nav.object.virtualPools=Object Virtual Pools
 nav.computeVirtualPools=Compute Virtual Pools
 nav.system=System
+nav.backup=Backup
 nav.tenant=Tenant
 nav.tenants=Tenants
 nav.assets=Physical Assets
@@ -856,6 +857,20 @@ system.healthdashboard.version=Version:
 system.healthdashboard.refresh=Refresh
 system.healthdashboard.loading=loading...
 system.healthdashboard.nodeReboot=Reboot %s
+
+# Backup page
+Backup.list.title=Backups
+backup.name=Name
+backup.size=Size
+backup.creationtime=Creation Time
+backup.create.description=Enter the information needed to create backup
+BackupForm.title=Add Backup
+backupForm.name=Backup Name
+backupForm.force=Force Creation
+backupForm.force.help=When checked it ignores the error during operation and force creation of backup
+backup.save.success=Saved '%s'
+backup.deleteConfirm=Are you sure you want to delete these Backup(s)?
+backups.deleted=Backup(s) deleted successfully.
 
 #Database Consistency Dashboard
 health.start=Start time

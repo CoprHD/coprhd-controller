@@ -1209,7 +1209,7 @@
         <property name="connectionFactory" ref="CIMConnectionFactory" />
         <property name="hdsApiFactory" ref="hdsApiFactory"/>
         <property name="dataDomainFactory" ref="datadomainfactory"/>
-        <property name="xtremeIOfactory" ref="xtremioRestClientFactory"/>
+        <property name="xtremeIOFactory" ref="xtremioRestClientFactory"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
     </bean>
 

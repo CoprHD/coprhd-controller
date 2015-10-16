@@ -359,10 +359,15 @@ public class XtremIOProvUtils {
         for (StorageProvider provider : xioProviderList) {
             boolean isConnectionLive = false;
             try {
+                // We can't determine the client version now, let first scan determine the version.
+                if (null == provider.getVersionString()) {
+                    continue;
+                }
+                xtremioRestClientFactory.setModel(provider.getVersionString());
                 XtremIOClient clientFromCache = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                         URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
                                 provider.getPortNumber())), provider.getUserName(), provider.getPassword(), true);
-                if (null != clientFromCache.getXtremIOXMSVersion()) {
+                if (null != clientFromCache && null != clientFromCache.getXtremIOXMSVersion()) {
                     isConnectionLive = true;
                 } else {
                     _log.debug("Connection from cache is not valid trying with new credentials {}", provider.getProviderID());
@@ -389,7 +394,7 @@ public class XtremIOProvUtils {
                             .toString());
                 }
             } catch (Exception ex) {
-                _log.error("Exception occurred while validating xio client for {}", provider.getProviderID());
+                _log.error("Exception occurred while validating xio client for {}", provider.getProviderID(), ex);
                 provider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED
                         .toString());
             } finally {

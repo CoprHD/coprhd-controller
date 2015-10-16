@@ -703,7 +703,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 new DefaultResourceFilter<BlockSnapshotRestRep>() {
                     @Override
                     public boolean accept(BlockSnapshotRestRep snapshot) {
-                        return !isInConsistencyGroup(snapshot);
+                        VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
+                        return (isRPSourceVolume(parentVolume) || !isInConsistencyGroup(snapshot));
                     }
                 });
 
@@ -1190,8 +1191,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
         for (RelatedResourceRep vol : cg.getVolumes()) {
             VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
-            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
-                    && volume.getProtection().getRpRep().getProtectionSet() != null) {
+            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
                 RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
                 ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
                 for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {

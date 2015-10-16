@@ -7,7 +7,7 @@
       lockable: true
     },
 
-    volumes:{
+    volume:{
     	type:"assetType.vipr.vplexBlockSnapshot"
     }        
   }

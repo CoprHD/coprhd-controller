@@ -8,7 +8,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,19 +24,19 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
-import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 
 public class VPlexControllerUtils {
     // logger reference.
@@ -45,7 +44,7 @@ public class VPlexControllerUtils {
             .getLogger(VPlexControllerUtils.class);
 
     private static final String VPLEX = "vplex";
-    
+
     /**
      * Get a DataObject. Throw exception if not found or inactive.
      * 
@@ -169,39 +168,46 @@ public class VPlexControllerUtils {
      * @param dbClient db client
      * @param vplexVolume The VPlex volume whose cluster we want to find.
      * @return The VPlex cluster name
+     * @throws Exception
      * @throws URISyntaxException
      */
-    public static String getVPlexClusterName(DbClient dbClient, Volume vplexVolume) {
-        String clusterName = null;
+    public static String getVPlexClusterName(DbClient dbClient, Volume vplexVolume) throws Exception {
         // Get the virtual array from the vplex virtual volume. This will be used
         // to determine the volume's vplex cluster.
         URI vaURI = vplexVolume.getVirtualArray();
-        // Get the volume's vplex storage system so we can a handle on the vplex client
-        StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexVolume.getStorageController(), dbClient);
+        URI vplexURI = vplexVolume.getStorageController();
+        return getVPlexClusterName(dbClient, vaURI, vplexURI);
+    }
+    
+    /**
+     * Determines the cluster name based on the volume's virtual array.
+     * 
+     * @param dbClient db client
+     * @param vplexURI The vplex system URI
+     * @param vaURI The virtual array URI
+     * @return The VPlex cluster name
+     * @throws Exception
+     * @throws URISyntaxException
+     */
+    public static String getVPlexClusterName(DbClient dbClient, URI vaURI, URI vplexURI) throws Exception {
+        String clusterName = null;
+        
+        // Get the vplex storage system so we can a handle on the vplex client
+        StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, dbClient);
         VPlexApiClient client = null;
 
         try {
             client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), vplexSystem, dbClient);
         } catch (URISyntaxException e) {
-            throw VPlexApiException.exceptions.connectionFailure(vplexVolume.getStorageController().toString());
+            throw VPlexApiException.exceptions.connectionFailure(vplexURI.toString());
         }
 
-        StringSet assocVolumes = vplexVolume.getAssociatedVolumes();
-        Iterator<String> assocVolumesIterator = assocVolumes.iterator();
-        while (assocVolumesIterator.hasNext()) {
-            Volume assocVolume = getDataObject(Volume.class,
-                    URI.create(assocVolumesIterator.next()), dbClient);
-            if (assocVolume.getVirtualArray().toString().equals(vaURI.toString())) {
-                StorageSystem assocVolumeSystem = getDataObject(StorageSystem.class,
-                    assocVolume.getStorageController(), dbClient);
-                List<String> itls = getVolumeITLs(assocVolume);
-                VolumeInfo info = new VolumeInfo(assocVolumeSystem.getNativeGuid(), assocVolumeSystem.getSystemType(),
-                    assocVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                    assocVolume.getNativeId(), assocVolume.getThinlyProvisioned().booleanValue(), itls);
-                clusterName = client.getClaimedStorageVolumeClusterName(info);
-                log.info("Found cluster {} for volume", clusterName);
-            }
+        String vplexCluster = ConnectivityUtil.getVplexClusterForVarray(vaURI, vplexSystem.getId(), dbClient);
+        if (vplexCluster.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
+            throw new Exception("Unable to find VPLEX cluster for the varray " + vaURI);
         }
+
+        clusterName = client.getClusterName(vplexCluster);
 
         return clusterName;
     }
@@ -270,7 +276,7 @@ public class VPlexControllerUtils {
 
     /**
      * Returns a Map of lowest-level storage-volume resource's WWN to its VPlexStorageVolumeInfo
-     * object for a given device name, virtual volume type, and cluster name.  If 
+     * object for a given device name, virtual volume type, and cluster name. If
      * hasMirror is true, this indicates the top-level device is composed of a
      * RAID-1 mirror, so there's an extra layers of components to traverse in finding
      * the lowest-level storage-volume resources.
@@ -321,9 +327,10 @@ public class VPlexControllerUtils {
      * @return the name of the top level device for the given storage volume
      * @throws VPlexApiException
      */
+    @Deprecated
     public static String getDeviceNameForStorageVolume(String volumeNativeId,
-            String wwn, String backendArraySerialNum, URI vplexUri, DbClient dbClient) 
-                    throws VPlexApiException {
+            String wwn, String backendArraySerialNum, URI vplexUri, DbClient dbClient)
+            throws VPlexApiException {
 
         String deviceName = null;
         VPlexApiClient client = null;
@@ -342,7 +349,7 @@ public class VPlexControllerUtils {
         log.info("Device name for storage volume {} is {}", volumeNativeId, deviceName);
         return deviceName;
     }
-    
+
     /**
      * Gets the list of ITLs from the volume extensions
      * 
@@ -365,7 +372,7 @@ public class VPlexControllerUtils {
 
         return itlList;
     }
-    
+
     /**
      * Returns true if the Initiator object represents a VPLEX StoragePort.
      * 
@@ -382,18 +389,18 @@ public class VPlexControllerUtils {
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     /**
      * Returns a Map of distributed device component context
      * paths from the VPLEX API to VPLEX cluster names.
      * 
      * @param vplexUri the VPLEX to query
      * @param dbClient a reference to the database client
-     * @return  a Map of distributed device component context
-     * paths from the VPLEX API to VPLEX cluster names
+     * @return a Map of distributed device component context
+     *         paths from the VPLEX API to VPLEX cluster names
      * 
      * @throws VPlexApiException
      */
@@ -410,10 +417,42 @@ public class VPlexControllerUtils {
 
         Map<String, String> distributedDevicePathToClusterMap = Collections.emptyMap();
         if (null != client) {
-            distributedDevicePathToClusterMap = 
+            distributedDevicePathToClusterMap =
                     client.getDistributedDevicePathToClusterMap();
         }
 
         return distributedDevicePathToClusterMap;
+    }
+    
+    /**
+     * Validates that the underlying structure of the given device name
+     * satisfies the constraints for compatibility with ViPR.  Used for
+     * validating unmanaged VPLEX volumes before ingestion.
+     * 
+     * @param deviceName the device to validate
+     * @param vplexUri the VPLEX to query
+     * @param dbClient a reference to the database client
+     * @throws VPlexApiException if the device structure is incompatible with ViPR
+     */
+    public static void validateSupportingDeviceStructure(String deviceName, 
+            URI vplexUri, DbClient dbClient) throws VPlexApiException {
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        if (null != client) {
+            String drillDownResponse = client.getDrillDownInfoForDevice(deviceName);
+            if (!VPlexUtil.isDeviceStructureValid(deviceName, drillDownResponse)) {
+                throw VPlexApiException.exceptions.deviceStructureIsIncompatibleForIngestion(drillDownResponse);
+            }
+        } else {
+            throw VPlexApiException.exceptions.failedToExecuteDrillDownCommand(
+                    deviceName, "cannot load vplex api client");
+        }
     }
 }

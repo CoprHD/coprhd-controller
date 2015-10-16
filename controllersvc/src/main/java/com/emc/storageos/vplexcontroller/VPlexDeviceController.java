@@ -108,6 +108,7 @@ import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
@@ -196,6 +197,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FULL_COPY_WF_NAME = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_WF_NAME = "detachFullCopy";
     private static final String EXPORT_GROUP_REMOVE_VOLUMES = "exportGroupRemoveVolumes";
+    private static final String VOLUME_FULLCOPY_GROUP_RELATION_WF = "volumeFullCopyGroupRelation";
 
     // Workflow step identifiers
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
@@ -223,11 +225,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FULL_COPY_STEP = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_STEP = "detachFullCopy";
     private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
+    private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP = "volumeFullcopyRelationStep";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
     private static final String CREATE_VIRTUAL_VOLUMES_METHOD_NAME = "createVirtualVolumes";
     private static final String RB_CREATE_VIRTUAL_VOLUMES_METHOD_NAME = "rollbackCreateVirtualVolumes";
+    private static final String RB_UPGRADE_VIRTUAL_VOLUME_LOCAL_TO_DISTRIBUUTED_METHOD_NAME = "rollbackUpgradeVirtualVolumeLocalToDistributed";
     private static final String CREATE_MIRRORS_METHOD_NAME = "createMirrors";
     private static final String RB_CREATE_MIRRORS_METHOD_NAME = "rollbackCreateMirrors";
     private static final String DELETE_MIRROR_DEVICE_METHOD_NAME = "deleteMirrorDevice";
@@ -265,6 +269,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FC_METHOD_NAME = "resyncFullCopy";
     private static final String DETACH_FC_METHOD_NAME = "detachFullCopy";
     private static final String ROLLBACK_FULL_COPY_METHOD = "rollbackFullCopyVolume";
+    private static final String VOLUME_FULLCOPY_RELATION_METHOD = "establishVolumeFullCopyGroupRelation";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -5607,10 +5612,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // We will restore the original volume.
                 vplexRollbackMethod = deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs);
             } else {
-                // If rolling back an upgrade from local to distributed, there
-                // should be no rollback necessary here. We will restore the
-                // VPlex local volume.
-                vplexRollbackMethod = rollbackMethodNullMethod();
+                // COP-16861: If rolling back an upgrade from local to distributed, then
+                // try to detach remote mirror and delete new artifacts created on VPLEX
+                // and clean up backend array volume.
+                // Without this rollback method with original code, if we failed to clean-up
+                // on VPLEX it used to still clean-up backed volume which would leave VPLEX
+                // volume in bad state. With this rollback we will clean-up backend array only
+                // if we were successful in clean-up on VPLEX.
+                // We will restore the VPlex local volume.
+                vplexRollbackMethod = rollbackUpgradeVirtualVolumeLocalToDistributedMethod(vplexURI, vplexVolume.getDeviceLabel(), stepId);
             }
             workflow.createStep(
                     VPLEX_STEP,
@@ -5672,6 +5682,80 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         @Override
         public void rollbackComplete(Workflow workflow, Object[] args) {
             VPlexDeviceController.getInstance().importRollbackHandler(args);
+        }
+    }
+
+    /**
+     * Rollback upgrade of VPLEX local to VPLEX distributed volume.
+     * 
+     * @param vplexURI Reference to VPLEX system
+     * @param virtualVolumeName Virtual volume name which was supposed to be upgraded
+     * @param executeStepId step Id of the execute step; used to retrieve rollback data
+     * @return workflow method
+     */
+    private Workflow.Method rollbackUpgradeVirtualVolumeLocalToDistributedMethod(
+            URI vplexURI, String virtualVolumeName, String executeStepId) {
+        return new Workflow.Method(RB_UPGRADE_VIRTUAL_VOLUME_LOCAL_TO_DISTRIBUUTED_METHOD_NAME, vplexURI, virtualVolumeName, executeStepId);
+    }
+
+    /**
+     * Rollback upgrade of VPLEX local to VPLEX distributed volume.
+     * 
+     * @param vplexURI Reference to VPLEX system
+     * @param virtualVolumeName Virtual volume name which was supposed to be upgraded
+     * @param executeStepId step Id of the execute step; used to retrieve rollback data
+     * @param stepId The rollback step id
+     * @throws WorkflowException When an error occurs updating the workflow step state
+     */
+    public void rollbackUpgradeVirtualVolumeLocalToDistributed(URI vplexURI, String virtualVolumeName, String executeStepId, String stepId)
+            throws WorkflowException {
+        try {
+            VolumeInfo mirrorInfo = (VolumeInfo) _workflowService.loadStepData(executeStepId);
+            if (mirrorInfo != null) {
+                WorkflowStepCompleter.stepExecuting(stepId);
+
+                // Get the API client.
+                StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+                VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+
+                // Get the cluster id for this storage volume.
+                String clusterId = client.getClaimedStorageVolumeClusterName(mirrorInfo);
+
+                try {
+                    // Try to detach mirror that might have been added.
+                    client.detachMirrorFromDistributedVolume(virtualVolumeName, clusterId);
+
+                    // Find virtual volume and its supporting device
+                    VPlexVirtualVolumeInfo virtualVolumeInfo = client.findVirtualVolumeAndUpdateInfo(virtualVolumeName);
+                    String sourceDeviceName = virtualVolumeInfo.getSupportingDevice();
+
+                    // Once mirror is detached we need to do device collapse so that its not seen as distributed device.
+                    client.deviceCollapse(sourceDeviceName);
+
+                    // Once device collapse is successful we need to set visibility of device to local because volume will be seen from
+                    // other cluster still as visibility of device changes to global once mirror is attached.
+                    client.setDeviceVisibility(sourceDeviceName);
+
+                } catch (Exception e) {
+                    _log.error("Exception restoring virtual volume " + virtualVolumeName + " to its original state." + e);
+                    _log.info(String
+                            .format("Couldn't detach mirror corresponding to the backend volume %s from the VPLEX volume %s on VPLEX cluster %s during rollback. "
+                                    + "Its possible mirror was never attached, so just move on to delete backend volume artifacts from the VPLEX",
+                                    mirrorInfo.getVolumeName(), virtualVolumeName, clusterId));
+                }
+                // Its possible that mirror was never attached so we will try to delete the device even if we fail to detach a mirror.
+                // If mirror device is still attached this will anyway fail, so its safe to make this call.
+                client.deleteLocalDevice(mirrorInfo);
+            }
+
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (VPlexApiException vae) {
+            _log.error("Exception rollback VPlex Virtual Volume upgrade from local to distributed : " + vae.getLocalizedMessage(), vae);
+            WorkflowStepCompleter.stepFailed(stepId, vae);
+        } catch (Exception ex) {
+            _log.error("Exception rollback VPlex Virtual Volume upgrade from local to distributed : " + ex.getLocalizedMessage(), ex);
+            ServiceError serviceError = VPlexApiException.errors.createVirtualVolumesRollbackFailed(stepId, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
 
@@ -5780,9 +5864,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 }
             } else {
-                virtvinfo = new VPlexVirtualVolumeInfo();
-                virtvinfo.setName(vplexVolume.getDeviceLabel());
-                virtvinfo.setPath(vplexVolume.getNativeId());
+                virtvinfo = client.findVirtualVolumeAndUpdateInfo(vplexVolume.getDeviceLabel());
             }
 
             // If we desired a distributed virtual-volume (newVolume != null),
@@ -5796,6 +5878,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vinfo = new VolumeInfo(array.getNativeGuid(), array.getSystemType(),
                         newVolume.getWWN().toUpperCase().replaceAll(":", ""),
                         newVolume.getNativeId(), newVolume.getThinlyProvisioned().booleanValue(), itls);
+                // Add rollback data.
+                _workflowService.storeStepData(stepId, vinfo);
                 virtvinfo = client.upgradeVirtualVolumeToDistributed(virtvinfo, vinfo, true, true, clusterId);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED.getName();
@@ -7249,16 +7333,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get the native volume info for the mirror volume.
             Volume mirrorVolume = getDataObject(Volume.class, mirrorVolumeURI, _dbClient);
-            StorageSystem mirrorVolumeSystem = getDataObject(StorageSystem.class,
-                    mirrorVolume.getStorageController(), _dbClient);
-            List<String> itls = VPlexControllerUtils.getVolumeITLs(mirrorVolume);
-            VolumeInfo mirrorInfo = new VolumeInfo(mirrorVolumeSystem.getNativeGuid(), mirrorVolumeSystem.getSystemType(),
-                    mirrorVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                    mirrorVolume.getNativeId(), mirrorVolume.getThinlyProvisioned().booleanValue(), itls);
-            _log.info("Prepared mirror volume info");
-
-            // Get the cluster id for this storage volume.
-            String clusterId = client.getClaimedStorageVolumeClusterName(mirrorInfo);
+            String clusterId = VPlexControllerUtils.getVPlexClusterName(_dbClient, mirrorVolume.getVirtualArray(), vplexURI);
+            
 
             // Detach the mirror.
             String detachedDeviceName = client.detachMirrorFromDistributedVolume(
@@ -10020,5 +10096,45 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         } catch (Exception ex) {
             throw VPlexApiException.exceptions.addStepsForChangeVirtualPoolFailed(ex);
         }
+    }
+
+    @Override
+    public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId)
+            throws InternalException {
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    VOLUME_FULLCOPY_GROUP_RELATION_WF, false, opId);
+            _log.info("Created establish volume  and full copy group relation workflow with operation id {}", opId);
+            // Get the VPLEX and backend full copy volumes.
+            Volume fullCopyVolume = getDataObject(Volume.class, fullCopy, _dbClient);
+            Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+            URI nativeSourceVolumeURI = nativeFullCopyVolume.getAssociatedSourceVolume();
+            URI nativeSystemURI = nativeFullCopyVolume.getStorageController();
+            StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
+
+            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD,
+                    nativeSystemURI, nativeSourceVolumeURI, nativeFullCopyVolume.getId());
+            workflow.createStep(VOLUME_FULLCOPY_GROUP_RELATION_STEP,
+                    "create group relation between Volume group and Full copy group", null,
+                    nativeSystemURI, nativeSystem.getSystemType(), BlockDeviceController.class,
+                    establishRelationMethod, rollbackMethodNullMethod(), null);
+            TaskCompleter completer = new CloneTaskCompleter(fullCopy, opId);
+            String successMsg = String.format(
+                    "Establish volume and full copy %s group relation completed successfully", fullCopy);
+            FullCopyOperationCompleteCallback wfCompleteCB = new FullCopyOperationCompleteCallback();
+            workflow.executePlan(completer, successMsg, wfCompleteCB,
+                    new Object[] { Arrays.asList(fullCopy) }, null, null);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {
+            String failMsg = String.format(
+                    "Establish volume and full copy %s group relation failed", fullCopy);
+            _log.error(failMsg, e);
+            TaskCompleter completer = new CloneTaskCompleter(fullCopy, opId);
+            ServiceCoded sc = VPlexApiException.exceptions.establishVolumeFullCopyGroupRelationFailed(
+                    fullCopy.toString(), e);
+            completer.error(_dbClient, sc);
+        }
+
     }
 }

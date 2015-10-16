@@ -2140,4 +2140,28 @@ public class BasePermissionsHelper {
             throw SecurityException.fatals.failedGettingTenant(ex);
         }
     }
+
+    /**
+     * Gets the user mappings of the all the domains.
+     *
+     * @param domains to get all the user mappings.
+     * @return returns the map of tenantID to user mappings
+     * of the domains.
+     */
+    public Map<URI, List<UserMapping>> getAllUserMappingsForDomain(StringSet domains) {
+        Map<URI, List<UserMapping>> tenantUserMappingMap = new HashMap<URI, List<UserMapping>>();
+        if (CollectionUtils.isEmpty(domains)) {
+            return tenantUserMappingMap;
+        }
+
+        Iterator<String> domainsIterator = domains.iterator();
+        while (domainsIterator.hasNext()) {
+            Map<URI, List<UserMapping>> singleTenantUserMappingMap = getAllUserMappingsForDomain(domainsIterator.next());
+            if (!CollectionUtils.isEmpty(singleTenantUserMappingMap)) {
+                tenantUserMappingMap.putAll(singleTenantUserMappingMap);
+            }
+        }
+
+        return tenantUserMappingMap;
+    }
 }

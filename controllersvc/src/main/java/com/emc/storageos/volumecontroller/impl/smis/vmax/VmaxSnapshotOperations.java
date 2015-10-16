@@ -269,7 +269,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMArgument[] outArgs = new CIMArgument[5];
             if (storage.checkIfVmax3()) {
                 CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, volume, null);
-                CIMObjectPath poolPath = findSnapStoragePoolOrNull(storage);
+                // COP-17240: For VMAX3, we will derive the target volumes from the source volumes SRP Pool
+                CIMObjectPath poolPath = _helper.getVolumeStoragePoolPath(storage, volume);
                 targetDeviceIds = createTargetDevices(storage, poolPath, volumeGroupPath, null, "SingleSnapshot", snapLabelToUse,
                         createInactive, 1, volume.getCapacity(), taskCompleter);
                 CIMInstance replicaSettingData = _helper.getReplicationSettingData(storage, targetDeviceIds.get(0), false);
@@ -445,8 +446,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         _log.info("START deleteGroupSnapshots");
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(snapshot));
-            List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-            BlockSnapshot snapshotObj = snapshots.get(0);
+            BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             // Check if the consistency group exists
             String consistencyGroupName = _helper.getConsistencyGroupName(snapshotObj, storage);
             StorageSystem newStorage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
@@ -687,7 +687,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             URI storagePoolUri, long capacity,
             TaskCompleter taskCompleter) throws Exception {
         if (storage.checkIfVmax3()) {
-            CIMObjectPath poolPath = findSnapStoragePoolOrThrow(storage);
+            StoragePool storagePool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
+            CIMObjectPath poolPath = _helper.getPoolPath(storage, storagePool);
             return createTargetDevices(storage, poolPath, volumeGroupPath, null, sourceGroupName, null, createInactive,
                     count, capacity, taskCompleter);
         } else if (thinlyProvisioned) {

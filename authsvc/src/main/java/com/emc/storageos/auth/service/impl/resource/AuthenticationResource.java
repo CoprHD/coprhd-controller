@@ -270,13 +270,24 @@ public class AuthenticationResource {
     }
 
     /**
-     * Get login token to use in subsequent api calls
-     * 
-     * @brief Authenticates a user and obtains an authentication token
+     * Authenticates the user and obtains authentication token
+     * to use in subsequent api calls. If valid X-SDS-AUTH-TOKEN
+     * is provided, that will be used instead of creating the new
+     * authentication token.
+     * Setting the queryParam "using-cookies" to "true" sets the
+     * following cookies in the response.
+     *
+     * <li>X-SDS-AUTH-TOKEN</li>
+     * <li>HttpOnly</li>
+     * <li>Version</li>
+     * <li>Max-Age</li>
+     * <li>Secure</li>
+     *
+     * @brief User login
      * @param httpRequest request object (contains basic authentication header with credentials)
      * @param servletResponse Response object
      * @param service Optional query parameter, to specify a URL to redirect to on successful
-     *            authentication
+     *                authentication
      * @prereq none
      * @return Response
      * @throws IOException
@@ -346,8 +357,8 @@ public class AuthenticationResource {
 
     /**
      * Try to login the user. If not generate the form login page
-     * 
-     * @brief Displays form login page
+     *
+     * @brief INTERNAL USE
      * @param httpRequest request object (contains basic authentication header with credentials)
      * @param servletResponse Response object
      * @param service Optional query parameter, to specify a URL to redirect to on successful
@@ -398,7 +409,9 @@ public class AuthenticationResource {
     /**
      * display fromChangePassword page. it contains currently enabled password rules prompt information
      * to guide user input the new password.
-     * 
+     *
+     * @brief INTERNAL USE
+     *
      * @param httpRequest
      * @param servletResponse
      * @param service
@@ -434,11 +447,14 @@ public class AuthenticationResource {
     }
 
     /**
-     * Requests a proxy token corresponding to the user in the Context
+     * Requests a proxy authentication token corresponding to the user in the Context
      * A user must already be authenticated and have an auth-token in order to
      * be able to get a proxy token for itself.
-     * 
-     * @brief Obtain a proxy token for the logged on user
+     * This proxy token never expires and can be used with the
+     * proxy user's authentication token to make proxy user work on behalf
+     * of the user in the context.
+     *
+     * @brief Requests user's proxy authentication token.
      * @return Response
      * @throws IOException
      */

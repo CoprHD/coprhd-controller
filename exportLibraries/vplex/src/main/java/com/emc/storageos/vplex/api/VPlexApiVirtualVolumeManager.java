@@ -2158,7 +2158,7 @@ public class VPlexApiVirtualVolumeManager {
                             originalDeviceName, ddName);
                     ddInfo = renameVPlexResource(ddInfo, ddName);
                 } catch (Exception ex) {
-                    s_logger.info("Unable to rename device {} longer than 47 character to {} to be able to attach mirror back",
+                    s_logger.info("Unable to rename device {} longer than 47 character to {} to be able to attach mirror back.",
                             originalDeviceName, ddName);
                     throw VPlexApiException.exceptions
                             .cantRenameDevice(originalDeviceName, ddName, ex);

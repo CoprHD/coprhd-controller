@@ -57,6 +57,7 @@ import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.sys.ClusterInfo;
 
@@ -104,7 +105,13 @@ public class DisasterRecoveryService {
             validateAddParam(param, existingSites);
             ViPRCoreClient viprClient = createViPRCoreClient(param.getVip(), param.getUsername(), param.getPassword());
 
-            SiteConfigRestRep standbyConfig = viprClient.site().getStandbyConfig();
+            SiteConfigRestRep standbyConfig;
+
+            try{
+                standbyConfig=viprClient.site().getStandbyConfig();
+            } catch(ServiceErrorException e){
+                throw new Exception(String.format("Failed to get Standby Configuration for site %s", param.getVip()));
+            }
             precheckForStandbyAttach(standbyConfig);
             
             Site standbySite = new Site();

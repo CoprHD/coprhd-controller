@@ -326,7 +326,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
                 
                 StoragePort port = null;
-                if(storagePortUri != null ) {
+                if (storagePortUri != null ) {
                     port = _dbClient.queryObject(StoragePort.class, URI.create(storagePortUri));
                 }
                 

@@ -74,6 +74,7 @@ import com.emc.vipr.model.sys.ClusterInfo;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class DisasterRecoveryService {
+    /* Timeout in minutes for adding standby timeout. If adding state is long than this value, set site to error */
     public static final int STANDBY_ADD_TIMEOUT_MINUTES = 20;
 
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
@@ -93,7 +94,7 @@ public class DisasterRecoveryService {
     }
     
     /**
-     * Initialize service
+     * Initialize service, this method will be called by Spring after craete DR service instance
      */
     public void initialize(){
         siteErrorThreadExecutor.schedule(new SiteErrorUpdater(null), 0, TimeUnit.MILLISECONDS);
@@ -480,7 +481,7 @@ public class DisasterRecoveryService {
                 return coordinator.getTargetInfo(uuid, SiteError.class).toResponse();
             }
         } catch (Exception e) {
-            log.error("Find find site from ZK for UUID " + uuid, e);
+            log.error("Find find site from ZK for UUID {} : {}" + uuid, e);
         }
         
         return SiteErrorResponse.noError();
@@ -732,7 +733,7 @@ public class DisasterRecoveryService {
         private void setSiteError(Site site) {
             if (SiteState.STANDBY_ADDING.equals(site.getState())
                     && (new Date()).getTime() - site.getCreationTime() > (STANDBY_ADD_TIMEOUT_MINUTES * 1000 * 60)) {
-                log.info("site state of {} be set to error", site.getName());
+                log.info("Site {} is set to error because of adding timeout", site.getName());
                 SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(STANDBY_ADD_TIMEOUT_MINUTES));
                 coordinator.setTargetInfo(site.getUuid(), error);
 

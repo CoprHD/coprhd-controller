@@ -718,7 +718,7 @@ public class VdcSiteManager extends AbstractManager {
     private void populateStandbySiteErrorIfNecessary(Site site, InternalServerErrorException e) {
         SiteError error = new SiteError(e);
         
-        log.info("populateStandbySiteErrorIfNecessary for site: {}", error.toString());
+        log.info("Set error state for site: {}", site.getUuid());
         coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
         
         site.setState(SiteState.STANDBY_ERROR);
@@ -726,7 +726,6 @@ public class VdcSiteManager extends AbstractManager {
     }
     
     private void cleanupSiteErrorIfNecessary() {
-        log.info("cleanupSiteErrorIfNecessary for standby site");
         String siteId = coordinator.getCoordinatorClient().getSiteId();
         
         Configuration config = coordinator.getCoordinatorClient().queryConfiguration(Site.CONFIG_KIND, siteId);

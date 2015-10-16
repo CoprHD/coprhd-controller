@@ -15,6 +15,8 @@ public class SiteErrorResponse {
     private static SiteErrorResponse noError = new SiteErrorResponse();
 
     private long creationTime;
+    private int serviceCode;
+    private String serviceCodeName;
     private String errorMessage;
 
     @XmlElement(name = "creationTime")
@@ -24,6 +26,24 @@ public class SiteErrorResponse {
 
     public void setCreationTime(long creationTime) {
         this.creationTime = creationTime;
+    }
+    
+    @XmlElement(name = "serviceCode")
+    public int getServiceCode() {
+        return serviceCode;
+    }
+
+    public void setServiceCode(int serviceCode) {
+        this.serviceCode = serviceCode;
+    }
+    
+    @XmlElement(name = "serviceCodeName")
+    public String getServiceCodeName() {
+        return serviceCodeName;
+    }
+
+    public void setServiceCodeName(String serviceCodeName) {
+        this.serviceCodeName = serviceCodeName;
     }
 
     @XmlElement(name = "errorMessage")
@@ -40,6 +60,10 @@ public class SiteErrorResponse {
         StringBuilder builder = new StringBuilder();
         builder.append("SiteErrorResponse [creationTime=");
         builder.append(creationTime);
+        builder.append(", serviceCode=");
+        builder.append(serviceCode);
+        builder.append(", serviceCodeName=");
+        builder.append(serviceCodeName);
         builder.append(", errorMessage=");
         builder.append(errorMessage);
         builder.append("]");

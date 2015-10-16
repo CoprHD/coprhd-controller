@@ -96,6 +96,8 @@ public class SiteError implements CoordinatorSerializable{
     public SiteErrorResponse toResponse() {
         SiteErrorResponse response = new SiteErrorResponse();
         response.setCreationTime(this.creationTime);
+        response.setServiceCode(serviceCode.ordinal());
+        response.setServiceCodeName(serviceCode.name());
         response.setErrorMessage(this.errorMessage);
         return response;
     }

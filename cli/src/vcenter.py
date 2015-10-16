@@ -279,8 +279,7 @@ class VCenter(object):
                         self.__ipAddr, self.__port, "POST", VCenter.URI_TENANTS_VCENTERS.format(str(tenant_uri)), body)
 
                 o = common.json_decode(s)
-                uri = None
-                if sys_admin and uri is not None:
+                if sys_admin and tenant is not None:
                     tenant_uri = None
                     if tenant is not None:
                         from tenant import Tenant

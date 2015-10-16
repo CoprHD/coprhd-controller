@@ -251,6 +251,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_FAILED)
     public InternalServerErrorException pauseStandbyFailed(final String siteId, String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
+    public InternalServerErrorException resumeStandbyFailed(final String siteId, String errMsg);
+
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedErrorVolumePlacement(Exception ex);
 

@@ -333,6 +333,24 @@ public class DbClientContext {
     }
 
     /**
+     * Add a specific dc to strategy options, and wait till the new schema reaches all sites.
+     * If the dc already exists in the current strategy options, nothing changes.
+     *
+     * @param dcId the dc to be removed
+     * @param repFactor replication factor for the dc
+     * @throws Exception
+     */
+    public void addDcToStrategyOptions(String dcId, int repFactor) throws Exception {
+        Map<String, String> strategyOptions = getKeyspace().describeKeyspace().getStrategyOptions();
+        if (!strategyOptions.containsKey(dcId)) {
+            log.info("Add dc {} to strategy options", dcId);
+            strategyOptions.put(dcId, String.valueOf(repFactor));
+
+            setCassandraStrategyOptions(strategyOptions, true);
+        }
+    }
+
+    /**
      * Waits for schema change to propagate through cluster
      *
      * @param schemaVersion version we are waiting for

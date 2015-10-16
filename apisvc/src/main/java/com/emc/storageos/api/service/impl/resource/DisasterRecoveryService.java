@@ -455,6 +455,62 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.pauseStandbyFailed(uuid, e.getMessage());
         }
     }
+
+    /**
+     * Resume data replication for a paused standby site
+     * @param uuid site UUID
+     * @return updated standby site representation
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/resume/{uuid}")
+    public SiteRestRep resumeStandby(@PathParam("uuid") String uuid) {
+        log.info("Begin to resume data sync to standby site identified by uuid: {}", uuid);
+        if (!isClusterStable()) {
+            log.error("Cluster is unstable");
+            throw APIException.serviceUnavailable.clusterStateNotStable();
+        }
+
+        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
+        if (config == null) {
+            log.error("Can't find site {} from ZK", uuid);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+
+        Site standby = new Site(config);
+        if (!standby.getState().equals(SiteState.STANDBY_PAUSED)) {
+            log.error("site {} is in state {}, should be STANDBY_PAUSED", uuid, standby.getState());
+            throw APIException.badRequests.operationOnlyAllowedOnPausedSite(uuid, standby.getState().toString());
+        }
+
+        try {
+            standby.setState(SiteState.STANDBY_SYNCING);
+            coordinator.persistServiceConfiguration(standby.toConfiguration());
+
+            VirtualDataCenter vdc = queryLocalVDC();
+            int nodeCount = standby.getHostIPv4AddressMap().size();
+            if (nodeCount == 0) {
+                nodeCount = standby.getHostIPv6AddressMap().size();
+            }
+
+            // add back the paused site from strategy options of dbsvc and geodbsvc
+            String dcId = String.format("%s-%s", vdc.getShortId(), standby.getStandbyShortId());
+            ((DbClientImpl)dbClient).getLocalContext().addDcToStrategyOptions(dcId, nodeCount);
+            ((DbClientImpl)dbClient).getGeoContext().addDcToStrategyOptions(dcId, nodeCount);
+
+            for (Site site : getStandbySites(vdc.getId())) {
+                updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+            }
+
+            // update the local(primary) site last
+            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+
+            return siteMapper.map(standby);
+        } catch (Exception e) {
+            log.error("Error resuming site {}", uuid, e);
+            throw APIException.internalServerErrors.resumeStandbyFailed(uuid, e.getMessage());
+        }
+    }
     
     /**
      * Query the latest error message for specific standby site

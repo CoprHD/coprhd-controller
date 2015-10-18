@@ -301,9 +301,17 @@ public class TenantsService extends TaggedResource {
             tenant.setDescription(param.getDescription());
         }
         
-        if (param.getNamespace() != null) {
-            tenant.setNamespace(param.getNamespace());
-        }
+        //To be more precise two expressions are used for null and isEmpty separately
+        if (tenant.getNamespace() == null && param.getNamespace() != null) {
+        	tenant.setNamespace(param.getNamespace());
+        }else if (tenant.getNamespace().isEmpty() && param.getNamespace() != null) {
+        	 tenant.setNamespace(param.getNamespace());
+        } else if (!tenant.getNamespace().equals(param.getNamespace())) {
+        	//namespace cannot be changed if there are already buckets in it
+        	//Though we are not deleting need to check no dependencies in this tenant
+        	ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
+        	tenant.setNamespace(param.getNamespace());
+        }        
 
         if (!isUserMappingEmpty(param)) {
             // only SecurityAdmin can modify user-mapping
@@ -501,11 +509,6 @@ public class TenantsService extends TaggedResource {
         if (TenantOrg.isRootTenant(tenant)) {
             // root can not be deleted
             throw APIException.badRequests.resourceCannotBeDeleted("Root tenant");
-        }
-
-        if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
-            // tenant with namespace attached can not be deleted
-            throw APIException.badRequests.resourceCannotBeDeleted("Tenant attached with namespace");
         }
 
         ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));

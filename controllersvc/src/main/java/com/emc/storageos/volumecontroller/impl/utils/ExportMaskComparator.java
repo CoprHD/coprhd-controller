@@ -43,20 +43,20 @@ class ExportMaskComparator implements Comparator<ExportMaskComparatorContainer> 
             }
         }
 
-        // Rule 2: Prefer masks that have cascaded groups
-        if (e1.policy.isSimpleMask() && !e2.policy.isSimpleMask()) {
-            return 1;
-        } else if (!e1.policy.isSimpleMask() && e2.policy.isSimpleMask()) {
-            return -1;
-        }
-
-        // Rule 3: COP-16877 Prefer REGULAR masks to Phantom
+        // Rule 2: COP-16877 Prefer REGULAR masks to Phantom
         if (e1.policy.getExportType().equals(ExportMaskPolicy.EXPORT_TYPE.REGULAR.name()) &&
                 !e2.policy.getExportType().equals(ExportMaskPolicy.EXPORT_TYPE.REGULAR.name())) {
             return -1;
         } else if (!e1.policy.getExportType().equals(ExportMaskPolicy.EXPORT_TYPE.REGULAR.name()) &&
                 e2.policy.getExportType().equals(ExportMaskPolicy.EXPORT_TYPE.REGULAR.name())) {
             return 1;
+        }
+
+        // Rule 3: Prefer masks that have cascaded groups
+        if (e1.policy.isSimpleMask() && !e2.policy.isSimpleMask()) {
+            return 1;
+        } else if (!e1.policy.isSimpleMask() && e2.policy.isSimpleMask()) {
+            return -1;
         }
 
         // Rule 4: Prefer masks that are less utilized

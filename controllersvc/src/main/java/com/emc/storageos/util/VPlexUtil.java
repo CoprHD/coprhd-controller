@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -445,7 +446,7 @@ public class VPlexUtil {
             boolean connected = false;
             String hostName = "unknown-host";
             for (Initiator initiator : hostInitiators) {
-                hostName = initiator.getHostName();
+                hostName = getInitiatorHostResourceName(initiator);
                 if (srcVarrayInitiators.contains(initiator.getId())
                         || haVarrayInitiators.contains(initiator.getId())) {
                     connected = true;
@@ -547,10 +548,10 @@ public class VPlexUtil {
             }
             if (NullColumnValueGetter.isNullURI(initiatorForHost.getHost())) {
                 // No Host URI
-                if (initiatorForHost.getHostName() != null) {
+                if (getInitiatorHostResourceName(initiatorForHost) != null) {
                     // Save the name
                     if (hostName == null) {
-                        hostName = initiatorForHost.getHostName();
+                        hostName = getInitiatorHostResourceName(initiatorForHost);
                         _log.info(String.format("Initiator %s has no Host URI, hostName %s",
                                 initiatorForHost.getInitiatorPort(), hostName));
                     }
@@ -589,10 +590,10 @@ public class VPlexUtil {
      */
     public static URI getInitiatorHost(Initiator initiator) {
         if (NullColumnValueGetter.isNullURI(initiator.getHost())) {
-            if (initiator.getHostName() != null) {
+            if (getInitiatorHostResourceName(initiator) != null) {
                 _log.info(String.format("Initiator %s -> Host %s",
-                        initiator.getInitiatorPort(), initiator.getHostName()));
-                return URI.create(initiator.getHostName().replaceAll("\\s", ""));
+                        initiator.getInitiatorPort(), getInitiatorHostResourceName(initiator)));
+                return URI.create(getInitiatorHostResourceName(initiator).replaceAll("\\s", ""));
             } else {
                 return NullColumnValueGetter.getNullURI();
             }
@@ -603,6 +604,15 @@ public class VPlexUtil {
         }
     }
 
+    
+    public static String getInitiatorHostResourceName(Initiator initiator) {
+    	
+    	if (initiator.getInternalFlags().equals(Flag.RECOVERPOINT)) {
+    		return initiator.getClusterName();
+    	}
+    	
+    	return initiator.getHostName();
+    }
     /**
      * Filter a list of initiators to contain only those with protocols
      * supported by the VPLEX.

@@ -2517,38 +2517,38 @@ public interface BadRequestExceptions {
     public BadRequestException cantUpdateCGWithReplicaFromMultipleSystems(final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantCreateVolumeNonVPLEXSnapshot(final String snapshotId);
+    public BadRequestException cantExposeNonVPLEXSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantCreateVolumeInactiveSnapshot(final String snapshotId);
+    public BadRequestException cantExposeInactiveSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantCreateVolumeUnsynchronizedSnapshot(final String snapshotId);
+    public BadRequestException cantExposeUnsynchronizedSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantCreateVolumeForSnapshotAlreadyCreated(final String snapshotId);
+    public BadRequestException cantExposeSnapshotAlreadyExposed(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantDeleteSnapshotUsedByVolume(final String snapshotId, final String volumeId);
+    public BadRequestException cantDeleteSnapshotExposedByVolume(final String snapshotId, final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException fullCopyNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException fullCopyNotAllowedVolumeIsExposedSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException snapshotNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException snapshotNotAllowedVolumeIsExposedSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException mirrorNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException mirrorNotAllowedVolumeIsExposedSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException expansionNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException expansionNotAllowedVolumeIsExposedSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cgNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException cgNotAllowedVolumeIsExposedSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException varrayChangeNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException varrayChangeNotAllowedVolumeIsExposedSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException vpoolChangeNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException vpoolChangeNotAllowedVolumeIsExposedIsExposedSnapshot(final String volumeId);
 }

@@ -1897,7 +1897,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // We will not allow virtual array change for a VPLEX volume that was
         // created using the target volume of a block snapshot.
         if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, volume)) {
-            throw APIException.badRequests.varrayChangeNotAllowedForVPLEXVolumeBuiltOnSnapshot(volume.getId().toString());
+            throw APIException.badRequests.varrayChangeNotAllowedVolumeIsExposedSnapshot(volume.getId().toString());
         }
 
         // The volume virtual pool must specify vplex local high availability.
@@ -2098,7 +2098,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // VPLEX volume that was created using the target volume of a
         // block snapshot.
         if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, vplexVolume)) {
-            throw APIException.badRequests.expansionNotAllowedForVPLEXVolumeBuiltOnSnapshot(vplexVolume.getId().toString());
+            throw APIException.badRequests.expansionNotAllowedVolumeIsExposedSnapshot(vplexVolume.getId().toString());
         }
     }
 
@@ -2220,9 +2220,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             throws ControllerException {
 
         // addVolumesList could be volumes, or full copies, or snapshots or mirrors.
-        List<URI> addVolumes = new ArrayList<URI> ();
-        List<URI> addSnapshots = new ArrayList<URI> ();
-        List<URI> addFullcopies = new ArrayList<URI> ();
+        List<URI> addVolumes = new ArrayList<URI>();
+        List<URI> addSnapshots = new ArrayList<URI>();
+        List<URI> addFullcopies = new ArrayList<URI>();
         for (URI volumeURI : addVolumesList) {
             BlockObject blockObject = BlockObject.fetch(_dbClient, volumeURI);
             if (blockObject instanceof BlockMirror) {
@@ -2230,20 +2230,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP.name());
             } else if (blockObject instanceof BlockSnapshot) {
                 addSnapshots.add(volumeURI);
-            } else if(blockObject instanceof Volume) {
+            } else if (blockObject instanceof Volume) {
                 boolean isFullCopy = ControllerUtils.isVolumeFullCopy((Volume) blockObject, _dbClient);
                 if (isFullCopy) {
                     addFullcopies.add(volumeURI);
                 } else {
                     addVolumes.add(volumeURI);
                 }
-            } 
+            }
         }
         if ((!addVolumes.isEmpty() && (!addSnapshots.isEmpty() || !addFullcopies.isEmpty())) ||
                 (!addSnapshots.isEmpty() && !addFullcopies.isEmpty())) {
             throw APIException.badRequests.cantUpdateCGWithMixedBlockObjects(consistencyGroup.getLabel());
         }
-        
+
         // When adding volumes to a VPLEX CG, the volumes must be of the same
         // type and have the same virtual array as those already in the consistency
         // group.
@@ -2263,22 +2263,23 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         throw APIException.badRequests.invalidParameterConsistencyGroupVolumeHasIncorrectHighAvailability(cgVolume.getId(),
                                 cgHAType);
                     } else if (!cgVArrayURI.equals(addVolume.getVirtualArray())) {
-                        throw APIException.badRequests.invalidParameterConsistencyGroupVolumeHasIncorrectVArray(cgVolume.getId(), cgVArrayURI);
+                        throw APIException.badRequests.invalidParameterConsistencyGroupVolumeHasIncorrectVArray(cgVolume.getId(),
+                                cgVArrayURI);
                     }
                 }
             }
         }
-        
+
         // Only add snapshot or full copies to CG if backend volumes are from the same storage system.
         if (!addSnapshots.isEmpty() || !addFullcopies.isEmpty()) {
             if (!VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(cgVolumes, _dbClient)) {
                 throw APIException.badRequests.cantUpdateCGWithReplicaFromMultipleSystems(consistencyGroup.getLabel());
             }
         }
-        
+
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(),
                 taskId, ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
-        
+
         // When adding snapshots to CG, just call block implementation.
         if (!addSnapshots.isEmpty()) {
             BlockSnapshot snapshot = _permissionsHelper.getObjectById(addSnapshots.get(0), BlockSnapshot.class);
@@ -2288,26 +2289,26 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             controller.updateConsistencyGroup(system.getId(), consistencyGroup.getId(),
                     addVolumesList, removeVolumesList, taskId);
             return toTask(consistencyGroup, taskId, op);
-            
+
         }
-        
+
         // If the CG is ingested, and we would like to add back end CGs for those virtual volumes in the CG,
         // all the virtual volumes in the CG have to be selected.
         if (!addVolumes.isEmpty()) {
             verifyAddVolumesToIngestedCG(consistencyGroup, addVolumes);
         }
-        
+
         if (!addFullcopies.isEmpty()) {
-            addVolumes.addAll(addFullcopies);   
+            addVolumes.addAll(addFullcopies);
         }
-       
-        // Get VPlex controller 
+
+        // Get VPlex controller
         VPlexController controller = getController();
         controller.updateConsistencyGroup(cgStorageSystem.getId(),
                 consistencyGroup.getId(), addVolumes, removeVolumesList, taskId);
-    
+
         return toTask(consistencyGroup, taskId, op);
-        
+
     }
 
     /**
@@ -2322,7 +2323,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // We will not allow continuous copies for a VPLEX volume that was created
         // using the target volume of a block snapshot.
         if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, vplexVolume)) {
-            throw APIException.badRequests.mirrorNotAllowedForVPLEXVolumeBuiltOnSnapshot(vplexVolume.getId().toString());
+            throw APIException.badRequests.mirrorNotAllowedVolumeIsExposedSnapshot(vplexVolume.getId().toString());
         }
 
         validateNotAConsistencyGroupVolume(vplexVolume, sourceVirtualPool);
@@ -3261,7 +3262,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // We will not allow a VPLEX volume that was created using the target
         // volume of a block snapshot to be added to a consistency group.
         if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, volume)) {
-            throw APIException.badRequests.cgNotAllowedForVPLEXVolumeBuiltOnSnapshot(volume.getId().toString());
+            throw APIException.badRequests.cgNotAllowedVolumeIsExposedSnapshot(volume.getId().toString());
         }
 
         // Don't allow ingested VPLEX volumes to be added to a consistency group.
@@ -3297,7 +3298,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // requested volume will not be in a CG, so volumes to snaps will
         // just be the requested volume.
         if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, reqVolume)) {
-            throw APIException.badRequests.snapshotNotAllowedForVPLEXVolumeBuiltOnSnapshot(reqVolume.getId().toString());
+            throw APIException.badRequests.snapshotNotAllowedVolumeIsExposedSnapshot(reqVolume.getId().toString());
         }
 
         // If there are more than one volume in the consistency group, and they are on different backend storage system, return error.
@@ -3358,7 +3359,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
                     _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
                             volumesWithSameNativeGuid.get(0).getId().toString()));
-            throw APIException.badRequests.cantDeleteSnapshotUsedByVPLEXVolume(snapshot.getId().toString(), vplexVolumes.get(0).getLabel());
+            throw APIException.badRequests.cantDeleteSnapshotExposedByVolume(snapshot.getId().toString(), vplexVolumes.get(0).getLabel());
         }
         super.deleteSnapshot(snapshot, taskId);
     }

@@ -65,13 +65,13 @@ public class DisasterRecovery extends Controller {
     public static void pause(String id){
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if(result != null) {
-            if(!result.getState().equals(SiteState.STANDBY_SYNCED)) {
-                flash.error(MessagesUtils.get(PAUSED_ERROR, result.getName() + " site is not in synced state"));
-            }
-            else {
+//            if(!result.getState().equals(SiteState.STANDBY_SYNCED)) {
+//                flash.error(MessagesUtils.get(PAUSED_ERROR, result.getName() + " site is not in synced state"));
+//            }
+//            else {
                 SiteRestRep sitepause = DisasterRecoveryUtils.pauseStandby(id);
                 flash.success(MessagesUtils.get(PAUSED_SUCCESS, sitepause.getName()));
-            }
+            //}
         }
         
         backToReferrer();

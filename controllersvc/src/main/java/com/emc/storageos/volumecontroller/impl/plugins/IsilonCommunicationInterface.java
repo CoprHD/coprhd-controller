@@ -671,24 +671,39 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 accessZoneList.addAll(accessZoneListTemp);
             }
             
-            //get the smartconnect zones
-            List<IsilonNetworkPool> isilonNetworkPoolList = discoverNetworkPools(storageSystem);
             
+            IsilonNetworkPool isilonNetworkPoolSystem = null;
+            List<IsilonNetworkPool> isilonNetworkPoolList = discoverNetworkPools(storageSystem);
+          //find the smart connet zones for system
+            for(IsilonNetworkPool isilonNetworkPool : isilonNetworkPoolList) {
+                if( isilonNetworkPool.getAccess_zone().equalsIgnoreCase("System") ){
+                    isilonNetworkPoolSystem = isilonNetworkPool;
+                    break;
+                }
+            }
+           
+            //process the access zones list
             IsilonNetworkPool isilonNetworkPoolTemp = null;
             CifsServerMap cifsServersMap = null;
-            //process the access zones list
+            StringSet storagePorts = null;
             for (IsilonAccessZone isilonAccessZone : accessZoneList) {
                //is System access zone ?
                 isilonNetworkPoolTemp = null;
                 _log.info("process the user define access zone {} ", isilonAccessZone.toString());
-                for(IsilonNetworkPool isilonNetworkPool : isilonNetworkPoolList) {
-                    if( isilonNetworkPool.getAccess_zone().equalsIgnoreCase(isilonAccessZone.getName()) ){
-                        isilonNetworkPoolTemp = isilonNetworkPool;
-                        break;
-                    }
-                }
+              
                if (isilonAccessZone.isSystem() == false) {
-                   
+                   // get the smart connect zone information
+                   for(IsilonNetworkPool isilonNetworkPool : isilonNetworkPoolList) {
+                       if( isilonNetworkPool.getAccess_zone().equalsIgnoreCase(isilonAccessZone.getName()) ){
+                           isilonNetworkPoolTemp = isilonNetworkPool;
+                           break;
+                       }
+                   }
+                   //if the smart connect is null then set default access zone
+                   if (isilonNetworkPoolTemp == null) {
+                       isilonNetworkPoolTemp = isilonNetworkPoolSystem;
+                   }
+                   //find virtual in db
                    virtualNAS = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                    if(virtualNAS == null) {
                        virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
@@ -699,12 +714,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    }
                   //authenticate providers
                    cifsServersMap = getCifsServerMap(isilonAccessZone);
-                   if(cifsServersMap.isEmpty()) {
+                   if(!cifsServersMap.isEmpty()) {
                        virtualNAS.setCifsServersMap(cifsServersMap);
                    }
+                   
                    //set the smart connect
-                   if(isilonNetworkPoolTemp != null) {
-                       StringSet storagePorts = virtualNAS.getStoragePorts();
+                   if(isilonNetworkPoolSystem != null) {
+                       storagePorts = virtualNAS.getStoragePorts();
                        if(storagePorts == null) {
                            storagePorts = new StringSet();
                        }
@@ -722,16 +738,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    }
                    //add authenticate providers
                    cifsServersMap = getCifsServerMap(isilonAccessZone);
-                   if(cifsServersMap.isEmpty()) {
+                   if(!cifsServersMap.isEmpty()) {
                        physicalNAS.setCifsServersMap(cifsServersMap);
                    }
                    //set the smart connect
-                   if(isilonNetworkPoolTemp != null) {
-                       StringSet storagePorts = physicalNAS.getStoragePorts();
+                   if(isilonNetworkPoolSystem != null) {
+                       storagePorts = physicalNAS.getStoragePorts();
                        if(storagePorts == null) {
                            storagePorts = new StringSet();
                        }
-                       storagePorts.add(isilonNetworkPoolTemp.getSc_dns_zone());
+                       storagePorts.add(isilonNetworkPoolSystem.getSc_dns_zone());
                        physicalNAS.setStoragePorts(storagePorts);
                    }
                }

@@ -33,6 +33,40 @@
       validation: {
         min:-1
       }
+    },
+    
+    advanced:{
+      type:"group",
+      collapsed:true,
+      items:{        
+        minPaths: {
+          type:"number",
+          lockable: true,
+          required: false,
+          validation: {
+            min:1
+          }
+        },
+        
+        maxPaths: {
+          type:"number",
+          lockable: true,
+          required: false,
+          validation: {
+            min:1
+          }
+        },
+        
+        pathsPerInitiator: {
+          type:"number",
+          lockable: true,
+          required: false,
+          validation: {
+            min:1
+          }
+        }
+        
+      }
     }
 
   }

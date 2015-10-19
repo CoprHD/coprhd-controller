@@ -7,8 +7,11 @@ package com.emc.sa.service.vipr.block;
 import static com.emc.sa.service.ServiceParams.CONSISTENCY_GROUP;
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST;
+import static com.emc.sa.service.ServiceParams.MAX_PATHS;
+import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
+import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -54,6 +57,15 @@ public class CreateBlockVolumeHelper {
     @Param(value = HLU, required = false)
     protected Integer hlu;
 
+    @Param(value = MIN_PATHS, required = false)
+    protected Integer minPaths;
+
+    @Param(value = MAX_PATHS, required = false)
+    protected Integer maxPaths;
+
+    @Param(value = PATHS_PER_INITIATOR, required = false)
+    protected Integer pathsPerInitiator;
+
     private Host host;
     private Cluster cluster;
 
@@ -87,15 +99,17 @@ public class CreateBlockVolumeHelper {
             URI exportId = null;
             if (cluster != null) {
                 exportId = BlockStorageUtils.createClusterExport(project, virtualArray, volumeIds, hlu, cluster,
-                        new HashMap<URI, Integer>());
+                        new HashMap<URI, Integer>(), maxPaths, minPaths, pathsPerInitiator);
             } else {
-                exportId = BlockStorageUtils.createHostExport(project, virtualArray, volumeIds, hlu, host, new HashMap<URI, Integer>());
+                exportId = BlockStorageUtils.createHostExport(project, virtualArray, volumeIds, hlu, host, new HashMap<URI, Integer>(),
+                        maxPaths, minPaths, pathsPerInitiator);
             }
             logInfo("create.block.volume.create.export", exportId);
         }
         // Add the volume to the existing export
         else {
-            BlockStorageUtils.addVolumesToExport(volumeIds, hlu, export.getId(), new HashMap<URI, Integer>());
+            BlockStorageUtils.addVolumesToExport(volumeIds, hlu, export.getId(), new HashMap<URI, Integer>(), maxPaths, minPaths,
+                    pathsPerInitiator);
             logInfo("create.block.volume.update.export", export.getId());
         }
 

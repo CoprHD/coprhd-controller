@@ -6,6 +6,9 @@ package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST;
+import static com.emc.sa.service.ServiceParams.MAX_PATHS;
+import static com.emc.sa.service.ServiceParams.MIN_PATHS;
+import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SNAPSHOTS;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -54,6 +57,15 @@ public class ExportBlockVolumeHelper {
 
     @Param(value = HLU, required = false)
     protected Integer hlu;
+
+    @Param(value = MIN_PATHS, required = false)
+    protected Integer minPaths;
+
+    @Param(value = MAX_PATHS, required = false)
+    protected Integer maxPaths;
+
+    @Param(value = PATHS_PER_INITIATOR, required = false)
+    protected Integer pathsPerInitiator;
 
     protected Host host;
     protected Cluster cluster;
@@ -135,7 +147,8 @@ public class ExportBlockVolumeHelper {
         Map<URI, Integer> volumeHlus = getVolumeHLUs(volumeIds);
 
         for (Map.Entry<URI, Set<URI>> entry : addVolumeExports.entrySet()) {
-            BlockStorageUtils.addVolumesToExport(entry.getValue(), currentHlu, entry.getKey(), volumeHlus);
+            BlockStorageUtils.addVolumesToExport(entry.getValue(), currentHlu, entry.getKey(), volumeHlus, maxPaths, minPaths,
+                    pathsPerInitiator);
             logInfo("export.block.volume.add.existing", entry.getValue(), entry.getKey());
             if ((currentHlu != null) && (currentHlu > -1)) {
                 currentHlu += entry.getValue().size();
@@ -147,9 +160,11 @@ public class ExportBlockVolumeHelper {
             volumeHlus = getVolumeHLUs(newVolumes);
             URI exportId = null;
             if (cluster != null) {
-                exportId = BlockStorageUtils.createClusterExport(projectId, virtualArrayId, newVolumes, currentHlu, cluster, volumeHlus);
+                exportId = BlockStorageUtils.createClusterExport(projectId, virtualArrayId, newVolumes, currentHlu, cluster, volumeHlus,
+                        maxPaths, minPaths, pathsPerInitiator);
             } else {
-                exportId = BlockStorageUtils.createHostExport(projectId, virtualArrayId, newVolumes, currentHlu, host, volumeHlus);
+                exportId = BlockStorageUtils.createHostExport(projectId, virtualArrayId, newVolumes, currentHlu, host, volumeHlus,
+                        maxPaths, minPaths, pathsPerInitiator);
             }
             ExportGroupRestRep export = BlockStorageUtils.getExport(exportId);
 

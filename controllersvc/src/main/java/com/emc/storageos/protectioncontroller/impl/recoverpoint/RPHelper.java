@@ -82,7 +82,9 @@ public class RPHelper {
     private static final String RP_ENDPOINT = "/fapi/version4_1";
     
     private static final String LOG_MSG_OPERATION_TYPE_DELETE = "delete";
-    private static final String LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION = "remove protection from";
+    private static final String LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION = "remove protection from";    
+    private static final String LOG_MSG_VOLUME_TYPE_RP = "RP_SOURCE";
+    private static final String LOG_MSG_VOLUME_TYPE_RPVPLEX = "RP_VPLEX_VIRT_SOURCE";
     
     public static final String REMOVE_PROTECTION = "REMOVE_PROTECTION";
 
@@ -292,10 +294,10 @@ public class RPHelper {
                 // if RP source, add a descriptor for the RP source
                 if (volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                     isSourceVolume = true;
-                    String volumeType = "RP_SOURCE";
+                    String volumeType = LOG_MSG_VOLUME_TYPE_RP;
                     String operationType = LOG_MSG_OPERATION_TYPE_DELETE;
                     if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
-                        volumeType = "RP_VPLEX_VIRT_SOURCE";
+                        volumeType = LOG_MSG_VOLUME_TYPE_RPVPLEX;
                         descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE, 
                                 volume.getStorageController(), volume.getId(), null, null);
                     } else {                        
@@ -313,7 +315,7 @@ public class RPHelper {
                                                         
                     _log.info(String.format("Adding %s descriptor to %s%s volume [%s] (%s)", 
                             volumeType, operationType, 
-                            (volumeType.equals("RP_SOURCE") ? "" : "virtual "), 
+                            (volumeType.equals(LOG_MSG_VOLUME_TYPE_RP) ? "" : "virtual "), 
                             volume.getLabel(), volume.getId()));
                     volumeDescriptors.add(descriptor);                                        
                 }

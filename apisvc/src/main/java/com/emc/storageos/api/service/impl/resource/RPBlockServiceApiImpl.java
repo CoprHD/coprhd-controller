@@ -3280,85 +3280,81 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @throws InternalException
      */
     private void removeProtection(List<Volume> volumes, VirtualPool newVpool, String taskId) 
-            throws InternalException {
-        try {            
-            List<URI> volumeURIs = new ArrayList<URI>();            
-            for (Volume volume : volumes) {
-                _log.info(String.format("Request to remove protection from Volume [%s] (%s) and move it to Virtual Pool [%s] (%s)", 
-                        volume.getLabel(), volume.getId(), newVpool.getLabel(), newVpool.getId()));
-                volumeURIs.add(volume.getId());
+            throws InternalException {                  
+        List<URI> volumeURIs = new ArrayList<URI>();            
+        for (Volume volume : volumes) {
+            _log.info(String.format("Request to remove protection from Volume [%s] (%s) and move it to Virtual Pool [%s] (%s)", 
+                    volume.getLabel(), volume.getId(), newVpool.getLabel(), newVpool.getId()));
+            volumeURIs.add(volume.getId());
+            
+            // List of bookmarks to cleanup (if any)
+            List<BlockSnapshot> rpBookmarks = new ArrayList<BlockSnapshot>();
+            // Loop through all targets and check for bookmarks and snapshots.
+            // We want to prevent the operation if any of the following conditions
+            // exist:
+            // 1. There are exported targets
+            // 2. There are exported bookmarks
+            // 3. There are local array snapshots on any of the targets
+            for (String targetId : volume.getRpTargets()) {
+                Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetId));
+                // Ensure targets are not exported
+                if (targetVolume.isVolumeExported(_dbClient, true, true)) {  
+                    String warningMessage = String.format("Target Volume [%s] (%s) is exported to Host, please "
+                            + "un-export the volume from all exports and place the order again", 
+                            targetVolume.getLabel(), targetVolume.getId());
+                    _log.warn(warningMessage);                        
+                    throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
+                }
                 
-                // List of bookmarks to cleanup (if any)
-                List<BlockSnapshot> rpBookmarks = new ArrayList<BlockSnapshot>();
-                // Loop through all targets and check for bookmarks and snapshots.
-                // We want to prevent the operation if any of the following conditions
-                // exist:
-                // 1. There are exported targets
-                // 2. There are exported bookmarks
-                // 3. There are local array snapshots on any of the targets
-                for (String targetId : volume.getRpTargets()) {
-                    Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetId));
-                    // Ensure targets are not exported
-                    if (targetVolume.isVolumeExported(_dbClient, true, true)) {  
-                        String warningMessage = String.format("Target Volume [%s] (%s) is exported to Host, please "
-                                + "un-export the volume from all exports and place the order again", 
-                                targetVolume.getLabel(), targetVolume.getId());
-                        _log.warn(warningMessage);                        
-                        throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
-                    }
-                    
-                    List<BlockSnapshot> snapshots = this.getSnapshots(targetVolume);
-                    for (BlockSnapshot snapshot : snapshots) {
-                        if (TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
-                            // If there are RP bookmarks that have been exported, throw an exception to inform the
-                            // user. The user should first un-export those bookmarks.
-                            if (snapshot.isSnapshotExported(_dbClient)) { 
-                                String warningMessage = String.format("RP Bookmark/Snapshot [%s] (%s) is exported to Host, "
-                                        + "please un-export the Bookmark/Snapshot from all exports and place the order again", 
-                                        snapshot.getLabel(), snapshot.getId());
-                                _log.warn(warningMessage);
-                                throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
-                            }
-                            // Add bookmark to be cleaned up in ViPR. These
-                            // would have been automatically removed in RP when
-                            // removing protection anyway. So this is a pro-active
-                            // cleanup step.
-                            rpBookmarks.add(snapshot);
-                        } else {
-                            // There are snapshots on the targets, throw an exception to inform the
-                            // user. We do not want to auto-clean up the snapshots on the target.
-                            // The user should first clean up those snapshots.
-                            String warningMessage = String.format("Target Volume [%s] (%s) has a snapshot, please delete the "
-                                    + "snapshot [%s] (%s) and place the order again", 
-                                    volume.getLabel(), volume.getId(), snapshot.getLabel(), snapshot.getId());
+                List<BlockSnapshot> snapshots = this.getSnapshots(targetVolume);
+                for (BlockSnapshot snapshot : snapshots) {
+                    if (TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
+                        // If there are RP bookmarks that have been exported, throw an exception to inform the
+                        // user. The user should first un-export those bookmarks.
+                        if (snapshot.isSnapshotExported(_dbClient)) { 
+                            String warningMessage = String.format("RP Bookmark/Snapshot [%s] (%s) is exported to Host, "
+                                    + "please un-export the Bookmark/Snapshot from all exports and place the order again", 
+                                    snapshot.getLabel(), snapshot.getId());
                             _log.warn(warningMessage);
                             throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
                         }
-                    }                    
-                }
-                
-                // Cleanup only RP Bookmarks
-                if (!rpBookmarks.isEmpty()) {
-                    for (BlockSnapshot bookmark : rpBookmarks) {                                            
-                        _log.info(String.format("Deleting RP Snapshot/Bookmark [%s] (%s)", bookmark.getLabel(), bookmark.getId()));
-                        // Generate task id
-                        final String deleteSnapshotTaskId = UUID.randomUUID().toString();
-                        // Delete the snapshot
-                        this.deleteSnapshot(bookmark, deleteSnapshotTaskId);                    
+                        // Add bookmark to be cleaned up in ViPR. These
+                        // would have been automatically removed in RP when
+                        // removing protection anyway. So this is a pro-active
+                        // cleanup step.
+                        rpBookmarks.add(snapshot);
+                    } else {
+                        // There are snapshots on the targets, throw an exception to inform the
+                        // user. We do not want to auto-clean up the snapshots on the target.
+                        // The user should first clean up those snapshots.
+                        String warningMessage = String.format("Target Volume [%s] (%s) has a snapshot, please delete the "
+                                + "snapshot [%s] (%s) and place the order again", 
+                                volume.getLabel(), volume.getId(), snapshot.getLabel(), snapshot.getId());
+                        _log.warn(warningMessage);
+                        throw APIException.badRequests.rpBlockApiImplRemoveProtectionException(warningMessage);
                     }
-                }
+                }                    
             }
             
-            // Get volume descriptor for all volumes to be have .
-            List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(
-                    null, volumeURIs, RPHelper.REMOVE_PROTECTION, newVpool);
-
-            BlockOrchestrationController controller = getController(
-                    BlockOrchestrationController.class,
-                    BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
-            controller.deleteVolumes(volumeDescriptors, taskId);
-        } catch (Exception e) {
-            throw e;
+            // Cleanup only RP Bookmarks
+            if (!rpBookmarks.isEmpty()) {
+                for (BlockSnapshot bookmark : rpBookmarks) {                                            
+                    _log.info(String.format("Deleting RP Snapshot/Bookmark [%s] (%s)", bookmark.getLabel(), bookmark.getId()));
+                    // Generate task id
+                    final String deleteSnapshotTaskId = UUID.randomUUID().toString();
+                    // Delete the snapshot
+                    this.deleteSnapshot(bookmark, deleteSnapshotTaskId);                    
+                }
+            }
         }
+        
+        // Get volume descriptor for all volumes to be have .
+        List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(
+                null, volumeURIs, RPHelper.REMOVE_PROTECTION, newVpool);
+
+        BlockOrchestrationController controller = getController(
+                BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        controller.deleteVolumes(volumeDescriptors, taskId);        
     }
 }

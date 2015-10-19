@@ -835,7 +835,7 @@ public class DataCollectionJobScheduler {
         this.ddClientFactory = ddClientFactory;
     }
 
-    public void setXtremeIOFactory(XtremIOClientFactory xioClientFactory) {
+    public void setXtremIOFactory(XtremIOClientFactory xioClientFactory) {
         this.xioClientFactory = xioClientFactory;
     }
 

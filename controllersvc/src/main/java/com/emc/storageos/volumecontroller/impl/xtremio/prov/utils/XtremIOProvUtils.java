@@ -358,11 +358,11 @@ public class XtremIOProvUtils {
         List<URI> activeProviders = new ArrayList<URI>();
         for (StorageProvider provider : xioProviderList) {
             boolean isConnectionLive = false;
+            // We can't determine the client version now, let first scan determine the version.
+            if (null == provider.getVersionString()) {
+                continue;
+            }
             try {
-                // We can't determine the client version now, let first scan determine the version.
-                if (null == provider.getVersionString()) {
-                    continue;
-                }
                 xtremioRestClientFactory.setModel(provider.getVersionString());
                 XtremIOClient clientFromCache = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                         URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),

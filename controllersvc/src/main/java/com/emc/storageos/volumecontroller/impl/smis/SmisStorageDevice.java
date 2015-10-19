@@ -1664,12 +1664,17 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             CIMArgument[] inArgs;
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
+            URI systemURI = storage.getId();
             // If there is no consistency group with the given name, set the operation to error
             if (cgPathInstance == null) {
                 ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
                 taskCompleter.error(_dbClient, error);
-                consistencyGroup.setInactive(true);
-                _dbClient.persistObject(consistencyGroup);
+                consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
+                        consistencyGroup.getCgNameOnStorageSystem(systemURI));
+                if (consistencyGroup.getSystemConsistencyGroups().isEmpty()) {
+                    consistencyGroup.setInactive(true);
+                }
+                _dbClient.updateObject(consistencyGroup);
                 return;
             }
 
@@ -1682,7 +1687,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
                     outArgs);
             // Set the consistency group to inactive
-            URI systemURI = storage.getId();
             consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
                     consistencyGroup.getCgNameOnStorageSystem(systemURI));
             if (markInactive) {

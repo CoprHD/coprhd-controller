@@ -105,6 +105,9 @@ public class SchemaUtil {
     private boolean onStandby = false;
     private String _standbyId;
 
+    @Autowired
+    private DbRebuildRunnable dbRebuildRunnable;
+
     public void setClientContext(DbClientContext clientContext) {
         this.clientContext = clientContext;
     }
@@ -907,16 +910,14 @@ public class SchemaUtil {
                     currentSite.setState(SiteState.STANDBY_SYNCING);
                     _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
                 }
-                
-                _log.info("Rebuild bootstrap data from primary site");
-                
-                //Potential issue here, we need to wait for all nodes finish rebuilding date and then set SYNCED
-                StorageService.instance.rebuild(_vdcShortId);
-                
-                currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
-                currentSite.setState(SiteState.STANDBY_SYNCED);
-                _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-                _log.info("Update current standby site state to SYNCED");
+
+                Thread dbRebuildThread = new Thread(dbRebuildRunnable);
+                dbRebuildThread.start();
+                try {
+                    dbRebuildThread.join();
+                } catch (InterruptedException e) {
+                    _log.warn("db rebuild interrupted");
+                }
             }
             return;
         }

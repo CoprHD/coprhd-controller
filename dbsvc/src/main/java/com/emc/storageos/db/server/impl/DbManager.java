@@ -58,6 +58,9 @@ public class DbManager implements DbManagerMBean {
     @Autowired
     private SchemaUtil schemaUtil;
 
+    @Autowired
+    private DbRebuildRunnable dbRebuildRunnable;
+
     ScheduledFuture<?> scheduledRepairTrigger;
 
     // Max retry times after a db repair failure
@@ -334,4 +337,10 @@ public class DbManager implements DbManagerMBean {
         }
    }
 
+    @Override
+    public void rebuildLocalNode(String sourceDc) {
+        log.info("Rebuild local node from source data center {}", sourceDc);
+        Thread dbRebuildThread = new Thread(dbRebuildRunnable);
+        dbRebuildThread.start();
+    }
 }

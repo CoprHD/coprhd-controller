@@ -338,6 +338,7 @@ public class VdcSiteManager extends AbstractManager {
             case SiteInfo.RECONFIG_RESTART:
                 checkAndRemoveStandby();
                 reconfigRestartSvcs();
+                rebuildLocalDb();
                 cleanupSiteErrorIfNecessary();
                 break;
             default:
@@ -652,7 +653,25 @@ public class VdcSiteManager extends AbstractManager {
         coordinatorClient.removeServiceConfiguration(site.toConfiguration());
         log.info("Removed site {} configuration from ZK", site.getUuid());
     }
-    
+
+    private void rebuildLocalDb() throws Exception {
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
+        Configuration localSiteConfig = coordinatorClient.queryConfiguration(Site.CONFIG_KIND,
+                coordinatorClient.getSiteId());
+        Site localSite = new Site(localSiteConfig);
+
+        if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+            String dcName = VdcUtil.getLocalVdc().getShortId();
+            try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME)) {
+                dbOps.rebuildLocalNode(dcName);
+            }
+
+            try (DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
+                geodbOps.rebuildLocalNode(dcName);
+            }
+        }
+    }
+
     private List<Site> listSites(VirtualDataCenter vdc) {
         List<Site> result = new ArrayList<Site>();
         for(Configuration config : coordinator.getCoordinatorClient().queryAllConfiguration(Site.CONFIG_KIND)) {

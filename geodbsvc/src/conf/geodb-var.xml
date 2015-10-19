@@ -29,5 +29,10 @@
         <property name="onStandby" value="false"/>
         <property name="standbyId" value=""/>
     </bean>
-    
+
+
+    <bean id="dbRebuildRunnable" class="com.emc.storageos.db.server.impl.DbRebuildRunnable">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="sourceDc" ref="vdc1"/>
+    </bean>
 </beans>

@@ -42,4 +42,8 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
+    <bean id="dbRebuildRunnable" class="com.emc.storageos.db.server.impl.DbRebuildRunnable">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="sourceDc" ref="{vdc_myid}"/>
+    </bean>
 </beans>

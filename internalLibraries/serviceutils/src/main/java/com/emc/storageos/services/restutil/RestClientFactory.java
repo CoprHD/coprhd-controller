@@ -204,6 +204,21 @@ abstract public class RestClientFactory {
         return clientApi;
     }
 
+    /**
+     * Remove the connection from the cache.
+     * 
+     * @param endpoint
+     * @param username
+     * @param password
+     */
+    public void removeRESTClient(URI endpoint, String username, String password) {
+        String clientKey = endpoint.toString() + ":" + username + ":" + password;
+        RestClientItf clientApi = _clientMap.get(clientKey);
+        if (null != clientApi) {
+            _clientMap.remove(clientKey);
+        }
+    }
+
     public RestClientItf getRESTClient(URI endpoint, String username, String password) {
         RestClientItf clientApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
         if (clientApi == null) {

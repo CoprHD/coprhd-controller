@@ -3266,6 +3266,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public void verifyAddVolumeToCG(Volume volume, BlockConsistencyGroup cg,
             List<Volume> cgVolumes, StorageSystem cgStorageSystem) {
         super.verifyAddVolumeToCG(volume, cg, cgVolumes, cgStorageSystem);
+        
+        Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+        verifyIfVolumeHasMultipleReplicas(backendVolume);
 
         // Don't allow ingested VPLEX volumes to be added to a consistency group.
         // They must first be migrated to known, supported backend storage.

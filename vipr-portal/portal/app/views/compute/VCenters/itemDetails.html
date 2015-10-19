@@ -3,7 +3,7 @@
   <dd>${vcenter.osVersion ?: '-'}</dd>
   
   <dt>&{'vCenter.datacenters'}</dt>
-  #{if util.VCenterUtils.canUpdateACLs()}
+  #{if util.VCenterUtils.canUpdateVcenterACLs()}
     <dd>
       #{list dataCenters, as:'datacenter'}
         <a href="" onclick="showDatacenterTenantUpdateDialog('${datacenter.id}', '${datacenter.name}', '${datacenter.tenant?.id}', '${vcenter.id}')">${datacenter.name}</a>#{if !datacenter_isLast}, #{/if}

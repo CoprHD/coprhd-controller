@@ -3821,7 +3821,7 @@ public class BlockService extends TaskResourceService {
                     notSuppReasonBuff.setLength(0);
                     if (!VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool, 
                             _dbClient, notSuppReasonBuff)) {
-                        _log.info("VirtualPool change to Remove RP Protection for volume is not supported:: {}",
+                        _log.info("VirtualPool change to Remove RP Protection for volume is not supported: {}",
                                 notSuppReasonBuff.toString());
                         throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                                 notSuppReasonBuff.toString());

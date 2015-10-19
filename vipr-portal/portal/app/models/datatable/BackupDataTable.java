@@ -1,6 +1,9 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package models.datatable;
 
-import java.net.URI;
 import java.util.List;
 
 import util.BackupUtils;
@@ -10,10 +13,10 @@ import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.google.common.collect.Lists;
 
 public class BackupDataTable extends DataTable {
-    
+
     public BackupDataTable() {
         addColumn("name");
-        addColumn("creationtime").setCssClass("time").setRenderFunction("render.localDate");;
+        addColumn("creationtime").setCssClass("time").setRenderFunction("render.localDate");
         addColumn("size");
         sortAll();
         setDefaultSort("name", "asc");
@@ -33,15 +36,14 @@ public class BackupDataTable extends DataTable {
         public long creationtime;
         public long size;
         public String id;
+
         public Backup(BackupSet backup) {
-        	id=backup.getName();
-        	name = backup.getName();
-        	creationtime = backup.getCreateTime();
-        	size = backup.getSize();
-            
+            id = backup.getName();
+            name = backup.getName();
+            creationtime = backup.getCreateTime();
+            size = backup.getSize();
+
         }
     }
 
-
 }
-

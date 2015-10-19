@@ -1,8 +1,18 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package util;
 
 import java.util.List;
 
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
+
+/**
+ * Utility for backup.
+ * 
+ * @author mridhr
+ */
 
 public class BackupUtils {
 	

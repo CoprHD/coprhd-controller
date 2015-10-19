@@ -1,16 +1,17 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
-import static com.emc.vipr.client.system.impl.PathConstants.CONTROL_POWER_OFF_CLUSTER_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_CREATE_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_URL;
 
 import javax.ws.rs.core.UriBuilder;
 
-import com.emc.storageos.model.TaskResourceRep;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.sys.backup.BackupSets;
-
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_LIST_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_CREATE_URL;
 
 public class Backup {
 	protected final RestClient client;
@@ -20,7 +21,7 @@ public class Backup {
 	}
 
 	public BackupSets getBackups() {
-		return client.get(BackupSets.class, BACKUP_LIST_URL, "");
+		return client.get(BackupSets.class, BACKUP_URL, "");
 	}
 
 	public void createBackup(String name, boolean force) {

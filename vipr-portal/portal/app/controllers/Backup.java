@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package controllers;
 
 import static controllers.Common.flashException;
@@ -24,104 +28,106 @@ import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 
+/**
+ * @author mridhr
+ *
+ */
 @With(Common.class)
-@Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"),
-		@Restrict("RESTRICTED_SYSTEM_ADMIN") })
+@Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class Backup extends Controller {
-	
-	protected static final String SAVED_SUCCESS = "backup.save.success";
-	protected static final String DELETED_SUCCESS = "backup.delete.success";
-	protected static final String DELETED_ERROR = "backup.delete.error";
 
-	public static void list() {
-		BackupDataTable dataTable = new BackupDataTable();
-		render(dataTable);
-	}
+    protected static final String SAVED_SUCCESS = "backup.save.success";
+    protected static final String DELETED_SUCCESS = "backup.delete.success";
+    protected static final String DELETED_ERROR = "backup.delete.error";
 
-	public static void listJson() {
-		List<BackupDataTable.Backup> backups = BackupDataTable.fetch();
-		renderJSON(DataTablesSupport.createJSON(backups, params));
-	}
-
-	public static void create() {
-		render();
-	}
-
-	public static void cancel() {
-		list();
-	}
-
-	@FlashException(keep = true, referrer = { "create"})
-	public static void save(@Valid BackupForm backupForm) {
-		backupForm.validate("name");
-		if (Validation.hasErrors()) {
-			Common.handleError();
-		}
-		try {
-			backupForm.save();
-			flash.success(MessagesUtils.get(SAVED_SUCCESS, backupForm.name));
-			backToReferrer();
-		} catch (ViPRException e) {
-			flashException(e);
-			error(backupForm);
-		}
-	}
-
-	public static void edit(String id) {
-		list();
-	}
-
-	@FlashException(value = "list")
-	public static void delete(@As(",") String[] ids) {
-		 if (ids != null && ids.length > 0) {
-	            boolean deleteExecuted = false;
-	            for (String backupName : ids) {
-	                  BackupUtils.deleteBackup(backupName);
-	                  deleteExecuted = true;
-	            }
-	            if (deleteExecuted == true) {
-	                flash.success(MessagesUtils.get("backups.deleted"));
-	            }
-	        }
-	        list();
+    public static void list() {
+        BackupDataTable dataTable = new BackupDataTable();
+        render(dataTable);
     }
-	
-	private static void backToReferrer() {
+
+    public static void listJson() {
+        List<BackupDataTable.Backup> backups = BackupDataTable.fetch();
+        renderJSON(DataTablesSupport.createJSON(backups, params));
+    }
+
+    public static void create() {
+        render();
+    }
+
+    public static void cancel() {
+        list();
+    }
+
+    @FlashException(keep = true, referrer = { "create" })
+    public static void save(@Valid BackupForm backupForm) {
+        backupForm.validate("name");
+        if (Validation.hasErrors()) {
+            Common.handleError();
+        }
+        try {
+            backupForm.save();
+            flash.success(MessagesUtils.get(SAVED_SUCCESS, backupForm.name));
+            backToReferrer();
+        } catch (ViPRException e) {
+            flashException(e);
+            error(backupForm);
+        }
+    }
+
+    public static void edit(String id) {
+        list();
+    }
+
+    @FlashException(value = "list")
+    public static void delete(@As(",") String[] ids) {
+        if (ids != null && ids.length > 0) {
+            boolean deleteExecuted = false;
+            for (String backupName : ids) {
+                BackupUtils.deleteBackup(backupName);
+                deleteExecuted = true;
+            }
+            if (deleteExecuted == true) {
+                flash.success(MessagesUtils.get("backups.deleted"));
+            }
+        }
+        list();
+    }
+
+    private static void backToReferrer() {
         String referrer = Common.getReferrer();
         if (StringUtils.isNotBlank(referrer)) {
             redirect(referrer);
-        }
-        else {
+        } else {
             list();
         }
     }
-	
-	/**
-	 * Handles an error while saving a backup form.
-	 * 
-	 * @param backupForm
-	 *            the backup form.
-	 */
-	private static void error(BackupForm backupForm) {
-		params.flash();
-		Validation.keep();
-		create();
-	}
 
-	public static class BackupForm {
+    /**
+     * Handles an error while saving a backup form.
+     * 
+     * @param backupForm
+     *            the backup form.
+     */
+    private static void error(BackupForm backupForm) {
+        params.flash();
+        Validation.keep();
+        create();
+    }
 
-		@Required
-		public String name;
+    public static class BackupForm {
 
-		public boolean force;
+        @Required
+        public String name;
 
-		public void validate(String fieldname) {
-			Validation.valid(fieldname, this);
-		}
+        public boolean force;
 
-		public void save() throws ViPRException{
-			BackupUtils.createBackup(name, force);
-		}
-	}
+        public void validate(String fieldname) {
+            Validation.valid(fieldname, this);
+        }
+
+        public void save() throws ViPRException {
+            BackupUtils.createBackup(name, force);
+        }
+    }
 
 }

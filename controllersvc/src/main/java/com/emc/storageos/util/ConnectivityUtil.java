@@ -637,7 +637,7 @@ public class ConnectivityUtil {
             URI rpSiteArrayId = it.next();
             RPSiteArray siteArray = dbClient.queryObject(RPSiteArray.class, rpSiteArrayId);
 
-            virtualArrayIdSet.addAll(findAllVirtualArraysForRPSiteArray(dbClient, siteArray));
+            virtualArrayIdSet.addAll(findAllVirtualArraysForRPSiteArray(dbClient, siteArray));            
         }
 
         // Convert to a list
@@ -679,9 +679,58 @@ public class ConnectivityUtil {
                     }
                 }
             }
+            
+            // If the rpsite array storage system is vplex check virtual array
+            // connectivity to rpsite using front end storage ports
+            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, siteArray.getStorageSystem());    	
+        	if (storageSystem != null && isAVPlex(storageSystem)) {            	
+            	List<StoragePort> storagePorts = getStoragePortsForSystem(dbClient, storageSystem.getId());    		    		
+            	for (StoragePort storagePort : storagePorts) {
+            		// For each Storage Port get all the connected VSAs
+            		if (storagePort != null && !storagePort.getInactive()) {    			    			
+            			if (storagePort.getPortType() != null &&
+            					storagePort.getPortType().equalsIgnoreCase(StoragePort.PortType.frontend.toString())) {
+            				if (storagePort.getConnectedVirtualArrays() != null) {
+            					for (String vArrayId : storagePort.getConnectedVirtualArrays()) {
+            						if (hasAssociatedBackendStorage(dbClient, storageSystem.getId(), vArrayId)) {
+            							ids.add(URI.create(vArrayId));
+            						}
+            					}
+            				}
+            				
+            				if (storagePort.getAssignedVirtualArrays() != null) {
+            					for (String vArrayId : storagePort.getAssignedVirtualArrays()) {            						
+            						if (hasAssociatedBackendStorage(dbClient, storageSystem.getId(), vArrayId)) {
+            							ids.add(URI.create(vArrayId));
+            						}
+            					}
+            				}
+            			}     			    			
+            		}
+            	}            	            	            	            	
+            }            
         }
 
         return ids;
+    }
+    
+    /**
+     * Check if the vplex has associated backend arrays within the virtual array
+     * 
+     * @param dbClient
+     * @param vplexURI - URI of vplex being checked for associated backend arrays
+     * @param vArrayId - URI of virtual array in check
+     * @return boolean indicating if the vplex has associated backend arrays within the virtual array
+     */
+    private static boolean hasAssociatedBackendStorage(DbClient dbClient, URI vplexURI, String vArrayId) {
+    	StringSet connVA = new StringSet();
+        connVA.add(vArrayId);
+		Set<URI> associations = getStorageSystemAssociationsByNetwork(dbClient,
+				vplexURI, StoragePort.PortType.backend, null, connVA, null);
+		if (associations != null && ! associations.isEmpty()) {
+			return true;
+		}
+    	return false;
     }
 
     /**

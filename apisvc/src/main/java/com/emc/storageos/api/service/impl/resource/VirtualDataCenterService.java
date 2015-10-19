@@ -265,7 +265,11 @@ public class VirtualDataCenterService extends TaskResourceService {
         }
 
         if (StringUtils.isNotEmpty(param.getName())) {
-            checkForDuplicateName(param.getName(), VirtualDataCenter.class);
+            // check for duplicate vdc name only when the vdc name is modified.
+            String localVdcName = VdcUtil.getLocalVdc().getLabel();
+            if(localVdcName != null && !localVdcName.equals(param.getName())) {
+                checkForDuplicateName(param.getName(), VirtualDataCenter.class);
+            }
         }
 
         VirtualDataCenter vdc = queryResource(id);

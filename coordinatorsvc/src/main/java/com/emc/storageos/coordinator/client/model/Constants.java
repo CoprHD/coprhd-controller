@@ -109,9 +109,6 @@ public interface Constants {
     public static final String CATALOG_CONFIG = "catalog";
     public static final String CATALOG_ACL_CHANGE = "acl_change";
 
-    // Service monitor information
-    public static final String SERVICE_MONITOR_CONFIG = "servicemonitor";
-    public static final String MONITOR_OFFLINE_INFO = "offlineinfo";
-    public static final String MONITOR_TIMESTAMP_INFO = "timestampinfo";
-    public static final String TIMESTAMP = "timestamp";
+    // Db downtime tracker
+    public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
 }

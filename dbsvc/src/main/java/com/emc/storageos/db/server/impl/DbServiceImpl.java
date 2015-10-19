@@ -9,9 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +38,7 @@ import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.DbTrackerInfo;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.gc.GarbageCollectionExecutor;
@@ -76,7 +74,8 @@ public class DbServiceImpl implements DbService {
     private int _detectorInterval = DEFAULT_DETECTOR_RUN_INTERVAL_MIN;
 
     // Service outage time should be less than 5 days, or else service will not be allowed to get started any more.
-    private static final long MAX_SERVICE_OUTAGE_TIME = 5 * TimeUtils.DAYS;
+    // As we checked the downtime every 15 mins, to avoid actual downtime undervalued, setting the max value as 4 days.
+    private static final long MAX_SERVICE_OUTAGE_TIME = 4 * TimeUtils.DAYS;
     private AlertsLogger alertLog = AlertsLogger.getAlertsLogger();
 
     private String _config;
@@ -375,71 +374,39 @@ public class DbServiceImpl implements DbService {
     /**
      * check service monitor info to see if dbsvc/geodbsvc on this node could get started
      */
-    private void checkServiceMonitorConfiguration() {
+    private void checkDBTrackerConfiguration() {
         String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();
-        Map<String, String> monitorInfo = queryServiceMonitorInfo(_serviceInfo.getName());
+        Configuration config = _coordinator.queryConfiguration(Constants.DB_DOWNTIME_TRACKER_CONFIG,
+                _serviceInfo.getName());
+        DbTrackerInfo dbTrackerInfo = new DbTrackerInfo(config);
 
-        Map<String, String> timestampInfo = convertStringToMap(monitorInfo.get(Constants.MONITOR_TIMESTAMP_INFO));
-        String zkTimeStampStr = timestampInfo.get(localNodeId);
-        long zkTimeStamp = (zkTimeStampStr == null) ? TimeUtils.getCurrentTime() : Long.parseLong(zkTimeStampStr);
+        Long lastActiveTimestamp = dbTrackerInfo.geLastActiveTimestamp(localNodeId);
+        long zkTimeStamp = (lastActiveTimestamp == null) ? TimeUtils.getCurrentTime() : lastActiveTimestamp;
 
         File localDbDir = new File(dbDir);
         boolean isDirEmpty = localDbDir.list().length == 0;
         long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : getLastModified(localDbDir).getTime();
 
-        _log.info("Local timestamp is: {}, ZK timestamp is: {}", localTimeStamp, zkTimeStamp);
+        _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
         long diffTime = Math.abs(zkTimeStamp - localTimeStamp);
         if (diffTime >= MAX_SERVICE_OUTAGE_TIME) {
             _log.warn("The time difference between timestamps persisted in ZK and local is {} msec", diffTime);
-            String errMsg = "Database is out of date. Please do not rollback node to so long ago";
+            String errMsg = "We detect database files on local disk are more than 4 days older " +
+                    "than last time it was seen in the cluster. It may bring stale data into the database, " +
+                    "so the service cannot continue to boot. It may be the result of a VM snapshot rollback. " +
+                    "Please contact with EMC support engineer for solution.";
             alertLog.error(errMsg);
             throw new IllegalStateException(errMsg);
         }
 
-        Map<String, String> offlineTimeMap = convertStringToMap(monitorInfo.get(Constants.MONITOR_OFFLINE_INFO));
-        String offlineTime = offlineTimeMap.get(localNodeId);
-        if (offlineTime != null && Long.parseLong(offlineTime) >= MAX_SERVICE_OUTAGE_TIME) {
-            String errMsg = "Database is out of date due to too long outage time. " +
-                    "Please power off this node and then trigger node recovery to replace it";
+        Long offlineTime = dbTrackerInfo.getOfflineTimeInMS(localNodeId);
+        if (offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
+            String errMsg = "This node is offline for more than 4 days. It may bring stale data in to database, " +
+                    "so the service cannot continue to boot. Please poweroff this node and follow our node recovery " +
+                    "procedure to recover this node";
             alertLog.error(errMsg);
             throw new IllegalStateException(errMsg);
         }
-    }
-
-    /**
-     * Query service monitor info from ZK
-     */
-    private Map<String, String> queryServiceMonitorInfo(String serviceName) {
-        Map<String, String> monitorInfo = new HashMap<String, String>();
-        Configuration config = _coordinator.queryConfiguration(
-                Constants.SERVICE_MONITOR_CONFIG, serviceName);
-        if (config == null) {
-            return monitorInfo;
-        }
-        String offlineInfo = config.getConfig(Constants.MONITOR_OFFLINE_INFO);
-        if (offlineInfo != null && offlineInfo.length() > 0) {
-            _log.info("Get service offline info: {}", offlineInfo);
-            monitorInfo.put(Constants.MONITOR_OFFLINE_INFO, offlineInfo);
-        }
-        String timestampInfo = config.getConfig(Constants.MONITOR_TIMESTAMP_INFO);
-        if (timestampInfo != null && timestampInfo.length() > 0) {
-            _log.info("Get service timestamp info: {}", timestampInfo);
-            monitorInfo.put(Constants.MONITOR_TIMESTAMP_INFO, timestampInfo);
-        }
-        _log.info("Service monitor info: {}", monitorInfo.toString());
-        return monitorInfo;
-    }
-
-    private Map<String, String> convertStringToMap(String stringInfo) {
-        Map<String, String> mapInfo = new HashMap<String, String>();
-        if (stringInfo != null) {
-            List<String> nodeIds = Arrays.asList(stringInfo.split("\\s*,\\s*"));
-            for (String node : nodeIds) {
-                String[] nodeInfo = node.split("=");
-                mapInfo.put(nodeInfo[0], nodeInfo[1]);
-            }
-        }
-        return mapInfo;
     }
 
     /**
@@ -588,7 +555,7 @@ public class DbServiceImpl implements DbService {
             config = checkConfiguration();
             checkGlobalConfiguration();
             checkVersionedConfiguration();
-            checkServiceMonitorConfiguration();
+            checkDBTrackerConfiguration();
             removeStaleConfiguration();
 
             // The num_tokens in ZK is what we previously running at, which could be different from in current .yaml

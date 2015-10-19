@@ -2680,7 +2680,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (existingVolumes || existingInitiators) {
                     _log.info("ExportMask {} still has non-ViPR-created existing volumes or initiators, "
                             + "so ViPR will not remove it from the VPLEX device", exportMask.getMaskName());
-                    _log.warn("We should not have called this method if there are existing volumes and existing initiators.");
                 } else if (exportMask.getInactive()) {
                     _log.warn("ExportMask {} is already inactive, so there's "
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());

@@ -180,6 +180,22 @@ public abstract class ResourceService {
     }
 
     /**
+     * Check if a resource with the same namespace exists
+     * 
+     * @param name
+     */
+    public static <T extends DataObject> void checkForDuplicateNamespace(String namespace, Class<T> type,
+    		DbClient dbClient) {
+    	List<T> objectList = new ArrayList<T>();
+    	objectList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, type,
+    			PrefixConstraint.Factory.getFullMatchConstraint(type, "namespace", namespace));
+
+    	if (!objectList.isEmpty()) {
+    		throw APIException.badRequests.duplicateLabel(namespace);
+    	}
+    }
+    
+    /**
      * Looks up controller dependency for given hardware
      * 
      * @param clazz controller interface

@@ -10,6 +10,7 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
+import com.emc.storageos.model.valid.Length;
 
 /**
  * Tenant org (configuration) data object
@@ -140,6 +141,8 @@ public class TenantOrg extends DataObject {
         }
     }
 
+    @PrefixIndex(cf = "LabelPrefixIndex")
+    @Length(min = 2, max = 30)
     @Name("namespace")
     public String getNamespace() {
         return _namespace;

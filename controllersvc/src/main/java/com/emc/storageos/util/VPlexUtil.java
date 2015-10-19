@@ -605,9 +605,18 @@ public class VPlexUtil {
     }
 
     
+    /**
+     * 
+     * Returns the initiator's host name. If the initiator is an RP initiator, returns the cluster name.
+     * In the case of RP, only one StorageView per RP cluster need to be created. RP initiators have a cluster name
+     * as well as host name fields populated and returning the host name would result in creation of 2 StorageView's
+     * for the same RP cluster. 
+     * @param initiator Initiator
+     * @return Initiator's host name per the above rules.
+     */
     public static String getInitiatorHostResourceName(Initiator initiator) {
     	
-    	if (initiator.getInternalFlags().equals(Flag.RECOVERPOINT)) {
+    	if (initiator.checkInternalFlags(Flag.RECOVERPOINT)) {
     		return initiator.getClusterName();
     	}
     	
@@ -907,7 +916,7 @@ public class VPlexUtil {
 
         // There is possibility of shared export mask only if there is more than one host in the exportGroup
         // and we found only one exportMask in database for the VPLEX cluster
-        if (exportGrouphosts.size() > 1 && exportMasksForVplexCluster.size() == 1) {
+        if (exportGrouphosts != null && exportGrouphosts.size() > 1 && exportMasksForVplexCluster.size() == 1) {
             ExportMask exportMask = exportMasksForVplexCluster.get(0);
             ArrayList<String> exportMaskInitiators = new ArrayList<String>(exportMask.getInitiators());
             Map<URI, List<Initiator>> exportMaskHostInitiatorsMap = makeHostInitiatorsMap(URIUtil.toURIList(exportMaskInitiators), dbClient);

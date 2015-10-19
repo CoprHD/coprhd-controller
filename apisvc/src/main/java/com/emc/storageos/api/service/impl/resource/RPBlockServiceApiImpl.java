@@ -3346,7 +3346,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         }
         
-        // Get volume descriptor for all volumes to be have .
+        // Get volume descriptors for all volumes to remove protection from. 
         List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(
                 null, volumeURIs, RPHelper.REMOVE_PROTECTION, newVpool);
 

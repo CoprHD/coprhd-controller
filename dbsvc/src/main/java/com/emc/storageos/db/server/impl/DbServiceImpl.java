@@ -375,11 +375,11 @@ public class DbServiceImpl implements DbService {
      * check service monitor info to see if dbsvc/geodbsvc on this node could get started
      */
     private void checkDBTrackerConfiguration() {
-        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();
         Configuration config = _coordinator.queryConfiguration(Constants.DB_DOWNTIME_TRACKER_CONFIG,
                 _serviceInfo.getName());
         DbTrackerInfo dbTrackerInfo = new DbTrackerInfo(config);
 
+        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();
         Long lastActiveTimestamp = dbTrackerInfo.geLastActiveTimestamp(localNodeId);
         long zkTimeStamp = (lastActiveTimestamp == null) ? TimeUtils.getCurrentTime() : lastActiveTimestamp;
 
@@ -390,20 +390,21 @@ public class DbServiceImpl implements DbService {
         _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
         long diffTime = Math.abs(zkTimeStamp - localTimeStamp);
         if (diffTime >= MAX_SERVICE_OUTAGE_TIME) {
-            _log.warn("The time difference between timestamps persisted in ZK and local is {} msec", diffTime);
-            String errMsg = "We detect database files on local disk are more than 4 days older " +
+            String errMsg = String.format("We detect database files on local disk are more than %s days older " +
                     "than last time it was seen in the cluster. It may bring stale data into the database, " +
                     "so the service cannot continue to boot. It may be the result of a VM snapshot rollback. " +
-                    "Please contact with EMC support engineer for solution.";
+                    "Please contact with EMC support engineer for solution.", diffTime/TimeUtils.DAYS);
+            _log.error(errMsg);
             alertLog.error(errMsg);
             throw new IllegalStateException(errMsg);
         }
 
         Long offlineTime = dbTrackerInfo.getOfflineTimeInMS(localNodeId);
         if (offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
-            String errMsg = "This node is offline for more than 4 days. It may bring stale data in to database, " +
+            String errMsg = String.format("This node is offline for more than %s days. It may bring stale data in to database, " +
                     "so the service cannot continue to boot. Please poweroff this node and follow our node recovery " +
-                    "procedure to recover this node";
+                    "procedure to recover this node", offlineTime/TimeUtils.DAYS);
+            _log.error(errMsg);
             alertLog.error(errMsg);
             throw new IllegalStateException(errMsg);
         }

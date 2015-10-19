@@ -8,13 +8,13 @@ import java.lang.String;
 import java.util.List;
 import java.util.Arrays;
 
-import com.emc.storageos.coordinator.client.model.DbTrackerInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.DbTrackerInfo;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
@@ -41,16 +41,16 @@ public class DbDowntimeTracker {
      * Monitor dbsvc and geodbsvc online/offline event and record downtime in ZK
      */
     public void run() {
-        log.info("Try to track dbsvc and geodbsvc status");
+        log.info("Monitoring dbsvc and geodbsvc status");
         try (AutoCloseable lock = getTrackerLock()) {
             for (String serviceName : serviceNames) {
-                log.info("Track status for {} begin", serviceName);
+                log.info("Check status for {} begin", serviceName);
                 List<String> availableNodes = coordinator.getServiceAvailableNodes(serviceName);
                 updateTrackerInfo(serviceName, availableNodes);
-                log.info("Track status for {} finish", serviceName);
+                log.info("Check status for {} finish", serviceName);
             }
         } catch (Exception e) {
-            log.warn("Failed to track db status", e);
+            log.warn("Failed to monitor db status", e);
         }
     }
 
@@ -62,7 +62,7 @@ public class DbDowntimeTracker {
      * Update db tracker info in ZK.
      */
     private void updateTrackerInfo(String serviceName, List<String> activeNodes) {
-        log.info("Query db tracker info from zk");
+        log.info("Querying db tracker info from zk");
         Configuration config = coordinator.getCoordinatorClient().queryConfiguration(
                 Constants.DB_DOWNTIME_TRACKER_CONFIG, serviceName);
         DbTrackerInfo dbTrackerInfo = new DbTrackerInfo(config);
@@ -94,8 +94,8 @@ public class DbDowntimeTracker {
                         serviceName, nodeId, newOfflineTime / TimeUtils.MINUTES));
             }
         }
-        config = dbTrackerInfo.toConfiguration();
+        config = dbTrackerInfo.toConfiguration(serviceName);
         coordinator.getCoordinatorClient().persistServiceConfiguration(config);
-        log.info("Persist service monitor info to zk successfully");
+        log.info("Persist db tracker info to zk successfully");
     }
 }

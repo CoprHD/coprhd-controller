@@ -28,10 +28,9 @@ public class DbTrackerInfo {
     private static final String KEY_LAST_UPDATE_TIMESTAMP = "lastUpdateTimestamp";
     private static final String KEY_LAST_ACTIVE_TIMESTAMP = "lastActiveTimestamp";
     private static final String KEY_OFFLINE_TIME_IN_MS = "offlineTimeInMS";
-    private static final String KEY_FORMAT = "%s-%s";
+    private static final String KEY_FORMAT = "%s_%s";
 
-    private String configId;
-    private Map<String, Long> trackerInfo;
+    private Map<String, Long> trackerInfo = new HashMap<String, Long>();
 
     public DbTrackerInfo() {
     }
@@ -59,13 +58,9 @@ public class DbTrackerInfo {
         this.trackerInfo.put(KEY_LAST_UPDATE_TIMESTAMP, lastUpdateTimestamp);
     }
 
-    public void setLastActiveTimestamp(String nodeId, Long lastActiveTimestamp) {
+    public void setLastActiveTimestamp(String nodeId, long lastActiveTimestamp) {
         String keyLastActiveTimestamp = String.format(KEY_FORMAT, nodeId, KEY_LAST_ACTIVE_TIMESTAMP);
-        if (lastActiveTimestamp == null) {
-            this.trackerInfo.remove(keyLastActiveTimestamp);
-        } else {
-            this.trackerInfo.put(keyLastActiveTimestamp, lastActiveTimestamp);
-        }
+        this.trackerInfo.put(keyLastActiveTimestamp, lastActiveTimestamp);
     }
 
     public void setOfflineTimeInMS(String nodeId, Long offlineTime) {
@@ -77,11 +72,12 @@ public class DbTrackerInfo {
         }
     }
 
-    public Configuration toConfiguration() {
+    public Configuration toConfiguration(String configId) {
         ConfigurationImpl config = new ConfigurationImpl();
         config.setKind(Constants.DB_DOWNTIME_TRACKER_CONFIG);
-        config.setId(this.configId);
+        config.setId(configId);
 
+        log.info("Set DB tracker info to ZK config: {}", trackerInfo);
         for (Map.Entry<String, Long> entry : trackerInfo.entrySet()) {
             config.setConfig(entry.getKey(), (entry.getValue() == null) ? null : String.valueOf(entry.getValue()));
         }
@@ -92,9 +88,9 @@ public class DbTrackerInfo {
         if (!config.getKind().equals(Constants.DB_DOWNTIME_TRACKER_CONFIG)) {
             throw new IllegalArgumentException("Unexpected configuration kind for DB tracker");
         }
-        this.configId = config.getId();
         for (Map.Entry<String, String> entry : config.getAllConfigs(true).entrySet()) {
             this.trackerInfo.put(entry.getKey(), (entry.getValue() == null) ? null : Long.parseLong(entry.getValue()));
         }
+        log.info("Get DB tracker info from ZK config: {}", trackerInfo);
     }
 }

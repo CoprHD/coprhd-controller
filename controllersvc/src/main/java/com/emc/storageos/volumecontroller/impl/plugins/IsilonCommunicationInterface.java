@@ -686,6 +686,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonNetworkPool isilonNetworkPoolTemp = null;
             CifsServerMap cifsServersMap = null;
             StringSet storagePorts = null;
+            StoragePort storagePort = null;
             for (IsilonAccessZone isilonAccessZone : accessZoneList) {
                //is System access zone ?
                 isilonNetworkPoolTemp = null;
@@ -724,8 +725,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                        if(storagePorts == null) {
                            storagePorts = new StringSet();
                        }
-                       storagePorts.add(isilonNetworkPoolTemp.getSc_dns_zone());
-                       virtualNAS.setStoragePorts(storagePorts);
+                       if(storagePort != null) {
+                           storagePort = findStoragePortByNativeId(storageSystem, 
+                                   isilonNetworkPoolSystem.getSc_dns_zone().toLowerCase());
+                           storagePorts.add(storagePort.getId().toString());
+                           virtualNAS.setStoragePorts(storagePorts);
+                       }
                    }
                } else {
                    physicalNAS = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
@@ -747,8 +752,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                        if(storagePorts == null) {
                            storagePorts = new StringSet();
                        }
-                       storagePorts.add(isilonNetworkPoolSystem.getSc_dns_zone());
-                       physicalNAS.setStoragePorts(storagePorts);
+                       storagePort = findStoragePortByNativeId(storageSystem, 
+                                   isilonNetworkPoolSystem.getSc_dns_zone().toLowerCase());
+                       if(storagePort  != null) {
+                           storagePorts.add(storagePort.getId().toString());
+                           physicalNAS.setStoragePorts(storagePorts);
+                       }
                    }
                }
             }
@@ -2482,6 +2491,28 @@ private PhysicalNAS findPhysicalNasByNativeId(StorageSystem system, String nativ
     }
     
     return physicalNas;
+}
+
+private StoragePort findStoragePortByNativeId(StorageSystem system, String nativeId) {
+    StoragePort storagePort = null;
+    String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+            system, nativeId,
+            NativeGUIDGenerator.PORT);
+    // Check if storage port was already discovered
+    @SuppressWarnings("deprecation")
+    List<URI> portURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+            getStoragePortByNativeGuidConstraint(portNativeGuid));
+    StoragePort port = null;
+    for (URI portUri : portURIs) {
+        port = _dbClient.queryObject(StoragePort.class, portUri);
+        if(port != null) {
+            if (port.getStorageDevice().equals(system.getId()) && !port.getInactive()) {
+                storagePort = port;
+                break;
+            }
+        }
+    }
+    return storagePort;
 }
 
 

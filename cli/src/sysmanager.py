@@ -792,6 +792,8 @@ class Configuration(object):
     URI_CONFIGURE_CONNECTEMC_SMTP = "/config/connectemc/email/"
     URI_CONFIGURE_CONNECTEMC_FTPS = "/config/connectemc/ftps/"
     URI_PROPS = "/config/properties/"
+    URI_TASKS = "/vdc/tasks/"
+    URI_TASKS_TENANT = "/vdc/tasks?tenant={0}"
     URI_PROPS_CATEGORY = "/config/properties?category={0}"
     URI_PROPS_METADATA = "/config/properties/metadata"
     URI_RESET_PROPS = "/config/properties/reset/"
@@ -915,6 +917,24 @@ class Configuration(object):
 
         o = common.json_decode(s)
 
+        return o
+		
+    def get_tasklist(self, type ):
+        uri_conf = None
+        if(type == None):
+		    uri_conf = Configuration.URI_TASKS
+		
+        else:
+    	    uri_conf = Configuration.URI_TASKS_TENANT.format(type)
+        
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "GET", uri_conf,
+                                             None)
+        if(not s):
+            return None
+    
+        o = common.json_decode(s)
+    
         return o
 
     def get_properties_metadata(self ):
@@ -2079,6 +2099,34 @@ def get_properties_parser(subcommand_parsers, common_parser):
     get_properties_parser.set_defaults(func=get_properties)
 
 
+def get_tasklist_parser(subcommand_parsers, common_parser):
+
+    get_tasklist_parser = subcommand_parsers.add_parser(
+        'get-tasklist',
+        description='ViPR: CLI usage to get list of tasks',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Get TaskList.')
+    mandatory_args = get_tasklist_parser.add_argument_group("Mandatory arguments")
+    get_tasklist_parser.add_argument(
+        '-type', '-t',
+        help='tenant type',
+        dest='type')
+    
+    
+    get_tasklist_parser.set_defaults(func=get_tasklist)
+
+def get_tasklist(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        return common.format_json_object(obj.get_tasklist(args.type))
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "get",
+            "tasks",
+            e.err_text,
+            e.err_code)
+
 def get_properties(args):
     obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
     try:
@@ -2411,7 +2459,7 @@ def system_parser(parent_subparser, common_parser):
     get_stats_parser(subcommand_parsers, common_parser)
 
     get_properties_parser(subcommand_parsers, common_parser)
-
+    get_tasklist_parser(subcommand_parsers, common_parser)
 
     reset_properties_parser(subcommand_parsers, common_parser)
 

@@ -252,6 +252,7 @@ public class RPHelper {
         _log.info(String.format("Getting all RP volumes to delete for requested list: %s", reqDeleteVolumes));
 
         Set<URI> volumeIDs = new HashSet<URI>();
+        Set<URI> protectionSetIds = new HashSet<URI>();
 
         BlockConsistencyGroup cg = null;
 
@@ -278,6 +279,12 @@ public class RPHelper {
                     // Add the volume ID to the list of volumes to be deleted
                     _log.info(String.format("Adding volume %s to the list of volumes to be deleted", vol.getId()));
                     volumeIDs.add(vol.getId());
+                }
+
+                if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
+                    // Keep track of the protection sets for a cleanup operation later in case we
+                    // find any stale volume references
+                    protectionSetIds.add(vol.getProtectionSet().getURI());
                 }
             }
             if (cg == null) {
@@ -326,6 +333,33 @@ public class RPHelper {
 
             // Clean-up stale ProtectionSet volume references. This is just a cautionary operation to prevent
             // "bad things" from happening.
+            for (URI protSetId : protectionSetIds) {
+                List<String> staleVolumes = new ArrayList<String>();
+                ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, protSetId);
+
+                if (protectionSet.getVolumes() != null) {
+                    for (String protSetVol : protectionSet.getVolumes()) {
+                        URI protSetVolUri = URI.create(protSetVol);
+                        if (!volumeIDs.contains(protSetVolUri)) {
+                            Volume vol = _dbClient.queryObject(Volume.class, protSetVolUri);
+                            if (vol == null || vol.getInactive()) {
+                                // The ProtectionSet references a stale volume that no longer exists in the DB.
+                                _log.info("ProtectionSet " + protectionSet.getLabel() + " references volume " + protSetVol
+                                        + " that no longer exists in the DB.  Removing this volume reference.");
+                                staleVolumes.add(protSetVol);
+                            }
+                        }
+                    }
+                }
+
+                // remove stale entries from protection set
+                if (!staleVolumes.isEmpty()) {
+                    for (String vol : staleVolumes) {
+                        protectionSet.getVolumes().remove(vol);
+                    }
+                    _dbClient.updateObject(protectionSet);
+                }
+            }
 
         }
 

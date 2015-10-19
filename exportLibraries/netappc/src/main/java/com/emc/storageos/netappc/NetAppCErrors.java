@@ -74,4 +74,7 @@ public interface NetAppCErrors {
 
     @DeclareServiceCode(ServiceCode.NETAPPC_CIFS_SHARE_ACL_DELETE_ERROR)
     public ServiceError unableToDeleteCIFSShareAcl();
+
+    @DeclareServiceCode(ServiceCode.NETAPPC_INVALID_OPERATION)
+    public ServiceError operationNotSupported();
 }

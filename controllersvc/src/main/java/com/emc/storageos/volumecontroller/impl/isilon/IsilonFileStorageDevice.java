@@ -1887,8 +1887,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
-        // TODO Auto-generated method stub
-        return null;
+        return deleteNfsACLs(storageObj, args);
     }
 
 }

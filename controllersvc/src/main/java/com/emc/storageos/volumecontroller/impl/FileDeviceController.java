@@ -2588,6 +2588,14 @@ public class FileDeviceController implements FileController {
 
     }
 
+    /**
+     * Create the DB object from the NfsACE object
+     * 
+     * @param ace given NfsACE object
+     * @param dbShareAcl BD object need to be formed
+     * @param fs FileShare object
+     * @param args FileDeviceInputOutput object
+     */
     private void copyToPersistNfsACL(NfsACE ace, NFSShareACL dbShareAcl,
             FileShare fs, FileDeviceInputOutput args) {
 
@@ -2621,6 +2629,13 @@ public class FileDeviceController implements FileController {
 
     }
 
+    /**
+     * Get the DB object to modify it
+     * 
+     * @param dbShareAcl the DB object which need to be searched
+     * @param isFile it is file or snapshot operation
+     * @return
+     */
     private NFSShareACL getExistingNfsAclFromDB(NFSShareACL dbShareAcl,
             boolean isFile) {
 
@@ -3012,6 +3027,14 @@ public class FileDeviceController implements FileController {
         }
     }
 
+    /**
+     * Update the DB object ,this method need to be called after the success of
+     * back end command
+     * 
+     * @param param object of NfsACLUpdateParams
+     * @param fs FileShare object
+     * @param args FileDeviceInputOutput object
+     */
     private void updateNFSACLsInDB(NfsACLUpdateParams param,
             FileShare fs, FileDeviceInputOutput args) {
 
@@ -3118,7 +3141,7 @@ public class FileDeviceController implements FileController {
 
             // Do the Operation on device.
             BiosCommandResult result = getDevice(storageObj.getSystemType())
-                    .updateNfsACLs(storageObj, args);
+                    .deleteNfsACLs(storageObj, args);
 
             if (result.isCommandSuccess()) {
                 // Update Database
@@ -3204,7 +3227,13 @@ public class FileDeviceController implements FileController {
         return nfsShareAcl;
     }
 
-    private void makeNfsAceFromDB(List<NfsACE> nfsAclsToDelete, List<NFSShareACL> dbNfsAclTemp) {
+    /**
+     * Convert list of NfsACE to list of DB object for ACL
+     * 
+     * @param nfsAcls list of the NfsACE object
+     * @param dbNfsAclTemp converted DB object List
+     */
+    private void makeNfsAceFromDB(List<NfsACE> nfsAcls, List<NFSShareACL> dbNfsAclTemp) {
 
         for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
             NfsACE nfsAce = new NfsACE();
@@ -3249,7 +3278,7 @@ public class FileDeviceController implements FileController {
                 nfsAce.setUser(user);
 
             }
-            nfsAclsToDelete.add(nfsAce);
+            nfsAcls.add(nfsAce);
 
         }
 

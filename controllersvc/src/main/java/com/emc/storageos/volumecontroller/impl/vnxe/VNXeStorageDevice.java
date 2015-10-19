@@ -2458,13 +2458,13 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
-        // TODO Auto-generated method stub
-        return null;
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported());
     }
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
-        // TODO Auto-generated method stub
-        return null;
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported());
     }
 }

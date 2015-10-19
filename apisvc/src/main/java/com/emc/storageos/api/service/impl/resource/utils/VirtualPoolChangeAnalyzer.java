@@ -1315,10 +1315,18 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * Determines if the volume qualifies for RP protection. (and if not, why not)
      * 
+     
+     */
+    
+    /**
+     * Checks to see if the remove protection operation is supported.
+     * 
      * @param volume A reference to the volume.
      * @param currentVpool A reference to the current volume Vpool.
      * @param newVpool The desired new Vpool.
      * @param dbClient A reference to a DB client.
+     * @param notSuppReasonBuff Buffer for error messages
+     * @return true is remove protection is supported
      */
     public static boolean isSupportedRPRemoveProtectionVirtualPoolChange(Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
             DbClient dbClient, StringBuffer notSuppReasonBuff) {

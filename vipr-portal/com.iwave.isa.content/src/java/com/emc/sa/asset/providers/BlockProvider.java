@@ -580,7 +580,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("vplexBlockSnapshot")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType", "vplexVolumeWithSnapshots" })
     public List<AssetOption> getVplexBlockSnapshots(AssetOptionsContext ctx, URI projectId, String type, URI volumeOrCGId) {
-        if (isVolumeType(type)) {
+        if (isVolumeType(type) && BlockProviderUtils.isType(volumeOrCGId, VOLUME_TYPE)) {
             List<BlockSnapshotRestRep> snapshots = api(ctx).blockSnapshots().getByVolume(volumeOrCGId);
             return constructSnapshotOptions(api(ctx), projectId, snapshots);
         } else {

@@ -324,10 +324,14 @@ public class UnManagedFilesystemService extends TaggedResource {
                 Long lusedCapacity = Long.valueOf(usedCapacity);
                 // pool uri cannot be null
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
-                StoragePort port = _dbClient.queryObject(StoragePort.class,
-                        URI.create(storagePortUri));
+                
+                StoragePort port = null;
+                if (storagePortUri != null ) {
+                    port = _dbClient.queryObject(StoragePort.class, URI.create(storagePortUri));
+                }
+                
                 StorageHADomain dataMover = null;
-                if (port.getStorageHADomain() != null) {
+                if (port != null && port.getStorageHADomain() != null) {
                     dataMover = _dbClient.queryObject(StorageHADomain.class, port.getStorageHADomain());
                 }
                 if (dataMover != null) {
@@ -416,7 +420,11 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                 _logger.info("Un Managed File System {} has exports? : {}", unManagedFileSystem.getId(),
                         unManagedFileSystem.getHasExports());
-                StoragePort sPort = compareAndSelectPortURIForUMFS(system, port, neighborhood);
+                
+                StoragePort sPort = null;
+                if (port != null && neighborhood != null) {
+                    sPort = compareAndSelectPortURIForUMFS(system, port, neighborhood);
+                }
                 if (unManagedFileSystem.getHasExports()) {
                     _logger.info("Storage Port Found {}", sPort);
                     if (null != sPort) {

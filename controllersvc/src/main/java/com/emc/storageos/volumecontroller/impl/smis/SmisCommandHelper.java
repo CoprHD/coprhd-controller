@@ -1167,7 +1167,7 @@ public class SmisCommandHelper implements SmisConstants {
             list.add(_cimArgument.stringArray(CP_ELEMENT_NAMES,
                     toMultiElementArray(count, label)));
         }
-        return list.toArray(new CIMArgument[count]);
+        return list.toArray(new CIMArgument[list.size()]);
     }
 
     public CIMArgument[] getCreateVolumesInputArguments(StorageSystem storageDevice, StoragePool pool, String label,

@@ -683,32 +683,35 @@ public class ConnectivityUtil {
             // If the rpsite array storage system is vplex check virtual array
             // connectivity to rpsite using front end storage ports
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, siteArray.getStorageSystem());    	
-        	if (storageSystem != null && isAVPlex(storageSystem)) {            	
+            if (storageSystem != null && isAVPlex(storageSystem)) {            	
             	List<StoragePort> storagePorts = getStoragePortsForSystem(dbClient, storageSystem.getId());    		    		
             	for (StoragePort storagePort : storagePorts) {
             		// For each Storage Port get all the connected VSAs
-            		if (storagePort != null && !storagePort.getInactive()) {    			    			
-            			if (storagePort.getPortType() != null &&
-            					storagePort.getPortType().equalsIgnoreCase(StoragePort.PortType.frontend.toString())) {
-            				if (storagePort.getConnectedVirtualArrays() != null) {
-            					for (String vArrayId : storagePort.getConnectedVirtualArrays()) {
-            						if (hasAssociatedBackendStorage(dbClient, storageSystem.getId(), vArrayId)) {
-            							ids.add(URI.create(vArrayId));
-            						}
+            		if (storagePort != null && 
+            				!storagePort.getInactive() &&
+            				storagePort.getPortType() != null &&
+            				storagePort.getPortType().equalsIgnoreCase(StoragePort.PortType.frontend.toString())) { 
+
+            			if (storagePort.getConnectedVirtualArrays() != null) {
+            				for (String vArrayId : storagePort.getConnectedVirtualArrays()) {
+            					if (hasAssociatedBackendStorage(dbClient, storageSystem.getId(), vArrayId)) {
+            						_log.info(String.format("Vplex System [%s] has connectvity to RP Site [%s]", storageSystem.getLabel(), siteArray.getRpSiteName()));
+            						ids.add(URI.create(vArrayId));
             					}
             				}
-            				
-            				if (storagePort.getAssignedVirtualArrays() != null) {
-            					for (String vArrayId : storagePort.getAssignedVirtualArrays()) {            						
-            						if (hasAssociatedBackendStorage(dbClient, storageSystem.getId(), vArrayId)) {
-            							ids.add(URI.create(vArrayId));
-            						}
+            			}
+
+            			if (storagePort.getAssignedVirtualArrays() != null) {
+            				for (String vArrayId : storagePort.getAssignedVirtualArrays()) {            						
+            					if (hasAssociatedBackendStorage(dbClient, storageSystem.getId(), vArrayId)) {
+            						_log.info(String.format("Vplex System [%s] has connectvity to RP Site [%s]", storageSystem.getLabel(), siteArray.getRpSiteName()));
+            						ids.add(URI.create(vArrayId));
             					}
             				}
-            			}     			    			
-            		}
-            	}            	            	            	            	
-            }            
+            			}
+            		}     			    			
+            	}
+            }                       
         }
 
         return ids;
@@ -717,7 +720,7 @@ public class ConnectivityUtil {
     /**
      * Check if the vplex has associated backend arrays within the virtual array
      * 
-     * @param dbClient
+     * @param dbClient - db client
      * @param vplexURI - URI of vplex being checked for associated backend arrays
      * @param vArrayId - URI of virtual array in check
      * @return boolean indicating if the vplex has associated backend arrays within the virtual array
@@ -727,12 +730,12 @@ public class ConnectivityUtil {
         connVA.add(vArrayId);
 		Set<URI> associations = getStorageSystemAssociationsByNetwork(dbClient,
 				vplexURI, StoragePort.PortType.backend, null, connVA, null);
-		if (associations != null && ! associations.isEmpty()) {
+		if (associations != null && ! associations.isEmpty()) {			
 			return true;
 		}
     	return false;
     }
-
+    
     /**
      * Get all of the storage pools associated with the RP System
      * 

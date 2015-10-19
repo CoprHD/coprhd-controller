@@ -325,7 +325,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      */
     void populateDbMetricsAz(final IsilonAccessZone accessZone, IsilonApi isilonApi, StringMap dbMetrics) {
         
-        Long totalProvCap = 0L;
+        long totalProvCap = 0L;
         Long totalFsCount = 0L;
         String resumeToken = null;
         String zoneName = accessZone.getName();
@@ -337,8 +337,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
             if(quotas != null) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
-                    totalProvCap = totalProvCap + quota.getThresholds().getHard();
-                    totalFsCount ++;
+                    if(quota.getThresholds() != null) {
+                        totalProvCap = totalProvCap + quota.getThresholds().getHard();
+                        totalFsCount ++;
+                    } else {
+                        _log.info("not able to get quota for fs : {}", quota.getPath());
+                    }
                 }
                 
                 resumeToken = quotas.getToken();
@@ -359,7 +363,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
         } while (resumeToken != null);
         _log.info("db metrics- total fs Count {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
-        _log.info("db metrics- total fs Capacity {} for access zone : {}", totalProvCap.toString(), accessZone.getName());
+        _log.info("db metrics- total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());
        
         //get total exports
         int nfsExportsCount = 0;

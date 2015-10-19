@@ -596,20 +596,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
     }
 
-    @AssetDependencies({ "project" })
-    public List<AssetOption> getVplexBlockSnapshots(AssetOptionsContext ctx, URI projectId) {
-        // get a list of all vplex snapshots that are in this project
-        List<BlockSnapshotRestRep> snapshots = Lists.newArrayList();
-        ViPRCoreClient client = api(ctx);
-        VplexVolumeFilter vplexVolumeFilter = new VplexVolumeFilter();
-        List<VolumeRestRep> vplexVolumes = client.blockVolumes().findByProject(projectId, vplexVolumeFilter);
-
-        for (VolumeRestRep vplexVolume : vplexVolumes) {
-            snapshots.addAll(client.blockSnapshots().getByVolume(vplexVolume.getId()));
-        }
-        return constructSnapshotOptions(client, projectId, snapshots);
-    }
-
     public static class UnexportedBlockResourceFilter<T extends BlockObjectRestRep> extends DefaultResourceFilter<T> {
 
         /** The list of block resources ids that have been exported to this host/cluster */

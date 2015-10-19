@@ -20,11 +20,11 @@ import com.emc.vipr.client.Task;
 public class CreateVplexVolumeFromSnapshotService extends ViPRService {
 
     @Param(value = SNAPSHOTS)
-    protected List<URI> snapshotIds;
+    protected List<String> snapshotIds;
 
     @Override
     public void execute() throws Exception {
-        for (URI snapshotId : snapshotIds) {
+        for (URI snapshotId : uris(snapshotIds)) {
             Task<BlockSnapshotRestRep> task = execute(new CreateVplexVolumeFromSnapshot(snapshotId));
             URI volume = task.getResourceId();
             addAffectedResource(volume);

@@ -336,6 +336,7 @@ public class StoragePortAssociationHelper {
             if (TransportType.IP.name().equalsIgnoreCase(sport.getTransportType())) {
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, sport.getStorageDevice());
                 if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType()) || DiscoveredDataObject.Type.isilon.name().equals(system.getSystemType())) {
+                    _log.info("storagesystem type is {} and Port Uri: {}", system.getSystemType(), sport.getId().toString());
                     network = NetworkUtil.getEndpointNetworkLite(sport.getPortNetworkId(), dbClient);
                     vNas = getStoragePortVirtualNAS(sport, dbClient);
                     if (network != null && network.getInactive() == false

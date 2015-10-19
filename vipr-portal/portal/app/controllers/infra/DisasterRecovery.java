@@ -24,6 +24,7 @@ import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
@@ -38,6 +39,9 @@ import controllers.util.FlashException;
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class DisasterRecovery extends Controller {
     protected static final String SAVED_SUCCESS = "disasterRecovery.save.success";
+    protected static final String PAUSED_SUCCESS = "disasterRecovery.pause.success";
+    protected static final String PAUSED_ERROR = "disasterRecovery.pause.error";
+    protected static final String RESUMED_SUCCESS = "disasterRecovery.resume.success";
     protected static final String SAVED_ERROR = "disasterRecovery.save.error";
     protected static final String DELETED_SUCCESS = "disasterRecovery.delete.success";
     protected static final String DELETED_ERROR = "disasterRecovery.delete.error";
@@ -58,15 +62,27 @@ public class DisasterRecovery extends Controller {
         render(dataTable);
     }
 
-    public static void pause(){
+    public static void pause(String id){
+        SiteRestRep result = DisasterRecoveryUtils.getSite(id);
+        if(result != null) {
+            if(!result.getState().equals(SiteState.STANDBY_SYNCED)) {
+                flash.error(MessagesUtils.get(PAUSED_ERROR, result.getName() + " site is not in synced state"));
+            }
+            else {
+                SiteRestRep sitepause = DisasterRecoveryUtils.pauseStandby(id);
+                flash.success(MessagesUtils.get(PAUSED_SUCCESS, sitepause.getName()));
+            }
+        }
+        
+        backToReferrer();
+        list();
+    }
+    
+    public static void resume(String id) {
         
     }
     
-    public static void stop() {
-        
-    }
-    
-    public static void testMode() {
+    public static void test(String id) {
         
     }
     

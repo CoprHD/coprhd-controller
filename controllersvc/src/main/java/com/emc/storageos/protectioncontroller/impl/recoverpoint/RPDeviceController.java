@@ -681,7 +681,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         waitFor = addRemoveProtectionOnVolumeStep(workflow, waitFor, rpSourceDescriptors, taskId);          
 
         // Lock the CG (no-op for non-CG)
-        // http://lglah169.lss.emc.com/r/6348/
         // May be more appropriate in block orchestrator's deleteVolume, but I preferred it here
         // to keep it closer to the feature it locks and the service codes that are produced when
         // the lock fails.

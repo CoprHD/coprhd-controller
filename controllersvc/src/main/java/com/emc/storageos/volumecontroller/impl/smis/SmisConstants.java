@@ -86,6 +86,7 @@ public interface SmisConstants {
     static final int FILTER_CONNECTED_VALUE = 2;
     static final int STORAGE_SYNCHRONIZED_VALUE = 2;
     static final int VP_SNAP_VALUE = 32768;
+    static final int INSTRUMENTATION_DECIDES_VALUE = 2;
     static final int CREATE_NEW_TARGET_VALUE = 2;
     static final int STORAGE_ELEMENT_CAPACITY_EXPANSION_VALUE = 12;
 

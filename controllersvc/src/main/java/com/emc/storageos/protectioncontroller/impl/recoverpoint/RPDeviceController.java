@@ -743,7 +743,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             boolean isRPTarget = _rpHelper.isRPTarget(volumeDescriptor);
             boolean extraParamsGathered = false;
                         
-            maxNumberOfSnapShots = volumeDescriptor.getCapabilitiesValues().getRPMaxSnaps();            
+            if (volumeDescriptor.getCapabilitiesValues() != null) {
+            	maxNumberOfSnapShots = volumeDescriptor.getCapabilitiesValues().getRPMaxSnaps();
+            }
 
             // Set up the source and target volumes in their respective replication sets
             if (isRPSource || isRPTarget) {

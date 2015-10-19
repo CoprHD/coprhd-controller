@@ -583,15 +583,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (isVolumeType(type) && BlockProviderUtils.isType(volumeOrCGId, VOLUME_TYPE)) {
             List<BlockSnapshotRestRep> snapshots = api(ctx).blockSnapshots().getByVolume(volumeOrCGId);
             return constructSnapshotOptions(api(ctx), projectId, snapshots);
-        } else if (!isVolumeType(type) && BlockProviderUtils.isType(volumeOrCGId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
-            if (type == null) {
-                error("Consistency type invalid : %s", type);
-                return new ArrayList<AssetOption>();
-            }
-            if (!BlockProviderUtils.isType(volumeOrCGId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
-                error("Consistency Group field is required for Storage Type [%s, %s]", type, volumeOrCGId);
-                return new ArrayList<AssetOption>();
-            }
+        } else if (isConsistencyGroupType(type) && BlockProviderUtils.isType(volumeOrCGId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
             return getConsistencyGroupSnapshots(ctx, volumeOrCGId);
         } else {
             return new ArrayList<AssetOption>();

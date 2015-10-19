@@ -2142,7 +2142,7 @@ public class FileService extends TaskResourceService {
         FileController controller = getController(FileController.class, device.getSystemType());
         String task = UUID.randomUUID().toString();
         String path = fs.getPath();
-        _log.info("Export path found {} ", path);
+        _log.info("fileSystem  path {} ", path);
         Operation op = new Operation();
         try {
             _log.info("Sub Dir Provided {}", subDir);
@@ -2174,6 +2174,45 @@ public class FileService extends TaskResourceService {
             _log.error("Error Processing File System ACL Updates  {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
+
+        return toTask(fs, task, op);
+    }
+
+    @DELETE
+    @Path("/{id}/acl")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskResourceRep deleteFileSystemACL(@PathParam("id") URI id,
+            @QueryParam("subDir") String subDir) {
+
+        // log input received.
+        _log.info("Delete ACL of fileSystem: Request received for  filesystem: {} with subDir {} ",
+                id, subDir);
+
+        // Validate the FS id.
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+        String task = UUID.randomUUID().toString();
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+        // Check for VirtualPool whether it has NFS v4 enabled
+
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+            // Throw an error
+            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
+                    + StorageProtocol.File.NFSv4.name() + " protocol");
+        }
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        FileController controller = getController(FileController.class, device.getSystemType());
+
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_NFS_ACL);
+        op.setDescription("Delete ACL of file system ");
+
+        controller.deleteNFSAcls(device.getId(), fs.getId(), subDir, task);
+
+        auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
+                fs.getId().toString(), device.getId().toString(), subDir);
 
         return toTask(fs, task, op);
     }

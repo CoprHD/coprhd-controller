@@ -2622,12 +2622,12 @@ public class FileDeviceController implements FileController {
     }
 
     private NFSShareACL getExistingNfsAclFromDB(NFSShareACL dbShareAcl,
-            FileDeviceInputOutput args) {
+            boolean isFile) {
 
         NFSShareACL acl = null;
         String index = null;
         URIQueryResultList result = new URIQueryResultList();
-        if (args.getFileOperation()) {
+        if (isFile) {
             index = dbShareAcl.getFileSystemNfsACLIndex();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getFileSystemNfsACLConstraint(index), result);
@@ -2987,22 +2987,22 @@ public class FileDeviceController implements FileController {
             // Monitoring - Event Processing
             String eventMsg = result.isCommandSuccess() ? "" : result
                     .getMessage();
-            //
-            // if (isFile) {
-            // recordFileDeviceOperation(_dbClient,
-            // auditType,
-            // result.isCommandSuccess(),
-            // eventMsg,
-            // // getExportNewClientExtensions(param.retrieveAllExports()),
-            // fs, storageObj);
-            // } else {
-            // recordFileDeviceOperation(_dbClient,
-            // auditType,
-            // result.isCommandSuccess(),
-            // eventMsg,
-            // getExportNewClientExtensions(param.retrieveAllExports()),
-            // snapshotObj, fs, storageObj);
-            // }
+
+            if (isFile) {
+                recordFileDeviceOperation(_dbClient,
+                        auditType,
+                        result.isCommandSuccess(),
+                        eventMsg,
+                        args.getFileSystemPath(),
+                        fs, storageObj);
+            } else {
+                recordFileDeviceOperation(_dbClient,
+                        auditType,
+                        result.isCommandSuccess(),
+                        eventMsg,
+                        args.getFileSystemPath(),
+                        snapshotObj, fs, storageObj);
+            }
             _dbClient.persistObject(fsObj);
         } catch (Exception e) {
             String[] params = { storage.toString(), fsURI.toString() };
@@ -3037,7 +3037,7 @@ public class FileDeviceController implements FileController {
                 for (NfsACE ace : aceModify) {
                     NFSShareACL dbNfsAcl = new NFSShareACL();
                     copyToPersistNfsACL(ace, dbNfsAcl, fs, args);
-                    NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args);
+                    NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args.getFileOperation());
                     dbNfsAcl.setId(dbNfsAclTemp.getId());
                     _log.info("Modifying acl in DB: {}", dbNfsAcl);
                     _dbClient.persistObject(dbNfsAcl);
@@ -3050,7 +3050,7 @@ public class FileDeviceController implements FileController {
                 for (NfsACE ace : aceDelete) {
                     NFSShareACL dbNfsAcl = new NFSShareACL();
                     copyToPersistNfsACL(ace, dbNfsAcl, fs, args);
-                    NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args);
+                    NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args.getFileOperation());
                     dbNfsAcl.setId(dbNfsAclTemp.getId());
                     dbNfsAcl.setInactive(true);
                     _log.info("Marking acl inactive in DB: {}", dbNfsAcl);
@@ -3061,6 +3061,196 @@ public class FileDeviceController implements FileController {
 
         catch (Exception e) {
             _log.error("Error While executing CRUD Operations {}", e);
+        }
+
+    }
+
+    @Override
+    public void deleteNFSAcls(URI storage, URI fsURI, String subDir, String opId) throws InternalException {
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        FileObject fsObj = null;
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        FileShare fs = null;
+        Snapshot snapshotObj = null;
+        boolean isFile = false;
+
+        try {
+
+            StorageSystem storageObj = _dbClient.queryObject(
+                    StorageSystem.class, storage);
+
+            args.setSubDirectory(subDir);
+
+            _log.info("Controller Recieved Nfs ACL DELETE Operation ");
+
+            // File
+            if (URIUtil.isType(fsURI, FileShare.class)) {
+                isFile = true;
+                fs = _dbClient.queryObject(FileShare.class, fsURI);
+                fsObj = fs;
+                args.addFSFileObject(fs);
+                args.setFileSystemPath(fs.getPath());
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        fs.getPool());
+                args.addStoragePool(pool);
+
+            } else {
+                // Snapshot
+                snapshotObj = _dbClient.queryObject(Snapshot.class, fsURI);
+                fsObj = snapshotObj;
+                fs = _dbClient.queryObject(FileShare.class,
+                        snapshotObj.getParent());
+                args.addFileShare(fs);
+                args.setFileSystemPath(fs.getPath());
+                args.addSnapshotFileObject(snapshotObj);
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        fs.getPool());
+                args.addStoragePool(pool);
+            }
+
+            args.setFileOperation(isFile);
+            args.setOpId(opId);
+
+            List<NfsACE> aceDeleteList = new ArrayList<NfsACE>();
+            List<NFSShareACL> dbNfsAclTemp = queryAllNfsACLInDB(fs, subDir);
+            makeNfsAceFromDB(aceDeleteList, dbNfsAclTemp);
+            args.setNfsAclsToDelete(aceDeleteList);
+
+            // Do the Operation on device.
+            BiosCommandResult result = getDevice(storageObj.getSystemType())
+                    .updateNfsACLs(storageObj, args);
+
+            if (result.isCommandSuccess()) {
+                // Update Database
+
+                for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
+                    nfsShareACL.setInactive(true);
+                    _dbClient.persistObject(nfsShareACL);
+
+                }
+
+            }
+
+            if (result.getCommandPending()) {
+                return;
+            }
+            // Audit & Update the task status
+            OperationTypeEnum auditType = null;
+            auditType = (isFile) ? OperationTypeEnum.DELETE_FILE_SYSTEM_NFS_ACL
+                    : OperationTypeEnum.DELETE_FILE_SNAPSHOT_NFS_ACL;
+
+            fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+
+            // Monitoring - Event Processing
+            String eventMsg = result.isCommandSuccess() ? "" : result
+                    .getMessage();
+
+            if (isFile) {
+                recordFileDeviceOperation(_dbClient,
+                        auditType,
+                        result.isCommandSuccess(),
+                        eventMsg,
+                        args.getFileSystemPath(),
+                        fs, storageObj);
+            } else {
+                recordFileDeviceOperation(_dbClient,
+                        auditType,
+                        result.isCommandSuccess(),
+                        eventMsg,
+                        args.getFileSystemPath(),
+                        snapshotObj, fs, storageObj);
+            }
+            _dbClient.persistObject(fsObj);
+        } catch (Exception e) {
+            String[] params = { storage.toString(), fsURI.toString() };
+            _log.error("Unable to Delete  ACL on  file system or snapshot: storage {}, FS/snapshot URI {}", params, e);
+            _log.error("{}, {} ", e.getMessage(), e);
+            updateTaskStatus(opId, fsObj, e);
+        }
+    }
+
+    /**
+     * To get all the ACLs associated with the a FileShare
+     * 
+     * @param fs
+     * @return
+     */
+    private List<NFSShareACL> queryAllNfsACLInDB(FileShare fs, String subDir) {
+        List<NFSShareACL> nfsShareAcl = null;
+        _log.info("Querying all Nfs File System ACL Using FsId {}", fs.getId());
+        try {
+
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileNfsAclsConstraint(fs.getId());
+            nfsShareAcl = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, NFSShareACL.class,
+                    containmentConstraint);
+
+        } catch (Exception e) {
+            _log.error("Error while querying {}", e);
+        }
+        if (subDir != null && !subDir.isEmpty()) {
+
+            // Filter for a specific Sub Directory export
+            // fs path + subdir path is same as acl filesystem path
+            String absoluteSubdir = fs.getPath() + "/" + subDir;
+            for (NFSShareACL nfsAcl : nfsShareAcl) {
+                if (!nfsAcl.getFileSystemPath().equals(absoluteSubdir)) {
+                    // list of the ace
+                    nfsShareAcl.remove(nfsAcl);
+
+                }
+            }
+
+        }
+        return nfsShareAcl;
+    }
+
+    private void makeNfsAceFromDB(List<NfsACE> nfsAclsToDelete, List<NFSShareACL> dbNfsAclTemp) {
+
+        for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
+            NfsACE nfsAce = new NfsACE();
+
+            String permission = nfsShareACL.getPermissions();
+
+            if (permission != null && !permission.isEmpty()) {
+
+                nfsAce.setPermissions(permission);
+
+            }
+
+            String domain = nfsShareACL.getDomain();
+
+            if (domain != null && !domain.isEmpty()) {
+
+                nfsAce.setDomain(domain);
+
+            }
+            String permissionType = nfsShareACL.getPermissionType();
+
+            if (permissionType != null && !permissionType.isEmpty()) {
+
+                nfsAce.setPermissionType(permissionType);
+
+            } else {
+
+                nfsAce.setPermissionType("allow");
+
+            }
+            String type = nfsShareACL.getType();
+
+            if (type != null && !type.isEmpty()) {
+
+                nfsAce.setType(type);
+
+            }
+            String user = nfsShareACL.getUser();
+
+            if (user != null && !user.isEmpty()) {
+
+                nfsAce.setUser(user);
+
+            }
+            nfsAclsToDelete.add(nfsAce);
+
         }
 
     }

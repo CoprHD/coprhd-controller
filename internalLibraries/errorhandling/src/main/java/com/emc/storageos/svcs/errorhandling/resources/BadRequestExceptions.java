@@ -2509,46 +2509,46 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PRECONDITION_FAILED)
     public BadRequestException cannotAddImageWithoutImageServer();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantUpdateCGWithMixedBlockObjects(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantUpdateCGWithReplicaFromMultipleSystems(final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantCreateVplexVolumeNonVPLEXSnapshot(final String snapshotId);
+    public BadRequestException cantCreateVolumeNonVPLEXSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantCreateVplexVolumeInactiveSnapshot(final String snapshotId);
+    public BadRequestException cantCreateVolumeInactiveSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantCreateVplexVolumeUnsynchronizedSnapshot(final String snapshotId);
+    public BadRequestException cantCreateVolumeUnsynchronizedSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantCreateVplexVolumeForSnapshotAlreadyCreated(final String snapshotId);
+    public BadRequestException cantCreateVolumeForSnapshotAlreadyCreated(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cantDeleteSnapshotUsedByVPLEXVolume(final String snapshotId, final String volumeId);
+    public BadRequestException cantDeleteSnapshotUsedByVolume(final String snapshotId, final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException fullCopyNotAllowedForVPLEXVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException fullCopyNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException snapshotNotAllowedForVPLEXVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException snapshotNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException mirrorNotAllowedForVPLEXVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException mirrorNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException expansionNotAllowedForVPLEXVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException expansionNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cgNotAllowedForVPLEXVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException cgNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException varrayChangeNotAllowedForVPLEXVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException varrayChangeNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException vpoolChangeNotAllowedForVPLEXVolumeBuiltOnSnapshot(final String volumeId);
+    public BadRequestException vpoolChangeNotAllowedForVolumeBuiltOnSnapshot(final String volumeId);
 }

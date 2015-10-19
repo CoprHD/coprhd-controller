@@ -6930,7 +6930,7 @@ vplexsnap_tests()
     blocksnapshot show $PROJECT/$localVolume/$localSnapshot
 
     echo "**** Creating VPLEX volume from snapshot"
-    blocksnapshot create_volume $PROJECT/$localVolume/$localSnapshot
+    blocksnapshot create_vplex_volume $PROJECT/$localVolume/$localSnapshot
 
     echo "**** Creating host"
     hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0

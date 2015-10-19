@@ -2,12 +2,6 @@
 #
 # Copyright (c) 2015 EMC Corporation
 # All Rights Reserved
-#
-# This software contains the intellectual property of EMC Corporation
-# or is licensed to EMC Corporation from third parties.  Use of this
-# software and the intellectual property contained therein is expressly
-# limited to the terms and conditions of the License Agreement under which
-# it is provided by or on behalf of EMC.
 
 PORTS_PROTECTED_IN_CLUSTER="tcp/2181 tcp/2888 tcp/2889 tcp/9160 tcp/7000"
 PORTS_PROTECTED_ACROSS_SITE="tcp/2181 tcp/2888 tcp/2889"
@@ -44,17 +38,6 @@ _get_ips_in_cluster() {
             ips="${ips} ${ipaddr}"
         fi
     done
-
-
-    # add vip into ips
-    local vip="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_vip"
-    local vip6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_vip6"
-    local ipaddr="${!vip}"
-    [ -z "${ipaddr}" ] && ipaddr="[${!vip6}]"
-    if [ "${ipaddr}" != "${LOCAL_IP}" ] ; then
-        ips="${ips} ${ipaddr}"
-    fi
-
 
     echo "${ips}"
 }

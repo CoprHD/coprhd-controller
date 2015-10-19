@@ -972,7 +972,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             
             // Check to see if there are any volumes flagged to not be fully deleted.
-            // This will still remove the volume from it's VPLEX CG and also clean up
+            // This will still remove the volume from its VPLEX CG and also clean up
             // any Mirrors but will leave the Virtual Volume intact on the VPLEX.
             List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(vplexVolumes);
             List<URI> doNotFullyDeleteVolumeList = VolumeDescriptor.getVolumeURIs(doNotDeleteDescriptors);

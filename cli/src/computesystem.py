@@ -43,7 +43,9 @@ class ComputeSystem(object):
 
     def create_computesystem(self, type, name, ipaddress,
                 portnumber,
-                username, password, osinstallnetwork, use_ssl):
+                username, password, osinstallnetwork, use_ssl, computeimageserver):
+        
+        
 
         parms = {'name': name,
                  'user_name': username,
@@ -55,6 +57,13 @@ class ComputeSystem(object):
         }
         if(osinstallnetwork):
             parms['os_install_network'] = osinstallnetwork
+            
+        if(computeimageserver):
+            from computeimageserver import ComputeImageServers
+        
+            compute_image_server = ComputeImageServers(self.__ipAddr, self.__port)
+            compute_image_server_uri = compute_image_server.query_computeimageserver(computeimageserver)
+            parms['compute_image_server'] = compute_image_server_uri
 
         body = json.dumps(parms)
 
@@ -68,9 +77,11 @@ class ComputeSystem(object):
     Updates the Compute System, and (re)discovers it
     '''
     def update_computesystem(self, name, label, portnumber,
-                username, password, osinstallnetwork, use_ssl):
+                username, password, osinstallnetwork, use_ssl, computeimageserver):
 
         parms = {}
+        
+        
 
         if(label):
             parms['name'] = label
@@ -84,9 +95,17 @@ class ComputeSystem(object):
             parms['os_install_network'] = osinstallnetwork
         if(use_ssl):
             parms['use_ssl'] = use_ssl
+        if(computeimageserver):
+            from computeimageserver import ComputeImageServers
+        
+            compute_image_server = ComputeImageServers(self.__ipAddr, self.__port)
+            compute_image_server_uri = compute_image_server.query_computeimageserver(computeimageserver)
+            parms['compute_image_server'] = compute_image_server_uri
+            
 
         uri = self.query_computesystem(name)
         body = json.dumps(parms)
+    
         (s, h) = common.service_json_request(self.__ipAddr,
                                 self.__port, "PUT",
                                 self.URI_COMPUTE_SYSTEM_ID.format(uri),
@@ -247,6 +266,11 @@ def create_computesystem_parser(subcommand_parsers, common_parser):
                                dest='usessl',
                                action='store_true',
                                help='Use SSL or not')
+    create_parser.add_argument('-computeimageserver', '-compimgsrv',
+                                dest='computeimageserver',
+                                metavar='<computeimageserver>',
+                                help='Name of the Compute Image Server')
+    
     create_parser.set_defaults(func=computesystem_create)
 
 
@@ -302,6 +326,10 @@ def update_computesystem_parser(subcommand_parsers, common_parser):
                                 dest='osinstallnetwork',
                                 metavar='<osinstallnetwork>',
                                 help='os install network')
+    update_parser.add_argument('-computeimageserver', '-compimgsrv',
+                                dest='computeimageserver',
+                                metavar='<compute_image_server>',
+                                help='Name of the Compute Image Server')
 
     update_parser.add_argument('-ssl', '-usessl',
                                dest='usessl',
@@ -437,7 +465,7 @@ def computesystem_create(args):
 
         obj.create_computesystem(args.type, args.name, args.computeip,
                         args.computeport, args.user, passwd,
-                        args.osinstallnetwork, args.usessl)
+                        args.osinstallnetwork, args.usessl, args.computeimageserver)
 
     except SOSError as e:
         raise common.format_err_msg_and_raise("create", "computesystem",
@@ -468,7 +496,7 @@ def computesystem_update(args):
 
         obj.update_computesystem(args.name, args.label,
                     args.computeport, args.user, passwd,
-                        args.osinstallnetwork, args.usessl)
+                        args.osinstallnetwork, args.usessl, args.computeimageserver)
 
     except SOSError as e:
         raise common.format_err_msg_and_raise("update", "computesystem",

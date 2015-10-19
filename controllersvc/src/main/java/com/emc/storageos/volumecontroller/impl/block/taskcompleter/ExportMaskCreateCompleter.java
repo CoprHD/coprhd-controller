@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.util.ExportUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +87,7 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
                         exportGroup.addVolume(boURI, Integer.parseInt(hlu));
                     }
                 }
+                ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
                 dbClient.updateAndReindexObject(exportMask);
                 exportGroup.addExportMask(exportMask.getId());
                 dbClient.updateAndReindexObject(exportGroup);

@@ -16,6 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -276,7 +277,17 @@ public class BlockMapper {
         to.setNewVolumeNativeId(from.getNewVolumeNativeId());
         to.setSourceNativeId(from.getSourceNativeId());
         to.setSyncActive(from.getIsSyncActive());
+        to.setReplicaState(getReplicaState(from));
+        to.setReadOnly(from.getIsReadOnly());
         return to;
+    }
+
+    public static String getReplicaState(BlockSnapshot snapshot) {
+        if (snapshot.getIsSyncActive()) {
+            return SynchronizationState.SYNCHRONIZED.name();
+        } else {
+            return SynchronizationState.PREPARED.name();
+        }
     }
 
     public static BlockMirrorRestRep map(DbClient dbClient, BlockMirror from) {
@@ -291,6 +302,7 @@ public class BlockMapper {
         }
         to.setSyncState(from.getSyncState());
         to.setSyncType(from.getSyncType());
+        to.setReplicaState(SynchronizationState.fromState(from.getSyncState()).name());
         to.setVirtualPool(toRelatedResource(ResourceTypeEnum.BLOCK_VPOOL, from.getVirtualPool()));
         if (from.getPool() != null) {
             to.setPool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getPool()));
@@ -478,6 +490,8 @@ public class BlockMapper {
             supportedVPoolUris.add(uri);
         }
         to.setSupportedVPoolUris(supportedVPoolUris);
+
+        to.setWWN(from.getWwn());
 
         return to;
     }

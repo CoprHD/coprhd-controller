@@ -18,20 +18,6 @@ public class BlockMirror extends Volume {
 
     public static String MIRROR_SYNC_TYPE = "6";
 
-    public static enum SynchronizationState {
-        UNKNOWN(0), RESYNCHRONIZING(5), SYNCHRONIZED(6), FRACTURED(13), COPYINPROGRESS(15);
-
-        private int state;
-
-        SynchronizationState(int state) {
-            this.state = state;
-        }
-
-        public String toString() {
-            return Integer.toString(state);
-        }
-    }
-
     @NamedRelationIndex(cf = "NamedRelation", type = Volume.class)
     @Name("source")
     public NamedURI getSource() {

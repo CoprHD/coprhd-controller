@@ -57,17 +57,18 @@ class ComputeImageServers(object):
     Creates and discovers a Compute image server in ViPR
     '''
 
-    def create_computeimageserver(self, name,
-                imageserversecondip,
-                username, password, tftpbootdir, osinstalltimeoutms):
+    def create_computeimageserver(self, name,imageserverip,
+                imageserversecondip,username, password, 
+                tftpbootdir, osinstalltimeout):
 
         parms = {
+                 'name': name,
                  'imageserver_user': username,
                  'imageserver_password': password,
-                 'imageserver_ip': name,
+                 'imageserver_ip': imageserverip,
                  'imageserver_secondip': imageserversecondip,
                  'tftpBootDir': tftpbootdir,
-                 'osinstalltimeoutms': osinstalltimeoutms
+                 'osinstall_timeout': osinstalltimeout
         }
         
         
@@ -126,7 +127,7 @@ class ComputeImageServers(object):
     Updates the Compute image server, and (re)discovers it
     '''
     def update_computeimageserver(self, name, label, imageserversecondip,
-                username, password, tftpbootdir, osinstalltimeoutms):
+                username, password, tftpbootdir, osinstalltimeout):
 
         parms = {}
 
@@ -140,8 +141,8 @@ class ComputeImageServers(object):
             parms['imageserver_secondip'] = imageserversecondip
         if(tftpbootdir):
             parms['tftpBootDir'] = tftpbootdir
-        if(osinstalltimeoutms):
-            parms['osinstall_timeoutms'] = osinstalltimeoutms            
+        if(osinstalltimeout):
+            parms['osinstall_timeout'] = osinstalltimeout            
 
         uri = self.query_computeimageserver(name)
         body = json.dumps(parms)
@@ -223,9 +224,9 @@ def computeimageserver_create(args):
             if (args.user and len(args.user) > 0):
                 passwd = common.get_password("computeimageserver")
     
-            obj.create_computeimageserver(args.name,
+            obj.create_computeimageserver(args.name,args.imageserverip,
                             args.imageserversecondip, args.user, passwd,
-                            args.tftpbootdir, args.osinstalltimeoutms)
+                            args.tftpbootdir, args.osinstalltimeout)
     
         except SOSError as e:
             raise common.format_err_msg_and_raise("create", "computeimageserver",
@@ -233,9 +234,14 @@ def computeimageserver_create(args):
         
 def compute_image_server_sub_common_parser(cc_common_parser):
     mandatory_args = cc_common_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-imageserver', '-is',
+    mandatory_args.add_argument('-name', '-n',
                                 metavar='<computeimageservername>',
                                 dest='name',
+                                help='Name of compute image server',
+                                required=True)
+    mandatory_args.add_argument('-imageserverip', '-iip',
+                                metavar='<imageserverip>',
+                                dest='imageserverip',
                                 help='FQDN or IP address of the server that serves Compute Images',
                                 required=True)
     mandatory_args.add_argument('-imageserversecondip', '-issip',
@@ -253,10 +259,10 @@ def compute_image_server_sub_common_parser(cc_common_parser):
                                   metavar='<tftpbootdirectory>',
                                   help='tft boot directory of compute image server',
                                   required=True)
-    mandatory_args.add_argument('-osinstalltimeoutms', '-itm', 
-                                  dest='osinstalltimeoutms',
-                                  metavar='<osinstalltimeoutmilliseconds>',
-                                  help='osinstalltimeout milliseconds of compute image server',
+    mandatory_args.add_argument('-osinstalltimeout', '-itm', 
+                                  dest='osinstalltimeout',
+                                  metavar='<osinstalltimeoutseconds>',
+                                  help='osinstalltimeout seconds of compute image server',
                                   required=True)
 
 
@@ -269,10 +275,10 @@ def delete_computeimageserver_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Delete an computeimageserver')
     mandatory_args = delete_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-imageserver', '-is',
+    mandatory_args.add_argument('-name', '-n',
                                 metavar='<computeimageservername>',
                                 dest='name',
-                                help='FQDN or IP address of the server that serves Compute Images',
+                                help='Name of compute image server',
                                 required=True)
     delete_parser.set_defaults(func=computeimageserver_delete)
 
@@ -318,8 +324,8 @@ def show_computeimageserver_parser(subcommand_parsers, common_parser):
         help='Show an Compute Image Server')
     
     mandatory_args = show_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-imageserver', '-is',
-                                metavar='<computeimageserver>',
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<computeimageservername>',
                                 dest='name',
                                 help='FQDN or IP address of the server that serves Compute Images',
                                 required=True)
@@ -364,10 +370,10 @@ def computeimageserver_list(args):
             if(args.verbose is False and args.long is True):
                 TableGenerator(
                     resultList,
-                    ["name", "imageServerSecondIp", "tftpbootDir", "computeImageServerStatus"]).printTable()
+                    ["name", "imageserverip","imageserversecondip", "tftpBootdir", "imageserver_status"]).printTable()
             # show all items in json format
             if(args.verbose):
-                return common.format_json_object(computeImageServerList)
+                return common.format_json_object(resultList)
 
         else:
             return
@@ -383,37 +389,37 @@ def update_computeimageserver_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Update an computeimageserver')
     
-    mandatory_args = update_parser.add_argument_group('mandatory arguments')    
-    update_parser.add_argument('-imageserver', '-is',
+    mandatory_args = update_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
                                 metavar='<computeimageservername>',
                                 dest='name',
                                 help='FQDN or IP address of the server that serves Compute Images',
-                                required=True)
+                                required=True)    
     update_parser.add_argument('-label', '-l',
                                 metavar='<label>',
                                 dest='label',
-                                help='new label for FQDN or IP address of the server that serves Compute Images',
-                                required=True)    
+                                help='new label server that serves Compute Images')  
+    mandatory_args.add_argument('-imageserverip', '-iip',
+                                metavar='<imageserverip>',
+                                dest='imageserverip',
+                                help='FQDN or IP address of the server that serves Compute Images',
+                                required=True)      
     update_parser.add_argument('-imageserversecondip', '-issip',
                                   metavar='<imageserversecondipaddress>',
                                   dest='imageserversecondip',
-                                  help='second ipaddress of computeimageserver',
-                                  required=True)
+                                  help='second ipaddress of computeimageserver')
     update_parser.add_argument('-user', '-u',
                                   dest='user',
                                   metavar='<username>',
-                                  help='Username of compute image server',
-                                  required=True)
+                                  help='Username of compute image server')
     update_parser.add_argument('-tftpbootdir', '-tftd', 
                                   dest='tftpbootdir',
                                   metavar='<tftpbootdirectory>',
-                                  help='tft boot directory of compute image server',
-                                  required=True)
-    update_parser.add_argument('-osinstalltimeoutms','-itm',
-                                  dest='osinstalltimeoutms',
-                                  metavar='<osinstalltimeoutmilliseconds>',
-                                  help='osinstalltimeout milliseconds of compute image server',
-                                  required=True)
+                                  help='tft boot directory of compute image server')
+    update_parser.add_argument('-osinstalltimeout','-itm',
+                                  dest='osinstalltimeout',
+                                  metavar='<osinstalltimeoutseconds>',
+                                  help='osinstalltimeout seconds of compute image server')
     
     update_parser.set_defaults(func=computeimageserver_update) 
     
@@ -427,7 +433,7 @@ def computeimageserver_update(args):
 
         obj.update_computeimageserver(args.name, args.label,
                         args.imageserversecondip, args.user, passwd,
-                        args.tftpbootdir, args.osinstalltimeoutms)
+                        args.tftpbootdir, args.osinstalltimeout)
 
     except SOSError as e:
         raise common.format_err_msg_and_raise("update", "computeimageserver",

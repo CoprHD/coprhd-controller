@@ -391,7 +391,8 @@ public abstract class DataObject implements Serializable {
         NO_METERING(1),
         NO_PUBLIC_ACCESS(2),
         SUPPORTS_FORCE(3),
-        RECOVERPOINT(4);
+        RECOVERPOINT(4),
+        DELETION_IN_PROGRESS(5);
 
         private final long mask;
 
@@ -436,5 +437,13 @@ public abstract class DataObject implements Serializable {
             }
         }
         return isNullFound;
+    }
+
+    public String forDisplay() {
+        if (_label != null) {
+            return String.format("%s (%s)", _label, _id);
+        } else {
+            return _id.toString();
+        }
     }
 }

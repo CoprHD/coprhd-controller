@@ -14,6 +14,8 @@ import java.util.List;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.vipr.client.Tasks;
 
 @Service("ResynchronizeFullCopy")
 public class ResynchronizeFullCopyService extends ViPRService {
@@ -34,7 +36,8 @@ public class ResynchronizeFullCopyService extends ViPRService {
             BlockStorageUtils.resynchronizeFullCopies(uris(copyIds));
         } else {
             for (URI copyId : uris(copyIds)) {
-                ConsistencyUtils.resynchronizeFullCopy(consistencyGroupId, copyId);
+                Tasks<? extends DataObjectRestRep> tasks = ConsistencyUtils.resynchronizeFullCopy(consistencyGroupId, copyId);
+                addAffectedResources(tasks);
             }
         }
     }

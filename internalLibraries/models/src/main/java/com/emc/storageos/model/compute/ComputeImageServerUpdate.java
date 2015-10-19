@@ -9,36 +9,40 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
+import com.emc.storageos.model.valid.Length;
+
 @XmlRootElement(name = "compute_imageserver_update")
 public class ComputeImageServerUpdate {
+    private String name;
     private String imageServerIp;
     private String imageServerSecondIp;
     private String imageServerUser;
     private String imageServerPassword;
     private String tftpBootDir;
-    private Integer osInstallTimeoutMs;
+    private Integer osInstallTimeout;
 
     public ComputeImageServerUpdate() {
 
     }
 
-    public ComputeImageServerUpdate(String imageServerAddress,
+    public ComputeImageServerUpdate(String name, String imageServerAddress,
             String imageServerSecondIp, String imageServerUser,
             String imageServerPassword, String tftpBootDir,
-            Integer osInstallTimeoutMs) {
+            Integer osInstallTimeout) {
         super();
+        this.setName(name);
         this.imageServerIp = imageServerAddress;
         this.imageServerSecondIp = imageServerSecondIp;
         this.imageServerUser = imageServerUser;
         this.imageServerPassword = imageServerPassword;
         this.tftpBootDir = tftpBootDir;
-        this.osInstallTimeoutMs = osInstallTimeoutMs;
+        this.osInstallTimeout = osInstallTimeout;
     }
 
     /**
      * @return the imageServerIp
      */
-    @XmlElement(required = true, name = "imageserver_ip")
+    @XmlElement(name = "imageserver_ip")
     @JsonProperty("imageserver_ip")
     public String getImageServerIp() {
         return imageServerIp;
@@ -55,7 +59,7 @@ public class ComputeImageServerUpdate {
     /**
      * @return the imageServerSecondIp
      */
-    @XmlElement(required = true, name = "imageserver_secondip")
+    @XmlElement(name = "imageserver_secondip")
     @JsonProperty("imageserver_secondip")
     public String getImageServerSecondIp() {
         return imageServerSecondIp;
@@ -72,7 +76,7 @@ public class ComputeImageServerUpdate {
     /**
      * @return the imageServerUser
      */
-    @XmlElement(required = true, name = "imageserver_user")
+    @XmlElement(name = "imageserver_user")
     @JsonProperty("imageserver_user")
     public String getImageServerUser() {
         return imageServerUser;
@@ -89,7 +93,7 @@ public class ComputeImageServerUpdate {
     /**
      * @return the password
      */
-    @XmlElement(required = true, name  = "imageserver_password")
+    @XmlElement(name  = "imageserver_password")
     @JsonProperty("imageserver_password")
     public String getImageServerPassword() {
         return imageServerPassword;
@@ -106,7 +110,7 @@ public class ComputeImageServerUpdate {
     /**
      * @return the tftpBootDir
      */
-    @XmlElement(required = true, name = "tftpBootdir")
+    @XmlElement(name = "tftpBootDir")
     @JsonProperty("tftpBootDir")
     public String getTftpBootDir() {
         return tftpBootDir;
@@ -121,19 +125,35 @@ public class ComputeImageServerUpdate {
     }
 
     /**
-     * @return the osInstallTimeoutMs
+     * @return the osInstallTimeout
      */
-    @XmlElement(required = true, name = "osinstall_timeoutms")
-    @JsonProperty("osinstall_timeoutms")
-    public Integer getOsInstallTimeoutMs() {
-        return osInstallTimeoutMs;
+    @XmlElement(name = "osinstall_timeout")
+    @JsonProperty("osinstall_timeout")
+    public Integer getOsInstallTimeout() {
+        return osInstallTimeout;
     }
 
     /**
-     * @param osInstallTimeoutMs
-     *            the osInstallTimeoutMs to set
+     * @param osInstallTimeout
+     *            the osInstallTimeout to set
      */
-    public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
-        this.osInstallTimeoutMs = osInstallTimeoutMs;
+    public void setOsInstallTimeout(Integer osInstallTimeout) {
+        this.osInstallTimeout = osInstallTimeout;
+    }
+
+    /**
+     * @return the name
+     */
+    @XmlElement
+    @Length(min = 2, max = 128)
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * @param name the name to set
+     */
+    public void setName(String name) {
+        this.name = name;
     }
 }

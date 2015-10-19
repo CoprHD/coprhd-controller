@@ -236,8 +236,21 @@
         <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
     </bean>
-    
-    
+
+    <bean id="vmaxReplicaOperations" class="com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxReplicaOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+    </bean>
+
+    <bean id="vnxReplicaOperations" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxReplicaOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+    </bean>
+
     <bean id="cinderCloneOperations" class="com.emc.storageos.volumecontroller.impl.cinder.CinderCloneOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="cinderApiFactory" ref="cinderapifactory" />
@@ -280,6 +293,7 @@
         <property name="snapshotOperations" ref="vmaxSnapshotOperations"/>
         <property name="mirrorOperations" ref="vmaxMirrorOperations"/>
         <property name="cloneOperations" ref="vmaxCloneOperations"/>
+         <property name="replicaOperations" ref="vmaxReplicaOperations"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="metaVolumeOperations" ref="vmaxMetaVolumeOperations"/>
         <property name="srdfOperations" ref="vmaxSrdfOperations" />
@@ -305,6 +319,7 @@
         <property name="snapshotOperations" ref="vnxSnapshotOperations"/>
         <property name="mirrorOperations" ref="vnxMirrorOperations"/>
         <property name="cloneOperations" ref="vnxCloneOperations"/>
+        <property name="replicaOperations" ref="vnxReplicaOperations"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="metaVolumeOperations" ref="vnxMetaVolumeOperations"/>
         <property name="findProviderFactory" ref="vnxFindProviderFactory"/>
@@ -421,6 +436,7 @@
             <set>
                 <value>getControllerReplicationSvcPath</value>
                 <value>getReplicationGroupPath</value>
+                <value>getInitiatorToInitiatorPath</value>
             </set>
         </property>
     </bean>
@@ -725,6 +741,11 @@
         </property>
     </bean>
 
+    <bean id="replicaDeviceController" class="com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController">
+        <property name="dbClient" ref="dbclient" />
+        <property name="blockDeviceController" ref="blockDeviceController" />
+    </bean>
+
     <bean id="fileDeviceController" class="com.emc.storageos.volumecontroller.impl.FileDeviceController">
         <property name="devices">
             <map>
@@ -847,6 +868,7 @@
                 <ref bean="exportWorkflowEntryPoints"/>
                 <ref bean="blockOrchestrationDeviceController"/>
                 <ref bean="srdfDeviceController" />
+                <ref bean="replicaDeviceController" />
                 <ref bean="snapshotWorkflowEntryPoints"/>
                 <ref bean="vplexConsistencyGroupManager"/>
                 <ref bean="rpVplexConsistencyGroupManager"/>
@@ -1187,6 +1209,7 @@
         <property name="connectionFactory" ref="CIMConnectionFactory" />
         <property name="hdsApiFactory" ref="hdsApiFactory"/>
         <property name="dataDomainFactory" ref="datadomainfactory"/>
+        <property name="xtremIOFactory" ref="xtremioRestClientFactory"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
     </bean>
 
@@ -1321,6 +1344,7 @@
         <property name="vplexDeviceController" ref="vplexDeviceController" />
         <property name="rpDeviceController" ref="rpProtection" />
         <property name="srdfDeviceController" ref="srdfDeviceController" />
+        <property name="replicaDeviceController" ref="replicaDeviceController" />
         <property name="locker" ref="locker"/>
     </bean>
 

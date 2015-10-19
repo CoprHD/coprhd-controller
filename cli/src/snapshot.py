@@ -131,7 +131,7 @@ class Snapshot(object):
         )
 
     def snapshot_create(self, otype, typename, ouri,
-                        snaplabel, inactive, rptype, sync ,readonly):
+                        snaplabel, inactive, rptype, sync ,readonly=False):
         '''new snapshot is created, for a given shares or volumes
             parameters:
                 otype      : either file or block or object
@@ -988,7 +988,7 @@ class Snapshot(object):
                     remove)
             )
 
-        elif(resourceUri.find("Volume") > 0):
+        elif(resourceUri.find("Volume") > 0 or resourceUri.find("BlockConsistencyGroup") > 0):
             return (
                 tag.tag_resource(
                     self.__ipAddr,
@@ -999,17 +999,7 @@ class Snapshot(object):
                     remove)
             )
 
-        elif(resourceUri.find("BlockConsistencyGroup") > 0):
-            return (
-                tag.tag_resource(
-                    self.__ipAddr,
-                    self.__port,
-                    Snapshot.URI_CONSISTENCY_GROUP_TAG,
-                    suri,
-                    add,
-                    remove)
-            )
-
+        
 
 # Snapshot Create routines
 
@@ -2216,7 +2206,7 @@ def restore_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of Snapshot',
                                 required=True)
-    mandatory_args.add_argument('-tenant', '-tn',
+    restore_parser.add_argument('-tenant', '-tn',
                                 metavar='<tenantname>',
                                 dest='tenant',
                                 help='Name of tenant',
@@ -2301,7 +2291,7 @@ def resync_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of Snapshot',
                                 required=True)
-    mandatory_args.add_argument('-tenant', '-tn',
+    resync_parser.add_argument('-tenant', '-tn',
                                 metavar='<tenantname>',
                                 dest='tenant',
                                 help='Name of tenant',
@@ -2312,10 +2302,6 @@ def resync_parser(subcommand_parsers, common_parser):
                                 help='Name of project',
                                 required=True)
     group = resync_parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-filesystem', '-fs',
-                       metavar='<filesystemname>',
-                       dest='filesystem',
-                       help='Name of filesystem')
     group.add_argument('-volume', '-vol',
                        metavar='<volumename>',
                        dest='volume',

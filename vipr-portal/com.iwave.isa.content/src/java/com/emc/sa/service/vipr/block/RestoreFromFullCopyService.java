@@ -13,6 +13,8 @@ import java.net.URI;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.vipr.client.Tasks;
 
 @Service("RestoreFromFullCopy")
 public class RestoreFromFullCopyService extends ViPRService {
@@ -28,13 +30,13 @@ public class RestoreFromFullCopyService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             logInfo("Executing Block Volume restore [%s]", consistencyGroupId);
             BlockStorageUtils.restoreFromFullCopy(uri(copyId));
         } else {
             logInfo("Executing Consistency Group restore [%s]", consistencyGroupId);
-            ConsistencyUtils.restoreFullCopy(consistencyGroupId, uri(copyId));
+            Tasks<? extends DataObjectRestRep> tasks = ConsistencyUtils.restoreFullCopy(consistencyGroupId, uri(copyId));
+            addAffectedResources(tasks);
         }
     }
 }

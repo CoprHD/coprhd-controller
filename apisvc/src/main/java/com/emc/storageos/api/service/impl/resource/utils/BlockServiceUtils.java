@@ -7,8 +7,8 @@ package com.emc.storageos.api.service.impl.resource.utils;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -20,9 +20,12 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
@@ -182,4 +185,14 @@ public class BlockServiceUtils {
         }
     }
 
+    /**
+     * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or higher
+     *
+     * @param volume Volume part of the CG
+     * @return true if the operation is supported.
+     */
+    public static boolean checkVolumeCanBeAddedOrRemoved(Volume volume, DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+        return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
+    }
 }

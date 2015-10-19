@@ -47,6 +47,8 @@ import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
@@ -146,17 +148,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
     public void discoverUnManagedObjects(AccessProfile accessProfile, DbClient dbClient,
             PartitionManager partitionManager) throws Exception {
         log.info("Started discovery of UnManagedVolumes for system {}", accessProfile.getSystemId());
-        XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory
-                .getRESTClient(URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(),
-                        accessProfile.getPortNumber())),
-                        accessProfile.getUserName(),
-                        accessProfile.getPassword(), true);
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
+                accessProfile.getSystemId());
+        XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(storageSystem, xtremioRestClientFactory);
 
         unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
         unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();
 
-        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
-                accessProfile.getSystemId());
         // get the storage pool associated with the xtremio system
         StoragePool storagePool = getXtremIOStoragePool(storageSystem.getId(), dbClient);
         if (storagePool == null) {
@@ -305,7 +303,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         StringSet isReadOnly = new StringSet();
         Boolean readOnly = XtremIOConstants.XTREMIO_READ_ONLY_TYPE.equals(xioSnap.getSnapshotType()) ? Boolean.TRUE : Boolean.FALSE;
         isReadOnly.add(readOnly.toString());
-        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), isReadOnly);
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.IS_READ_ONLY.toString(), isReadOnly);
 
         StringSet techType = new StringSet();
         techType.add(BlockSnapshot.TechnologyType.NATIVE.toString());
@@ -413,7 +411,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
             List<Initiator> hostInitiators = hostInitiatorsMap.get(hostname);
             Set<String> hostIGs = hostIGNamesMap.get(hostname);
 
+            boolean isVplexBackendMask = false;
             for (Initiator hostInitiator : hostInitiators) {
+                if (!isVplexBackendMask && VPlexControllerUtils.isVplexInitiator(hostInitiator, dbClient)) {
+                    log.info("host {} contains VPLEX backend ports, "
+                            + "so this mask contains VPLEX backend volumes", hostname);
+                    isVplexBackendMask = true;
+                }
                 knownIniSet.add(hostInitiator.getId().toString());
                 knownNetworkIdSet.add(hostInitiator.getInitiatorPort());
                 if (HostInterface.Protocol.FC.toString().equals(hostInitiator.getProtocol())) {
@@ -421,7 +425,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 }
             }
 
-            UnManagedExportMask mask = getUnManagedExportMask(hostInitiators.get(0).getInitiatorPort(), dbClient);
+            UnManagedExportMask mask = getUnManagedExportMask(hostInitiators.get(0).getInitiatorPort(), dbClient, systemId);
             mask.setStorageSystemUri(systemId);
             // set the host name as the mask name
             mask.setMaskName(hostname);
@@ -438,6 +442,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         hostUnManagedVol.setInitiatorNetworkIds(knownNetworkIdSet);
                         hostUnManagedVol.setInitiatorUris(knownIniSet);
                         hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
+                        if (isVplexBackendMask) {
+                            log.info("marking unmanaged Xtremio volume {} as a VPLEX backend volume",
+                                    hostUnManagedVol.getLabel());
+                            hostUnManagedVol.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString(),
+                                    Boolean.TRUE.toString());
+                        }
                         mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                         unManagedExportVolumesToUpdate.add(hostUnManagedVol);
                     }
@@ -481,15 +492,21 @@ public class XtremIOUnManagedVolumeDiscoverer {
         mask.setZoningMap(zoningMap);
     }
 
-    private UnManagedExportMask getUnManagedExportMask(String knownInitiatorNetworkId, DbClient dbClient) {
+    private UnManagedExportMask getUnManagedExportMask(String knownInitiatorNetworkId, DbClient dbClient, URI systemURI) {
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedExportMaskKnownInitiatorConstraint(knownInitiatorNetworkId), result);
         UnManagedExportMask uem = null;
         Iterator<URI> it = result.iterator();
-        if (it.hasNext()) {
-            uem = dbClient.queryObject(UnManagedExportMask.class, it.next());
-            unManagedExportMasksToUpdate.add(uem);
+        while (it.hasNext()) {
+            UnManagedExportMask potentialUem = dbClient.queryObject(UnManagedExportMask.class, it.next());
+            // Check whether the uem belongs to the same storage system. This to avoid in picking up the
+            // vplex uem.
+            if (URIUtil.identical(potentialUem.getStorageSystemUri(), systemURI)) {
+                uem = potentialUem;
+                unManagedExportMasksToUpdate.add(uem);
+                break;
+            }
         }
         if (uem != null && !uem.getInactive()) {
             // clean up collections (we'll be refreshing them)

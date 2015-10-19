@@ -45,6 +45,8 @@ _get_ips_in_cluster() {
 _get_ips_in_standby() {
     # generate observers for standby sites
     local ips=""
+    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+    local primary_cnt="${!var}"
     if [ -n "${_GENCONFIG_site_ids}" ] ; then
         local begin="${primary_cnt}" # begin index in all node list
         local total="0"              # total number of all standby nodes
@@ -65,7 +67,9 @@ _get_ips_in_standby() {
                 var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_$((${standby_index} - ${begin}))_ipaddr6"
                 local ipaddr="${!var}"
                 [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
-                ips="${ips} ${ipaddr}"
+                if [ "${ipaddr}" != "${LOCAL_IP}" ] ; then
+                    ips="${ips} ${ipaddr}"
+                fi
             done
             begin="$((${begin} + ${standby_cnt}))"
         done

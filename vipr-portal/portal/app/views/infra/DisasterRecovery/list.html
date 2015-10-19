@@ -15,7 +15,7 @@
 
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
-        <a class="btn btn-default btn-xs" ng-disabled='true' role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
+        <a class="btn btn-default btn-xs" ng-disabled="isPauseSite" role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
         <a class="btn btn-default btn-xs" ng-disabled="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
         <a class="btn btn-default btn-xs" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
     </div>

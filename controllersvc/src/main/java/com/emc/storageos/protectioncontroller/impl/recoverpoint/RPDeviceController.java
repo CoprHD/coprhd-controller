@@ -158,7 +158,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String VIPR_SNAPSHOT_PREFIX = "ViPR-snapshot-";
 
     // Various steps for workflows
-    private static final String STEP_REMOVE_PROTECTION = "rpRemoveProtection";
+    private static final String STEP_REMOVE_PROTECTION = "rpRemoveProtectionStep";
     private static final String STEP_CG_CREATION = "cgCreation";
     private static final String STEP_CG_UPDATE = "cgUpdate";
 
@@ -238,7 +238,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String EXPORT_ORCHESTRATOR_WF_NAME = "RP_EXPORT_ORCHESTRATION_WORKFLOW";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
     
-    private static final String METHOD_REMOVE_PROTECTION_STEP = "removeProtection";
+    private static final String METHOD_REMOVE_PROTECTION_STEP = "removeProtectionStep";
     private static final String METHOD_REMOVE_PROTECTION_ROLLBACK_STEP = "removeProtectionRollback";
 
     private static DbClient _dbClient = null;
@@ -5482,7 +5482,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param newVpoolURI The vpool to move this volume to
      * @param stepId The step id in this WF
      */
-    public void removeProtection(List<URI> volumeURIs, URI newVpoolURI, String stepId) {
+    public boolean removeProtectionStep(List<URI> volumeURIs, URI newVpoolURI, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);        
         try {           
             for (URI volumeURI : volumeURIs) {
@@ -5502,8 +5502,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }           
             
             WorkflowStepCompleter.stepSucceded(stepId);
+            return true;
         } catch (Exception e) {
             stepFailed(stepId, e, "removeProtection operation failed.");
+            return false;
         }
     }
 }

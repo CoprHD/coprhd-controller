@@ -1361,7 +1361,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 return false;
             }
         } else {
-            s_logger.info("RP remove protection operation is NOT supported.");
+            s_logger.warn("RP remove protection operation is NOT supported.");
             return false;
         }
         

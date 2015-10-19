@@ -2710,12 +2710,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // Allow the RP Protection add operation
                 allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
             }
-        } else {
-            if (VirtualPool.vPoolSpecifiesProtection(newVpool) 
+        } else if (VirtualPool.vPoolSpecifiesProtection(newVpool) 
                     && VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume, currentVpool,
                             newVpool, _dbClient, notSuppReasonBuff)) {
-                allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
-            } 
+            allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);            
         }
 
         return allowedOperations;

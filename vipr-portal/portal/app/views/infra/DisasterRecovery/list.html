@@ -1,11 +1,16 @@
-#{extends 'main.html' /} #{set navSelected: ['nav.config',
-'nav.disasterRecovery'] /} #{alerts/} #{DataTable.header
-titleKey:'disasterRecovery.title'/}
+#{extends 'main.html' /} 
+#{set navSelected: ['nav.config', 'nav.disasterRecovery'] /} 
+
+#{alerts/} 
+#{DataTable.header titleKey:'disasterRecovery.title'/}
+
 <div class="row">
-	<div class="col-sm-12">#{DataTable.crudTable
-		id:'disasterRecovery', dataTable:dataTable,
-		deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
-		#{/DataTable.crudTable}</div>
+	<div class="col-sm-12">
+#{DataTable.crudTable id:'disasterRecovery', 
+					dataTable:dataTable,
+					deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
+#{/DataTable.crudTable}
+	</div>
 </div>
 
 <script id="inlineActions.html" type="text/ng-template">

@@ -1385,7 +1385,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             // in ViPR as the retry code relies on the well-known ViPR
                             // naming conventions and virtual volume structure to find
                             // VPLEX artifacts related to the volume being deleted.
-                            _log.info(String.format("Deleting VPlex virutal volume %s (%s)",
+                            _log.info(String.format("Deleting VPlex virtual volume %s (%s)",
                                     volume.getDeviceLabel(), volume.getNativeId()));
                             boolean isIngested = volume.isIngestedVolume(_dbClient);
                             client.deleteVirtualVolume(volume.getDeviceLabel(), !isIngested, !isIngested);

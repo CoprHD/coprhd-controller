@@ -70,6 +70,9 @@ public class CreateBlockVolumeHelper {
     private Cluster cluster;
 
     public void precheck() {
+
+        ExportBlockVolumeHelper.precheckExportPathParameters(minPaths, maxPaths, pathsPerInitiator);
+
         if (BlockStorageUtils.isHost(hostId)) {
             host = BlockStorageUtils.getHost(hostId);
         }

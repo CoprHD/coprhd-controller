@@ -79,6 +79,8 @@ public class ExportBlockVolumeHelper {
             ExecutionUtils.fail("failTask.ExportBlockVolumeHelper.precheck", new Object[] {}, new Object[] { VOLUME, VOLUMES, SNAPSHOTS });
         }
 
+        precheckExportPathParameters(minPaths, maxPaths, pathsPerInitiator);
+
         if (volumeIds == null || volumeIds.isEmpty() && volumeId != null) {
             volumeIds = Collections.singletonList(volumeId);
         }
@@ -239,5 +241,18 @@ public class ExportBlockVolumeHelper {
     protected Map<URI, Integer> getVolumeHLUs(List<URI> volumeIds) {
         // only ExportVMwareBlockVolumeHelper supports setting HLUs for now
         return Maps.newHashMap();
+    }
+
+    public static void precheckExportPathParameters(Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
+        if (minPaths != null || maxPaths != null || pathsPerInitiator != null) {
+            if ((minPaths == null || maxPaths == null || pathsPerInitiator == null) || minPaths < 1 || maxPaths < 1
+                    || pathsPerInitiator < 1) {
+                ExecutionUtils.fail("failTask.exportPathParameters.precheck", new Object[] {}, new Object[] {});
+            } else if (minPaths > maxPaths) {
+                ExecutionUtils.fail("failTask.exportPathParameters.minPathsCheck", new Object[] {}, new Object[] {});
+            } else if (pathsPerInitiator > maxPaths) {
+                ExecutionUtils.fail("failTask.exportPathParameters.pathsPerInitiator", new Object[] {}, new Object[] {});
+            }
+        }
     }
 }

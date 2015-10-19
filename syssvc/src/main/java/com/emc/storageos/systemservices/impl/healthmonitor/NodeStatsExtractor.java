@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
+import com.emc.storageos.systemservices.exceptions.SyssvcInternalException;
 import com.emc.storageos.systemservices.impl.healthmonitor.models.CPUStats;
 import com.emc.vipr.model.sys.healthmonitor.DiskStats;
 import com.emc.vipr.model.sys.healthmonitor.ServiceStats;
@@ -71,6 +72,8 @@ public class NodeStatsExtractor implements StatConstants {
                             ProcStats.getProcStats(pid));
                     tempServiceStatsMap.put(serviceName, serviceStats);
                 }
+            } catch (SyssvcInternalException e) {
+                _log.debug("Expected SyssvcInternalException thrown because: "+e.getMessage());
             } catch (Exception e) {
                 _log.debug("Internal error: {}", e);
             }

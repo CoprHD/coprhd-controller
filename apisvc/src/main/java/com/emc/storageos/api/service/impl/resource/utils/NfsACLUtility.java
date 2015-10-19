@@ -74,7 +74,7 @@ public class NfsACLUtility {
         List<NfsACE> addList = param.getAcesToAdd();
         List<NfsACE> modifyList = param.getAcesToModify();
         List<NfsACE> deleteList = param.getAcesToDelete();
-        List<NFSShareACL> dbACLList = queryDBSFileNfsACLs(true);
+        List<NFSShareACL> dbACLList = queryDBSFileNfsACLs(false);
         Set<String> userSetDB = new HashSet<String>();
         for (NFSShareACL dbAcl : dbACLList) {
             userSetDB.add(dbAcl.getUser());
@@ -259,18 +259,19 @@ public class NfsACLUtility {
         List<NFSShareACL> nfsAcls = queryDBSFileNfsACLs(allDirs);
         _log.info("Number of existing ACL found : {} ", nfsAcls.size());
         // ALl ACL
+        List<NfsACE> nfsAces = new ArrayList<NfsACE>();
         for (NFSShareACL nfsAcl : nfsAcls) {
             // list of the ace
-            List<NfsACE> nfsAces = new ArrayList<>();
             NfsACE ace = new NfsACE();
             getNFSAce(nfsAcl, ace);
             nfsAces.add(ace);
             nfsAclMap.put(nfsAcl.getFileSystemPath(), nfsAces);
+
         }
 
         for (String mountpath : nfsAclMap.keySet()) {
             NfsACL nfsAcl = new NfsACL(mountpath, nfsAclMap.get(mountpath));
-            nfsAcl.setFSMountPath(fs.getPath());
+            // nfsAcl.setFSMountPath(fs.getPath());
             String subDirValue = mountpath.substring(fs.getPath().length());
             if (subDirValue != null && !subDirValue.isEmpty()) {
 
@@ -278,10 +279,9 @@ public class NfsACLUtility {
 
             }
             nfsAclList.add(nfsAcl);
-            acls.setNfsACLs(nfsAclList);
 
         }
-
+        acls.setNfsACLs(nfsAclList);
         return acls;
     }
 

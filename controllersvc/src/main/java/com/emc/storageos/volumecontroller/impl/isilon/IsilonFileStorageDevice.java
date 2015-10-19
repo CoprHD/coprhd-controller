@@ -1850,7 +1850,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         isilonAcl.setAcl(aclCompleteList);
         String path = args.getFileSystemPath();
         if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
-            path = path.concat(args.getSubDirectory());
+            path = path + "/" + args.getSubDirectory();
 
         }
 

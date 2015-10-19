@@ -2029,9 +2029,13 @@ public class FileService extends TaskResourceService {
 
         NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, subDir);
         NfsACLs acls = util.getNfsAclFromDB(allDirs);
+        if (acls.getNfsACLs() != null)
+        {
+            _log.info("Number of Acl rules returning {}", acls.getNfsACLs().size());
+        } else {
 
-        _log.info("Number of Acl rules returning {}", acls.getNfsACLs().size());
-
+            _log.info("No Acl rules found for filesystem  {}", fs.getId());
+        }
         return acls;
 
     }
@@ -2052,7 +2056,6 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/acl")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep updateFileSystemAcls(@PathParam("id") URI id,
-            @QueryParam("subDir") String subDir,
             FileNfsACLUpdateParams param) throws InternalException {
         // log input received.
         _log.info("Update FS ACL : request received for {}  with {}", id, param);
@@ -2078,12 +2081,9 @@ public class FileService extends TaskResourceService {
         _log.info("fileSystem  path {} ", path);
         Operation op = new Operation();
         try {
-            _log.info("Sub Dir Provided {}", subDir);
-            // Set Sub Directory
-            param.setSubDir(subDir);
-
+            _log.info("Sub Dir Provided {}", param.getSubDir());
             // Validate the input
-            NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, subDir);
+            NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, param.getSubDir());
 
             util.verifyNfsACLs(param);
 

@@ -2600,7 +2600,11 @@ public class FileDeviceController implements FileController {
             FileShare fs, FileDeviceInputOutput args) {
 
         if (args.getFileSystemPath() != null) {
-            dbShareAcl.setFileSystemPath(args.getFileSystemPath());
+            String path = args.getFileSystemPath();
+            if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
+                path = path + "/" + args.getSubDirectory();
+            }
+            dbShareAcl.setFileSystemPath(path);
         }
 
         if (ace.getUser() != null) {

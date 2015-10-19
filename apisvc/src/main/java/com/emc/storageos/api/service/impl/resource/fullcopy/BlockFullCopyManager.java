@@ -50,7 +50,6 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -65,6 +64,7 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.VPlexUtil;
 
 /**
  * Class that manages all aspects of full copies, also known as clones, for
@@ -603,7 +603,10 @@ public class BlockFullCopyManager {
 
         if (!sourceVolume.hasConsistencyGroup() ||
                 fullCopyVolume.getReplicationGroupInstance() == null) {
-            throw APIException.badRequests.blockObjectHasNoConsistencyGroup();
+            // check if this is vplex
+            if(!VPlexUtil.isBackendFullCopyInReplicationGroup(fullCopyVolume, _dbClient)) {
+                throw APIException.badRequests.blockObjectHasNoConsistencyGroup();
+            }
         }
 
         // Check if the full copy is detached.
@@ -754,6 +757,13 @@ public class BlockFullCopyManager {
      * @return true if the volume can be deleted, false otherwise.
      */
     public boolean volumeCanBeDeleted(Volume volume) {
+        /**
+         * Delete volume api call will delete all its related replicas for VMAX using SMI 8.0.3.
+         * Hence vmax using 8.0.3 can be delete even if volume has replicas.
+         */
+        if (volume.isInCG() && BlockServiceUtils.checkVolumeCanBeAddedOrRemoved(volume, _dbClient)) {
+            return true;
+        }
 
         boolean volumeCanBeDeleted = true;
 
@@ -842,7 +852,7 @@ public class BlockFullCopyManager {
 
             // Volumes with full copies must be detached from
             // those copies.
-            if ((BlockFullCopyUtils.isVolumeFullCopySource(cgVolume, _dbClient)) &&
+            if ((BlockFullCopyUtils.isVolumeCGFullCopySource(cgVolume, _dbClient)) &&
                     (!BlockFullCopyUtils.volumeDetachedFromFullCopies(cgVolume, _dbClient))) {
                 return false;
             }
@@ -976,4 +986,5 @@ public class BlockFullCopyManager {
 
         return Integer.MAX_VALUE;
     }
+    
 }

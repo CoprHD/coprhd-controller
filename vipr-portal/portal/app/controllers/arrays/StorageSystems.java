@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +51,8 @@ import util.StoragePoolUtils;
 import util.StoragePortUtils;
 import util.StorageSystemUtils;
 import util.StringOption;
+import util.VCenterUtils;
+import util.TenantUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
@@ -103,6 +106,7 @@ public class StorageSystems extends ViprResourceController {
     protected static final String UNKNOWN_PORT = "storageArrayPort.unknown";
     protected static final String NOT_REGISTERED = "StorageSystems.not.registered";
     protected static final String SCALEIO = "scaleio";
+    private static final String EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT = "2.4";
 
     private static void addReferenceData() {
         renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.OPTIONS));
@@ -399,6 +403,7 @@ public class StorageSystems extends ViprResourceController {
         	dataTable = new VirtualNasForNonProjectAdminDataTable();
         }
         renderArgs.put("storageId", id);
+        renderArgs.put("expectedGeoVersion", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT));
         render("@listVirtualNasServers", storageSystem, dataTable);
     }
     
@@ -475,20 +480,32 @@ public class StorageSystems extends ViprResourceController {
             results.add(new VirtualNasServerInfo(vNasServer,isProjectAccessible));
         }
         renderArgs.put("storageId", storageId);
+        renderArgs.put("expectedGeoVersion", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT));
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
     
     public static void getProjectsForNas() {
-        List<URI> tenants = getViprClient().tenants().listBulkIds();
+        List<URI> tenants = Lists.newArrayList();
+        List<StringOption> allTenants = TenantUtils.getUserSubTenantOptions();
+        Iterator<StringOption> tenantsIterator = allTenants.iterator();
+        while (tenantsIterator.hasNext()) {
+            StringOption tenant = tenantsIterator.next();
+            if (tenant == null) {
+                continue;
+            }
+            tenants.add(uri(tenant.id));
+        }
         List<StringOption> projectTenantOptions = Lists.newArrayList();
-        for (URI tenantId:tenants) {
-        	 String tenantName = getViprClient().tenants().get(tenantId).getName();
-        	 List<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
-             List<String> projectOptions = Lists.newArrayList();
-             for (ProjectRestRep project : projects) {
-            	 projectOptions.add(project.getId().toString()+"~~~"+project.getName());
-             }
-             projectTenantOptions.add(new StringOption(projectOptions.toString(), tenantName));
+        for (URI tenantId : tenants) {
+            String tenantName = getViprClient().tenants().get(tenantId).getName();
+            List<String> projectOptions = Lists.newArrayList();
+
+            List<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
+            for (ProjectRestRep project : projects) {
+                projectOptions.add(project.getId().toString() + "~~~" + project.getName());
+            }
+
+            projectTenantOptions.add(new StringOption(projectOptions.toString(), tenantName));
         }
        
         renderJSON(projectTenantOptions);

@@ -53,7 +53,12 @@
           type:"text",
           required: false
         },
-                
+          
+        aclDomain:{
+          type:"text",
+          required: false
+        },
+        
         aclPermission:{
           type:"assetType.vipr.fileShareACLPermission",
           initialValue:"CHANGE"

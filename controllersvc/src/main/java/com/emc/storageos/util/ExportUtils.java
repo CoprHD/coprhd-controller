@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -546,6 +547,46 @@ public class ExportUtils {
             }
         }
         return count > 1;
+    }
+
+    /**
+     * This function is used to determine if an initiator is in an export mask other than the one
+     * being processed and this other export mask is used by a different export group yet they all
+     * are for the same host or compute resource. This situation happens when volumes in different
+     * virtual arrays but on the same storage array are exported to the same host. In this situation
+     * the application creates 2 export groups and 2 export masks in ViPR and 2 different masking 
+     * views on the storage array, yet the masking views share the same initiator group. 
+     * <p>
+     * This function checks that another export masks is not sharing the same initiator group 
+     * but that is not under the same export group (this is handled elsewhere) by searching 
+     * for an export mask that:<ol>
+     * <li>is for the same storage system</li>
+     * <li>is not one used by the same export group</li>
+     * <li>has the initiator added into it by the application</li>
+     * <li>has the exact set of initiators which a prerequisite to sharing an initiator group</li>
+     * </ol>  
+     * @param dbClient an instance of DbClient
+     * @param initiatorUri the URI of the initiator being checked
+     * @param curExportMask the export mask being processed
+     * @param exportMaskURIs other export masks in the same export group as the export mask being processed.
+     * @return true if the initiator is found in other export masks.
+     */
+    public static boolean isInitiatorShared(DbClient dbClient, URI initiatorUri, ExportMask curExportMask, Collection<URI> exportMaskURIs) {
+        List<ExportMask> results =
+                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
+                        ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorUri));
+        for (ExportMask exportMask : results) {
+            if (exportMask != null && !exportMask.getId().equals(curExportMask.getId()) && 
+                    exportMask.getStorageDevice().equals(curExportMask.getStorageDevice()) &&
+                            !exportMaskURIs.contains(exportMask.getId()) && 
+                            exportMask.hasUserInitiator(initiatorUri) && 
+                            StringSetUtil.areEqual(exportMask.getInitiators(), curExportMask.getInitiators())) {
+                _log.info(String.format("Initiator %s is shared with mask %s.", 
+                        initiatorUri, exportMask.getMaskName()));
+                return true;
+            }
+        }
+        return false;
     }
 
     static public int getNumberOfExportGroupsWithVolume(Initiator initiator, URI blockObjectId, DbClient dbClient) {
@@ -1350,5 +1391,112 @@ public class ExportUtils {
         String modfiedArraySerialNumber = array.getSerialNumber().substring(beginIndex, endIndex);
 
         return String.format("VPlex_%s_%s", modfiedVPlexSerialNumber, modfiedArraySerialNumber);
+    }
+    
+    /**
+     * Given an updatedBlockObjectMap (maps BlockObject URI to Lun Integer) representing the desired state,
+     * and an Export Group, makes addedBlockObjects containing the entries that were added,
+     * and removedBlockObjects containing the entries that were removed.
+     * @param updatedBlockObjectMap : desired state of the Block Object Map
+     * @param exportGroup : existing map taken from exportGroup.getVolumes()
+     * @param addedBlockObjects : OUTPUT - contains map of added Block Objects
+     * @param removedBlockObjects : OUTPUT -- contains map of removed Block Objects
+     */
+    public static void getAddedAndRemovedBlockObjects(Map<URI, Integer> updatedBlockObjectMap, 
+            ExportGroup exportGroup, Map<URI, Integer> addedBlockObjects, Map<URI, Integer> removedBlockObjects) {
+        Map<URI, Integer> existingBlockObjectMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
+        // Determine the removed entries; they are in existing but not updated
+        for (Entry<URI, Integer> entry : existingBlockObjectMap.entrySet()) {
+            if (!updatedBlockObjectMap.keySet().contains(entry.getKey())) {
+                removedBlockObjects.put(entry.getKey(), entry.getValue());
+            }
+        }
+        // Determine the added entries; they are in updated but not existing
+        for (Entry<URI, Integer> entry : updatedBlockObjectMap.entrySet()) {
+            if (!existingBlockObjectMap.keySet().contains(entry.getKey())) {
+                addedBlockObjects.put(entry.getKey(), entry.getValue());
+            }
+        }
+    }
+
+    /**
+     * This routine will examine the ExportGroup and ExportMask and attempt to reconcile its HLUs.
+     * This would include volumes in 'volumeMap' and any that appear to not have their HLUs filled in.
+     * For this routine we only care about ExportMasks that were created by the system.
+     *
+     * NOTE: ExportGroup is not persisted here.
+     *
+     * @param dbClient [IN] - DbClient for DB access
+     * @param exportGroup [IN] - ExportGroup to update with HLUs
+     * @param exportMask [IN] - ExportMask that we updated for this add volumes request
+     */
+    public static void reconcileHLUs(DbClient dbClient, ExportGroup exportGroup, ExportMask exportMask, Map<URI, Integer> volumeMap) {
+        // We should only care to do this when there are system created ExportMasks that have volumes
+        if (exportMask.getCreatedBySystem() && exportMask.getVolumes() != null) {
+            // CTRL-11544: Set the hlu in the export group too
+            for (URI boURI : volumeMap.keySet()) {
+                String hlu = exportMask.returnVolumeHLU(boURI);
+                _log.info(String.format("ExportGroup %s (%s) update volume HLU: %s -> %s", exportGroup.getLabel(), exportGroup.getId(),
+                        boURI, hlu));
+                exportGroup.addVolume(boURI, Integer.parseInt(hlu));
+            }
+            reconcileExportGroupsHLUs(dbClient, exportGroup);
+        }
+    }
+
+    /**
+     * Examine ExportGroup's volumes to find any that do not have their HLU filled in. In case it is not filled, the ExportMasks
+     * will be searched to find an HLU to assign for the volume.
+     *
+     * NOTE: ExportGroup is not persisted here.
+     *
+     * @param dbClient [IN] - DbClient for DB access
+     * @param exportGroup [IN] - ExportGroup to examine volumes
+     */
+    public static void reconcileExportGroupsHLUs(DbClient dbClient, ExportGroup exportGroup) {
+        // Find the volumes that don't have their HLU filled in ...
+        List<String> egVolumesWithoutHLUs = findVolumesWithoutHLUs(exportGroup);
+        if (!egVolumesWithoutHLUs.isEmpty()) {
+            // There are volumes in the ExportGroup that don't have their HLUs filled in.
+            // Search through each ExportMask associated with the ExportGroup ...
+            for (ExportMask thisMask : ExportMaskUtils.getExportMasks(dbClient, exportGroup)) {
+                Iterator<String> volumeIter = egVolumesWithoutHLUs.iterator();
+                while (volumeIter.hasNext()) {
+                    URI volumeURI = URI.create(volumeIter.next());
+                    if (thisMask.hasVolume(volumeURI)) {
+                        // This ExportMask has the volume we're interested in.
+                        String hlu = thisMask.returnVolumeHLU(volumeURI);
+                        // Let's apply its HLU if it's not the 'Unassigned' value ...
+                        if (hlu != ExportGroup.LUN_UNASSIGNED_DECIMAL_STR) {
+                            _log.info(String.format("ExportGroup %s (%s) update volume HLU: %s -> %s", exportGroup.getLabel(),
+                                    exportGroup.getId(), volumeURI, hlu));
+                            exportGroup.addVolume(volumeURI, Integer.valueOf(hlu));
+                            // Now that we've found an HLU for this volume, there's no need to search for it in other ExportMasks.
+                            // Let's remove it from the array list.
+                            volumeIter.remove();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Return a list of Volume URI Strings that have ExportGroup.LUN_UNASSIGNED_DECIMAL_STR as their HLU
+     *
+     * @param exportGroup [IN] - ExportGroup to check
+     *
+     * @return List or Volume URI Strings
+     */
+    public static List<String> findVolumesWithoutHLUs(ExportGroup exportGroup) {
+        List<String> result = new ArrayList<>();
+        for (Map.Entry<String, String> entry : exportGroup.getVolumes().entrySet()) {
+            String volumeURIStr = entry.getKey();
+            String hlu = entry.getValue();
+            if (hlu.equals(ExportGroup.LUN_UNASSIGNED_DECIMAL_STR)) {
+                result.add(volumeURIStr);
+            }
+        }
+        return result;
     }
 }

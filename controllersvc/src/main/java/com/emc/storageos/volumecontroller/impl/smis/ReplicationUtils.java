@@ -114,6 +114,11 @@ public class ReplicationUtils {
                     new UnsignedInteger16(SmisConstants.DIFFERENTIAL_CLONE_VALUE)));
         }
 
+        public ReplicationSettingBuilder addSMIS81TFDifferentialClone() {
+            return addProperty(new CIMProperty<Object>(SmisConstants.DESIRED_COPY_METHODOLOGY, UINT16_T,
+                    new UnsignedInteger16(SmisConstants.SMIS810_TF_DIFFERENTIAL_CLONE_VALUE)));
+        }
+
         public ReplicationSettingBuilder addConsistentPointInTime() {
             return addProperty(new CIMProperty<Object>(SmisConstants.CP_CONSISTENT_POINT_IN_TIME,
                     CIMDataType.BOOLEAN_T, true));
@@ -232,6 +237,28 @@ public class ReplicationUtils {
             builder.addCopyBeforeActivate();
         } else {
             builder.addDifferentialClone();
+        }
+        return builder.build();
+    }
+
+    /**
+     * Gets the default ReplicationSettingData object from the system and updates
+     * the ConsistentPointInTime property to true in addition to clone-specific settings.
+     * 
+     * @param storage
+     * @return CIMInstance - the instance of ReplicaSettingData
+     * @throws WBEMException
+     */
+    public static CIMInstance getReplicationSettingForSMIS81TFGroupClones(StorageSystem storage, SmisCommandHelper helper,
+            CIMObjectPathFactory cimPath,
+            boolean createInactive) throws WBEMException {
+        ReplicationSettingBuilder builder = new ReplicationSettingBuilder(storage, helper, cimPath);
+
+        builder.addConsistentPointInTime();
+        if (createInactive) {
+            builder.addCopyBeforeActivate();
+        } else {
+            builder.addSMIS81TFDifferentialClone();
         }
         return builder.build();
     }

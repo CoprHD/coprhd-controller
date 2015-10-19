@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.xtremio.prov.utils;
 
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,8 +15,10 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
+import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
@@ -26,6 +30,8 @@ import com.google.common.base.Joiner;
 public class XtremIOProvUtils {
 
     private static final Logger _log = LoggerFactory.getLogger(XtremIOProvUtils.class);
+
+    private static final int SLEEP_TIME = 10000; // 10 seconds
 
     public static void updateStoragePoolCapacity(XtremIOClient client, DbClient dbClient, StoragePool storagePool) {
         try {
@@ -156,12 +162,26 @@ public class XtremIOProvUtils {
         } else {
             _log.info("Found {} folder on the Array.", rootFolderName);
         }
-
+        long waitTime = 30000; // 30 sec
+        int count = 0;
+        // @TODO this is a temporary workaround to retry volume folder verification.
+        // Actually we should create workflow steps for this.
+        while (waitTime > 0) {
+            count++;
+            _log.debug("Retrying {} time to find the volume folders", count);
+            if (!folderNames.contains(volumesFolderName)) {
+                _log.debug("sleeping time {} remaining time: {}", SLEEP_TIME, (waitTime - SLEEP_TIME));
+                Thread.sleep(SLEEP_TIME);
+                waitTime = waitTime - SLEEP_TIME;
+                folderNames = client.getVolumeFolderNames();
+            } else {
+                _log.info("Found {} folder on the Array.", volumesFolderName);
+                break;
+            }
+        }
         if (!folderNames.contains(volumesFolderName)) {
             _log.info("Sending create volume folder request {}", volumesFolderName);
             client.createTag("volumes", rootFolderName, XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name(), null);
-        } else {
-            _log.info("Found {} folder on the Array.", volumesFolderName);
         }
 
         if (!folderNames.contains(snapshotsFolderName)) {
@@ -193,12 +213,27 @@ public class XtremIOProvUtils {
         String snapshotsTagName = XtremIOConstants.V2_SNAPSHOT_ROOT_FOLDER.concat(rootTagName);
         tagNamesMap.put(XtremIOConstants.VOLUME_KEY, volumesTagName);
         tagNamesMap.put(XtremIOConstants.SNAPSHOT_KEY, snapshotsTagName);
+        long waitTime = 30000; // 30 sec
+        int count = 0;
+        // @TODO this is a temporary workaround to retry volume tag verification.
+        // Actually we should create workflow steps for this.
+        while (waitTime > 0) {
+            count++;
+            _log.debug("Retrying {} time to find the volume tag", count);
+            if (!tagNames.contains(volumesTagName)) {
+                _log.debug("sleeping time {} remaining time: {}", SLEEP_TIME, (waitTime - SLEEP_TIME));
+                Thread.sleep(SLEEP_TIME);
+                waitTime = waitTime - SLEEP_TIME;
+                tagNames = client.getTagNames(clusterName);
+            } else {
+                _log.info("Found {} tag on the Array.", volumesTagName);
+                break;
+            }
 
+        }
         if (!tagNames.contains(volumesTagName)) {
             _log.info("Sending create volume tag request {}", volumesTagName);
             client.createTag(volumesTagName, null, XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name(), clusterName);
-        } else {
-            _log.info("Found {} tag on the Array.", volumesTagName);
         }
 
         if (!tagNames.contains(snapshotsTagName)) {
@@ -209,6 +244,49 @@ public class XtremIOProvUtils {
         }
 
         return tagNamesMap;
+
+    }
+
+    /**
+     * Checks if there are tags with the given name for consistency group.
+     * If not found, create them.
+     * 
+     * @param client
+     * @param rootTagName
+     * @param clusterName
+     * @return string
+     * @throws Exception
+     */
+    public static String createTagsForConsistencyGroup(XtremIOClient client, String rootTagName, String clusterName)
+            throws Exception {
+        List<String> tagNames = client.getTagNames(clusterName);
+        _log.info("Tag Names found on Array : {}", Joiner.on("; ").join(tagNames));
+        String cgTagName = XtremIOConstants.V2_CONSISTENCY_GROUP_ROOT_FOLDER.concat(rootTagName);
+
+        long waitTime = 30000; // 30 sec
+        int count = 0;
+        while (waitTime > 0) {
+            count++;
+            _log.debug("Retrying {} time to find the cg tag", count);
+            if (!tagNames.contains(cgTagName)) {
+                _log.debug("sleeping time {} remaining time: {}", SLEEP_TIME, (waitTime - SLEEP_TIME));
+                Thread.sleep(SLEEP_TIME);
+                waitTime = waitTime - SLEEP_TIME;
+                tagNames = client.getTagNames(clusterName);
+            } else {
+                _log.info("Found cg tag: {} on the Array.", cgTagName);
+                break;
+            }
+
+        }
+        if (!tagNames.contains(cgTagName)) {
+            _log.info("Sending create cg tag request {}", cgTagName);
+            client.createTag(cgTagName, null, XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
+        } else {
+            _log.info("Found {} cg tag on the Array.", cgTagName);
+        }
+
+        return cgTagName;
 
     }
 
@@ -248,5 +326,81 @@ public class XtremIOProvUtils {
         } catch (Exception e) {
             _log.warn("Deleting root folder {} failed", volumeFolderName, e);
         }
+    }
+
+    /**
+     * Get the XtremIO client for making requests to the system based
+     * on the passed profile.
+     * 
+     * @param accessProfile A reference to the access profile.
+     * @param xtremioRestClientFactory xtremioclientFactory.
+     * 
+     * @return A reference to the xtremio client.
+     */
+    public static XtremIOClient getXtremIOClient(StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
+        xtremioRestClientFactory.setModel(system.getFirmwareVersion());
+        XtremIOClient client = (XtremIOClient) xtremioRestClientFactory
+                .getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
+                                system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword(), true);
+        return client;
+    }
+
+    /**
+     * Refresh the XIO Providers & its client connections.
+     * 
+     * @param xioProviderList the XIO provider list
+     * @param dbClient the db client
+     * @return the list of active providers
+     */
+    public static List<URI> refreshXtremeIOConnections(final List<StorageProvider> xioProviderList,
+            DbClient dbClient, XtremIOClientFactory xtremioRestClientFactory) {
+        List<URI> activeProviders = new ArrayList<URI>();
+        for (StorageProvider provider : xioProviderList) {
+            boolean isConnectionLive = false;
+            // We can't determine the client version now, let first scan determine the version.
+            if (null == provider.getVersionString()) {
+                continue;
+            }
+            try {
+                xtremioRestClientFactory.setModel(provider.getVersionString());
+                XtremIOClient clientFromCache = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
+                        URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
+                                provider.getPortNumber())), provider.getUserName(), provider.getPassword(), true);
+                if (null != clientFromCache && null != clientFromCache.getXtremIOXMSVersion()) {
+                    isConnectionLive = true;
+                } else {
+                    _log.debug("Connection from cache is not valid trying with new credentials {}", provider.getProviderID());
+                    // remove the existing client connection
+                    xtremioRestClientFactory.removeRESTClient(
+                            URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
+                                    provider.getPortNumber())), provider.getUserName(), provider.getPassword());
+                    // Initialize with the new provider credentials.
+                    XtremIOClient newXIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
+                            URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
+                                    provider.getPortNumber())), provider.getUserName(), provider.getPassword(), true);
+                    if (null != newXIOClient.getXtremIOXMSVersion()) {
+                        isConnectionLive = true;
+                    }
+                }
+                // Now update provider status based on connection live check.
+                if (isConnectionLive) {
+                    provider.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED
+                            .toString());
+                    activeProviders.add(provider.getId());
+                } else {
+                    _log.info("XIO Connection is not active {}", provider.getProviderID());
+                    provider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED
+                            .toString());
+                }
+            } catch (Exception ex) {
+                _log.error("Exception occurred while validating xio client for {}", provider.getProviderID(), ex);
+                provider.setConnectionStatus(StorageProvider.ConnectionStatus.NOTCONNECTED
+                        .toString());
+            } finally {
+                dbClient.updateObject(provider);
+            }
+        }
+        return activeProviders;
     }
 }

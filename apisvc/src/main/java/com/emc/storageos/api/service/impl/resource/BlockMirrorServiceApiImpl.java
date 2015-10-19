@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +36,6 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockMirror.SynchronizationState;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
@@ -45,7 +46,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -58,7 +58,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
@@ -135,30 +134,18 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                 throw APIException.badRequests.invalidMirrorCountForVolumesInConsistencyGroup();
             }
 
-            List<URI> newVolumeList = getNewlyAddedVolumeList(sourceVolume);
-            if (!newVolumeList.isEmpty()) {
-                for (URI sourceVolumeURI : newVolumeList) {
-                    Volume srcVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
-                    _log.info("Processing volume {} in CG {}", srcVolume.getId(), srcVolume.getConsistencyGroup());
-                    VirtualPool cgVolumeVPool = _dbClient.queryObject(VirtualPool.class,
-                            srcVolume.getVirtualPool());
-                    populateVolumeRecommendations(capabilities, cgVolumeVPool, srcVolume, taskId, taskList,
-                            volumeCount, volumeCounter, volumeLabel, preparedVolumes, volumeRecommendations);
-                }
-            } else {
-                URIQueryResultList cgVolumeList = new URIQueryResultList();
-                _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                        .getVolumesByConsistencyGroup(sourceVolume.getConsistencyGroup()), cgVolumeList);
-                // Process all CG volumes to create a corresponding Mirror
-                // recommendation
-                while (cgVolumeList.iterator().hasNext()) {
-                    Volume cgSourceVolume = _dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
-                    _log.info("Processing volume {} in CG {}", cgSourceVolume.getId(), sourceVolume.getConsistencyGroup());
-                    VirtualPool cgVolumeVPool = _dbClient.queryObject(VirtualPool.class,
-                            cgSourceVolume.getVirtualPool());
-                    populateVolumeRecommendations(capabilities, cgVolumeVPool, cgSourceVolume, taskId, taskList,
-                            volumeCount, volumeCounter, volumeLabel, preparedVolumes, volumeRecommendations);
-                }
+            URIQueryResultList cgVolumeList = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getVolumesByConsistencyGroup(sourceVolume.getConsistencyGroup()), cgVolumeList);
+            // Process all CG volumes to create a corresponding Mirror
+            // recommendation
+            while (cgVolumeList.iterator().hasNext()) {
+                Volume cgSourceVolume = _dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
+                _log.info("Processing volume {} in CG {}", cgSourceVolume.getId(), sourceVolume.getConsistencyGroup());
+                VirtualPool cgVolumeVPool = _dbClient.queryObject(VirtualPool.class,
+                        cgSourceVolume.getVirtualPool());
+                populateVolumeRecommendations(capabilities, cgVolumeVPool, cgSourceVolume, taskId, taskList,
+                        volumeCount, volumeCounter, volumeLabel, preparedVolumes, volumeRecommendations);
             }
         } else {
             // Source Volume without CG
@@ -195,26 +182,6 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         }
 
         return taskList;
-    }
-
-    private List<URI> getNewlyAddedVolumeList(Volume sourceVolume) {
-        URIQueryResultList cgVolumeList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getVolumesByConsistencyGroup(sourceVolume.getConsistencyGroup()), cgVolumeList);
-        List<URI> newlyAddedVolList = new ArrayList<URI>();
-        int totalVolumeCount = 0;
-        while (cgVolumeList.iterator().hasNext()) {
-            totalVolumeCount++;
-            Volume cgSourceVolume = _dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
-            if (cgSourceVolume != null && (cgSourceVolume.getMirrors() == null || cgSourceVolume.getMirrors().isEmpty())) {
-                newlyAddedVolList.add(cgSourceVolume.getId());
-            }
-        }
-
-        if (totalVolumeCount > newlyAddedVolList.size()) {
-            return newlyAddedVolList;
-        }
-        return new ArrayList<>();
     }
 
     @Override
@@ -284,7 +251,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                     ResourceOperationTypeEnum.DETACH_BLOCK_MIRROR, mirrorTargetCommaDelimList);
             taskList.getTaskList().add(toTask(sourceVolume, copies, taskId, op));
         } else {
-            populateTaskList(groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.DETACH_BLOCK_MIRROR);
+            populateTaskList(sourceVolume, groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.DETACH_BLOCK_MIRROR);
         }
 
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
@@ -338,11 +305,10 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             List<BlockMirror> blockMirrors, Boolean sync,
             String taskId) throws ControllerException {
         TaskList taskList = new TaskList();
-        // Operation op = null;
-        List<URI> mirrorUris = new ArrayList<URI>();
+        List<URI> mirrorUris = new ArrayList<>();
 
         // Assume all continuous copies are to be paused
-        List<BlockMirror> pausedMirrors = new ArrayList<BlockMirror>();
+        List<BlockMirror> pausedMirrors = new ArrayList<>();
         Map<BlockMirror, Volume> groupMirrorSourceMap = null;
         List<BlockMirror> mirrorsToProcess = null;
         boolean isCG = sourceVolume.isInCG();
@@ -422,7 +388,8 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                         ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR, mirrorTargetCommaDelimList);
                 taskList.getTaskList().add(toTask(sourceVolume, blockMirrors, taskId, op));
             } else {
-                populateTaskList(groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR);
+                populateTaskList(sourceVolume, groupMirrorSourceMap, taskList, taskId,
+                        ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR);
             }
 
             try {
@@ -524,7 +491,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                         ResourceOperationTypeEnum.RESUME_VOLUME_MIRROR, mirrorTargetCommaDelimList);
                 taskList.getTaskList().add(toTask(sourceVolume, blockMirrors, taskId, op));
             } else {
-                populateTaskList(groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.RESUME_VOLUME_MIRROR);
+                populateTaskList(sourceVolume, groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.RESUME_VOLUME_MIRROR);
             }
 
             try {
@@ -583,12 +550,11 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, mirrorURI);
         Volume sourceVolume = _dbClient.queryObject(Volume.class, mirror.getSource().getURI());
         List<URI> mirrorURIs = new ArrayList<URI>();
-
-        if (!NullColumnValueGetter.isNullURI(sourceVolume.getConsistencyGroup())
-                && !checkIfNotLastSrdfCGMirror(mirror, sourceVolume)) {
+        boolean isCG = sourceVolume.isInCG();
+        if (isCG) {
             Map<BlockMirror, Volume> groupMirrorSourceMap = getGroupMirrorSourceMap(mirrorURI, sourceVolume);
             mirrorURIs = new ArrayList<URI>(transform(new ArrayList<BlockMirror>(groupMirrorSourceMap.keySet()), FCTN_MIRROR_TO_URI));
-            populateTaskList(groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR);
+            populateTaskList(sourceVolume, groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.DEACTIVATE_VOLUME_MIRROR);
         } else {
             mirrorURIs = Arrays.asList(mirror.getId());
             Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
@@ -597,7 +563,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         }
         try {
             BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-            controller.deactivateMirror(storageSystem.getId(), mirrorURIs, taskId);
+            controller.deactivateMirror(storageSystem.getId(), mirrorURIs, isCG, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to deactivate continuous copy %s", mirror.getId().toString());
             _log.error(errorMsg, e);
@@ -605,23 +571,6 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         }
 
         return taskList;
-    }
-
-    /**
-     * Check if CG, source volume is SRDF & not last mirror in group.
-     */
-    private boolean checkIfNotLastSrdfCGMirror(BlockMirror mirror, Volume sourceVolume) {
-        if (!NullColumnValueGetter.isNullURI(sourceVolume.getConsistencyGroup())
-                && sourceVolume.checkForSRDF()) {
-            List<BlockMirror> mirrorsinCG = ControllerUtils
-                    .getMirrorsPartOfReplicationGroup(mirror.getReplicationGroupInstance(), _dbClient);
-            List<URI> mirrorURIsInCG = new ArrayList<URI>(transform(mirrorsinCG, FCTN_MIRROR_TO_URI));
-            mirrorURIsInCG.remove(mirror.getId());
-            if (!mirrorURIsInCG.isEmpty()) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override
@@ -779,8 +728,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     private Map<BlockMirror, Volume> getGroupMirrorSourceMap(BlockMirror mirror, Volume sourceVolume) {
         Map<BlockMirror, Volume> mirrorSourceMap = new HashMap<BlockMirror, Volume>();
-        URI cgURI = sourceVolume.getConsistencyGroup();
-        if ((!NullColumnValueGetter.isNullURI(cgURI))) {
+        if (sourceVolume.isInCG()) {
             URIQueryResultList queryResults = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getMirrorReplicationGroupInstanceConstraint(mirror
@@ -795,20 +743,40 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         return mirrorSourceMap;
     }
 
-    private void populateTaskList(Map<BlockMirror, Volume> groupMirrorSourceMap, TaskList taskList, String taskId,
+    /**
+     * Populate the given TaskList with tasks.
+     *
+     * @param source                Source volume acted on from request
+     * @param groupMirrorSourceMap  Map of mirrors to their source
+     * @param taskList              TaskList
+     * @param taskId                The task ID
+     * @param operationType         The operation type
+     */
+    private void populateTaskList(Volume source, Map<BlockMirror, Volume> groupMirrorSourceMap, TaskList taskList, String taskId,
             ResourceOperationTypeEnum operationType) {
+        Map<URI, String> groupsToMirrorIds = new HashMap<>();
+
+        addTask(taskList, source, taskId, operationType);
         for (Entry<BlockMirror, Volume> entry : groupMirrorSourceMap.entrySet()) {
             BlockMirror mirror = entry.getKey();
-            Volume source = entry.getValue();
-            // @TODO if the source volume is part of a consistency group, we should return tasks for all mirrors one should be fine.
-            // This is temporary fix but this should handle at CG level not at the volume level.
-            if (!NullColumnValueGetter.isNullURI(source.getConsistencyGroup())
-                    && null != taskList.getTaskList() && taskList.getTaskList().isEmpty()) {
-                Operation operation = _dbClient.createTaskOpStatus(Volume.class, source.getId(), taskId,
-                        operationType, mirror.getId().toString());
-                taskList.getTaskList().add(toTask(source, Arrays.asList(mirror), taskId, operation));
+            Volume mirrorSource = entry.getValue();
+
+            if (source.isInCG() && null != taskList.getTaskList()) {
+                groupsToMirrorIds.put(mirrorSource.getConsistencyGroup(), mirror.getId().toString());
             }
         }
+
+        List<BlockConsistencyGroup> groups = _dbClient.queryObject(BlockConsistencyGroup.class,
+                groupsToMirrorIds.keySet());
+        for (BlockConsistencyGroup group : groups) {
+            addTask(taskList, group, taskId, operationType);
+        }
+
+    }
+
+    private void addTask(TaskList taskList, DataObject object, String taskId, ResourceOperationTypeEnum opType) {
+        Operation op = _dbClient.createTaskOpStatus(object.getClass(), object.getId(), taskId, opType);
+        taskList.addTask(toTask(object, taskId, op));
     }
 
 }

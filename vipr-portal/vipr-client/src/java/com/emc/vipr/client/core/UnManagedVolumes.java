@@ -60,10 +60,10 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      *            the ID of the storage system.
      * @return the list of unmanaged volume references.
      */
-    public List<NamedRelatedResourceRep> listByStorageSystem(URI storageSystemId) {
+    public List<RelatedResourceRep> listByStorageSystem(URI storageSystemId) {
         UnManagedVolumeList response = client.get(UnManagedVolumeList.class,
                 PathConstants.UNMANAGED_VOLUME_BY_STORAGE_SYSTEM_URL, storageSystemId);
-        return ResourceUtils.defaultList(response.getNamedUnManagedVolumes());
+        return ResourceUtils.defaultList(response.getUnManagedVolumes());
     }
 
     /**
@@ -139,7 +139,7 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      */
     public List<UnManagedVolumeRestRep> getByStorageSystem(URI storageSystemId,
             ResourceFilter<UnManagedVolumeRestRep> filter) {
-        List<NamedRelatedResourceRep> refs = listByStorageSystem(storageSystemId);
+        List<RelatedResourceRep> refs = listByStorageSystem(storageSystemId);
         return getByRefs(refs, filter);
     }
 

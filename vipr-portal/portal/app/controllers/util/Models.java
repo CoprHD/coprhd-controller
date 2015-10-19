@@ -193,8 +193,7 @@ public class Models extends Controller {
     @Util
     public static boolean canSelectTenantForVcenters(String tenantId) {
         UserInfo info = Security.getUserInfo();
-        if ((info.getTenant().equals(tenantId) && isAdministrator()) ||
-                Security.isSecurityAdmin() || Security.isSystemAdmin()) {
+        if ((info.getTenant().equals(tenantId) && isAdministrator()) || Security.isSystemAdmin()) {
             return true;
         }
         return info.hasSubTenantRole(tenantId, Security.TENANT_ADMIN);
@@ -237,9 +236,14 @@ public class Models extends Controller {
     }
 
     private static String validateSessionTenant(String sessionTenant) {
-        if (TenantUtils.getNoTenantSelector().equalsIgnoreCase(sessionTenant) ||
-                TenantUtils.getTenantSelectorForUnassigned().equalsIgnoreCase(sessionTenant) ||
-                getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
+        try {
+            if (TenantUtils.getNoTenantSelector().equalsIgnoreCase(sessionTenant) ||
+                    TenantUtils.getTenantSelectorForUnassigned().equalsIgnoreCase(sessionTenant) ||
+                    getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
+                Models.resetAdminTenantId();
+                sessionTenant = Models.currentAdminTenantForVcenter();
+            }
+        } catch (ServiceErrorException tenantNotFound) {
             Models.resetAdminTenantId();
             sessionTenant = Models.currentAdminTenantForVcenter();
         }

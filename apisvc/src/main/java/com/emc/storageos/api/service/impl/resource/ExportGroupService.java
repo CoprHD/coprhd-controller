@@ -2552,7 +2552,8 @@ public class ExportGroupService extends TaskResourceService {
      */
     private void validateExportPathParmPorts(ExportPathParameters param, ExportGroup exportGroup, 
             Collection<URI> blockObjectURIs) {
-        if (param.getClass() == null || param.getStoragePorts().isEmpty()) return;
+        if (param.getClass() == null || param.getStoragePorts() == null || param.getStoragePorts().isEmpty())
+            return;
         // Collect the list of Storage Systems used by the block objects.
         Set<URI> storageArrays = new HashSet<URI>();
         for (URI blockObjectURI : blockObjectURIs) {

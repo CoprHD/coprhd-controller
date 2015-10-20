@@ -6,6 +6,9 @@ package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST;
+import static com.emc.sa.service.ServiceParams.MAX_PATHS;
+import static com.emc.sa.service.ServiceParams.MIN_PATHS;
+import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SNAPSHOTS;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -55,6 +58,15 @@ public class ExportBlockVolumeHelper {
     @Param(value = HLU, required = false)
     protected Integer hlu;
 
+    @Param(value = MIN_PATHS, required = false)
+    protected Integer minPaths;
+
+    @Param(value = MAX_PATHS, required = false)
+    protected Integer maxPaths;
+
+    @Param(value = PATHS_PER_INITIATOR, required = false)
+    protected Integer pathsPerInitiator;
+
     protected Host host;
     protected Cluster cluster;
 
@@ -66,6 +78,8 @@ public class ExportBlockVolumeHelper {
         if (volumeId == null && volumeIds == null && snapshotIds == null) {
             ExecutionUtils.fail("failTask.ExportBlockVolumeHelper.precheck", new Object[] {}, new Object[] { VOLUME, VOLUMES, SNAPSHOTS });
         }
+
+        precheckExportPathParameters(minPaths, maxPaths, pathsPerInitiator);
 
         if (volumeIds == null || volumeIds.isEmpty() && volumeId != null) {
             volumeIds = Collections.singletonList(volumeId);
@@ -135,7 +149,8 @@ public class ExportBlockVolumeHelper {
         Map<URI, Integer> volumeHlus = getVolumeHLUs(volumeIds);
 
         for (Map.Entry<URI, Set<URI>> entry : addVolumeExports.entrySet()) {
-            BlockStorageUtils.addVolumesToExport(entry.getValue(), currentHlu, entry.getKey(), volumeHlus);
+            BlockStorageUtils.addVolumesToExport(entry.getValue(), currentHlu, entry.getKey(), volumeHlus, minPaths, maxPaths,
+                    pathsPerInitiator);
             logInfo("export.block.volume.add.existing", entry.getValue(), entry.getKey());
             if ((currentHlu != null) && (currentHlu > -1)) {
                 currentHlu += entry.getValue().size();
@@ -147,9 +162,11 @@ public class ExportBlockVolumeHelper {
             volumeHlus = getVolumeHLUs(newVolumes);
             URI exportId = null;
             if (cluster != null) {
-                exportId = BlockStorageUtils.createClusterExport(projectId, virtualArrayId, newVolumes, currentHlu, cluster, volumeHlus);
+                exportId = BlockStorageUtils.createClusterExport(projectId, virtualArrayId, newVolumes, currentHlu, cluster, volumeHlus,
+                        minPaths, maxPaths, pathsPerInitiator);
             } else {
-                exportId = BlockStorageUtils.createHostExport(projectId, virtualArrayId, newVolumes, currentHlu, host, volumeHlus);
+                exportId = BlockStorageUtils.createHostExport(projectId, virtualArrayId, newVolumes, currentHlu, host, volumeHlus,
+                        minPaths, maxPaths, pathsPerInitiator);
             }
             ExportGroupRestRep export = BlockStorageUtils.getExport(exportId);
 
@@ -224,5 +241,18 @@ public class ExportBlockVolumeHelper {
     protected Map<URI, Integer> getVolumeHLUs(List<URI> volumeIds) {
         // only ExportVMwareBlockVolumeHelper supports setting HLUs for now
         return Maps.newHashMap();
+    }
+
+    public static void precheckExportPathParameters(Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
+        if (minPaths != null || maxPaths != null || pathsPerInitiator != null) {
+            if ((minPaths == null || maxPaths == null || pathsPerInitiator == null) || minPaths < 1 || maxPaths < 1
+                    || pathsPerInitiator < 1) {
+                ExecutionUtils.fail("failTask.exportPathParameters.precheck", new Object[] {}, new Object[] {});
+            } else if (minPaths > maxPaths) {
+                ExecutionUtils.fail("failTask.exportPathParameters.minPathsCheck", new Object[] {}, new Object[] {});
+            } else if (pathsPerInitiator > maxPaths) {
+                ExecutionUtils.fail("failTask.exportPathParameters.pathsPerInitiator", new Object[] {}, new Object[] {});
+            }
+        }
     }
 }

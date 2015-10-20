@@ -3038,6 +3038,7 @@ resources.filesystem.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed?  
 resources.filesystems.deleteConfirm.FULL=Are you sure you want to proceed? The file systems will be removed from ViPR inventory and the storage system.
 resources.filesystems.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed?  The file systems will be removed from ViPR inventory, but will remain on the storage system.
 resources.filesystem.quotaDirectory=Quota Directory
+resources.filesystem.nfsAccessControl=NFS Access Controls
 
 resources.filesystem.export.mountpoint=Mount Point
 resources.filesystem.export.exportPath=Export Path
@@ -3081,6 +3082,7 @@ resources.filesystem.share.none=No Shares
 resources.filesystem.share.delete.confirm=Are you sure you want to delete this file system share?
 resources.filesystem.share.deactivate=Task created to delete file system share.  Please check the task list for an updated status.
 resources.filesystem.subdir.add=Task created to create a share. Please check task list for an updated status.
+resources.filesystem.nfs.mount.path=Mount Path
 
 resources.filesystem.quota.name=Name
 resources.filesystem.quota.security=Security Style

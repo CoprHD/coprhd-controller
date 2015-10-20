@@ -1662,11 +1662,20 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         URI systemURI = storage.getId();
 
         try {
-            // Find a provider with reference to the CG
+            // This will be null, if consistencyGroup references no system CG's for storage.
             String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
+            if (groupName == null) {
+                _log.info(String.format("%s contains no system CG for %s.  Assuming it has already been deleted.",
+                        consistencyGroupId, systemURI));
+                return;
+            }
+
+            // Find a provider with reference to the CG
             storage = findProviderFactory.withGroup(storage, groupName).find();
             if (storage == null) {
+                // Fail the task
                 serviceError = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
+                _log.warn(String.format("Consistency group %s not found on any storage systems", groupName));
                 return;
             }
 
@@ -1687,11 +1696,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         outArgs);
             }
 
-            // Update the BlockConsistencyGroup if we intend to keep it active and the CG is referenced
-            String cgNameOnStorageSystem = consistencyGroup.getCgNameOnStorageSystem(systemURI);
-            if (!markInactive && cgNameOnStorageSystem != null) {
+            // Update the BlockConsistencyGroup if we intend to keep it active
+            if (!markInactive) {
                 // Remove the replication group name from the SystemConsistencyGroup field
-                consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), cgNameOnStorageSystem);
+                consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), groupName);
 
                 /*
                  * Verify if the BlockConsistencyGroup references any LOCAL arrays.
@@ -1724,14 +1732,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             // Update the consistency group model
             consistencyGroup.setInactive(markInactive);
             _dbClient.updateObject(consistencyGroup);
-
-            taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Failed to delete consistency group: ", e);
             serviceError = DeviceControllerErrors.smis.methodFailed("doDeleteConsistencyGroup", e.getMessage());
         } finally {
             if (serviceError != null) {
                 taskCompleter.error(_dbClient, serviceError);
+            } else {
+                taskCompleter.ready(_dbClient);
             }
         }
     }

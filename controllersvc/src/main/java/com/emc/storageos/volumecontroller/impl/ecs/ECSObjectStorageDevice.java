@@ -81,8 +81,8 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                 try {
                     ecsApi.deleteBucket(args.getName(), args.getNamespace());
                 } catch (Exception del) {
-                    _log.error("Unable to delete the Bucket at source. Name : {} Storage : {}", bucket.getLabel(),
-                            bucket.getStorageDevice());
+                    _log.error("Could not clean up orphan bucket : {} Storage : {} from ECS, Please remove manully",
+                            bucket.getLabel(), bucket.getStorageDevice());
                 }
             }
             completeTask(bucket.getId(), taskId, e);

@@ -205,7 +205,7 @@ public class ECSApi {
             response = response + response2;
             throw ECSException.exceptions.getStoragePoolsFailed(response, e);
         } finally {
-            _log.info("discovery of Pools success");
+            _log.info("discovery of Pools finished");
             if (clientResp != null) {
                 clientResp.close();
             }

@@ -1,0 +1,10 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.adminDashboard', 'nav.backup'] /}
+
+#{DataTable.header titleKey:'Backup.list.title'/}
+#{DataTable.crudTable id:'backup', 
+                      dataTable:dataTable, 
+                      deleteConfirm:messages.get('backup.deleteConfirm')}
+  
+#{/DataTable.crudTable}
+

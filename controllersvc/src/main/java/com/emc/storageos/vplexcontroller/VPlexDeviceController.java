@@ -35,6 +35,7 @@ import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationDeviceCo
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor.Type;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
@@ -292,6 +293,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String REATTACH_MIRROR = "reattachMirror";
     private static final String ADD_BACK_TO_CG = "addToCG";
     private static final String DETACHED_DEVICE = "detachedDevice";
+
+    private static CoordinatorClient coordinator;
 
     private static final Logger _log = LoggerFactory.getLogger(VPlexDeviceController.class);
     private WorkflowService _workflowService;
@@ -6305,9 +6308,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Make a call to the VPlex API client to expand the virtual
             // volume.
-            VPlexVirtualVolumeInfo vplexVolumeInfo = client
-                    .expandVirtualVolume(vplexVolumeName);
-            _log.info("Started VPlex volume expansion");
+
+            int expansionStatusRetryCount = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
+                    coordinator, VPlexApiConstants.EXPANSION_STATUS_RETRY_COUNT));
+            long expansionStatusSleepTime = Long.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
+                    coordinator, VPlexApiConstants.EXPANSION_STATUS_SLEEP_TIME_MS));
+            VPlexVirtualVolumeInfo vplexVolumeInfo = client.expandVirtualVolume(vplexVolumeName,
+                    expansionStatusRetryCount, expansionStatusSleepTime);
+            _log.info("Completed VPlex volume expansion");
 
             // Update the VPlex volume size in the database.
             vplexVolume.setCapacity(newSize);
@@ -7332,7 +7340,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Get the native volume info for the mirror volume.
             Volume mirrorVolume = getDataObject(Volume.class, mirrorVolumeURI, _dbClient);
             String clusterId = VPlexControllerUtils.getVPlexClusterName(_dbClient, mirrorVolume.getVirtualArray(), vplexURI);
-            
 
             // Detach the mirror.
             String detachedDeviceName = client.detachMirrorFromDistributedVolume(
@@ -10135,4 +10142,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
     }
+
+    public static CoordinatorClient getCoordinator() {
+        return coordinator;
+    }
+
+    public static void setCoordinator(CoordinatorClient coordinator) {
+        VPlexDeviceController.coordinator = coordinator;
+    }
+
 }

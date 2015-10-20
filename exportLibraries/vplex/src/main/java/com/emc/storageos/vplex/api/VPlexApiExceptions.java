@@ -523,6 +523,10 @@ public interface VPlexApiExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedExpandVolumeStatusAfterRetries(final String volumeName,
+            int retries, long wait);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException claimVolumeFailureStatus(final String volumeWWN,
             final String status, final String cause);
 
@@ -756,7 +760,7 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException establishVolumeFullCopyGroupRelationFailed(String fullCopyId, final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedToExecuteDrillDownCommand(String deviceName, String response);
 }

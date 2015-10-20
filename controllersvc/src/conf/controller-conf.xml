@@ -1210,6 +1210,7 @@
         <property name="connectionFactory" ref="CIMConnectionFactory" />
         <property name="hdsApiFactory" ref="hdsApiFactory"/>
         <property name="dataDomainFactory" ref="datadomainfactory"/>
+        <property name="xtremIOFactory" ref="xtremioRestClientFactory"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
     </bean>
 

@@ -1,0 +1,31 @@
+%{
+  titleKey = 'maintenance.upgradefail';
+}%
+#{extends 'nonav-wide-layout.html' /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style>
+.no-nav .wide-box {
+    width: 600px;
+}
+</style>
+#{/set}
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+
+#{/set}
+
+#{Form.header titleKey:titleKey/}
+
+<div class="col-xs-10 col-xs-offset-1">
+  <span style="color:red"> ${failureInfo.message} </span>
+  <ul>
+    #{list failureInfo.callStack, as:'line'}
+    <li>${line}</li>
+    #{/list}
+  </ul>
+  <div class="alert alert-info"> ${failureInfo.suggestion} </div> 
+</div>

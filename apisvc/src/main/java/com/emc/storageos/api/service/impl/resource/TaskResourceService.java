@@ -99,39 +99,38 @@ public abstract class TaskResourceService extends TaggedResource {
     }
 
     /**
-     * Return a set of URIs referencing DataObject associated to the list of Tenants that have pending Tasks.
-     * 
-     * @param tenants - [in] List or Tenant URIs
-     * @return Set or URIs referencing DataObjects that have pending Tasks against them
-     */
-    protected Set<URI> getObjectURIsThatHavePendingTasks(Collection<URI> tenants) {
-        // Generate a set of Resource URIs that have pending Tasks against them
-        Set<URI> urisHavingPendingTasks = new HashSet<>();
-        for (URI tenant : tenants) {
-            TaskUtils.ObjectQueryResult<Task> queryResult = TaskUtils.findTenantTasks(_dbClient, tenant);
-            while (queryResult.hasNext()) {
-                Task task = queryResult.next();
-                if (task == null || task.getCompletedFlag() || task.getInactive()) {
-                    continue;
-                }
-                if (task.isPending()) {
-                    urisHavingPendingTasks.add(task.getResource().getURI());
-                }
-            }
-        }
-
-        return urisHavingPendingTasks;
-    }
-
-    /**
      * Given a list of Tenants and DataObject references, check if any of the DataObjects have pending
      * Tasks against them. If so, generate an error that this cannot be deleted.
      * 
-     * @param tenants - in] List or Tenant URIs
+     * @param tenants - [in] List of Tenant URIs
      * @param dataObjects - [in] List of DataObjects to check
      */
     protected void checkForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects) {
-        Set<URI> objectURIsThatHavePendingTasks = getObjectURIsThatHavePendingTasks(tenants);
+        for (URI tenant : tenants) {
+            checkForPendingTasks(tenant, dataObjects);
+        }
+    }
+
+    /**
+     * Given a Tenant and DataObject references, check if any of the DataObjects have pending
+     * Tasks against them. If so, generate an error that this cannot be deleted.
+     * 
+     * @param tenant - [in] Tenant URI
+     * @param dataObjects - [in] List of DataObjects to check
+     */
+    private void checkForPendingTasks(URI tenant, Collection<? extends DataObject> dataObjects) {
+        // First, find tasks for the resources sent in.
+        Set<URI> objectURIsThatHavePendingTasks = new HashSet<URI>();
+
+        // Get a unique list of Task objects associated with the data objects
+        for (DataObject dataObject : dataObjects) {
+            List<Task> newTasks = TaskUtils.findResourceTasks(_dbClient, dataObject.getId());
+            for (Task newTask : newTasks) {
+                if (newTask.isPending() && newTask.getTenant().equals(tenant)) {
+                    objectURIsThatHavePendingTasks.add(dataObject.getId());
+                }
+            }
+        }
 
         // Search through the list of Volumes to see if any are in the pending list
         List<String> pendingObjectLabels = new ArrayList<>();

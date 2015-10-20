@@ -583,8 +583,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         log.info("create temp dir {}", tempDir);
         imageserverDialog.mkdir(tempDir);
 
-        log.info("mount image onto temp dir of {}",
-                imageServer.getLabel());
+        log.info("mount image onto temp dir of {}", imageServer.getLabel());
         imageserverDialog.mount(imageName, tempDir);
 
         log.info("Analyze metadata");
@@ -1112,20 +1111,28 @@ public class ImageServerControllerImpl implements ImageServerController {
         log.info("entering method verifyComputeImageServer");
         WorkflowStepCompleter.stepExecuting(stepId);
 
-        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
+        ComputeImageServer imageServer = dbClient.queryObject(
+                ComputeImageServer.class, imageServerId);
 
         if (verifyImageServer(imageServer)) {
-            imageServer.setComputeImageServerStatus(ComputeImageServer.ComputeImageServerStatus.AVAILABLE.name());
+            imageServer
+                    .setComputeImageServerStatus(ComputeImageServer.ComputeImageServerStatus.AVAILABLE
+                            .name());
             dbClient.updateObject(imageServer);
             WorkflowStepCompleter.stepSucceded(stepId);
         } else {
             log.error("Unable to verify imageserver");
+            imageServer
+                    .setComputeImageServerStatus(ComputeImageServer.ComputeImageServerStatus.NOT_AVAILABLE
+                            .name());
+            dbClient.updateObject(imageServer);
             WorkflowStepCompleter
                     .stepFailed(
                             stepId,
                             ImageServerControllerException.exceptions
                                     .unexpectedException(
-                                            OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES.name(),
+                                            OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES
+                                                    .name(),
                                             new Exception(
                                                     "Unable to verify imageserver")));
         }

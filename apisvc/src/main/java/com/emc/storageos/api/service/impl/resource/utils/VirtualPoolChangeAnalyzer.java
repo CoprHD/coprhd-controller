@@ -1047,13 +1047,13 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(currentVpool)
                 && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(newVpool)) {
             // ignore VPLEX HA vArray/vPool settings difference when the new vPool satisfies Tiering Policy change
-            excluded.addAll(Arrays.asList(HA_VARRAY_VPOOL_MAP));
+            excluded.add(HA_VARRAY_VPOOL_MAP);
 
             // get current & new HA vPools and compare
             VirtualPool currentHAVpool = getHaVpool(currentVpool, _dbClient);
             VirtualPool newHAVpool = getHaVpool(newVpool, _dbClient);
             if (!isSameVirtualPool(currentHAVpool, newHAVpool)) {
-                s_logger.info("Comparing HA vPool attributes {} {}", currentHAVpool.getId(), newHAVpool.getId());
+                s_logger.info("Comparing HA vPool attributes {} {}", currentHAVpool.getLabel(), newHAVpool.getLabel());
                 Map<String, Change> changes = analyzeChanges(currentHAVpool, newHAVpool, null, excluded.toArray(exclude), null);
                 if (!changes.isEmpty()) {
                     notSuppReasonBuff.append("These target HA vPool differences are invalid: ");

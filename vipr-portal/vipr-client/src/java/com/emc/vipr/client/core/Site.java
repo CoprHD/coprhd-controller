@@ -22,7 +22,7 @@ import com.emc.vipr.client.impl.RestClient;
 import com.sun.jersey.api.client.ClientResponse;
 
 /**
- * Disaster recovery primary/standby sites 
+ * Disaster recovery primary/standby sites
  * <p>
  * Base URL: <tt>/site</tt>
  */
@@ -44,22 +44,26 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.delete(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid);
     }
 
+    public SiteRestRep pauseSite(String uuid) {
+        return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/pause/" + uuid);
+    }
+
     public ClientResponse syncSite(SiteConfigParam input) {
         return client.put(ClientResponse.class, input, PathConstants.SITE_URL);
     }
-    
-    public SiteRestRep getSite(String uuid){
-        return client.get(SiteRestRep.class, PathConstants.SITE_URL+"/"+uuid);
+
+    public SiteRestRep getSite(String uuid) {
+        return client.get(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid);
     }
-   
+
     public SiteList listAllSites() {
         return client.get(SiteList.class, PathConstants.SITE_URL);
     }
-    
+
     public SiteConfigRestRep getStandbyConfig() {
         return client.get(SiteConfigRestRep.class, PathConstants.SITE_URL + "/localconfig");
     }
-    
+
     public DRNatCheckResponse checkIfBehindNat(DRNatCheckParam checkParam) {
         return client.post(DRNatCheckResponse.class, checkParam, PathConstants.SITE_URL + "/natcheck");
     }

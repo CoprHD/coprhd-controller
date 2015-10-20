@@ -277,12 +277,11 @@ public class NfsACLUtility {
 
         for (String fspath : nfsAclMap.keySet()) {
             NfsACL nfsAcl = new NfsACL(fspath, nfsAclMap.get(fspath));
-            String subDirValue = fspath.substring(fs.getPath().length() + 1);
-            if (subDirValue != null && !subDirValue.isEmpty()) {
 
-                nfsAcl.setSubDir(subDirValue);
-
+            if (fspath.length() > fs.getPath().length()) {
+                nfsAcl.setSubDir(fspath.substring(fs.getPath().length() + 1));
             }
+
             nfsAclList.add(nfsAcl);
 
         }

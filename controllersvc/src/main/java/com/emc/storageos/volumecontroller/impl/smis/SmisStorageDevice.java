@@ -1640,95 +1640,99 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         return sourceProvider;
     }
 
+    /**
+     * Attempts to delete a system consistency group via an SMI-S provider, if it exists.
+     * Since a {@link BlockConsistencyGroup} may reference multiple system consistency groups, attempt to remove its
+     * reference, in addition to updating the types field.
+     *
+     * This method may be called as part of a workflow rollback.
+     *
+     * @param storage               StorageSystem
+     * @param consistencyGroupId    BlockConsistencyGroup URI
+     * @param markInactive          True, if the user initiated removal of the BlockConsistencyGroup
+     * @param taskCompleter         TaskCompleter
+     * @throws DeviceControllerException
+     */
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
             Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
-        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
-                consistencyGroupId);
+
+        ServiceError serviceError = null;
+        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+        URI systemURI = storage.getId();
+
         try {
-            // Check if the consistency group exists
+            // Find a provider with reference to the CG
             String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
             storage = findProviderFactory.withGroup(storage, groupName).find();
-
             if (storage == null) {
-                ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
-                taskCompleter.error(_dbClient, error);
-                consistencyGroup.setInactive(true);
-                _dbClient.persistObject(consistencyGroup);
+                serviceError = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
                 return;
             }
-            // To minimize the existing changes, we will be executing group path one more time.
-            // TODO if its taking time, then we can refactor this.
+
+            // Check if the CG exists
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
-            CIMArgument[] inArgs;
-            CIMArgument[] outArgs = new CIMArgument[5];
             CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
-            URI systemURI = storage.getId();
-            // If there is no consistency group with the given name, set the operation to error
-            if (cgPathInstance == null) {
-                ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
-                taskCompleter.error(_dbClient, error);
-                consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
-                        consistencyGroup.getCgNameOnStorageSystem(systemURI));
-                if (consistencyGroup.getSystemConsistencyGroups().isEmpty()) {
-                    consistencyGroup.setInactive(true);
+            if (cgPathInstance != null) {
+                if (storage.deviceIsType(Type.vnxblock)) {
+                    cleanupAnyGroupBackupSnapshots(storage, cgPath);
                 }
-                _dbClient.updateObject(consistencyGroup);
-                return;
+
+                // Invoke the deletion of the consistency group
+                CIMArgument[] inArgs;
+                CIMArgument[] outArgs = new CIMArgument[5];
+                inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
+                _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
+                        outArgs);
             }
 
-            if (storage.deviceIsType(Type.vnxblock)) {
-                cleanupAnyGroupBackupSnapshots(storage, cgPath);
-            }
+            // Update the BlockConsistencyGroup if we intend to keep it active and the CG is referenced
+            String cgNameOnStorageSystem = consistencyGroup.getCgNameOnStorageSystem(systemURI);
+            if (!markInactive && cgNameOnStorageSystem != null) {
+                // Remove the replication group name from the SystemConsistencyGroup field
+                consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), cgNameOnStorageSystem);
 
-            // Invoke the deletion of the consistency group
-            inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
-            _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
-                    outArgs);
-            // Set the consistency group to inactive
-            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
-                    consistencyGroup.getCgNameOnStorageSystem(systemURI));
-            if (markInactive) {
-                consistencyGroup.setInactive(true);
-            }
-
-            // Verify if the BlockConsistencyGroup references any LOCAL arrays. If we
-            // no longer have any references we can remove the 'LOCAL' type from the
-            // BlockConsistencyGroup.
-            List<URI> referencedArrays =
-                    BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient);
-            boolean cgReferenced = false;
-            for (URI storageSystemUri : referencedArrays) {
-                StringSet cgs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemUri.toString());
-                if (cgs != null && !cgs.isEmpty()) {
-                    cgReferenced = true;
-                    break;
+                /*
+                 * Verify if the BlockConsistencyGroup references any LOCAL arrays.
+                 * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
+                 */
+                List<URI> referencedArrays = BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient);
+                boolean cgReferenced = false;
+                for (URI storageSystemUri : referencedArrays) {
+                    StringSet cgs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemUri.toString());
+                    if (cgs != null && !cgs.isEmpty()) {
+                        cgReferenced = true;
+                        break;
+                    }
                 }
-            }
 
-            if (!cgReferenced) {
-                // Remove the LOCAL type
-                StringSet cgTypes = consistencyGroup.getTypes();
-                cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
-                consistencyGroup.setTypes(cgTypes);
+                if (!cgReferenced) {
+                    // Remove the LOCAL type
+                    StringSet cgTypes = consistencyGroup.getTypes();
+                    cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
+                    consistencyGroup.setTypes(cgTypes);
 
-                // Remove the referenced storage system as well, but only if there are no other types
-                // of storage systems associated with the CG.
-                if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, _dbClient)) {
-                    consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
+                    // Remove the referenced storage system as well, but only if there are no other types
+                    // of storage systems associated with the CG.
+                    if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, _dbClient)) {
+                        consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
+                    }
                 }
             }
 
-            _dbClient.persistObject(consistencyGroup);
-            // Set task to ready
+            // Update the consistency group model
+            consistencyGroup.setInactive(markInactive);
+            _dbClient.updateObject(consistencyGroup);
+
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Failed to delete consistency group: ", e);
-            // Set task to error
-            ServiceError error = DeviceControllerErrors.smis.methodFailed(
-                    "doDeleteConsistencyGroup", e.getMessage());
-            taskCompleter.error(_dbClient, error);
+            serviceError = DeviceControllerErrors.smis.methodFailed("doDeleteConsistencyGroup", e.getMessage());
+        } finally {
+            if (serviceError != null) {
+                taskCompleter.error(_dbClient, serviceError);
+            }
         }
     }
 

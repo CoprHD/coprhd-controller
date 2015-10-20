@@ -126,6 +126,7 @@ resources.BlockVolumes = ResourcesVolumes
 resources.ConsistencyGroups = vipr_c_consistency_groups
 resources.FileSnapshots = ResourcesFileSnapshots
 resources.FileSystems = ResourcesFileSystems
+resources.ObjectBuckets= ResourcesBuckets
 resources.ResourceController = vipr_c_user_resources
 
 # Security

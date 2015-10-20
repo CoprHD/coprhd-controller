@@ -338,7 +338,7 @@ public class VdcSiteManager extends AbstractManager {
             case SiteInfo.RECONFIG_RESTART:
                 checkAndRemoveStandby();
                 reconfigRestartSvcs();
-                rebuildLocalDb();
+                rebuildLocalDbIfNecessary();
                 cleanupSiteErrorIfNecessary();
                 break;
             default:
@@ -654,12 +654,15 @@ public class VdcSiteManager extends AbstractManager {
         log.info("Removed site {} configuration from ZK", site.getUuid());
     }
 
-    private void rebuildLocalDb() throws Exception {
+    private void rebuildLocalDbIfNecessary() throws Exception {
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
         Configuration localSiteConfig = coordinatorClient.queryConfiguration(Site.CONFIG_KIND,
                 coordinatorClient.getSiteId());
         Site localSite = new Site(localSiteConfig);
 
+        // here we simply check if the site state is STANDBY_SYNCING
+        // we leave the majority of the checks to DbRebuildRunnable since it need to validate all the criteria
+        // before updating the site state anyways
         if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
             String dcName = VdcUtil.getLocalVdc().getShortId();
             try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME)) {

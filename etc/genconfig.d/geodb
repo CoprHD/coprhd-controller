@@ -10,7 +10,7 @@
 # it is provided by or on behalf of EMC.
 
 _get_geodbvar_props() {
-    _get_props vdc_myid node_id node_index site_is_standby site_myid
+    _get_props vdc_myid node_id node_index site_is_standby site_myid local_site_node_count
 }
 
 _get_geodbconf_props() {

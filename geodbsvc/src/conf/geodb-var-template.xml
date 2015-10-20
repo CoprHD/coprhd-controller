@@ -36,5 +36,7 @@
     <bean id="dbRebuildRunnable" class="com.emc.storageos.db.server.impl.DbRebuildRunnable">
         <property name="coordinator" ref="coordinator"/>
         <property name="sourceDc" value="${vdc_myid}"/>
+        <property name="nodeCount" value="${local_site_node_count}"/>
+        <property name="service" ref="serviceinfo"/>
     </bean>
 </beans>

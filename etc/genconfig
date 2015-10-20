@@ -87,7 +87,8 @@ _gen_prop2() {
     fi
 
     #'node_names')
-    export _GENCONFIG_node_names=$(echo $(for i in ${_GENCONFIG_node_indexes}; do local var="_GENCONFIG_node_${i}_name"; echo "${var}" ; done))
+    export _GENCONFIG_node_names=$(echo $(for i in ${_GENCONFIG_node_indexes}; \
+        do local var="_GENCONFIG_node_${i}_name"; echo "${!var}" ; done))
 
     #'network_ipaddr')
     local var="_GENCONFIG_network_${_GENCONFIG_node_index}_ipaddr"
@@ -240,6 +241,18 @@ _gen_prop2() {
         local var="_GENCONFIG_vdc_${vdc}_network_vip6"
         eval export ${var}=$(_get_ipv6_uncompressed ${!var})
     done
+
+    #local_site_node_count
+    if [ "${_GENCONFIG_site_is_standby}" = "false" ] ; then
+        export _GENCONFIG_local_site_node_count=${_GENCONFIG_node_count}
+    else
+        for standby in ${_GENCONFIG_site_ids} ; do
+            if [ "${_GENCONFIG_site_myid}" == "${standby}" ] ; then
+                var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_node_count"
+                export _GENCONFIG_local_site_node_count="${!var}"
+            fi
+        done
+    fi
     IFS="${OLD_IFS}"
 
     #_GENCONFIG_NETWORK_STACK
@@ -257,7 +270,6 @@ _gen_prop2() {
         # addresses. Simply let it go with ipv4
         export _GENCONFIG_NETWORK_STACK="IPv4"
     fi
-
 }
 
 _gen_foreach() {

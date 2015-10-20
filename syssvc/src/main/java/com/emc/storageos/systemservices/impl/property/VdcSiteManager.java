@@ -332,7 +332,7 @@ public class VdcSiteManager extends AbstractManager {
             return;
         }
 
-        log.info("Step3: Setting vdc properties not rebooting for single VDC change");
+        log.info("Step3: Setting vdc properties not rebooting for single VDC change, action={}", action);
 
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
@@ -342,6 +342,9 @@ public class VdcSiteManager extends AbstractManager {
                 cleanupSiteErrorIfNecessary();
                 break;
             default:
+                PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
+                        String.valueOf(targetSiteInfo.getVdcConfigVersion()));
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
         }
     }

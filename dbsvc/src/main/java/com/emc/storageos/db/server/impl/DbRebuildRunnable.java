@@ -22,6 +22,7 @@ public class DbRebuildRunnable implements Runnable {
 
     private CoordinatorClient coordinator;
     private String sourceDc;
+    private boolean isRunning;
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
@@ -33,10 +34,16 @@ public class DbRebuildRunnable implements Runnable {
 
     @Override
     public synchronized void run() {
+        if (isRunning) {
+            log.info("db rebuild in progress, nothing to do");
+            return;
+        }
+
         Configuration localSiteConfig = coordinator.queryConfiguration(Site.CONFIG_KIND, coordinator.getSiteId());
         Site localSite = new Site(localSiteConfig);
         if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
             log.info("starting db rebuild from source dc {}", sourceDc);
+            isRunning = true;
             StorageService.instance.rebuild(sourceDc);
 
             //FIXME: shouldn't update the site state until each node has finished rebuilding both db and geodb
@@ -46,5 +53,6 @@ public class DbRebuildRunnable implements Runnable {
         } else {
             log.info("db in sync, nothing to do");
         }
+        isRunning = false;
     }
 }

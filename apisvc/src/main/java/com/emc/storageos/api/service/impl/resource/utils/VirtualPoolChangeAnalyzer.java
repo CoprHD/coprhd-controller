@@ -1044,11 +1044,36 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String[] exclude = EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE;
         excluded.addAll(Arrays.asList(exclude));
         excluded.addAll(Arrays.asList(generallyExcluded));
+        if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(currentVpool)
+                && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(newVpool)) {
+            // ignore VPLEX HA vArray/vPool settings difference when the new vPool satisfies Tiering Policy change
+            excluded.addAll(Arrays.asList(HA_VARRAY_VPOOL_MAP));
+
+            // get current & new HA vPools and compare
+            VirtualPool currentHAVpool = getHaVpool(currentVpool, _dbClient);
+            VirtualPool newHAVpool = getHaVpool(newVpool, _dbClient);
+            if (!isSameVirtualPool(currentHAVpool, newHAVpool)) {
+                s_logger.info("Comparing HA vPool attributes {} {}", currentHAVpool.getId(), newHAVpool.getId());
+                Map<String, Change> changes = analyzeChanges(currentHAVpool, newHAVpool, null, excluded.toArray(exclude), null);
+                if (!changes.isEmpty()) {
+                    notSuppReasonBuff.append("These target HA vPool differences are invalid: ");
+                    for (String key : changes.keySet()) {
+                        s_logger.info("Unexpected Auto-tiering Policy HA vPool attribute change: {}", key);
+                        notSuppReasonBuff.append(key + " ");
+                    }
+                    s_logger.info("Virtual Pool change not supported {}", notSuppReasonBuff.toString());
+                    s_logger.info(String.format("Parameters other than %s were changed",
+                            (Object[]) exclude));
+                    return false;
+                }
+            }
+        }
+
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
         if (!changes.isEmpty()) {
-            notSuppReasonBuff.append("These target pool differences are invalid: ");
+            notSuppReasonBuff.append("These target vPool differences are invalid: ");
             for (String key : changes.keySet()) {
-                s_logger.info("Unexpected Auto-tiering Policy vPool attribute change: " + key);
+                s_logger.info("Unexpected Auto-tiering Policy vPool attribute change: {}", key);
                 notSuppReasonBuff.append(key + " ");
             }
             s_logger.info("Virtual Pool change not supported {}", notSuppReasonBuff.toString());
@@ -1062,8 +1087,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * Check that target vPool has volume's storage pool in its matched pools list.
      * If target vPool has manual pool selection enabled, then volume's pool should be in assigned pools list.
-     * TODO update DOC for VPLEX,
-     * TODO should we not include DATA_MIGRATION for policy change in the list of supported operations?
+     * 
+     * In case of VPLEX Distributed vPool, the check is also done for HA vPool.
      */
     private static boolean checkTargetVpoolHasVolumePool(Volume volume,
             VirtualPool currentVpool, VirtualPool newVpool, DbClient dbClient) {
@@ -1093,7 +1118,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     }
 
     /**
-     * Returns true if the vPool contains the given storage pool.
+     * Returns true if the vPool contains the given storage pool in its valid pools list.
      */
     private static boolean doesNewVpoolContainsVolumePool(URI volumePool, VirtualPool vPool) {
         boolean vPoolHasVolumePool = false;

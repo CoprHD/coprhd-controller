@@ -95,6 +95,10 @@ public class VdcSiteManager extends AbstractManager {
         this.service = svc;
     }
 
+    public void setDefaultPSKFile(String defaultPSKFile) {
+        this.defaultPSKFile = defaultPSKFile;
+    }
+
     @Override
     protected URI getWakeUpUrl() {
         return SysClientFactory.URI_WAKEUP_VDC_MANAGER;

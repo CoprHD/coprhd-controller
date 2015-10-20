@@ -156,7 +156,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     /**
      * Get the specific BlockServiceApiImpl based on the storage system type.
-     * 
+     *
      * @param system The storage system instance
      * @return BloackServiceApiImpl for the storage system type.
      */
@@ -427,7 +427,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Snapshots of RecoverPoint consistency groups is not supported.
         if (consistencyGroup.checkForType(Types.RP)) {
-            throw APIException.badRequests.cannotCreateSnapshotOfRPCG();
+            throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
         }
 
         // Maintain pre-2.2 functionality for VPLEX CGs created prior to
@@ -684,6 +684,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI snapshotId) {
 
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
+
+        // Snapshots of RecoverPoint consistency groups is not supported.
+        if (consistencyGroup.checkForType(Types.RP)) {
+            throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
+        }
+
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
 
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);

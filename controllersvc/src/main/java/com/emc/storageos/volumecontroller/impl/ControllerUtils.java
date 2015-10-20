@@ -1027,7 +1027,7 @@ public class ControllerUtils {
     }
 
     /**
-     * Gets snapshot replication group names from clones of all volumes in CG.
+     * Gets snapshot replication group names from source volumes in CG.
      *
      * @param volumes
      * @param dbClient
@@ -1180,12 +1180,10 @@ public class ControllerUtils {
     }
 
     /**
-     * Returns true, if a mirror is part of a consistency group, false otherwise.
-     * In addition to this, if a non-null {@link TaskCompleter} is provided the {@BlockConsistencyGroup} instance
-     * added to it.
+     * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
      *
-     * @param mirrors List of mirror URIs
-     * @param dbClient DbClient instance
+     * @param mirrors
+     * @param dbClient
      * @param completer Optional TaskCompleter instance.
      * @return true/false dependent on the clone being part of a consistency group.
      */
@@ -1210,6 +1208,23 @@ public class ControllerUtils {
     public static boolean isVmaxVolumeUsing803SMIS(Volume volume, DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
+    }
+
+    /**
+     * This utility method returns the snapsetLabel of the existing snapshots.
+     * This is required when we try to create a new snapshot when the existing source volumes have snapshots.
+     * 
+     * @param repGroupName
+     * @param dbClient
+     * @return
+     */
+    public static String getSnapSetLabelFromExistingSnaps(String repGroupName, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, dbClient);
+        String existingSnapSnapSetLabel = null;
+        if (null != snapshots && !snapshots.isEmpty()) {
+            existingSnapSnapSetLabel = snapshots.get(0).getSnapsetLabel();
+        }
+        return existingSnapSnapSetLabel;
     }
 
     /**

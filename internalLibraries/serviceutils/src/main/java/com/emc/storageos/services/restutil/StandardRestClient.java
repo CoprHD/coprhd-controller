@@ -31,11 +31,11 @@ public abstract class StandardRestClient implements RestClientItf {
     @Override
     public ClientResponse get(URI uri) throws InternalException {
         URI requestURI = _base.resolve(uri);
-        ClientResponse response = setResourceHeaders(_client.resource(requestURI)).get(
+        ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON).get(
                 ClientResponse.class);
         if (authenticationFailed(response)) {
             authenticate();
-            response = setResourceHeaders(_client.resource(requestURI)).get(ClientResponse.class);
+            response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON).get(ClientResponse.class);
         }
         checkResponse(uri, response);
         return response;

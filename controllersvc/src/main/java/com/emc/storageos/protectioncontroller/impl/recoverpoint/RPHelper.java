@@ -175,8 +175,10 @@ public class RPHelper {
         if (volume != null && NullColumnValueGetter.isNotNullValue(volume.getRSetName())) {
             _log.info(String.format("Finding all volumes in replication set %s, corresonding to volume %s.", volume.getRSetName(),
                     volume.getId()));
+            // Because replication set names are unique per source/target volume relationship (based on volume name),
+            // we can lookup the related volumes by the replication set name.
             List<Volume> rsetVolumes =
-                    getReplicationSetVolumesByCg(volume.getRSetName(), volume.getConsistencyGroup());
+                    CustomQueryUtility.getActiveVolumesByReplicationSet(_dbClient, volume.getRSetName());
 
             for (Volume vol : rsetVolumes) {
                 if (!vol.getInactive() && NullColumnValueGetter.isNotNullValue(vol.getPersonality())) {
@@ -214,29 +216,6 @@ public class RPHelper {
         }
 
         return targets;
-    }
-
-    /**
-     * This method gets volumes from a CG that belong to the given replication set name.
-     *
-     * @param replicationSet the replication set name.
-     * @param consistencyGroupURI the BlockConsistencyGroup.
-     * @param _dbClient the db client.
-     * @return a list of volumes that belong to the same replication set
-     */
-    private List<Volume> getReplicationSetVolumesByCg(String replicationSet, URI consistencyGroupURI) {
-        List<Volume> volumesByCg = new ArrayList<Volume>();
-        List<Volume> rsetVolumes =
-                CustomQueryUtility.getActiveVolumesByReplicationSet(_dbClient, replicationSet);
-
-        for (Volume volume : rsetVolumes) {
-            if (!NullColumnValueGetter.isNullURI(consistencyGroupURI) &&
-                    consistencyGroupURI.equals(volume.getConsistencyGroup())) {
-                volumesByCg.add(volume);
-            }
-        }
-
-        return volumesByCg;
     }
 
     /**
@@ -308,7 +287,8 @@ public class RPHelper {
                     // If the CG volume is not in the list of volumes to delete for this CG, we must
                     // determine if it's a journal or another source/target not being deleted.
                     if (!cgVolsToDelete.contains(cgVol.getId())) {
-                        if (!cgVol.getInactive()) {
+                        // Do not consider VPlex backing volumes or inactive volumes
+                        if (!cgVol.getInactive() && NullColumnValueGetter.isNotNullValue(cgVol.getPersonality())) {
                             if (!Volume.PersonalityTypes.METADATA.toString().equals(cgVol.getPersonality())) {
                                 // the volume is either a source or target; this means there are other volumes in the rset
                                 wholeCG = false;

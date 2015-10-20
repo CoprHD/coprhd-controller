@@ -354,7 +354,7 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
      * @return a task for monitoring the progress of the operation.
      */
     public Task<BlockSnapshotRestRep> createVplexVolume(URI id) {
-        return postTask(getIdUrl() + "/create-vplex-volume", id);
+        return postTask(getIdUrl() + "/expose", id);
     }
 
     public Tasks<BlockSnapshotRestRep> createFullCopy(URI id, VolumeFullCopyCreateParam input) {

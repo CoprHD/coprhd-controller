@@ -467,9 +467,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     StringSet protocols = new StringSet();
                     protocols.add("NFS");
                     protocols.add("CIFS");
-                    if(nfsv4Support){
-                    	protocols.add("NFSv4");
-                    }
+
                     storagePool.setProtocols(protocols);
                     storagePool.setPoolName(isilonPool.getNativeId());
                     storagePool.setNativeId(isilonPool.getNativeId());
@@ -482,6 +480,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 } else {
                     existingPools.add(storagePool);
                 }
+                
+
+                if(isilonApi.nfsv4Enabled()){
+                  storagePool.getProtocols().add("NFSv4");
+                }else{
+                  storagePool.getProtocols().remove("NFSv4");
+                } 
 
                 // scale capacity size
                 storagePool.setFreeCapacity(isilonPool.getAvailable() / BYTESCONVERTER);

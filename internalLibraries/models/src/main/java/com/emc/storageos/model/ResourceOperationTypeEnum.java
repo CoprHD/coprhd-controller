@@ -93,6 +93,10 @@ public enum ResourceOperationTypeEnum {
     UPDATE_FILE_SNAPSHOT_SHARE_ACL("UPDATE CIFS SHARE SNAPSHOT ACL", "update snapshot share ACLs"),
     DELETE_FILE_SYSTEM_SHARE_ACL("DELETE FILESYSTEM SHARE ACL", "delete filesystem share ACLs"),
     DELETE_FILE_SNAPSHOT_SHARE_ACL("DELETE SNAPSHOT SHARE ACL", "delete snapshot share ACLs"),
+    UPDATE_FILE_SYSTEM_NFS_ACL("UPDATE CIFS NFS ACL", "update filesystem NFS ACLs"),
+    UPDATE_FILE_SNAPSHOT_NFS_ACL("UPDATE CIFS NFS SNAPSHOT ACL", "update snapshot NFS ACLs"),
+    DELETE_FILE_SYSTEM_NFS_ACL("DELETE FILESYSTEM NFS ACL", "delete filesystem NFS ACLs"),
+    DELETE_FILE_SNAPSHOT_NFS_ACL("DELETE SNAPSHOT NFS ACL", "delete snapshot NFS ACLs"),
     CREATE_FILE_SYSTEM_QUOTA_DIR("CREATE FILESYSTEM QUOTA DIR", "create filesystem quota directory"),
     DELETE_FILE_SYSTEM_QUOTA_DIR("DELETE FILESYSTEM QUOTA DIR", "delete filesystem quota directory"),
     UPDATE_FILE_SYSTEM_QUOTA_DIR("UPDATE FILESYSTEM QUOTA DIR", "update filesystem quota directory"),
@@ -288,8 +292,7 @@ public enum ResourceOperationTypeEnum {
     ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "add journal volume to consistency group"),
     SYS_EVENT("SYSTEM EVENT", "System Event"),
     CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER", "Create and verify a compute image server"),
-    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "Update and verify a compute image server"),
-    CREATE_VPLEX_VOLUME_FROM_SNAPSHOT("CREATE VPLEX VOLUME FROM SNAPSHOT", "Create a VPLEX volume on top of a block snapshot target volume");
+    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "Update and verify a compute image server");
 
     private final String name;
     private final String description;

@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,7 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CifsShareUtility;
 import com.emc.storageos.api.service.impl.resource.utils.ExportVerificationUtility;
+import com.emc.storageos.api.service.impl.resource.utils.NfsACLUtility;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
@@ -62,6 +64,7 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
@@ -95,6 +98,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParam;
+import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -106,6 +110,9 @@ import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemSnapshotParam;
+import com.emc.storageos.model.file.NfsACE;
+import com.emc.storageos.model.file.NfsACL;
+import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
 import com.emc.storageos.model.file.QuotaDirectoryList;
 import com.emc.storageos.model.file.ShareACL;
@@ -581,10 +588,11 @@ public class FileService extends TaskResourceService {
 
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())) {
+        if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())
+        		&& !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
             // Throw an error
-            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool doesn't support "
-                    + StorageProtocol.File.NFS.name() + " protocol");
+            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool doesn't support either"
+                    + StorageProtocol.File.NFS.name() +" or "+StorageProtocol.File.NFSv4 +" protocol");
         }
 
         // locate storage port for exporting file System
@@ -1672,10 +1680,11 @@ public class FileService extends TaskResourceService {
 
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())) {
+        if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())
+        		&& !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
             // Throw an error
-            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
-                    + StorageProtocol.File.NFS.name() + " protocol");
+            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool doesn't support either"
+                    + StorageProtocol.File.NFS.name() +" or "+StorageProtocol.File.NFSv4 +" protocol");
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
@@ -1993,6 +2002,167 @@ public class FileService extends TaskResourceService {
         return toTask(fs, taskId, op);
     }
 
+    /**
+     * 
+     * @param id the URN of a ViPR fileSystem
+     * @param allDirs all directory within a filesystem
+     * @param subDir sub-directory within a filesystem
+     * @return
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/acls")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public NfsACLs getFileSahreACLs(@PathParam("id") URI id,
+            @QueryParam("allDirs") boolean allDirs,
+            @QueryParam("subDir") String subDir) {
+
+        _log.info("Request recieved for Acl  with Id : {}  allDirs : {} subDir : {}",
+                new Object[] { id, allDirs, subDir });
+
+        // Validate the FS id.
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+        // top level acls which contains many acl inside.
+        NfsACLs acls = new NfsACLs();
+        List<NfsACL> nfsAclList = new ArrayList<NfsACL>();
+        List<NfsACE> nfsAceList = new ArrayList<>();
+        Map<String, List<NfsACE>> nfsAclMap = new HashMap<String, List<NfsACE>>();
+        // Query All ACl Specific to a File System.
+        List<NFSShareACL> nfsAcls = queryDBFsACL(fs);
+        _log.info("Number of existing ACL found : {} ", nfsAcls.size());
+        if (allDirs) {
+            // ALl ACL
+            for (NFSShareACL nfsAcl : nfsAcls) {
+                // list of the ace
+                List<NfsACE> nfsAces = new ArrayList<>();
+                NfsACE ace = new NfsACE();
+                getCIFSAce(nfsAcl, ace);
+                nfsAces.add(ace);
+                nfsAclMap.put(nfsAcl.getFileSystemPath(), nfsAces);
+            }
+
+            for (String mountpath : nfsAclMap.keySet()) {
+                NfsACL nfsAcl = new NfsACL(mountpath, nfsAclMap.get(mountpath));
+                nfsAclList.add(nfsAcl);
+                acls.setNfsACLs(nfsAclList);
+
+            }
+
+        } else if (subDir != null && subDir.length() > 0) {
+            // Filter for a specific Sub Directory export
+
+            for (NFSShareACL nfsAcl : nfsAcls) {
+                if (nfsAcl.getFileSystemPath().endsWith("/" + subDir)) {
+                    // list of the ace
+
+                    NfsACE ace = new NfsACE();
+                    getCIFSAce(nfsAcl, ace);
+                    nfsAceList.add(ace);
+                }
+            }
+            NfsACL nfsAcl = new NfsACL();
+            nfsAcl.setNfsAces(nfsAceList);
+            nfsAclList.add(nfsAcl);
+            acls.setNfsACLs(nfsAclList);
+        } else {
+            // Filter for No subDir - top level ACL rules for File System
+            for (NFSShareACL nfsAcl : nfsAcls) {
+                if (nfsAcl.getFileSystemPath().equalsIgnoreCase(fs.getPath())) {
+
+                    NfsACE ace = new NfsACE();
+                    getCIFSAce(nfsAcl, ace);
+                    nfsAceList.add(ace);
+                }
+            }
+            NfsACL nfsAcl = new NfsACL();
+            nfsAcl.setNfsAces(nfsAceList);
+            nfsAclList.add(nfsAcl);
+            acls.setNfsACLs(nfsAclList);
+        }
+        _log.info("Number of Acl rules returning {}", nfsAclList.size());
+
+        return acls;
+
+    }
+
+    /**
+     * 
+     * Existing file system exports may have their list of export rules updated.
+     * 
+     * @param id the URN of a ViPR fileSystem
+     * @param subDir sub-directory within a filesystem
+     * @brief Update file system export
+     * @return Task resource representation
+     * @throws InternalException
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/acl")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep updateFileSystemAcls(@PathParam("id") URI id,
+            @QueryParam("subDir") String subDir,
+            FileNfsACLUpdateParams param) throws InternalException {
+        // log input received.
+        _log.info("Update FS ACL : request received for {}  with {}", id, param);
+        String task = UUID.randomUUID().toString();
+        // Validate the FS id.
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+        // Check for VirtualPool whether it has NFS v4 enabled
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+        if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name()) ||
+        		vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+            // Throw an error
+            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
+                    + StorageProtocol.File.NFS.name() + " protocol");
+        }
+
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        FileController controller = getController(FileController.class, device.getSystemType());
+
+        String path = fs.getPath();
+        _log.info("Export path found {} ", path);
+
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_NFS_ACL);
+        op.setDescription("Filesystem export rules update");
+
+        try {
+            _log.info("Sub Dir Provided {}", subDir);
+            // Set Sub Directory
+            param.setSubDir(subDir);
+
+            // Validate the input
+            NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, subDir);
+
+            util.verifyNfsACLs(param);
+
+            _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
+
+            controller.updateNFSAcl(device.getId(), fs.getId(), param, task);
+
+            auditOp(OperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
+                    fs.getId().toString(), device.getId().toString(), param);
+
+        } catch (InternalException e) {
+            _log.error("Error Processing File System  ACL Updates {}, {}", e.getMessage(), e);
+        } catch (BadRequestException e) {
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Error Processing File System Updates {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            // _log.error("Error Processing Export Updates {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+
+        return toTask(fs, task, op);
+    }
+
     private void copyPropertiesToSave(FileExportRule orig, ExportRule dest, FileShare fs) {
 
         dest.setFsID(fs.getId());
@@ -2052,4 +2222,37 @@ public class FileService extends TaskResourceService {
         dest.setRootHosts(orig.getRootHosts());
         dest.setMountPoint(orig.getMountPoint());
     }
+
+    private void getCIFSAce(NFSShareACL orig, NfsACE dest) {
+
+        dest.setDomain(orig.getDomain());
+        dest.setPermission(orig.getPermission());
+        dest.setPermissionType(orig.getPermission());
+        dest.setType(orig.getType());
+        dest.setUser(orig.getUser());
+
+    }
+
+    /**
+     * To get all the ACLs associated with the a FileShare
+     * 
+     * @param fs
+     * @return
+     */
+    private List<NFSShareACL> queryDBFsACL(FileShare fs) {
+        List<NFSShareACL> rules = null;
+        _log.info("Querying all NfsExportACL Using FsId {}", fs.getId());
+        try {
+
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileNfsAclsConstraint(fs.getId());
+            List<NFSShareACL> nfsShareAcl = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, NFSShareACL.class,
+                    containmentConstraint);
+            return nfsShareAcl;
+        } catch (Exception e) {
+            _log.error("Error while querying {}", e);
+        }
+
+        return rules;
+    }
+
 }

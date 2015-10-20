@@ -155,6 +155,7 @@ public class DisasterRecoveryService {
             for (Site site : existingSites) {
                 updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
+            updateVdcTargetVersion(siteId, SiteInfo.NONE);
 
             // reconfig standby site
             log.info("Updating the primary site info to site: {}", standbyConfig.getUuid());

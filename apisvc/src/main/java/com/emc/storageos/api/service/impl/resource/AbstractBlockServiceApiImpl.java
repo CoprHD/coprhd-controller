@@ -1551,7 +1551,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      *
      * @param volume the volume
      */
-    private void verifyIfVolumeHasMultipleReplicas(Volume volume) {
+    protected void verifyIfVolumeHasMultipleReplicas(Volume volume) {
         // multiple snapshot check
         URIQueryResultList list = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),

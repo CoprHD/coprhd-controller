@@ -1035,7 +1035,7 @@ public class RecoverPointImageManagementUtils {
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
         // Make sure your copies are OK to enable.
         // Will throw an exception if it's not in the right state
-        if (!imageManager.verifyCopyCapableOfEnableImageAccess(impl, cgCopyUID, failover)) {
+        if (!imageManager.verifyCopyCapableOfEnableImageAccess(impl, cgCopyUID, copyToEnableTo.getBookmarkName(), failover)) {
             try {
                 String cgCopyName = impl.getGroupCopyName(cgCopyUID);
                 String cgName = impl.getGroupName(cgCopyUID.getGroupUID());
@@ -1078,7 +1078,7 @@ public class RecoverPointImageManagementUtils {
      * @return true if the copy is capable of enable image access, false if it's in some other state
      * @throws RecoverPointException
      */
-    public boolean verifyCopyCapableOfEnableImageAccess(FunctionalAPIImpl impl, ConsistencyGroupCopyUID cgCopy, boolean failover)
+    public boolean verifyCopyCapableOfEnableImageAccess(FunctionalAPIImpl impl, ConsistencyGroupCopyUID cgCopy, String copyToEnable, boolean failover)
             throws RecoverPointException {
         String cgCopyName = NAME_UNKNOWN;
         String cgName = NAME_UNKNOWN;
@@ -1102,6 +1102,11 @@ public class RecoverPointImageManagementUtils {
                     if ((cgLinkState != null) && (cgLinkState.getPipeState() == PipeState.PAUSED)) {
                         return true;
                     }
+                }
+                
+                //return true if CG is already in LOGGED_ACCESS state
+                if (copyAccessState == StorageAccessState.LOGGED_ACCESS && cgCopyState.getAccessedImage().getDescription().equals(copyToEnable)) {
+                	return true;                
                 }
             }
             return false;

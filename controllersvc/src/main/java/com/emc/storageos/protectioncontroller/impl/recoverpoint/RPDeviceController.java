@@ -49,7 +49,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -102,7 +101,6 @@ import com.emc.storageos.recoverpoint.responses.MultiCopyRestoreImageResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointCGResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointStatisticsResponse;
 import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo;
-import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -2371,7 +2369,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         Workflow.Method enableImageAccessExecuteMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_STEP,
                 rpSystem.getId(), snapshots);
         Workflow.Method enableImageAccessExecutionRollbackMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_ROLLBACK_STEP,
-                rpSystem.getId(), snapshots, true);
+                rpSystem.getId(), snapshots, false);
 
         workflow.createStep(STEP_ENABLE_IMAGE_ACCESS, "Enable image access subtask for export group: " + snapshots.keySet(),
                 waitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
@@ -4677,7 +4675,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             return false;
         }
     }
-
+      
     /**
      * Disable image access for RP snapshots.
      *
@@ -4745,10 +4743,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             MultiCopyDisableImageRequestParams request = new MultiCopyDisableImageRequestParams();
             request.setVolumeWWNSet(volumeWWNs);
             request.setEmName(emName);
-            MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
-
-            if (response == null) {
-                throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
+            if (doDisableImageCopies(request.getEmName())) {
+	            MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
+	
+	            if (response == null) {
+	                throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
+	            }
             }
 
             // Mark the snapshots
@@ -4781,6 +4781,34 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
             }
         }
+    }
+    
+    /**
+     * It is possible that RP snapshots are exported to more than one host and hence part of more than on ExportGroup.
+     * If the same snapshot is part of more than one active ExportGroup, do not disable Image Access on the RP CG. 
+     * 
+     * @param emName bookmark name
+     * @return true if it is safe to disable image access on the CG, false otherwise
+     */
+    public boolean doDisableImageCopies(String emName) {    	
+    	List<URI> snapshots = _dbClient.queryByType(BlockSnapshot.class, true);
+    	for(URI snapshotId : snapshots) {    	
+    		BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotId);
+    		if (snapshot.getEmName().equals(emName)) {
+    			_log.info(String.format("Found %s corresponding to snapshot name %s", snapshot.getId(), emName));
+    			  ContainmentConstraint constraint = ContainmentConstraint.
+    		                Factory.getBlockObjectExportGroupConstraint(snapshot.getId());
+    			  
+    			  List<URI> exportGroupIdsForSnapshot = _dbClient.queryByConstraint(constraint);
+    			  if (exportGroupIdsForSnapshot.size() > 1) {
+    				  _log.info(String.format("Snapshot %s is in %d active exportGroups. Not safe to disable the CG", emName, exportGroupIdsForSnapshot.size()));
+    				  return false;
+    			  }    		
+    		}
+    	}
+    
+    	_log.info("Safe to disable image access on the CG");
+    	return true;
     }
 
     @Override

@@ -5,6 +5,9 @@
 
 package com.emc.storageos.systemservices.impl.property;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -59,6 +62,7 @@ public class VdcSiteManager extends AbstractManager {
     private static final String VDC_IDS_KEY = "vdc_ids";
 
     private DbClient dbClient;
+    private String defaultPSKFile;
 
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
@@ -243,7 +247,10 @@ public class VdcSiteManager extends AbstractManager {
 
         // Initialize vdc prop info
         localVdcPropInfo = localRepository.getVdcPropertyInfo();
-        targetVdcPropInfo = loadVdcConfigFromDatabase();
+        // ipsec key is a vdc property as well and saved in ZK.
+        // targetVdcPropInfo = loadVdcConfigFromDatabase();
+        targetVdcPropInfo = loadVdcConfig();
+
         if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null) {
             localVdcPropInfo = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
             localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
@@ -273,6 +280,39 @@ public class VdcSiteManager extends AbstractManager {
             }
         }
 
+    }
+
+    private PropertyInfoExt loadVdcConfig() throws Exception {
+        targetVdcPropInfo = loadVdcConfigFromDatabase();
+        // ipsec config is stored in zk
+        targetVdcPropInfo = loadVdcConfigFromZK();
+
+        return targetVdcPropInfo;
+    }
+
+    private PropertyInfoExt loadVdcConfigFromZK() throws Exception {
+        // assuming targetVdcPropInfo is not null;
+
+        String ipsecKey = null;
+        Configuration ipsecConfig = coordinator.getCoordinatorClient().queryConfiguration("ipsec", "ipsecConfig");
+        if (ipsecConfig == null) {
+            ipsecKey = loadDefaultIpsecKeyFromFile();
+        } else {
+            ipsecKey = ipsecConfig.getConfig("ipsec_key");
+        }
+
+        targetVdcPropInfo.addProperty("ipsec_key", ipsecKey);
+        return targetVdcPropInfo;
+    }
+
+    private String loadDefaultIpsecKeyFromFile() throws Exception {
+        BufferedReader in = new BufferedReader(new FileReader(new File(defaultPSKFile)));
+        try {
+            String key = in.readLine();
+            return key;
+        } finally {
+            in.close();
+        }
     }
 
     /**
@@ -338,8 +378,85 @@ public class VdcSiteManager extends AbstractManager {
                 checkAndRemoveStandby();
                 reconfigRestartSvcs();
                 break;
+            case SiteInfo.RECONFIG_IPSEC: // for ipsec key rotation
+                reconfigIPsec();
             default:
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+        }
+    }
+
+    private void reconfigIPsec() throws Exception {
+        updateVdcPropertiesAndWaitForAll();
+        reconfigAndRestartIPsec();
+        finishUpdateVdcProperties();
+    }
+
+    private void reconfigAndRestartIPsec() {
+        //localRepository.reconfigProperties("ipsec");
+        //localRepository.restart("ipsec");
+    }
+
+    /**
+     * update vdc properties from zk to disk and wait for all nodes are done via barrier
+     */
+    private void updateVdcPropertiesAndWaitForAll() throws Exception {
+        DistributedDoubleBarrier barrier = enterBarrier();
+
+        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+        // set the vdc_config_version to an invalid value so that it always gets retried on failure.
+        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
+        localRepository.setVdcPropertyInfo(vdcProperty);
+
+        leaveBarrier(barrier);
+    }
+
+    private void finishUpdateVdcProperties() {
+        log.info("Setting the real config version for local vdc properties");
+        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+        localRepository.setVdcPropertyInfo(vdcProperty);
+    }
+
+    private DistributedDoubleBarrier enterBarrier() throws Exception {
+        log.info("Waiting for all nodes entering VdcPropBarrier");
+
+        // key rotation is always done on primary site. when adding standby this is done on both site.
+        String barrierPath = String.format("%s/%s/VdcPropBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
+
+        // the children # should be the node # in entire VDC. before linking together, it's # in a site.
+        DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, getChildrenCountOnBarrier());
+
+        boolean allEntered = barrier.enter(5, TimeUnit.SECONDS);
+        if (allEntered) {
+            log.info("All nodes entered VdcPropBarrier");
+            return barrier;
+        } else {
+            throw new Exception("Only Part of nodes entered within 5 seconds, Skip updating");
+        }
+    }
+
+    private int getChildrenCountOnBarrier() {
+        SiteInfo.ActionScope scope = targetSiteInfo.getActionScope();
+        switch (scope) {
+            case SITE:
+                return coordinator.getNodeCount();
+            case VDC:
+                // TODO: need a method to return the # of VDC
+                return 2*coordinator.getNodeCount();
+            default:
+                throw new RuntimeException("");
+        }
+    }
+
+    private void leaveBarrier(DistributedDoubleBarrier barrier) throws Exception {
+        // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
+        log.info("Waiting for all nodes leaving VdcPropBarrier");
+
+        boolean allLeft = barrier.leave(5, TimeUnit.SECONDS);
+        if (allLeft) {
+            log.info("All nodes left VdcPropBarrier");
+        } else {
+            log.info("Only Part of nodes left VdcPropBarrier before timeout");
         }
     }
 
@@ -358,10 +475,10 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private void reconfigRestartSvcs() throws Exception {
-        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-        // set the vdc_config_version to an invalid value so that it always gets retried on failure.
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
-        localRepository.setVdcPropertyInfo(vdcProperty);
+
+        updateVdcPropertiesAndWaitForAll();
+
+        reconfigAndRestartIPsec();
 
         localRepository.reconfigProperties("firewall");
         localRepository.reload("firewall");
@@ -378,9 +495,7 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.reconfigProperties("geodb");
         //localRepository.restart("geodbsvc");
 
-        log.info("Step2: Updating the hash code for local vdc properties");
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
-        localRepository.setVdcPropertyInfo(vdcProperty);
+        finishUpdateVdcProperties();
     }
 
     private List<String> getJoiningZKNodes() {

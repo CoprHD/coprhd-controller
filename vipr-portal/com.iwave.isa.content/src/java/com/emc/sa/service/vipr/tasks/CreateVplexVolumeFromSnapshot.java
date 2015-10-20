@@ -19,7 +19,7 @@ public class CreateVplexVolumeFromSnapshot extends WaitForTask<BlockSnapshotRest
 
     @Override
     protected Task<BlockSnapshotRestRep> doExecute() throws Exception {
-        return getClient().blockSnapshots().createVplexVolume(this.snapshotId);
+        return getClient().blockSnapshots().expose(this.snapshotId);
     }
 
 }

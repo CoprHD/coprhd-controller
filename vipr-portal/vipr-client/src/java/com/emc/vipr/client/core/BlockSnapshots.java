@@ -344,16 +344,16 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
     }
 
     /**
-     * Creates a VPLEX volume using the target volume associated with
+     * Creates a new VPLEX volume using the target volume associated with
      * BlockSnapshot instance with the passed id as the source side
      * backend volume for the VPLEX volume.
      * <p>
-     * API Call: <tt>POST /block/snapshots/{id}/create-vplex-volume</tt>
+     * API Call: <tt>POST /block/snapshots/{id}/expose</tt>
      * 
      * @param id the URI of the block snapshot
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<BlockSnapshotRestRep> createVplexVolume(URI id) {
+    public Task<BlockSnapshotRestRep> expose(URI id) {
         return postTask(getIdUrl() + "/expose", id);
     }
 

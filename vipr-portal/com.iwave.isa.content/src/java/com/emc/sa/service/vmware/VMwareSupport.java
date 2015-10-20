@@ -728,6 +728,27 @@ public class VMwareSupport {
     }
 
     /**
+     * Unmount the datastore from the host or hosts in the cluster
+     * 
+     * @param host host to unmount the datastore from. if null, use cluster's hosts
+     * @param cluster cluster to unmount the datastore from
+     * @param datastore the datastore to unmount
+     */
+    public void unmountVmfsDatastore(HostSystem host, ClusterComputeResource cluster,
+            final Datastore datastore) {
+        enterMaintenanceMode(datastore);
+        setStorageIOControl(datastore, false);
+        List<HostSystem> hosts = host != null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
+
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                unmountVmfsDatastore(host, datastore);
+            }
+        });
+    }
+
+    /**
      * Detach the volume from the host or hosts in the cluster
      * 
      * @param host host to detach the volume. if null, use cluster's hosts

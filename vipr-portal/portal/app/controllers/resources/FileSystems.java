@@ -39,6 +39,8 @@ import com.emc.storageos.model.file.FileSnapshotRestRep;
 import com.emc.storageos.model.file.FileSystemDeleteParam;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemShareParam;
+import com.emc.storageos.model.file.NfsACE;
+import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.QuotaDirectoryDeleteParam;
 import com.emc.storageos.model.file.QuotaDirectoryRestRep;
 import com.emc.storageos.model.file.QuotaDirectoryUpdateParam;
@@ -150,6 +152,51 @@ public class FileSystems extends ResourceController {
         renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
         render(exports, exportsParam);
     }
+    
+	public static void fileSystemNfsACLs(String fileSystemId) {
+		ViPRCoreClient client = BourneUtil.getViprClient();
+		List<NfsACL> nfsAcls = client.fileSystems().getAllNfsACLs(
+				uri(fileSystemId));
+		render(nfsAcls);
+	}
+
+	public static void listNfsAcl(String fileSystemId, String subDir) {
+		renderArgs.put("dataTable", new ShareACLDataTable());
+        renderArgs.put("subDir", subDir);
+        renderArgs.put("fileSystemId", uri(fileSystemId));
+		ViPRCoreClient client = BourneUtil.getViprClient();
+		List<NfsACL> nfsAcls = client.fileSystems().getNfsACLs(
+				uri(fileSystemId), subDir);
+
+		render(nfsAcls);
+	}
+	
+	public static void listNfsAclJson(String fileSystemId, String subDir) {
+		renderArgs.put("dataTable", new ShareACLDataTable());
+        renderArgs.put("subDir", subDir);
+        renderArgs.put("fileSystemId", uri(fileSystemId));
+		ViPRCoreClient client = BourneUtil.getViprClient();
+		List<NfsACL> nfsAcls = client.fileSystems().getNfsACLs(
+				uri(fileSystemId), subDir);
+		NfsACL nfsAcl = new NfsACL();
+		List<ShareACLDataTable.NfsAclInfo> accessControlList = Lists.newArrayList();
+		if(nfsAcls.size() > 0){
+			nfsAcl = nfsAcls.get(0);
+			List<NfsACE> acl = nfsAcl.getNfsAces();
+			for (NfsACE ace : acl) {
+	            String name = ace.getUser();
+	            String type = ace.getType();
+	            String permissions = ace.getPermissions();
+	            String domain = ace.getDomain();
+	           
+	            accessControlList.add(new ShareACLDataTable.NfsAclInfo(name, type, permissions, fileSystemId, subDir, domain));
+	        }
+
+	        renderJSON(DataTablesSupport.createJSON(acl, params));
+		}
+
+		render(nfsAcls);
+	}
 
     public static void fileSystemExportsJson(String id, String path, String sec) {
         ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, sec);

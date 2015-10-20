@@ -42,6 +42,26 @@ public class ShareACLDataTable extends DataTable {
             id = ShareACLForm.createId(this.name, this.type, this.fileSystem, this.shareName, this.domain, this.permission);
         }
     }
+    
+    public static class NfsAclInfo {
+
+        public String id;
+        public String name;
+        public String domain;
+        public String type;
+        public String permission;
+        public String fileSystem;
+        public String subDir;
+
+        public NfsAclInfo(String name, String type, String permission, String fileSystem, String subDir, String domain) {
+            this.name = name;
+            this.domain = domain;
+            this.type = type;
+            this.permission = permission;
+            this.subDir = subDir;
+            this.fileSystem = fileSystem;
+        }
+    }
 
     public static class SnapshotAclInfo {
 

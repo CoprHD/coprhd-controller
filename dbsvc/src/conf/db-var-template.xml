@@ -44,6 +44,6 @@
 
     <bean id="dbRebuildRunnable" class="com.emc.storageos.db.server.impl.DbRebuildRunnable">
         <property name="coordinator" ref="coordinator"/>
-        <property name="sourceDc" ref="{vdc_myid}"/>
+        <property name="sourceDc" value="{vdc_myid}"/>
     </bean>
 </beans>

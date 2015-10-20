@@ -3529,6 +3529,7 @@ maintenance.manualStart=You will be redirected automatically once the ViPR Virtu
 maintenance.status=Virtual Appliance Status
 maintenance.label=Maintenance
 maintenance.inprogress=In Progress
+maintenance.upgradefail=Upgrade Fail
 
 storageapi.error.internal = Internal Error, Please contact your administrator
 storageapi.selection.error = Error performing Selection: %s

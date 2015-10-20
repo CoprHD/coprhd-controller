@@ -295,7 +295,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         _dbClient.persistObject(virtualNAS);
                     }
                 } else {
-
                     PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, accessZoneId);
                     if(physicalNAS == null) {
                         _log.error(String.format("computeStaticLoadMetrics is failed for  Storagesystemid: %s", storageSystemId));
@@ -325,7 +324,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      */
     void populateDbMetricsAz(final IsilonAccessZone accessZone, IsilonApi isilonApi, StringMap dbMetrics) {
         
-        Long totalProvCap = 0L;
+        long totalProvCap = 0L;
         Long totalFsCount = 0L;
         String resumeToken = null;
         String zoneName = accessZone.getName();
@@ -335,12 +334,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonApi.IsilonList<IsilonSmartQuota> quotas = null;
         do {
             quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
-            if(quotas != null) {
+            if(quotas != null && !quotas.getList().isEmpty()) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
-                    totalProvCap = totalProvCap + quota.getThresholds().getHard();
-                    totalFsCount ++;
+                    if(quota.getThresholds() != null) {
+                        totalProvCap = totalProvCap + quota.getThresholds().getHard();
+                        totalFsCount ++;
+                    } else {
+                        _log.info("not able to get quota for fs : {}", quota.getPath());
+                    }
                 }
-                
                 resumeToken = quotas.getToken();
             }
         } while (resumeToken != null);
@@ -350,7 +352,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonApi.IsilonList<IsilonSnapshot> snapshots = null;
         do {
             snapshots = isilonApi.listSnapshots(resumeToken, baseDirPath);
-            if(snapshots != null) {
+            if(snapshots != null && !snapshots.getList().isEmpty()) {
                 for(IsilonSnapshot isiSnap: snapshots.getList()) {
                     totalProvCap = totalProvCap + Long.valueOf(isiSnap.getSize());
                     totalFsCount ++;
@@ -359,7 +361,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
         } while (resumeToken != null);
         _log.info("db metrics- total fs Count {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
-        _log.info("db metrics- total fs Capacity {} for access zone : {}", totalProvCap.toString(), accessZone.getName());
+        _log.info("db metrics- total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());
        
         //get total exports
         int nfsExportsCount = 0;
@@ -368,7 +370,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonList<IsilonExport> isilonNfsExports = null; 
         do {
             isilonNfsExports = isilonApi.listExports(resumeToken, zoneName);
-            if(isilonNfsExports != null) {
+            if(isilonNfsExports != null && !isilonNfsExports.getList().isEmpty()) {
                 nfsExportsCount = isilonNfsExports.size();
                 resumeToken = isilonNfsExports.getToken();
             }
@@ -380,7 +382,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonList<IsilonSMBShare> isilonCifsExports = null;
         do {
             isilonCifsExports = isilonApi.listShares(resumeToken, zoneName);
-            if(isilonCifsExports != null) {
+            if(isilonCifsExports != null && !isilonCifsExports.getList().isEmpty()) {
                 cifsSharesCount = isilonCifsExports.size();
                 resumeToken = isilonCifsExports.getToken();
             }

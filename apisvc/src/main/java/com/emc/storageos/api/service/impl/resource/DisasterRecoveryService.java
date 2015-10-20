@@ -126,8 +126,7 @@ public class DisasterRecoveryService {
 
             ViPRCoreClient viprCoreClient = createViPRCoreClient(param.getVip(),param.getUsername(),param.getPassword());
 
-            SiteConfigRestRep standbyConfig;
-            standbyConfig=viprCoreClient.site().getStandbyConfig();
+            SiteConfigRestRep standbyConfig = viprCoreClient.site().getStandbyConfig();
             siteId = standbyConfig.getUuid();
 
             precheckForStandbyAttach(standbyConfig);

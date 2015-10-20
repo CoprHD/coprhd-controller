@@ -295,7 +295,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         _dbClient.persistObject(virtualNAS);
                     }
                 } else {
-
                     PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, accessZoneId);
                     if(physicalNAS == null) {
                         _log.error(String.format("computeStaticLoadMetrics is failed for  Storagesystemid: %s", storageSystemId));
@@ -335,7 +334,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonApi.IsilonList<IsilonSmartQuota> quotas = null;
         do {
             quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
-            if(quotas != null) {
+            if(quotas != null && !quotas.getList().isEmpty()) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
                     if(quota.getThresholds() != null) {
                         totalProvCap = totalProvCap + quota.getThresholds().getHard();
@@ -344,7 +343,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         _log.info("not able to get quota for fs : {}", quota.getPath());
                     }
                 }
-                
                 resumeToken = quotas.getToken();
             }
         } while (resumeToken != null);
@@ -354,7 +352,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonApi.IsilonList<IsilonSnapshot> snapshots = null;
         do {
             snapshots = isilonApi.listSnapshots(resumeToken, baseDirPath);
-            if(snapshots != null) {
+            if(snapshots != null && !snapshots.getList().isEmpty()) {
                 for(IsilonSnapshot isiSnap: snapshots.getList()) {
                     totalProvCap = totalProvCap + Long.valueOf(isiSnap.getSize());
                     totalFsCount ++;
@@ -372,7 +370,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonList<IsilonExport> isilonNfsExports = null; 
         do {
             isilonNfsExports = isilonApi.listExports(resumeToken, zoneName);
-            if(isilonNfsExports != null) {
+            if(isilonNfsExports != null && !isilonNfsExports.getList().isEmpty()) {
                 nfsExportsCount = isilonNfsExports.size();
                 resumeToken = isilonNfsExports.getToken();
             }
@@ -384,7 +382,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonList<IsilonSMBShare> isilonCifsExports = null;
         do {
             isilonCifsExports = isilonApi.listShares(resumeToken, zoneName);
-            if(isilonCifsExports != null) {
+            if(isilonCifsExports != null && !isilonCifsExports.getList().isEmpty()) {
                 cifsSharesCount = isilonCifsExports.size();
                 resumeToken = isilonCifsExports.getToken();
             }

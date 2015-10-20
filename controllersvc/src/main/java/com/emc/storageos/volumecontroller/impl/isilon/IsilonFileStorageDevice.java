@@ -1793,7 +1793,12 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
             acl.setOp("add");
             acl.setAccesstype(nfsACE.getPermissionType());
-            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
+            String user = nfsACE.getUser();
+            if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
+                user = nfsACE.getDomain() + "\\" + nfsACE.getUser();
+            }
+
+            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
             acl.setTrustee(trustee);
             aclCompleteList.add(acl);
         }
@@ -1809,7 +1814,12 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
             acl.setOp("replace");
             acl.setAccesstype(nfsACE.getPermissionType());
-            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
+            String user = nfsACE.getUser();
+            if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
+                user = nfsACE.getDomain() + "\\" + nfsACE.getUser();
+            }
+
+            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
             acl.setTrustee(trustee);
             aclCompleteList.add(acl);
         }
@@ -1825,7 +1835,12 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
             acl.setOp("delete");
             acl.setAccesstype(nfsACE.getPermissionType());
-            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, nfsACE.getUser());
+            String user = nfsACE.getUser();
+            if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
+                user = nfsACE.getDomain() + "\\" + nfsACE.getUser();
+            }
+
+            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
             acl.setTrustee(trustee);
             aclCompleteList.add(acl);
         }
@@ -1835,7 +1850,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         isilonAcl.setAcl(aclCompleteList);
         String path = args.getFileSystemPath();
         if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
-            path = path.concat(args.getSubDirectory());
+            path = path + "/" + args.getSubDirectory();
 
         }
 
@@ -1872,8 +1887,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
-        // TODO Auto-generated method stub
-        return null;
+        return deleteNfsACLs(storageObj, args);
     }
 
 }

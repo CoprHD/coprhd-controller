@@ -1378,13 +1378,13 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
 
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
-        // TODO Auto-generated method stub
-        return null;
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
     }
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
-        // TODO Auto-generated method stub
-        return null;
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
     }
 }

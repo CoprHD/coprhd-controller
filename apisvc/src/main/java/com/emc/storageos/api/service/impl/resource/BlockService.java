@@ -1162,13 +1162,6 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         Volume volume = queryVolumeResource(id);
 
-        // Check if the volume is on VMAX V3 which doesn't support expansion yet
-        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-        if (storage.checkIfVmax3()) {
-            _log.error("Volume expansion is not supported for VMAX V3 array {}", storage.getSerialNumber());
-            throw APIException.badRequests.unsupportedVolumeExpansion();
-        }
-
         // Verify that the volume is 'expandable'
         VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         if (!virtualPool.getExpandable()) {
@@ -1813,7 +1806,7 @@ public class BlockService extends TaskResourceService {
         }
 
         BlockServiceApi blockServiceApi = getBlockServiceImpl(volume);
-        
+
         /**
          * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
          * Hence we don't require reference check for vmax.
@@ -3854,6 +3847,10 @@ public class BlockService extends TaskResourceService {
                         _log.info("VPlex volume VirtualPool change not supported {}", notSuppReasonBuff.toString());
                         throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                                 notSuppReasonBuff.toString());
+                    } else if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, volume)) {
+                        // We will not allow virtual pool change for a VPLEX volume that was
+                        // created using the target volume of a block snapshot.
+                        throw APIException.badRequests.vpoolChangeNotAllowedForVPLEXVolumeBuiltOnSnapshot(volume.getId().toString());
                     } else if (vplexVpoolChangeOperation == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION) {
                         // Determine if source side will be migrated.
                         boolean migrateSourceVolume = VirtualPoolChangeAnalyzer

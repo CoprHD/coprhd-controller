@@ -7,10 +7,8 @@ package com.emc.storageos.volumecontroller.impl.smis.job;
 import java.net.URI;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.cim.CIMInstance;
@@ -23,9 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -34,12 +30,10 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorCr
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 
 public class SmisVnxCreateCGMirrorJob extends SmisBlockMirrorJob {
     private static final long serialVersionUID = 1L;
     private static final Logger _log = LoggerFactory.getLogger(SmisVnxCreateCGMirrorJob.class);
-    private static final String RESERVED_CAPACITY_MAP = "reservedCapacityMap";
     private Map<String, String> tgtToSrcMap;
 
     public SmisVnxCreateCGMirrorJob(CIMObjectPath job, URI storgeSystemURI, Map<String, String> tgtToSrcMap, TaskCompleter taskCompleter) {
@@ -66,8 +60,7 @@ public class SmisVnxCreateCGMirrorJob extends SmisBlockMirrorJob {
             }
 
             if (jobStatus == JobStatus.SUCCESS) {
-                String[] props = { SmisConstants.CP_DEVICE_ID, SmisConstants.CP_ELEMENT_NAME, SmisConstants.CP_WWN_NAME, SmisConstants.CP_NAME, SmisConstants.CP_CONSUMABLE_BLOCKS, SmisConstants.CP_BLOCK_SIZE };
-                syncVolumeIter = client.associatorInstances(getCimJob(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null, false, props);
+                syncVolumeIter = client.associatorInstances(getCimJob(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null, false, _volumeProps);
                 StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
                 processCGMirrors(syncVolumeIter, client, dbClient, storage, mirrors, UUID.randomUUID().toString());
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
@@ -86,34 +79,6 @@ public class SmisVnxCreateCGMirrorJob extends SmisBlockMirrorJob {
             }
             super.updateStatus(jobContext);
         }
-    }
-
-
-    /**
-     * Update storage pool capacity and remove reservation for mirror capacities from pool's reserved capacity map.
-     *
-     * @param client
-     * @param dbClient
-     * @param mirrors
-     * @throws Exception
-     */
-    private void updatePools(WBEMClient client, DbClient dbClient, List<BlockMirror> mirrors) throws Exception {
-        Set<URI> poolURIs = new HashSet<URI>();
-        for (BlockMirror mirror : mirrors) {
-            poolURIs.add(mirror.getPool());
-        }
-
-        List<StoragePool> pools = dbClient.queryObjectField(StoragePool.class, RESERVED_CAPACITY_MAP, poolURIs);
-        for (StoragePool pool : pools) {
-            SmisUtils.updateStoragePoolCapacity(dbClient, client, pool.getId());
-            StringMap reservationMap = pool.getReservedCapacityMap();
-            for (URI volumeId : getTaskCompleter().getIds()) {
-                // remove from reservation map
-                reservationMap.remove(volumeId.toString());
-            }
-        }
-
-        dbClient.persistObject(pools);
     }
 
     /**
@@ -148,7 +113,7 @@ public class SmisVnxCreateCGMirrorJob extends SmisBlockMirrorJob {
 
             // Get the associated volume for this sync volume
             String volumeDeviceID = tgtToSrcMap.get(syncDeviceID);
-            // Lookup the associated source volume based on the volume native device id
+            // Lookup mirror associated with the source volume based on the source volume's native id
             BlockMirror mirror = volIdToMirrorMap.get(volumeDeviceID);
             mirror.setReplicationGroupInstance(repGroupID);
             mirror.setProvisionedCapacity(getProvisionedCapacityInformation(client, syncVolume));

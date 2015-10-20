@@ -82,6 +82,7 @@ nav.import=Import
 nav.logs=Reports
 nav.systemHealthDashboard=Health
 nav.systemHealthLogs=Logs
+nav.backup=Backup
 nav.systemNodeRecovery=Recovery
 nav.properties=General Configuration
 nav.clusterInfo=Network Configuration
@@ -843,6 +844,20 @@ system.about.license=Licenses
 
 #Database Consistency Page
 db.healthdashboard.title=Database Housekeeping Status
+
+# Backup page
+Backup.list.title=Backups
+backup.name=Name
+backup.size=Size
+backup.creationtime=Creation Time
+backup.create.description=Enter the information needed to create backup
+BackupForm.title=Add Backup
+backupForm.name=Backup Name
+backupForm.force=Force Creation
+backupForm.force.help=When checked it ignores the error during operation and force creation of backup
+backup.save.success=Saved '%s'
+backup.deleteConfirm=Are you sure you want to delete these Backup(s)?
+backups.deleted=Backup(s) deleted successfully.
 
 # System Node Recovery
 system.noderecovery.title=Node Recovery

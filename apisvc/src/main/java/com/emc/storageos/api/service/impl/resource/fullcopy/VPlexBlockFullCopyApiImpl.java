@@ -8,6 +8,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,8 +35,10 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -45,8 +48,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -56,6 +57,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -179,25 +181,34 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // Call super first.
                 super.validateFullCopyCreateRequest(fcSourceObjList, count);
 
-                // If there are more than one volume in the consistency group, and they are on 
+                // If there are more than one volume in the consistency group, and they are on
                 // different backend storage systems, return error.
-                if (fcSourceObjList.size() >1) {
+                if (fcSourceObjList.size() > 1) {
                     List<Volume> volumes = new ArrayList<Volume>();
                     for (BlockObject fcSource : fcSourceObjList) {
-                        volumes.add((Volume)fcSource);
+                        volumes.add((Volume) fcSource);
                     }
                     if (!VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumes, _dbClient)) {
                         throw APIException.badRequests.fullCopyNotAllowedWhenCGAcrossMultipleSystems();
                     }
                 }
+
                 // Check if the source volume is an ingested CG, without any back end CGs yet. if yes, throw error
                 Volume srcVol = (Volume) fcSourceObjList.get(0);
                 if (VPlexUtil.isVolumeInIngestedCG(srcVol, _dbClient)) {
                     throw APIException.badRequests.fullCopyNotAllowedForIngestedCG(srcVol.getId().toString());
                 }
+
                 // Platform specific checks.
                 for (BlockObject fcSourceObj : fcSourceObjList) {
                     Volume fcSourceVolume = (Volume) fcSourceObj;
+
+                    // If the volume is a VPLEX volume created on a block snapshot,
+                    // we don't support creation of a full copy.
+                    if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, fcSourceVolume)) {
+                        throw APIException.badRequests.fullCopyNotAllowedForVPLEXVolumeBuiltOnSnapshot(fcSourceVolume.getId().toString());
+                    }
+
                     StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                             fcSourceVolume.getStorageController());
                     if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
@@ -482,9 +493,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
                 // Prepare the volume.
                 Volume volume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size,
-                    vplexSystemProject, haVarray, haVpool,
-                    haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
-                    nameBuilder.toString(), null, taskId, _dbClient);
+                        vplexSystemProject, haVarray, haVpool,
+                        haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
+                        nameBuilder.toString(), null, taskId, _dbClient);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                 _dbClient.persistObject(volume);
                 copyHAVolumes.add(volume);
@@ -875,5 +886,58 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
 
         BlockFullCopyUtils.validateActiveFullCopyCount(srcBackendVolume, count, _dbClient);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TaskList establishVolumeAndFullCopyGroupRelation(Volume sourceVolume, Volume fullCopyVolume) {
+
+        // Create the task list.
+        TaskList taskList = new TaskList();
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        // Get the id of the source volume.
+        URI sourceVolumeURI = sourceVolume.getId();
+
+        // Get the id of the full copy volume.
+        URI fullCopyURI = fullCopyVolume.getId();
+
+        // Get the storage system for the source volume.
+        StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
+                sourceVolume.getStorageController());
+        URI sourceSystemURI = sourceSystem.getId();
+
+        // Create the task on the full copy volume.
+        Operation op = _dbClient.createTaskOpStatus(Volume.class, fullCopyURI,
+                taskId, ResourceOperationTypeEnum.ESTABLISH_VOLUME_FULL_COPY);
+        fullCopyVolume.getOpStatus().put(taskId, op);
+        TaskResourceRep fullCopyVolumeTask = TaskMapper.toTask(
+                fullCopyVolume, taskId, op);
+        taskList.getTaskList().add(fullCopyVolumeTask);
+
+        // Invoke the controller.
+        try {
+            VPlexController controller = getController(VPlexController.class,
+                    DiscoveredDataObject.Type.vplex.toString());
+            controller.establishVolumeAndFullCopyGroupRelation(sourceSystemURI, sourceVolumeURI,
+                    fullCopyURI, taskId);
+        } catch (InternalException ie) {
+            s_logger.error("Controller error", ie);
+
+            // Update the status for the VPLEX volume copies and their
+            // corresponding tasks.
+            if (op != null) {
+                op.error(ie);
+                fullCopyVolume.getOpStatus().updateTaskStatus(taskId, op);
+                _dbClient.persistObject(fullCopyVolume);
+                fullCopyVolumeTask.setState(op.getStatus());
+                fullCopyVolumeTask.setMessage(op.getMessage());
+            }
+        }
+        return taskList;
     }
 }

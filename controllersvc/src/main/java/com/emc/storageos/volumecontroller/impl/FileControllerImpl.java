@@ -216,4 +216,10 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
         execFS("updateNFSAcl", storageURI, fsURI, param, opId);
 
     }
+
+    @Override
+    public void deleteNFSAcls(URI storageURI, URI fsURI, String subDir, String opId) throws InternalException {
+        execFS("deleteNFSAcls", storageURI, fsURI, subDir, opId);
+
+    }
 }

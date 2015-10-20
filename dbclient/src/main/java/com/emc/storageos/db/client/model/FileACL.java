@@ -120,5 +120,5 @@ public abstract class FileACL extends DataObject {
         return builder.toString();
     }
 
-    public abstract void calculateACLIndex();
+    public abstract void calculateNfsACLIndex();
 }

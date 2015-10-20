@@ -1989,9 +1989,7 @@ public class HostService extends TaskResourceService {
 
         URI imageServerURI = cs.getComputeImageServer();
         if (imageServerURI == null) {
-            throw APIException.badRequests.invalidParameter(
-                    "Compute System does not have an Image Server associated.",
-                    cs.getLabel());
+            throw APIException.badRequests.noImageServerAssociatedToComputeSystem(cs.getLabel());
         } else {
             ComputeImageServer imageServer = queryObject(
                     ComputeImageServer.class, imageServerURI, true);

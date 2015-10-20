@@ -47,6 +47,7 @@ public class CifsShareACL extends ShareACL {
         setChanged("opType");
     }
 
+    @Override
     public void calculateACLIndex() {
 
         String userOrGroup = this.user == null ? this.group : this.user;

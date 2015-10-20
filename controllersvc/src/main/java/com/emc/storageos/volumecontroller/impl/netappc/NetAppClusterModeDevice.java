@@ -1829,13 +1829,13 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
 
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
-        // TODO Auto-generated method stub
-        return null;
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netappc.operationNotSupported());
     }
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
-        // TODO Auto-generated method stub
-        return null;
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netappc.operationNotSupported());
     }
 }

@@ -63,8 +63,8 @@ final class ConsistencyUtils {
         return tasks;
     }
 
-    static Tasks<BlockConsistencyGroupRestRep> restoreFullCopy(URI consistencyGroupId) {
-        return execute(new RestoreConsistencyGroupFullCopy(consistencyGroupId));
+    static Tasks<BlockConsistencyGroupRestRep> restoreFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        return execute(new RestoreConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
     }
 
     static Tasks<BlockConsistencyGroupRestRep> detachFullCopy(URI consistencyGroupId, URI fullCopyId) {

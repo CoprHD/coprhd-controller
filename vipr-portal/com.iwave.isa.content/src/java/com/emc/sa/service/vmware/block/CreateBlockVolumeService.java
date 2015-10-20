@@ -12,9 +12,9 @@ import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
-import com.emc.sa.service.vipr.block.BlockStorageUtils.VolumeParams;
+import com.emc.sa.service.vipr.block.BlockStorageUtils.HostVolumeParams;
 import com.emc.sa.service.vipr.block.BlockStorageUtils.VolumeTable;
-import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
+import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.google.common.collect.Lists;
 
 @Service("VMware-CreateBlockVolume")
@@ -24,12 +24,12 @@ public class CreateBlockVolumeService extends ViPRService {
     protected VolumeTable[] volumeTable;
 
     @Bindable
-    protected VolumeParams volumeParams = new VolumeParams();
+    protected HostVolumeParams volumeParams = new HostVolumeParams();
 
     List<String> datastoreNames = null;
     List<String> volumeNames = null;
 
-    protected List<CreateBlockVolumeHelper> createBlockVolumeHelpers = Lists.newArrayList();
+    protected List<CreateBlockVolumeForHostHelper> createBlockVolumeHelpers = Lists.newArrayList();
 
     @Override
     public void init() throws Exception {
@@ -37,15 +37,15 @@ public class CreateBlockVolumeService extends ViPRService {
 
         // for each pair of volume name and size, create a createBlockVolumeHelper
         for (VolumeTable volumes : volumeTable) {
-            CreateBlockVolumeHelper createBlockVolumeHelper = new CreateBlockVolumeHelper();
-            BindingUtils.bind(createBlockVolumeHelper, BlockStorageUtils.createVolumeParam(volumes, volumeParams));
+            CreateBlockVolumeForHostHelper createBlockVolumeHelper = new CreateBlockVolumeForHostHelper();
+            BindingUtils.bind(createBlockVolumeHelper, BlockStorageUtils.createParam(volumes, volumeParams));
             createBlockVolumeHelpers.add(createBlockVolumeHelper);
         }
     }
 
     @Override
     public void precheck() throws Exception {
-        for (CreateBlockVolumeHelper helper : createBlockVolumeHelpers) {
+        for (CreateBlockVolumeForHostHelper helper : createBlockVolumeHelpers) {
             helper.precheck();
         }
     }

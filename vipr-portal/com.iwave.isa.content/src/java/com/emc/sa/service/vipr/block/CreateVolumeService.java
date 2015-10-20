@@ -11,7 +11,7 @@ import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.block.BlockStorageUtils.NoHostVolumeParams;
+import com.emc.sa.service.vipr.block.BlockStorageUtils.VolumeParams;
 import com.emc.sa.service.vipr.block.BlockStorageUtils.VolumeTable;
 import com.google.common.collect.Lists;
 
@@ -22,7 +22,7 @@ public class CreateVolumeService extends ViPRService {
     protected VolumeTable[] volumeTable;
 
     @Bindable
-    protected NoHostVolumeParams volumeParams = new NoHostVolumeParams();
+    protected VolumeParams volumeParams = new VolumeParams();
     
     protected List<CreateBlockVolumeHelper> createBlockVolumeHelpers = Lists.newArrayList();
 
@@ -34,7 +34,7 @@ public class CreateVolumeService extends ViPRService {
         // for each pair of volume name and size, create a createBlockVolumeHelper
         for (VolumeTable volumes : volumeTable) {
             CreateBlockVolumeHelper createBlockVolumeHelper = new CreateBlockVolumeHelper();
-            BindingUtils.bind(createBlockVolumeHelper, BlockStorageUtils.createNoHostVolumeParam(volumes, volumeParams));
+            BindingUtils.bind(createBlockVolumeHelper, BlockStorageUtils.createParam(volumes, volumeParams));
             createBlockVolumeHelpers.add(createBlockVolumeHelper);
         }
     }

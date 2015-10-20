@@ -141,8 +141,6 @@ public class TenantOrg extends DataObject {
         }
     }
 
-    @PrefixIndex(cf = "LabelPrefixIndex")
-    @Length(min = 2, max = 30)
     @Name("namespace")
     public String getNamespace() {
         return _namespace;

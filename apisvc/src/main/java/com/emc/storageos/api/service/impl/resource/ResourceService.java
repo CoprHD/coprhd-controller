@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.AbstractTenantResource;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredComputeSystemWithAcls;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
@@ -47,6 +48,7 @@ import com.emc.storageos.db.common.DbDependencyPurger;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.tenant.TenantOrgList;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -184,15 +186,22 @@ public abstract class ResourceService {
      * 
      * @param name
      */
-    public static <T extends DataObject> void checkForDuplicateNamespace(String namespace, Class<T> type,
-    		DbClient dbClient) {
-    	List<T> objectList = new ArrayList<T>();
-    	objectList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, type,
-    			PrefixConstraint.Factory.getFullMatchConstraint(type, "namespace", namespace));
-
-    	if (!objectList.isEmpty()) {
-    		throw APIException.badRequests.duplicateLabel(namespace);
-    	}
+    public void checkForDuplicateNamespace(String namespace, URI tenantId, TenantOrg parent) {
+        TenantOrgList list = new TenantOrgList();
+        NamedElementQueryResultList subtenants = new NamedElementQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getTenantOrgSubTenantConstraint(tenantId), subtenants);
+        for (NamedElementQueryResultList.NamedElement el : subtenants) {
+            TenantOrg currTenant = _dbClient.queryObject(TenantOrg.class, el.getId());
+            if (currTenant.getNamespace() != null && namespace.equals(currTenant.getNamespace())) {
+                    throw APIException.badRequests.duplicateNamespace(namespace);
+            }
+        }
+        //Verify with root tenant aswell
+        if (parent.getNamespace() != null && parent.getNamespace().equals(namespace)) {
+            throw APIException.badRequests.duplicateNamespace(namespace);
+        }
+        
     }
     
     /**

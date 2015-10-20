@@ -303,16 +303,16 @@ public class TenantsService extends TaggedResource {
         
         //null and isEmpty used separately as with cases
         if (tenant.getNamespace() == null && param.getNamespace() != null) {
-        	checkForDuplicateNamespace(param.getNamespace(), TenantOrg.class, _dbClient);
+        	//checkForDuplicateNamespace(param.getNamespace(), TenantOrg.class, _dbClient);
         	tenant.setNamespace(param.getNamespace());
         }else if (tenant.getNamespace().isEmpty() && param.getNamespace() != null) {
-        	checkForDuplicateNamespace(param.getNamespace(), TenantOrg.class, _dbClient);
+        	//checkForDuplicateNamespace(param.getNamespace(), TenantOrg.class, _dbClient);
         	tenant.setNamespace(param.getNamespace());
         } else if (!tenant.getNamespace().equals(param.getNamespace())) {
         	//namespace cannot be changed if there are already buckets in it
         	//Though we are not deleting need to check no dependencies in this tenant
         	ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
-        	checkForDuplicateNamespace(param.getNamespace(), TenantOrg.class, _dbClient);
+        	//checkForDuplicateNamespace(param.getNamespace(), TenantOrg.class, _dbClient);
         	tenant.setNamespace(param.getNamespace());
         }        
 
@@ -411,7 +411,7 @@ public class TenantsService extends TaggedResource {
         subtenant.setLabel(param.getLabel());
         subtenant.setDescription(param.getDescription());
         if (param.getNamespace() != null) {
-        	checkForDuplicateNamespace(param.getNamespace(), TenantOrg.class, _dbClient);
+            checkForDuplicateNamespace(param.getNamespace(), parent.getId(), parent);
             subtenant.setNamespace(param.getNamespace());
         }
 

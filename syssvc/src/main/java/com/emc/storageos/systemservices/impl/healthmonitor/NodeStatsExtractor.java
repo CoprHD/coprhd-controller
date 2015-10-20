@@ -73,7 +73,7 @@ public class NodeStatsExtractor implements StatConstants {
                     tempServiceStatsMap.put(serviceName, serviceStats);
                 }
             } catch (SyssvcInternalException e) {
-                _log.debug("Expected SyssvcInternalException thrown because: "+e.getMessage());
+                _log.debug("Expected SyssvcInternalException thrown with message: "+e.getMessage());
             } catch (Exception e) {
                 _log.debug("Internal error: {}", e);
             }

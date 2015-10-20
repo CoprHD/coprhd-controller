@@ -5,8 +5,8 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,7 +36,6 @@ import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -46,6 +45,7 @@ import com.emc.storageos.model.compute.ComputeImageCreate;
 import com.emc.storageos.model.compute.ComputeImageList;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
 import com.emc.storageos.model.compute.ComputeImageUpdate;
+import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -466,7 +466,6 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Delete any image references or associations from all existing ImageServers.
-     * 
      * @param ci {@link ComputeImage}
      */
     private void deleteImageFromImageServers(ComputeImage ci) {

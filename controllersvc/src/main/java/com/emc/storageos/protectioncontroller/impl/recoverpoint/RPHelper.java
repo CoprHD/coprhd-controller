@@ -496,22 +496,18 @@ public class RPHelper {
      * @param volumeIDs volume IDs
      * @return true if volumeIDs contains all of the source volumes in the protection set
      */
-    public static boolean cgContainsSourceVolumes(DbClient dbClient, URI consistencyGroupUri, Collection<URI> volumeIDs) {
+    public static boolean cgSourceVolumesContainsAll(DbClient dbClient, URI consistencyGroupUri, Collection<URI> volumeIDs) {
 
         // find all source volumes.
         List<URI> sourceVolumeIDs = new ArrayList<URI>();
         BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupUri);
         _log.info("Inspecting consisency group: " + cg.getLabel() + " to see if request contains all source volumes");
 
-        List<Volume> cgVolumes = getCgSourceVolumes(consistencyGroupUri, dbClient);
+        List<Volume> sourceVolumes = getCgSourceVolumes(consistencyGroupUri, dbClient);
 
-        for (Volume volume : cgVolumes) {
-            if (volume != null) {
-                _log.debug("Looking at volume: " + volume.getLabel());
-                if (!volume.getInactive() && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-                    _log.debug("Adding volume: " + volume.getLabel());
-                    sourceVolumeIDs.add(volume.getId());
-                }
+        if (sourceVolumes != null) {
+            for (Volume srcVolume : sourceVolumes) {
+                sourceVolumeIDs.add(srcVolume.getId());
             }
         }
 

@@ -7,6 +7,7 @@ package com.emc.sa.asset.providers;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalMirrorSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
@@ -160,7 +161,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return true;
     }
 
-    private static boolean isInConsistencyGroup(BlockObjectRestRep volume) {
+    protected static boolean isInConsistencyGroup(BlockObjectRestRep volume) {
         return volume.getConsistencyGroup() != null;
     }
 
@@ -1138,16 +1139,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getSnapshotBlockVolumes(AssetOptionsContext context, URI project, String type) {
         final ViPRCoreClient client = api(context);
         if (isVolumeType(type)) {
-            List<VolumeRestRep> volumes = listVolumesWithoutConsistencyGroup(client, project);
+            List<VolumeRestRep> volumes = listVolumes(client, project);
             List<VolumeDetail> volumeDetails = getVolumeDetails(client, volumes);
             Map<URI, VolumeRestRep> volumeNames = ResourceUtils.mapById(volumes);
 
             List<AssetOption> options = Lists.newArrayList();
             for (VolumeDetail detail : volumeDetails) {
-                if (isLocalSnapshotSupported(detail.vpool) || isRPSourceVolume(detail.volume)) {
-                    if (!isInConsistencyGroup(detail.volume)) {
-                        options.add(createVolumeOption(client, null, detail.volume, volumeNames));
-                    }
+
+                if ((isLocalSnapshotSupported(detail.vpool) && (isRPSourceVolume(detail.volume) || isRPTargetVolume(detail.volume)))
+                        || !isInConsistencyGroup(detail.volume)) {
+                    options.add(createVolumeOption(client, null, detail.volume, volumeNames));
                 }
             }
             return options;
@@ -1440,7 +1441,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return client.blockVolumes().findByProject(project, filter);
     }
 
-    protected List<VolumeRestRep> listVolumes(ViPRCoreClient client, URI project) {
+    protected static List<VolumeRestRep> listVolumes(ViPRCoreClient client, URI project) {
         return client.blockVolumes().findByProject(project);
     }
 

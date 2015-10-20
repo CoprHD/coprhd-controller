@@ -6,9 +6,12 @@ package com.emc.vipr.client.core.impl;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Test;
 
-import com.emc.vipr.client.exceptions.ServiceErrorException;
+import com.emc.storageos.model.TaskResourceRep;
 
 public class TaskUtilTest {
 
@@ -18,13 +21,11 @@ public class TaskUtilTest {
     }
 
     @Test
-    public void testCheckForError() {
-        final String ERROR_CODE_DESCRIPTION = "Task object is null. Unable to determine success of task";
-        try {
-            TaskUtil.checkForError(null);
-        } catch (ServiceErrorException e) {
-            assertEquals(ERROR_CODE_DESCRIPTION, e.getCodeDescription());
-        }
+    public void testNullTaskError() {
 
+        List<TaskResourceRep> tasks = new ArrayList<TaskResourceRep>();
+        tasks.add(null);
+
+        TaskUtil.checkForErrors(tasks);
     }
 }

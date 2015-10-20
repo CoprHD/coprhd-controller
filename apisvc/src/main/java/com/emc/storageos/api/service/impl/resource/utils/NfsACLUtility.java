@@ -257,22 +257,27 @@ public class NfsACLUtility {
         Map<String, List<NfsACE>> nfsAclMap = new HashMap<String, List<NfsACE>>();
         // Query All ACl Specific to a File System.
         List<NFSShareACL> nfsAcls = queryDBSFileNfsACLs(allDirs);
+        _log.info("Subdir value {} and allDirs={}", this.subDir, allDirs);
         _log.info("Number of existing ACL found : {} ", nfsAcls.size());
+
         // ALl ACL
-        List<NfsACE> nfsAces = new ArrayList<NfsACE>();
         for (NFSShareACL nfsAcl : nfsAcls) {
-            // list of the ace
+            String fspath = nfsAcl.getFileSystemPath();
+            List<NfsACE> nfsAceList = nfsAclMap.get(fspath);
+            if (nfsAceList == null) {
+                nfsAceList = new ArrayList<NfsACE>();
+
+            }
             NfsACE ace = new NfsACE();
             getNFSAce(nfsAcl, ace);
-            nfsAces.add(ace);
-            nfsAclMap.put(nfsAcl.getFileSystemPath(), nfsAces);
+            nfsAceList.add(ace);
+            nfsAclMap.put(fspath, nfsAceList);
 
         }
 
-        for (String mountpath : nfsAclMap.keySet()) {
-            NfsACL nfsAcl = new NfsACL(mountpath, nfsAclMap.get(mountpath));
-            // nfsAcl.setFSMountPath(fs.getPath());
-            String subDirValue = mountpath.substring(fs.getPath().length());
+        for (String fspath : nfsAclMap.keySet()) {
+            NfsACL nfsAcl = new NfsACL(fspath, nfsAclMap.get(fspath));
+            String subDirValue = fspath.substring(fs.getPath().length() + 1);
             if (subDirValue != null && !subDirValue.isEmpty()) {
 
                 nfsAcl.setSubDir(subDirValue);

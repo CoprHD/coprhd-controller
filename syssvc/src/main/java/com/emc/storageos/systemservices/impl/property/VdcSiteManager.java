@@ -62,7 +62,7 @@ public class VdcSiteManager extends AbstractManager {
     private static final String VDC_IDS_KEY = "vdc_ids";
 
     private DbClient dbClient;
-    private String defaultPSKFile;
+    private String defaultPskFile;
 
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
@@ -95,8 +95,8 @@ public class VdcSiteManager extends AbstractManager {
         this.service = svc;
     }
 
-    public void setDefaultPSKFile(String defaultPSKFile) {
-        this.defaultPSKFile = defaultPSKFile;
+    public void setDefaultPskFile(String defaultPskFile) {
+        this.defaultPskFile = defaultPskFile;
     }
 
     @Override
@@ -310,7 +310,7 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private String loadDefaultIpsecKeyFromFile() throws Exception {
-        BufferedReader in = new BufferedReader(new FileReader(new File(defaultPSKFile)));
+        BufferedReader in = new BufferedReader(new FileReader(new File(defaultPskFile)));
         try {
             String key = in.readLine();
             return key;

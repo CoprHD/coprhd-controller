@@ -16,9 +16,8 @@ public class DisasterRecoveryDataTable extends DataTable {
         addColumn("VirtualIP");
         addColumn("status");
         addColumn("id");
-        sortAll();
-        setDefaultSort("siteName", "asc");
-        setRowCallback("createRowLink");
+        addColumn("actions").setRenderFunction("renderButtonBar");
+        sortAllExcept("actions");
     }
 
     public static class StandByInfo {

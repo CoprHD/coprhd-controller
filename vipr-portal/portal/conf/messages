@@ -835,7 +835,7 @@ datetime.dayOfMonth.L=Last
 
 disasterRecovery.title=Disaster Recovery
 disasterRecovery.name=Site Name
-disasterRecovery.VirtualIP=Virtual IP
+disasterRecovery.VirtualIP=Site Virtual IP
 disasterRecovery.status=Status
 disasterRecovery.id=Site UUId
 disasterRecovery.actions=Actions
@@ -845,8 +845,18 @@ disasterRecovery.confirmPassword=Confirm Password
 disasterRecovery.confirmPassword.not.match=User Password and Confirm Password do not match.
 disasterRecovery.deleteConfirm=Are you sure you want to delete this standby cluster?
 
+disasterRecovery.testButton=Test
+disasterRecovery.pauseButton=Pause
+disasterRecovery.resumeButton=Resume
+
 disasterRecovery.save.success=Saved '%s'
+disasterRecovery.pause.success=Paused '%s'
+disasterRecovery.resume.success=Resumed '%s'
+disasterRecovery.test.success=Test Mode '%s'
 disasterRecovery.save.error=Failed to save '%s'
+disasterRecovery.pause.error=Failed to pause '%s'
+disasterRecovery.resume.error=Failed to resume '%s'
+disasterRecovery.test.error=Failed to save '%s'
 disasterRecovery.delete.success=Deleted Successfully.
 disasterRecovery.delete.error='%s' of '%s' selected Standby deleted: '%s'.  Please check server log for more details.
 disasterRecovery.unknown=Unknown Standby with ID '%s'
@@ -855,9 +865,7 @@ disasterRecovery.standby.testLink=Test Mode
 disasterRecovery.standby.pauseLink=Pause Synchronization
 disasterRecovery.standby.resumeLink=Resume Synchronization
 
-disasterRecovery.standby.testButton=Test
-disasterRecovery.standby.pauseButton=Pause
-disasterRecovery.standby.resumeButton=Resume
+
 disasterRecovery.standby.deleteConfirm=Are you sure you want to delete this standby cluster?
 disasterRecovery.standby.stopConfirm=Are you sure you want to pause standby synchronization?
 

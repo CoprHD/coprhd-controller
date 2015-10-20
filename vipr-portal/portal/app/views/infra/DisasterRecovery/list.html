@@ -1,10 +1,68 @@
-#{extends 'main.html' /}
-#{set navSelected: ['nav.config', 'nav.disasterRecovery'] /}
+#{extends 'main.html' /} 
+#{set navSelected: ['nav.config', 'nav.disasterRecovery'] /} 
 
+#{alerts/} 
 #{DataTable.header titleKey:'disasterRecovery.title'/}
+
+<div class="row">
+	<div class="col-sm-12">
 #{DataTable.crudTable id:'disasterRecovery', 
-                      dataTable:dataTable,
-                      expandable: true, 
-                      actions: ['disasterRecovery.standby.pauseButton': @pause ,'disasterRecovery.standby.resumeButton': @resume, 'disasterRecovery.standby.testButton': @testMode],
-                      deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
+					dataTable:dataTable,
+					deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
 #{/DataTable.crudTable}
+	</div>
+</div>
+
+<script id="inlineActions.html" type="text/ng-template">
+    <div class="btn-group-site">
+        <a class="btn btn-default btn-xs" ng-disabled="isPauseSite" role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
+        <a class="btn btn-default btn-xs" ng-disabled="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
+        <a class="btn btn-default btn-xs" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
+    </div>
+</script>
+
+<script type="text/javascript">
+var standbypauseUrl = #{jsAction @pause(':uuid') /}
+var standbyresumeUrl = #{jsAction @resume(':uuid') /}
+var standbytestUrl = #{jsAction @test(':uuid') /}
+
+angular.module('tags').directive({
+	actions: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineActions.html",
+         link: function(scope, elem, attrs) {
+        	 scope.pauseUrl = standbypauseUrl({'uuid': scope.row.id});
+        	 scope.resumeUrl = standbyresumeUrl({'uuid': scope.row.id});
+        	 scope.testUrl = standbytestUrl({'uuid': scope.row.id});
+        	 scope.isPauseSite = true;
+        	 scope.isResumeSite = true;
+        	 
+        	 if(scope.row.status.toUpperCase() == "STANDBY_SYNCED"){
+        		 scope.isPauseSite = false;
+             }
+        	 
+        	 if(scope.row.status.toUpperCase() == "STANDBY_PAUSED"){
+        		 scope.isResumeSite = false;
+             }
+        	 
+        	 if(scope.row.status.toUpperCase() == "PRIMARY"){
+        		 scope.isResumeSite = true;
+        		 scope.isPauseSite = true;
+             }
+         }
+     }
+ },
+ url: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineLink.html"
+     }
+ }
+});
+
+function renderButtonBar(o,val) {
+    return "<actions></actions>";
+    
+}
+</script>

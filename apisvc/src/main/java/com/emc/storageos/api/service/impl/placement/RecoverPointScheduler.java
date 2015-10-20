@@ -771,11 +771,12 @@ public class RecoverPointScheduler implements Scheduler {
 
         RPRecommendation rpHaRecommendation = new RPRecommendation();
         VPlexRecommendation vplexRec = (VPlexRecommendation) haRecommendation;
+        vplexRec.setResourceCount(1);
+        rpHaRecommendation.setVirtualVolumeRecommendation(vplexRec);
         rpHaRecommendation.setSourceStoragePool(vplexRec.getSourceStoragePool());
         rpHaRecommendation.setSourceStorageSystem(vplexRec.getSourceStorageSystem());
         rpHaRecommendation.setVirtualArray(vplexRec.getVirtualArray());
-        rpHaRecommendation.setVirtualPool(vplexRec.getVirtualPool());
-        rpHaRecommendation.setVirtualVolumeRecommendation(vplexRec);
+        rpHaRecommendation.setVirtualPool(vplexRec.getVirtualPool());        
         rpHaRecommendation.setResourceCount(capabilities.getResourceCount());
         rpHaRecommendation.setSize(capabilities.getSize());
         return rpHaRecommendation;
@@ -2047,6 +2048,7 @@ public class RecoverPointScheduler implements Scheduler {
             vplexRec.setVPlexStorageSystem(sourceJournal.getStorageController());
             vplexRec.setVirtualArray(sourceJournal.getVirtualArray());
             vplexRec.setVirtualPool(sourceJournalVpool);
+            vplexRec.setResourceCount(1);
             sourceJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);
         }
         recommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
@@ -2069,6 +2071,7 @@ public class RecoverPointScheduler implements Scheduler {
                 vplexRec.setVPlexStorageSystem(sourceJournal.getStorageController());
                 vplexRec.setVirtualArray(sourceJournal.getVirtualArray());
                 vplexRec.setVirtualPool(sourceJournalVpool);
+                vplexRec.setResourceCount(1);
                 standbyJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);
             }
             recommendation.setStandbyJournalRecommendation(standbyJournalRecommendation);
@@ -2091,6 +2094,7 @@ public class RecoverPointScheduler implements Scheduler {
             virtualVolumeRecommendation.setVPlexStorageSystem(sourceVolume.getStorageController());
             virtualVolumeRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
             virtualVolumeRecommendation.setVirtualPool(sourceVirtualPool);
+            virtualVolumeRecommendation.setResourceCount(1);
             for (String associatedVolume : sourceVolume.getAssociatedVolumes()) {
                 Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
                 if (backingVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())) {
@@ -2117,6 +2121,7 @@ public class RecoverPointScheduler implements Scheduler {
                     haVirtualRecommendation.setVirtualPool(sourceVirtualPool);
                     haVirtualRecommendation.setSourceStoragePool(haVolume.getPool());
                     haVirtualRecommendation.setSourceStorageSystem(haVolume.getStorageController());
+                    haVirtualRecommendation.setResourceCount(1);
                     haRec.setVirtualVolumeRecommendation(haVirtualRecommendation);
                 }
             }
@@ -2142,6 +2147,7 @@ public class RecoverPointScheduler implements Scheduler {
                 targetVplexRec.setVPlexStorageSystem(targetVolume.getStorageController());
                 targetVplexRec.setVirtualArray(targetVolume.getVirtualArray());
                 targetVplexRec.setVirtualPool(targetVpool);
+                targetVplexRec.setResourceCount(1);
                 targetRecommendation.setVirtualVolumeRecommendation(targetVplexRec);
             }
 
@@ -2167,6 +2173,7 @@ public class RecoverPointScheduler implements Scheduler {
                 targetJournalVplexRec.setVPlexStorageSystem(targetJournal.getStorageController());
                 targetJournalVplexRec.setVirtualArray(targetJournal.getVirtualArray());
                 targetJournalVplexRec.setVirtualPool(targetJournalVpool);
+                targetJournalVplexRec.setResourceCount(1);
                 targetJournalRecommendation.setVirtualVolumeRecommendation(targetJournalVplexRec);
             }
 

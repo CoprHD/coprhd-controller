@@ -801,8 +801,9 @@ public class RecoverPointScheduler implements Scheduler {
             VirtualArray haVarray, VirtualPool haVpool, Project project,
             VirtualPoolCapabilityValuesWrapper capabilities,
             Map<String, List<StoragePool>> vplexPoolMapForVarray) {
+        Recommendation haRecommendation = null;
         List<Recommendation> vplexHaVArrayRecommendations = null;
-
+                
         if (haVarray == null) {
             haVarray = vplexScheduler.getHaVirtualArray(varray, project, vpool);
         }
@@ -815,9 +816,13 @@ public class RecoverPointScheduler implements Scheduler {
                 haVarray, haVpool,
                 capabilities,
                 vplexPoolMapForVarray);
-
-        // There is only one recommendation ever, return the first recommendation.
-        return vplexHaVArrayRecommendations.get(0);
+                        
+        if (!vplexHaVArrayRecommendations.isEmpty()) {
+            // There is only one recommendation ever, return the first recommendation.
+            haRecommendation = vplexHaVArrayRecommendations.get(0);
+        } 
+        
+        return haRecommendation;
     }
 
     /**

@@ -1906,31 +1906,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
 
-            // Validate that all volumes belong to one protection set. In the meantime, figure out the protection set for future use.
+            // Find a valid protection set reference so we can cleanup the protection set later.
             ProtectionSet protectionSet = null;
-            boolean invalidProtectionSetReferenceExists = false;
             for (Volume volume : volumes) {
-                if (protectionSet == null) {
-                    // If rollback did not succeed we may have a null protection set reference.
-                    if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
-                        protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                    } else {
-                        _log.info(String.format("Volume %s has a null ProtectionSet reference.", volume.getId()));
-                        invalidProtectionSetReferenceExists = true;
-                    }
-                } else if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())
-                        && !protectionSet.getId().equals(volume.getProtectionSet().getURI())) {
-                    _log.error("Not all volumes belong to the same protection set.");
-                    throw DeviceControllerExceptions.recoverpoint.cgDeleteStepInvalidParam("volumes from different protection sets");
+                if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
+                    protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                    break;
                 }
-            }
-
-            // TODO: Check to make sure there are no other non-journal volumes in that copy
-            // Check to see if there are any more volumes in this protection set.
-            if (!invalidProtectionSetReferenceExists && (protectionSet == null || protectionSet.getInactive())) {
-                _log.info("Protection set does not exist for volume or it has been already cleaned up.  Not performing RP CG operation");
-                WorkflowStepCompleter.stepSucceded(token);
-                return true;
             }
 
             RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
@@ -1945,9 +1927,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         volumeProtectionInfo.setMetroPoint(VirtualPool.vPoolSpecifiesMetroPoint(virtualPool));
                     }
                 } catch (Exception e) {
-                    // It might be the case that one of the volumes does not exist in RP because of
-                    // a previous rollback failure. So we do not want to exit this workflow step until
-                    // we verify there is protection information for at least one volume.
+                    // Do nothing. If we cannot find volume protection info for a volume, we do not want that
+                    // exception preventing us from tyring to find it for other volumes being deleted.
                 }
             }
 
@@ -1960,7 +1941,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
 
             if (RPHelper.cgSourceVolumesContainsAll(_dbClient, cg.getId(), volumeIDs)) {
-                // There are no more volumes in the protection set so delete the CG
+                // We are deleted all source volumes in the consistency group so we can delete the
+                // RecoverPoint CG as well.
                 rp.deleteCG(volumeProtectionInfo);
 
                 // We want to reflect the CG being deleted in the BlockConsistencyGroup
@@ -2282,24 +2264,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportgroupID The export group
-     *
+     * 
      * @param snapshots snapshot list
-     *
+     * 
      * @param initatorURIs initiators to send to the block controller
-     *
+     * 
      * @param token The task object
      */
     @Override
@@ -2483,19 +2465,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportgroupID The export group
-     *
+     * 
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2608,15 +2590,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     *
+     * 
      * @param workflow Workflow
-     *
+     * 
      * @param waitFor waitFor step id
-     *
+     * 
      * @param snapshots list of snapshot to disable
-     *
+     * 
      * @param rpSystem RP system
-     *
+     * 
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -2784,24 +2766,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     *
+     * 
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     *
+     * 
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     *
+     * 
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     *
+     * 
      * @param protectionDevice The RP System used to manage the protection
-     *
+     * 
      * @param exportGroupID The export group
-     *
+     * 
      * @param snapshot RP snapshot
-     *
+     * 
      * @param lun HLU
-     *
+     * 
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -3515,7 +3497,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -3915,7 +3897,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */

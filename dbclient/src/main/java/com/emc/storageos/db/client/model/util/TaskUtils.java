@@ -4,17 +4,21 @@
  */
 package com.emc.storageos.db.client.model.util;
 
+import java.net.URI;
+import java.util.Iterator;
+import java.util.List;
+
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.*;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.Constraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Task;
 import com.google.common.collect.Lists;
-
-import java.net.URI;
-import java.util.Iterator;
-import java.util.List;
 
 public class TaskUtils {
 
@@ -66,11 +70,19 @@ public class TaskUtils {
         return uris;
     }
 
+    /**
+     * This method will find all tasks associated with a tenant.
+     * NOTE: This method does NOT work well to scale if a single tenant is performing many
+     * thousands of operations. Consider other constraint criteria depending on your needs.
+     * 
+     * @param dbClient db client
+     * @param tenantId tenant URI
+     * @return list of Task objects associated with that tenant
+     */
     public static ObjectQueryResult<Task> findTenantTasks(DbClient dbClient, URI tenantId) {
         ContainmentConstraint constraint = ContainmentConstraint.Factory.getTenantOrgTaskConstraint(tenantId);
         ObjectQueryResult<Task> queryResult = new ObjectQueryResult(dbClient, constraint);
         queryResult.executeQuery();
-
         return queryResult;
     }
 
@@ -106,7 +118,6 @@ public class TaskUtils {
         }
         return op;
     }
-
 
     private static List<Task> getTasks(DbClient dbClient, Constraint constraint) {
         URIQueryResultList results = new URIQueryResultList();
@@ -145,10 +156,12 @@ public class TaskUtils {
             this.iterator = results.iterator();
         }
 
+        @Override
         public boolean hasNext() {
             return iterator.hasNext();
         }
 
+        @Override
         public T next() {
             return (T) dbClient.queryObject(iterator.next());
         }

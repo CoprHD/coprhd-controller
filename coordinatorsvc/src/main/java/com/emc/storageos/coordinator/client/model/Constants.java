@@ -80,6 +80,9 @@ public interface Constants {
 
     // see the defintion of ClusterInfo.MigrationStatus
     public static final String MIGRATION_STATUS = "migrationstatus";
+    
+    // Upgrade failure information
+    public static final String  UPGRADE_FAILURE_INFO ="upgradefailureinfo";
 
     // category name under which external node information are stored
     public static final String NODE_DUALINETADDR_CONFIG = "nodeAddresses";

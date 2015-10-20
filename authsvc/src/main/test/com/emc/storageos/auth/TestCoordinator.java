@@ -468,4 +468,9 @@ public class TestCoordinator implements CoordinatorClient {
         // TODO Auto-generated method stub.
         return false;
     }
+
+    @Override
+    public void removeRuntimeState(String key) throws CoordinatorException {
+        return;
+    }
 }

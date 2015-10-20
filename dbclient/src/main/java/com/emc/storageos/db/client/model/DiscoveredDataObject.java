@@ -47,6 +47,7 @@ public class DiscoveredDataObject extends DataObject {
                     (type == openstack) ||
                     (type == vplex) ||
                     (type == ibmxiv) ||
+                    (type == xtremio) ||
                     (type == scaleio);
         }
 

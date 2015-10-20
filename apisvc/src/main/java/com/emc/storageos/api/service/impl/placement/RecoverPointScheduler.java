@@ -771,7 +771,6 @@ public class RecoverPointScheduler implements Scheduler {
 
         RPRecommendation rpHaRecommendation = new RPRecommendation();
         VPlexRecommendation vplexRec = (VPlexRecommendation) haRecommendation;
-
         // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
         // these recs and they are invoked one at a time even
         // in a multi-volume request.
@@ -3556,18 +3555,18 @@ public class RecoverPointScheduler implements Scheduler {
      * protectionVarray, rpProtectionRecommendation.getInternalSiteName(),
      * candidateTargetPool,
      * VirtualPool.vPoolSpecifiesHighAvailability(protectionVpool));
-     *
+     * 
      * // We want to find an internal site name that isn't already in the solution
      * for (String associatedStorageSystem : associatedStorageSystems) {
      * String targetInternalSiteName = ProtectionSystem.getAssociatedStorageSystemSiteName(associatedStorageSystem);
      * if (!targetInternalSiteName.equalsIgnoreCase(internalSiteName)) {
      * continue;
      * }
-     *
+     * 
      * URI targetStorageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
      * ProtectionSystem.getAssociatedStorageSystemSerialNumber(associatedStorageSystem),
      * dbClient, StorageSystemType.BLOCK);
-     *
+     * 
      * // Check to make sure the RP site is connected to the varray
      * if (!isRpSiteConnectedToVarray(
      * targetStorageSystemURI, rpProtectionRecommendation.getProtectionDevice(), targetInternalSiteName, protectionVarray)) {
@@ -3576,14 +3575,14 @@ public class RecoverPointScheduler implements Scheduler {
      * targetInternalSiteName, protectionVarray.getLabel()));
      * continue;
      * }
-     *
+     * 
      * Protection protection = rpRecommendation.getVarrayProtectionMap().get(protectionVarray.getId());
      * protection.setTargetVpool(protectionVpool);
      * protection.setTargetInternalSiteName(targetInternalSiteName);
      * protection.setTargetInternalSiteStorageSystem(targetStorageSystemURI);
      * protection.getProtectionPoolStorageMap().put(candidateTargetPool.getId(), candidateTargetPool.getStorageDevice());
      * rpRecommendation.getVarrayProtectionMap().put(protectionVarray.getId(), protection);
-     *
+     * 
      * if (candidatePoolRecommendation.getResourceCount() >= requestedCount) {
      * return true;
      * } else {

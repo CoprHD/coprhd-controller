@@ -828,14 +828,6 @@ public class HostStorageAPI {
         }
     }
 
-    public void unmountVmfsVolume(String vmfsUuid) {
-        try {
-            host.getHostStorageSystem().unmountVmfsVolume(vmfsUuid);
-        } catch (RemoteException e) {
-            throw new VMWareException(e);
-        }
-    }
-
     /**
      * Get the Vmfs volume uuid from the datastore on this host
      * 

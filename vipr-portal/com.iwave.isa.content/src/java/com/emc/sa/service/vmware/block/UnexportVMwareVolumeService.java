@@ -124,6 +124,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
                 vmware.removeVmfsDatastoreTag(volume, hostId);
             }
         }
+        connectAndInitializeHost();
         vmware.refreshStorage(host, cluster);
     }
 }

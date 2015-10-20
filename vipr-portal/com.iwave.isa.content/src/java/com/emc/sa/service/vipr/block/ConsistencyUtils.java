@@ -71,8 +71,8 @@ final class ConsistencyUtils {
         return execute(new DetachConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
     }
 
-    static Tasks<BlockConsistencyGroupRestRep> resynchronizeFullCopy(URI consistencyGroupId) {
-        return execute(new ResynchronizeConsistencyGroupFullCopy(consistencyGroupId));
+    static Tasks<BlockConsistencyGroupRestRep> resynchronizeFullCopy(URI consistencyGroupId, URI fullCopyId) {
+        return execute(new ResynchronizeConsistencyGroupFullCopy(consistencyGroupId, fullCopyId));
     }
 
     static Tasks<BlockConsistencyGroupRestRep> activateFullCopy(URI consistencyGroupId, URI fullCopyId) {

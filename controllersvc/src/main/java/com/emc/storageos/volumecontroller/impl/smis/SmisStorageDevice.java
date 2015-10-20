@@ -1658,10 +1658,15 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
 
         ServiceError serviceError = null;
-        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
         URI systemURI = storage.getId();
+        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
 
         try {
+            if (consistencyGroup == null || consistencyGroup.getInactive()) {
+                _log.info(String.format("%s is inactive or deleted", consistencyGroupId));
+                return;
+            }
+
             // This will be null, if consistencyGroup references no system CG's for storage.
             String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
             if (groupName == null) {
@@ -1696,36 +1701,33 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         outArgs);
             }
 
-            // Update the BlockConsistencyGroup if we intend to keep it active
-            if (!markInactive) {
-                // Remove the replication group name from the SystemConsistencyGroup field
-                consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), groupName);
+            // Remove the replication group name from the SystemConsistencyGroup field
+            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), groupName);
 
-                /*
-                 * Verify if the BlockConsistencyGroup references any LOCAL arrays.
-                 * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
-                 */
-                List<URI> referencedArrays = BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient);
-                boolean cgReferenced = false;
-                for (URI storageSystemUri : referencedArrays) {
-                    StringSet cgs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemUri.toString());
-                    if (cgs != null && !cgs.isEmpty()) {
-                        cgReferenced = true;
-                        break;
-                    }
+            /*
+             * Verify if the BlockConsistencyGroup references any LOCAL arrays.
+             * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
+             */
+            List<URI> referencedArrays = BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient);
+            boolean cgReferenced = false;
+            for (URI storageSystemUri : referencedArrays) {
+                StringSet cgs = consistencyGroup.getSystemConsistencyGroups().get(storageSystemUri.toString());
+                if (cgs != null && !cgs.isEmpty()) {
+                    cgReferenced = true;
+                    break;
                 }
+            }
 
-                if (!cgReferenced) {
-                    // Remove the LOCAL type
-                    StringSet cgTypes = consistencyGroup.getTypes();
-                    cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
-                    consistencyGroup.setTypes(cgTypes);
+            if (!cgReferenced) {
+                // Remove the LOCAL type
+                StringSet cgTypes = consistencyGroup.getTypes();
+                cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
+                consistencyGroup.setTypes(cgTypes);
 
-                    // Remove the referenced storage system as well, but only if there are no other types
-                    // of storage systems associated with the CG.
-                    if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, _dbClient)) {
-                        consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
-                    }
+                // Remove the referenced storage system as well, but only if there are no other types
+                // of storage systems associated with the CG.
+                if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, _dbClient)) {
+                    consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
                 }
             }
 

@@ -24,19 +24,19 @@ public class AddVolumesToExport extends WaitForTask<ExportGroupRestRep> {
     private final Collection<URI> volumeIds;
     private final Integer hlu;
     private final Map<URI, Integer> volumeHlus;
-    private final Integer maxPaths;
     private final Integer minPaths;
+    private final Integer maxPaths;
     private final Integer pathsPerInitiator;
 
-    public AddVolumesToExport(URI exportId, Collection<URI> volumeIds, Integer hlu, Map<URI, Integer> volumeHlus, Integer maxPaths,
-            Integer minPaths, Integer pathsPerInitiator) {
+    public AddVolumesToExport(URI exportId, Collection<URI> volumeIds, Integer hlu, Map<URI, Integer> volumeHlus, Integer minPaths,
+            Integer maxPaths, Integer pathsPerInitiator) {
         super();
         this.exportId = exportId;
         this.volumeIds = volumeIds;
         this.hlu = hlu;
         this.volumeHlus = volumeHlus;
-        this.maxPaths = maxPaths;
         this.minPaths = minPaths;
+        this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
         provideDetailArgs(exportId, volumeIds, hlu);
     }
@@ -66,10 +66,10 @@ public class AddVolumesToExport extends WaitForTask<ExportGroupRestRep> {
             volumes.add(volume);
         }
         export.setVolumes(new VolumeUpdateParam(volumes, new ArrayList<URI>()));
-        if (maxPaths != null && minPaths != null && pathsPerInitiator != null) {
+        if (minPaths != null && maxPaths != null && pathsPerInitiator != null) {
             ExportPathParameters exportPathParameters = new ExportPathParameters();
-            exportPathParameters.setMaxPaths(maxPaths);
             exportPathParameters.setMinPaths(minPaths);
+            exportPathParameters.setMaxPaths(maxPaths);
             exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
             export.setExportPathParameters(exportPathParameters);
         }

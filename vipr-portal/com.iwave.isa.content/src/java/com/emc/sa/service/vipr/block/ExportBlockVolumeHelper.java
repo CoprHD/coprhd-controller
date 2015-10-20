@@ -149,7 +149,7 @@ public class ExportBlockVolumeHelper {
         Map<URI, Integer> volumeHlus = getVolumeHLUs(volumeIds);
 
         for (Map.Entry<URI, Set<URI>> entry : addVolumeExports.entrySet()) {
-            BlockStorageUtils.addVolumesToExport(entry.getValue(), currentHlu, entry.getKey(), volumeHlus, maxPaths, minPaths,
+            BlockStorageUtils.addVolumesToExport(entry.getValue(), currentHlu, entry.getKey(), volumeHlus, minPaths, maxPaths,
                     pathsPerInitiator);
             logInfo("export.block.volume.add.existing", entry.getValue(), entry.getKey());
             if ((currentHlu != null) && (currentHlu > -1)) {
@@ -163,10 +163,10 @@ public class ExportBlockVolumeHelper {
             URI exportId = null;
             if (cluster != null) {
                 exportId = BlockStorageUtils.createClusterExport(projectId, virtualArrayId, newVolumes, currentHlu, cluster, volumeHlus,
-                        maxPaths, minPaths, pathsPerInitiator);
+                        minPaths, maxPaths, pathsPerInitiator);
             } else {
                 exportId = BlockStorageUtils.createHostExport(projectId, virtualArrayId, newVolumes, currentHlu, host, volumeHlus,
-                        maxPaths, minPaths, pathsPerInitiator);
+                        minPaths, maxPaths, pathsPerInitiator);
             }
             ExportGroupRestRep export = BlockStorageUtils.getExport(exportId);
 

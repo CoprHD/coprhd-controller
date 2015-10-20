@@ -60,8 +60,8 @@ public interface ServiceParams {
     public String EXPORT = "export";
     public String CONSISTENCY_GROUP = "consistencyGroup";
     public String HLU = "hlu";
-    public String MAX_PATHS = "maxPaths";
     public String MIN_PATHS = "minPaths";
+    public String MAX_PATHS = "maxPaths";
     public String PATHS_PER_INITIATOR = "pathsPerInitiator";
     public String COPIES = "copies";
     public String INGESTION_METHOD = "ingestionMethod";

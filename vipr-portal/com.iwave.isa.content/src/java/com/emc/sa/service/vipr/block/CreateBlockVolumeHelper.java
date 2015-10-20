@@ -102,16 +102,16 @@ public class CreateBlockVolumeHelper {
             URI exportId = null;
             if (cluster != null) {
                 exportId = BlockStorageUtils.createClusterExport(project, virtualArray, volumeIds, hlu, cluster,
-                        new HashMap<URI, Integer>(), maxPaths, minPaths, pathsPerInitiator);
+                        new HashMap<URI, Integer>(), minPaths, maxPaths, pathsPerInitiator);
             } else {
                 exportId = BlockStorageUtils.createHostExport(project, virtualArray, volumeIds, hlu, host, new HashMap<URI, Integer>(),
-                        maxPaths, minPaths, pathsPerInitiator);
+                        minPaths, maxPaths, pathsPerInitiator);
             }
             logInfo("create.block.volume.create.export", exportId);
         }
         // Add the volume to the existing export
         else {
-            BlockStorageUtils.addVolumesToExport(volumeIds, hlu, export.getId(), new HashMap<URI, Integer>(), maxPaths, minPaths,
+            BlockStorageUtils.addVolumesToExport(volumeIds, hlu, export.getId(), new HashMap<URI, Integer>(), minPaths, maxPaths,
                     pathsPerInitiator);
             logInfo("create.block.volume.update.export", export.getId());
         }

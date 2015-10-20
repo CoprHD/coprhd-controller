@@ -89,6 +89,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         for (BlockObjectRestRep volume : volumes) {
             vmware.detachLuns(host, cluster, volume);
         }
+        vmware.disconnect();
 
         for (ExportGroupRestRep export : filteredExportGroups) {
             URI exportId = ResourceUtils.id(export);

@@ -55,9 +55,14 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
+import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 
+@Path("/v2/{tenant_id}/cgsnapshots")
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
+        ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = {
+        ACL.OWN, ACL.ALL })
 public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupService{
     
     private static final Logger _log = LoggerFactory.getLogger(ConsistencyGroupSnapshotService.class);

@@ -497,31 +497,35 @@ public class RPHelper {
      * @return true if volumeIDs contains all of the source volumes in the protection set
      */
     public static boolean cgSourceVolumesContainsAll(DbClient dbClient, URI consistencyGroupUri, Collection<URI> volumeIDs) {
+        boolean cgSourceVolumesContainsAll = false;
 
-        // find all source volumes.
-        List<URI> sourceVolumeIDs = new ArrayList<URI>();
-        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupUri);
-        _log.info("Inspecting consisency group: " + cg.getLabel() + " to see if request contains all source volumes");
+        if (consistencyGroupUri != null) {
+            // find all source volumes.
+            List<URI> sourceVolumeIDs = new ArrayList<URI>();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupUri);
+            _log.info("Inspecting consisency group: " + cg.getLabel() + " to see if request contains all source volumes");
 
-        List<Volume> sourceVolumes = getCgSourceVolumes(consistencyGroupUri, dbClient);
+            List<Volume> sourceVolumes = getCgSourceVolumes(consistencyGroupUri, dbClient);
 
-        if (sourceVolumes != null) {
-            for (Volume srcVolume : sourceVolumes) {
-                sourceVolumeIDs.add(srcVolume.getId());
+            if (sourceVolumes != null) {
+                for (Volume srcVolume : sourceVolumes) {
+                    sourceVolumeIDs.add(srcVolume.getId());
+                }
+            }
+
+            // go through all volumes sent in, remove any volumes you find in the source list.
+            sourceVolumeIDs.removeAll(volumeIDs);
+
+            if (!sourceVolumeIDs.isEmpty()) {
+                _log.info("Found that the volumes requested do not contain all source volumes in the consistency group, namely: " +
+                        Joiner.on(',').join(sourceVolumeIDs));
+            } else {
+                _log.info("Found that all of the source volumes in the consistency group are in the request.");
+                cgSourceVolumesContainsAll = true;
             }
         }
 
-        // go through all volumes sent in, remove any volumes you find in the source list.
-        sourceVolumeIDs.removeAll(volumeIDs);
-
-        if (!sourceVolumeIDs.isEmpty()) {
-            _log.info("Found that the volumes requested do not contain all source volumes in the consistency group, namely: " +
-                    Joiner.on(',').join(sourceVolumeIDs));
-            return false;
-        }
-
-        _log.info("Found that all of the source volumes in the consistency group are in the request.");
-        return true;
+        return cgSourceVolumesContainsAll;
     }
 
     /**
@@ -1312,11 +1316,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     *
+     * 
      * @param sourceSizeStr size of the source volume
-     *
+     * 
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     *
+     * 
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {

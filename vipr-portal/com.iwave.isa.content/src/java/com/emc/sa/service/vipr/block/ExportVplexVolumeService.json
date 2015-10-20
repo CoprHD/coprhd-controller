@@ -44,7 +44,8 @@
           lockable: true,
           required: false,
           validation: {
-            min:1
+            min:1,
+            max:65535
           }
         },
         
@@ -53,7 +54,8 @@
           lockable: true,
           required: false,
           validation: {
-            min:1
+            min:1,
+            max:65535
           }
         },
         
@@ -62,7 +64,8 @@
           lockable: true,
           required: false,
           validation: {
-            min:1
+            min:1,
+            max:65535
           }
         }
         

@@ -509,7 +509,7 @@ public class SmisCommandHelper implements SmisConstants {
         List<CIMArgument> args = new ArrayList<>(Arrays.asList(baseArgs));
         args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, replicationSetting));
 
-        return args.toArray(new CIMArgument[] {});
+        return args.toArray(new CIMArgument[]{});
     }
 
     public CIMArgument[] getCreateElementReplicaSnapInputArgumentsWithTargetAndSetting(
@@ -532,7 +532,7 @@ public class SmisCommandHelper implements SmisConstants {
 
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         args.addAll(Arrays.asList(baseArguments));
-        args.add(_cimArgument.referenceArray(CP_COLLECTIONS, new CIMObjectPath[] { volumeGroupPath }));
+        args.add(_cimArgument.referenceArray(CP_COLLECTIONS, new CIMObjectPath[]{volumeGroupPath}));
         args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, replicaSettingData));
 
         return args.toArray(new CIMArgument[] {});
@@ -558,7 +558,7 @@ public class SmisCommandHelper implements SmisConstants {
         if (pool != null) {
             addTargetPoolToArgs(storageDevice, pool, args);
         }
-        return args.toArray(new CIMArgument[] {});
+        return args.toArray(new CIMArgument[]{});
     }
 
     public CIMArgument[] getFractureMirrorInputArgumentsWithCopyState(CIMObjectPath storageSync,
@@ -594,7 +594,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FAILOVER_SYNC_PAIR),
                 _cimArgument.bool(CP_FORCE, true),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
         };
     }
 
@@ -619,7 +619,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, DETACH_VALUE),
                 _cimArgument.bool(CP_FORCE, true),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
         };
     }
 
@@ -672,7 +672,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getSRDFSplitInputArguments(Collection<CIMObjectPath> syncPaths, Object repSettingInstance) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FRACTURE_VALUE),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})),
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})),
                 _cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance) };
     }
 
@@ -690,7 +690,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, SWAP_SYNC_PAIR),
                 _cimArgument.object(CP_REPLICATIONSETTING_DATA, repSettingInstance),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})) };
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})) };
     }
 
     public CIMArgument[] getASyncPairFailBackInputArguments(CIMObjectPath groupSync) {
@@ -715,7 +715,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getASyncPairFailBackInputArguments(Collection<CIMObjectPath> syncPaths) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FAILBACK_SYNC_PAIR),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})) };
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})) };
     }
 
     public CIMArgument[] getASyncPairSuspendInputArguments(CIMObjectPath groupSync) {
@@ -734,7 +734,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getSyncPairResumeInputArguments(Collection<CIMObjectPath> syncPaths) {
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {})) };
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{})) };
     }
 
     public CIMArgument[] getASyncPairResumeInputArguments(CIMObjectPath groupSync) {
@@ -810,7 +810,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] {
                 _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, RESUME_SYNC_PAIR),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
         };
     }
 
@@ -2090,6 +2090,10 @@ public class SmisCommandHelper implements SmisConstants {
         if (forceFlag) {
             argsList.add(_cimArgument.bool(CP_EMC_FORCE, Boolean.TRUE));
         }
+        if (storage.getUsingSmis80()) {
+            // see COP-13573
+            argsList.add(_cimArgument.bool(CP_EMC_UNMAP_ELEMENTS, Boolean.TRUE));
+        }
         CIMArgument[] args = {};
         return argsList.toArray(args);
     }
@@ -2120,7 +2124,12 @@ public class SmisCommandHelper implements SmisConstants {
         CIMObjectPath[] memberPaths = _cimPath.getVolumePaths(storage, members);
         CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
                 SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
-        return getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, forceFlag);
+        CIMArgument[] args = getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, forceFlag);
+        // Only for 8.0.3 and up. !!! (see COP-13573)
+        if (storage.getUsingSmis80()) {
+            args = addElement(args, _cimArgument.bool(CP_EMC_UNMAP_ELEMENTS, Boolean.TRUE));
+        }
+        return args;
     }
 
     public CIMArgument[] getRemoveTargetPortsFromMaskingGroupInputArguments(StorageSystem storage,
@@ -4774,7 +4783,7 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.reference(CP_SOURCE_GROUP, srcCG));
         args.add(_cimArgument.reference(CP_TARGET_GROUP, tgtCG));
         args.add(_cimArgument.referenceArray(CP_ELEMENT_SYNCHRONIZATIONS,
-                elementSynchronizations.toArray(new CIMObjectPath[] {})));
+                elementSynchronizations.toArray(new CIMObjectPath[]{})));
         return args.toArray(new CIMArgument[] {});
     }
 
@@ -6148,7 +6157,7 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, RESTORE_FROM_REPLICA),
                 _cimArgument.bool(CP_FORCE, true),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
         };
     }
 
@@ -6404,7 +6413,7 @@ public class SmisCommandHelper implements SmisConstants {
         if (replicationSettingData != null) {
             args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, replicationSettingData));
         }
-        return args.toArray(new CIMArgument[] {});
+        return args.toArray(new CIMArgument[]{});
     }
 
     /**
@@ -6700,5 +6709,18 @@ public class SmisCommandHelper implements SmisConstants {
         }
 
         return BlockObject.fetch(_dbClient, sourceURI);
+    }
+
+    /**
+     * Add CIMArgument to CIMArgument[]
+     * @param args
+     * @param element
+     * @return new CIMArgument[]
+     */
+    public CIMArgument[] addElement(CIMArgument[] args, CIMArgument element) {
+        List<CIMArgument> argsList = new ArrayList<CIMArgument>(Arrays.asList(args));
+        argsList.add(element);
+        CIMArgument[] argsNew = {};
+        return argsList.toArray(argsNew);
     }
 }

@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.cim.CIMArgument;
+import javax.cim.CIMDataType;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.UnsignedInteger16;
@@ -1371,6 +1372,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         _log.info("Removing volume {} from device masking group {}", volume.getNativeId(), maskingGroupPath.toString());
                         inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath,
                                 volumePaths, true);
+                        // Only for 8.0.3 and up. !!! (see COP-13573)
+                        if (storage.getUsingSmis80()) {
+                            CIMArgument<Boolean> unmapElements = new CIMArgument<Boolean>(SmisConstants.CP_EMC_UNMAP_ELEMENTS,
+                                    CIMDataType.BOOLEAN_T, Boolean.TRUE);
+                            inArgs = _helper.addElement(inArgs, unmapElements);
+                        }
                         _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
                                 SmisConstants.REMOVE_MEMBERS, inArgs, outArgs, null);
                     } else {
@@ -2283,6 +2290,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 String[] members = _helper.getBlockObjectAlternateNames(replicasPartOfGroup);
                 CIMObjectPath[] memberPaths = _cimPath.getVolumePaths(storage, members);
                 CIMArgument[] inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, true);
+                // Only for 8.0.3 and up. !!! (see COP-13573)
+                if (storage.getUsingSmis80()) {
+                    CIMArgument<Boolean> unmapElements = new CIMArgument<Boolean>(SmisConstants.CP_EMC_UNMAP_ELEMENTS,
+                            CIMDataType.BOOLEAN_T, Boolean.TRUE);
+                    inArgs = _helper.addElement(inArgs, unmapElements);
+                }
                 CIMArgument[] outArgs = new CIMArgument[5];
 
                 _log.info("Invoking remove replicas {} from Device Masking Group equivalent to its Replication Group {}",

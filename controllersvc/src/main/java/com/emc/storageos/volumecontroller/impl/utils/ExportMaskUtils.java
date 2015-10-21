@@ -1143,4 +1143,16 @@ public class ExportMaskUtils {
         return exportMasksWithInitiator;
     }
 
+    public static String formatWWN(String wwn) {
+        char[] chars = wwn.toUpperCase().toCharArray();
+        StringBuilder buf = new StringBuilder();
+        for (int i = 0; i < chars.length;) {
+            buf.append(chars[i++]);
+            if (i < chars.length && (i % 2) == 0) {
+                buf.append(":");
+            }
+        }
+        return buf.toString();
+    }
+
 }

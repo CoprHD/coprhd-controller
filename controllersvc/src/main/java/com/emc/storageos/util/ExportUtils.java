@@ -241,6 +241,7 @@ public class ExportUtils {
                 initiator.getProtocol().equals(Protocol.FC.toString())) {
             list = StringSetUtil.stringSetToUriList(zoningMap.get(strUri));
         }
+        _log.info("getInitiatorPortsInMask {} {}", initiator, list);
         return list;
     }
 

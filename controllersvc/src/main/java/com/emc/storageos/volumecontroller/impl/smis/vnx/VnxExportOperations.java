@@ -600,10 +600,10 @@ public class VnxExportOperations implements ExportMaskOperations {
     private Multimap<String, String> createStorageHWIDs(StorageSystem storage, Map<String, CIMObjectPath> existingHwStorageIds,
             List<Initiator> initiators)
             throws Exception {
-        _log.debug("{} createStorageHWID START...", storage.getSerialNumber());
+        _log.info("{} createStorageHWID START...", storage.getSerialNumber());
         Multimap<String, String> existingTargets = TreeMultimap.create();
         if (initiators == null || initiators.isEmpty()) {
-            _log.debug("No initiators ...");
+            _log.info("No initiators ...");
             return existingTargets;
         }
         try {
@@ -614,8 +614,10 @@ public class VnxExportOperations implements ExportMaskOperations {
                 if (existingHwStorageIds.containsKey(normalizedPortName)) {
                     List<String> endpoints = getEMCTargetEndpoints(hwIdManagementSvc, storage,
                             existingHwStorageIds.get(normalizedPortName));
+                    _log.info("Endpoint found for {} EndPoints {}", normalizedPortName, endpoints);
                     for (String endpoint : endpoints) {
                         existingTargets.put(normalizedPortName, endpoint);
+                        _log.info("Endpoint found for {} EndPoint {}", normalizedPortName, endpoint);
                     }
                     _log.info("WWNs found on the array already: {}", Joiner.on(',').join(existingHwStorageIds.keySet()));
                     _log.info(String.format("Initiator %s already exists, skip creation", initiator.getInitiatorPort()));
@@ -819,7 +821,7 @@ public class VnxExportOperations implements ExportMaskOperations {
         // TODO - Refactor createOrGrowStorageGroup by moving code for creating an empty storage group
         // to it's own createStorageGroup method which calls exposePaths with null for initiators
         // and targets
-        _log.debug("{} createOrGrowStorageGroup START...", storage.getSerialNumber());
+        _log.info("{} createOrGrowStorageGroup START...", storage.getSerialNumber());
         try {
             List<CIMObjectPath> paths = new ArrayList<CIMObjectPath>();
             Map<String, CIMObjectPath> existingHwStorageIds = getStorageHardwareIds(storage);
@@ -829,6 +831,7 @@ public class VnxExportOperations implements ExportMaskOperations {
             if (initiatorList != null) {
                 for (Initiator initiator : initiatorList) {
                     updateInitiatorBasedOnPeers(storage, existingHwStorageIds, initiator);
+                    _log.info("After updateIntiatorBasedOnPeers : {} {}", initiator.getHostName(), initiator.toString());
                 }
             }
 
@@ -838,22 +841,54 @@ public class VnxExportOperations implements ExportMaskOperations {
                         "These are the targets %s",
                         Joiner.on(',').join(existingTargets.entries()),
                         Joiner.on(',').join(targetURIList)));
+            } else {
+                _log.info(String.format("All the initiators  known to the array and not all dont have target endpoints: \n."));
             }
 
+            Multimap<URI, Initiator> targetPortsToInitiators = ArrayListMultimap.create();
+
+            _log.info("Sarav Print Target and Inititor ports .. Start");
+            for (String initPort : existingTargets.keySet()) {
+                _log.info("Sarav IntiatorPort {} and TargetStoragePort {}", initPort, existingTargets.get(initPort));
+                //Sarav IntiatorPort 50012481006B7807 and
+                // TargetStoragePort
+                // [CLARIION+CKM00115001014+PORT+50:06:01:60:3E:A0:45:79,
+                // CLARIION+CKM00115001014+PORT+50:06:01:61:3E:A0:45:79]
+                Collection<String> targetPorts = existingTargets.get(initPort);
+                for(String targetPortGuid : targetPorts) {
+                    _log.info("Target Port : {}", targetPortGuid);
+                    List<URI> targetPortURIs = getStoragePortURI(targetPortGuid);
+                    Initiator translatedInitiator = getInitiatorForWWN(initPort);
+                    _log.info("Calculating Intiator {} and Targets {}", translatedInitiator, targetPortURIs);
+                    if (!targetPortURIs.isEmpty() && translatedInitiator != null) {
+                        for (URI targetURI : targetPortURIs) {
+                            targetPortsToInitiators.put(targetURI, translatedInitiator);
+                        }
+                    } else {
+                        _log.info("Intiator WWN {} translation was null or targetPorts are Empty {}",
+                                initPort,  targetPortURIs);
+                    }
+                }
+            }
+            _log.info("Sarav Print Target and Inititor ports .. End");
+
             if (initiatorList == null || initiatorList.isEmpty()) {
+                _log.info("InitiatorList is null or Empty so call exposePathsWithVolumesOnly");
                 paths.addAll(Arrays.asList(exposePathsWithVolumesOnly(storage, exportMaskURI, volumeURIHLUs)));
             } else {
-                Multimap<URI, Initiator> targetPortsToInitiators = ArrayListMultimap.create();
+                //Multimap<URI, Initiator> targetPortsToInitiators = ArrayListMultimap.create();
                 ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 for (Initiator initiator : initiatorList) {
                     // TODO - Ask Tom is there is a reason why we should not do this instead of old code
                     List<URI> tzTargets = ExportUtils.getInitiatorPortsInMask(mask, initiator, _dbClient);
+                    _log.info("Calculating Intiator {} and Targets {}", initiator, tzTargets);
                     if (!tzTargets.isEmpty()) {
                         for (URI targetURI : tzTargets) {
                             targetPortsToInitiators.put(targetURI, initiator);
                         }
                     }
                 }
+                _log.info("Call manuallyRegisterHostInitiators with {} ", targetPortsToInitiators.toString());
                 // Register the initiator to target port mappings
                 manuallyRegisterHostInitiators(storage, targetPortsToInitiators);
 
@@ -907,7 +942,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                 paths.addAll(Arrays.asList(exposePathsWithVolumesAndInitiatorsOnly(storage, exportMaskURI, volumeURIHLUs,
                         initiatorsToExpose)));
             }
-            _log.debug("{} createOrGrowStorageGroup END...", storage.getSerialNumber());
+            _log.info("{} createOrGrowStorageGroup END...", storage.getSerialNumber());
             return paths.toArray(new CIMObjectPath[paths.size()]);
         } catch (WBEMException e) {
             _log.error("Problem making SMI-S call: ", e);
@@ -1038,14 +1073,17 @@ public class VnxExportOperations implements ExportMaskOperations {
     private void manuallyRegisterHostInitiators(StorageSystem storage,
             Multimap<URI, Initiator> targetPortsToInitiators)
             throws Exception {
+        _log.info("manuallyRegisterHostInitiators Start : {}", targetPortsToInitiators);
         for (Map.Entry<URI, Collection<Initiator>> t2is : targetPortsToInitiators.asMap().entrySet()) {
             URI storagePortURI = t2is.getKey();
             Collection<Initiator> initiators = t2is.getValue();
+            _log.info("Manually register : Initiators {}. StoragePort {}", initiators, storagePortURI);
             CIMArgument[] inArgs = _helper.getEMCManuallyRegisterHostInitiators(storage, initiators, storagePortURI);
             CIMArgument[] outArgs = new CIMArgument[5];
             _helper.invokeMethod(storage, _cimPath.getStorageHardwareIDManagementService(storage),
                     SmisConstants.EMC_MANUALLY_REGISTER_HOST_INITIATORS, inArgs, outArgs);
         }
+        _log.info("manuallyRegisterHostInitiators End : ");
     }
 
     /**
@@ -1237,6 +1275,46 @@ public class VnxExportOperations implements ExportMaskOperations {
             }
         }
         return hlus;
+    }
+
+
+    /**
+     * Gets the Storage Port(s) associated with the GUID passed
+     * Returns empty list if no storage ports found
+     */
+    private List<URI> getStoragePortURI(String storagePortGuid){
+        ArrayList<URI> storagePortsURI = new ArrayList<>();
+        URIQueryResultList uriQueryList = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getStoragePortByNativeGuidConstraint(storagePortGuid), uriQueryList);
+        while (uriQueryList.iterator().hasNext()) {
+            URI uri = uriQueryList.iterator().next();
+            storagePortsURI.add(uri);
+        }
+        _log.info("getStoagePortURI called with {} and result {}", storagePortGuid, storagePortsURI);
+        return storagePortsURI;
+    }
+
+    /**
+     * Gets the Initiator Port associated with the WWN passed
+     * Returns null if no Initiators are found
+     */
+    private Initiator getInitiatorForWWN(String WWN){
+        Initiator init = null;
+        ArrayList<URI> initURIs = new ArrayList<>();
+        String formatedWWN = ExportMaskUtils.formatWWN(WWN);
+        URIQueryResultList uriQueryList = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getInitiatorPortInitiatorConstraint(formatedWWN), uriQueryList);
+        while (uriQueryList.iterator().hasNext()) {
+            URI uri = uriQueryList.iterator().next();
+            initURIs.add(uri);
+        }
+        if(initURIs != null && !initURIs.isEmpty()){
+           init =  _dbClient.queryObject(Initiator.class, initURIs.get(0));
+        }
+        _log.info("getInitiatorForWWN called with {} and result {}", WWN +":"+formatedWWN, init);
+        return init;
     }
     
 }

@@ -96,6 +96,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String UNIXSECURITY = "unix";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String SYSSECURITY = "sys";
+    private static final String NFSv4 = "NFSv4";
 
     private IsilonApiFactory _factory;
 
@@ -482,11 +483,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
                 
 
-                if(isilonApi.nfsv4Enabled()){
-                  storagePool.getProtocols().add("NFSv4");
-                }else{
-                  storagePool.getProtocols().remove("NFSv4");
-                } 
+				if (isilonApi.nfsv4Enabled()) {
+					storagePool.getProtocols().add(NFSv4);
+				} else {
+					storagePool.getProtocols().remove(NFSv4);
+				}
 
                 // scale capacity size
                 storagePool.setFreeCapacity(isilonPool.getAvailable() / BYTESCONVERTER);

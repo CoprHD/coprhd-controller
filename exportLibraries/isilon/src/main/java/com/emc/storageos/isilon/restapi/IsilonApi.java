@@ -1222,17 +1222,12 @@ public class IsilonApi {
 					isNfsv4Enabled);
 
 		} catch (Exception e) {
-			if (e.getCause() instanceof ConnectException) {
 				throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
-			}
-			final Status status = resp != null ? resp.getClientResponseStatus()
-					: Status.NOT_FOUND;
 		} finally {
 			if (resp != null) {
 				resp.close();
 			}
 		}
-
 		return isNfsv4Enabled;
 	}
 

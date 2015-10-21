@@ -60,6 +60,7 @@ import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfo;
 import com.emc.storageos.isilon.restapi.IsilonSmartConnectInfoV2;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
+import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePool;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
 import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
@@ -67,6 +68,7 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.metering.isilon.IsilonCollectionException;
+import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -629,8 +631,23 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
             } else {
                 //TODO
-                _log.info("Trying to get network pools information using ssh client");
-                //make ssh command to get the results
+                IsilonSshApi sshDmApi = new IsilonSshApi();
+                sshDmApi.setConnParams(storageSystem.getIpAddress(), storageSystem.getUsername(),
+                        storageSystem.getPassword());
+                Map<String, List<String>> networkPools = sshDmApi.getNetworkPools();
+                List<String> smartconnects = null;
+                IsilonNetworkPool isiNetworkPool = null;
+                for(Map.Entry<String, List<String>> networkpool: networkPools.entrySet()) {
+                    smartconnects = networkpool.getValue();
+                    if(smartconnects != null) {
+                        isiNetworkPool = new IsilonNetworkPool();
+                        for(String smartconnect: smartconnects) {
+                            isiNetworkPool.setAccess_zone(networkpool.getKey());
+                            isiNetworkPool.setSc_dns_zone(smartconnect);
+                            isilonNetworkPoolList.add(isiNetworkPool);
+                        }
+                    }
+                }
             }
             
             
@@ -676,18 +693,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             
             //find the smart connet zones for system
             IsilonNetworkPool isilonNetworkPoolSystem = null;
+            List<IsilonNetworkPool> isilonNetworkPoolsSysAZ = new ArrayList<>();
+            
+            //get the system access zone and use it later 
             List<IsilonNetworkPool> isilonNetworkPoolList = discoverNetworkPools(storageSystem);
             for(IsilonNetworkPool isilonNetworkPool : isilonNetworkPoolList) {
                 if(isilonNetworkPool.getAccess_zone().equalsIgnoreCase(SYSTEM_ACCESS_ZONE_NAME)) {
-                    isilonNetworkPoolSystem = isilonNetworkPool;
-                    break;
+                    isilonNetworkPoolsSysAZ.add(isilonNetworkPool);
                 }
             }
             //set the protocol based storagesystem version 
            //by default all version support CIFS and version above 7.2 NFS also
             StringSet protocols = new StringSet();
             protocols.add(CIFS);
-            
             if(storageSystem.getFirmwareVersion().charAt(0) >= '7' && 
             		storageSystem.getFirmwareVersion().charAt(2) >= '2') {
                 protocols.add(NFS);
@@ -695,25 +713,26 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             
             StoragePort storagePort = null;
             StringSet storagePorts = null;
-            IsilonNetworkPool isilonNetworkPool = null;
             CifsServerMap cifsServersMap = null;
+            List<IsilonNetworkPool> isilonNetworkPools = null;
+            
             //process the access zones list
             for (IsilonAccessZone isilonAccessZone : accessZoneList) {
                 //add protocol to NAS servers
                 //is it a System access zone?
-                isilonNetworkPool = null;
+                isilonNetworkPools = null;
                 _log.info("Process the user defined access zone {} ", isilonAccessZone.toString());
                 if (isilonAccessZone.isSystem() == false) {
+                   isilonNetworkPools = new ArrayList<IsilonNetworkPool>();
                    // get the smart connect zone information
                    for(IsilonNetworkPool eachNetworkPool : isilonNetworkPoolList) {
                        if(eachNetworkPool.getAccess_zone().equalsIgnoreCase(isilonAccessZone.getName()) ){
-                    	   isilonNetworkPool = eachNetworkPool;
-                           break;
+                           isilonNetworkPools.add(eachNetworkPool);
                        }
                    }
                    //if the smart connect is null then set default access zone
-                   if (isilonNetworkPool == null) {
-                	   isilonNetworkPool = isilonNetworkPoolSystem;
+                   if (isilonNetworkPools != null && isilonNetworkPools.isEmpty()) {
+                       isilonNetworkPools.addAll(isilonNetworkPoolsSysAZ);
                    }
                    
                    //find virtualNAS in db
@@ -734,17 +753,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    //set protocol support
                    virtualNAS.setProtocols(new StringSet(protocols));
                    //set the smart connect
-                   if(isilonNetworkPool != null) {
+                   if(isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
                        storagePorts = virtualNAS.getStoragePorts();
                        if(storagePorts == null) {
                            storagePorts = new StringSet();
                        }
-                       if(storagePort != null) {
+                       for(IsilonNetworkPool isiNetworkPool : isilonNetworkPools) {
                            storagePort = findStoragePortByNativeId(storageSystem, 
-                                   isilonNetworkPoolSystem.getSc_dns_zone().toLowerCase());
-                           storagePorts.add(storagePort.getId().toString());
-                           virtualNAS.setStoragePorts(storagePorts);
+                                   isiNetworkPool.getSc_dns_zone().toLowerCase());
+                           if(storagePort != null) {
+                               storagePorts.add(storagePort.getId().toString());
+                           }
                        }
+                       virtualNAS.setStoragePorts(storagePorts);
                    }
                } else {
                    physicalNAS = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
@@ -763,17 +784,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    //set protocols
                    physicalNAS.setProtocols(new StringSet(protocols));
                    //set the smart connect
-                   if(isilonNetworkPoolSystem != null) {
+                   if(isilonNetworkPoolsSysAZ != null) {
                        storagePorts = physicalNAS.getStoragePorts();
                        if(storagePorts == null) {
                            storagePorts = new StringSet();
                        }
-                       storagePort = findStoragePortByNativeId(storageSystem, 
-                                   isilonNetworkPoolSystem.getSc_dns_zone().toLowerCase());
-                       if(storagePort  != null) {
-                           storagePorts.add(storagePort.getId().toString());
-                           physicalNAS.setStoragePorts(storagePorts);
+                       for(IsilonNetworkPool isiNetworkPool : isilonNetworkPoolsSysAZ) {
+                           storagePort = findStoragePortByNativeId(storageSystem, 
+                                   isiNetworkPool.getSc_dns_zone().toLowerCase());
+                           if(storagePort != null) {
+                               storagePorts.add(storagePort.getId().toString());
+                           }
                        }
+                       physicalNAS.setStoragePorts(storagePorts);
                    }
                }
             }

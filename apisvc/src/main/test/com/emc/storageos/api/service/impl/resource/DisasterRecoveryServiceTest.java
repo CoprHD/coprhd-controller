@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import com.emc.vipr.client.ViPRSystemClient;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -59,7 +58,9 @@ import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
+import com.emc.vipr.model.sys.TargetVersionResponse;
 
 public class DisasterRecoveryServiceTest {
 
@@ -522,7 +523,8 @@ public class DisasterRecoveryServiceTest {
             @Override
             public com.emc.vipr.client.system.Upgrade upgrade() {
                 com.emc.vipr.client.system.Upgrade upgrade = mock(com.emc.vipr.client.system.Upgrade.class);
-                doReturn(new com.emc.vipr.model.sys.TargetVersionResponse(version)).when(upgrade).getTargetVersion();
+                TargetVersionResponse targetVersionResponse = new TargetVersionResponse(version);
+                doReturn(targetVersionResponse).when(upgrade).getTargetVersion();
                 return upgrade;
             }
         }

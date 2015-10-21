@@ -300,21 +300,22 @@ public class TenantsService extends TaggedResource {
         if (param.getDescription() != null) {
             tenant.setDescription(param.getDescription());
         }
-        
-        //null and isEmpty used separately as with cases
-        if (tenant.getNamespace() == null && param.getNamespace() != null) {
-        	//checkForDuplicateNamespace(param.getNamespace(), TenantOrg.class, _dbClient);
-        	tenant.setNamespace(param.getNamespace());
-        }else if (tenant.getNamespace().isEmpty() && param.getNamespace() != null) {
-        	//checkForDuplicateNamespace(param.getNamespace(), TenantOrg.class, _dbClient);
-        	tenant.setNamespace(param.getNamespace());
-        } else if (!tenant.getNamespace().equals(param.getNamespace())) {
-        	//namespace cannot be changed if there are already buckets in it
-        	//Though we are not deleting need to check no dependencies in this tenant
-        	ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
-        	//checkForDuplicateNamespace(param.getNamespace(), TenantOrg.class, _dbClient);
-        	tenant.setNamespace(param.getNamespace());
-        }        
+
+        NamedURI uriParent = tenant.getParentTenant();
+        TenantOrg parent = _dbClient.queryObject(TenantOrg.class, uriParent);
+
+        if (param.getNamespace() != null && !param.getNamespace().isEmpty()) {
+            if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
+                if (!tenant.getNamespace().equalsIgnoreCase(param.getNamespace())) {
+                    //Though we are not deleting need to check no dependencies in this tenant
+                    ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
+                    checkForDuplicateNamespace(param.getNamespace(), uriParent.getURI(), parent);
+                }
+            }
+            tenant.setNamespace(param.getNamespace());
+            //Namespace Will be retrieved from ECS in coming releases.
+            //UI will have drop-down showing like 'none' for blank namespaces
+        }
 
         if (!isUserMappingEmpty(param)) {
             // only SecurityAdmin can modify user-mapping

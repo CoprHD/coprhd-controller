@@ -193,12 +193,12 @@ public abstract class ResourceService {
                 .getTenantOrgSubTenantConstraint(tenantId), subtenants);
         for (NamedElementQueryResultList.NamedElement el : subtenants) {
             TenantOrg currTenant = _dbClient.queryObject(TenantOrg.class, el.getId());
-            if (currTenant.getNamespace() != null && namespace.equals(currTenant.getNamespace())) {
+            if (currTenant.getNamespace() != null && currTenant.getNamespace().equals(namespace)) {
                     throw APIException.badRequests.duplicateNamespace(namespace);
             }
         }
-        //Verify with root tenant aswell
-        if (parent.getNamespace() != null && parent.getNamespace().equals(namespace)) {
+        //Verify with root tenant aswell if current is not root
+        if (parent != null && parent.getNamespace() != null && parent.getNamespace().equals(namespace)) {
             throw APIException.badRequests.duplicateNamespace(namespace);
         }
         

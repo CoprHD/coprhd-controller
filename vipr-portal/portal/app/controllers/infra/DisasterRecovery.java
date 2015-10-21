@@ -24,7 +24,6 @@ import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
@@ -65,16 +64,9 @@ public class DisasterRecovery extends Controller {
     public static void pause(String id){
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if(result != null) {
-//            if(!result.getState().equals(SiteState.STANDBY_SYNCED)) {
-//                flash.error(MessagesUtils.get(PAUSED_ERROR, result.getName() + " site is not in synced state"));
-//            }
-//            else {
-                SiteRestRep sitepause = DisasterRecoveryUtils.pauseStandby(id);
-                flash.success(MessagesUtils.get(PAUSED_SUCCESS, sitepause.getName()));
-            //}
+            SiteRestRep sitepause = DisasterRecoveryUtils.pauseStandby(id);
+            flash.success(MessagesUtils.get(PAUSED_SUCCESS, sitepause.getName()));
         }
-        
-        backToReferrer();
         list();
     }
     
@@ -131,7 +123,6 @@ public class DisasterRecovery extends Controller {
             
             SiteRestRep result = DisasterRecoveryUtils.addStandby(standbySite);
             flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
-            backToReferrer();
             list();
         }
     }
@@ -141,19 +132,18 @@ public class DisasterRecovery extends Controller {
         List <String> uuids = Arrays.asList(ids);
         for (String uuid : uuids) {
             if (!DisasterRecoveryUtils.hasStandbySite(uuid)) {
-                flash.error(MessagesUtils.get(DELETED_ERROR));
+                flash.error(MessagesUtils.get(UNKNOWN, uuid));
                 list();
             }
             
             SiteRestRep result = DisasterRecoveryUtils.deleteStandby(uuid);
             flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
-            backToReferrer();
             list();
         }
     }
 
 
- // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.
+    // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.
     @SuppressWarnings("squid:S2068")
     public static class DisasterRecoveryForm {
         public String id;

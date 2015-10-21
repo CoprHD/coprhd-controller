@@ -10,7 +10,6 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
-import com.emc.storageos.model.valid.Length;
 
 /**
  * Tenant org (configuration) data object

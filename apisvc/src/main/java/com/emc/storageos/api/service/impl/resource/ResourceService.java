@@ -183,8 +183,9 @@ public abstract class ResourceService {
 
     /**
      * Check if a resource with the same namespace exists
-     * 
-     * @param name
+     * @param namespace     namespave of the tenant
+     * @param tenantId      root tenant id
+     * @param parent        root tenant
      */
     public void checkForDuplicateNamespace(String namespace, URI tenantId, TenantOrg parent) {
         TenantOrgList list = new TenantOrgList();

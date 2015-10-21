@@ -487,6 +487,13 @@ public class DisasterRecoveryService {
         return SiteErrorResponse.noError();
     }
     
+    /**
+     * This API will do planned failover to target new primary site according passed in site UUID. After failover, old primary site will
+     * work as normal standby site and target site will be promoted to primary. All site will update properties to trigger reconfig.
+     * 
+     * @param uuid target new primary site UUID
+     * @return
+     */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

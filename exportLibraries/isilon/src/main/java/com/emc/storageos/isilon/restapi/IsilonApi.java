@@ -703,6 +703,7 @@ public class IsilonApi {
             StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
             URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
             uri = URI.create(URLBuffer.toString());
+            sLogger.info("get list of quotas for pathbaseDir {} and uri", pathBaseDir, uri.toString());
         }
         return list(_baseUrl.resolve(uri), "quotas", IsilonSmartQuota.class, resumeToken);
     }
@@ -818,6 +819,7 @@ public class IsilonApi {
         StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_SNAPSHOTS).toString());
         URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
         URI uri = URI.create(URLBuffer.toString());
+        sLogger.info("get list of snapshots for pathbaseDir {} and uri", pathBaseDir, uri.toString());
         return list(uri, "snapshots", IsilonSnapshot.class, resumeToken);
     }
 

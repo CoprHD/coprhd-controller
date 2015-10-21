@@ -328,7 +328,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      */
     void populateDbMetricsAz(final IsilonAccessZone accessZone, IsilonApi isilonApi, StringMap dbMetrics) {
         
-        long totalProvCap = 0L;
+        Long totalProvCap = 0L;
         Long totalFsCount = 0L;
         String resumeToken = null;
         String zoneName = accessZone.getName();

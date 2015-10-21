@@ -1680,7 +1680,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (storage == null) {
                 // Fail the task
                 serviceError = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
-                _log.warn(String.format("Consistency group %s not found on any storage systems", groupName));
+                _log.warn(String.format("Consistency group %s not found on %s", groupName, systemURI));
                 return;
             }
 

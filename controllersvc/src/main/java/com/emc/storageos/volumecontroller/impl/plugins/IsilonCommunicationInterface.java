@@ -433,8 +433,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             StoragePool storagePool;
             
-            boolean nfsv4Support = isilonApi.nfsv4Enabled();
-
             List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
             for (IsilonStoragePool isilonPool : isilonStoragePools) {
                 // Check if this storage pool was already discovered

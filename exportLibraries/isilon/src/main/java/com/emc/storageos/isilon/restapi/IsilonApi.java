@@ -1199,9 +1199,6 @@ public class IsilonApi {
     
 	/**
 	 * Checks to see if the NFSv4 service is enabled on the isilon device
-	 * 
-	 * @param fspath
-	 *            directory path to chek
 	 * @return boolean true if exists, false otherwise
 	 */
 	public boolean nfsv4Enabled() throws IsilonException {

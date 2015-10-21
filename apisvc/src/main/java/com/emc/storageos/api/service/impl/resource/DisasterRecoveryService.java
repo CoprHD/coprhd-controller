@@ -494,7 +494,7 @@ public class DisasterRecoveryService {
      * @param uuid target new primary site UUID
      * @return
      */
-    @PUT
+    @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{uuid}/failover")

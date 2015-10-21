@@ -73,7 +73,7 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     }
     
     public ClientResponse doFailover(String uuid) {
-        return client.put(ClientResponse.class, PathConstants.SITE_URL+"/"+uuid+"/failover");
+        return client.post(ClientResponse.class, PathConstants.SITE_URL+"/"+uuid+"/failover");
     }
 
     @Override

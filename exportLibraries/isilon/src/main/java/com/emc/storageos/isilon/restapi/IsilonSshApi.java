@@ -215,6 +215,40 @@ public class IsilonSshApi {
         return networkpoolMap;
     }
     
+    public Double getClusterSize() {
+        String command = "storagepool nodepools";
+        String request = "list -v";
+        Double maxCapacity = 0.0;
+        Map <String, String> clusterSizeMap = new ConcurrentHashMap<String, String>();
+        try {
+            IsilonXMLApiResult result = this.executeSsh(command, request);
+            // Parse message to get map
+            String[] entries = result.getMessage().split("\n");
+            for (String entry: entries) {
+                String[] entryElements = entry.split(":");
+                if (entryElements.length >=2) {
+                    String key = entryElements[0].trim();
+                    String values = entryElements[1].trim();
+                    clusterSizeMap.put(key, values);
+                    _log.info("Adding File Name {} and Path {}", key, values);
+                }
+            }
+            //calcuate max capacity
+            String vhsValue = clusterSizeMap.get("Virtual Hot Spare Bytes");
+            String totalBytes = clusterSizeMap.get("Total Bytes");
+
+            Double dtotalBytes = getCapacityInGB(totalBytes);
+            Double dvhsByes = getCapacityInGB(vhsValue);
+            maxCapacity =  dtotalBytes - dvhsByes;
+            return maxCapacity;
+
+        } catch (Exception ex) {
+            _log.error("Isilon cluster map is failed {} due to {}", command, ex);
+        }
+        return maxCapacity;
+    }
+
+    
     /**
      * storage capacity into gb
      * @param data

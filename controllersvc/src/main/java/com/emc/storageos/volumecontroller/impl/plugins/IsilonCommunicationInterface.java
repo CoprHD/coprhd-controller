@@ -2416,9 +2416,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return;
     }
     
-    private Double getClusterStorageCapacity(final StorageSystem system) {
+    private Double getClusterStorageCapacity(final StorageSystem storageSystem) {
         Double cluserCap = 0.0;
-        
+        IsilonSshApi sshDmApi = new IsilonSshApi();
+        sshDmApi.setConnParams(storageSystem.getIpAddress(), storageSystem.getUsername(),
+                storageSystem.getPassword());
+        cluserCap = sshDmApi.getClusterSize();
         return cluserCap;
     }
 

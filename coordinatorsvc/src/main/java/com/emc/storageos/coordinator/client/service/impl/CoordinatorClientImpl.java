@@ -66,18 +66,18 @@ import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
-import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
-import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
-import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.LicenseInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.WorkPool;
@@ -598,7 +598,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private boolean isSiteSpecific(String kind) {
         if (kind.startsWith(Constants.GEODB_CONFIG) 
                 || kind.startsWith(Constants.DB_CONFIG) 
-                || kind.equals(SiteInfo.CONFIG_KIND) 
+                || kind.equals(SiteInfo.CONFIG_KIND)
+                || kind.equals(SiteError.CONFIG_KIND)
                 || kind.equalsIgnoreCase(KEY_CERTIFICATE_PAIR_CONFIG_KIND) 
                 || kind.equals(PowerOffState.CONFIG_KIND)) {
             return true;

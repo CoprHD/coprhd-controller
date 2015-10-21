@@ -5,9 +5,6 @@
 
 package com.emc.storageos.systemservices.impl.property;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +23,7 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -42,6 +40,7 @@ import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
@@ -360,6 +359,7 @@ public class VdcSiteManager extends AbstractManager {
             case SiteInfo.RECONFIG_RESTART:
                 checkAndRemoveStandby();
                 reconfigRestartSvcs();
+                cleanupSiteErrorIfNecessary();
                 break;
             case SiteInfo.RECONFIG_IPSEC: // for ipsec key rotation
                 reconfigIPsec();
@@ -698,13 +698,18 @@ public class VdcSiteManager extends AbstractManager {
             try {
                 List<Site> sites = listSites(localVdc);
                 for(Site site : sites) {
-                    if (!site.getState().equals(SiteState.STANDBY_REMOVING)) {
-                        continue;
-                    }
-                    if (currentSiteId.equals(site.getUuid())) {
-                        log.info("Current site is removed from a DR. It could be manually promoted as primary site");
-                    } else {
-                        removeSiteFromReplication(site);
+                    try {
+                        if (!site.getState().equals(SiteState.STANDBY_REMOVING)) {
+                            continue;
+                        }
+                        if (currentSiteId.equals(site.getUuid())) {
+                            log.info("Current site is removed from a DR. It could be manually promoted as primary site");
+                        } else {
+                            removeSiteFromReplication(site);
+                        }
+                    } catch (Exception e) { 
+                        populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
+                        throw e;
                     }
                 }
             } finally {
@@ -786,5 +791,45 @@ public class VdcSiteManager extends AbstractManager {
             return true;
         }
     }
-
+    
+    private void populateStandbySiteErrorIfNecessary(Exception e) {
+        List<Site> sites = listSites(VdcUtil.getLocalVdc());
+        String siteId = coordinator.getCoordinatorClient().getSiteId();
+        for (Site site : sites) {
+            if (site.getUuid().equals(siteId)) {
+                if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
+                    populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
+                }
+                
+                break;
+            }
+        }
+    }
+    
+    private void populateStandbySiteErrorIfNecessary(Site site, InternalServerErrorException e) {
+        SiteError error = new SiteError(e);
+        
+        log.info("Set error state for site: {}", site.getUuid());
+        coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
+        
+        site.setState(SiteState.STANDBY_ERROR);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+    }
+    
+    private void cleanupSiteErrorIfNecessary() {
+        String siteId = coordinator.getCoordinatorClient().getSiteId();
+        
+        Configuration config = coordinator.getCoordinatorClient().queryConfiguration(Site.CONFIG_KIND, siteId);
+        Site site = new Site(config);
+        
+        log.info("site: {}", site.toString());
+        
+        if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
+            log.info("Cleanup site error");
+            SiteError siteError = coordinator.getCoordinatorClient().getTargetInfo(siteId, SiteError.class);
+            siteError.cleanup();
+            
+            coordinator.getCoordinatorClient().setTargetInfo(siteId, siteError);
+        }
+    }
 }

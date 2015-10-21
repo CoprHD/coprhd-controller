@@ -236,11 +236,17 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_FAILED)
     public InternalServerErrorException addStandbyFailed(String errMsg);
     
+    @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_TIMEOUT)
+    public InternalServerErrorException addStandbyFailedTimeout(int timeoutValue);
+    
     @DeclareServiceCode(ServiceCode.SYS_DR_CONFIG_STANDBY_FAILED)
     public InternalServerErrorException configStandbyFailed(String errMsg);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
     public InternalServerErrorException removeStandbyFailed(final String siteId, String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_RECONFIG_FAIL)
+    public InternalServerErrorException removeStandbyReconfigFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_FAILED)
     public InternalServerErrorException pauseStandbyFailed(final String siteId, String errMsg);

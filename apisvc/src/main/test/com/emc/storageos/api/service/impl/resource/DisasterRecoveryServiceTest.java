@@ -9,7 +9,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -23,28 +22,25 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
-import org.apache.http.client.utils.URIUtils;
-import org.eclipse.jetty.util.log.Log;
 import org.junit.Before;
 import org.junit.Test;
-import org.omg.PortableServer.POAManagerPackage.State;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.model.dr.DRNatCheckParam;
@@ -52,6 +48,7 @@ import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
+import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -60,14 +57,13 @@ import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerato
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
-import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.sys.ClusterInfo;
 
 public class DisasterRecoveryServiceTest {
 
     private DisasterRecoveryService drService;
-    private DbClient dbClientMock;
+    private DbClientImpl dbClientMock;
     private CoordinatorClient coordinator;
     private Site standbySite1;
     private Site standbySite2;
@@ -140,7 +136,7 @@ public class DisasterRecoveryServiceTest {
         localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
         
         // mock DBClient
-        dbClientMock = mock(DbClient.class);
+        dbClientMock = mock(DbClientImpl.class);
         
         // mock coordinator client
         coordinator = mock(CoordinatorClient.class);
@@ -153,8 +149,6 @@ public class DisasterRecoveryServiceTest {
         localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
         localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
 
-        // mock DBClient
-        dbClientMock = mock(DbClient.class);
         apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
         
         drService = spy(new DisasterRecoveryService());
@@ -265,6 +259,9 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testRemoveStandby() {
         String invalidSiteId = "invalid_site_id";
+        
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        
         doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
                 standbySite1.getUuid());
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
@@ -286,7 +283,9 @@ public class DisasterRecoveryServiceTest {
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
                 standbySite2.getUuid());
         doReturn(null).when(coordinator).queryConfiguration(Site.CONFIG_KIND, invalidSiteId);
-
+        
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        
         try {
             // primary site
             drService.pauseStandby(standbySite1.getUuid());
@@ -305,9 +304,18 @@ public class DisasterRecoveryServiceTest {
         doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
         doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
         
-        SiteRestRep response = drService.pauseStandby(standbySite2.getUuid());
-        
-        assertEquals(response.getState(), SiteState.STANDBY_PAUSED.toString());
+        try {
+            DbClientContext mockDBClientContext = mock(DbClientContext.class);
+            doNothing().when(mockDBClientContext).removeDcFromStrategyOptions(any(String.class));
+            doReturn(mockDBClientContext).when(dbClientMock).getLocalContext();
+            doReturn(mockDBClientContext).when(dbClientMock).getGeoContext();
+            
+            SiteRestRep response = drService.pauseStandby(standbySite2.getUuid());
+            
+            assertEquals(response.getState(), SiteState.STANDBY_PAUSED.toString());
+        } catch (Exception e) {
+            fail();
+        }
     }
     
     @Test
@@ -437,6 +445,32 @@ public class DisasterRecoveryServiceTest {
 
         DRNatCheckResponse response = drService.checkIfBehindNat(natCheckParam, "10.247.101.110");
         assertEquals(true, response.isBehindNAT());
+    }
+    
+    @Test
+    public void testGetSiteError() {
+        SiteErrorResponse siteError = drService.getSiteError("site-uuid-1");
+        
+        assertEquals(0, siteError.getCreationTime());
+        assertEquals(null, siteError.getErrorMessage());
+        
+        standbySite2.setState(SiteState.STANDBY_ERROR);
+        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
+        
+        SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(DisasterRecoveryService.STANDBY_ADD_TIMEOUT_MINUTES));
+        doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);
+        
+        siteError = drService.getSiteError(standbySite2.getUuid());
+        
+        assertEquals(error.getCreationTime(), siteError.getCreationTime());
+        assertEquals(error.getErrorMessage(), siteError.getErrorMessage());
+        
+        try {
+            drService.getSiteError("no-exist-id");
+            assert false;
+        } catch (Exception e) {
+            //ingore expected exception
+        }
     }
     
     protected void compareSiteResponse(SiteRestRep response, Site site) {

@@ -24,6 +24,7 @@ public class SiteParam {
     private boolean freshInstallation;
     private String secretKey;
     private String state;
+    private String ipsecKey;
 
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -122,6 +123,15 @@ public class SiteParam {
 
     public void setState(String state) {
         this.state = state;
+    }
+
+    @XmlElement(name = "ipsec_key")
+    public String getIPsecKey() {
+        return this.ipsecKey;
+    }
+
+    public void setIpsecKey(String ipsecKey) {
+        this.ipsecKey = ipsecKey;
     }
 
     @Override

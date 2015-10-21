@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.slf4j.Logger;
@@ -35,7 +36,6 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
-import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
@@ -62,7 +62,7 @@ public class VdcSiteManager extends AbstractManager {
     private static final String VDC_IDS_KEY = "vdc_ids";
 
     private DbClient dbClient;
-    private String defaultPskFile;
+    private IPsecConfig ipsecConfig;
 
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
@@ -95,8 +95,8 @@ public class VdcSiteManager extends AbstractManager {
         this.service = svc;
     }
 
-    public void setDefaultPskFile(String defaultPskFile) {
-        this.defaultPskFile = defaultPskFile;
+    public void setIpsecConfig(IPsecConfig ipsecConfig) {
+        this.ipsecConfig = ipsecConfig;
     }
 
     @Override
@@ -289,34 +289,13 @@ public class VdcSiteManager extends AbstractManager {
     private PropertyInfoExt loadVdcConfig() throws Exception {
         targetVdcPropInfo = loadVdcConfigFromDatabase();
         // ipsec config is stored in zk
-        targetVdcPropInfo = loadVdcConfigFromZK();
-
+        targetVdcPropInfo = loadIPsecKeyFromZK();
         return targetVdcPropInfo;
     }
 
-    private PropertyInfoExt loadVdcConfigFromZK() throws Exception {
-        // assuming targetVdcPropInfo is not null;
-
-        String ipsecKey = null;
-        Configuration ipsecConfig = coordinator.getCoordinatorClient().queryConfiguration("ipsec", "ipsecConfig");
-        if (ipsecConfig == null) {
-            ipsecKey = loadDefaultIpsecKeyFromFile();
-        } else {
-            ipsecKey = ipsecConfig.getConfig("ipsec_key");
-        }
-
-        targetVdcPropInfo.addProperty("ipsec_key", ipsecKey);
+    private PropertyInfoExt loadIPsecKeyFromZK() throws Exception {
+        targetVdcPropInfo.addProperty("ipsec_key", ipsecConfig.getPreSharedKey());
         return targetVdcPropInfo;
-    }
-
-    private String loadDefaultIpsecKeyFromFile() throws Exception {
-        BufferedReader in = new BufferedReader(new FileReader(new File(defaultPskFile)));
-        try {
-            String key = in.readLine();
-            return key;
-        } finally {
-            in.close();
-        }
     }
 
     /**

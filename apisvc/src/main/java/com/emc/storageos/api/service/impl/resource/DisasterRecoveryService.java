@@ -24,6 +24,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +79,7 @@ public class DisasterRecoveryService {
     private SysUtils sysUtils;
     private CoordinatorClient coordinator;
     private DbClient dbClient;
+    private IPsecConfig ipsecConfig;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -144,6 +146,7 @@ public class DisasterRecoveryService {
             primarySite.setSecretKey(vdc.getSecretKey());
             primarySite.setUuid(coordinator.getSiteId());
             primarySite.setVip(vdc.getApiEndpoint());
+            primarySite.setIpsecKey(ipsecConfig.getPreSharedKey());
             configParam.setPrimarySite(primarySite);
             
             List<SiteParam> standbySites = new ArrayList<SiteParam>();
@@ -189,7 +192,9 @@ public class DisasterRecoveryService {
                 hostCount = primary.getHostIPv6AddressMap().size();
             }
             vdc.setHostCount(hostCount);
-            
+
+            ipsecConfig.setPreSharedKey(primary.getIPsecKey());
+
             coordinator.addSite(primary.getUuid());
             coordinator.setPrimarySite(primary.getUuid());
             
@@ -621,5 +626,9 @@ public class DisasterRecoveryService {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
+    }
+
+    public void setIpsecConfig(IPsecConfig ipsecConfig) {
+        this.ipsecConfig = ipsecConfig;
     }
 }

@@ -4784,7 +4784,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
     
     /**
-     * It is possible that RP snapshots are exported to more than one host and hence part of more than on ExportGroup.
+     * It is possible that RP snapshots are exported to more than one host and hence part of more than one ExportGroup.
      * If the same snapshot is part of more than one active ExportGroup, do not disable Image Access on the RP CG. 
      * 
      * @param emName bookmark name

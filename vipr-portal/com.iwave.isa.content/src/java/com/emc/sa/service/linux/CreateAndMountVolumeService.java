@@ -5,12 +5,13 @@
 package com.emc.sa.service.linux;
 
 import java.util.List;
-import com.emc.sa.engine.ExecutionUtils;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.google.common.collect.Lists;
 
 @Service("Linux-CreateAndMountBlockVolume")
@@ -42,7 +43,7 @@ public class CreateAndMountVolumeService extends LinuxService {
     }
 
     private BlockObjectRestRep createVolume() {
-        List<BlockObjectRestRep> volumes = createVolumeHelper.createAndExportVolumes();
+        List<VolumeRestRep> volumes = createVolumeHelper.createAndExportVolumes();
         if (volumes.size() != 1) {
             ExecutionUtils.fail("failTask.linux.createAndMount", args(volumes.size()));
         }

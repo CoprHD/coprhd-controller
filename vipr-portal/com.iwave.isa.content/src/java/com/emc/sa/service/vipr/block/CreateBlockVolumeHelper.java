@@ -23,7 +23,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 
 public class CreateBlockVolumeHelper {
@@ -75,7 +75,7 @@ public class CreateBlockVolumeHelper {
         return volumeIds;
     }
 
-    public List<BlockObjectRestRep> exportVolumes(List<URI> volumeIds) {
+    public List<VolumeRestRep> exportVolumes(List<URI> volumeIds) {
         // See if an existing export exists for the host ports
         ExportGroupRestRep export = null;
         if (cluster != null) {
@@ -112,11 +112,11 @@ public class CreateBlockVolumeHelper {
         ExecutionUtils.clearRollback();
 
         // Get the volumes after exporting, volumes would not have WWNs until after export in VPLEX
-        List<BlockObjectRestRep> volumes = BlockStorageUtils.getVolumes(volumeIds);
+        List<VolumeRestRep> volumes = BlockStorageUtils.getVolumes(volumeIds);
         return volumes;
     }
 
-    public List<BlockObjectRestRep> createAndExportVolumes() {
+    public List<VolumeRestRep> createAndExportVolumes() {
         List<URI> volumeIds = createVolumes();
         return exportVolumes(volumeIds);
     }

@@ -10,6 +10,7 @@ import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 
 @Service("Aix-CreateAndMountBlockVolume")
 public class CreateAndMountVolumeService extends AixService {
@@ -39,7 +40,7 @@ public class CreateAndMountVolumeService extends AixService {
     }
 
     private BlockObjectRestRep createVolume() {
-        List<BlockObjectRestRep> volumes = createVolumeHelper.createAndExportVolumes();
+        List<VolumeRestRep> volumes = createVolumeHelper.createAndExportVolumes();
         if (volumes.size() != 1) {
             throw new IllegalStateException("This service can create only one volume.");
         }

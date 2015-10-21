@@ -10,7 +10,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
-import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 
 @Service("Windows-ExtendDrive")
 public class ExtendDriveService extends WindowsService {
@@ -26,7 +26,7 @@ public class ExtendDriveService extends WindowsService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        List<BlockObjectRestRep> volumes = BlockStorageUtils.getVolumes(uris(volumeIds));
+        List<VolumeRestRep> volumes = BlockStorageUtils.getVolumes(uris(volumeIds));
         for (ExtendDriveHelper extendDriveHelper : extendDriveHelpers) {
             extendDriveHelper.setVolumes(volumes);
             extendDriveHelper.precheck();

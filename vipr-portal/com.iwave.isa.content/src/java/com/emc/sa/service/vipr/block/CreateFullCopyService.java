@@ -37,7 +37,7 @@ public class CreateFullCopyService extends ViPRService {
     public void precheck() throws Exception {
         super.precheck();
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-            BlockStorageUtils.getVolume(volumeId);
+            BlockStorageUtils.getBlockResource(volumeId);
         }
     }
 

@@ -34,7 +34,7 @@ public class AddVolumesToConsistencyGroupService extends ViPRService {
 
     @Param(CONSISTENCY_GROUP)
     protected URI consistencyGroup;
-    
+
     @Param(VOLUMES)
     protected List<String> volumeIds;
 
@@ -50,7 +50,6 @@ public class AddVolumesToConsistencyGroupService extends ViPRService {
             BlockStorageUtils.createContinuousCopy(uri(volumeIds.get(0)), null, 1, BlockStorageUtils.COPY_SRDF, targets.get(0));
         }
 
-
         // Continuous copy
         // add source volume mirror's to the CG
         Map<URI, List<URI>> sourceMirrors = addSourceVolumeMirrors();
@@ -64,7 +63,6 @@ public class AddVolumesToConsistencyGroupService extends ViPRService {
         // start continuous copies on the r2 mirrors
         startContinuousCopy(targetMirrors);
 
-
         // Snapshot
         // add source volumes' snapshots to the CG
         Map<URI, List<URI>> sourceSnapshots = addSourceVolumeSnapshots();
@@ -77,7 +75,6 @@ public class AddVolumesToConsistencyGroupService extends ViPRService {
 
         // start snapshot on the r2 snapshots
         startSnapshot(targetSnapshots);
-
 
         // Full copy
         // add source volumes' full copies to the CG

@@ -10,6 +10,7 @@ import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.sa.engine.bind.Param;
@@ -18,8 +19,8 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshot;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
-import com.google.common.collect.Lists;
 
 @Service("CreateBlockSnapshot")
 public class CreateBlockSnapshotService extends ViPRService {
@@ -39,15 +40,13 @@ public class CreateBlockSnapshotService extends ViPRService {
     @Param(value = READ_ONLY, required = false)
     protected Boolean readOnly;
 
-    private List<BlockObjectRestRep> volumes;
+    private List<VolumeRestRep> volumes;
 
     @Override
     public void precheck() {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-            volumes = Lists.newArrayList();
-            for (String volumeId : volumeIds) {
-                volumes.add(BlockStorageUtils.getBlockResource(uri(volumeId)));
-            }
+            volumes = new ArrayList<>();
+            volumes = BlockStorageUtils.getVolumes(uris(volumeIds));
         }
     }
 

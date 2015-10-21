@@ -21,6 +21,7 @@ import static com.emc.sa.util.ResourceType.BLOCK_SNAPSHOT;
 import static com.emc.sa.util.ResourceType.VOLUME;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,7 +70,9 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
 import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshots;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
+import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetExportsForBlockObject;
 import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
@@ -161,6 +164,10 @@ public class BlockStorageUtils {
         return id;
     }
 
+    public static BlockObjectRestRep getBlockResource(URI volumeId) {
+        return execute(new GetBlockResource(volumeId));
+    }
+
     public static BlockObjectRestRep getVolume(URI volumeId) {
         return getBlockResource(volumeId);
     }
@@ -169,31 +176,41 @@ public class BlockStorageUtils {
         return execute(new GetStorageSystem(storageSystemId));
     }
 
-    public static List<BlockObjectRestRep> getVolumes(List<URI> volumeIds) {
-        List<BlockObjectRestRep> volumes = Lists.newArrayList();
-        for (URI volumeId : volumeIds) {
-            volumes.add(getVolume(volumeId));
-        }
-        return volumes;
-    }
-
     public static BlockSnapshotRestRep getSnapshot(URI snapshotId) {
         return execute(new GetBlockSnapshot(snapshotId));
-    }
-
-    public static BlockObjectRestRep getBlockResource(URI resourceId) {
-        return execute(new GetBlockResource(resourceId));
     }
 
     public static BlockConsistencyGroupRestRep getBlockConsistencyGroup(URI resourceId) {
         return execute(new GetBlockConsistencyGroup(resourceId));
     }
 
+    public static List<VolumeRestRep> getVolumes(List<URI> volumeIds) {
+        return execute(new GetBlockVolumes(volumeIds));
+    }
+
+    public static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
+        return execute(new GetBlockSnapshots(uris));
+    }
+
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();
+        List<URI> blockVolumes = new ArrayList<URI>();
+        List<URI> blockSnapshots = new ArrayList<URI>();
         for (URI resourceId : resourceIds) {
-            blockResources.add(getBlockResource(resourceId));
+            ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
+            switch (volumeType) {
+                case VOLUME:
+                    blockVolumes.add(resourceId);
+                    break;
+                case BLOCK_SNAPSHOT:
+                    blockSnapshots.add(resourceId);
+                    break;
+                default:
+                    break;
+            }
         }
+        blockResources.addAll(getVolumes(blockVolumes));
+        blockResources.addAll(getBlockSnapshots(blockSnapshots));
         return blockResources;
     }
 
@@ -385,9 +402,9 @@ public class BlockStorageUtils {
         removeExportIfEmpty(exportId);
     }
 
-    static final int MAX_RETRY_COUNT =30;
+    static final int MAX_RETRY_COUNT = 30;
     static final int RETRY_DELAY_MSEC = 60000;
-    
+
     public static void removeExportIfEmpty(URI exportId) {
         boolean retryNeeded = false;
         int retryCount = 0;
@@ -401,22 +418,22 @@ public class BlockStorageUtils {
                     addAffectedResource(response);
                 } catch (ExecutionException e) {
                     if (e.getCause() instanceof ServiceErrorException) {
-                        ServiceErrorException svcexp =(ServiceErrorException) e.getCause();
-                        if (retryCount++ < MAX_RETRY_COUNT 
+                        ServiceErrorException svcexp = (ServiceErrorException) e.getCause();
+                        if (retryCount++ < MAX_RETRY_COUNT
                                 && ServiceCode.toServiceCode(svcexp.getCode()) == ServiceCode.API_TASK_EXECUTION_IN_PROGRESS) {
                             log.info(String.format("ExportGroup %s deletion waiting on pending task execution", export.getId()));
                             retryNeeded = true;
                             try {
                                 Thread.sleep(RETRY_DELAY_MSEC);
                             } catch (InterruptedException ex) {
-                            	log.debug("Sleep interrupted");
+                                log.debug("Sleep interrupted");
                             }
                         } else {
                             throw e;
                         }
                     }
                 }
-            } 
+            }
         } while (retryNeeded);
     }
 

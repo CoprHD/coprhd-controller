@@ -136,11 +136,11 @@ class Volume(object):
 	
     #New Migration URIs
     URI_MIGRATION_LIST = "/block/migrations"
-    URI_MIGRATION_SHOW = "/block/migration/{0}"
-    URI_MIGRATION_CANCEL = "/block/migration/{0}/cancel"
-    URI_MIGRATION_PAUSE = "/block/migration/{0}/pause"
-    URI_MIGRATION_RESUME = "/block/migration/{0}/resume"
-    URI_MIGRATION_DEACTIVATE = "/block/migration/{0}/deactivate"
+    URI_MIGRATION_SHOW = "/block/migrations/{0}"
+    URI_MIGRATION_CANCEL = "/block/migrations/{0}/cancel"
+    URI_MIGRATION_PAUSE = "/block/migrations/{0}/pause"
+    URI_MIGRATION_RESUME = "/block/migrations/{0}/resume"
+    URI_MIGRATION_DEACTIVATE = "/block/migrations/{0}/deactivate"
     
     #New API for adding volumes to RP Journal CG 
     URI_RP_JOURNAL_CAPACITY = "/block/volumes/protection/addJournalCapacity"
@@ -4108,7 +4108,8 @@ def migration_show_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-migration_id','-id',
                                 help='Migration Id',
                                 dest='migration_id',
-                                required='True')	
+                                required='True',
+                                metavar='<migration_id>')	
     migration_show_parser.set_defaults(func=migration_show)
 	
 def migration_show(args):
@@ -4133,7 +4134,8 @@ def migration_cancel_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-migration_id','-id',
                                 help='Migration Id',
                                 dest='migration_id',
-                                required='True')	
+                                required='True',
+                                metavar='<migration_id>')	
     migration_cancel_parser.set_defaults(func=migration_cancel)
 	
 def migration_cancel(args):
@@ -4158,7 +4160,8 @@ def migration_pause_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-migration_id','-id',
                                 help='Migration Id',
                                 dest='migration_id',
-                                required='True')	
+                                required='True',
+                                metavar='<migration_id>')	
     migration_pause_parser.set_defaults(func=migration_pause)
 	
 def migration_pause(args):
@@ -4183,7 +4186,8 @@ def migration_resume_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-migration_id','-id',
                                 help='Migration Id',
                                 dest='migration_id',
-                                required='True')	
+                                required='True',
+                                metavar='<migration_id>')	
     migration_resume_parser.set_defaults(func=migration_resume)
 	
 def migration_resume(args):
@@ -4208,7 +4212,8 @@ def migration_deactivate_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-migration_id','-id',
                                 help='Migration Id',
                                 dest='migration_id',
-                                required='True')	
+                                required='True',
+                                metavar='<migration_id>')	
     migration_deactivate_parser.set_defaults(func=migration_deactivate)
 	
 def migration_deactivate(args):

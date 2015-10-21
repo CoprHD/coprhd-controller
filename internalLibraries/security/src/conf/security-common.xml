@@ -42,7 +42,7 @@
     </bean>
 
     <bean id="ipsecConfig" class="com.emc.storageos.security.ipsec.IPsecConfig">
-        <property name="coordinatorClient" ref="coordinator"/>
+        <property name="coordinator" ref="coordinator"/>
         <property name="defaultPskFile" value="${product.home:/opt/storageos}/conf/psk.default"/>
     </bean>
 

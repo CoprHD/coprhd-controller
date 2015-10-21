@@ -71,6 +71,10 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     public SiteErrorResponse getSiteError(String uuid) {
         return client.get(SiteErrorResponse.class, PathConstants.SITE_URL+"/"+uuid+"/error");
     }
+    
+    public ClientResponse doFailover(String uuid) {
+        return client.put(ClientResponse.class, PathConstants.SITE_URL+"/"+uuid+"/failover");
+    }
 
     @Override
     public List<SiteRestRep> getAll(ResourceFilter<SiteRestRep> filter) {

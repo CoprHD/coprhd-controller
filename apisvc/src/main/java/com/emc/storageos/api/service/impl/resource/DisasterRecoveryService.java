@@ -486,6 +486,63 @@ public class DisasterRecoveryService {
         
         return SiteErrorResponse.noError();
     }
+    
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{uuid}/failover")
+    public Response doFailover(@PathParam("uuid") String uuid) {
+        log.info("Begin to failover for standby UUID {}", uuid);
+
+        try {
+            VirtualDataCenter vdc = queryLocalVDC();
+            final String oldPrimaryUUID = coordinator.getPrimarySiteId();
+            final List<Site> existingSites = getStandbySites(vdc.getId());
+
+            // update VDC
+            Site newPrimarySite = new Site(coordinator.queryConfiguration(Site.CONFIG_KIND, uuid));
+            vdc.setApiEndpoint(newPrimarySite.getVip());
+            vdc.getHostIPv4AddressesMap().clear();
+            vdc.getHostIPv4AddressesMap().putAll(new StringMap(newPrimarySite.getHostIPv4AddressMap()));
+            vdc.getHostIPv6AddressesMap().clear();
+            vdc.getHostIPv6AddressesMap().putAll(new StringMap(newPrimarySite.getHostIPv6AddressMap()));
+            vdc.setSecretKey(newPrimarySite.getSecretKey());
+            int hostCount = newPrimarySite.getHostIPv4AddressMap().size();
+            if (newPrimarySite.getHostIPv6AddressMap().size() > hostCount) {
+                hostCount = newPrimarySite.getHostIPv6AddressMap().size();
+            }
+            vdc.setHostCount(hostCount);
+            dbClient.persistObject(vdc);
+
+            // Set new UUID as primary site ID
+            coordinator.setPrimarySite(uuid);
+
+            // set new primary site to ZK
+            newPrimarySite.setState(SiteState.PRIMARY);
+            coordinator.persistServiceConfiguration(newPrimarySite.getUuid(), newPrimarySite.toConfiguration());
+
+            // Set old primary site's state, short id and key
+            SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
+            Site oldPrimarySite = new Site(coordinator.queryConfiguration(Site.CONFIG_KIND, oldPrimaryUUID));
+            oldPrimarySite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
+            oldPrimarySite.setStandbyShortId(generateShortId(existingSites));
+            oldPrimarySite.setState(SiteState.STANDBY_SYNCED);
+            coordinator.persistServiceConfiguration(oldPrimarySite.getUuid(), oldPrimarySite.toConfiguration());
+
+            // trigger local property change to reconfig
+            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+
+            // trigger other site property change to reconfig
+            for (Site site : existingSites) {
+                updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+            }
+        } catch (Exception e) {
+            log.error("Failed to do failover {}", e);
+            // TODO There is anther task for error handling for this
+        }
+
+        return Response.status(Response.Status.ACCEPTED).build();
+    }
 
     private void updateVdcTargetVersion(String siteId, String action) throws Exception {
         SiteInfo siteInfo;

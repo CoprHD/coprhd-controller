@@ -14,6 +14,8 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.lang.reflect.Constructor;
 import java.net.URI;
@@ -114,7 +116,11 @@ public class DisasterRecoveryServiceTest {
         standbySite2 = new Site();
         standbySite2.setUuid("site-uuid-2");
         standbySite2.setState(SiteState.STANDBY_SYNCED);
+        standbySite2.setVip("10.247.101.158");
         standbySite2.setVdc(localVDC.getId());
+        standbySite2.getHostIPv4AddressMap().put("vipr1", "10.247.101.155");
+        standbySite2.getHostIPv4AddressMap().put("vipr2", "10.247.101.156");
+        standbySite2.getHostIPv4AddressMap().put("vipr3", "10.247.101.157");
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
@@ -471,6 +477,32 @@ public class DisasterRecoveryServiceTest {
         } catch (Exception e) {
             //ingore expected exception
         }
+    }
+    
+    @Test
+    public void testFailover_noError() throws Exception {
+        List<Configuration> siteConfigurations = new ArrayList<Configuration>();
+        siteConfigurations.add(standbySite1.toConfiguration());
+        siteConfigurations.add(standbySite2.toConfiguration());
+        
+        
+        SecretKey keyMock = mock(SecretKey.class);
+        InternalApiSignatureKeyGenerator apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
+        
+        doReturn("SecreteKey".getBytes()).when(keyMock).getEncoded();
+        doReturn(keyMock).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
+        doReturn("site-uuid-1").when(coordinator).getPrimarySiteId();
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
+        doReturn(siteConfigurations).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
+        
+        drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
+        drService.doFailover("site-uuid-2");
+        
+        verify(coordinator, times(1)).setPrimarySite("site-uuid-2");
+        verify(coordinator, times(1)).persistServiceConfiguration(eq("site-uuid-1"), any(Configuration.class));
+        verify(coordinator, times(1)).persistServiceConfiguration(eq("site-uuid-2"), any(Configuration.class));
+        verify(dbClientMock, times(1)).persistObject(any(VirtualDataCenter.class));
     }
     
     protected void compareSiteResponse(SiteRestRep response, Site site) {

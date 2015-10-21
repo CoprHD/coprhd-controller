@@ -45,14 +45,17 @@ public final class TestBlockStorageUtils {
             }
         }
         blockResources.addAll(client.blockVolumes().getByIds(blockVolumes));
-        blockResources.addAll(client.blockVolumes().getByIds(blockSnapshots));
+        blockResources.addAll(client.blockSnapshots().getByIds(blockSnapshots));
         return blockResources;
     }
 
     static final List<BlockObjectRestRep> originalGetBlockResources(ViPRCoreClient client, Collection<URI> uris) {
         List<BlockObjectRestRep> returnList = new ArrayList<>();
         for (URI uri : uris) {
-            returnList.add(getSingle(client, uri));
+            BlockObjectRestRep s = getSingle(client, uri);
+            if (s != null) {
+                returnList.add(s);
+            }
         }
         return returnList;
     }
@@ -72,6 +75,8 @@ public final class TestBlockStorageUtils {
                 if (snapshot != null) {
                     return snapshot;
                 }
+                break;
+            default:
                 break;
         }
         return null;
@@ -105,14 +110,14 @@ public final class TestBlockStorageUtils {
             List<BlockObjectRestRep> original = originalGetBlockResources(client, uris);
             w.stop();
             float firstTime = w.getTime();
-            System.out.println(String.format("Original query time with %s units : %s ms", original.size(), firstTime));
+            System.out.println(String.format("Original query time with %s volumes : %s ms", original.size(), firstTime));
 
             w.reset();
             w.start();
             List<BlockObjectRestRep> fixed = newGetBlockResources(client, uris);
             w.stop();
             float secondTime = w.getTime();
-            System.out.println(String.format("Updated query time with %s units : %s ms", fixed.size(), w.getTime()));
+            System.out.println(String.format("Updated query time with %s volumes : %s ms", fixed.size(), w.getTime()));
             System.out.println(String.format("Improvement : %s %%", firstTime / secondTime * 100.0f));
 
             Assert.assertTrue(firstTime > secondTime);

@@ -54,8 +54,6 @@ _get_ips_in_standby() {
             [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
             ips="${ips} ${ipaddr}"
         done
-        begin="$((${begin} + ${standby_cnt}))"
-
     else
         # no standby defined
 	    echo ""
@@ -179,7 +177,8 @@ EOF
 )
 
     if [ -n "${_GENCONFIG_site_ids}" ] ; then
-        for standby in ${_GENCONFIG_site_ids} ; do
+        local site_ids=$(echo ${_GENCONFIG_site_ids} | sed 's/,/ /g')
+        for standby in ${site_ids} ; do
             local ips=$(_get_ips_in_standby "${standby}")
             connections_in_standby=$(_gen_conn_sections "${ips}")
             content=$(cat << EOF

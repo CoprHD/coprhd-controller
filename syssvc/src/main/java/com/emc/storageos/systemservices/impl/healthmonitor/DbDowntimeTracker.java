@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.model.DbTrackerInfo;
+import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
@@ -27,9 +27,10 @@ import com.emc.storageos.systemservices.impl.jobs.JobConstants;
 public class DbDowntimeTracker {
     private static final Logger log = LoggerFactory.getLogger(DbDowntimeTracker.class);
     private List<String> serviceNames = Arrays.asList(Constants.DBSVC_NAME, Constants.GEODBSVC_NAME);
-    private static final String DB_TRACKER_LOCK = "dbtracker";
+    private static final String DB_TRACKER_LOCK = "dbDowntimeTracker";
     // Tracker check service status every 15 mins by default
     private static final long TRACKER_CHECK_INTERVAL = JobConstants.LAG_BETWEEN_RUNS_ALERTS * TimeUtils.SECONDS;
+    private static final long NO_NEED_UPDATE_LIMIT = 5 * TimeUtils.MINUTES;
 
     @Autowired
     private CoordinatorClientExt coordinator;
@@ -59,42 +60,47 @@ public class DbDowntimeTracker {
     }
 
     /**
-     * Update db tracker info in ZK.
+     * Update db offline event info in ZK.
      */
     private void updateTrackerInfo(String serviceName, List<String> activeNodes) {
         log.info("Querying db tracker info from zk");
         Configuration config = coordinator.getCoordinatorClient().queryConfiguration(
                 Constants.DB_DOWNTIME_TRACKER_CONFIG, serviceName);
-        DbTrackerInfo dbTrackerInfo = new DbTrackerInfo(config);
+        DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
 
         long currentTimeStamp = TimeUtils.getCurrentTime();
-        Long lastUpdateTimestamp = dbTrackerInfo.getLastUpdateTimestamp();
+        Long lastUpdateTimestamp = dbOfflineEventInfo.getLastUpdateTimestamp();
         lastUpdateTimestamp = (lastUpdateTimestamp == null) ? currentTimeStamp : lastUpdateTimestamp;
-        dbTrackerInfo.setLastUpdateTimestamp(currentTimeStamp);
+        long interval = Math.min((currentTimeStamp - lastUpdateTimestamp), TRACKER_CHECK_INTERVAL);
+        if (interval < NO_NEED_UPDATE_LIMIT) {
+            log.info("Have already updated within a few minutes, skipping this update");
+        }
+
+        dbOfflineEventInfo.setLastUpdateTimestamp(currentTimeStamp);
         log.info("Db tracker last check time: {}, current check time: {}", lastUpdateTimestamp, currentTimeStamp);
 
         int nodeCount = coordinator.getNodeCount();
         for (int i = 1; i <= nodeCount; i++) {
             String nodeId = "vipr" + i;
             if (activeNodes.contains(nodeId)) {
-                dbTrackerInfo.setLastActiveTimestamp(nodeId, currentTimeStamp);
+                dbOfflineEventInfo.setLastActiveTimestamp(nodeId, currentTimeStamp);
                 log.info(String.format("Service(%s) of node(%s) last active timestamp has been updated to %s",
                         serviceName, nodeId, currentTimeStamp));
 
-                if (dbTrackerInfo.getOfflineTimeInMS(nodeId) != null) {
-                    dbTrackerInfo.setOfflineTimeInMS(nodeId, null);
+                if (dbOfflineEventInfo.getOfflineTimeInMS(nodeId) != null) {
+                    dbOfflineEventInfo.setOfflineTimeInMS(nodeId, null);
                     log.info("Service({}) of node({}) is recovered", serviceName, nodeId);
                 }
             } else {
-                Long lastOfflineInMS = dbTrackerInfo.getOfflineTimeInMS(nodeId);
+                Long lastOfflineInMS = dbOfflineEventInfo.getOfflineTimeInMS(nodeId);
                 lastOfflineInMS = (lastOfflineInMS == null) ? 0 : lastOfflineInMS;
-                long interval = Math.min((currentTimeStamp - lastUpdateTimestamp), TRACKER_CHECK_INTERVAL);
                 long newOfflineTime = lastOfflineInMS + interval;
+                dbOfflineEventInfo.setOfflineTimeInMS(nodeId, newOfflineTime);
                 log.info(String.format("Service(%s) of node(%s) has been unavailable for %s mins",
                         serviceName, nodeId, newOfflineTime / TimeUtils.MINUTES));
             }
         }
-        config = dbTrackerInfo.toConfiguration(serviceName);
+        config = dbOfflineEventInfo.toConfiguration(serviceName);
         coordinator.getCoordinatorClient().persistServiceConfiguration(config);
         log.info("Persist db tracker info to zk successfully");
     }

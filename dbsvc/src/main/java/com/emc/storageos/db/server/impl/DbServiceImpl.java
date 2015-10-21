@@ -38,7 +38,7 @@ import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.model.DbTrackerInfo;
+import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.gc.GarbageCollectionExecutor;
@@ -377,10 +377,10 @@ public class DbServiceImpl implements DbService {
     private void checkDBTrackerConfiguration() {
         Configuration config = _coordinator.queryConfiguration(Constants.DB_DOWNTIME_TRACKER_CONFIG,
                 _serviceInfo.getName());
-        DbTrackerInfo dbTrackerInfo = new DbTrackerInfo(config);
+        DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
 
         String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();
-        Long lastActiveTimestamp = dbTrackerInfo.geLastActiveTimestamp(localNodeId);
+        Long lastActiveTimestamp = dbOfflineEventInfo.geLastActiveTimestamp(localNodeId);
         long zkTimeStamp = (lastActiveTimestamp == null) ? TimeUtils.getCurrentTime() : lastActiveTimestamp;
 
         File localDbDir = new File(dbDir);
@@ -394,17 +394,15 @@ public class DbServiceImpl implements DbService {
                     "than last time it was seen in the cluster. It may bring stale data into the database, " +
                     "so the service cannot continue to boot. It may be the result of a VM snapshot rollback. " +
                     "Please contact with EMC support engineer for solution.", diffTime/TimeUtils.DAYS);
-            _log.error(errMsg);
             alertLog.error(errMsg);
             throw new IllegalStateException(errMsg);
         }
 
-        Long offlineTime = dbTrackerInfo.getOfflineTimeInMS(localNodeId);
+        Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
         if (offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
-            String errMsg = String.format("This node is offline for more than %s days. It may bring stale data in to database, " +
-                    "so the service cannot continue to boot. Please poweroff this node and follow our node recovery " +
-                    "procedure to recover this node", offlineTime/TimeUtils.DAYS);
-            _log.error(errMsg);
+            String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
+                    "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
+                    "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);
             alertLog.error(errMsg);
             throw new IllegalStateException(errMsg);
         }

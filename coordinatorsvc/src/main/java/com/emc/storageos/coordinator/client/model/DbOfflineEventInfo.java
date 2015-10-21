@@ -13,62 +13,55 @@ import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 
 /**
- * DB tracker info in ZK.
- * /config/downtimeTracker/dbsvc lastUpdateTimestamp=XXX
- * /config/downtimeTracker/dbsvc viprx-lastActiveTimestamp=XXX
- * /config/downtimeTracker/dbsvc viprx-offlineTimeInMS=XXX
- *
- * /config/downtimeTracker/geodbsvc lastUpdateTimestamp=XXX
- * /config/downtimeTracker/geodbsvc viprx-lastActiveTimestamp=XXX
- * /config/downtimeTracker/geodbsvc viprx-offlineTimeInMS=XXX
+ * The info of dbsvc and geodbsvc offline event in ZK.
  */
-public class DbTrackerInfo {
-    private static final Logger log = LoggerFactory.getLogger(DbTrackerInfo.class);
+public class DbOfflineEventInfo {
+    private static final Logger log = LoggerFactory.getLogger(DbOfflineEventInfo.class);
 
-    private static final String KEY_LAST_UPDATE_TIMESTAMP = "lastUpdateTimestamp";
-    private static final String KEY_LAST_ACTIVE_TIMESTAMP = "lastActiveTimestamp";
+    private static final String KEY_LAST_UPDATE_TIME_IN_MS = "lastUpdateTimeInMS";
+    private static final String KEY_LAST_ACTIVE_TIME_IN_MS = "lastActiveTimeInMS";
     private static final String KEY_OFFLINE_TIME_IN_MS = "offlineTimeInMS";
     private static final String KEY_FORMAT = "%s_%s";
 
-    private Map<String, Long> trackerInfo = new HashMap<String, Long>();
+    private Map<String, Long> eventInfo = new HashMap<String, Long>();
 
-    public DbTrackerInfo() {
+    public DbOfflineEventInfo() {
     }
 
-    public DbTrackerInfo(Configuration config) {
+    public DbOfflineEventInfo(Configuration config) {
         if (config != null) {
             fromConfiguration(config);
         }
     }
     public Long getLastUpdateTimestamp() {
-        return this.trackerInfo.get(KEY_LAST_UPDATE_TIMESTAMP);
+        return this.eventInfo.get(KEY_LAST_UPDATE_TIME_IN_MS);
     }
 
     public Long geLastActiveTimestamp(String nodeId) {
-        String keyLastActiveTimestamp = String.format(KEY_FORMAT, nodeId, KEY_LAST_ACTIVE_TIMESTAMP);
-        return this.trackerInfo.get(keyLastActiveTimestamp);
+        String keyLastActiveTimestamp = String.format(KEY_FORMAT, nodeId, KEY_LAST_ACTIVE_TIME_IN_MS);
+        return this.eventInfo.get(keyLastActiveTimestamp);
     }
 
     public Long getOfflineTimeInMS(String nodeId) {
         String keyOfflineTime = String.format(KEY_FORMAT, nodeId, KEY_OFFLINE_TIME_IN_MS);
-        return this.trackerInfo.get(keyOfflineTime);
+        return this.eventInfo.get(keyOfflineTime);
     }
 
     public void setLastUpdateTimestamp(long lastUpdateTimestamp) {
-        this.trackerInfo.put(KEY_LAST_UPDATE_TIMESTAMP, lastUpdateTimestamp);
+        this.eventInfo.put(KEY_LAST_UPDATE_TIME_IN_MS, lastUpdateTimestamp);
     }
 
     public void setLastActiveTimestamp(String nodeId, long lastActiveTimestamp) {
-        String keyLastActiveTimestamp = String.format(KEY_FORMAT, nodeId, KEY_LAST_ACTIVE_TIMESTAMP);
-        this.trackerInfo.put(keyLastActiveTimestamp, lastActiveTimestamp);
+        String keyLastActiveTimestamp = String.format(KEY_FORMAT, nodeId, KEY_LAST_ACTIVE_TIME_IN_MS);
+        this.eventInfo.put(keyLastActiveTimestamp, lastActiveTimestamp);
     }
 
     public void setOfflineTimeInMS(String nodeId, Long offlineTime) {
         String keyOfflineTime = String.format(KEY_FORMAT, nodeId, KEY_OFFLINE_TIME_IN_MS);
         if (offlineTime == null) {
-            this.trackerInfo.remove(keyOfflineTime);
+            this.eventInfo.remove(keyOfflineTime);
         } else {
-            this.trackerInfo.put(keyOfflineTime, offlineTime);
+            this.eventInfo.put(keyOfflineTime, offlineTime);
         }
     }
 
@@ -77,8 +70,8 @@ public class DbTrackerInfo {
         config.setKind(Constants.DB_DOWNTIME_TRACKER_CONFIG);
         config.setId(configId);
 
-        log.info("Set DB tracker info to ZK config: {}", trackerInfo);
-        for (Map.Entry<String, Long> entry : trackerInfo.entrySet()) {
+        log.info("Set DB offline event info to ZK config: {}", eventInfo);
+        for (Map.Entry<String, Long> entry : eventInfo.entrySet()) {
             config.setConfig(entry.getKey(), (entry.getValue() == null) ? null : String.valueOf(entry.getValue()));
         }
         return config;
@@ -89,8 +82,8 @@ public class DbTrackerInfo {
             throw new IllegalArgumentException("Unexpected configuration kind for DB tracker");
         }
         for (Map.Entry<String, String> entry : config.getAllConfigs(true).entrySet()) {
-            this.trackerInfo.put(entry.getKey(), (entry.getValue() == null) ? null : Long.parseLong(entry.getValue()));
+            this.eventInfo.put(entry.getKey(), (entry.getValue() == null) ? null : Long.parseLong(entry.getValue()));
         }
-        log.info("Get DB tracker info from ZK config: {}", trackerInfo);
+        log.info("Get DB offline event info from ZK config: {}", eventInfo);
     }
 }

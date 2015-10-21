@@ -133,7 +133,8 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
             Iterator<String> it = protocolsRequested.iterator();
             String protocol = it.next();
             if (protocol.equalsIgnoreCase(StorageProtocol.File.NFS.name())
-                    || protocol.equalsIgnoreCase(StorageProtocol.File.CIFS.name())) {
+                    || protocol.equalsIgnoreCase(StorageProtocol.File.CIFS.name())
+                    || protocol.equalsIgnoreCase(StorageProtocol.File.NFSv4.name()) ) {
                 isMatched = true;
             }
         }

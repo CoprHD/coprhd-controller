@@ -179,5 +179,7 @@ public interface FileController extends StorageController {
     public void deleteShareACLs(URI storage, URI fs, String shareName, String opId)
             throws InternalException;
 
-    public void updateNFSAcl(URI storage, URI fs, NfsACLUpdateParams param, String opId) throws InternalException;;
+    public void updateNFSAcl(URI storage, URI fs, NfsACLUpdateParams param, String opId) throws InternalException;
+
+    public void deleteNFSAcls(URI storage, URI fs, String subDir, String opId) throws InternalException;
 }

@@ -79,7 +79,6 @@ public class FileDeviceInputOutput {
     private List<NfsACE> nfsAclsToAdd = new ArrayList<>();
     private List<NfsACE> nfsAclsToModify = new ArrayList<>();
     private List<NfsACE> nfsAclsToDelete = new ArrayList<>();
-    private List<NfsACE> existingNfsAcls = new ArrayList<>();
 
     public String getFileSystemPath() {
         return fileSystemPath;
@@ -119,14 +118,6 @@ public class FileDeviceInputOutput {
 
     public void setNfsAclsToDelete(List<NfsACE> nfsAclsToDelete) {
         this.nfsAclsToDelete = nfsAclsToDelete;
-    }
-
-    public List<NfsACE> getExistingNfsAcls() {
-        return existingNfsAcls;
-    }
-
-    public void setExistingNfsAcls(List<NfsACE> existingNfsAcls) {
-        this.existingNfsAcls = existingNfsAcls;
     }
 
     public String getComments() {
@@ -190,10 +181,10 @@ public class FileDeviceInputOutput {
             this.nfsAclsToAdd = param.getAcesToAdd();
         }
         if (param.getAcesToModify() != null && !param.getAcesToModify().isEmpty()) {
-            this.nfsAclsToAdd = param.getAcesToAdd();
+            this.nfsAclsToModify = param.getAcesToModify();
         }
         if (param.getAcesToDelete() != null && !param.getAcesToDelete().isEmpty()) {
-            this.nfsAclsToAdd = param.getAcesToAdd();
+            this.nfsAclsToDelete = param.getAcesToDelete();
         }
 
     }

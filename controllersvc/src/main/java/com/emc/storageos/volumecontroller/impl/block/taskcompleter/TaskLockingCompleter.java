@@ -14,6 +14,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,9 +195,24 @@ public abstract class TaskLockingCompleter extends TaskCompleter {
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
+        updateConsistencyGroupTasks(dbClient, status, coded);
         if (isNotifyWorkflow()) {
             // If there is a workflow, update the step to complete.
             updateWorkflowStatus(status, coded);
+        }
+    }
+
+    private void updateConsistencyGroupTasks(DbClient dbClient, Operation.Status status, ServiceCoded coded) {
+        for (URI consistencyGroupId : getConsistencyGroupIds()) {
+            _logger.info("Updating consistency group task: {}", consistencyGroupId);
+            switch (status) {
+                case error:
+                    setErrorOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId, coded);
+                    break;
+                case ready:
+                    setReadyOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId);
+                    break;
+            }
         }
     }
 }

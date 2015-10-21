@@ -68,4 +68,6 @@ public interface SmisErrors {
     @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
     public ServiceError establishAfterSwapFailure(String source, String target);
 
+    @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
+    public ServiceError volumeExpandIsNotSupported(String nativeGuid);
 }

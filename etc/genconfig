@@ -241,18 +241,6 @@ _gen_prop2() {
         local var="_GENCONFIG_vdc_${vdc}_network_vip6"
         eval export ${var}=$(_get_ipv6_uncompressed ${!var})
     done
-
-    #local_site_node_count
-    if [ "${_GENCONFIG_site_is_standby}" = "false" ] ; then
-        export _GENCONFIG_local_site_node_count=${_GENCONFIG_node_count}
-    else
-        for standby in ${_GENCONFIG_site_ids} ; do
-            if [ "${_GENCONFIG_site_myid}" == "${standby}" ] ; then
-                var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_node_count"
-                export _GENCONFIG_local_site_node_count="${!var}"
-            fi
-        done
-    fi
     IFS="${OLD_IFS}"
 
     #_GENCONFIG_NETWORK_STACK
@@ -270,6 +258,7 @@ _gen_prop2() {
         # addresses. Simply let it go with ipv4
         export _GENCONFIG_NETWORK_STACK="IPv4"
     fi
+
 }
 
 _gen_foreach() {
@@ -414,7 +403,6 @@ if [ -n "${_GENCONFIG_TEST}" ] ; then
     echo "node_index=${_GENCONFIG_node_index}"
     echo "node_suffix=${_GENCONFIG_node_suffix}"
     echo "node_indexes=${_GENCONFIG_node_indexes}"
-    echo "node_names=${_GENCONFIG_node_names}"
     echo "network_ipaddr=${_GENCONFIG_network_ipaddr}"
     echo "network_1_ipaddr=${_GENCONFIG_network_1_ipaddr}"
     echo "network_ipaddr6=${_GENCONFIG_network_ipaddr6}"

@@ -1928,7 +1928,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                 } catch (Exception e) {
                     // Do nothing. If we cannot find volume protection info for a volume, we do not want that
-                    // exception preventing us from tyring to find it for other volumes being deleted.
+                    // exception preventing us from trying to find it for other volumes being deleted.
+                    _log.warn("Looks like the volume(s) we're trying to remove from the RP appliance are no longer associated with a RP CG, continuing delete process.");
                 }
             }
 
@@ -1941,7 +1942,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
 
             if (RPHelper.cgSourceVolumesContainsAll(_dbClient, cg.getId(), volumeIDs)) {
-                // We are deleted all source volumes in the consistency group so we can delete the
+                // We are deleting all source volumes in the consistency group so we can delete the
                 // RecoverPoint CG as well.
                 rp.deleteCG(volumeProtectionInfo);
 

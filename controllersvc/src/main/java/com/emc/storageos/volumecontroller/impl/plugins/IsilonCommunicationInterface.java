@@ -432,6 +432,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             StoragePool storagePool;
+            boolean isNfsV4Enabled = isilonApi.nfsv4Enabled();
             
             List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
             for (IsilonStoragePool isilonPool : isilonStoragePools) {
@@ -481,7 +482,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
                 
 
-				if (isilonApi.nfsv4Enabled()) {
+				if (isNfsV4Enabled) {
 					storagePool.getProtocols().add(NFSv4);
 				} else {
 					storagePool.getProtocols().remove(NFSv4);

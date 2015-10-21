@@ -9,6 +9,9 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
+import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileExportUpdateParams;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,9 +22,6 @@ import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
-import com.emc.storageos.model.file.CifsShareACLUpdateParams;
-import com.emc.storageos.model.file.FileExportUpdateParams;
-import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -59,7 +59,6 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
         _dbClient = dbClient;
     }
 
-    @Override
     public Controller lookupDeviceController(DiscoveredSystemObject device) {
         // dummy impl that returns the first one
         return _deviceImpl.iterator().next();
@@ -190,7 +189,6 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
         execFS("updateExportRules", storage, fsURI, param, opId);
     }
 
-    @Override
     public void deleteExportRules(URI storage, URI fileUri, boolean allDirs, String subDir, String opId) throws ControllerException {
         execFS("deleteExportRules", storage, fileUri, allDirs, subDir, opId);
     }
@@ -208,12 +206,6 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
             String opId) throws InternalException {
 
         execFS("deleteShareACLs", storageURI, fsURI, shareName, opId);
-
-    }
-
-    @Override
-    public void updateNFSAcl(URI storage, URI fs, FileNfsACLUpdateParams param, String opId) throws InternalException {
-        // TODO Auto-generated method stub
 
     }
 }

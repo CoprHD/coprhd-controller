@@ -763,9 +763,6 @@ public interface BadRequestExceptions {
     public BadRequestException shareACLAlreadyExists(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException nfsACLAlreadyExists(String opType, String acl);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException multipleACLsWithUserOrGroupFound(String opType, String userOrGroup);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -773,9 +770,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException shareACLNotFoundFound(String opType, String acl);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException nfsACLNotFoundFound(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidProjectConflict(URI projectId);
@@ -1202,9 +1196,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException snapshotSMBSharePermissionReadOnly();
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException snapshotFileCifsPermissionReadOnly();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotNotActivated(String snapshot);

@@ -38,7 +38,8 @@ public class RemoveBlockVolumeService extends VMwareHostService {
     List<BlockObjectRestRep> volumes;
 
     @Override
-    public void precheck() {
+    public void precheck() throws Exception {
+        super.precheck();
         volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
     }
 

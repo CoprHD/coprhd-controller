@@ -108,6 +108,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String SYSSECURITY = "sys";
     private static final Long MAX_NFS_EXPORTS = 1500L;
+    private static final Long MAX_CIFS_SHARES = 40000L;
     private static final Long MAX_STORAGE_OBJECTS = 40000L; 
     private static final String SYSTEM_ACCESS_ZONE_NAME = "System";
 
@@ -201,7 +202,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonStatsRecorder recorder = new IsilonStatsRecorder(zeroRecordGenerator, statsColumnInjector);
             _keyMap.put(Constants._TimeCollected, System.currentTimeMillis());
            
-           //compute stat processor code 
+           //compute static load processor code 
             computeStaticLoadMetrics(storageSystemId);
             
             // get first page of quota data, process and insert to database
@@ -288,7 +289,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         if(dbMetrics == null) {
                             dbMetrics = new StringMap();
                         }
-                        //processdb metrics
+                        //process db metrics
                         populateDbMetricsAz(isAccessZone, isilonApi, dbMetrics);
                        
                         //set AZ dbMetrics in db
@@ -408,9 +409,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         
         double totalExports = (double)(nfsExportsCount + cifsSharesCount);
         //setting overLoad factor (true or false)
-        String overLoaded = "false";
+        String overLoaded = FALSE;
         if (totalExports >= maxExports || totalProvCap >= maxCapacity || totalFsCount >= maxStorObjs) {
-            overLoaded = "true";
+            overLoaded = TRUE;
         }
         
         double percentageLoadExports = 0;
@@ -2379,7 +2380,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         Long MaxCifsShares = 30000L;
         if(system.getFirmwareVersion().charAt(0) >= '7' && system.getFirmwareVersion().charAt(2) >= '2') {
             MaxNfsExports = MAX_NFS_EXPORTS;
-            MaxCifsShares = 40000L;
+            MaxCifsShares = MAX_CIFS_SHARES;
         }
         
         dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(MaxNfsExports));

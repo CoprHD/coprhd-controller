@@ -2,6 +2,7 @@ package com.emc.storageos.services.util;
 
 import java.net.InetAddress;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +28,7 @@ public class SysUtils {
         InetAddress ipv6Addr = parseInetAddress(ipv6Str);
         InetAddress directAddr = parseInetAddress(clientIp);
         if (directAddr == null || ipv4Addr == null && ipv6Addr == null) {
-            String ipAddrsStr = Strings.join("|", ipv4Str, ipv6Str);
+            String ipAddrsStr = StringUtils.join(new String[] {ipv4Str, ipv6Str}, '|');
             log.error("checkParam is {}, X-Forwarded-For is {}", ipAddrsStr, clientIp);
             throw new Exception(ipAddrsStr);
         }

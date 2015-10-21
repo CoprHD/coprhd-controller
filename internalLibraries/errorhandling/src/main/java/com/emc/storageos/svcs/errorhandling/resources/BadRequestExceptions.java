@@ -2487,4 +2487,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException pathParameterPortsDoNotIncludeArray(final URI arrayURI);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotOverrideVpoolPathsBecauseExistingExports(final String message);
 }

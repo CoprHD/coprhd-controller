@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -296,6 +297,11 @@ public class ExportGroupService extends TaskResourceService {
         // If ExportPathParameter block is presnet, and volumes are present, capture those arguments.
         ExportPathParams exportPathParam = null;
         if (param.getExportPathParameters() != null && !volumeMap.keySet().isEmpty()) {
+            // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
+            if (!_permissionsHelper.userHasGivenRole(user,
+                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+                throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
+            }
             exportPathParam = validateAndCreateExportPathParam(param.getExportPathParameters(), 
                                 exportGroup, volumeMap.keySet());
             addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
@@ -1173,6 +1179,14 @@ public class ExportGroupService extends TaskResourceService {
         validateUpdateRemoveInitiators(param, exportGroup);
         validateUpdateIsNotForVPlexBackendVolumes(param, exportGroup);
         
+        if (param.getExportPathParameters() != null) {
+            // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
+            if (!_permissionsHelper.userHasGivenRole(getUserFromContext(),
+                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+                throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
+            }
+        }
+        
         // call the controller to handle all updated
         String task = UUID.randomUUID().toString();
         Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
@@ -1360,7 +1374,7 @@ public class ExportGroupService extends TaskResourceService {
     private ExportGroupRestRep toExportResponse(ExportGroup export) {
         // getInitiators() getVolumes()
         return map(export, getInitiators(export), getVolumes(export),
-                getHosts(export), getClusters(export));
+                getHosts(export), getClusters(export), getPathParameters(export));
     }
 
     // This was originally in the ExportGroupRestRep
@@ -1438,6 +1452,16 @@ public class ExportGroupService extends TaskResourceService {
             return _dbClient.queryObject(Cluster.class, uris);
         }
         return new ArrayList<Cluster>();
+    }
+    
+    private List<ExportPathParams> getPathParameters(ExportGroup export) {
+        if (! export.getPathParameters().isEmpty()) {
+            List<String> ids = new ArrayList<String>(export.getPathParameters().values());
+            List<URI> uris = URIUtil.toURIList(ids);
+            return _dbClient.queryObject(ExportPathParams.class, uris);
+        } else {
+            return new ArrayList<ExportPathParams>();
+        }
     }
 
     /**
@@ -2493,8 +2517,9 @@ public class ExportGroupService extends TaskResourceService {
      * @param blockObjectURIs -- Collection of block object URIs, used only for validating ports
      * @return ExportPathParam suitable for persistence
      */
-    ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param, 
+     ExportPathParams validateAndCreateExportPathParam(ExportPathParameters param, 
             ExportGroup exportGroup, Collection<URI> blockObjectURIs) {
+        
         // If minPaths is specified, or pathsPerInitiator is specified, maxPaths must be specified
         if ((param.getMinPaths() != null || param.getPathsPerInitiator() != null) && param.getMaxPaths() == null) {
             throw APIException.badRequests.maxPathsRequired();
@@ -2526,8 +2551,16 @@ public class ExportGroupService extends TaskResourceService {
             throw APIException.badRequests.pathsPerInitiatorGreaterThanMaxPaths();
         }
         
+        // Collect the list of Storage Systems used by the block objects.
+        Set<URI> storageArrays = new HashSet<URI>();
+        for (URI blockObjectURI : blockObjectURIs) {
+            BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
+            if (blockObject == null) continue;
+            storageArrays.add(blockObject.getStorageController());
+        }
+        
         // validate storage ports if they are supplied
-        validateExportPathParmPorts(param, exportGroup, blockObjectURIs);
+        validateExportPathParmPorts(param, exportGroup, storageArrays);
 
         ExportPathParams pathParam = new ExportPathParams();
         pathParam.setId(URIUtil.createId(ExportPathParams.class));
@@ -2539,27 +2572,88 @@ public class ExportGroupService extends TaskResourceService {
             pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
         }
         pathParam.setExplicitlyCreated(false);
+        
+        // Validate there are no existing exports for the hosts involved that we could not override.
+        validateNoConflictingExports(exportGroup, storageArrays, pathParam);
+        
         return pathParam;
+    }
+    
+    /**
+     * Throw an error if we cannot override the Vpool path parameters because there is already
+     * an existing export from the indicated host(s) to storage array(s).
+     * @param exportGroup
+     * @param arrayURIs
+     * @param pathParam -- New ExportPathParams to be used
+     */
+    private void validateNoConflictingExports(ExportGroup exportGroup, Set<URI> arrayURIs, 
+            ExportPathParams pathParam) {
+        _log.info("Requested path parameters: " + pathParam.toString());
+        Map<String, String> conflictingMasks = new HashMap<String, String>();
+        StringSet initiators = exportGroup.getInitiators();
+        for (String initiatorId : initiators) {
+            Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+            if (initiator == null || initiator.getInactive()) {
+                continue;
+            }
+            // Look up all the Export Masks for this Initiator
+            List<ExportMask> exportMasks = 
+                ExportUtils.getInitiatorExportMasks(initiator, _dbClient);
+            for (ExportMask exportMask : exportMasks) {
+                // If this mask is for the same Host and Storage combination, we cannot override
+                if (arrayURIs.contains(exportMask.getStorageDevice())) {
+                    ExportPathParams maskParam = 
+                                BlockStorageScheduler.calculateExportPathParamForExportMask(_dbClient, exportMask);
+                    _log.info(String.format("Existing mask %s (%s) parameters: %s", 
+                            exportMask.getMaskName(), exportMask.getId(), maskParam));
+                    
+                    // Determine if the mask is compatible with the requested parameters or not.
+                    // To be compatible, the mask must have the same paths_per_initiator setting, and
+                    // its max paths must be between the requested min paths and max paths.
+                    // i.e. maskParams.ppi = pathParms.ppi and pathParams.minPath <= maskParams.maxpath <= pathParams.maxPath
+                    if (pathParam.getPathsPerInitiator() == maskParam.getPathsPerInitiator() 
+                            && (pathParam.getMinPaths() <= maskParam.getMaxPaths() 
+                            && maskParam.getMaxPaths() <= maskParam.getMaxPaths())) {
+                        _log.info(String.format("Export mask %s is compatible with the requested parameters", 
+                                exportMask.getMaskName()));
+                    } else {
+                        StorageSystem system = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
+                        String hostName = (initiator.getHostName() != null) ? initiator.getHostName() : initiatorId;
+                        String systemName = (system != null) ? system.getLabel() : exportMask.getStorageDevice().toString();
+                        if (!conflictingMasks.containsKey(hostName)) {
+                            String msg = String.format(
+                             "Export Mask %s for Host %s and Array %s has %d paths and paths_per_initiator %d", 
+                             exportMask.getMaskName(), hostName, systemName, maskParam.getMaxPaths(), maskParam.getPathsPerInitiator());
+                        conflictingMasks.put(hostName, msg);
+                        }
+                    }
+                }
+            }
+        }
+        if (!conflictingMasks.isEmpty()) {
+            StringBuilder builder = new StringBuilder();
+            for (Entry<String, String> entry : conflictingMasks.entrySet()) {
+                if (builder.length() != 0) {
+                    builder.append("; ");
+                }
+                builder.append(entry.getValue());
+            }
+            throw APIException.badRequests.cannotOverrideVpoolPathsBecauseExistingExports(builder.toString());
+        }
     }
     
     /**
      * Validate that if ports are supplied in the ExportPathParameters, then ports are supplied
      * for every array in the list of volumes to be provisioned. Also verify
      * the ports can be located, and there are at least as many ports as maxPaths.
-     * @param param
+     * @param param ExportPathParameters block
      * @param exportGroup
-     * @param blockObjectURIs - URI Collection of volumes to be provisioned.
+     * @param StorageArrays Collection<URI> Arrays that will be used for the Exports
      */
     private void validateExportPathParmPorts(ExportPathParameters param, ExportGroup exportGroup, 
-            Collection<URI> blockObjectURIs) {
-        if (param.getClass() == null || param.getStoragePorts() == null || param.getStoragePorts().isEmpty())
+            Collection<URI> storageArrays) {
+        if (param.getClass() == null || param.getStoragePorts() == null || param.getStoragePorts().isEmpty()) {
             return;
-        // Collect the list of Storage Systems used by the block objects.
-        Set<URI> storageArrays = new HashSet<URI>();
-        for (URI blockObjectURI : blockObjectURIs) {
-            BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
-            if (blockObject == null) continue;
-            storageArrays.add(blockObject.getStorageController());
         }
         // Get database entries for all the ports in a map of array URI to set of StoragePort.
         Map<URI, Set<StoragePort>> arrayToStoragePorts = new HashMap<URI, Set<StoragePort>>();

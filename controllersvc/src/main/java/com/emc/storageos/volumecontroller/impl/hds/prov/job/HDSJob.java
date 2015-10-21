@@ -27,6 +27,7 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
+import com.sun.jersey.api.client.ClientHandlerException;
 
 /**
  * An HDS job
@@ -162,7 +163,7 @@ public class HDSJob extends Job implements Serializable
                     }
                 }
             }
-        } catch (NoHttpResponseException ex) {
+        } catch (ClientHandlerException | NoHttpResponseException ex) {
             _status = JobStatus.FAILED;
             _pollResult.setJobPercentComplete(100);
             _errorDescription = ex.getMessage();

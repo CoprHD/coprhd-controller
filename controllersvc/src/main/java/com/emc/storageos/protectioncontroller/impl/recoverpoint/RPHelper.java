@@ -237,7 +237,7 @@ public class RPHelper {
 
         Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, reqDeleteVolumes, true);
 
-        // Divide the RP volumes by BlockConsistencyGroup so we can determine if all Volume's in the
+        // Divide the RP volumes by BlockConsistencyGroup so we can determine if all volumes in the
         // RP consistency group are being removed.
         Map<URI, Set<URI>> cgsToVolumesForDelete = new HashMap<URI, Set<URI>>();
 
@@ -1296,11 +1296,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     * 
+     *
      * @param sourceSizeStr size of the source volume
-     * 
+     *
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     * 
+     *
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {

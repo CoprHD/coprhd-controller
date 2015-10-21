@@ -1719,19 +1719,4 @@ public class VPlexApiClient {
         return _discoveryMgr.getDrillDownInfoForDevice(deviceName);
     }
 
-    /**
-     * Updates virtual volume details.
-     * 
-     * @param clusterName the VPLEX cluster name
-     * @param virtualVolumeInfo the virtual volume to update
-     * 
-     * @return boolean indicating whether or not the volume
-     *         information was found on the device
-     * 
-     * @throws VPlexApiException
-     */
-    public boolean updateVirtualVolumeInfo(String clusterName,
-            VPlexVirtualVolumeInfo virtualVolumeInfo) throws VPlexApiException {
-        return _discoveryMgr.updateVirtualVolumeInfo(clusterName, virtualVolumeInfo);
-    }
 }

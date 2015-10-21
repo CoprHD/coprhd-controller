@@ -2347,7 +2347,7 @@ public class VPlexApiDiscoveryManager {
      * 
      * @throws VPlexApiException
      */
-    public boolean updateVirtualVolumeInfo(String clusterName,
+    boolean updateVirtualVolumeInfo(String clusterName,
             VPlexVirtualVolumeInfo virtualVolumeInfo) throws VPlexApiException {
 
         // Get the URI for the virtual volume info request and make the request.

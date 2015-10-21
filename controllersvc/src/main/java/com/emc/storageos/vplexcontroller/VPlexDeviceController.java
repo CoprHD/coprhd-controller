@@ -10143,10 +10143,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     }
 
+    /**
+     * Returns reference to coordinatorClient
+     * 
+     * @return CoordinatorClient
+     */
     public static CoordinatorClient getCoordinator() {
         return coordinator;
     }
 
+    /**
+     * Inject coordinatorClient
+     * 
+     * @param coordinatorClient
+     */
     public static void setCoordinator(CoordinatorClient coordinator) {
         VPlexDeviceController.coordinator = coordinator;
     }

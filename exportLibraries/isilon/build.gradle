@@ -1,6 +1,7 @@
 dependencies {
 	compile project(":errorhandling")
 	compile project(":serviceutils")
+	compile	library(jsch)
 
     testCompile library(commons_logging)
 }

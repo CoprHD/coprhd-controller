@@ -1283,4 +1283,22 @@ public class CoordinatorClientExt {
         }
         return null;
     }
+
+    /**
+     * Get the nodes list on which specific service are available
+     */
+    public List<String> getServiceAvailableNodes(String serviceName) {
+        List<String> availableNodes = new ArrayList<String>();
+        try {
+            String dbVersion = _coordinator.getTargetDbSchemaVersion();
+            Set<String> ids = getGoodNodes(serviceName, dbVersion);
+            for (String id : ids) {
+                availableNodes.add("vipr" + id);
+            }
+        } catch (Exception ex) {
+            _log.info("Check service({}) beacon error", serviceName, ex);
+        }
+        _log.info("Get available nodes by check {}: {}", serviceName, availableNodes);
+        return availableNodes;
+    }
 }

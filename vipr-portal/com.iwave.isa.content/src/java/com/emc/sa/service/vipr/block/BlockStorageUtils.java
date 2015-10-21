@@ -886,8 +886,7 @@ public class BlockStorageUtils {
     }
     
     /**
-     * Stores the virtual pool, virtual array, project, host, consistency group,
-     * and HLU values for volume create services.
+     * Stores the host and HLU values for volume create for host services.
      */
     public static class HostVolumeParams extends VolumeParams {
         @Param(HOST)
@@ -944,20 +943,6 @@ public class BlockStorageUtils {
      * @return map of all params
      */
     public static Map<String, Object> createParam(VolumeTable table, Params params) {
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.putAll(table.getParams());
-        map.putAll(params.getParams());
-        return map;
-    }
-    
-    /**
-     * Helper method for creating a list of all the params for the createBlockVolumesHelper.
-     *
-     * @param table volume table
-     * @param params for volume creation
-     * @return map of all params
-     */
-    public static Map<String, Object> createNoHostVolumeParam(VolumeTable table, Params params) {
         Map<String, Object> map = new HashMap<String, Object>();
         map.putAll(table.getParams());
         map.putAll(params.getParams());

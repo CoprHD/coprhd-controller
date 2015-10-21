@@ -43,7 +43,7 @@ public class PrefixDbIndex extends DbIndex {
         IndexColumnName indexEntry =
                 new IndexColumnName(className, text.toLowerCase(), text, recordKey, mutator.getTimeUUID());
 
-        ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
+        mutator.addIndexSize(ColumnValue.setColumn(indexColList, indexEntry, null, ttl));
 
         return true;
     }

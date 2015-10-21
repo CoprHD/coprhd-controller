@@ -397,7 +397,8 @@ public class ColumnField {
         // insert record
         ColumnListMutation<CompositeColumnName> recordColList =
                 mutator.getRecordColumnList(_parentType.getCF(), recordKey);
-        ColumnValue.setColumn(recordColList, column, val, _ttl);
+        int bytes = ColumnValue.setColumn(recordColList, column, val, _ttl);
+        mutator.addRecordSize(bytes);
 
         if (_index == null || val == null) {
             return false;

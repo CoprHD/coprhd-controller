@@ -34,7 +34,7 @@ public class NamedRelationDbIndex extends DbIndex {
         IndexColumnName indexEntry =
                 new IndexColumnName(className, name.toLowerCase(), name, recordKey, mutator.getTimeUUID());
 
-        ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
+        mutator.addIndexSize(ColumnValue.setColumn(indexColList, indexEntry, null, ttl));
 
         return true;
     }

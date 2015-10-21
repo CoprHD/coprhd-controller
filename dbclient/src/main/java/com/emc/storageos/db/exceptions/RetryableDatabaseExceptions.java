@@ -48,4 +48,7 @@ public interface RetryableDatabaseExceptions {
     @DeclareServiceCode(ServiceCode.DBSVC_DUMMY_ERROR)
     RetryableDatabaseException dummyClientFailed();
 
+    // Database connection failed
+    @DeclareServiceCode(ServiceCode.DBSVC_CONNECTION_ERROR)
+    RetryableDatabaseException exceedThriftTransportFrameSize(long size);
 }

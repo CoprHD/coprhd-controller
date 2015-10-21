@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.Keyspace;
@@ -27,6 +28,8 @@ public class RowMutator {
     private long _timeStamp;
     private MutationBatch _recordMutator;
     private MutationBatch _indexMutator;
+    private long recordSizeInByte=0;
+    private long indexSizeInByte=0;
 
     public RowMutator(Keyspace keyspace) {
         _timeUUID = TimeUUIDUtils.getUniqueTimeUUIDinMicros();
@@ -47,6 +50,14 @@ public class RowMutator {
 
     public long getTimeStamp() {
         return _timeStamp;
+    }
+
+    public void addRecordSize(int bytes) {
+        recordSizeInByte += bytes;
+    }
+
+    public void addIndexSize(int bytes) {
+        indexSizeInByte += bytes;
     }
 
     /**
@@ -97,6 +108,14 @@ public class RowMutator {
      * Updates record first and index second. This is used for insertion
      */
     public void executeRecordFirst() {
+        if (indexSizeInByte >= DbConfigConstants.THRIFT_FRAME_TRANSPORT_SIZE) {
+            throw DatabaseException.fatals.exceedThriftFrameTransportSize("index", indexSizeInByte);
+        }
+
+        if(recordSizeInByte >= DbConfigConstants.THRIFT_FRAME_TRANSPORT_SIZE ) {
+            throw DatabaseException.fatals.exceedThriftFrameTransportSize("data", recordSizeInByte);
+        }
+
         try {
             if (!_recordMutator.isEmpty()) {
                 _recordMutator.execute();
@@ -105,7 +124,7 @@ public class RowMutator {
                 _indexMutator.execute();
             }
         } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+            throw DatabaseException.retryables.connectionFailed();
         }
     }
 

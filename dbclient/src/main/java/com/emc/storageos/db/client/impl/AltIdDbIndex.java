@@ -38,7 +38,8 @@ public class AltIdDbIndex extends DbIndex {
 
         IndexColumnName indexEntry = new IndexColumnName(className, recordKey, mutator.getTimeUUID());
 
-        ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
+        int bytes = ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
+        mutator.addIndexSize(bytes);
 
         return true;
     }

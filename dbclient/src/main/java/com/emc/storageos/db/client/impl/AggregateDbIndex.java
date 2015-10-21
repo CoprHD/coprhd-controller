@@ -59,7 +59,8 @@ public class AggregateDbIndex extends DbIndex {
         if (groupGlobal) {
             ColumnListMutation<IndexColumnName> indexColList =
                     mutator.getIndexColumnList(indexCF, className);
-            ColumnValue.setColumn(indexColList, indexEntry, value, ttl);
+            int bytes = ColumnValue.setColumn(indexColList, indexEntry, value, ttl);
+            mutator.addIndexSize(bytes);
         }
 
         for (String field : groupBy) {
@@ -69,7 +70,8 @@ public class AggregateDbIndex extends DbIndex {
                 if (groupValue != null) {
                     ColumnListMutation<IndexColumnName> indexColList =
                             mutator.getIndexColumnList(indexCF, getRowKey(className, groupValue));
-                    ColumnValue.setColumn(indexColList, indexEntry, value, ttl);
+                    int bytes = ColumnValue.setColumn(indexColList, indexEntry, value, ttl);
+                    mutator.addIndexSize(bytes);
                 }
             }
         }

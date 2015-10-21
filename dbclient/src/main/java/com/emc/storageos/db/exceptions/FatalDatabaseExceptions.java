@@ -114,6 +114,9 @@ public interface FatalDatabaseExceptions {
     @DeclareServiceCode(ServiceCode.DBSVC_ERROR)
     public FatalDatabaseException nullIdProvided();
 
+    @DeclareServiceCode(ServiceCode.DBSVC_ERROR)
+    public FatalDatabaseException exceedThriftFrameTransportSize(String cfType, long size);
+
     @DeclareServiceCode(ServiceCode.DBSVC_ANNOTATION_ERROR)
     public FatalDatabaseException invalidAnnotation(String annotationName, String errMsg);
 

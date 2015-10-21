@@ -492,7 +492,7 @@ public class DisasterRecoveryService {
      * work as normal standby site and target site will be promoted to primary. All site will update properties to trigger reconfig.
      * 
      * @param uuid target new primary site UUID
-     * @return
+     * @return return accepted response if operation is successful
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

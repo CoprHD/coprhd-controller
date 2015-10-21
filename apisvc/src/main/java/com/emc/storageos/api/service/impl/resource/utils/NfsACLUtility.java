@@ -46,7 +46,6 @@ public class NfsACLUtility {
     public static final String REQUEST_PARAM_GROUP = "group";
 
     public NfsACLUtility(DbClient dbClient, FileShare fs, Snapshot snapshot, String subDir) {
-        super();
         this.dbClient = dbClient;
         this.fs = fs;
         this.snapshot = snapshot;
@@ -54,6 +53,13 @@ public class NfsACLUtility {
 
     }
 
+    /**
+     * Check the provided String value is a valid type of enum or not
+     * 
+     * @param value String need to be checked
+     * @param enumClass the enum class for which it need to be checked.
+     * @return
+     */
     public <T extends Enum<T>> boolean isValidEnum(String value, Class<T> enumClass) {
         for (T e : enumClass.getEnumConstants()) {
             if (e.name().equalsIgnoreCase(value)) {
@@ -125,13 +131,26 @@ public class NfsACLUtility {
 
             }
             // check if two times domain is provided
-            if (ace.getDomain() != null && !ace.getDomain().isEmpty()) {
-
-                int index = ace.getUser().indexOf("\\");
-                if (index >= 0) {
+            int index = ace.getUser().indexOf("\\");
+            if (index >= 0) {
+                if (ace.getDomain() != null && !ace.getDomain().isEmpty()) {
 
                     throw APIException.badRequests.multipleDomainsFound("update", ace.getDomain(), ace.getUser().substring(0, index));
+                } else {
+                    // split takes regex so need 4 backslash
+                    String domainAnduser[] = ace.getUser().split("\\\\");
+                    if (domainAnduser.length > 2) {
+                        throw APIException.badRequests.multipleDomainsFound("update", domainAnduser[0], domainAnduser[1]);
+                    }
+                    // split the user and domain form user field and store it separately
+                    // this is required to store value in DB in one format
+                    if (domainAnduser.length == 2) {
+                        ace.setDomain(domainAnduser[0]);
+                        ace.setUser(domainAnduser[1]);
+
+                    }
                 }
+
             }
 
         }

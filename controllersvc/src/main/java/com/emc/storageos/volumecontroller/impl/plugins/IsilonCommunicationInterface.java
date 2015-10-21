@@ -103,12 +103,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String RW = "rw";
     private static final String ROOT = "root";
     private static final String NFS = "NFS";
+    private static final String CIFS = "CIFS";
     private static final String UNIXSECURITY = "unix";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String SYSSECURITY = "sys";
-    private static final Long TBsINKB = 1073741824L;
     private static final Long MAX_NFS_EXPORTS = 1500L;
-    private static final Long MAX_STORAGE_OBJS = 40000L; 
+    private static final Long MAX_STORAGE_OBJECTS = 40000L; 
+    private static final String SYSTEM_ACCESS_ZONE_NAME = "System";
 
     private IsilonApiFactory _factory;
 
@@ -282,7 +283,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 if( isAccessZone.isSystem() != true) {
                     virtualNAS = findvNasByNativeId(storageSystem, accessZoneId);
                     if(virtualNAS != null) {
-                        _log.info("process db metrics for access zone : {}", isAccessZone.getName());
+                        _log.info("Process db metrics for access zone : {}", isAccessZone.getName());
                         dbMetrics = virtualNAS.getMetrics();
                         if(dbMetrics == null) {
                             dbMetrics = new StringMap();
@@ -292,7 +293,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                        
                         //set AZ dbMetrics in db
                         virtualNAS.setMetrics(dbMetrics);
-                        _dbClient.persistObject(virtualNAS);
+                        _dbClient.updateObject(virtualNAS);
                     }
                 } else {
                     PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, accessZoneId);
@@ -308,7 +309,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     _log.info("process db metrics for access zone : {}", isAccessZone.getName());
                     populateDbMetricsAz(isAccessZone, isilonApi, dbMetrics);
                     physicalNAS.setMetrics(dbMetrics);
-                    _dbClient.persistObject(physicalNAS);
+                    _dbClient.updateObject(physicalNAS);
                 }
             }
         } catch (Exception e) {
@@ -340,7 +341,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         totalProvCap = totalProvCap + quota.getThresholds().getHard();
                         totalFsCount ++;
                     } else {
-                        _log.info("not able to get quota for fs : {}", quota.getPath());
+                        _log.info("Not able to get quota for fs: {}", quota.getPath());
                     }
                 }
                 resumeToken = quotas.getToken();
@@ -360,8 +361,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 resumeToken = snapshots.getToken();
             }
         } while (resumeToken != null);
-        _log.info("db metrics- total fs Count {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
-        _log.info("db metrics- total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());
+        _log.info("Total fs Count {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
+        _log.info("Total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());
        
         //get total exports
         int nfsExportsCount = 0;
@@ -375,7 +376,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 resumeToken = isilonNfsExports.getToken();
             }
         } while(resumeToken != null);
-        _log.info("db metrics- total NFS exports {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
+        _log.info("Total NFS exports {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
 
         //get cifs exports for given access zone
         resumeToken = null;
@@ -387,7 +388,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 resumeToken = isilonCifsExports.getToken();
             }
         } while(resumeToken != null);
-        _log.info("db metrics- total CIFS sharess {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
+        _log.info("Total CIFS sharess {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
 
         if(dbMetrics == null) {
             dbMetrics = new StringMap();
@@ -649,11 +650,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         PhysicalNAS physicalNAS = null;
         List<IsilonAccessZone> accessZoneListTemp = null;
         
-        List<VirtualNAS> newvNasList = new ArrayList<VirtualNAS>();
-        List<VirtualNAS> exitingvNASList = new ArrayList<VirtualNAS>();
+        List<VirtualNAS> newvNASList = new ArrayList<VirtualNAS>();
+        List<VirtualNAS> existingvNASList = new ArrayList<VirtualNAS>();
         
-        List<PhysicalNAS> newPhyList = new ArrayList<PhysicalNAS>();
-        List<PhysicalNAS> exitingPhyList = new ArrayList<PhysicalNAS>();
+        List<PhysicalNAS> newPhysicalNASList = new ArrayList<PhysicalNAS>();
+        List<PhysicalNAS> existingPhysicalNASList = new ArrayList<PhysicalNAS>();
         
         // Discover storage ports
         try {
@@ -676,7 +677,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonNetworkPool isilonNetworkPoolSystem = null;
             List<IsilonNetworkPool> isilonNetworkPoolList = discoverNetworkPools(storageSystem);
             for(IsilonNetworkPool isilonNetworkPool : isilonNetworkPoolList) {
-                if( isilonNetworkPool.getAccess_zone().equalsIgnoreCase("System") ){
+                if(isilonNetworkPool.getAccess_zone().equalsIgnoreCase(SYSTEM_ACCESS_ZONE_NAME)) {
                     isilonNetworkPoolSystem = isilonNetworkPool;
                     break;
                 }
@@ -684,44 +685,44 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             //set the protocol based storagesystem version 
            //by default all version support CIFS and version above 7.2 NFS also
             StringSet protocols = new StringSet();
-            protocols.add("CIFS");
+            protocols.add(CIFS);
             
-            if(storageSystem.getFirmwareVersion().charAt(0) >= '7' && storageSystem.getFirmwareVersion().charAt(2) >= '2') {
-                protocols.add("NFS");
+            if(storageSystem.getFirmwareVersion().charAt(0) >= '7' && 
+            		storageSystem.getFirmwareVersion().charAt(2) >= '2') {
+                protocols.add(NFS);
             } 
             
             StoragePort storagePort = null;
             StringSet storagePorts = null;
-            IsilonNetworkPool isilonNetworkPoolTemp = null;
+            IsilonNetworkPool isilonNetworkPool = null;
             CifsServerMap cifsServersMap = null;
             //process the access zones list
             for (IsilonAccessZone isilonAccessZone : accessZoneList) {
-                //add protocol to nas server's
-                
-                //is System access zone ?
-                isilonNetworkPoolTemp = null;
-                _log.info("process the user define access zone {} ", isilonAccessZone.toString());
+                //add protocol to NAS servers
+                //is it a System access zone?
+                isilonNetworkPool = null;
+                _log.info("Process the user defined access zone {} ", isilonAccessZone.toString());
                 if (isilonAccessZone.isSystem() == false) {
                    // get the smart connect zone information
-                   for(IsilonNetworkPool isilonNetworkPool : isilonNetworkPoolList) {
-                       if( isilonNetworkPool.getAccess_zone().equalsIgnoreCase(isilonAccessZone.getName()) ){
-                           isilonNetworkPoolTemp = isilonNetworkPool;
+                   for(IsilonNetworkPool eachNetworkPool : isilonNetworkPoolList) {
+                       if(eachNetworkPool.getAccess_zone().equalsIgnoreCase(isilonAccessZone.getName()) ){
+                    	   isilonNetworkPool = eachNetworkPool;
                            break;
                        }
                    }
                    //if the smart connect is null then set default access zone
-                   if (isilonNetworkPoolTemp == null) {
-                       isilonNetworkPoolTemp = isilonNetworkPoolSystem;
+                   if (isilonNetworkPool == null) {
+                	   isilonNetworkPool = isilonNetworkPoolSystem;
                    }
                    
-                   //find virtual in db
+                   //find virtualNAS in db
                    virtualNAS = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                    if(virtualNAS == null) {
                        virtualNAS = createVirtualNas(storageSystem, isilonAccessZone);
-                       newvNasList.add(virtualNAS);
+                       newvNASList.add(virtualNAS);
                    } else {
                        setMaxDbMetricsAz(storageSystem, virtualNAS.getMetrics());
-                       exitingvNASList.add(virtualNAS);
+                       existingvNASList.add(virtualNAS);
                    }
                    
                    //authenticate providers
@@ -732,7 +733,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    //set protocol support
                    virtualNAS.setProtocols(new StringSet(protocols));
                    //set the smart connect
-                   if(isilonNetworkPoolSystem != null) {
+                   if(isilonNetworkPool != null) {
                        storagePorts = virtualNAS.getStoragePorts();
                        if(storagePorts == null) {
                            storagePorts = new StringSet();
@@ -748,12 +749,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    physicalNAS = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                    if(physicalNAS == null) {
                        physicalNAS = createPhysicalNas(storageSystem, isilonAccessZone);
-                       newPhyList.add(physicalNAS);
+                       newPhysicalNASList.add(physicalNAS);
                    } else {
                        setMaxDbMetricsAz(storageSystem, physicalNAS.getMetrics());
-                       exitingPhyList.add(physicalNAS);
+                       existingPhysicalNASList.add(physicalNAS);
                    }
-                   //add authenticate providers
+                   //add authentication providers
                    cifsServersMap = getCifsServerMap(isilonAccessZone);
                    if(!cifsServersMap.isEmpty()) {
                        physicalNAS.setCifsServersMap(cifsServersMap);
@@ -777,30 +778,30 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
             
             // Persist the vNAS servers and 
-            if (newvNasList != null && !newvNasList.isEmpty()) {
+            if (newvNASList != null && !newvNASList.isEmpty()) {
                 //add the parent system access zone to user defined access zones
                 if(physicalNAS != null) {
-                     for(VirtualNAS virNas: newvNasList) {
-                        virNas.setParentNasUri(physicalNAS.getId());
+                     for(VirtualNAS vNas: newvNASList) {
+                        vNas.setParentNasUri(physicalNAS.getId());
                     }
                 }
-                _log.info("discoverAccessZones - new Virtual NAS servers size {}", newvNasList.size());
-                _dbClient.createObject(newvNasList);
+                _log.info("New Virtual NAS servers size {}", newvNASList.size());
+                _dbClient.createObject(newvNASList);
             }
             
-            if (exitingvNASList != null && !exitingvNASList.isEmpty()) {
-                _log.info("discoverAccessZones - modified Virtaul NAS servers size {}", exitingvNASList.size());
-                _dbClient.persistObject(exitingvNASList);
+            if (existingvNASList != null && !existingvNASList.isEmpty()) {
+                _log.info("Modified Virtaul NAS servers size {}", existingvNASList.size());
+                _dbClient.updateObject(existingvNASList);
             }
             // Persist the NAS servers!!!
-            if (exitingPhyList != null && !exitingPhyList.isEmpty()) {
-                _log.info("discoverAccessZones - modified Physical NAS servers size {}", exitingPhyList.size());
-                _dbClient.persistObject(exitingPhyList);
+            if (existingPhysicalNASList != null && !existingPhysicalNASList.isEmpty()) {
+                _log.info("Modified Physical NAS servers size {}", existingPhysicalNASList.size());
+                _dbClient.updateObject(existingPhysicalNASList);
             }
 
-            if (newPhyList != null && !newPhyList.isEmpty()) {
-                _log.info("discoverAccessZones - new Physical NAS servers size {}", newPhyList.size());
-                _dbClient.createObject(newPhyList);
+            if (newPhysicalNASList != null && !newPhysicalNASList.isEmpty()) {
+                _log.info("New Physical NAS servers size {}", newPhysicalNASList.size());
+                _dbClient.createObject(newPhysicalNASList);
             }
             
         } catch (Exception e) {
@@ -858,8 +859,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     storagePool.setStorageDevice(storageSystemId);
 
                     StringSet protocols = new StringSet();
-                    protocols.add("NFS");
-                    protocols.add("CIFS");
+                    protocols.add(NFS);
+                    protocols.add(CIFS);
                     storagePool.setProtocols(protocols);
                     storagePool.setPoolName(isilonPool.getNativeId());
                     storagePool.setNativeId(isilonPool.getNativeId());
@@ -2371,16 +2372,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param dbMetrics
      */
     private void setMaxDbMetricsAz(final StorageSystem system, StringMap dbMetrics) {
-     // Set the Limit Metric keys!!
-        Long MaxObjects = 40000L;
-        dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
-        
-        
+    	// Set the Limit Metric keys!!
+        dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MAX_STORAGE_OBJECTS));
         
         Long MaxNfsExports = 0L;
         Long MaxCifsShares = 30000L;
         if(system.getFirmwareVersion().charAt(0) >= '7' && system.getFirmwareVersion().charAt(2) >= '2') {
-            MaxNfsExports = 1500L;
+            MaxNfsExports = MAX_NFS_EXPORTS;
             MaxCifsShares = 40000L;
         }
         

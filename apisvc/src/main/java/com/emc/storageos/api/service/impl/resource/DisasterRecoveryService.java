@@ -455,7 +455,20 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.pauseStandbyFailed(uuid, e.getMessage());
         }
     }
-    
+
+    /**
+     * Failover to a standby site specified by uuid
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{uuid}/failover")
+    public SiteRestRep plannedFailover(@PathParam("uuid") String uuid) {
+        log.info("Begin to failover to site specified by {}" , uuid);
+
+        precheckForPlannedFailover(uuid);
+        // TODO by Yuan
+        return null;
+    }
     /**
      * Query the latest error message for specific standby site
      * 
@@ -568,6 +581,45 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(e.getMessage());
         }
     }
+
+    /*
+     * Internal method to check whether failover from primary to standby is allowed
+     */
+    protected void precheckForPlannedFailover(String standbyUuid) {
+        try {
+            Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, standbyUuid);
+            if (config == null) {
+                throw new Exception("Standby uuid is not valid, can't find in ZK");
+            }
+
+            Site standby = new Site(config);
+
+            if (standbyUuid.equals(coordinator.getPrimarySiteId())) {
+                throw new Exception("Can't failover to a primary site");
+            }
+
+            // TODO Need to check standby heartbeat to make sure standby is connected
+            // Heartbeat mechanism is not implemented yet, so here just omit for now
+
+            if (!isClusterStable()) {
+                throw new Exception("Primary site is not stable");
+            }
+
+            if (!isSiteStable(standby)) {
+                throw new Exception("Standby site is not stable");
+            }
+
+            if (standby.getState() != SiteState.STANDBY_SYNCED) {
+                throw new Exception("Standby site is not fully synced");
+            }
+
+        } catch (Exception e) {
+            log.error(String.format("Failed to failover to site %s", standbyUuid), e);
+            InternalServerErrorException failoverException = APIException.internalServerErrors.plannedFailoverPrecheckFailed(standbyUuid, e.getMessage());
+            setSiteError(standbyUuid, failoverException);
+            throw failoverException;
+        }
+    }
     
     protected void validateAddParam(SiteAddParam param, List<Site> existingSites) {
         for (Site site : existingSites) {
@@ -575,9 +627,7 @@ public class DisasterRecoveryService {
                 throw APIException.internalServerErrors.addStandbyPrecheckFailed("Duplicate site name");
             }
 
-            int ipv4Count = site.getHostIPv4AddressMap().size();
-            int ipv6Count = site.getHostIPv6AddressMap().size();
-            int nodeCount = ipv4Count > 0? ipv4Count : ipv6Count;
+            int nodeCount = getSiteNodeCount(site);
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
@@ -585,7 +635,7 @@ public class DisasterRecoveryService {
             }
         }
     }
-    
+
     private String generateShortId(List<Site> existingSites) throws Exception{
         Set<String> existingShortIds = new HashSet<String>();
         for (Site site : existingSites) {
@@ -622,8 +672,23 @@ public class DisasterRecoveryService {
         }
         return result;
     }
-    
-    private boolean isClusterStable() {
+
+    private int getSiteNodeCount(Site site) {
+        int ipv4Count = site.getHostIPv4AddressMap().size();
+        int ipv6Count = site.getHostIPv6AddressMap().size();
+        return ipv4Count > 0? ipv4Count : ipv6Count;
+    }
+
+    /*
+     * Internal method, fetch cluster state of a specific site from Zookeeper.
+     */
+    protected boolean isSiteStable(Site site) {
+        int nodeCount = getSiteNodeCount(site);
+        ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
+        return state == ClusterInfo.ClusterState.STABLE;
+    }
+
+    protected boolean isClusterStable() {
         return coordinator.getControlNodesState() == ClusterInfo.ClusterState.STABLE;
     }
     

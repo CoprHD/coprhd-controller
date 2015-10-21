@@ -293,13 +293,8 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
             } else {
                 String[] members = _helper.getBlockObjectAlternateNames(replicasPartOfGroup);
                 CIMObjectPath[] memberPaths = _cimPath.getVolumePaths(system, members);
-                CIMArgument[] inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, false);
-                // Only for 8.0.3 and up. !!! (see COP-13573)
-                if (system.getUsingSmis80()) {
-                    CIMArgument<Boolean> unmapElements = new CIMArgument<Boolean>(SmisConstants.CP_EMC_UNMAP_ELEMENTS,
-                            CIMDataType.BOOLEAN_T, Boolean.TRUE);
-                    inArgs = _helper.addElement(inArgs, unmapElements);
-                }
+                CIMArgument[] inArgs = _helper.getRemoveAndUnmapMaskingGroupMembersInputArguments(
+                        maskingGroupPath, memberPaths, system, false);
                 CIMArgument[] outArgs = new CIMArgument[5];
 
                 _log.info("Invoking remove mirrors {} from Device Masking Group equivalent to its Replication Group {}",

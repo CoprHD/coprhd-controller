@@ -535,7 +535,7 @@ public class SmisCommandHelper implements SmisConstants {
         args.add(_cimArgument.referenceArray(CP_COLLECTIONS, new CIMObjectPath[]{volumeGroupPath}));
         args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, replicaSettingData));
 
-        return args.toArray(new CIMArgument[] {});
+        return args.toArray(new CIMArgument[]{});
     }
 
     public CIMArgument[] getCreateElementReplicaMirrorInputArguments(StorageSystem storageDevice, BlockObject volume,
@@ -603,7 +603,7 @@ public class SmisCommandHelper implements SmisConstants {
         int FRACTURE_OR_SPLIT = (sync != null && sync) ? SPLIT_VALUE : FRACTURE_VALUE;
         return new CIMArgument[] { _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, FRACTURE_OR_SPLIT),
-                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[] {}))
+                _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncPaths.toArray(new CIMObjectPath[]{}))
         };
     }
 
@@ -1357,7 +1357,7 @@ public class SmisCommandHelper implements SmisConstants {
         ArrayList<CIMArgument> list = new ArrayList<CIMArgument>();
         try {
             CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storageDevice, volume);
-            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false, new String[] { CP_THINLY_PROVISIONED });
+            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false, new String[]{CP_THINLY_PROVISIONED});
             String isThinVolume = CIMPropertyFactory.getPropertyValue(volumeInstance, CP_THINLY_PROVISIONED);
             list.add(_cimArgument.reference(CP_THE_ELEMENT, volumePath));
             list.add(_cimArgument.uint64(CP_SIZE, size));
@@ -2124,12 +2124,7 @@ public class SmisCommandHelper implements SmisConstants {
         CIMObjectPath[] memberPaths = _cimPath.getVolumePaths(storage, members);
         CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
                 SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
-        CIMArgument[] args = getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, forceFlag);
-        // Only for 8.0.3 and up. !!! (see COP-13573)
-        if (storage.getUsingSmis80()) {
-            args = addElement(args, _cimArgument.bool(CP_EMC_UNMAP_ELEMENTS, Boolean.TRUE));
-        }
-        return args;
+        return getRemoveAndUnmapMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, storage, forceFlag);
     }
 
     public CIMArgument[] getRemoveTargetPortsFromMaskingGroupInputArguments(StorageSystem storage,
@@ -2167,6 +2162,16 @@ public class SmisCommandHelper implements SmisConstants {
         };
     }
 
+    public CIMArgument[] getRemoveAndUnmapMaskingGroupMembersInputArguments(CIMObjectPath maskingGroupPath, CIMObjectPath[] memberPaths,
+                                                                          StorageSystem storage, boolean forceFlag) {
+        CIMArgument[] args = getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, forceFlag);
+        // Only for 8.0.3 and up. !!! (see COP-13573)
+        if (storage.getUsingSmis80()) {
+            args = addElement(args, _cimArgument.bool(CP_EMC_UNMAP_ELEMENTS, Boolean.TRUE));
+        }
+        return args;
+
+    }
     public CIMArgument[] getAddOrRemoveMaskingGroupMembersInputArguments(CIMObjectPath maskingGroupPath, CIMObjectPath[] members,
             boolean forceFlag) {
         List<CIMArgument> argsList = new ArrayList<CIMArgument>();

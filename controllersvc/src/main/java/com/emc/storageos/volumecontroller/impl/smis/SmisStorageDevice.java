@@ -1370,14 +1370,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
                                 SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
                         _log.info("Removing volume {} from device masking group {}", volume.getNativeId(), maskingGroupPath.toString());
-                        inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath,
-                                volumePaths, true);
-                        // Only for 8.0.3 and up. !!! (see COP-13573)
-                        if (storage.getUsingSmis80()) {
-                            CIMArgument<Boolean> unmapElements = new CIMArgument<Boolean>(SmisConstants.CP_EMC_UNMAP_ELEMENTS,
-                                    CIMDataType.BOOLEAN_T, Boolean.TRUE);
-                            inArgs = _helper.addElement(inArgs, unmapElements);
-                        }
+                        inArgs = _helper.getRemoveAndUnmapMaskingGroupMembersInputArguments(maskingGroupPath,
+                                volumePaths, storage, true);
                         _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
                                 SmisConstants.REMOVE_MEMBERS, inArgs, outArgs, null);
                     } else {
@@ -2289,13 +2283,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             } else {
                 String[] members = _helper.getBlockObjectAlternateNames(replicasPartOfGroup);
                 CIMObjectPath[] memberPaths = _cimPath.getVolumePaths(storage, members);
-                CIMArgument[] inArgs = _helper.getAddOrRemoveMaskingGroupMembersInputArguments(maskingGroupPath, memberPaths, true);
-                // Only for 8.0.3 and up. !!! (see COP-13573)
-                if (storage.getUsingSmis80()) {
-                    CIMArgument<Boolean> unmapElements = new CIMArgument<Boolean>(SmisConstants.CP_EMC_UNMAP_ELEMENTS,
-                            CIMDataType.BOOLEAN_T, Boolean.TRUE);
-                    inArgs = _helper.addElement(inArgs, unmapElements);
-                }
+                CIMArgument[] inArgs = _helper.getRemoveAndUnmapMaskingGroupMembersInputArguments(
+                        maskingGroupPath, memberPaths, storage, true);
                 CIMArgument[] outArgs = new CIMArgument[5];
 
                 _log.info("Invoking remove replicas {} from Device Masking Group equivalent to its Replication Group {}",

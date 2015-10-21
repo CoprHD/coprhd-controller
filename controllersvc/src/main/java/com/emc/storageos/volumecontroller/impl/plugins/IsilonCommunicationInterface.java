@@ -681,12 +681,23 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     break;
                 }
             }
+            //set the protocol based storagesystem version 
+           //by default all version support CIFS and version above 7.2 NFS also
+            StringSet protocols = new StringSet();
+            protocols.add("CIFS");
+            
+            if(storageSystem.getFirmwareVersion().charAt(0) >= '7' && storageSystem.getFirmwareVersion().charAt(2) >= '2') {
+                protocols.add("NFS");
+            } 
+            
             StoragePort storagePort = null;
             StringSet storagePorts = null;
             IsilonNetworkPool isilonNetworkPoolTemp = null;
             CifsServerMap cifsServersMap = null;
             //process the access zones list
             for (IsilonAccessZone isilonAccessZone : accessZoneList) {
+                //add protocol to nas server's
+                
                 //is System access zone ?
                 isilonNetworkPoolTemp = null;
                 _log.info("process the user define access zone {} ", isilonAccessZone.toString());
@@ -718,7 +729,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    if(!cifsServersMap.isEmpty()) {
                        virtualNAS.setCifsServersMap(cifsServersMap);
                    }
-                   
+                   //set protocol support
+                   virtualNAS.setProtocols(new StringSet(protocols));
                    //set the smart connect
                    if(isilonNetworkPoolSystem != null) {
                        storagePorts = virtualNAS.getStoragePorts();
@@ -746,6 +758,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    if(!cifsServersMap.isEmpty()) {
                        physicalNAS.setCifsServersMap(cifsServersMap);
                    }
+                   //set protocols
+                   physicalNAS.setProtocols(new StringSet(protocols));
                    //set the smart connect
                    if(isilonNetworkPoolSystem != null) {
                        storagePorts = physicalNAS.getStoragePorts();
@@ -2359,21 +2373,31 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private void setMaxDbMetricsAz(final StorageSystem system, StringMap dbMetrics) {
      // Set the Limit Metric keys!!
         Long MaxObjects = 40000L;
-        Long MaxCapacity = 200L * TBsINKB;
-        
-        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
         dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+        
+        
         
         Long MaxNfsExports = 0L;
         Long MaxCifsShares = 30000L;
-        if(system.getFirmwareVersion().charAt(0) >= '7' && system.getFirmwareVersion().charAt(2) >= 2) {
+        if(system.getFirmwareVersion().charAt(0) >= '7' && system.getFirmwareVersion().charAt(2) >= '2') {
             MaxNfsExports = 1500L;
             MaxCifsShares = 40000L;
         }
         
         dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(MaxNfsExports));
         dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(MaxCifsShares));
+        
+        //set the max capacity in GB
+        Double MaxCapacity = 0.0;
+        MaxCapacity = getClusterStorageCapacity(system);
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
         return;
+    }
+    
+    private Double getClusterStorageCapacity(final StorageSystem system) {
+        Double cluserCap = 0.0;
+        
+        return cluserCap;
     }
 
     

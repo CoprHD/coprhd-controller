@@ -5,7 +5,6 @@
 
 package com.emc.storageos.isilon.restapi;
 
-import java.io.BufferedReader;
 import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.URI;

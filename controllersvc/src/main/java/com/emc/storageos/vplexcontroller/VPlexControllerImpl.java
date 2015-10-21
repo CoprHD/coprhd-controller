@@ -148,4 +148,9 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
     public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId) {
         queueRequest("establishVolumeAndFullCopyGroupRelation", storage, sourceVolume, fullCopy, opId);
     }
+
+    @Override
+    public void resyncSnapshot(URI vplexURI, URI snapshotURI, String opId) throws InternalException {
+        queueRequest("resyncSnapshot", vplexURI, snapshotURI, opId);
+    }
 }

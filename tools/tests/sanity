@@ -14,8 +14,8 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
- vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | ecs | init | quick |
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
+ vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore} [local|ldap] [<timeslot>] | sanzoning'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
@@ -120,7 +120,7 @@ fi
 [ -z "${AUTH}" ] && AUTH=${4:-ldap}
 
 case $SS in
-    all|isilon|vplex|vplexexport|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|ecs|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
+    all|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -326,7 +326,6 @@ COS_HDS=coshds
 COS_VNXEBLOCK_CG=cosvnxe_cg
 COS_VNXEBLOCK_FC=cosvnxe_fc
 COS_VNXEBLOCK_ISCSI=cosvnxe_iscsi
-COS_ECS=ecs_vpool
 
 #
 # Isilon configuration
@@ -338,15 +337,6 @@ ISI_SMBFILESHARE1=smbfileshare1$(date +%Y%m%d%H%M%S)
 ISI_SMBFILESHARE2=smbfileshare2$(date +%Y%m%d%H%M%S)
 ISI_SMBSNAPSHARE1=smbsnapshare1$(date +%Y%m%d%H%M%S)
 ISI_SMBSNAPSHARE2=smbsnapshare2$(date +%Y%m%d%H%M%S) 
-
-#
-# ECS configuration
-#
-ECS_DEV=ecs_device
-ECS_NATIVEGUID=ECS+$ECS_SN
-ECS_SOFT_QUOTA=1024
-ECS_HARD_QUOTA=2048
-ECS_BUCKET=bucket-${RANDOM}
 
 #
 # VNX file device configuration
@@ -830,12 +820,6 @@ isilon_cos_setup()
         cos tag "$COS_ISIFILE" "file" $TAG
         cos search $SEARCH_PREFIX --tag true --resource_type file_vpool
     fi
-}
-
-ecs_cos_setup()
-{
-    echo "setting up ECS cos-vpool"
-    cos create object $COS_ECS --description 'cos_vpool for ECS' true --protocols S3 --provisionType 'Thick' --neighborhoods $NH
 }
 
 vnxfile_cos_setup()
@@ -2451,7 +2435,6 @@ recoverpoint_failover_test()
     run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
 }
 
-# Support will be added in ViPR 2.4 SP1
 recoverpoint_cg_failover_test()
 {
 	# The name of the consistency group to swap
@@ -2922,8 +2905,8 @@ recoverpoint_tests()
                 # Failover Test
                 recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
 				
-				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
-				# recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
+				# CG Failover/Swap Test
+				recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
             fi
 
             # RP+VPLEX test cases
@@ -2938,8 +2921,8 @@ recoverpoint_tests()
                 # Failover Test
                	recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
 				
-				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
-				# recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
+				# CG Failover/Swap Test
+				recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
             fi
 
             # MP test cases
@@ -2954,8 +2937,8 @@ recoverpoint_tests()
                 # Failover Test
                 recoverpoint_failover_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier}
 				
-				# CG Failover/Swap Test - support will be added in ViPR 2.4 SP1
-				# recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${mp_src_varray} ${mp_tgt_volumes} ${mp_tgt_varrays}
+				# CG Failover/Swap Test
+				recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${mp_src_varray} ${mp_tgt_volumes} ${mp_tgt_varrays}
             fi
         fi
 
@@ -3050,29 +3033,6 @@ isilon_setup()
 {
     isilon_setup_once
     cos allow $COS_ISIFILE file $TENANT
-}
-
-#
-# add ECS storage device and storage pool
-#
-ecs_setup_once()
-{
-    #discoveredsystem show $ECS_DEV &> /dev/null && return $?
-    discoveredsystem create $ECS_DEV ecs $ECS_IP 4443 $ECS_USER $ECS_PASSWD
-
-    storagepool update $ECS_NATIVEGUID --nhadd $NH
-    storageport update $ECS_NATIVEGUID IP --addvarrays $NH
-
-    ecs_cos_setup
-    
-    tenant update_namespace $TENANT  $ECS_NAMESPACE
-    project create $PROJECT --tenant $TENANT 
-}
-
-ecs_setup()
-{
-    echo "Performing ecs_setup"
-    ecs_setup_once
 }
 
 #
@@ -4603,14 +4563,6 @@ isilon_tests()
         bulkapi fileshares $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1 $NH $COS_ISIFILE $FS_SIZE
     fi
 }
-
-ecs_tests()
-{
-    echo "Performing ecs_tests"
-    bucket create $ECS_BUCKET $PROJECT $NH $COS_ECS $ECS_SOFT_QUOTA $ECS_HARD_QUOTA $ECS_BUCKET_OWNER
-    #bucket delete bkt_id  #currently create itself deletes bucket
-}
-
 
 #
 # do fileshare tests using isilon specific cos to exercise Isilon tests
@@ -6942,6 +6894,70 @@ output_conf(){
     echo "user=$WS_UID" >> "$file"
     echo "secretkey=$WS_SECRET" >> "$file"
     echo "bucket=${WS_SETUP_BUCKETS# }" >> "$file"
+}
+
+vplexsnap_setup()
+{
+    echo "**** Executing vplexsnap setup"
+    vplex_setup
+}
+
+vplexsnap_tests()
+{
+    echo "**** Executing VPLEX snapshot export tests"
+
+    hname=$(hostname)
+    if [ $hname = "standalone" ]; then
+        hname=$SHORTENED_HOST
+    fi
+    echo "hostname is $hname"
+
+    localVolume=$hname-${RANDOM}-VPlexLocal1
+    localSnapshot=$hname-${RANDOM}-VPlexLocalSnap
+    host=$PROJECT.lss.emc.com
+    hostLbl=$PROJECT
+    PWWN1=10:00:00:E0:7E:00:00:0F
+    WWNN1=20:00:00:E0:7E:00:00:0F
+    PWWN2=10:00:00:90:FA:18:0E:99
+    WWNN2=20:00:00:90:FA:18:0E:99
+
+    echo "**** Creating source VPLEX local volume"
+    run volume create $localVolume $PROJECT $NH cosvplexlocal $BLK_SIZE
+
+    echo "**** Creating VPLEX snapshot for source"
+    run blocksnapshot create $PROJECT/$localVolume $localSnapshot
+    blocksnapshot list $PROJECT/$localVolume
+    blocksnapshot show $PROJECT/$localVolume/$localSnapshot
+
+    echo "**** Creating VPLEX volume from snapshot"
+    blocksnapshot create_vplex_volume $PROJECT/$localVolume/$localSnapshot
+
+    echo "**** Creating host"
+    hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
+
+    echo "**** Creating initiators"
+    initiator create $hostLbl FC $PWWN1 --node $WWNN1
+    initiator create $hostLbl FC $PWWN2 --node $WWNN2
+
+    echo "**** Export VPLEX volume built from snapshot"
+    run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$localSnapshot+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
+
+    echo "**** Unexport VPLEX volume built from snapshot"
+    run export_group delete $PROJECT/$hname-1$host
+
+    echo "**** Deleting VPLEX volume built on snapshot"
+    run volume delete $PROJECT/$localSnapshot --wait
+
+    echo "**** Deleting snapshot"
+    run blocksnapshot delete $PROJECT/$localVolume/$localSnapshot
+
+    echo "**** Deleting source VPLEX local volume"
+    run volume delete $PROJECT/$localVolume --wait
+
+    echo "**** Deleting Host"
+    hosts delete $hostLbl
+
+    echo "**** Completed VPLEX snapshot export tests"
 }
 
 ${SS}_setup

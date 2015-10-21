@@ -4,7 +4,7 @@
 #{breadcrumb.container}
   #{breadcrumb.item @fileSystems()}&{'resources.filesystems'}#{/breadcrumb.item}
   #{breadcrumb.item @resources.FileSystems.fileSystem(fileSystemId?:fileSystemId)}${fileSystemName}#{/breadcrumb.item}
-   #{breadcrumb.item active:true}${subDir}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${fsMountPath}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
 #{if flash.warningMessage}
@@ -17,7 +17,7 @@
 #{DataTable.table id:'accessControlList',
                   dataTable: dataTable,
                   selectable: true,
-                  source: @listNfsAclJson(fileSystemId,subDir)}
+                  source: @listNfsAclJson(fileSystemAndSubDir)}
 
   #{DataTable.buttonBar}
     #{Form.button name:'button.add', class:'success', icon:'plus', action:'showDialogClick()'/}
@@ -91,7 +91,7 @@
 function renderLink(o, val) {
 	
 	var data = o.aData;
-    var url = #{jsAction @editAce(':id')/};
+    var url = #{jsAction @editNfsAce(':id')/};
     var href = url(data);
 	
     return "<a href='"+href+"'>" + val + "</a>";

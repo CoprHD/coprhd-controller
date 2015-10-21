@@ -3905,6 +3905,12 @@ accessControlList.name=Name
 accessControlList.type=Type
 accessControlList.domain=Domain
 
+nfsACL.permissions=Permissions
+nfsACL.name=Name
+nfsACL.type=Type
+nfsACL.domain=Domain
+accessControlList.permissions=Permissions
+
 subdir.share.name=Share Name
 subdir.subdirectory=Sub Directory
 subdir.description=Description

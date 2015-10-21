@@ -28,6 +28,7 @@ import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.NfsACL;
+import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
@@ -424,7 +425,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
 	 */
 	public List<NfsACL> getAllNfsACLs(URI id) {
 		Properties queryParam = new Properties();
-		queryParam.setProperty("allDirs", "ture");
+		queryParam.setProperty("allDirs", "true");
 		NfsACLs response = client.get(NfsACLs.class, getNfsACLsUrl(),
 				queryParam, id);
 		return defaultList(response.getNfsACLs());
@@ -446,7 +447,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
 		Properties queryParam = new Properties();
 		
 		NfsACLs response;
-		if (subDir != null) {
+		if (subDir != null && !"null".equals(subDir)) {
 			queryParam.setProperty("subDir", subDir);
 			response = client.get(NfsACLs.class, getNfsACLsUrl(), queryParam,
 					id);
@@ -455,6 +456,25 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
 		}
 		return defaultList(response.getNfsACLs());
 	}
+	
+	/**
+     * Update file system share ACL
+     * 
+     * API Call: <tt>PUT /file/filesystems/{id}/acl</tt>
+     * 
+     * @param id
+     *            the ID of the filesystem.
+     * @param shareName
+     *            the shareName to update associated ACLs
+     * @param param
+     *            the update/create configuration
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> updateNfsACL(URI id, NfsACLUpdateParams param) {
+        UriBuilder builder = client.uriBuilder(getNfsACLsUrl());
+        URI targetUri = builder.build(id);
+        return putTaskURI(param, targetUri);
+    }
 
     /**
      * Update file system share ACL

@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import models.datatable.FileSystemsDataTable;
+import models.datatable.NfsACLDataTable;
 import models.datatable.ShareACLDataTable;
 
 import org.apache.commons.lang.StringUtils;
@@ -33,6 +34,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
+import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSnapshotRestRep;
@@ -160,43 +162,113 @@ public class FileSystems extends ResourceController {
 		render(nfsAcls);
 	}
 
-	public static void listNfsAcl(String fileSystemId, String subDir) {
-		renderArgs.put("dataTable", new ShareACLDataTable());
-        renderArgs.put("subDir", subDir);
-        renderArgs.put("fileSystemId", uri(fileSystemId));
+	public static void listNfsAcl(String fileSystemId, String fsMountPath, String subDir) {
+		renderArgs.put("dataTable", new NfsACLDataTable());
+		renderArgs.put("subDir", subDir);
+		renderArgs.put("fileSystemId", uri(fileSystemId));
+		renderArgs.put("fsMountPath", fsMountPath);
+		renderArgs.put("fileSystemAndSubDir", fileSystemId + "~~~" + subDir);
+		 renderArgs.put("permissionOptions", StringOption.options(new String[] { "Read", "Write", "Execute" }));
 		ViPRCoreClient client = BourneUtil.getViprClient();
 		List<NfsACL> nfsAcls = client.fileSystems().getNfsACLs(
 				uri(fileSystemId), subDir);
-
+		FileShareRestRep restRep = client.fileSystems().get(uri(fileSystemId));
+        renderArgs.put("fileSystemName", restRep.getName());
+        
 		render(nfsAcls);
 	}
-	
-	public static void listNfsAclJson(String fileSystemId, String subDir) {
-		renderArgs.put("dataTable", new ShareACLDataTable());
-        renderArgs.put("subDir", subDir);
-        renderArgs.put("fileSystemId", uri(fileSystemId));
+
+	public static void listNfsAclJson(String fileSystemAndSubDir) {
+		renderArgs.put("dataTable", new NfsACLDataTable());
+		String fileSystemId = null;
+		String subDir = null;
+		if (StringUtils.isNotBlank(fileSystemAndSubDir)) {
+			String[] parts = fileSystemAndSubDir.split("~~~");
+			if (parts.length == 2) {
+				fileSystemId = parts[0];
+				subDir = parts[1];
+			}
+		}
+		renderArgs.put("subDir", subDir);
+		renderArgs.put("fileSystemId", uri(fileSystemId));
+		renderArgs.put("fileSystemName", uri(fileSystemId));
 		ViPRCoreClient client = BourneUtil.getViprClient();
 		List<NfsACL> nfsAcls = client.fileSystems().getNfsACLs(
 				uri(fileSystemId), subDir);
 		NfsACL nfsAcl = new NfsACL();
-		List<ShareACLDataTable.NfsAclInfo> accessControlList = Lists.newArrayList();
-		if(nfsAcls.size() > 0){
+		List<NfsACLDataTable.NfsAclInfo> accessControlList = Lists
+				.newArrayList();
+		if (nfsAcls.size() > 0) {
 			nfsAcl = nfsAcls.get(0);
 			List<NfsACE> acl = nfsAcl.getNfsAces();
 			for (NfsACE ace : acl) {
-	            String name = ace.getUser();
-	            String type = ace.getType();
-	            String permissions = ace.getPermissions();
-	            String domain = ace.getDomain();
-	           
-	            accessControlList.add(new ShareACLDataTable.NfsAclInfo(name, type, permissions, fileSystemId, subDir, domain));
-	        }
-
-	        renderJSON(DataTablesSupport.createJSON(acl, params));
+				String name = ace.getUser();
+				String type = ace.getType();
+				String permissions = ace.getPermissions();
+				String domain = ace.getDomain();
+				accessControlList.add(new NfsACLDataTable.NfsAclInfo(name,
+						type, permissions, fileSystemId, subDir, domain));
+			}
 		}
-
-		render(nfsAcls);
+		renderJSON(DataTablesSupport.createJSON(accessControlList, params));
 	}
+	
+	public static void editNfsAce(@Required String id) {
+        String type = NfsACLForm.extractTypeFromId(id);
+        String name = NfsACLForm.extractNameFromId(id);
+        String domain = NfsACLForm.extractDomainFromId(id);
+        String fileSystem = NfsACLForm.extractFileSystemFromId(id);
+        String subDir = NfsACLForm.extractSubDirFromId(id);
+        String permissions = NfsACLForm.extractPermissionsFromId(id);
+        if ("null".equals(domain)) {
+            domain = "";
+        }
+
+        NfsACLForm nfsACL = new NfsACLForm();
+        nfsACL.type = type;
+        nfsACL.name = name;
+        nfsACL.domain = domain;
+        nfsACL.permissions = permissions;
+        renderArgs.put("permissionOptions", StringOption.options(new String[] { "Read", "Write", "Execute" }));
+        renderArgs.put("fileSystemId", uri(fileSystem));
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        FileShareRestRep restRep = client.fileSystems().get(uri(fileSystem));
+        renderArgs.put("fileSystemName", restRep.getName());
+
+        renderArgs.put("shsubDirareName", subDir);
+        renderArgs.put("TYPE", type.toUpperCase());
+        render(nfsACL);
+    }
+	
+	@FlashException(referrer = { "fileSystem" })
+    public static void saveNfsAce(NfsACLForm nfsACL) {
+
+        String name = params.get("name");
+        String type = params.get("type");
+        String domain = params.get("domain");
+        String subDir = params.get("subDir");
+        String fileSystemId = params.get("fileSystemId");
+        String permissions = nfsACL.permissions;
+        List<NfsACE> aces = Lists.newArrayList();
+        NfsACE nfsAce = new NfsACE();
+        //NfsACL acesToModify = new NfsACL();
+        nfsAce.setType(type);
+        nfsAce.setUser(name);
+        nfsAce.setPermissions(permissions);
+        if (domain != null && !"".equals(domain)) {
+        	nfsAce.setDomain(domain);
+        }
+        aces.add(nfsAce);
+        //acesToModify.setNfsAces(aces);
+        NfsACLUpdateParams input = new NfsACLUpdateParams();
+        input.setAcesToModify(aces);
+        input.setSubDir(subDir);
+
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        client.fileSystems().updateNfsACL(uri(fileSystemId), input);
+
+        listAcl(fileSystemId, subDir);
+    }
 
     public static void fileSystemExportsJson(String id, String path, String sec) {
         ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, sec);
@@ -763,6 +835,124 @@ public class FileSystems extends ResourceController {
             return null;
         }
 
+    }
+    
+    public static class NfsACLForm{
+
+
+        private static final String ID_DELIMITER = "~~~~";
+        public String domain;
+        public String id;
+        @Required
+        public String name;
+        @Required
+        public String type;
+        @Required
+        public String permissions;
+
+        public NfsACLUpdateParams NfsACLUpdateParams() {
+            NfsACE nfsAce = new NfsACE();
+            nfsAce.setType(type.trim());
+            nfsAce.setUser(name.trim());
+            nfsAce.setPermissions(permissions);
+            if (domain.trim() != null && !"".equals(domain.trim())) {
+                nfsAce.setDomain(domain.trim());
+            }
+            List<NfsACE> aces = Lists.newArrayList();
+            aces.add(nfsAce);
+            NfsACLUpdateParams input = new NfsACLUpdateParams();
+            input.setAcesToAdd(aces);
+            return input;
+        }
+
+        public void validate(String formName) {
+            Validation.valid(formName, this);
+            Validation.required(formName + ".name", name);
+            Validation.required(formName + ".type", type);
+            Validation.required(formName + ".permissions", permissions);
+            if (name == null || "".equals(name)) {
+                Validation.addError(formName + ".name", "resources.filesystem.share.acl.invalid.name");
+            }
+        }
+
+        public static String createId(String name, String type, String fileSystem, String subDir, String domain, String permissions) {
+            return name + ID_DELIMITER + type + ID_DELIMITER + fileSystem + ID_DELIMITER + subDir +
+                    ID_DELIMITER + domain + ID_DELIMITER + permissions;
+        }
+
+        public static String extractNameFromId(String id) {
+            if (StringUtils.isNotBlank(id)) {
+                String[] parts = id.split(ID_DELIMITER);
+                if (parts.length == 6) {
+                    return parts[0];
+                } else {
+                    return id;
+                }
+            }
+            return null;
+        }
+
+        public static String extractTypeFromId(String id) {
+            if (StringUtils.isNotBlank(id)) {
+                String[] parts = id.split(ID_DELIMITER);
+                if (parts.length == 6) {
+                    return parts[1];
+                } else {
+                    return id;
+                }
+            }
+            return null;
+        }
+
+        public static String extractFileSystemFromId(String id) {
+            if (StringUtils.isNotBlank(id)) {
+                String[] parts = id.split(ID_DELIMITER);
+                if (parts.length == 6) {
+                    return parts[2];
+                } else {
+                    return id;
+                }
+            }
+            return null;
+        }
+
+        public static String extractSubDirFromId(String id) {
+            if (StringUtils.isNotBlank(id)) {
+                String[] parts = id.split(ID_DELIMITER);
+                if (parts.length == 6) {
+                    return parts[3];
+                } else {
+                    return id;
+                }
+            }
+            return null;
+        }
+
+        public static String extractDomainFromId(String id) {
+            if (StringUtils.isNotBlank(id)) {
+                String[] parts = id.split(ID_DELIMITER);
+                if (parts.length == 6) {
+                    return parts[4];
+                } else {
+                    return id;
+                }
+            }
+            return null;
+        }
+
+        public static String extractPermissionsFromId(String id) {
+            if (StringUtils.isNotBlank(id)) {
+                String[] parts = id.split(ID_DELIMITER);
+                if (parts.length == 6) {
+                    return parts[5];
+                } else {
+                    return id;
+                }
+            }
+            return null;
+        }
+
+    
     }
 
     public class Quota {

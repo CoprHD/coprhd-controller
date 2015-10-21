@@ -524,7 +524,7 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedExpandVolumeStatusAfterRetries(final String volumeName,
-            int retries, long wait);
+            final String retries, final String wait);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException claimVolumeFailureStatus(final String volumeWWN,

@@ -4,7 +4,7 @@
 # All Rights Reserved
 
 PORTS_PROTECTED_IN_CLUSTER="tcp/2181 tcp/2888 tcp/2889 tcp/9160 tcp/7000 tcp/10099 tcp/40201"
-PORTS_PROTECTED_ACROSS_SITE="tcp/2181 tcp/2888 tcp/2889 tcp/9160 tcp/7000"
+PORTS_PROTECTED_ACROSS_SITE="tcp/2888 tcp/2889 tcp/9160 tcp/7000"
 IPSEC_CONF_FILE="/etc/ipsec.conf"
 IPSEC_SECRET_FILE="/etc/ipsec.secrets"
 DEFAULT_PRE_SHARED_KEY="defaultPreSharedKeyForIPSec"

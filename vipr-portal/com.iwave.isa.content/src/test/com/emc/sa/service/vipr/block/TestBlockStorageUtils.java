@@ -56,6 +56,7 @@ public final class TestBlockStorageUtils {
             if (s != null) {
                 returnList.add(s);
             }
+            returnList.add(getSingle(client, uri));
         }
         return returnList;
     }

@@ -305,16 +305,15 @@ public class TenantsService extends TaggedResource {
         TenantOrg parent = _dbClient.queryObject(TenantOrg.class, uriParent);
 
         if (param.getNamespace() != null && !param.getNamespace().isEmpty()) {
+            checkForDuplicateNamespace(param.getNamespace(), uriParent.getURI(), parent);
             if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
                 if (!tenant.getNamespace().equalsIgnoreCase(param.getNamespace())) {
-                    //Though we are not deleting need to check no dependencies in this tenant
+                    //Though we are not deleting need to check no dependencies on this tenant
                     ArgValidator.checkReference(TenantOrg.class, id, checkForDelete(tenant));
-                    checkForDuplicateNamespace(param.getNamespace(), uriParent.getURI(), parent);
                 }
             }
             tenant.setNamespace(param.getNamespace());
             //Namespace Will be retrieved from ECS in coming releases.
-            //UI will have drop-down showing like 'none' for blank namespaces
         }
 
         if (!isUserMappingEmpty(param)) {

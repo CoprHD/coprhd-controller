@@ -674,8 +674,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             
             if(vNAS != null) {
             	vNASPath = vNAS.getBaseDirPath();
+            	_log.info("vNAS base directory path: {}", vNASPath);
             }
-            
 
             if (args.getProject() != null) {
                 projName = args.getProjectNameWithNoSpecialCharacters();
@@ -700,8 +700,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 		            mountPath = String.format("%1$s/%2$s/%3$s", vNASPath,
 		                    args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
 		        }
-	        }
-	        if(Boolean.valueOf(usePhysicalNASForProvisioning) && mountPath == null) {
+	        } else if(Boolean.valueOf(usePhysicalNASForProvisioning) && mountPath == null) {
 		        if (projName != null && tenantOrg != null) {
 		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
 		                    args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),

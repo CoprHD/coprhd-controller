@@ -640,8 +640,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 for(Map.Entry<String, List<String>> networkpool: networkPools.entrySet()) {
                     smartconnects = networkpool.getValue();
                     if(smartconnects != null) {
-                        isiNetworkPool = new IsilonNetworkPool();
+                        
                         for(String smartconnect: smartconnects) {
+                        	isiNetworkPool = new IsilonNetworkPool();
                             isiNetworkPool.setAccess_zone(networkpool.getKey());
                             isiNetworkPool.setSc_dns_zone(smartconnect);
                             isilonNetworkPoolList.add(isiNetworkPool);
@@ -760,7 +761,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                        }
                        for(IsilonNetworkPool isiNetworkPool : isilonNetworkPools) {
                            storagePort = findStoragePortByNativeId(storageSystem, 
-                                   isiNetworkPool.getSc_dns_zone().toLowerCase());
+                                   isiNetworkPool.getSc_dns_zone());
                            if(storagePort != null) {
                                storagePorts.add(storagePort.getId().toString());
                            }

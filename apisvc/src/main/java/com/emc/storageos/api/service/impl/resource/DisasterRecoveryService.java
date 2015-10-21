@@ -543,21 +543,6 @@ public class DisasterRecoveryService {
                         standbyDbSchemaVersion, currentDbSchemaVersion));
             }
             
-            //software version should be matched
-            SoftwareVersion currentSoftwareVersion;
-            SoftwareVersion standbySoftwareVersion;
-            try {
-                currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
-                standbySoftwareVersion = new SoftwareVersion(standby.getSoftwareVersion());
-            } catch (Exception e) {
-                throw new Exception(String.format("Fail to get software version %s", e.getMessage()));
-            }
-            
-            if (!isVersionMatchedForStandbyAttach(currentSoftwareVersion,standbySoftwareVersion)) {
-                throw new Exception(String.format("Standby site version %s is not equals to current version %s",
-                        standbySoftwareVersion, currentSoftwareVersion));
-            }
-            
             //this site should not be standby site
             String primaryID = coordinator.getPrimarySiteId();
             if (primaryID != null && !primaryID.equals(coordinator.getSiteId())) {

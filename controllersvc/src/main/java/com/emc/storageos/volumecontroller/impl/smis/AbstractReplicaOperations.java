@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.cim.CIMArgument;
-import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 
 import org.slf4j.Logger;
@@ -74,9 +73,12 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
             List<String> sourceIds = new ArrayList<String>();
             List<String> labels = new ArrayList<String>();
             Map<String, URI> srcNativeIdToReplicaUriMap = new HashMap<String, URI>();
+            String replicaGroupName = null;
             for (URI replicaURI : replicaList) {
                 BlockObject replica = BlockObject.fetch(_dbClient, replicaURI);
+                // Use the existing replica group instance name for the new snaps to add.
                 labels.add(replica.getLabel());
+                replicaGroupName = replica.getReplicationGroupInstance();
                 BlockObject source = _helper.getSource(replica);
                 String sourceNativeId = source.getNativeId();
                 sourceIds.add(sourceNativeId);
@@ -85,7 +87,8 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
 
             int syncType = getSyncType(replicaList.get(0));
             CIMObjectPath[] sourceVolumePaths = _cimPath.getVolumePaths(storage, sourceIds.toArray(new String[sourceIds.size()]));
-            CIMArgument[] inArgs = _helper.getCreateListReplicaInputArguments(storage, sourceVolumePaths, labels, syncType, createInactive);
+            CIMArgument[] inArgs = _helper.getCreateListReplicaInputArguments(storage, sourceVolumePaths, labels, syncType,
+                    replicaGroupName, createInactive);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             _helper.invokeMethod(storage, replicationSvc, CREATE_LIST_REPLICA, inArgs, outArgs);
@@ -161,7 +164,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
     @SuppressWarnings("rawtypes")
     private void modifyListReplica(StorageSystem storage, List<URI> replicaList, List<? extends BlockObject> replicas, int operation,
             int copyState)
-                    throws Exception {
+            throws Exception {
 
         callEMCRefreshIfRequired(_dbClient, _helper, storage, replicaList);
         List<CIMObjectPath> syncPaths = new ArrayList<CIMObjectPath>();

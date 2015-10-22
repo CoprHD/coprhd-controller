@@ -125,7 +125,7 @@ public class MailSettingsValidator {
         }
         else if (channelEncryption.equals("starttls")) {
             // port 25 + enable starttls + ssl socket factory
-            props.put("mail.smtp.port", ConfigPropertyUtils.defaultPort(port, "25"));
+            props.put("mail.smtp.port", ConfigPropertyUtils.defaultPort(port, "465"));
             props.put("mail.smtp.starttls.enable", "true");
             props.put("mail.smtp.ssl.socketFactory.port", ConfigPropertyUtils.defaultPort(port, "465"));
             props.put("mail.smtp.ssl.socketFactory.class", "play.utils.YesSSLSocketFactory");

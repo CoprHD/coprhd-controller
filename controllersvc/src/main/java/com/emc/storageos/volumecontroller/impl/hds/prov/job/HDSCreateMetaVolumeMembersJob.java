@@ -4,25 +4,20 @@
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov.job;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StorageSystem;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.hds.HDSConstants;
-import com.emc.storageos.hds.api.HDSApiClient;
 import com.emc.storageos.hds.model.LogicalUnit;
 import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MetaVolumeTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.workflow.WorkflowService;
-
-import org.milyn.payload.JavaResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 
 public class HDSCreateMetaVolumeMembersJob extends HDSJob {
     private static final Logger _log = LoggerFactory.getLogger(HDSCreateMetaVolumeMembersJob.class);
@@ -55,8 +50,8 @@ public class HDSCreateMetaVolumeMembersJob extends HDSJob {
      * 
      * @param jobContext The job context.
      */
+    @Override
     public void updateStatus(JobContext jobContext) throws Exception {
-        DbClient dbClient = jobContext.getDbClient();
         try {
             if (_status == JobStatus.IN_PROGRESS) {
                 return;
@@ -66,14 +61,8 @@ public class HDSCreateMetaVolumeMembersJob extends HDSJob {
             StringBuilder logMsgBuilder =
                     new StringBuilder(String.format("Updating status of job %s to %s, task: %s", this.getJobName(), _status.name(), opId));
 
-            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
-
-            HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(HDSUtils.getHDSServerManagementServerInfo(storageSystem),
-                    storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
-
-            JavaResult javaResult = hdsApiClient.checkAsyncTaskStatus(getHDSJobMessageId());
             if (_status == JobStatus.SUCCESS) {
-                List<LogicalUnit> luList = (List<LogicalUnit>) javaResult.getBean(HDSConstants.LOGICALUNIT_LIST_BEAN_NAME);
+                List<LogicalUnit> luList = (List<LogicalUnit>) _javaResult.getBean(HDSConstants.LOGICALUNIT_LIST_BEAN_NAME);
                 List<String> luObjectIdList = new ArrayList<String>();
                 // verify that all meta members have been created
                 if (null != luList && !luList.isEmpty()) {

@@ -23,6 +23,7 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
@@ -80,11 +81,16 @@ public class VmaxGroupOperationsUtils {
             CIMObjectPath cgPath = cimPath.getReplicationGroupPath(storage, groupName);
             CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
             CIMInstance replicaSettingData = null;
-
-            if (storage.checkIfVmax3() && syncType != SYNC_TYPE.MIRROR) {
+            if (syncType == SYNC_TYPE.CLONE && storage.checkIfVmax3() && ControllerUtils.isVmaxUsing81SMIS(storage, dbClient)) {
+                /**
+                 * VMAX3 using SMI 8.1 provider needs to send DesiredCopyMethodology=32770
+                 * to create TimeFinder differential clone.
+                 */
+                replicaSettingData = ReplicationUtils.getReplicationSettingForSMIS81TFGroupClones(storage, helper,
+                        cimPath, createInactive);
+            } else if (storage.checkIfVmax3() && syncType != SYNC_TYPE.MIRROR) {
                 String instanceId = targetGroupPath.getKey(SmisConstants.CP_INSTANCE_ID).getValue().toString();
                 replicaLabel = SmisUtils.getTargetGroupName(instanceId, storage.getUsingSmis80());
-
                 // Unlike single volume snapshot where snapSettingName is used in SMI-S as StorageSynchronized.EMCRelationshipName,
                 // for group snapshot, GroupSynchronized.RelationshipName is set via RelationshipName input argument of CreateGroupReplica
                 // method.

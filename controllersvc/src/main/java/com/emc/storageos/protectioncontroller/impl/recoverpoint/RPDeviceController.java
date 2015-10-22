@@ -4736,21 +4736,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                     volumeWWNs.add(RPHelper.getRPWWn(targetVolume.getId(), _dbClient));
                 }
+                
+                // Now disable image access to that bookmark
+                RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
+                MultiCopyDisableImageRequestParams request = new MultiCopyDisableImageRequestParams();
+                request.setVolumeWWNSet(volumeWWNs);
+                request.setEmName(emName);
+                if (doDisableImageCopies(snapshot)) {
+    	            MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
+    	
+    	            if (response == null) {
+    	                throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
+    	            }
+                }
             }
 
-            // Now disable image access to that bookmark
-            RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
-            MultiCopyDisableImageRequestParams request = new MultiCopyDisableImageRequestParams();
-            request.setVolumeWWNSet(volumeWWNs);
-            request.setEmName(emName);
-            if (doDisableImageCopies(request.getEmName())) {
-	            MultiCopyDisableImageResponse response = rp.disableImageCopies(request);
-	
-	            if (response == null) {
-	                throw DeviceControllerExceptions.recoverpoint.failedDisableAccessOnRP();
-	            }
-            }
-
+       
             // Mark the snapshots
             StringSet snapshots = new StringSet();
             for (URI snapshotID : snapshotList) {
@@ -4790,22 +4791,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param emName bookmark name
      * @return true if it is safe to disable image access on the CG, false otherwise
      */
-    public boolean doDisableImageCopies(String emName) {    	
-    	List<URI> snapshots = _dbClient.queryByType(BlockSnapshot.class, true);
-    	for(URI snapshotId : snapshots) {    	
-    		BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotId);
-    		if (snapshot.getEmName().equals(emName)) {
-    			_log.info(String.format("Found %s corresponding to snapshot name %s", snapshot.getId(), emName));
-    			  ContainmentConstraint constraint = ContainmentConstraint.
-    		                Factory.getBlockObjectExportGroupConstraint(snapshot.getId());
-    			  
-    			  List<URI> exportGroupIdsForSnapshot = _dbClient.queryByConstraint(constraint);
-    			  if (exportGroupIdsForSnapshot.size() > 1) {
-    				  _log.info(String.format("Snapshot %s is in %d active exportGroups. Not safe to disable the CG", emName, exportGroupIdsForSnapshot.size()));
-    				  return false;
-    			  }    		
-    		}
-    	}
+    public boolean doDisableImageCopies(BlockSnapshot snapshot) {    	
+    	  ContainmentConstraint constraint = ContainmentConstraint.
+	                Factory.getBlockObjectExportGroupConstraint(snapshot.getId());
+		  
+		  List<URI> exportGroupIdsForSnapshot = _dbClient.queryByConstraint(constraint);
+		  if (exportGroupIdsForSnapshot.size() > 1) {
+			  _log.info(String.format("Snapshot %s is in %d active exportGroups. Not safe to disable the CG", snapshot.getEmName(), exportGroupIdsForSnapshot.size()));
+			  return false;
+		  }    		
     
     	_log.info("Safe to disable image access on the CG");
     	return true;

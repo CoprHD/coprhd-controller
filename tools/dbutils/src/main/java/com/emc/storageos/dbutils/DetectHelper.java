@@ -10,6 +10,10 @@
  */
 package com.emc.storageos.dbutils;
 
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeColumnName;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.netflix.astyanax.model.Column;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -183,6 +187,47 @@ public class DetectHelper {
             result = 31 * result + (keyspace != null ? keyspace.hashCode() : 0);
             return result;
         }
+    }
+
+    public static String getIndexKey(ColumnField field, Column<CompositeColumnName> column) {
+        String indexKey = null;
+        DbIndex dbIndex = field.getIndex();
+        boolean indexByKey = field.isIndexByKey();
+        if (dbIndex instanceof AltIdDbIndex) {
+            indexKey = indexByKey ? column.getName().getTwo() : column.getStringValue();
+        } else if (dbIndex instanceof RelationDbIndex) {
+            indexKey = indexByKey ? column.getName().getTwo() : column.getStringValue();
+        } else if (dbIndex instanceof NamedRelationDbIndex) {
+            indexKey = NamedURI.fromString(column.getStringValue()).getURI().toString();
+        } else if (dbIndex instanceof DecommissionedDbIndex) {
+            indexKey = field.getDataObjectType().getSimpleName();
+        } else if (dbIndex instanceof PermissionsDbIndex) {
+            indexKey = column.getName().getTwo();
+        } else if (dbIndex instanceof PrefixDbIndex) {
+            indexKey = field.getPrefixIndexRowKey(column.getStringValue());
+        } else if (dbIndex instanceof ScopedLabelDbIndex) {
+            indexKey = field.getPrefixIndexRowKey(column.getStringValue());
+        } else if (dbIndex instanceof AggregateDbIndex) {
+            // Not support this index type yet.
+        } else {
+            String msg = String.format("Unsupported index type %s.", dbIndex.getClass());
+            log.warn(msg);
+            System.out.println(msg);
+        }
+
+        return indexKey;
+    }
+
+    public static String getIndexColumnOne(ColumnField field, Column<CompositeColumnName> column) {
+        String indexColumnOne = null;
+        DbIndex dbIndex = field.getIndex();
+        if (dbIndex instanceof DecommissionedDbIndex) {
+            Boolean val = column.getBooleanValue();
+            indexColumnOne = val.toString();
+        } else {
+            indexColumnOne = field.getDataObjectType().getSimpleName();
+        }
+        return indexColumnOne;
     }
 
 }

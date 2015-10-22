@@ -56,7 +56,7 @@ _get_ips_in_standby() {
         done
     else
         # no standby defined
-	    echo ""
+        echo ""
     fi
     echo "$ips"
 }
@@ -112,7 +112,7 @@ conn ${ip}-${LOCAL_IP}-${port}
 
 EOF
 )
-    echo "${conn}"
+            echo "${conn}"
         done
     done
 }
@@ -144,24 +144,24 @@ _gen_ipsec_conf() {
     local start_ipsec
     if [ -f "${FIRT_BOOT_FLAG_FILE}" ] ; then 
         if [ "${_GENCONFIG_ipsec_enabled}" == "false" ] ; then
-            rm ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
+            rm -f ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
             start_ipsec=false	
-	else
+        else
             start_ipsec=true		
-	fi
+        fi
     else
         _create_first_boot_flag_file
 
-	if [ -d /data/db/1 ] ; then
-            rm ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
+        if [ -d /data/db/1 ] ; then
+            rm -f ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
             start_ipsec=false	
-	else
-	    start_ipsec=true
-	fi
+        else
+            start_ipsec=true
+        fi
     fi
 
     if [ "${start_ipsec}" = false ] ; then
-	    return 0;
+        return 0;
     fi
 
     # generating ipsec config files

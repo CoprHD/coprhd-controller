@@ -16,12 +16,7 @@ import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Date;
-import java.util.Comparator;
-import java.util.Properties;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
@@ -215,7 +210,7 @@ public class FileUtils {
      * @param directory the directory which file resides in
      */
     public static Date getLastModified(File directory) {
-        File[] files = directory.listFiles();
+        File[] files = listAllFiles(directory);
         if (files.length == 0) {
             return new Date(directory.lastModified());
         }
@@ -225,5 +220,23 @@ public class FileUtils {
             }
         });
         return new Date(files[0].lastModified());
+    }
+
+    /**
+     * Returns an array of abstract pathnames denoting the files in the
+     * directory denoted by this abstract pathname and it's sub directories
+     *
+     * @param directory the directory which file resides in
+     */
+    private static File[] listAllFiles(File directory) {
+        List<File> fileList = new ArrayList<File>();
+        for (File file : directory.listFiles()) {
+            if (file.isDirectory()) {
+                fileList.addAll(Arrays.asList(listAllFiles(file)));
+            } else {
+                fileList.add(file);
+            }
+        }
+        return fileList.toArray(new File[fileList.size()]);
     }
 }

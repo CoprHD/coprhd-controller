@@ -384,11 +384,11 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         } else {
             if (!isCG) {
                 Collection<String> mirrorTargetIds =
-                        Collections2.transform(blockMirrors, FCTN_VOLUME_URI_TO_STR);
+                        Collections2.transform(mirrorsToProcess, FCTN_VOLUME_URI_TO_STR);
                 String mirrorTargetCommaDelimList = Joiner.on(',').join(mirrorTargetIds);
                 Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
                         ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR, mirrorTargetCommaDelimList);
-                taskList.getTaskList().add(toTask(sourceVolume, blockMirrors, taskId, op));
+                taskList.getTaskList().add(toTask(sourceVolume, mirrorsToProcess, taskId, op));
             } else {
                 populateTaskList(sourceVolume, groupMirrorSourceMap, taskList, taskId,
                         ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR);

@@ -64,6 +64,7 @@ import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
 
 /**
@@ -120,13 +121,14 @@ public class DisasterRecoveryService {
             List<Site> existingSites = getStandbySites(vdc.getId());
 
             // parameter validation and precheck
-            validateAddParam(param, existingSites);
-            ViPRCoreClient viprClient = createViPRCoreClient(param.getVip(), param.getUsername(), param.getPassword());
+            validateAddParam(param,existingSites);
+            precheckStandbyVersion(param);
 
-            SiteConfigRestRep standbyConfig = viprClient.site().getStandbyConfig();
-            
+            ViPRCoreClient viprCoreClient = createViPRCoreClient(param.getVip(),param.getUsername(),param.getPassword());
+
+            SiteConfigRestRep standbyConfig = viprCoreClient.site().getStandbyConfig();
             siteId = standbyConfig.getUuid();
-            
+
             precheckForStandbyAttach(standbyConfig);
             
             Site standbySite = new Site();
@@ -175,7 +177,7 @@ public class DisasterRecoveryService {
                 standbySites.add(standbyParam);
             }
             configParam.setStandbySites(standbySites);
-            viprClient.site().syncSite(configParam);
+            viprCoreClient.site().syncSite(configParam);
             
             siteErrorThreadExecutor.schedule(new SiteErrorUpdater(standbySite.getUuid()), STANDBY_ADD_TIMEOUT_MINUTES, TimeUnit.MINUTES);
             
@@ -541,21 +543,6 @@ public class DisasterRecoveryService {
                         standbyDbSchemaVersion, currentDbSchemaVersion));
             }
             
-            //software version should be matched
-            SoftwareVersion currentSoftwareVersion;
-            SoftwareVersion standbySoftwareVersion;
-            try {
-                currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
-                standbySoftwareVersion = new SoftwareVersion(standby.getSoftwareVersion());
-            } catch (Exception e) {
-                throw new Exception(String.format("Fail to get software version %s", e.getMessage()));
-            }
-            
-            if (!isVersionMatchedForStandbyAttach(currentSoftwareVersion,standbySoftwareVersion)) {
-                throw new Exception(String.format("Standby site version %s is not equals to current version %s",
-                        standbySoftwareVersion, currentSoftwareVersion));
-            }
-            
             //this site should not be standby site
             String primaryID = coordinator.getPrimarySiteId();
             if (primaryID != null && !primaryID.equals(coordinator.getSiteId())) {
@@ -563,6 +550,30 @@ public class DisasterRecoveryService {
             }
             
             
+        } catch (Exception e) {
+            log.error("Standby information can't pass pre-check {}", e.getMessage());
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(e.getMessage());
+        }
+    }
+
+    protected void precheckStandbyVersion(SiteAddParam standby){
+        try {
+            ViPRSystemClient viprSystemClient = createViPRSystemClient(standby.getVip(),standby.getUsername(),standby.getPassword());
+
+            //software version should be matched
+            SoftwareVersion currentSoftwareVersion;
+            SoftwareVersion standbySoftwareVersion;
+            try {
+                currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
+                standbySoftwareVersion = new SoftwareVersion(viprSystemClient.upgrade().getTargetVersion().getTargetVersion());
+            } catch (Exception e) {
+                throw new Exception(String.format("Fail to get software version %s", e.getMessage()));
+            }
+
+            if (!isVersionMatchedForStandbyAttach(currentSoftwareVersion,standbySoftwareVersion)) {
+                throw new Exception(String.format("Standby site version %s is not equals to current version %s",
+                        standbySoftwareVersion, currentSoftwareVersion));
+            }
         } catch (Exception e) {
             log.error("Standby information can't pass pre-check {}", e.getMessage());
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(e.getMessage());
@@ -650,8 +661,13 @@ public class DisasterRecoveryService {
     }
 
     // encapsulate the create ViPRCoreClient operation for easy UT writing because need to mock ViPRCoreClient
-    protected ViPRCoreClient createViPRCoreClient(String vip, String username, String password) {
+    protected ViPRCoreClient createViPRCoreClient(String vip, String username, String password){
         return new ViPRCoreClient(vip, true).withLogin(username, password);
+    }
+
+    // encapsulate the create ViPRSystemClient operation for easy UT writing because need to mock ViPRSystemClient
+    protected ViPRSystemClient createViPRSystemClient(String vip, String username, String password){
+        return new ViPRSystemClient(vip, true).withLogin(username, password);
     }
 
     // encapsulate the get local VDC operation for easy UT writing because VDCUtil.getLocalVdc is static method

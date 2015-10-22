@@ -102,8 +102,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             boolean isCG = false;
             Volume vol = volumes.get(0);
             // If the volume is regular volume and in CG
-            if (vol.getConsistencyGroup() != null && !vol.checkForRp() &&
-                    !Volume.checkForVplexBackEndVolume(dbClient, vol)) {
+            if (vol.getConsistencyGroup() != null && !vol.checkForRp()) {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
                 isCG = true;
             }
@@ -257,8 +256,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 try {
                     if (null != XtremIOProvUtils.isVolumeAvailableInArray(client, volume.getLabel(), clusterName)) {
                         // If the volume is regular volume & in CG
-                        if (volume.getConsistencyGroup() != null && !volume.checkForRp() &&
-                                !Volume.checkForVplexBackEndVolume(dbClient, volume)) {
+                        if (volume.getConsistencyGroup() != null && !volume.checkForRp()) {
                             BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
                                     volume.getConsistencyGroup());
                             if (null != XtremIOProvUtils.isCGAvailableInArray(client, consistencyGroupObj.getLabel(), clusterName)) {

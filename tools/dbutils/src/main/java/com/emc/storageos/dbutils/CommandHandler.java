@@ -667,7 +667,7 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) {
-            if (generateCleanupFile && CleanupFileWriter.existingCleanupFiles()) {// make sure we have 
+            if (generateCleanupFile && CleanupFileWriter.existingCleanupFiles()) {
                 System.err.println(String.format(
                         "When specify %s please make sure you removed the last generated cql files [%s , %s] in current folder.",
                         Main.GENERATE_CLEANUP_CQL, CleanupFileWriter.CLEANUP_FILE_STORAGEOS,

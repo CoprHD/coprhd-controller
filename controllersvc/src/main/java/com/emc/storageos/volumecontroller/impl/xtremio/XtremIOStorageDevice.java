@@ -453,7 +453,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("SnapShot Creation..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
-        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
+        Volume sourceVolume = null;
+        URI sourceVolURI = snapshots.get(0).getParent().getURI();
+        if (!NullColumnValueGetter.isNullURI(sourceVolURI)) {
+            sourceVolume = dbClient.queryObject(Volume.class, sourceVolURI);
+        }
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter) && !sourceVolume.checkForRp()) {
             snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive, readOnly, taskCompleter);
         } else {
             URI snapshot = snapshots.get(0).getId();

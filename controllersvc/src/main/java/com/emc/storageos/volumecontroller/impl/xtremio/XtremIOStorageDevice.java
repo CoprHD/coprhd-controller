@@ -473,7 +473,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         _log.info("SnapShot Deletion..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
+        Volume sourceVolume = null;
+        URI sourceVolURI = snapshots.get(0).getParent().getURI();
+        if (!NullColumnValueGetter.isNullURI(sourceVolURI)) {
+            sourceVolume = dbClient.queryObject(Volume.class, sourceVolURI);
+        }
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter) && !sourceVolume.checkForRp()) {
             snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
             snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -486,7 +491,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         _log.info("SnapShot Restore..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
+        Volume sourceVolume = null;
+        URI sourceVolURI = snapshots.get(0).getParent().getURI();
+        if (!NullColumnValueGetter.isNullURI(sourceVolURI)) {
+            sourceVolume = dbClient.queryObject(Volume.class, sourceVolURI);
+        }
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter) && !sourceVolume.checkForRp()) {
             snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
@@ -499,7 +509,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         _log.info("SnapShot resync..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
+        Volume sourceVolume = null;
+        URI sourceVolURI = snapshots.get(0).getParent().getURI();
+        if (!NullColumnValueGetter.isNullURI(sourceVolURI)) {
+            sourceVolume = dbClient.queryObject(Volume.class, sourceVolURI);
+        }
+        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter) && !sourceVolume.checkForRp()) {
             snapshotOperations.resyncGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             snapshotOperations.resyncSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);

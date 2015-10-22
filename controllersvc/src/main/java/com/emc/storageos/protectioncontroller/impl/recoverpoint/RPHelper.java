@@ -158,39 +158,33 @@ public class RPHelper {
      * @param vol
      * @return
      */
-    public List<Volume> getVolumesInRSet(Volume volume) {
+    private List<Volume> getVolumesInRSet(Volume volume) {
         List<Volume> allVolumesInRSet = new ArrayList<Volume>();
 
-        if (volume == null) {
-            _log.warn("Cannot find replication set volumes from null volume.");
-            return allVolumesInRSet;
+        Volume sourceVol = null;
+        if (volume.getRpTargets() != null && !volume.getRpTargets().isEmpty()) {
+            sourceVol = volume;
+        } else {
+            sourceVol = getRPSourceVolumeFromTarget(_dbClient, volume);
+        }
+        if (sourceVol != null) {
+            allVolumesInRSet.add(sourceVol);
         }
 
-        if (NullColumnValueGetter.isNullValue(volume.getRSetName())) {
-            _log.warn(String.format("Cannot find replication set volumes for %s. The volume has a null replication set reference.",
-                    volume.getId()));
-            return allVolumesInRSet;
-        }
+        for (String tgtVolId : sourceVol.getRpTargets()) {
+            if (tgtVolId.equals(volume.getId().toString())) {
+                allVolumesInRSet.add(volume);
+            } else {
+                Volume tgt = _dbClient.queryObject(Volume.class, URI.create(tgtVolId));
+                if (tgt != null && !tgt.getInactive()) {
+                    allVolumesInRSet.add(tgt);
+                }
 
-        if (volume != null && NullColumnValueGetter.isNotNullValue(volume.getRSetName())) {
-            _log.info(String.format("Finding all volumes in replication set %s, corresonding to volume %s.", volume.getRSetName(),
-                    volume.getId()));
-            // Because replication set names are unique per source/target volume relationship (based on volume name),
-            // we can lookup the related volumes by the replication set name.
-            List<Volume> rsetVolumes =
-                    CustomQueryUtility.getActiveVolumesByReplicationSet(_dbClient, volume.getRSetName());
-
-            for (Volume vol : rsetVolumes) {
-                if (!vol.getInactive() && NullColumnValueGetter.isNotNullValue(vol.getPersonality())) {
-                    if (vol.getPersonality().equals(PersonalityTypes.SOURCE.name()) ||
-                            vol.getPersonality().equals(PersonalityTypes.TARGET.name())) {
-                        allVolumesInRSet.add(vol);
-                    }
+                // if this target was previously the Metropoint active source, go out and get the standby copy
+                if (tgt != null && isMetroPointVolume(tgt)) {
+                    allVolumesInRSet.addAll(getMetropointStandbyCopies(tgt));
                 }
             }
-
-            _log.info(String.format("Found the following volumes corresponding to replication set %s: %s", volume.getRSetName(),
-                    allVolumesInRSet.toString()));
         }
 
         return allVolumesInRSet;
@@ -249,15 +243,17 @@ public class RPHelper {
             // volume passed in
             List<Volume> allVolsInRSet = getVolumesInRSet(volume);
             for (Volume vol : allVolsInRSet) {
+                // Add the volume ID to the list of volumes to be deleted
+                _log.info(String.format("Adding volume %s to the list of volumes to be deleted", vol.getId()));
+                volumeIDs.add(vol.getId());
+
                 if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
+                    // Add a mapping of consistency groups to volumes to determine if we are deleting
+                    // the entire CG which would indicate journals are also being deleted.
                     if (cgsToVolumesForDelete.get(vol.getConsistencyGroup()) == null) {
                         cgsToVolumesForDelete.put(vol.getConsistencyGroup(), new HashSet<URI>());
                     }
                     cgsToVolumesForDelete.get(vol.getConsistencyGroup()).add(vol.getId());
-
-                    // Add the volume ID to the list of volumes to be deleted
-                    _log.info(String.format("Adding volume %s to the list of volumes to be deleted", vol.getId()));
-                    volumeIDs.add(vol.getId());
                 }
 
                 if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {

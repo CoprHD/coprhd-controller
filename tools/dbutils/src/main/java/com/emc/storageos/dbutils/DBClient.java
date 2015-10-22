@@ -1124,10 +1124,10 @@ public class DBClient {
         }
     }
 
-    public void checkDB() {
+    public void checkDB(boolean generateCleanupFile) {
         try {
             _dbClient.checkDataObjects();
-            _dbClient.checkIndexingCFs();
+            _dbClient.checkIndexingCFs(generateCleanupFile);
 
             String msg = "\nAll the checks have been done.";
             System.out.println(msg);

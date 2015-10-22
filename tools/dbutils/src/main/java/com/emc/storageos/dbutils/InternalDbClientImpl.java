@@ -158,7 +158,7 @@ public class InternalDbClientImpl extends InternalDbClient {
      * @return True, when no corrupted data found
      * @throws ConnectionException
      */
-    public boolean checkIndexingCFs() throws ConnectionException {
+    public boolean checkIndexingCFs(boolean generateCleanupFile) throws ConnectionException {
         logAndPrintToScreen("\nStart to check INDEX data that the related object records are missing.\n");
 
         Collection<IndexAndCf> idxCfs = getAllIndices().values();
@@ -232,8 +232,17 @@ public class InternalDbClientImpl extends InternalDbClient {
                                     indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                     idxEntry.getIndexKey(), idxEntry.getColumnName(),
                                     objCf.getName(), row.getKey()), true);
+                            if (generateCleanupFile) {
+                                CleanupFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
+                                        String.format(
+                                                "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;",
+                                                indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
+                                                idxEntry.getColumnName().getTwo(), 
+                                                handleNullValue(idxEntry.getColumnName().getThree()),
+                                                handleNullValue(idxEntry.getColumnName().getFour()),
+                                                idxEntry.getColumnName().getTimeUUID()));
+                            }
                         }
-
                     }
                 }
             }
@@ -249,6 +258,10 @@ public class InternalDbClientImpl extends InternalDbClient {
         logAndPrintToScreen(String.format(
                 "\nFinish to check INDEX data, totally check %s rows of %s indices and %s rows of %s object cfs, "
                         + "%s corrupted data found.", indexRowCount, idxCfs.size(), objRowCount, objCfCount, corruptRowCount));
+        if(generateCleanupFile && corruptRowCount > 0) {
+            logAndPrintToScreen(String.format("Clean up cql files [%s , %s] are created in current folder. please read into them for detail cleanup operations.",
+                    CleanupFileWriter.CLEANUP_FILE_STORAGEOS, CleanupFileWriter.CLEANUP_FILE_GEOSTORAGEOS));
+        }
 
         return corruptRowCount == 0;
     }
@@ -346,5 +359,9 @@ public class InternalDbClientImpl extends InternalDbClient {
         
         
         return references;
+    }
+
+    private String handleNullValue(String columnValue) {
+        return columnValue == null ? "" : columnValue;
     }
 }

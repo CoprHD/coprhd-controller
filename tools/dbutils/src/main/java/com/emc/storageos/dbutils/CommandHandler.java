@@ -658,12 +658,30 @@ public abstract class CommandHandler {
     }
 
     public static class CheckDBHandler extends CommandHandler {
-        public CheckDBHandler() {
+        private boolean generateCleanupFile;
+        public CheckDBHandler(String[] args) {
+            if (args.length == 2 && Main.GENERATE_CLEANUP_CQL.equals(args[1])) {
+                generateCleanupFile = true;
+            }
         }
 
         @Override
         public void process(DBClient _client) {
-            _client.checkDB();
+            if (generateCleanupFile && CleanupFileWriter.existingCleanupFiles()) {// make sure we have 
+                System.err.println(String.format(
+                        "When specify %s please make sure you removed the last generated cql files [%s , %s] in current folder.",
+                        Main.GENERATE_CLEANUP_CQL, CleanupFileWriter.CLEANUP_FILE_STORAGEOS,
+                        CleanupFileWriter.CLEANUP_FILE_GEOSTORAGEOS));
+                return;
+            }
+            _client.checkDB(generateCleanupFile);
+            if (generateCleanupFile) {
+                try {
+                    CleanupFileWriter.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }

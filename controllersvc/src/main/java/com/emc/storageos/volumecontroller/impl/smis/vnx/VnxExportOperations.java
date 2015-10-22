@@ -831,7 +831,9 @@ public class VnxExportOperations implements ExportMaskOperations {
             if (initiatorList != null) {
                 for (Initiator initiator : initiatorList) {
                     updateInitiatorBasedOnPeers(storage, existingHwStorageIds, initiator);
-                    _log.info("After updateIntiatorBasedOnPeers : {} {}", initiator.getHostName(), initiator.toString());
+                    if(initiator != null) {
+                        _log.info("After updateIntiatorBasedOnPeers : {} {}", initiator.getHostName(), initiator.toString());
+                    }
                 }
             }
 
@@ -841,22 +843,22 @@ public class VnxExportOperations implements ExportMaskOperations {
                         "These are the targets %s",
                         Joiner.on(',').join(existingTargets.entries()),
                         Joiner.on(',').join(targetURIList)));
-            } else {
-                _log.info(String.format("All the initiators  known to the array and not all dont have target endpoints: \n."));
             }
 
             Multimap<URI, Initiator> targetPortsToInitiators = ArrayListMultimap.create();
 
-            _log.info("Sarav Print Target and Inititor ports .. Start");
+            //Some of the Initiaors are already resigered partially on the array based on pre existing zoning
+            //COP-16954 We need to  manually register them, the Initiaors will have HardwareId created but,
+            //The registration is not complete..  createHardwareIDs method above will include those Initiaors
+
+            _log.info("Preregistred Target and Inititor ports processing .. Start");
             for (String initPort : existingTargets.keySet()) {
-                _log.info("Sarav IntiatorPort {} and TargetStoragePort {}", initPort, existingTargets.get(initPort));
-                //Sarav IntiatorPort 50012481006B7807 and
-                // TargetStoragePort
+                _log.info("IntiatorPort {} and TargetStoragePort {}", initPort, existingTargets.get(initPort));
+                // IntiatorPort 50012481006B7807 and TargetStoragePort
                 // [CLARIION+CKM00115001014+PORT+50:06:01:60:3E:A0:45:79,
                 // CLARIION+CKM00115001014+PORT+50:06:01:61:3E:A0:45:79]
                 Collection<String> targetPorts = existingTargets.get(initPort);
                 for(String targetPortGuid : targetPorts) {
-                    _log.info("Target Port : {}", targetPortGuid);
                     List<URI> targetPortURIs = getStoragePortURI(targetPortGuid);
                     Initiator translatedInitiator = getInitiatorForWWN(initPort);
                     _log.info("Calculating Intiator {} and Targets {}", translatedInitiator, targetPortURIs);
@@ -870,7 +872,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                     }
                 }
             }
-            _log.info("Sarav Print Target and Inititor ports .. End");
+            _log.info("Preregistred Target and Inititor ports processing .. End");
 
             if (initiatorList == null || initiatorList.isEmpty()) {
                 _log.info("InitiatorList is null or Empty so call exposePathsWithVolumesOnly");

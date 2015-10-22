@@ -24,8 +24,6 @@ public class CreateBlockStorageForHostService extends ViPRService {
     @Bindable
     protected HostVolumeParams hostVolumeParams = new HostVolumeParams();
     
-    //@Bindable
-    //protected CreateBlockVolumeHelper helper = new CreateBlockVolumeHelper();
     protected List<CreateBlockVolumeForHostHelper> createBlockVolumeHelpers = Lists.newArrayList();
 
     @Override
@@ -54,6 +52,5 @@ public class CreateBlockStorageForHostService extends ViPRService {
             volumeIds.addAll(BlockStorageUtils.createMultipleVolumes(createBlockVolumeHelpers));
             createBlockVolumeHelpers.get(0).exportVolumes(volumeIds);
         }
-        //helper.createAndExportVolumes();
     }
 }

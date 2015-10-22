@@ -236,6 +236,6 @@ public class FileUtils {
             }
             fileList.add(file);
         }
-        return fileList.toArray(new File[fileList.size()]);
+        return fileList.toArray(new File[0]);
     }
 }

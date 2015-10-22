@@ -42,6 +42,8 @@ public final class TestBlockProviderFilter {
             boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
             boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
             boolean isInConsistencyGroup = BlockProvider.isInConsistencyGroup(detail.volume);
+            // Note not currently used in the filter, informational flag only
+            boolean isVPLEXVolume = isVPlexVolume(detail.volume);
 
             if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume))) {
                 options.add(BlockProvider.createVolumeOption(client, null, detail.volume, volumeNames));
@@ -50,18 +52,23 @@ public final class TestBlockProviderFilter {
                 System.out.println("\t" + detail.volume.getName());
             }
 
-            String extra = String.format("[localSnapSupported: %s, isRPTargetVolume: %s, isRPSourceVolume: %s, isInConsistencyGroup: %s]",
+            String extra = String.format(
+                    "[localSnapSupported: %s, isRPTargetVolume: %s, isRPSourceVolume: %s, isInConsistencyGroup: %s, isVPLEXVolume: %s]",
                     localSnapSupported,
-                    isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup);
+                    isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup, isVPLEXVolume);
 
             System.out.println(String.format("\t\t[ %s ] [ %s ]", getVolumePersonality(detail.volume), extra));
         }
     }
 
+    static boolean isVPlexVolume(VolumeRestRep item) {
+        return item.getHaVolumes() != null && !item.getHaVolumes().isEmpty();
+    }
+
     public static void main(String[] args) throws URISyntaxException {
         Logger.getRootLogger().setLevel(Level.OFF);
         ViPRCoreClient client =
-                new ViPRCoreClient("host", true).withLogin("root", "password");
+                new ViPRCoreClient("host", true).withLogin("user", "pass");
         try {
 
             for (ProjectRestRep project : client.projects().getByUserTenant()) {

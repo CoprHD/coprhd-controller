@@ -102,7 +102,7 @@ public final class TestBlockStorageUtils {
     public void testGetBlockResources() throws URISyntaxException {
         Logger.getRootLogger().setLevel(Level.OFF);
         ViPRCoreClient client =
-                new ViPRCoreClient("lglbg082.lss.emc.com", true).withLogin("root", "ChangeMe1!");
+                new ViPRCoreClient("host", true).withLogin("root", "password");
         try {
             List<URI> uris = prepare(client);
             StopWatch w = new StopWatch();

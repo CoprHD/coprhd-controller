@@ -50,6 +50,10 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
         _version = version;
     }
 
+    public String getDbClientVersion() {
+        return _version;
+    }
+    
     @Override
     public List<Host> get() {
         int sleepDuration = SLEEP_BETWEEN_RETRY;

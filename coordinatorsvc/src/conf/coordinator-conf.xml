@@ -30,4 +30,8 @@
         <property name="ovfProperties" ref="ovfProperties"/>
         <property name="dbVersionInfo" ref="dbVersionInfo"/>
     </bean>
+    
+    <bean id="drUtil" class="com.emc.storageos.coordinator.client.service.DrUtil">
+    	<property name="coordinator" ref="coordinator"/>
+    </bean>
 </beans>

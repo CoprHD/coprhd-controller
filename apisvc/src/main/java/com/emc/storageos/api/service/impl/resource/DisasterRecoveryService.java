@@ -136,6 +136,7 @@ public class DisasterRecoveryService {
             standbySite.setVip(param.getVip());
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
+            standbySite.setNodeCount(standbyConfig.getNodeCount());
             standbySite.setSecretKey(standbyConfig.getSecretKey());
             standbySite.setUuid(standbyConfig.getUuid());
             String shortId = generateShortId(existingSites);
@@ -166,6 +167,8 @@ public class DisasterRecoveryService {
             primarySite.setSecretKey(vdc.getSecretKey());
             primarySite.setUuid(coordinator.getSiteId());
             primarySite.setVip(vdc.getApiEndpoint());
+            primarySite.setNodeCount(vdc.getHostCount());
+            
             configParam.setPrimarySite(primarySite);
             
             List<SiteParam> standbySites = new ArrayList<SiteParam>();
@@ -355,6 +358,7 @@ public class DisasterRecoveryService {
         siteConfigRestRep.setDbSchemaVersion(coordinator.getCurrentDbSchemaVersion());
         siteConfigRestRep.setFreshInstallation(isFreshInstallation());
         siteConfigRestRep.setClusterStable(isClusterStable());
+        siteConfigRestRep.setNodeCount(vdc.getHostCount());
         
         Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, coordinator.getSiteId());
         if (config != null) {
@@ -468,13 +472,13 @@ public class DisasterRecoveryService {
     public SiteErrorResponse getSiteError(@PathParam("uuid") String uuid) {
         log.info("Begin to get site error by uuid {}", uuid);
         
+        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
+        if (config == null) {
+            log.error("Can't find site {} from ZK", uuid);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+        
         try {
-            Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
-            if (config == null) {
-                log.error("Can't find site {} from ZK", uuid);
-                throw APIException.badRequests.siteIdNotFound();
-            }
-
             Site standby = new Site(config);
             
             if (standby.getState().equals(SiteState.STANDBY_ERROR)) {

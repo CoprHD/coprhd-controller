@@ -10,6 +10,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
@@ -29,7 +32,15 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 public class DbClientContext {
 
@@ -50,6 +61,7 @@ public class DbClientContext {
     private static final int DB_THRIFT_PORT = 9160;
     private static final int GEODB_THRIFT_PORT = 9260;
     private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
+    private static final int DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC = 30;
 
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
@@ -76,6 +88,9 @@ public class DbClientContext {
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
 
+    private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+    private DrUtil drUtil;
+    
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
     }
@@ -161,7 +176,11 @@ public class DbClientContext {
     public void setMonitorIntervalSecs(long monitorIntervalSecs) {
         this.monitorIntervalSecs = monitorIntervalSecs;
     }
-
+    
+    public long getMonitorIntervalSecs() {
+        return monitorIntervalSecs;
+    }
+    
     public boolean isInitDone() {
         return initDone;
     }
@@ -190,7 +209,7 @@ public class DbClientContext {
         this.trustStorePassword = trustStorePassword;
     }
 
-    public void init(HostSupplierImpl hostSupplier) {
+    public void init(final HostSupplierImpl hostSupplier, final DrUtil drUtil) {
         String svcName = hostSupplier.getDbSvcName();
         log.info("Initializing hosts for {}", svcName);
         List<Host> hosts = hostSupplier.get();
@@ -235,6 +254,21 @@ public class DbClientContext {
         keyspaceContext.start();
         keyspace = keyspaceContext.getClient();
 
+        // Check and reset default write consistency level 
+        if (drUtil.isPrimary()) {
+            log.info("Schedule db consistency level monitor on DR primary site");
+            exe.scheduleWithFixedDelay(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        checkAndResetConsistencyLevel(drUtil, hostSupplier.getDbSvcName(), hostSupplier.getDbClientVersion());
+                    } catch (Exception ex) {
+                        log.warn("Encounter Unexpected exception during check consistency level. Retry in next run", ex);
+                    }
+                }
+            }, 60, DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC, TimeUnit.SECONDS);
+        }
+        
         initDone = true;
     }
 
@@ -361,4 +395,26 @@ public class DbClientContext {
         }
         log.warn("Unable to sync schema version {}", schemaVersion);
     }
+
+    private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName, String dbVersion) {
+        ConsistencyLevel currentConsistencyLevel = getKeyspace().getConfig().getDefaultWriteConsistencyLevel();
+        if (currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
+            log.debug("Write consistency level is EACH_QUORUM. No need adjust");
+            return;
+        }
+        
+        log.info("Db consistency level for {} is downgraded as LOCAL_QUORUM. Check if we need reset it back", svcName);
+        for(Site site : drUtil.listStandbySites()) {
+            String siteUuid = site.getUuid();
+            int count = drUtil.getNumberOfLiveServices(siteUuid, svcName, dbVersion);
+            if (count <= site.getNodeCount() / 2) {
+                log.info("Service {} of quorum nodes on site {} is down. Still keep write consistency level to LOCAL_QUORUM", svcName, siteUuid);
+                return;
+            }      
+        }
+        log.info("Service {} of quorum nodes on all standby sites are up. Reset default write consistency level back to EACH_QUORUM", svcName);
+        AstyanaxConfigurationImpl config = (AstyanaxConfigurationImpl)keyspaceContext.getAstyanaxConfiguration();
+        config.setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);
+    }
+    
 }

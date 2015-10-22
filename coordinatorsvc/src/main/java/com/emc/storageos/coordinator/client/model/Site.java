@@ -33,6 +33,7 @@ public class Site {
     private static final String KEY_SITE_STATE = "state";
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
+    private static final String KEY_NODECOUNT = "nodeCount";
     
     public static final String CONFIG_KIND = "disasterRecoverySites";
 
@@ -47,6 +48,7 @@ public class Site {
     private String standbyShortId = "";
     private long creationTime = 0;
     private SiteState state = SiteState.PRIMARY;
+    private int nodeCount;
     
     public Site() {
     }
@@ -111,6 +113,14 @@ public class Site {
 
     public void setHostIPv6AddressMap(Map<String, String> hostIPv6AddressMap) {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
+    }
+    
+    public int getNodeCount() {
+        return nodeCount;
+    }
+
+    public void setNodeCount(int nodeCount) {
+        this.nodeCount = nodeCount;
     }
 
     public String getDescription() {
@@ -194,6 +204,9 @@ public class Site {
         if (state != null) {
             config.setConfig(KEY_SITE_STATE, String.valueOf(state));
         }
+        
+        config.setConfig(KEY_NODECOUNT, String.valueOf(nodeCount));
+        
         config.setConfig(KEY_NODESADDR, StringUtil.join(this.hostIPv4AddressMap.values(), ","));
         config.setConfig(KEY_NODESADDR6, StringUtil.join(this.hostIPv6AddressMap.values(), ","));
         return config;
@@ -222,6 +235,11 @@ public class Site {
             if (s != null) {
                 state = SiteState.valueOf(config.getConfig(KEY_SITE_STATE));
             }
+            s = config.getConfig(KEY_NODECOUNT);
+            if (s != null) {
+                nodeCount = Integer.valueOf(s);
+            }
+            
             String addrs = config.getConfig(KEY_NODESADDR);
             if (addrs != null) {
                 int i = 1;

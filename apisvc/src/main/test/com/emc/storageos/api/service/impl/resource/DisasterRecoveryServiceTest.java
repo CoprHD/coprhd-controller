@@ -109,18 +109,21 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
         standbySite1.setState(SiteState.PRIMARY);
         standbySite1.setVdc(localVDC.getId());
+        standbySite1.setNodeCount(1);
         
 
         standbySite2 = new Site();
         standbySite2.setUuid("site-uuid-2");
         standbySite2.setState(SiteState.STANDBY_SYNCED);
         standbySite2.setVdc(localVDC.getId());
+        standbySite2.setNodeCount(1);
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
         standbySite3.setVdc(new URI("fake-vdc-id"));
         standbySite3.setState(SiteState.PRIMARY);
         standbySite3.setVdc(localVDC.getId());
+        standbySite3.setNodeCount(1);
 
         primarySiteParam = new SiteParam();
         /*primarySiteParam.setUuid("primary-site-uuid");
@@ -134,6 +137,7 @@ public class DisasterRecoveryServiceTest {
         localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
         localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
         localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
+        localVDC.setHostCount(3);
         
         // mock DBClient
         dbClientMock = mock(DbClientImpl.class);
@@ -164,6 +168,7 @@ public class DisasterRecoveryServiceTest {
         standbyConfig.setVip(localVDC.getApiEndpoint());
         standbyConfig.setHostIPv4AddressMap(localVDC.getHostIPv4AddressesMap());
         standbyConfig.setHostIPv6AddressMap(localVDC.getHostIPv6AddressesMap());
+        standbyConfig.setNodeCount(3);
         
         doReturn(standbyConfig.getUuid()).when(coordinator).getSiteId();
         doReturn("primary-site-id").when(coordinator).getPrimarySiteId();
@@ -449,6 +454,7 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testGetSiteError() {
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
         SiteErrorResponse siteError = drService.getSiteError("site-uuid-1");
         
         assertEquals(0, siteError.getCreationTime());

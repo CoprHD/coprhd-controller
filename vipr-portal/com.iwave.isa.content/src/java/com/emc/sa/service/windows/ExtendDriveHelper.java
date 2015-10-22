@@ -13,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.iwave.ext.windows.WindowsSystemWinRM;
@@ -48,7 +47,7 @@ public class ExtendDriveHelper {
         this.volumeSizeInBytes = volumeSizeInBytes;
     }
 
-    public void setVolumes(Collection<VolumeRestRep> volumes) {
+    public void setVolumes(Collection<BlockObjectRestRep> volumes) {
         this.volumes = volumes;
     }
 

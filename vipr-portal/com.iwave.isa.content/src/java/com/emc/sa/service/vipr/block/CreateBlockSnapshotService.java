@@ -19,7 +19,6 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockSnapshot;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 
 @Service("CreateBlockSnapshot")
@@ -40,13 +39,13 @@ public class CreateBlockSnapshotService extends ViPRService {
     @Param(value = READ_ONLY, required = false)
     protected Boolean readOnly;
 
-    private List<VolumeRestRep> volumes;
+    private List<BlockObjectRestRep> volumes;
 
     @Override
     public void precheck() {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             volumes = new ArrayList<>();
-            volumes = BlockStorageUtils.getVolumes(uris(volumeIds));
+            volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
         }
     }
 

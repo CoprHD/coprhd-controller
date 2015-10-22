@@ -184,11 +184,11 @@ public class BlockStorageUtils {
         return execute(new GetBlockConsistencyGroup(resourceId));
     }
 
-    public static List<VolumeRestRep> getVolumes(List<URI> volumeIds) {
+    private static List<VolumeRestRep> getVolumes(List<URI> volumeIds) {
         return execute(new GetBlockVolumes(volumeIds));
     }
 
-    public static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
+    private static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
         return execute(new GetBlockSnapshots(uris));
     }
 

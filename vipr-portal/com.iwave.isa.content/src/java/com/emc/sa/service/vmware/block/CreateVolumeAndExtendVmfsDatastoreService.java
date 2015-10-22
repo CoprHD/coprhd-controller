@@ -16,7 +16,6 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.vmware.vim25.mo.Datastore;
 
 @Service("VMware-CreateVolumeAndExtendVmfsDatastore")
@@ -41,7 +40,7 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
 
     @Override
     public void execute() throws Exception {
-        List<VolumeRestRep> volumes = createBlockVolumeHelper.createAndExportVolumes();
+        List<BlockObjectRestRep> volumes = createBlockVolumeHelper.createAndExportVolumes();
         if (volumes.isEmpty()) {
             ExecutionUtils.fail("CreateVolumeAndExtendVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
         }

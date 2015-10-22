@@ -13,7 +13,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
-import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.block.BlockObjectRestRep;
 
 @Service("Windows-ExtendBlockVolume")
 public class ExtendBlockVolumeService extends WindowsService {
@@ -34,7 +34,7 @@ public class ExtendBlockVolumeService extends WindowsService {
         super.precheck();
         boolean clusteredVolumeSuccess = false;
 
-        List<VolumeRestRep> volumes = BlockStorageUtils.getVolumes(uris(volumeIds));
+        List<BlockObjectRestRep> volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
         for (ExtendDriveHelper extendDriveHelper : extendDriveHelpers) {
             extendDriveHelper.setVolumes(volumes);
             extendDriveHelper.precheck();

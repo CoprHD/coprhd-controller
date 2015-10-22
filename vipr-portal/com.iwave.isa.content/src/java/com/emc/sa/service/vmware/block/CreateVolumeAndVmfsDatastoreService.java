@@ -20,7 +20,6 @@ import com.emc.sa.service.vmware.VMwareUtils;
 import com.emc.sa.service.vmware.VMwareUtils.DatastoreToVolumeParams;
 import com.emc.sa.service.vmware.VMwareUtils.DatastoreToVolumeTable;
 import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.google.common.collect.Lists;
 import com.vmware.vim25.mo.Datastore;
 
@@ -99,7 +98,7 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
 
         int index = 0;
         for (String datastoreName : datastoreNames) {
-            List<VolumeRestRep> volumes = createBlockVolumeHelpers.get(index).createAndExportVolumes();
+            List<BlockObjectRestRep> volumes = createBlockVolumeHelpers.get(index).createAndExportVolumes();
             if (volumes.isEmpty()) {
                 ExecutionUtils.fail("CreateVolumeAndVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
             }

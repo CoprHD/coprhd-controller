@@ -70,6 +70,7 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
 import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
+import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetExportsForBlockObject;
 import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
@@ -172,14 +173,6 @@ public class BlockStorageUtils {
         return execute(new GetStorageSystem(storageSystemId));
     }
 
-    public static List<BlockObjectRestRep> getVolumes(List<URI> volumeIds) {
-        List<BlockObjectRestRep> volumes = Lists.newArrayList();
-        for (URI volumeId : volumeIds) {
-            volumes.add(getVolume(volumeId));
-        }
-        return volumes;
-    }
-
     public static BlockSnapshotRestRep getSnapshot(URI snapshotId) {
         return execute(new GetBlockSnapshot(snapshotId));
     }
@@ -194,6 +187,14 @@ public class BlockStorageUtils {
 
     public static VirtualArrayRestRep getVirtualArray(URI id) {
         return execute(new GetVirtualArray(id));
+    }
+
+    private static List<VolumeRestRep> getVolumes(List<URI> volumeIds) {
+        return execute(new GetBlockVolumes(volumeIds));
+    }
+
+    private static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
+        return execute(new GetBlockSnapshots(uris));
     }
 
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {

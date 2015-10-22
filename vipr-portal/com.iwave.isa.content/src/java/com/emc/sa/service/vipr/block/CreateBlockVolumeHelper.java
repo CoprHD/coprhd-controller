@@ -112,7 +112,7 @@ public class CreateBlockVolumeHelper {
         ExecutionUtils.clearRollback();
 
         // Get the volumes after exporting, volumes would not have WWNs until after export in VPLEX
-        List<BlockObjectRestRep> volumes = BlockStorageUtils.getVolumes(volumeIds);
+        List<BlockObjectRestRep> volumes = BlockStorageUtils.getBlockResources(volumeIds);
         return volumes;
     }
 

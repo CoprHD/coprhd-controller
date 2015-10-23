@@ -130,8 +130,10 @@ public class RowMutator {
     }
     
     /**
-     * Retry with EACH_QUORUM if remote site is not reachable. See DbClientContext.checkAndResetConsistencyLevel on
+     * Retry with LOCAL_QUORUM if remote site is not reachable. See DbClientContext.checkAndResetConsistencyLevel on
      * how the consistency level is changed back after remote site is available again later.
+     * 
+     * It is supposed to happen on primary site only.
      * 
      * @param mutator
      * @throws ConnectionException
@@ -145,7 +147,7 @@ public class RowMutator {
                 if (currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
                     mutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                     mutator.execute();
-                    log.info("Switch to lower consistency level");
+                    log.info("Reduce write consistency level to CL_LOCAL_QUORUM");
                     ((AstyanaxConfigurationImpl)_keyspace.getConfig()).setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                 }
             }

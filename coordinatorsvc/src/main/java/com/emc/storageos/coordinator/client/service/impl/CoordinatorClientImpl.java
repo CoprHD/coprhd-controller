@@ -762,11 +762,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
             if (endpointKey == null) {
                 // default endpoint
-                URI endpoint = expandEndpointURI(service.getEndpoint());
+                URI endpoint = expandEndpointURI(service.getEndpoint(), siteId);
                 ((ServiceImpl) service).setEndpoint(endpoint);
             } else {
                 // swap the ip for the entry with the endpointkey in the map
-                URI endpoint = expandEndpointURI(service.getEndpoint(endpointKey));
+                URI endpoint = expandEndpointURI(service.getEndpoint(endpointKey), siteId);
                 ((ServiceImpl) service).setEndpoint(endpointKey, endpoint);
             }
             log.debug("locateAllServices->service endpoint: " + service.getEndpoint());
@@ -782,7 +782,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * @param endpoint
      * @return
      */
-    private URI expandEndpointURI(URI endpoint) {
+    private URI expandEndpointURI(URI endpoint, String siteId) {
         if (getSiteId().equals(siteId)) {
             return getInetAddessLookupMap().expandURI(endpoint);
         }

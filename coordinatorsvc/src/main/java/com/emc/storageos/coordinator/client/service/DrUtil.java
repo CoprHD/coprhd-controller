@@ -35,27 +35,19 @@ public class DrUtil {
     /**
      * Check if current site is primary
      * 
-     * @return true of primary
+     * @return true for primary. otherwise false
      */
     public boolean isPrimary() {
         return coordinator.getPrimarySiteId().equals(coordinator.getSiteId());
     }
     
     /**
-     * List all standby sites
+     * Check if current site is a standby site
      * 
-     * @return a list of Site instances for all standby sites
+     * @return true for standby site. otherwise false
      */
-    public List<Site> listStandbySites() {
-        List<Site> result = new ArrayList<>();
-        for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
-            if (site.getState() == SiteState.PRIMARY) {
-                continue;
-            }
-            result.add(site);
-        }
-        return result;
+    public boolean isStandby() {
+        return !isPrimary();
     }
     
     /**

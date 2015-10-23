@@ -698,21 +698,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 CIMArgument[] inArgs = _helper.getDeleteVolumesInputArguments(storageSystem,
                         volumeNativeIds);
                 CIMArgument[] outArgs = new CIMArgument[5];
-                StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem,
-                        volumes.get(0));
                 String returnElementsMethod;
-                if (forProvider.getUsingSmis80()) {
+                if (storageSystem.getUsingSmis80()) {
                     returnElementsMethod = SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL;
                 } else {
                     returnElementsMethod = SmisConstants.EMC_RETURN_TO_STORAGE_POOL;
                 }
-                _helper.invokeMethod(forProvider, configSvcPath,
+                _helper.invokeMethod(storageSystem, configSvcPath,
                         returnElementsMethod, inArgs, outArgs);
                 CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs,
                         SmisConstants.JOB);
                 if (job != null) {
                     ControllerServiceImpl.enqueueJob(new QueueJob(new SmisDeleteVolumeJob(job,
-                            forProvider.getId(), taskCompleter)));
+                            storageSystem.getId(), taskCompleter)));
                 }
             } else {
                 // If we are here, there are no volumes to delete, we have

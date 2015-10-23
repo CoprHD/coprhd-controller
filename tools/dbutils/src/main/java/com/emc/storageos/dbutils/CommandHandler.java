@@ -677,12 +677,10 @@ public abstract class CommandHandler {
                 return;
             }
             _client.checkDB(generateCleanupFile);
-            if (generateCleanupFile) {
-                try {
-                    CleanupFileWriter.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            try {
+                CleanupFileWriter.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -703,37 +701,40 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) {
-            if(rebuildIndexFileName != null) {
-                File rebuildFile = new File(rebuildIndexFileName);
-                if (rebuildFile.exists() && rebuildFile.isFile()) {
-                    int successCounter = 0;
-                    int failCounter = 0;
-                    try (BufferedReader br = new BufferedReader(new FileReader(rebuildIndexFileName))) {
-                        String line = null;
-                        while((line = br.readLine()) != null) {
-                            if(line.length()==0 || line.startsWith(KEY_COMMENT_CHAR)) continue;
-                            Map<String, String> rebuildMap = readToMap(line); 
-                            String id = rebuildMap.get(KEY_ID);
-                            String cfName = rebuildMap.get(KEY_CFNAME);
-                            if(_client.rebuildIndex(id, cfName)) {
-                                successCounter++;
-                            } else {
-                                failCounter++;
-                            }
-                        }
-                    } catch (IOException e) {
-                        System.err.println("Error occured when reading the cleanup file.");
-                        e.printStackTrace();
+            if (rebuildIndexFileName == null) {
+                System.out.println("rebuild Index file is null");
+                return;
+            }
+            File rebuildFile = new File(rebuildIndexFileName);
+            if(!rebuildFile.exists() || !rebuildFile.isFile()) {
+                System.err.println("Rebuild file is not exist or is not a file");
+                return;
+            }
+            int successCounter = 0;
+            int failCounter = 0;
+            try (BufferedReader br = new BufferedReader(new FileReader(rebuildIndexFileName))) {
+                String line = null;
+                while ((line = br.readLine()) != null) {
+                    if (line.length() == 0 || line.startsWith(KEY_COMMENT_CHAR))
+                        continue;
+                    Map<String, String> rebuildMap = readToMap(line);
+                    String id = rebuildMap.get(KEY_ID);
+                    String cfName = rebuildMap.get(KEY_CFNAME);
+                    if (_client.rebuildIndex(id, cfName)) {
+                        successCounter++;
+                    } else {
+                        failCounter++;
                     }
-                    if(successCounter > 0 ) {
-                        System.out.println(String.format("successfully rebuild %s indexes.", successCounter));
-                    }
-                    if(failCounter > 0 ) {
-                        System.out.println(String.format("failed rebuild %s indexes.", failCounter));
-                    }
-                } else {
-                    System.err.println(String.format("Specified clean up file %s is not existed, please check with it and rerun.", rebuildIndexFileName));
                 }
+            } catch (IOException e) {
+                System.err.println("Error occured when reading the cleanup file.");
+                e.printStackTrace();
+            }
+            if (successCounter > 0) {
+                System.out.println(String.format("successfully rebuild %s indexes.", successCounter));
+            }
+            if (failCounter > 0) {
+                System.out.println(String.format("failed rebuild %s indexes.", failCounter));
             }
         }
 

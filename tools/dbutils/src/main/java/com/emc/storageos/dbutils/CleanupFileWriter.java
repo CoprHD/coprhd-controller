@@ -19,12 +19,12 @@ public class CleanupFileWriter {
     static final String WRITER_STORAGEOS = "StorageOS";
     static final String WRITER_GEOSTORAGEOS = "GeoStorageOS";
     static final String WRITER_REBUILD_INDEX = "rebuildIndex";
-    static final String CLEANUP_FILE_STORAGEOS = "cleanupStorageOS.cql";
-    static final String CLEANUP_FILE_GEOSTORAGEOS = "cleanupGeoStorageOS.cql";
+    static final String CLEANUP_FILE_STORAGEOS = "cleanup-StorageOS.cql";
+    static final String CLEANUP_FILE_GEOSTORAGEOS = "cleanup-GeoStorageOS.cql";
     static final String CLEANUP_FILE_REBUILD_INDEX = "cleanup-rebuildIndex.file";
-    private static final String USAGE_STORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k StorageOS -f cleanupStorageOS.cql";
-    private static final String USAGE_GEOSTORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k GeoStorageOS -f cleanupGeoStorageOS.cql localhost 9260";
-    private static final String USAGE_REBUILDINDEX = "# please run /opt/storageos/bin/dbutils rebuild_index ./rebuildIndex";
+    private static final String USAGE_STORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k StorageOS -f cleanup-StorageOS.cql";
+    private static final String USAGE_GEOSTORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k GeoStorageOS -f cleanup-GeoStorageOS.cql localhost 9260";
+    private static final String USAGE_REBUILDINDEX = "# please run /opt/storageos/bin/dbutils rebuild_index ./cleanup-rebuildIndex.file";
     private static final Logger log = LoggerFactory.getLogger(CleanupFileWriter.class);
 
     private CleanupFileWriter(){}
@@ -32,9 +32,7 @@ public class CleanupFileWriter {
     static void writeTo(String name, String lineStr) {
         try {
             BufferedWriter writer = getWriter(name);
-            writer.write(lineStr);
-            writer.newLine();
-            writer.flush();
+            writeln(writer, lineStr);
         } catch (IOException e) {
             System.out.println(" --> Exception : " + e);
             log.error("Caught Exception: ", e);
@@ -65,10 +63,14 @@ public class CleanupFileWriter {
 
     private static BufferedWriter init(String fileName, String usage) throws IOException {
         BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
-        writer.write(usage);
+        writeln(writer, usage);
+        return writer;
+    }
+
+    private static void writeln(BufferedWriter writer, String str) throws IOException {
+        writer.write(str);
         writer.newLine();
         writer.flush();
-        return writer;
     }
 
     static void close() throws IOException {
@@ -96,7 +98,7 @@ public class CleanupFileWriter {
             generatedFileNameBuilder.append(CLEANUP_FILE_STORAGEOS);
         }
         if(geoStorageFileWriter != null) {
-            generatedFileNameBuilder.append(" ").append(WRITER_GEOSTORAGEOS);
+            generatedFileNameBuilder.append(" ").append(CLEANUP_FILE_GEOSTORAGEOS);
         }
         if(rebuildIndexFileWriter != null) {
             generatedFileNameBuilder.append(" ").append(CLEANUP_FILE_REBUILD_INDEX);

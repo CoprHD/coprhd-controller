@@ -2072,12 +2072,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // Create a map of all of the protection sets this delete operation impacts.
         Map<URI, Set<URI>> cgVolumeMap = new HashMap<URI, Set<URI>>();
         Map<URI, URI> cgProtectionSetMap = new HashMap<URI, URI>();
+        boolean validCg = false;
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeDescriptor.getVolumeURI());
 
             if (NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                 // Don't try to delete the CG, there isn't one
-                return returnStep;
+                continue;
+            } else {
+                // If we have at least one valid CG to try and delete, we must keep track so we can
+                // return the correct waitFor.
+                validCg = true;
             }
 
             if (cgVolumeMap.get(volume.getConsistencyGroup()) == null) {
@@ -2114,6 +2119,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     cgWaitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
                     cgRemovalExecuteMethod, null, stepId);
         }
+
+        if (!validCg) {
+            // If there are no valid CGs to process then return the original waitFor.
+            return returnStep;
+        }
+
         return STEP_DV_REMOVE_CG;
     }
 

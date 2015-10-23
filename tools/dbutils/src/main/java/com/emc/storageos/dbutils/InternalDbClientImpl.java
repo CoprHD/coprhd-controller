@@ -352,11 +352,10 @@ public class InternalDbClientImpl extends InternalDbClient {
         ColumnList<IndexColumnName> result = ks.prepareQuery(indexCf).getKey(indexKey)
                 .withColumnRange(builder)
                 .execute().getResult();
-        int count = 0;
         for (Column<IndexColumnName> indexColumn : result) {
-            count++;
+            return true;
         }
-        return count != 0 ? true : false;
+        return false;
     }
 
     public Map<String, IndexAndCf> getAllIndices() {

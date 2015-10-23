@@ -36,6 +36,8 @@
 				<ref bean="getTCPProtocolEndPoint"/>
 				<!-- get StoragePools -->
 				<ref bean="getStoragePools"/>
+				
+				<ref bean="getReplicationGroups"/>
 
 				<!-- get Storage Volume info with provider 8.x -->
 				<!-- getAllocatedFromStoragePoolsFor8x is needed by getStorageVolumesFor8x -->
@@ -1036,6 +1038,36 @@
 	<bean id="storagePoolProcessor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StoragePoolProcessor" />
 
+	<!-- SMI Call to get associated SE_ReplicationGroup for an Array -->
+	<bean id="getReplicationGroups" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="reference-comp" />
+
+				<ref bean="null" />
+				<ref bean="resultClass-replicationGroup" />
+				<ref bean="null" />
+				<ref bean="null" />
+				<ref bean="bool-true" />
+				<ref bean="pool-prop" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="result" value="volumeToReplicationGroup" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="replicationGroupProcessor" />
+		<property name="message" value="Invoking associatorNames to get ReplicationGroups"/>
+	</bean>
+	
+	<bean id="resultClass-replicationGroup" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="SE_ReplicationGroup" />
+	</bean>
+
+    <!-- Processors -->
+	<bean id="replicationGroupProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ReplicationGroupProcessor" />
 
 	<!-- SMI Call to getSupported Volume Size Ranges for THIN Pools -->
 	<bean id="getSupportedSizeRanges-thin" class="com.emc.storageos.plugins.common.domainmodel.Operation">

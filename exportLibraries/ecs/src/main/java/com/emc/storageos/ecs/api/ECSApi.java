@@ -40,7 +40,7 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_QUOTA = "/object/bucket/{0}/quota.json";
     private static final String URI_UPDATE_BUCKET_OWNER = "/object/bucket/{0}/owner.json";
     private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json?namespace={1}";
-    private static final String URI_BUCKET_INFO = "/object/bucket/{0}/info.json";
+    private static final String URI_BUCKET_INFO = "/object/bucket/{0}/info.json?namespace={1}";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -400,11 +400,11 @@ public class ECSApi {
      * @return				Owner of bucket
      * @throws ECSException If error occurs
      */
-    public String getBucketOwner(String bucketName) throws ECSException {
+    public String getBucketOwner(String bucketName, String namespace) throws ECSException {
     	ClientResponse clientResp = null;
     	String owner = null;
 
-    	final String path = MessageFormat.format(URI_BUCKET_INFO, bucketName);
+    	final String path = MessageFormat.format(URI_BUCKET_INFO, bucketName, namespace);
     	try {
     		clientResp = get(path);
     		if (clientResp != null && clientResp.getStatus() == 200) {

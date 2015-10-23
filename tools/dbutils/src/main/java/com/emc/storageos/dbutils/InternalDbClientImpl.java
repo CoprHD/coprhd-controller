@@ -36,7 +36,6 @@ import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
@@ -44,6 +43,7 @@ import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.RowQuery;
+import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
 
@@ -288,39 +288,38 @@ public class InternalDbClientImpl extends InternalDbClient {
                             .lessThanEquals(DataObject.INACTIVE_FIELD_NAME).reverse().limit(1))
                     .setRowLimit(DEFAULT_PAGE_SIZE).execute();
 
-            Set<URI> ids = new HashSet<>();
-            for (Row<String, CompositeColumnName> row : result.getResult()) {
-                for (Column<CompositeColumnName> column : row.getColumns()) {
+            for (Row<String, CompositeColumnName> objRow : result.getResult()) {
+                Set<URI> ids = new HashSet<>();
+                for (Column<CompositeColumnName> column : objRow.getColumns()) {
                     // If inactive is true, skip this record
                     if (column.getBooleanValue() != true) {
-                        ids.add(URI.create(row.getKey()));
-                    }
-                }
-            }
-
-            for (ColumnField indexedField : indexedFields) {
-                Rows<String, CompositeColumnName> rows = queryRowsWithAColumn(keyspace, ids, doType.getCF(), indexedField);
-                for (Row<String, CompositeColumnName> row : rows) {
-                    objRowCount++;
-                    for (Column<CompositeColumnName> column : row.getColumns()) {
-                        String indexKey = DetectHelper.getIndexKey(indexedField, column);
-                        if (indexKey == null) {
-                            continue;
-                        }
-                        boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
-                                DetectHelper.getIndexColumnOne(indexedField, column));
-                        if (!isColumnInIndex) {
-                            corruptRowCount++;
-                            logAndPrintToScreen(String.format(
-                                    "Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
-                                    indexedField.getDataObjectType().getSimpleName(), row.getKey(), indexedField.getName(),
-                                    indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
-                                    true);
-                        }
-
+                        ids.add(URI.create(objRow.getKey()));
                     }
                 }
 
+                for (ColumnField indexedField : indexedFields) {
+                    Rows<String, CompositeColumnName> rows = queryRowsWithAColumn(keyspace, ids, doType.getCF(), indexedField);
+                    for (Row<String, CompositeColumnName> row : rows) {
+                        objRowCount++;
+                        for (Column<CompositeColumnName> column : row.getColumns()) {
+                            String indexKey = DetectHelper.getIndexKey(indexedField, column);
+                            if (indexKey == null) {
+                                continue;
+                            }
+                            boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey, DetectHelper.getIndexColumns(indexedField, column, row.getKey()));
+                            if (!isColumnInIndex) {
+                                corruptRowCount++;
+                                logAndPrintToScreen(String.format(
+                                        "Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
+                                        indexedField.getDataObjectType().getSimpleName(), row.getKey(), indexedField.getName(),
+                                        indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
+                                        true);
+                            }
+
+                        }
+                    }
+
+                }
             }
         }
 
@@ -332,12 +331,19 @@ public class InternalDbClientImpl extends InternalDbClient {
         return corruptRowCount == 0;
     }
 
-    private boolean isColumnInIndex(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, String indexColumnOne)
+    private boolean isColumnInIndex(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, String[] indexColumns)
             throws ConnectionException {
+        CompositeRangeBuilder builder = CompositeColumnNameSerializer.get().buildRange();
+        for (int i = 0; i < indexColumns.length; i++) {
+            if (i == (indexColumns.length - 1)) {
+                builder.greaterThanEquals(indexColumns[i]).lessThanEquals(indexColumns[i]).limit(1);
+                break;
+            }
+            builder.withPrefix(indexColumns[i]);
+        }
+
         ColumnList<IndexColumnName> result = ks.prepareQuery(indexCf).getKey(indexKey)
-                .withColumnRange(CompositeColumnNameSerializer.get().buildRange()
-                        .greaterThanEquals(indexColumnOne)
-                        .lessThanEquals(indexColumnOne).limit(1))
+                .withColumnRange(builder)
                 .execute().getResult();
         int count = 0;
         for (Column<IndexColumnName> indexColumn : result) {

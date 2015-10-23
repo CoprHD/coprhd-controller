@@ -527,13 +527,17 @@ public class VPlexApiClient {
      * migrating the backend volume(s) to volume(s) with a larger capacity.
      * 
      * @param virtualVolumeName The name of the virtual volume.
+     * @param expansionStatusRetryCount Retry count to check virtual volume's expansion status
+     * @param expansionStatusSleepTime Sleep time in between expansion status check retries
      * 
      * @throws VPlexApiException When an exception occurs expanding the volume.
      */
-    public VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName)
+    public VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName,
+            int expansionStatusRetryCount, long expansionStatusSleepTime)
             throws VPlexApiException {
         s_logger.info("Request for virtual volume expansion on VPlex at {}", _baseURI);
-        return _virtualVolumeMgr.expandVirtualVolume(virtualVolumeName);
+        return _virtualVolumeMgr.expandVirtualVolume(virtualVolumeName, expansionStatusRetryCount,
+                expansionStatusSleepTime);
     }
 
     /**
@@ -1576,7 +1580,7 @@ public class VPlexApiClient {
                 VPlexStorageVolumeInfo info = it.next();
                 s_logger.info(info.toString());
                 if (!VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
-                    s_logger.warn("Unexpected component type {} found for volume {}", 
+                    s_logger.warn("Unexpected component type {} found for volume {}",
                             info.getComponentType(), info.getName());
                     it.remove();
                 }
@@ -1714,4 +1718,5 @@ public class VPlexApiClient {
     public String getDrillDownInfoForDevice(String deviceName) throws VPlexApiException {
         return _discoveryMgr.getDrillDownInfoForDevice(deviceName);
     }
+
 }

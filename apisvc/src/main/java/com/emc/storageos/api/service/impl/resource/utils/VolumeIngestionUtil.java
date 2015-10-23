@@ -592,7 +592,7 @@ public class VolumeIngestionUtil {
                 spoolName = spool.getLabel();
             }
         } 
-        if (null == supportedVPoolUris || supportedVPoolUris.isEmpty()) {
+        if (null == supportedVPoolUris) {
             if (isVplexVolume(unManagedVolume)) {
                 throw APIException.internalServerErrors.noMatchingVplexVirtualPool(
                         unManagedVolume.getLabel(), unManagedVolume.getId());

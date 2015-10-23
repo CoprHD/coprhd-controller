@@ -23,6 +23,9 @@ public class DbVersionTest extends DbsvcTestBase {
 
     @Test
     public void matchVersion() throws Exception {
+        // make sure that db schema version is "1.1"
+        Assert.assertEquals(_dbVersionInfo.getSchemaVersion(), "2.2");
+
         Assert.assertEquals(_dbVersionInfo.getSchemaVersion(), service.getVersion());
     }
 }

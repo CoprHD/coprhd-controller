@@ -5,11 +5,7 @@
 
 package com.emc.storageos.systemservices.impl.propertyhandler;
 
-import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
-import com.emc.storageos.model.property.PropertyMetadata;
-
-import java.util.Map;
 
 public class DefaultUpdateHandler implements UpdateHandler {
 
@@ -40,20 +36,10 @@ public class DefaultUpdateHandler implements UpdateHandler {
         }
 
         if (oldValue == null) {
-            Map<String, PropertyMetadata> metadata = PropertiesMetadata.getGlobalMetadata();
-
-            // no metadata, that is, this property is not defined
-            if (metadata == null) {
-                return false;
-            }
-
-            final PropertyMetadata propertyMetadata = metadata.get(property);
-            if (propertyMetadata != null) {
-                oldValue = propertyMetadata.getValue();
-            }
+            oldValue = "0";
         }
 
-        if (oldValue != null && oldValue.equals(newValue)) {
+        if (oldValue.equals(newValue)) {
             return false;
         }
 

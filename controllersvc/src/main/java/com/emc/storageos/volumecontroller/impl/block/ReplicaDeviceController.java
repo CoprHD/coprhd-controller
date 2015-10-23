@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +33,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -43,6 +43,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupUpdateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -260,9 +261,9 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         Workflow.Method createMethod = new Workflow.Method(
                 BlockDeviceController.CREATE_LIST_SNAPSHOT_METHOD, storage, snapshotList, false, false);
         waitFor = workflow.createStep(BlockDeviceController.CREATE_SNAPSHOTS_STEP_GROUP,
-                "Create list snapshot", waitFor, storage, storageSystem.getSystemType(),
-                _blockDeviceController.getClass(),
-                createMethod, _blockDeviceController.rollbackMethodNullMethod(), null);
+                    "Create list snapshot", waitFor, storage, storageSystem.getSystemType(),
+                    _blockDeviceController.getClass(),
+                    createMethod, _blockDeviceController.rollbackMethodNullMethod(), null);
 
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
@@ -308,20 +309,13 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setSourceNativeId(volume.getNativeId());
         snapshot.setParent(new NamedURI(volume.getId(), volume.getLabel()));
         snapshot.setLabel(volume.getLabel() + "_" + repGroupName);
-        snapshot.setReplicationGroupInstance(repGroupName);
         snapshot.setStorageController(volume.getStorageController());
         snapshot.setVirtualArray(volume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());
         snapshot.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
-        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, _dbClient);
-        if (null != existingSnapSnapSetLabel) {
-            snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
-        } else {
-            log.warn("Not able to find any snapshots with group {}", repGroupName);
-            snapshot.setSnapsetLabel(repGroupName);
-        }
-
+        snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
+                volume.getLabel(), SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
         snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
         _dbClient.createObject(snapshot);
 
@@ -344,7 +338,6 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         clone.setThinlyProvisioned(volume.getThinlyProvisioned());
         clone.setOpStatus(new OpStatusMap());
         clone.setAssociatedSourceVolume(volume.getId());
-        clone.setReplicationGroupInstance(repGroupName);
 
         StringSet fullCopies = volume.getFullCopies();
         if (fullCopies == null) {
@@ -436,7 +429,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         createdMirror.setTenant(new NamedURI(volume.getTenant().getURI(), createdMirror.getLabel()));
         createdMirror.setPool(recommendedPoolURI);
         createdMirror.setVirtualPool(vPoolURI);
-        createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());
+        createdMirror.setSyncState(BlockMirror.SynchronizationState.UNKNOWN.toString());
         createdMirror.setSyncType(BlockMirror.MIRROR_SYNC_TYPE);
         createdMirror.setThinlyProvisioned(volume.getThinlyProvisioned());
         _dbClient.createObject(createdMirror);

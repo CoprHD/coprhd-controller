@@ -14,7 +14,6 @@ import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,7 +131,7 @@ public class SmisCreateListReplicaJob extends SmisReplicaCreationJobs {
                     BlockMirror mirror = (BlockMirror) replica;
                     mirror.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storage, mirror));
                     mirror.setSyncType(Integer.toString(syncType));
-                    mirror.setSyncState(SynchronizationState.SYNCHRONIZED.name());
+                    mirror.setSyncState(BlockMirror.SynchronizationState.SYNCHRONIZED.name());
                     mirror.setProvisionedCapacity(getProvisionedCapacityInformation(client, syncVolume));
                     mirror.setAllocatedCapacity(getAllocatedCapacityInformation(client, syncVolume));
                 } else if (replica instanceof Volume) {

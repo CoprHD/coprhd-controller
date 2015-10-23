@@ -17,7 +17,6 @@ import javax.cim.CIMObjectPath;
 import javax.cim.UnsignedInteger32;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +120,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
                     new QueueJob(new SmisBlockCreateCGMirrorJob(job, storage.getId(), taskCompleter)));
 
             for (BlockMirror mirror : mirrors) {
-                mirror.setSyncState(SynchronizationState.SYNCHRONIZED.name());
+                mirror.setSyncState(BlockMirror.SynchronizationState.SYNCHRONIZED.name());
             }
 
             _dbClient.persistObject(mirrors);
@@ -170,7 +169,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
             _helper.callModifyReplica(storage, fractureCGMirrorInput);
             List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
             for (BlockMirror mirror : mirrors) {
-                mirror.setSyncState(SynchronizationState.FRACTURED.name());
+                mirror.setSyncState(BlockMirror.SynchronizationState.FRACTURED.name());
             }
 
             _dbClient.persistObject(mirrors);
@@ -223,7 +222,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
         _helper.callModifyReplica(storage, resumeCGMirrorInput, outArgs);
         List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
         for (BlockMirror mirror : mirrors) {
-            mirror.setSyncState(SynchronizationState.SYNCHRONIZED.name());
+            mirror.setSyncState(BlockMirror.SynchronizationState.SYNCHRONIZED.name());
         }
         _dbClient.persistObject(mirrors);
     }

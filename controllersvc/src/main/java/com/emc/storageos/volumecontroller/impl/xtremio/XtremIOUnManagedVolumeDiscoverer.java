@@ -425,7 +425,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 }
             }
 
-            UnManagedExportMask mask = getUnManagedExportMask(hostInitiators.get(0).getInitiatorPort(), dbClient, systemId);
+            UnManagedExportMask mask = getUnManagedExportMask(hostInitiators.get(0).getInitiatorPort(), dbClient);
             mask.setStorageSystemUri(systemId);
             // set the host name as the mask name
             mask.setMaskName(hostname);
@@ -492,21 +492,15 @@ public class XtremIOUnManagedVolumeDiscoverer {
         mask.setZoningMap(zoningMap);
     }
 
-    private UnManagedExportMask getUnManagedExportMask(String knownInitiatorNetworkId, DbClient dbClient, URI systemURI) {
+    private UnManagedExportMask getUnManagedExportMask(String knownInitiatorNetworkId, DbClient dbClient) {
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedExportMaskKnownInitiatorConstraint(knownInitiatorNetworkId), result);
         UnManagedExportMask uem = null;
         Iterator<URI> it = result.iterator();
-        while (it.hasNext()) {
-            UnManagedExportMask potentialUem = dbClient.queryObject(UnManagedExportMask.class, it.next());
-            // Check whether the uem belongs to the same storage system. This to avoid in picking up the
-            // vplex uem.
-            if (URIUtil.identical(potentialUem.getStorageSystemUri(), systemURI)) {
-                uem = potentialUem;
-                unManagedExportMasksToUpdate.add(uem);
-                break;
-            }
+        if (it.hasNext()) {
+            uem = dbClient.queryObject(UnManagedExportMask.class, it.next());
+            unManagedExportMasksToUpdate.add(uem);
         }
         if (uem != null && !uem.getInactive()) {
             // clean up collections (we'll be refreshing them)

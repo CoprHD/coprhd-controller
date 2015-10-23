@@ -243,49 +243,30 @@ public class AuthenticationResource {
         _log.debug("Original service = " + serviceDecoded);
         String newService = "";
         URI uriObject = new URI(serviceDecoded);
-
         String scheme = uriObject.getScheme();
         if (StringUtils.isBlank(scheme)) {
             scheme = "https";
         }
-
+        int port = uriObject.getPort();
         // newservice will be constructed by replacing the host component in the original service by
         // serverName obtained from the HttpServletRequest.
         newService = scheme + "://" + request.getServerName();
-
-        int port = uriObject.getPort();
         if (port > 0) {
             newService += ":" + port;
         }
-
         String path = uriObject.getPath();
         if (StringUtils.isNotBlank(path)) {
             newService += (path.startsWith("/") ? "" : "/") + path;
         }
-
         String query = uriObject.getQuery();
         if (query != null && !query.isEmpty()) {
             newService += "?" + query;
         }
-
-        if (newService.contains("?")) {
-            newService = String.format("%s&%s", newService, RequestProcessingUtils.REDIRECT_FROM_AUTHSVC);
-        } else {
-            newService = String.format("%s?%s", newService, RequestProcessingUtils.REDIRECT_FROM_AUTHSVC);
-        }
-
-        //Append the fragments if any. Fragments are used to the identify
-        //particular service catalog. This is done to support the functionality
-        //of redirecting directly to a particular service catalog upon the
-        //the successful authentication.
-        if (StringUtils.isNotBlank(uriObject.getFragment())) {
-            newService += "#" + uriObject.getFragment();
-        }
-
-        newService = SecurityUtils.stripXSS(newService);
-
         _log.debug("Updated service = " + newService);
-        return URI.create(newService);
+        if (newService.contains("?")) {
+            return URI.create(String.format("%s&%s", newService, RequestProcessingUtils.REDIRECT_FROM_AUTHSVC));
+        }
+        return URI.create(String.format("%s?%s", newService, RequestProcessingUtils.REDIRECT_FROM_AUTHSVC));
     }
 
     /**
@@ -710,15 +691,6 @@ public class AuthenticationResource {
      * This method is for internal use by formlogin page.
      * 
      * @brief INTERNAL USE
-     *
-     * @param request the login request from the client.
-     * @param servletResponse the response to be sent out to client.
-     * @param service to be used to redirect on successful authentication.
-     * @param source to be used to identify if the request is coming from portal
-     *               or some other client.
-     * @param fragment to used to identify the service catalog to redirect on
-     *                 successful authentication.
-     *
      * @return On successful authentication the client will be redirected to the provided service.
      * @throws IOException
      */
@@ -730,7 +702,6 @@ public class AuthenticationResource {
             @Context HttpServletResponse servletResponse,
             @QueryParam("service") String service,
             @QueryParam("src") String source,
-            @QueryParam("fragment") String fragment,
             MultivaluedMap<String, String> formData) throws IOException {
 
         boolean isPasswordExpired = false;
@@ -738,12 +709,6 @@ public class AuthenticationResource {
         if (service == null || service.isEmpty()) {
             loginError = FORM_LOGIN_POST_NO_SERVICE_ERROR;
         }
-
-        String updatedService = service;
-        if (StringUtils.isNotBlank(service) && StringUtils.isNotBlank(fragment)) {
-            updatedService = updatedService + "#" + fragment;
-        }
-
         // Check invalid login count from the client IP
         boolean updateInvalidLoginCount = true;
         String clientIP = _invLoginManager.getClientIP(request);
@@ -768,7 +733,7 @@ public class AuthenticationResource {
                     StorageOSUserDAO userDAOFromForm = _tokenManager.validateToken(tokenFromForm);
                     if (userDAOFromForm != null) {
                         _log.debug("Form login was posted with valid token");
-                        return buildLoginResponse(updatedService, source, true, rememberMe,
+                        return buildLoginResponse(service, source, true, rememberMe,
                                 new LoginStatus(userDAOFromForm.getUserName(), tokenFromForm, false), request);
                     }
                     _log.error("Auth token passed to this formlogin could not be validated and returned null user");
@@ -801,14 +766,14 @@ public class AuthenticationResource {
                                     OperationTypeEnum.AUTHENTICATION, false, null, credentials.getUserName());
                             return Response.status(Status.INTERNAL_SERVER_ERROR).build();
                         }
-                        _log.debug("Redirecting to the original service: {}", updatedService);
+                        _log.debug("Redirecting to the original service: {}", service);
                         _invLoginManager.removeInvalidRecord(clientIP);
 
                         auditOp(URI.create(user.getTenantId()), URI.create(user.getUserName()),
                                 OperationTypeEnum.AUTHENTICATION, true, null, credentials.getUserName());
 
                         // If remember me check box is on, set the expiration time.
-                        return buildLoginResponse(updatedService, source, true,
+                        return buildLoginResponse(service, source, true,
                                 rememberMe, new LoginStatus(user.getUserName(), token, null != credentials),
                                 request);
                     }
@@ -836,10 +801,10 @@ public class AuthenticationResource {
 
         String formLP = null;
         if (isPasswordExpired) {
-            formLP = getFormChangePasswordPage(updatedService, source, request.getServerName(),
+            formLP = getFormChangePasswordPage(service, source, request.getServerName(),
                     MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
         } else {
-            formLP = getFormLoginPage(updatedService, source, request.getServerName(),
+            formLP = getFormLoginPage(service, source, request.getServerName(),
                     MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
         }
 

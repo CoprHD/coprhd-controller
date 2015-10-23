@@ -36,7 +36,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProtocol;
@@ -564,11 +563,7 @@ public abstract class VirtualPoolService extends TaggedResource {
                             .getStoragePoolFileshareConstraint(poolURI), poolResourcesResultList);
                     dbClient.queryByConstraint(ContainmentConstraint.Factory
                             .getVirtualPoolFileshareConstraint(vpool.getId()), vpoolResourcesResultList);
-                } else if (VirtualPool.Type.object.name().equals(vpool.getType())) {
-                    dbClient.queryByConstraint(ContainmentConstraint.Factory
-                            .getStoragePoolBucketConstraint(poolURI), poolResourcesResultList);
-                    dbClient.queryByConstraint(ContainmentConstraint.Factory
-                            .getVirtualPoolBucketConstraint(vpool.getId()), vpoolResourcesResultList);
+
                 }
 
                 // Create a set of vpoolResourcesResultList
@@ -634,11 +629,7 @@ public abstract class VirtualPoolService extends TaggedResource {
                             varrayResourcesResultList);
                     dbClient.queryByConstraint(ContainmentConstraint.Factory
                             .getVirtualPoolFileshareConstraint(vpool.getId()), vpoolResourcesResultList);
-                } else if (VirtualPool.Type.object.name().equals(vpool.getType())) {
-                    dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualArrayBucketsConstraint(varrayURI),
-                            varrayResourcesResultList);
-                    dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualPoolBucketConstraint(vpool.getId()),
-                            vpoolResourcesResultList);
+
                 }
 
                 // Create a set of vpoolResourcesResultList
@@ -656,9 +647,6 @@ public abstract class VirtualPoolService extends TaggedResource {
                             inactive = resource.getInactive();
                         } else if (VirtualPool.Type.file.name().equals(vpool.getType())) {
                             FileShare resource = dbClient.queryObject(FileShare.class, varrayResource);
-                            inactive = resource.getInactive();
-                        } else if (VirtualPool.Type.object.name().equals(vpool.getType())) {
-                            Bucket resource = dbClient.queryObject(Bucket.class, varrayResource);
                             inactive = resource.getInactive();
                         }
                         if (!inactive) {

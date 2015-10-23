@@ -299,8 +299,6 @@ public class VNXeUnManagedObjectDiscoverer {
 
         unManagedExportRulesInsert = new ArrayList<UnManagedFileExportRule>();
         unManagedExportRulesUpdate = new ArrayList<UnManagedFileExportRule>();
-        
-        unManagedFilesystemsUpdate = new ArrayList<UnManagedFileSystem>();
 
         List<VNXeNfsShare> nfsExports = apiClient.getAllNfsShares();
 
@@ -375,70 +373,34 @@ public class VNXeUnManagedObjectDiscoverer {
                     // apply as per API SVC Validations.
                     if (!unManagedExportRules.isEmpty()) {
                         boolean isAllRulesValid = validationUtility
-                                .validateUnManagedExportRules(unManagedExportRules, false);
+                                .validateUnManagedExportRules(unManagedExportRules);
                         if (isAllRulesValid) {
                             log.info("Validating rules success for export {}", unManagedFs.getPath());
                             unManagedFs.setHasExports(true);
-                            unManagedFs.putFileSystemCharacterstics(
-                                    UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                            .toString(), Boolean.TRUE.toString());
-                            unManagedFilesystemsUpdate.add(unManagedFs);
+                            dbClient.persistObject(unManagedFs);
                             log.info("File System {} has Exports and their size is {}", unManagedFs.getId(), unManagedExportRules.size());
                         } else {
                             log.warn("Validating rules failed for export {}. Ignroing to import these rules into ViPR DB", unManagedFs);
-                            unManagedFs.setInactive(true);
-                            unManagedFilesystemsUpdate.add(unManagedFs);
                         }
                     }
                 } catch (IOException e) {
                     log.error("IOException occured in discoverAllExportRules()", e);
                 }
             }
-            
-            if (!unManagedExportRulesInsert.isEmpty() && 
-            		unManagedExportRulesInsert.size() >= Constants.DEFAULT_PARTITION_SIZE) {
-                // Add UnManage export rules
-                partitionManager.insertInBatches(unManagedExportRulesInsert,
-                        Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
-                unManagedExportRulesInsert.clear();
-            }
-
-            if (!unManagedExportRulesUpdate.isEmpty() && 
-            		unManagedExportRulesUpdate.size() >= Constants.DEFAULT_PARTITION_SIZE) {
-                // Update UnManage export rules
-                partitionManager.updateInBatches(unManagedExportRulesUpdate,
-                        Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
-                unManagedExportRulesUpdate.clear();
-            }
-            
-            if (!unManagedFilesystemsUpdate.isEmpty() && 
-            		unManagedFilesystemsUpdate.size() >= Constants.DEFAULT_PARTITION_SIZE) {
-                // Update UnManagedFilesystem
-                partitionManager.updateInBatches(unManagedFilesystemsUpdate,
-                        Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILESYSTEM);
-                unManagedFilesystemsUpdate.clear();
-            }
         }
-        
+
         if (!unManagedExportRulesInsert.isEmpty()) {
-            // Add UnManage export rules
+            // Add UnManagedFileSystem
             partitionManager.insertInBatches(unManagedExportRulesInsert,
                     Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
             unManagedExportRulesInsert.clear();
         }
 
         if (!unManagedExportRulesUpdate.isEmpty()) {
-            // Update UnManage export rules
+            // Update UnManagedFilesystem
             partitionManager.updateInBatches(unManagedExportRulesUpdate,
                     Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
             unManagedExportRulesUpdate.clear();
-        }
-        
-        if (!unManagedFilesystemsUpdate.isEmpty() ) {
-            // Update UnManagedFilesystem
-            partitionManager.updateInBatches(unManagedFilesystemsUpdate,
-                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILESYSTEM);
-            unManagedFilesystemsUpdate.clear();
         }
     }
 
@@ -518,9 +480,6 @@ public class VNXeUnManagedObjectDiscoverer {
                     }
                     // Persist the UMFS as it changed the SMB Share Map.
                     unManagedFs.setHasShares(true);
-                    unManagedFs.putFileSystemCharacterstics(
-                            UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                    .toString(), Boolean.TRUE.toString());
                     dbClient.persistObject(unManagedFs);
 
                 } catch (IOException e) {
@@ -822,8 +781,6 @@ public class VNXeUnManagedObjectDiscoverer {
             unManagedFileSystem.setNativeGuid(unManagedFileSystemNativeGuid);
             unManagedFileSystem.setStorageSystemUri(system.getId());
             unManagedFileSystem.setStoragePoolUri(pool.getId());
-            unManagedFileSystem.setHasExports(false);
-            unManagedFileSystem.setHasShares(false);
             created = true;
         }
 
@@ -847,7 +804,7 @@ public class VNXeUnManagedObjectDiscoverer {
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(), Boolean.FALSE.toString());
+                        .toString(), Boolean.TRUE.toString());
 
         if (null != system) {
             StringSet systemTypes = new StringSet();

@@ -2138,14 +2138,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             // don't set CG on Clones
             if (!(replicaObject instanceof Volume && ControllerUtils.isVolumeFullCopy((Volume) replicaObject, _dbClient))) {
                 replicaObject.setConsistencyGroup(consistencyGroup.getId());
-            } else if (replicaObject instanceof BlockSnapshot) {
-                String snapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(replicationGroupName, _dbClient);
-                // set the snapsetLabel for the snapshots to add
-                if (null != snapSetLabel) {
-                    ((BlockSnapshot) replicaObject).setSnapsetLabel(snapSetLabel);
-                } else {
-                    ((BlockSnapshot) replicaObject).setSnapsetLabel(replicationGroupName);
-                }
             }
             _dbClient.updateAndReindexObject(replicaObject);
         }
@@ -2196,7 +2188,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error("Problem while removing volume from CG :{}", consistencyGroupId, e);
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
                             consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
@@ -2265,14 +2256,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _dbClient.updateAndReindexObject(replicaList);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            if (null != replicas && !replicas.isEmpty()) {
-                for (URI replicaURI : replicas) {
-                    BlockObject blockObj = _dbClient.queryObject(BlockObject.class, replicaURI);
-                    blockObj.setReplicationGroupInstance(null);
-                    _dbClient.updateObject(blockObj);
-                }
-            }
-            _log.error("Problem while adding replica to device masking group :{}", consistencyGroupId, e);
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToAddMembersToReplicationGroup(replicationGroupName,
                             storage.getLabel(), e.getMessage()));
@@ -2488,14 +2471,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doDetachGroupClone(StorageSystem storage, List<URI> cloneVolumes,
+    public void doDetachGroupClone(StorageSystem storage, List<URI> cloneVolume,
             TaskCompleter taskCompleter) {
-        Volume clone = _dbClient.queryObject(Volume.class, cloneVolumes.get(0));
+        Volume clone = _dbClient.queryObject(Volume.class, cloneVolume.get(0));
         if (clone != null && clone.getReplicaState().equals(ReplicationState.DETACHED.name())) {
             taskCompleter.ready(_dbClient);
             return;
         }
-        _cloneOperations.detachGroupClones(storage, cloneVolumes, taskCompleter);
+        _cloneOperations.detachGroupClones(storage, cloneVolume, taskCompleter);
 
     }
 

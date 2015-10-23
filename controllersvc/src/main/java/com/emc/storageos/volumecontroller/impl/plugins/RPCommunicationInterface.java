@@ -336,9 +336,9 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             if (protectionVolumeWWN == null || protectionVolumeWWN.getInactive()) {
                 continue;
             }
-                       
+
             try {
-                protectionVolume = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(protectionVolumeWWN.getId(), _dbClient));
+                protectionVolume = rp.getProtectionInfoForVolume(protectionVolumeWWN.getWWN());
             } catch (RecoverPointException re) {
                 StringBuffer errMsgBuilder = new StringBuffer();
                 String msg = "Discovery of protection set failed. Protection system: " + protectionSystem.getId() + ", ";

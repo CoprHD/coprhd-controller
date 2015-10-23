@@ -164,8 +164,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             boolean isSuccess = VmaxGroupOperationsUtils.activateGroupReplicas(storage, sourceVolume, snapshotObj,
                     SYNC_TYPE.SNAPSHOT, taskCompleter, _dbClient, _helper, _cimPath);
             if (isSuccess) {
-                List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                        snapshotObj.getReplicationGroupInstance(), _dbClient);
+                List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, _dbClient);
                 setIsSyncActive(snapshots, true);
                 for (BlockSnapshot it : snapshots) {
                     it.setRefreshRequired(true);
@@ -270,8 +269,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMArgument[] outArgs = new CIMArgument[5];
             if (storage.checkIfVmax3()) {
                 CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, volume, null);
-                // COP-17240: For VMAX3, we will derive the target volumes from the source volumes SRP Pool
-                CIMObjectPath poolPath = _helper.getVolumeStoragePoolPath(storage, volume);
+                CIMObjectPath poolPath = findSnapStoragePoolOrNull(storage);
                 targetDeviceIds = createTargetDevices(storage, poolPath, volumeGroupPath, null, "SingleSnapshot", snapLabelToUse,
                         createInactive, 1, volume.getCapacity(), taskCompleter);
                 CIMInstance replicaSettingData = _helper.getReplicationSettingData(storage, targetDeviceIds.get(0), false);
@@ -466,8 +464,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     snapshotGroupName = snapshotGroupName.substring(0, snapshotGroupName.indexOf("+"));
                 }
             }
-            List<BlockSnapshot> snapshotList = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                    snapshotObj.getReplicationGroupInstance(), _dbClient);
+            List<BlockSnapshot> snapshotList = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, _dbClient);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
@@ -689,8 +686,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             URI storagePoolUri, long capacity,
             TaskCompleter taskCompleter) throws Exception {
         if (storage.checkIfVmax3()) {
-            StoragePool storagePool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
-            CIMObjectPath poolPath = _helper.getPoolPath(storage, storagePool);
+            CIMObjectPath poolPath = findSnapStoragePoolOrThrow(storage);
             return createTargetDevices(storage, poolPath, volumeGroupPath, null, sourceGroupName, null, createInactive,
                     count, capacity, taskCompleter);
         } else if (thinlyProvisioned) {

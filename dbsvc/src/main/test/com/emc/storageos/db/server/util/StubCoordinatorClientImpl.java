@@ -417,9 +417,4 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
         String targetVersion = getTargetDbSchemaVersion();
         return !(currentVersion.equals(targetVersion));
     }
-
-    @Override
-    public void removeRuntimeState(String key) throws CoordinatorException {
-        return;
-    }
 }

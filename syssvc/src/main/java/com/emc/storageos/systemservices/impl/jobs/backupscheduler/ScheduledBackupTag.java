@@ -88,8 +88,7 @@ public class ScheduledBackupTag {
             try {
                 return ScheduledBackupTag.parseBackupTag(tag);
             } catch (ParseException e) {
-                log.info("Can't parse timestamp from the tag of non-scheduled backup({}, errorOffset is at {})",
-                        e.getMessage(), e.getErrorOffset());
+                log.warn("{}, errorOffset is at {}, set backup date as minimal for comparison", e.getMessage(), e.getErrorOffset());
                 return MIN_DATE;
             }
         }

@@ -907,8 +907,6 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
             unManagedFileSystem.setNativeGuid(unManagedFileSystemNativeGuid);
             unManagedFileSystem.setStorageSystemUri(system.getId());
             unManagedFileSystem.setFsUnManagedExportMap(new UnManagedFSExportMap());
-            unManagedFileSystem.setHasExports(false);
-            unManagedFileSystem.setHasShares(false);
         }
         else { // existing File System
             UnManagedFSExportMap exportMap = unManagedFileSystem.getFsUnManagedExportMap();
@@ -1107,21 +1105,10 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                     // apply as per API SVC Validations.
                     if (!unManagedExportRules.isEmpty()) {
                         boolean isAllRulesValid = validationUtility
-                                .validateUnManagedExportRules(unManagedExportRules, false);
+                                .validateUnManagedExportRules(unManagedExportRules);
                         if (isAllRulesValid) {
                             _log.info("Validating rules success for export {}", export.getPath());
-                            for (UnManagedFileExportRule exportRule : unManagedExportRules) {
-                                UnManagedFileExportRule existingRule = checkUnManagedFsExportRuleExistsInDB(_dbClient,
-                                        exportRule.getNativeGuid());
-                                if (existingRule == null) {
-                                    newUnManagedExportRules.add(exportRule);
-                                } else {
-                                    // Remove the existing rule.
-                                    existingRule.setInactive(true);
-                                    _dbClient.persistObject(existingRule);
-                                    newUnManagedExportRules.add(exportRule);
-                                }
-                            }
+                            newUnManagedExportRules.addAll(unManagedExportRules);
                             unManagedFS.setHasExports(true);
                             unManagedFS.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
@@ -1132,10 +1119,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                         } else {
                             _log.warn("Validating rules failed for export {}. Ignroing to import these rules into ViPR DB",
                                     export.getPath());
-                            // Don't consider the file system with invalid exports!!!
-                            unManagedFS.setInactive(true);
                         }
-                        
                     }
 
                     // Adding this additional logic to avoid OOM
@@ -1153,12 +1137,6 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
             if (!newUnManagedExportRules.isEmpty()) {
                 // Update UnManagedFilesystem
                 _dbClient.persistObject(newUnManagedExportRules);
-                _log.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
-            }
-            
-            if (!existingUnManagedFileSystems.isEmpty()) {
-                // Update UnManagedFilesystem
-                _dbClient.persistObject(existingUnManagedFileSystems.values());
                 _log.info("{} {} Records updated to DB", existingUnManagedFileSystems.size(), UNMANAGED_FILESYSTEM);
             }
 
@@ -1244,9 +1222,6 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                     associateCifsExportWithFS(unManagedFS, share, storagePort);
 
                     unManagedFS.setHasShares(true);
-                    unManagedFS.putFileSystemCharacterstics(
-                            UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                    .toString(), TRUE);
 
                     _log.debug("Export map for VNX UMFS {} = {}", unManagedFS.getLabel(), unManagedFS.getUnManagedSmbShareMap());
 

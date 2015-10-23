@@ -5,6 +5,7 @@
 
 package com.emc.storageos.volumecontroller.impl.scaleio;
 
+import static com.emc.storageos.db.client.model.BlockSnapshot.inReplicationGroup;
 import static java.util.Arrays.asList;
 
 import java.net.URI;
@@ -405,7 +406,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
-            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
+            if (inReplicationGroup(dbClient, snapshots)) {
                 snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive,
                         readOnly, taskCompleter);
             } else {
@@ -436,8 +437,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             List<BlockSnapshot> groupSnapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(blockSnapshot, dbClient);
 
             // We check the snapset size here because SIO consistency groups require more than 1 device
-            if (ControllerUtils.checkSnapshotsInConsistencyGroup(Arrays.asList(blockSnapshot), dbClient, taskCompleter)
-                && groupSnapshots.size() > 1) {
+            if (inReplicationGroup(dbClient, asList(blockSnapshot)) && groupSnapshots.size() > 1) {
                 snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
             } else {
                 snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);

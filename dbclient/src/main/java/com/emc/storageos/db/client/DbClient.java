@@ -61,19 +61,37 @@ public interface DbClient {
     <T extends DataObject> T queryObject(Class<T> clazz, NamedURI id);
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
+     * Queries for objects with given URI's. Deserializes into a data object of given
+     * class.
+     *
+     * @deprecated use queryIterativeObjects() instead
+     * @param clazz object type
+     * @param id object id
+     * @param <T> object type
+     * @return deserialized object list. non matching records are not returned
+     * @throws DatabaseException TODO
      */
     @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids);
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
+     * Same as queryObject(Class, List<URI>). Filters on activeOnly record if specified.
+     *
+     * @deprecated use queryIterativeObjects() instead
+     * @param clazz
+     * @param ids
+     * @param activeOnly
+     * @return
+     * @throws DatabaseException
      */
     @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly);
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
+     * See queryObject(Class<T> clazz, List<URI>)
+     *
+     * @deprecated use queryIterativeObjects() instead
+     * @throws DatabaseException TODO
      */
     @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id);
@@ -94,7 +112,7 @@ public interface DbClient {
     <T extends DataObject> Iterator<T> queryIterativeObjects(Class<T> clazz, Collection<URI> id);
 
     /**
-     * Same as {@link DbClient#queryIterativeObjects(Class, Collection)}. Filters on activeOnly record if specified.
+     * Same has queryIterativeObjects(Class, List<URI>). Filters on activeOnly record if specified.
      * 
      * @param clazz
      * @param ids
@@ -257,73 +275,65 @@ public interface DbClient {
     <T extends DataObject> void createObject(T... object);
 
     /**
-     * @deprecated use {@link DbClient#updateObject(T)} instead
-     */
-    @Deprecated
-    <T extends DataObject> void persistObject(T object);
-
-    /**
-     * @deprecated use {@link DbClient#updateObject(Collection)} instead
-     */
-    @Deprecated
-    <T extends DataObject> void persistObject(Collection<T> objects);
-
-    /**
-     * @deprecated use {@link DbClient#updateObject(T...)} instead
-     */
-    @Deprecated
-    <T extends DataObject> void persistObject(T... object);
-
-    /**
-     * @deprecated use {@link DbClient#updateObject(T)} instead
-     */
-    @Deprecated
-    <T extends DataObject> void updateAndReindexObject(T object);
-
-    /**
-     * @deprecated use {@link DbClient#updateObject(Collection)} instead
-     */
-    @Deprecated
-    <T extends DataObject> void updateAndReindexObject(Collection<T> objects);
-
-    /**
-     * @deprecated use {@link DbClient#updateObject(T...)} instead
-     */
-    @Deprecated
-    <T extends DataObject> void updateAndReindexObject(T... object);
-
-    /**
-     * Updates given existing object to DB, also synchronously updates the index fields if needed.
-     * <p/>
+     * Persists given existing object to DB.
+     * Do not use this for persisting new objects. Use createObject() instead.
+     * 
      * DataObject.id field must be filled in. This method
-     * only updates non null fields to DB (meaning partial write is possible). For example,
+     * only persists non null fields to DB (meaning partial write is possible). For example,
      * if FileShare.label field is not set but DB already has label field persisted, it won't
-     * overwrite existing label field when this FileShare object is updated.
-     * <p/>
+     * overwrite existing label field when this FileShare object is persisted.
+     * 
      * For StringMap and StringSet, you can also incrementally add and remove entries by inserting
      * only new elements into them. In order to incrementally remove elements, see javadoc for
      * these two types.
-     *
-     * @param object object to update
+     * 
+     * @param object object to persist
      * @param <T> data objects
      * @throws DatabaseException TODO
      */
-    <T extends DataObject> void updateObject(T object);
+    <T extends DataObject> void persistObject(T object);
 
     /**
-     * Updates given list of existing objects to DB. DataObject.id field must be filled in.
-     * This method only updates non null fields to DB (meaning partial write is possible).
-     *
-     * @param objects objects to update
+     * Persists given list of existing objects to DB. DataObject.id field must be filled in.
+     * This method only persists non null fields to DB (meaning partial write is possible)
+     * 
+     * @param object object to persist
      * @param <T> data objects
      * @throws DatabaseException TODO
      */
-    <T extends DataObject> void updateObject(Collection<T> objects);
+    <T extends DataObject> void persistObject(Collection<T> objects);
 
     /**
-     * @see DbClient#updateObject(Collection)
+     * See persistObject(List<T>)
+     * 
+     * @throws DatabaseException TODO
      */
-    <T extends DataObject> void updateObject(T... object);
+    <T extends DataObject> void persistObject(T... object);
+
+    /**
+     * Similar to persistObject(T), also synchronously updates the index fields if needed
+     * this call is expensive and is recommended only when index fields are modified
+     * See persistObject(T)
+     * 
+     * @throws DatabaseException TODO
+     */
+    <T extends DataObject> void updateAndReindexObject(T object);
+
+    /**
+     * Similar to persistObject(List<T>), also synchronously updates the index fields if needed
+     * this call is expensive and is recommended only when index fields are modified
+     * See persistObject(List<T>)
+     * 
+     * @throws DatabaseException TODO
+     */
+    <T extends DataObject> void updateAndReindexObject(Collection<T> objects);
+
+    /**
+     * See updateObject(List<T>)
+     * 
+     * @throws DatabaseException TODO
+     */
+    <T extends DataObject> void updateAndReindexObject(T... object);
 
     /**
      * Convenience method for setting operation status to ready for given object

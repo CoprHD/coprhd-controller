@@ -227,7 +227,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FULL_COPY_STEP = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_STEP = "detachFullCopy";
     private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
-    private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP = "volumeFullcopyRelationStep";
+    private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP="volumeFullcopyRelationStep";
     private static final String RESYNC_SNAPSHOT_STEP = "ResyncSnapshotStep";
 
     // Workflow controller method names.
@@ -970,13 +970,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (vplexVolumes.isEmpty()) {
                 return waitFor;
             }
-
+            
             // Check to see if there are any volumes flagged to not be fully deleted.
             // This will still remove the volume from its VPLEX CG and also clean up
             // any Mirrors but will leave the Virtual Volume intact on the VPLEX.
             List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(vplexVolumes);
             List<URI> doNotFullyDeleteVolumeList = VolumeDescriptor.getVolumeURIs(doNotDeleteDescriptors);
-
+            
             List<URI> allVplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexVolumes);
 
             // Segregate by device.
@@ -1006,8 +1006,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<URI> backendVolURIs = new ArrayList<URI>();
             for (URI vplexVolumeURI : allVplexVolumeURIs) {
                 Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
-                if ((vplexVolume == null)
-                        || (vplexVolume.getInactive())
+                if ((vplexVolume == null) 
+                        || (vplexVolume.getInactive()) 
                         || (vplexVolume.isIngestedVolume(_dbClient))
                         || doNotFullyDeleteVolumeList.contains(vplexVolumeURI)) {
                     continue;
@@ -1128,22 +1128,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // Filter to get only the VPlex volumes.
         List<VolumeDescriptor> vplexVolumes = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
-                new VolumeDescriptor.Type[] {});
+                new VolumeDescriptor.Type[] {});        
         // Check to see if there are any volumes flagged to not be fully deleted.
         // Any flagged volumes will be removed from the list of volumes to delete.
         List<VolumeDescriptor> descriptorsToRemove = VolumeDescriptor.getDoNotDeleteDescriptors(vplexVolumes);
         vplexVolumes.removeAll(descriptorsToRemove);
-
+        
         // If there are no VPlex volumes, just return
         if (vplexVolumes.isEmpty()) {
             return waitFor;
         }
-
+        
         URI vplexURI = vplexVolumes.get(0).getDeviceURI();
-
+        
         // Get the VPlex Volume URIs
         List<URI> allVplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexVolumes);
-
+                
         // Add a step to the Workflow to mark the Virtual Volumes inactive.
         // Rollback does the same thing.
         waitFor = workflow.createStep(null, "Mark virtual volumes inactive", waitFor,
@@ -1330,7 +1330,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId
      * @throws WorkflowException
      */
-    public void deleteVirtualVolumes(URI vplexURI, List<URI> volumeURIs,
+    public void deleteVirtualVolumes(URI vplexURI, List<URI> volumeURIs, 
             List<URI> doNotFullyDeleteVolumeList, String stepId) throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1351,7 +1351,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     continue;
                 }
                 try {
-                    client.findVirtualVolume(volume.getDeviceLabel());
+                    client.findVirtualVolume(volume.getDeviceLabel());                    
                 } catch (VPlexApiException ex) {
                     if (ex.getServiceCode() == ServiceCode.VPLEX_CANT_FIND_REQUESTED_VOLUME) {
                         _log.info("VPlex virtual volume: " + volume.getNativeId()
@@ -1379,7 +1379,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // If this volume ID is flagged (in that list) we can skip the call
                         // to delete volume.
                         if (doNotFullyDeleteVolumeList == null
-                                || doNotFullyDeleteVolumeList.isEmpty()
+                                || doNotFullyDeleteVolumeList.isEmpty() 
                                 || !doNotFullyDeleteVolumeList.contains(volume.getId())) {
                             // We only retry a dismantle failure on volumes created
                             // in ViPR as the retry code relies on the well-known ViPR
@@ -5920,7 +5920,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _dbClient.persistObject(vplexVolume);
                 }
             } else {
-                virtvinfo = client.findVirtualVolumeAndUpdateInfo(vplexVolume.getDeviceLabel());
+                virtvinfo = new VPlexVirtualVolumeInfo();
+                virtvinfo.setName(vplexVolume.getDeviceLabel());
+                virtvinfo.setPath(vplexVolume.getNativeId());
             }
 
             // If we desired a distributed virtual-volume (newVolume != null),
@@ -7389,7 +7391,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get the native volume info for the mirror volume.
             Volume mirrorVolume = getDataObject(Volume.class, mirrorVolumeURI, _dbClient);
-            String clusterId = VPlexControllerUtils.getVPlexClusterName(_dbClient, mirrorVolume.getVirtualArray(), vplexURI);
+            StorageSystem mirrorVolumeSystem = getDataObject(StorageSystem.class,
+                    mirrorVolume.getStorageController(), _dbClient);
+            List<String> itls = VPlexControllerUtils.getVolumeITLs(mirrorVolume);
+            VolumeInfo mirrorInfo = new VolumeInfo(mirrorVolumeSystem.getNativeGuid(), mirrorVolumeSystem.getSystemType(),
+                    mirrorVolume.getWWN().toUpperCase().replaceAll(":", ""),
+                    mirrorVolume.getNativeId(), mirrorVolume.getThinlyProvisioned().booleanValue(), itls);
+            _log.info("Prepared mirror volume info");
+
+            // Get the cluster id for this storage volume.
+            String clusterId = client.getClaimedStorageVolumeClusterName(mirrorInfo);
 
             // Detach the mirror.
             String detachedDeviceName = client.detachMirrorFromDistributedVolume(
@@ -10152,7 +10163,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             throw VPlexApiException.exceptions.addStepsForChangeVirtualPoolFailed(ex);
         }
     }
-
+    
     @Override
     public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId)
             throws InternalException {
@@ -10168,7 +10179,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             URI nativeSystemURI = nativeFullCopyVolume.getStorageController();
             StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
 
-            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD,
+            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD, 
                     nativeSystemURI, nativeSourceVolumeURI, nativeFullCopyVolume.getId());
             workflow.createStep(VOLUME_FULLCOPY_GROUP_RELATION_STEP,
                     "create group relation between Volume group and Full copy group", null,
@@ -10190,7 +10201,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     fullCopy.toString(), e);
             completer.error(_dbClient, sc);
         }
-
+            
+        
     }
 
     /**

@@ -81,9 +81,8 @@ public interface ConsistencyGroupManager {
      * @param volume
      * @param cgName
      * @throws URISyntaxException
-     * @throws Exception
      */
-    public void deleteConsistencyGroupVolume(URI vplexURI, Volume volume, String cgName) throws URISyntaxException, Exception;
+    public void deleteConsistencyGroupVolume(URI vplexURI, Volume volume, String cgName) throws URISyntaxException;
 
     /**
      * Adds a VPlex volume to a VPlex consistency group.
@@ -93,9 +92,8 @@ public interface ConsistencyGroupManager {
      * @param client The VPlex client reference.
      * @param addToViPRCg If true, removes the vplexVolume from the ViPR BlockConsistencyGroup by
      *            setting the CG URI reference to null on the volume. Does nothing when false.
-     * @throws Exception
      */
-    public void addVolumeToCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean addToViPRCg) throws Exception;
+    public void addVolumeToCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean addToViPRCg);
 
     /**
      * Removes a VPlex volume from a VPlex consistency group.
@@ -105,9 +103,8 @@ public interface ConsistencyGroupManager {
      * @param client The VPlex client reference.
      * @param removeFromViPRCg If true, adds the vplexVolume to the ViPR BlockConsistencyGroup by
      *            setting the CG URI references on the volume. Does nothing when false.
-     * @throws Exception
      */
-    public void removeVolumeFromCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean removeFromViPRCg) throws Exception;
+    public void removeVolumeFromCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean removeFromViPRCg);
 
-    public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, String cgName) throws Exception;
+    public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, String cgName);
 }

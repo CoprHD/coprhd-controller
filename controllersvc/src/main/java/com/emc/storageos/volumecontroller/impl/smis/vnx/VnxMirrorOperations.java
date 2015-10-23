@@ -18,7 +18,6 @@ import javax.cim.CIMObjectPath;
 
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -102,7 +101,7 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
                             storage.getId(), tgtToSrcMap, taskCompleter)));
 
             for (BlockMirror mirror : mirrors) {
-                mirror.setSyncState(SynchronizationState.SYNCHRONIZED.name());
+                mirror.setSyncState(BlockMirror.SynchronizationState.SYNCHRONIZED.name());
             }
 
             _dbClient.persistObject(mirrors);
@@ -141,7 +140,7 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
             modifyGroupMirrors(storage, mirrorList, operation, copyState);
             List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
             for (BlockMirror mirror : mirrors) {
-                mirror.setSyncState(SynchronizationState.FRACTURED.name());
+                mirror.setSyncState(BlockMirror.SynchronizationState.FRACTURED.name());
             }
 
             _dbClient.persistObject(mirrors);
@@ -159,7 +158,7 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
         modifyGroupMirrors(storage, mirrorList, SmisConstants.RESYNC_VALUE, SmisConstants.SYNCHRONIZED);
         List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
         for (BlockMirror mirror : mirrors) {
-            mirror.setSyncState(SynchronizationState.SYNCHRONIZED.name());
+            mirror.setSyncState(BlockMirror.SynchronizationState.SYNCHRONIZED.name());
         }
 
         _dbClient.persistObject(mirrors);

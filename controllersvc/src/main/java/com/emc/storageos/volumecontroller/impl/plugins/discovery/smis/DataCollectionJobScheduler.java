@@ -48,9 +48,7 @@ import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOStorageDevice;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
-import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
-import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 
 /**
  * Consumer for Discovery Jobs added to Queue.
@@ -85,7 +83,6 @@ public class DataCollectionJobScheduler {
     private LeaderSelector discoverySchedulingSelector;
     private HDSApiFactory hdsApiFactory;
     private DataDomainClientFactory ddClientFactory;
-    private XtremIOClientFactory xioClientFactory;
     private PortMetricsProcessor _portMetricsProcessor;
     private LeaderSelector computePortMetricsSelector;
 
@@ -269,7 +266,6 @@ public class DataCollectionJobScheduler {
             this.jobType = jobType;
         }
 
-        @Override
         public void run() {
             try {
                 if (ControllerServiceImpl.SCANNER.equalsIgnoreCase(jobType)) {
@@ -817,11 +813,6 @@ public class DataCollectionJobScheduler {
                         _dbClient, StorageProvider.InterfaceType.ddmc.name()),
                 _dbClient, ddClientFactory));
 
-        activeProviderURIs.addAll(XtremIOProvUtils.refreshXtremeIOConnections(
-                CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
-                        _dbClient, StorageProvider.InterfaceType.xtremio.name()),
-                _dbClient, xioClientFactory));
-
         activeProviderURIs.addAll(ScaleIOStorageDevice.getInstance().refreshConnectionStatusForAllSIOProviders());
 
         return activeProviderURIs;
@@ -833,10 +824,6 @@ public class DataCollectionJobScheduler {
 
     public void setDataDomainFactory(DataDomainClientFactory ddClientFactory) {
         this.ddClientFactory = ddClientFactory;
-    }
-
-    public void setXtremIOFactory(XtremIOClientFactory xioClientFactory) {
-        this.xioClientFactory = xioClientFactory;
     }
 
     /**

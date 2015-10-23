@@ -223,7 +223,7 @@ public class DisasterRecoveryService {
             }
             vdc.setHostCount(hostCount);
 
-            ipsecConfig.setPreSharedKey(primary.getIPsecKey());
+            ipsecConfig.setPreSharedKey(primary.getIpsecKey());
 
             coordinator.addSite(primary.getUuid());
             coordinator.setPrimarySite(primary.getUuid());

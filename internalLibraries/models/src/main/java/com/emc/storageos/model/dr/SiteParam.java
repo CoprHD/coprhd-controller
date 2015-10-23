@@ -126,7 +126,7 @@ public class SiteParam {
     }
 
     @XmlElement(name = "ipsec_key")
-    public String getIPsecKey() {
+    public String getIpsecKey() {
         return this.ipsecKey;
     }
 

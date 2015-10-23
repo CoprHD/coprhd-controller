@@ -14,12 +14,14 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper;
 import org.apache.commons.codec.binary.StringUtils;
 import org.jsoup.helper.StringUtil;
+import org.slf4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 
 public class IPsecConfig {
+    private static final Logger log = org.slf4j.LoggerFactory.getLogger(IPsecConfig.class);
 
     private static final String IPSEC_CONFIG_LOCK = "IPsecConfigLock";
     private static final String IPSEC_CONFIG_KIND = "ipsec";
@@ -35,6 +37,7 @@ public class IPsecConfig {
     public String getPreSharedKey() throws Exception {
         String preSharedKey = getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
         if (StringUtil.isBlank(preSharedKey)) {
+            log.info("no psk in zk, loading from file ...");
             preSharedKey = loadDefaultIpsecKeyFromFile();
         }
         return preSharedKey;

@@ -189,20 +189,20 @@ public abstract class ResourceService {
      */
     public void checkForDuplicateNamespace(String namespace, URI tenantId, TenantOrg parent) {
         TenantOrgList list = new TenantOrgList();
+        //Verify with root tenant if current is not root
+        if (parent != null && parent.getNamespace() != null && parent.getNamespace().equalsIgnoreCase(namespace)) {
+            throw APIException.badRequests.duplicateNamespace(namespace);
+        }
+
         NamedElementQueryResultList subtenants = new NamedElementQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getTenantOrgSubTenantConstraint(tenantId), subtenants);
         for (NamedElementQueryResultList.NamedElement el : subtenants) {
             TenantOrg currTenant = _dbClient.queryObject(TenantOrg.class, el.getId());
-            if (currTenant.getNamespace() != null && currTenant.getNamespace().equals(namespace)) {
+            if (currTenant.getNamespace() != null && currTenant.getNamespace().equalsIgnoreCase(namespace)) {
                     throw APIException.badRequests.duplicateNamespace(namespace);
             }
         }
-        //Verify with root tenant aswell if current is not root
-        if (parent != null && parent.getNamespace() != null && parent.getNamespace().equals(namespace)) {
-            throw APIException.badRequests.duplicateNamespace(namespace);
-        }
-        
     }
     
     /**

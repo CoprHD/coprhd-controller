@@ -372,9 +372,9 @@ public class DbServiceImpl implements DbService {
     }
 
     /**
-     * check service monitor info to see if dbsvc/geodbsvc on this node could get started
+     * Check offline event info to see if dbsvc/geodbsvc on this node could get started
      */
-    private void checkDBTrackerConfiguration() {
+    private void checkDBOfflineInfo() {
         Configuration config = _coordinator.queryConfiguration(Constants.DB_DOWNTIME_TRACKER_CONFIG,
                 _serviceInfo.getName());
         DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
@@ -554,13 +554,18 @@ public class DbServiceImpl implements DbService {
             config = checkConfiguration();
             checkGlobalConfiguration();
             checkVersionedConfiguration();
-            checkDBTrackerConfiguration();
             removeStaleConfiguration();
 
             // The num_tokens in ZK is what we previously running at, which could be different from in current .yaml
             checkNumTokens(config);
             StartupMode mode = checkStartupMode(config);
             _log.info("Current startup mode is {}", mode);
+
+            // Check if service is allowed to get started by querying db offline info to avoid bringing back stale data.
+            // Skipping hibernate mode for node recovery procedure to recover the overdue node.
+            if (mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
+                checkDBOfflineInfo();
+            }
 
             // this call causes instantiation of a seed provider instance, so the check*Configuration
             // calls must be preceed it

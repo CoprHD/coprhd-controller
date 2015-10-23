@@ -162,7 +162,7 @@ public class InternalDbClientImpl extends InternalDbClient {
      * @return True, when no corrupted data found
      * @throws ConnectionException
      */
-    public boolean checkIndexingCFs() throws ConnectionException {
+    public boolean checkIndexingCFs(boolean generateCleanupFile) throws ConnectionException {
         logAndPrintToScreen("\nStart to check INDEX data that the related object records are missing.\n");
 
         Collection<IndexAndCf> idxCfs = getAllIndices().values();
@@ -236,8 +236,17 @@ public class InternalDbClientImpl extends InternalDbClient {
                                     indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                     idxEntry.getIndexKey(), idxEntry.getColumnName(),
                                     objCf.getName(), row.getKey()), true);
+                            if (generateCleanupFile) {
+                                CleanupFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
+                                        String.format(
+                                                "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;",
+                                                indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
+                                                idxEntry.getColumnName().getTwo(), 
+                                                handleNullValue(idxEntry.getColumnName().getThree()),
+                                                handleNullValue(idxEntry.getColumnName().getFour()),
+                                                idxEntry.getColumnName().getTimeUUID()));
+                            }
                         }
-
                     }
                 }
             }
@@ -323,6 +332,9 @@ public class InternalDbClientImpl extends InternalDbClient {
                                         indexedField.getDataObjectType().getSimpleName(), row.getKey(), indexedField.getName(),
                                         indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
                                         true);
+                                CleanupFileWriter.writeTo(CleanupFileWriter.WRITER_REBUILD_INDEX, 
+                                        String.format("id:%s, cfName:%s", row.getKey(),
+                                                indexedField.getDataObjectType().getSimpleName()));
                             }
                         }
                     }
@@ -451,5 +463,9 @@ public class InternalDbClientImpl extends InternalDbClient {
         
         
         return references;
+    }
+
+    private String handleNullValue(String columnValue) {
+        return columnValue == null ? "" : columnValue;
     }
 }

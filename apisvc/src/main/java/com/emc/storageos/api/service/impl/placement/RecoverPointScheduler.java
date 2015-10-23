@@ -578,7 +578,7 @@ public class RecoverPointScheduler implements Scheduler {
      * Returns a new RPProtectionRecommendation object. This method is invoked when a solution is not found and we need to loop back to
      * determine
      * placement solution with other storage systems/protection systems.
-     * 
+     *
      * @param vpoolChangeVolume Change Vpool volume
      * @return RPProtectionRecommendation
      */
@@ -779,7 +779,7 @@ public class RecoverPointScheduler implements Scheduler {
         rpHaRecommendation.setSourceStoragePool(vplexRec.getSourceStoragePool());
         rpHaRecommendation.setSourceStorageSystem(vplexRec.getSourceStorageSystem());
         rpHaRecommendation.setVirtualArray(vplexRec.getVirtualArray());
-        rpHaRecommendation.setVirtualPool(vplexRec.getVirtualPool());        
+        rpHaRecommendation.setVirtualPool(vplexRec.getVirtualPool());
         rpHaRecommendation.setResourceCount(capabilities.getResourceCount());
         rpHaRecommendation.setSize(capabilities.getSize());
         return rpHaRecommendation;
@@ -803,7 +803,7 @@ public class RecoverPointScheduler implements Scheduler {
             Map<String, List<StoragePool>> vplexPoolMapForVarray) {
         Recommendation haRecommendation = null;
         List<Recommendation> vplexHaVArrayRecommendations = null;
-                
+
         if (haVarray == null) {
             haVarray = vplexScheduler.getHaVirtualArray(varray, project, vpool);
         }
@@ -816,12 +816,12 @@ public class RecoverPointScheduler implements Scheduler {
                 haVarray, haVpool,
                 capabilities,
                 vplexPoolMapForVarray);
-                        
+
         if (!vplexHaVArrayRecommendations.isEmpty()) {
             // There is only one recommendation ever, return the first recommendation.
             haRecommendation = vplexHaVArrayRecommendations.get(0);
-        } 
-        
+        }
+
         return haRecommendation;
     }
 
@@ -2170,7 +2170,7 @@ public class RecoverPointScheduler implements Scheduler {
                 // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
                 // these recs and they are invoked one at a time even
                 // in a multi-volume request.
-                targetVplexRec.setResourceCount(1); 
+                targetVplexRec.setResourceCount(1);
                 targetRecommendation.setVirtualVolumeRecommendation(targetVplexRec);
             }
 
@@ -2543,7 +2543,7 @@ public class RecoverPointScheduler implements Scheduler {
             // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
             // these recs and they are invoked one at a time even
             // in a multi-volume request.
-            virtualVolumeRecommendation.setResourceCount(1);            
+            virtualVolumeRecommendation.setResourceCount(1);
             rpRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
         }
 

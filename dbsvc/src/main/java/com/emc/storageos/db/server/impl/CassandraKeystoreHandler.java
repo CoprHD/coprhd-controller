@@ -11,15 +11,20 @@ import com.emc.storageos.security.keystore.impl.KeystoreEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.util.EnumSet;
 import java.util.Enumeration;
+import java.util.Set;
 
 /**
  * Handle keystore commands
@@ -67,6 +72,7 @@ public class CassandraKeystoreHandler {
                 keystore.getKey(KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS, null),
                 password, keystore.getCertificateChain(KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS));
         ks.store(new FileOutputStream(keyStoreFile), password);
+        setFilePermissionToOwnerRead(keyStoreFile);
         log.info("The keystore file {} is generated successfully.", keyStoreFile);
     }
 
@@ -88,6 +94,12 @@ public class CassandraKeystoreHandler {
             ks.setEntry(alias, trustedCertEntry, null);
         }
         ks.store(new FileOutputStream(trustStoreFile), password);
+        setFilePermissionToOwnerRead(trustStoreFile);
         log.info("The truststore file {} is generated successfully.", trustStoreFile);
+    }
+
+    private void setFilePermissionToOwnerRead(String file) throws Exception {
+        Set<PosixFilePermission> perms = EnumSet.of(PosixFilePermission.OWNER_READ);
+        Files.setPosixFilePermissions(new File(file).toPath(), perms);
     }
 }

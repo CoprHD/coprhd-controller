@@ -80,10 +80,12 @@ import com.emc.sa.service.vipr.block.tasks.RestoreFromFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ResynchronizeFullCopy;
 import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
+import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
+import com.emc.sa.service.vipr.tasks.GetVirtualArray;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Cluster;
@@ -105,6 +107,7 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -190,6 +193,10 @@ public class BlockStorageUtils {
 
     private static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
         return execute(new GetBlockSnapshots(uris));
+    }
+
+    public static VirtualArrayRestRep getVirtualArray(URI id) {
+        return execute(new GetVirtualArray(id));
     }
 
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
@@ -748,6 +755,12 @@ public class BlockStorageUtils {
         return copies;
     }
 
+    public static Tasks<BlockConsistencyGroupRestRep> swapCGContinuousCopy(URI protectionSource, URI protectionTarget, String type) {
+        Tasks<BlockConsistencyGroupRestRep> copies = execute(new SwapCGContinuousCopies(protectionSource, protectionTarget, type));
+        addAffectedResources(copies);
+        return copies;
+    }
+
     public static Task<BlockConsistencyGroupRestRep> addVolumesToConsistencyGroup(URI consistencyGroupId, List<URI> volumeIds) {
         Task<BlockConsistencyGroupRestRep> task = execute(new AddVolumesToConsistencyGroup(consistencyGroupId, volumeIds));
         addAffectedResource(task);
@@ -756,7 +769,7 @@ public class BlockStorageUtils {
 
     /**
      * Finds the exports (itl) for the given initiators.
-     * 
+     *
      * @param exports
      *            the list of all exports (itl)
      * @param initiators
@@ -916,7 +929,7 @@ public class BlockStorageUtils {
 
     /**
      * Helper method for creating a list of all the params for the createBlockVolumesHelper.
-     * 
+     *
      * @param table volume table
      * @param params for volume creation
      * @return map of all params

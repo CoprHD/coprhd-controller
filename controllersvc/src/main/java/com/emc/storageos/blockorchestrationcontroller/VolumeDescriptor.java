@@ -74,6 +74,7 @@ public class VolumeDescriptor implements Serializable {
     public static final String PARAM_VPOOL_CHANGE_VPOOL_ID = "vpoolChangeVpoolId";
     public static final String PARAM_VPOOL_OLD_VPOOL_ID = "vpoolOldVpoolId";
     public static final String PARAM_IS_COPY_SOURCE_ID = "isCopySourceId";
+    public static final String PARAM_DO_NOT_DELETE_VOLUME = "doNotDeleteVolume";
 
     public VolumeDescriptor(Type type,
             URI deviceURI, URI volumeURI, URI poolURI, URI consistencyGroupURI,
@@ -310,6 +311,26 @@ public class VolumeDescriptor implements Serializable {
                 return vd1.getType().getOrder() - vd2.getType().getOrder();
             }
         });
+    }
+    
+    /**
+     * Returns all descriptors that have the PARAM_DO_NOT_DELETE_VOLUME flag set to true.
+     * 
+     * @param descriptors List of descriptors to check
+     * @return all descriptors that have the PARAM_DO_NOT_DELETE_VOLUME flag set to true
+     */
+    public static List<VolumeDescriptor> getDoNotDeleteDescriptors(List<VolumeDescriptor> descriptors) {
+        List<VolumeDescriptor> doNotDeleteDescriptors = new ArrayList<VolumeDescriptor>();
+        if (descriptors != null && !descriptors.isEmpty()) {
+            for (VolumeDescriptor descriptor : descriptors) {
+                if (descriptor.getParameters() != null
+                        && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null
+                        && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME).equals(Boolean.TRUE)) {                
+                    doNotDeleteDescriptors.add(descriptor);
+                }
+            } 
+        }
+        return doNotDeleteDescriptors;
     }
 
     @Override

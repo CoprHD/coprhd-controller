@@ -11,6 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -27,8 +30,8 @@ public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(RPCGCreateCompleter.class);
     private OperationTypeEnum opTypeEnum = null;
 
-    public RPCGProtectionTaskCompleter(URI uri, String task) {
-        super(Volume.class, uri, task);
+    public RPCGProtectionTaskCompleter(URI uri, final Class<? extends DataObject> type, String task) {
+        super(type, uri, task);
     }
 
     public void setOperationTypeEnum(OperationTypeEnum opTypeEnum) {
@@ -53,10 +56,11 @@ public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
             // Tell the individual objects we're done.
             switch (status) {
                 case error:
-                    dbClient.error(Volume.class, getId(), getOpId(), coded);
+                    dbClient.error(URIUtil.isType(getId(), Volume.class) ? Volume.class : BlockConsistencyGroup.class, getId(), getOpId(),
+                            coded);
                     break;
                 default:
-                    dbClient.ready(Volume.class, getId(), getOpId());
+                    dbClient.ready(URIUtil.isType(getId(), Volume.class) ? Volume.class : BlockConsistencyGroup.class, getId(), getOpId());
             }
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for protection task - Volume ID: %s, OpId: %s",
@@ -66,7 +70,7 @@ public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
 
     /**
      * Record block volume related event and audit
-     * 
+     *
      * @param dbClient db client
      * @param opType operation type
      * @param status operation status
@@ -89,6 +93,7 @@ public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
                 case PAUSE_RP_LINK:
                 case RESUME_RP_LINK:
                 case FAILOVER_RP_LINK:
+                case FAILOVER_CANCEL_RP_LINK:
                 case SWAP_RP_VOLUME:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
                     break;
@@ -102,23 +107,30 @@ public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
 
     /**
      * Record RP event
-     * 
+     *
      * @param dbClient db client
-     * @param volumeUri volume operation performed on
+     * @param uri volume/block consistency group operation performed on
      * @param evtType event type
      * @param status status of operation
      * @param desc description
      * @throws Exception
      */
-    private void recordBourneRPEvent(DbClient dbClient, URI volumeUri,
+    private void recordBourneRPEvent(DbClient dbClient, URI uri,
             String evtType,
             Operation.Status status, String desc) {
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
 
-        Volume volObj = dbClient.queryObject(Volume.class, volumeUri);
+        DataObject dataObj = null;
+
+        if (URIUtil.isType(uri, Volume.class)) {
+            dataObj = dbClient.queryObject(Volume.class, uri);
+        } else if (URIUtil.isType(uri, BlockConsistencyGroup.class)) {
+            dataObj = dbClient.queryObject(BlockConsistencyGroup.class, uri);
+        }
+
         RecordableBourneEvent event = ControllerUtils
-                .convertToRecordableBourneEvent(volObj, evtType,
+                .convertToRecordableBourneEvent(dataObj, evtType,
                         desc, "", dbClient,
                         ControllerUtils.BLOCK_EVENT_SERVICE,
                         RecordType.Event.name(),

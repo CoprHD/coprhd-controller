@@ -214,17 +214,16 @@ public class DBClient {
      * @param clazz
      * @param <T>
      */
-    private <T extends DataObject> T queryAndPrintRecord(URI id, Class<T> clazz) throws Exception {
+    private <T extends DataObject> void queryAndPrintRecord(URI id, Class<T> clazz) throws Exception {
         T object = queryObject(id, clazz);
 
         if (object == null) {
             // its deleted
             System.out.println("id: " + id + " [ Deleted ]");
-            return null;
+            return;
         }
 
         printBeanProperties(clazz, object);
-        return object;
     }
 
     /**
@@ -360,17 +359,17 @@ public class DBClient {
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-    public <T extends DataObject> T query(String id, String cfName) throws Exception {
-        Class<T> clazz = _cfMap.get(cfName); // fill in type from cfName
+    public void query(String id, String cfName) throws Exception {
+        Class clazz = _cfMap.get(cfName); // fill in type from cfName
         if (clazz == null) {
             System.err.println("Unknown Column Family: " + cfName);
-            return null;
+            return;
         }
         if (!DataObject.class.isAssignableFrom(clazz)) {
             System.err.println("TimeSeries data not supported with this command.");
-            return null;
+            return;
         }
-        return queryAndPrintRecord(URI.create(id), clazz);
+        queryAndPrintRecord(URI.create(id), clazz);
     }
 
     /**
@@ -1211,9 +1210,9 @@ public class DBClient {
 
     public void rebuildIndex(String id, String cfName) {
         try {
-            System.out.println(String.format("rebuilding index for %s in cf %s", id, cfName));
-            DataObject queryObject = query(id, cfName);
+            DataObject queryObject = queryObject(URI.create(id), getClassFromCFName(cfName) );
             if(queryObject != null) { 
+                System.out.println(String.format("rebuilding index for %s in cf %s", id, cfName));
                 BeanUtils.copyProperties(queryObject, queryObject);
             }
         } catch (Exception e) {
@@ -1222,4 +1221,16 @@ public class DBClient {
         }
     }
 
+    private Class<? extends DataObject>  getClassFromCFName(String cfName) {
+        Class<? extends DataObject> clazz = _cfMap.get(cfName); // fill in type from cfName
+        if (clazz == null) {
+            System.err.println("Unknown Column Family: " + cfName);
+            return null;
+        }
+        if (!DataObject.class.isAssignableFrom(clazz)) {
+            System.err.println("TimeSeries data not supported with this command.");
+            return null;
+        }
+        return clazz;
+    }
 }

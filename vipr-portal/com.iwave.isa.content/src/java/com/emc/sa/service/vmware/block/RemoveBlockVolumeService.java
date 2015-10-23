@@ -35,7 +35,7 @@ public class RemoveBlockVolumeService extends VMwareHostService {
     @Param(DELETION_TYPE)
     protected VolumeDeleteTypeEnum deletionType;
 
-    List<BlockObjectRestRep> volumes;
+    protected List<BlockObjectRestRep> volumes;
 
     @Override
     public void precheck() throws Exception {

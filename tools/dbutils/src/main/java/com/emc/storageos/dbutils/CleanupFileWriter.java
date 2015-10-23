@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2014 EMC Corporation
+ * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.dbutils;
@@ -21,7 +21,7 @@ public class CleanupFileWriter {
     static final String WRITER_REBUILD_INDEX = "rebuildIndex";
     static final String CLEANUP_FILE_STORAGEOS = "cleanupStorageOS.cql";
     static final String CLEANUP_FILE_GEOSTORAGEOS = "cleanupGeoStorageOS.cql";
-    static final String CLEANUP_FILE_REBUILD_INDEX = "rebuildIndex";
+    static final String CLEANUP_FILE_REBUILD_INDEX = "cleanup-rebuildIndex.file";
     private static final String USAGE_STORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k StorageOS -f cleanupStorageOS.cql";
     private static final String USAGE_GEOSTORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k GeoStorageOS -f cleanupGeoStorageOS.cql localhost 9260";
     private static final String USAGE_REBUILDINDEX = "# please run /opt/storageos/bin/dbutils rebuild_index ./rebuildIndex";
@@ -64,7 +64,6 @@ public class CleanupFileWriter {
     }
 
     private static BufferedWriter init(String fileName, String usage) throws IOException {
-        // add the command usage .
         BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
         writer.write(usage);
         writer.newLine();
@@ -97,7 +96,10 @@ public class CleanupFileWriter {
             generatedFileNameBuilder.append(CLEANUP_FILE_STORAGEOS);
         }
         if(geoStorageFileWriter != null) {
-            generatedFileNameBuilder.append(", ").append(CLEANUP_FILE_STORAGEOS);
+            generatedFileNameBuilder.append(" ").append(WRITER_GEOSTORAGEOS);
+        }
+        if(rebuildIndexFileWriter != null) {
+            generatedFileNameBuilder.append(" ").append(CLEANUP_FILE_REBUILD_INDEX);
         }
         return generatedFileNameBuilder.toString();
     }

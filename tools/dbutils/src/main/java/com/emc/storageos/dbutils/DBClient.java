@@ -1122,8 +1122,11 @@ public class DBClient {
             _dbClient.checkCFIndices();
 
             String msg = "\nAll the checks have been done.";
-            System.out.println(msg);
-            log.info(msg);
+            String fileMsg = String.format(
+                    "\nClean up cql files [%s] are created in current folder. please read into them for detail cleanup operations.",
+                    CleanupFileWriter.getGeneratedFileNames());
+            System.out.println(msg + fileMsg);
+            log.info(msg + fileMsg);
         } catch (ConnectionException e) {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "
@@ -1203,8 +1206,9 @@ public class DBClient {
         boolean runResult = false;
         try {
             DataObject queryObject = queryObject(URI.create(id), getClassFromCFName(cfName) );
-            if(queryObject != null) { 
+            if(queryObject != null) {
                 BeanUtils.copyProperties(queryObject, queryObject);
+                _dbClient.updateObject(queryObject);
                 System.out.println(String.format("Successfully rebuild index for %s in cf %s", id, cfName));
                 runResult = true;
             }

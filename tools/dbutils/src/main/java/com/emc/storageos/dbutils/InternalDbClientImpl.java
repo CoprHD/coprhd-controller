@@ -262,10 +262,6 @@ public class InternalDbClientImpl extends InternalDbClient {
         logAndPrintToScreen(String.format(
                 "\nFinish to check INDEX data, totally check %s rows of %s indices and %s rows of %s object cfs, "
                         + "%s corrupted data found.", indexRowCount, idxCfs.size(), objRowCount, objCfCount, corruptRowCount));
-        if(generateCleanupFile && corruptRowCount > 0) {
-            logAndPrintToScreen(String.format("Clean up cql files [%s] are created in current folder. please read into them for detail cleanup operations.",
-                    CleanupFileWriter.getGeneratedFileNames()));
-        }
 
         return corruptRowCount == 0;
     }
@@ -348,8 +344,8 @@ public class InternalDbClientImpl extends InternalDbClient {
 
         logAndPrintToScreen(String.format(
                 "\nFinish to check DataObject data, totally check %s rows of %s object cfs, "
-                        + "%s corrupted data found. please see the generated file %s for detail usage.",
-                objRowCount, cfCount, corruptRowCount, CleanupFileWriter.CLEANUP_FILE_REBUILD_INDEX));
+                        + "%s corrupted data found.",
+                objRowCount, cfCount, corruptRowCount));
 
         return corruptRowCount == 0;
     }

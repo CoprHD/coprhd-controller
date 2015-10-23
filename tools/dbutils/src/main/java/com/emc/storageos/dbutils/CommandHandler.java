@@ -662,6 +662,8 @@ public abstract class CommandHandler {
         public CheckDBHandler(String[] args) {
             if (args.length == 2 && Main.GENERATE_CLEANUP_CQL.equals(args[1])) {
                 generateCleanupFile = true;
+            } else {
+                throw new IllegalArgumentException("Invalid command option. ");
             }
         }
 
@@ -694,6 +696,8 @@ public abstract class CommandHandler {
         public RebuildIndexHandler(String[] args) {
             if (args.length == 2) {
                 rebuildIndexFileName = args[1];
+            } else {
+                throw new IllegalArgumentException("Invalid command option. ");
             }
         }
 
@@ -702,24 +706,31 @@ public abstract class CommandHandler {
             if(rebuildIndexFileName != null) {
                 File rebuildFile = new File(rebuildIndexFileName);
                 if (rebuildFile.exists() && rebuildFile.isFile()) {
-                    int counter = 0;
+                    int successCounter = 0;
+                    int failCounter = 0;
                     try (BufferedReader br = new BufferedReader(new FileReader(rebuildIndexFileName))) {
                         String line = null;
                         while((line = br.readLine()) != null) {
                             if(line.length()==0 || line.startsWith(KEY_COMMENT_CHAR)) continue;
                             Map<String, String> rebuildMap = readToMap(line); 
-                            String id = rebuildMap.get(KEY_ID).trim();
-                            String cfName = rebuildMap.get(KEY_CFNAME).trim();
+                            String id = rebuildMap.get(KEY_ID);
+                            String cfName = rebuildMap.get(KEY_CFNAME);
                             if(_client.rebuildIndex(id, cfName)) {
-                                counter++;
+                                successCounter++;
+                            } else {
+                                failCounter++;
                             }
                         }
                     } catch (IOException e) {
                         System.err.println("Error occured when reading the cleanup file.");
                         e.printStackTrace();
                     }
-                    System.out.println(String.format("Successfully rebuild %s indexes.", counter));
-                    
+                    if(successCounter > 0 ) {
+                        System.out.println(String.format("successfully rebuild %s indexes.", successCounter));
+                    }
+                    if(failCounter > 0 ) {
+                        System.out.println(String.format("failed rebuild %s indexes.", failCounter));
+                    }
                 } else {
                     System.err.println(String.format("Specified clean up file %s is not existed, please check with it and rerun.", rebuildIndexFileName));
                 }
@@ -730,8 +741,9 @@ public abstract class CommandHandler {
             Map<String, String> cleanUpMap = new HashMap<> ();
             for(String property : input.split(",")) {
                 int index = property.indexOf(":");
-                if(index > 0)
-                cleanUpMap.put(property.substring(0, index), property.substring(index+1));
+                if(index > 0) {
+                    cleanUpMap.put(property.substring(0, index).trim(), property.substring(index+1).trim());
+                }
             }
             return cleanUpMap;
         }

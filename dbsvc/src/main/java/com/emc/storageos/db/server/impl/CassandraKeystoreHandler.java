@@ -99,7 +99,7 @@ public class CassandraKeystoreHandler {
     }
 
     private void setFilePermissionToOwnerRead(String file) throws Exception {
-        Set<PosixFilePermission> perms = EnumSet.of(PosixFilePermission.OWNER_READ);
+        Set<PosixFilePermission> perms = EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
         Files.setPosixFilePermissions(new File(file).toPath(), perms);
     }
 }

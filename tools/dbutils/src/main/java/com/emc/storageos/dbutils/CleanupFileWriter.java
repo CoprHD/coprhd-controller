@@ -84,4 +84,15 @@ public class CleanupFileWriter {
         File cleaupGeoStorageFile = new File(CLEANUP_FILE_GEOSTORAGEOS);
         return cleaupStorageFile.exists() || cleaupGeoStorageFile.exists();
     }
+
+    static String getGeneratedFileNames() {
+        StringBuilder generatedFileNameBuilder = new StringBuilder("");
+        if(storageFileWriter != null) {
+            generatedFileNameBuilder.append(CLEANUP_FILE_STORAGEOS);
+        }
+        if(geoStorageFileWriter != null) {
+            generatedFileNameBuilder.append(", ").append(CLEANUP_FILE_STORAGEOS);
+        }
+        return generatedFileNameBuilder.toString();
+    }
 }

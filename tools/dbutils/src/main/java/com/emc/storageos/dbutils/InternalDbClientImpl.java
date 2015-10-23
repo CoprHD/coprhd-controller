@@ -259,8 +259,8 @@ public class InternalDbClientImpl extends InternalDbClient {
                 "\nFinish to check INDEX data, totally check %s rows of %s indices and %s rows of %s object cfs, "
                         + "%s corrupted data found.", indexRowCount, idxCfs.size(), objRowCount, objCfCount, corruptRowCount));
         if(generateCleanupFile && corruptRowCount > 0) {
-            logAndPrintToScreen(String.format("Clean up cql files [%s , %s] are created in current folder. please read into them for detail cleanup operations.",
-                    CleanupFileWriter.CLEANUP_FILE_STORAGEOS, CleanupFileWriter.CLEANUP_FILE_GEOSTORAGEOS));
+            logAndPrintToScreen(String.format("Clean up cql files [%s] are created in current folder. please read into them for detail cleanup operations.",
+                    CleanupFileWriter.getGeneratedFileNames()));
         }
 
         return corruptRowCount == 0;

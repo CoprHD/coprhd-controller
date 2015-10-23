@@ -71,8 +71,14 @@ public class ProcessRunner implements AutoCloseable {
         BufferedReader reader = new BufferedReader(new InputStreamReader(input));
         String line;
         while ((line = reader.readLine()) != null) {
-            capture.append(line);
-            capture.append("\n");
+            if (capture.length() > ProcessOutputStream.ERROR_TEXT_MAX_LENGTH) {
+                log.warn("Current error text length {} exceeds maximum error text length {}. Discard further errors",
+                        capture.length(), ProcessOutputStream.ERROR_TEXT_MAX_LENGTH);
+                return;
+            } else {
+                capture.append(line);
+                capture.append("\n");
+            }
         }
     }
 

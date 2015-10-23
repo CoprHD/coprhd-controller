@@ -188,14 +188,14 @@ public abstract class ResourceService {
     public void checkForDuplicateNamespace(String namespace) {
         TenantOrgList list = new TenantOrgList();
         //Verify with root tenant if current is not root
-        if (_permissionsHelper.getRootTenant() != null && _permissionsHelper.getRootTenant().getNamespace() != null 
-                && _permissionsHelper.getRootTenant().getNamespace().equalsIgnoreCase(namespace)) {
+        TenantOrg rootTenant = _permissionsHelper.getRootTenant();
+        if (rootTenant.getNamespace() != null && rootTenant.getNamespace().equalsIgnoreCase(namespace)) {
             throw APIException.badRequests.duplicateNamespace(namespace);
         }
 
         NamedElementQueryResultList subtenants = new NamedElementQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getTenantOrgSubTenantConstraint(_permissionsHelper.getRootTenant().getId()), subtenants);
+                .getTenantOrgSubTenantConstraint(rootTenant.getId()), subtenants);
         for (NamedElementQueryResultList.NamedElement el : subtenants) {
             TenantOrg currTenant = _dbClient.queryObject(TenantOrg.class, el.getId());
             if (currTenant.getNamespace() != null && currTenant.getNamespace().equalsIgnoreCase(namespace)) {
@@ -203,7 +203,7 @@ public abstract class ResourceService {
             }
         }
     }
-    
+
     /**
      * Looks up controller dependency for given hardware
      * 

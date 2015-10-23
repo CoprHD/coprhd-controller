@@ -49,7 +49,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -159,6 +158,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String VIPR_SNAPSHOT_PREFIX = "ViPR-snapshot-";
 
     // Various steps for workflows
+    private static final String STEP_REMOVE_PROTECTION = "rpRemoveProtectionStep";
     private static final String STEP_CG_CREATION = "cgCreation";
     private static final String STEP_CG_UPDATE = "cgUpdate";
 
@@ -237,6 +237,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     private static final String EXPORT_ORCHESTRATOR_WF_NAME = "RP_EXPORT_ORCHESTRATION_WORKFLOW";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
+    
+    private static final String METHOD_REMOVE_PROTECTION_STEP = "removeProtectionStep";
+    private static final String METHOD_REMOVE_PROTECTION_ROLLBACK_STEP = "removeProtectionRollback";
 
     private static DbClient _dbClient = null;
     protected CoordinatorClient _coordinator;
@@ -664,19 +667,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     @Override
     public String addStepsForPostDeleteVolumes(Workflow workflow,
-            String waitFor, List<VolumeDescriptor> volumes, String taskId, VolumeWorkflowCompleter completer) throws InternalException {
+            String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId, VolumeWorkflowCompleter completer) throws InternalException {
         // Filter to get only the RP volumes.
-        List<VolumeDescriptor> rpVolumes = VolumeDescriptor.filterByType(volumes,
+        List<VolumeDescriptor> rpSourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
                 new VolumeDescriptor.Type[] {});
         // If there are no RP volumes, just return
-        if (rpVolumes.isEmpty()) {
+        if (rpSourceDescriptors.isEmpty()) {
             return waitFor;
         }
+                                
+        waitFor = addRemoveProtectionOnVolumeStep(workflow, waitFor, rpSourceDescriptors, taskId);          
 
         // Lock the CG (no-op for non-CG)
-        // http://lglah169.lss.emc.com/r/6348/
         // May be more appropriate in block orchestrator's deleteVolume, but I preferred it here
         // to keep it closer to the feature it locks and the service codes that are produced when
         // the lock fails.
@@ -5176,10 +5180,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private void updateVPlexBackingVolumeVpools(Volume volume, URI srcVpoolURI) {
         // Check to see if this is a VPLEX virtual volume
-        if (volume.getAssociatedVolumes() != null
-                && !volume.getAssociatedVolumes().isEmpty()) {
-
-            _log.info("Update the virtual pool on backing volume(s) for virtual volume [{}].", volume.getLabel());
+        if (RPHelper.isVPlexVolume(volume)) {
+            _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).", 
+                    volume.getLabel(), volume.getId()));
             VirtualPool srcVpool = _dbClient.queryObject(VirtualPool.class, srcVpoolURI);
             String srcVpoolName = srcVpool.getLabel();
             URI haVpoolURI = null;
@@ -5212,7 +5215,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     vpoolName = haVpoolName;
                 }
 
-                _log.info("Update backing volume [{}] virtual pool to [{}].", associatedVol.getLabel(), vpoolName);
+                VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, associatedVol.getVirtualPool());                
+                _log.info(String.format("Update backing volume [%s] (%s) virtual pool from [%s] (%s) to [%s] (%s).", 
+                        associatedVol.getLabel(), associatedVol.getId(), oldVpool.getLabel(), oldVpool.getId(), vpoolName, vpoolURI));
                 associatedVol.setVirtualPool(vpoolURI);
                 // Update the backing volume
                 _dbClient.persistObject(associatedVol);
@@ -5422,5 +5427,84 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     public void rollbackMethodNull(String stepId) throws WorkflowException {
         WorkflowStepCompleter.stepSucceded(stepId);
+    }
+    
+    /**
+     * Step to remove protection on RP Source volumes
+     * 
+     * @param workflow The current WF
+     * @param waitFor The previous waitFor step ID or Group
+     * @param volumeDescriptors RP Source volume descriptors
+     * @param taskId The Task ID
+     * @return The next waitFor step ID or Group
+     */
+    private String addRemoveProtectionOnVolumeStep(Workflow workflow, String waitFor, 
+            List<VolumeDescriptor> volumeDescriptors, String taskId) {
+        List<URI> volumeURIs = new ArrayList<URI>();
+        URI newVpoolURI = null;
+        for (VolumeDescriptor descriptor : volumeDescriptors) {
+            if (descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null) {                
+                // This is a rollback protection operation. We do not want to delete the volume but we do
+                // want to remove protection from it.
+                newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
+                _log.info(String.format("Adding step to remove protection from Volume (%s) and move it to vpool (%s)", 
+                        descriptor.getVolumeURI(), newVpoolURI));
+                volumeURIs.add(descriptor.getVolumeURI());
+            }
+        }
+        
+        if (volumeURIs.isEmpty()) {
+            return waitFor;
+        }
+        
+        // Grab any volume from the list so we can grab the protection system. This 
+        // request could be over multiple protection systems but we don't really
+        // care at this point. We just need this reference to pass into the
+        // WorkFlow.
+        Volume volume = _dbClient.queryObject(Volume.class, volumeURIs.get(0));
+        ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
+        
+        String stepId = workflow.createStepId();
+        Workflow.Method removeProtectionExecuteMethod = new Workflow.Method(METHOD_REMOVE_PROTECTION_STEP, volumeURIs, newVpoolURI);
+        
+        workflow.createStep(STEP_REMOVE_PROTECTION, "Remove RP protection on volume(s)",
+                waitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
+                removeProtectionExecuteMethod, null, stepId);
+
+        return STEP_REMOVE_PROTECTION;
+    }
+    
+    /**
+     * Removes ViPR level protection attributes from RP Source volumes
+     * 
+     * @param volumes All volumes to remove protection attributes from 
+     * @param newVpoolURI The vpool to move this volume to
+     * @param stepId The step id in this WF
+     */
+    public boolean removeProtectionStep(List<URI> volumeURIs, URI newVpoolURI, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);        
+        try {           
+            for (URI volumeURI : volumeURIs) {
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI); 
+                
+                if (RPHelper.isVPlexVolume(volume)) {                           
+                    // We might need to update the vpools of the backing volumes after the
+                    // change vpool operation to remove protection
+                    updateVPlexBackingVolumeVpools(volume, newVpoolURI);
+                }
+                
+                // Rollback protection on the volume
+                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
+                _log.info(String.format("Removing protection from Volume [%s] (%s) and moving it to Virtual Pool [%s] (%s)", 
+                        volume.getLabel(), volume.getId(), vpool.getLabel(), vpool.getId()));
+                RPHelper.rollbackProtectionOnVolume(volume, vpool, _dbClient);
+            }           
+            
+            WorkflowStepCompleter.stepSucceded(stepId);
+            return true;
+        } catch (Exception e) {
+            stepFailed(stepId, e, "removeProtection operation failed.");
+            return false;
+        }
     }
 }

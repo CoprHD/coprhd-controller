@@ -847,32 +847,40 @@ public class VnxExportOperations implements ExportMaskOperations {
 
             Multimap<URI, Initiator> targetPortsToInitiators = ArrayListMultimap.create();
 
-            //Some of the Initiaors are already resigered partially on the array based on pre existing zoning
+            //Some of the Initiaors are already registered partially on the array based on pre existing zoning
             //COP-16954 We need to  manually register them, the Initiaors will have HardwareId created but,
             //The registration is not complete..  createHardwareIDs method above will include those Initiaors
 
-            _log.info("Preregistred Target and Inititor ports processing .. Start");
+            _log.info("Preregistered Target and Inititor ports processing .. Start");
             for (String initPort : existingTargets.keySet()) {
                 _log.info("IntiatorPort {} and TargetStoragePort {}", initPort, existingTargets.get(initPort));
                 // IntiatorPort 50012481006B7807 and TargetStoragePort
                 // [CLARIION+CKM00115001014+PORT+50:06:01:60:3E:A0:45:79,
                 // CLARIION+CKM00115001014+PORT+50:06:01:61:3E:A0:45:79]
+                if(WWNUtility.isValidNoColonWWN(initPort)) {
+                    _log.info("IntiatorPort {} is not a valid FC WWN so ignore it", initPort);
+                    continue;
+                }
                 Collection<String> targetPorts = existingTargets.get(initPort);
+                //Map to hash translations
+                HashMap<String, URI> targetPortMap = new HashMap();
                 for(String targetPortGuid : targetPorts) {
-                    List<URI> targetPortURIs = getStoragePortURI(targetPortGuid);
+                    URI targetPortURI = targetPortMap.get(targetPortGuid);
+                    if(targetPortURI == null) {
+                        targetPortURI = getStoragePortURI(targetPortGuid);
+                        targetPortMap.put(targetPortGuid, targetPortURI);
+                    }
                     Initiator translatedInitiator = getInitiatorForWWN(initPort);
-                    _log.info("Calculating Intiator {} and Targets {}", translatedInitiator, targetPortURIs);
-                    if (!targetPortURIs.isEmpty() && translatedInitiator != null) {
-                        for (URI targetURI : targetPortURIs) {
-                            targetPortsToInitiators.put(targetURI, translatedInitiator);
-                        }
+                    _log.info("Calculating Intitiator {} and Target {}", translatedInitiator, targetPortURI);
+                    if (targetPortURI != null && translatedInitiator != null) {
+                        targetPortsToInitiators.put(targetPortURI, translatedInitiator);
                     } else {
-                        _log.info("Intiator WWN {} translation was null or targetPorts are Empty {}",
-                                initPort,  targetPortURIs);
+                        _log.info("Intiator WWN {} translation was null or targetPort is null {}",
+                                initPort,  targetPortURI);
                     }
                 }
             }
-            _log.info("Preregistred Target and Inititor ports processing .. End");
+            _log.info("Preregistered Target and Initiator ports processing .. End");
 
             if (initiatorList == null || initiatorList.isEmpty()) {
                 _log.info("InitiatorList is null or Empty so call exposePathsWithVolumesOnly");
@@ -1284,17 +1292,19 @@ public class VnxExportOperations implements ExportMaskOperations {
      * Gets the Storage Port(s) associated with the GUID passed
      * Returns empty list if no storage ports found
      */
-    private List<URI> getStoragePortURI(String storagePortGuid){
-        ArrayList<URI> storagePortsURI = new ArrayList<>();
+    private URI getStoragePortURI(String storagePortGuid){
         URIQueryResultList uriQueryList = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getStoragePortByNativeGuidConstraint(storagePortGuid), uriQueryList);
         while (uriQueryList.iterator().hasNext()) {
             URI uri = uriQueryList.iterator().next();
-            storagePortsURI.add(uri);
+            StoragePort storagePort = _dbClient.queryObject(StoragePort.class, uri);
+            if (storagePort != null && !storagePort.getInactive()) {
+                _log.info("getStoagePortURI called with {} and result {}", storagePortGuid, uri);
+                return uri;
+            }
         }
-        _log.info("getStoagePortURI called with {} and result {}", storagePortGuid, storagePortsURI);
-        return storagePortsURI;
+        return null;
     }
 
     /**
@@ -1302,19 +1312,8 @@ public class VnxExportOperations implements ExportMaskOperations {
      * Returns null if no Initiators are found
      */
     private Initiator getInitiatorForWWN(String WWN){
-        Initiator init = null;
-        ArrayList<URI> initURIs = new ArrayList<>();
-        String formatedWWN = ExportMaskUtils.formatWWN(WWN);
-        URIQueryResultList uriQueryList = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getInitiatorPortInitiatorConstraint(formatedWWN), uriQueryList);
-        while (uriQueryList.iterator().hasNext()) {
-            URI uri = uriQueryList.iterator().next();
-            initURIs.add(uri);
-        }
-        if(initURIs != null && !initURIs.isEmpty()){
-           init =  _dbClient.queryObject(Initiator.class, initURIs.get(0));
-        }
+        String formatedWWN = WWNUtility.getWWNWithColons(WWN);
+        Initiator init = ExportUtils.getInitiator(formatedWWN, _dbClient);
         _log.info("getInitiatorForWWN called with {} and result {}", WWN +":"+formatedWWN, init);
         return init;
     }

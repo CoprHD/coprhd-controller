@@ -360,13 +360,8 @@ public class DBClient {
      */
     @SuppressWarnings("unchecked")
     public void query(String id, String cfName) throws Exception {
-        Class clazz = _cfMap.get(cfName); // fill in type from cfName
-        if (clazz == null) {
-            System.err.println("Unknown Column Family: " + cfName);
-            return;
-        }
-        if (!DataObject.class.isAssignableFrom(clazz)) {
-            System.err.println("TimeSeries data not supported with this command.");
+        Class clazz = getClassFromCFName(cfName);
+        if(clazz == null) {
             return;
         }
         queryAndPrintRecord(URI.create(id), clazz);
@@ -380,13 +375,8 @@ public class DBClient {
      */
     @SuppressWarnings("unchecked")
     public void listRecords(String cfName, Map<String, String> criterias) throws Exception {
-        final Class clazz = _cfMap.get(cfName); // fill in type from cfName
-        if (clazz == null) {
-            System.err.println("Unknown Column Family: " + cfName);
-            return;
-        }
-        if (!DataObject.class.isAssignableFrom(clazz)) {
-            System.err.println("TimeSeries data not supported with this command.");
+        final Class clazz = getClassFromCFName(cfName); // fill in type from cfName
+        if(clazz == null) {
             return;
         }
         List<URI> uris = null;
@@ -1208,17 +1198,20 @@ public class DBClient {
         }
     }
 
-    public void rebuildIndex(String id, String cfName) {
+    public boolean rebuildIndex(String id, String cfName) {
+        boolean runResult = false;
         try {
             DataObject queryObject = queryObject(URI.create(id), getClassFromCFName(cfName) );
             if(queryObject != null) { 
-                System.out.println(String.format("rebuilding index for %s in cf %s", id, cfName));
                 BeanUtils.copyProperties(queryObject, queryObject);
+                System.out.println(String.format("Successfully rebuild index for %s in cf %s", id, cfName));
+                runResult = true;
             }
         } catch (Exception e) {
-            System.err.println(String.format("error when rebuilding index for %s in cf %s", id, cfName));
+            System.err.println(String.format("Error when rebuilding index for %s in cf %s", id, cfName));
             e.printStackTrace();
         }
+        return runResult;
     }
 
     private Class<? extends DataObject>  getClassFromCFName(String cfName) {

@@ -702,6 +702,7 @@ public abstract class CommandHandler {
             if(rebuildIndexFileName != null) {
                 File rebuildFile = new File(rebuildIndexFileName);
                 if (rebuildFile.exists() && rebuildFile.isFile()) {
+                    int counter = 0;
                     try (BufferedReader br = new BufferedReader(new FileReader(rebuildIndexFileName))) {
                         String line = null;
                         while((line = br.readLine()) != null) {
@@ -709,12 +710,16 @@ public abstract class CommandHandler {
                             Map<String, String> rebuildMap = readToMap(line); 
                             String id = rebuildMap.get(KEY_ID).trim();
                             String cfName = rebuildMap.get(KEY_CFNAME).trim();
-                            _client.rebuildIndex(id, cfName);
+                            if(_client.rebuildIndex(id, cfName)) {
+                                counter++;
+                            }
                         }
                     } catch (IOException e) {
                         System.err.println("Error occured when reading the cleanup file.");
                         e.printStackTrace();
                     }
+                    System.out.println(String.format("Successfully rebuild %s indexes.", counter));
+                    
                 } else {
                     System.err.println(String.format("Specified clean up file %s is not existed, please check with it and rerun.", rebuildIndexFileName));
                 }

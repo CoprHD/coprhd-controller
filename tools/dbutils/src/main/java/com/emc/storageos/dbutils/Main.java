@@ -41,6 +41,7 @@ public class Main {
         GEOBLACKLIST,
         CHECK_DB,
         REPAIR_DB,
+        REBUILD_INDEX,
     };
 
     private static final String TYPE_EVENTS = "events";
@@ -124,7 +125,10 @@ public class Main {
                 Command.REPAIR_DB.name().toLowerCase(), STORAGEOS_USER);
         System.out.printf("\t -bypassMigrationCheck%n");
         System.out
-                .printf("\t\tNote: it's used with other commands together only when migration fail, dbutils still work even migration fail if you pass this option");
+                .printf("\t\tNote: it's used with other commands together only when migration fail, dbutils still work even migration fail if you pass this option%n");
+        System.out.printf("\t%s <file_path>%n",
+                Command.REBUILD_INDEX.name().toLowerCase());
+        System.out.printf("\t\t Note: use the genereated file to rebuild the index%n");
     }
 
     /**
@@ -256,6 +260,10 @@ public class Main {
                 case CHECK_DB:
                     _client.init();
                     handler = new CheckDBHandler(args);
+                    break;
+                case REBUILD_INDEX:
+                    _client.init();
+                    handler = new RebuildIndexHandler(args);
                     break;
                 default:
                     throw new IllegalArgumentException("Invalid command ");

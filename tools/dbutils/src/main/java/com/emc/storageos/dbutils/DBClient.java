@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.dbutils;
 
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -213,16 +214,17 @@ public class DBClient {
      * @param clazz
      * @param <T>
      */
-    private <T extends DataObject> void queryAndPrintRecord(URI id, Class<T> clazz) throws Exception {
+    private <T extends DataObject> T queryAndPrintRecord(URI id, Class<T> clazz) throws Exception {
         T object = queryObject(id, clazz);
 
         if (object == null) {
             // its deleted
             System.out.println("id: " + id + " [ Deleted ]");
-            return;
+            return null;
         }
 
         printBeanProperties(clazz, object);
+        return object;
     }
 
     /**
@@ -358,17 +360,17 @@ public class DBClient {
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-    public void query(String id, String cfName) throws Exception {
-        Class clazz = _cfMap.get(cfName); // fill in type from cfName
+    public <T extends DataObject> T query(String id, String cfName) throws Exception {
+        Class<T> clazz = _cfMap.get(cfName); // fill in type from cfName
         if (clazz == null) {
             System.err.println("Unknown Column Family: " + cfName);
-            return;
+            return null;
         }
         if (!DataObject.class.isAssignableFrom(clazz)) {
             System.err.println("TimeSeries data not supported with this command.");
-            return;
+            return null;
         }
-        queryAndPrintRecord(URI.create(id), clazz);
+        return queryAndPrintRecord(URI.create(id), clazz);
     }
 
     /**
@@ -1206,4 +1208,18 @@ public class DBClient {
             }
         }
     }
+
+    public void rebuildIndex(String id, String cfName) {
+        try {
+            System.out.println(String.format("rebuilding index for %s in cf %s", id, cfName));
+            DataObject queryObject = query(id, cfName);
+            if(queryObject != null) { 
+                BeanUtils.copyProperties(queryObject, queryObject);
+            }
+        } catch (Exception e) {
+            System.err.println(String.format("error when rebuilding index for %s in cf %s", id, cfName));
+            e.printStackTrace();
+        }
+    }
+
 }

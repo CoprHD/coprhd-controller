@@ -336,6 +336,9 @@ public class InternalDbClientImpl extends InternalDbClient {
                                         indexedField.getDataObjectType().getSimpleName(), row.getKey(), indexedField.getName(),
                                         indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
                                         true);
+                                CleanupFileWriter.writeTo(CleanupFileWriter.WRITER_REBUILD_INDEX, 
+                                        String.format("id:%s, cfName:%s", row.getKey(),
+                                                indexedField.getDataObjectType().getSimpleName()));
                             }
                         }
                     }
@@ -345,8 +348,8 @@ public class InternalDbClientImpl extends InternalDbClient {
 
         logAndPrintToScreen(String.format(
                 "\nFinish to check DataObject data, totally check %s rows of %s object cfs, "
-                        + "%s corrupted data found.",
-                objRowCount, cfCount, corruptRowCount));
+                        + "%s corrupted data found. please see the generated file %s for detail usage.",
+                objRowCount, cfCount, corruptRowCount, CleanupFileWriter.CLEANUP_FILE_REBUILD_INDEX));
 
         return corruptRowCount == 0;
     }

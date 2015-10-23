@@ -15,19 +15,23 @@ import org.slf4j.LoggerFactory;
 public class CleanupFileWriter {
     private static BufferedWriter storageFileWriter;
     private static BufferedWriter geoStorageFileWriter;
-    private static final String KEYSPACE_STORAGEOS = "StorageOS";
-    private static final String KEYSPACE_GEOSTORAGEOS = "GeoStorageOS";
+    private static BufferedWriter rebuildIndexFileWriter;
+    static final String WRITER_STORAGEOS = "StorageOS";
+    static final String WRITER_GEOSTORAGEOS = "GeoStorageOS";
+    static final String WRITER_REBUILD_INDEX = "rebuildIndex";
     static final String CLEANUP_FILE_STORAGEOS = "cleanupStorageOS.cql";
     static final String CLEANUP_FILE_GEOSTORAGEOS = "cleanupGeoStorageOS.cql";
+    static final String CLEANUP_FILE_REBUILD_INDEX = "rebuildIndex";
     private static final String USAGE_STORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k StorageOS -f cleanupStorageOS.cql";
     private static final String USAGE_GEOSTORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k GeoStorageOS -f cleanupGeoStorageOS.cql localhost 9260";
+    private static final String USAGE_REBUILDINDEX = "# please run /opt/storageos/bin/dbutils rebuild_index ./rebuildIndex";
     private static final Logger log = LoggerFactory.getLogger(CleanupFileWriter.class);
 
     private CleanupFileWriter(){}
 
-    static void writeTo(String keyspaceName, String lineStr) {
+    static void writeTo(String name, String lineStr) {
         try {
-            BufferedWriter writer = getWriter(keyspaceName);
+            BufferedWriter writer = getWriter(name);
             writer.write(lineStr);
             writer.newLine();
             writer.flush();
@@ -37,37 +41,35 @@ public class CleanupFileWriter {
         }
     }
 
-    private static BufferedWriter getWriter(String keyspace) throws IOException {
-        BufferedWriter writer = null;
-        if(KEYSPACE_STORAGEOS.equals(keyspace)) {
-            if(storageFileWriter == null) {
-                storageFileWriter = init(CLEANUP_FILE_STORAGEOS);
-            }
-            writer = storageFileWriter;
-        } else if(KEYSPACE_GEOSTORAGEOS.equals(keyspace)) {
-            if(geoStorageFileWriter == null) {
-                geoStorageFileWriter = init(CLEANUP_FILE_GEOSTORAGEOS);
-            }
-            writer = geoStorageFileWriter;
+    private static BufferedWriter getWriter(String name) throws IOException {
+        if(WRITER_STORAGEOS.equals(name)) {
+            storageFileWriter = getAndInit(storageFileWriter, CLEANUP_FILE_STORAGEOS, USAGE_STORAGEOS);
+            return storageFileWriter;
+        } else if(WRITER_GEOSTORAGEOS.equals(name)) {
+            geoStorageFileWriter = getAndInit(geoStorageFileWriter, CLEANUP_FILE_GEOSTORAGEOS, USAGE_GEOSTORAGEOS);
+            return geoStorageFileWriter;
+        } else if(WRITER_REBUILD_INDEX.equals(name)){
+            rebuildIndexFileWriter = getAndInit(rebuildIndexFileWriter, CLEANUP_FILE_REBUILD_INDEX, USAGE_REBUILDINDEX);
+            return rebuildIndexFileWriter;
+        }
+        return null;
+    }
+
+    private static BufferedWriter getAndInit(BufferedWriter writer, String fileName, String usage)
+            throws IOException {
+        if(writer == null) {
+            writer = init(fileName, usage);
         }
         return writer;
     }
 
-    private static BufferedWriter init(String fileName) throws IOException {
+    private static BufferedWriter init(String fileName, String usage) throws IOException {
         // add the command usage .
         BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
-        writer.write(getUsage(fileName));
+        writer.write(usage);
         writer.newLine();
         writer.flush();
         return writer;
-    }
-
-    private static String getUsage(String fileName) {
-        if(CLEANUP_FILE_STORAGEOS.equals(fileName)){
-            return USAGE_STORAGEOS;
-        } else {
-            return USAGE_GEOSTORAGEOS;
-        } 
     }
 
     static void close() throws IOException {
@@ -77,12 +79,16 @@ public class CleanupFileWriter {
         if(geoStorageFileWriter != null) {
             geoStorageFileWriter.close();
         }
+        if(rebuildIndexFileWriter != null) {
+            rebuildIndexFileWriter.close();
+        }
     }
 
     static boolean existingCleanupFiles() {
         File cleaupStorageFile = new File(CLEANUP_FILE_STORAGEOS);
         File cleaupGeoStorageFile = new File(CLEANUP_FILE_GEOSTORAGEOS);
-        return cleaupStorageFile.exists() || cleaupGeoStorageFile.exists();
+        File rebuildIndexFile = new File(CLEANUP_FILE_REBUILD_INDEX);
+        return cleaupStorageFile.exists() || cleaupGeoStorageFile.exists() || rebuildIndexFile.exists();
     }
 
     static String getGeneratedFileNames() {

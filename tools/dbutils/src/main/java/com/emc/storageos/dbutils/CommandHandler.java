@@ -669,9 +669,9 @@ public abstract class CommandHandler {
         public void process(DBClient _client) {
             if (generateCleanupFile && CleanupFileWriter.existingCleanupFiles()) {
                 System.err.println(String.format(
-                        "When specify %s please make sure you removed the last generated cql files [%s , %s] in current folder.",
+                        "When specify %s please make sure you removed the last generated cql files [%s , %s, %s] in current folder.",
                         Main.GENERATE_CLEANUP_CQL, CleanupFileWriter.CLEANUP_FILE_STORAGEOS,
-                        CleanupFileWriter.CLEANUP_FILE_GEOSTORAGEOS));
+                        CleanupFileWriter.CLEANUP_FILE_GEOSTORAGEOS, CleanupFileWriter.CLEANUP_FILE_REBUILD_INDEX));
                 return;
             }
             _client.checkDB(generateCleanupFile);

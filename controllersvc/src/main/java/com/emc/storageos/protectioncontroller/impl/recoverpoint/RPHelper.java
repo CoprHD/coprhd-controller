@@ -267,10 +267,16 @@ public class RPHelper {
 
             // Add a mapping of consistency groups to volumes to determine if we are deleting
             // the entire CG which would indicate journals are also being deleted.
-            if (cgsToVolumesForDelete.get(cgURI) == null) {
-                cgsToVolumesForDelete.put(cgURI, new HashSet<URI>());
+            if (cgURI != null) {
+                if (cgsToVolumesForDelete.get(cgURI) == null) {
+                    cgsToVolumesForDelete.put(cgURI, new HashSet<URI>());
+                }
+                cgsToVolumesForDelete.get(cgURI).addAll(allVolsInRSetURI);
+            } else {
+                _log.warn(String
+                        .format("Unable to find a valid CG for replication set volumes %s. Unable to determine if the entire CG is being deleted as part of this request.",
+                                allVolsInRSetURI.toString()));
             }
-            cgsToVolumesForDelete.get(cgURI).addAll(allVolsInRSetURI);
         }
 
         // if we're deleting all of the volumes in this consistency group, we can add the journal volumes

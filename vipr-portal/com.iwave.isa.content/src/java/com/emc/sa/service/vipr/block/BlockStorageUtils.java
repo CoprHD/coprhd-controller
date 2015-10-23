@@ -21,6 +21,7 @@ import static com.emc.sa.util.ResourceType.BLOCK_SNAPSHOT;
 import static com.emc.sa.util.ResourceType.VOLUME;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,6 +70,7 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
 import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshots;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetExportsForBlockObject;
@@ -199,9 +201,23 @@ public class BlockStorageUtils {
 
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();
+        List<URI> blockVolumes = new ArrayList<URI>();
+        List<URI> blockSnapshots = new ArrayList<URI>();
         for (URI resourceId : resourceIds) {
-            blockResources.add(getBlockResource(resourceId));
+            ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
+            switch (volumeType) {
+                case VOLUME:
+                    blockVolumes.add(resourceId);
+                    break;
+                case BLOCK_SNAPSHOT:
+                    blockSnapshots.add(resourceId);
+                    break;
+                default:
+                    break;
+            }
         }
+        blockResources.addAll(getVolumes(blockVolumes));
+        blockResources.addAll(getBlockSnapshots(blockSnapshots));
         return blockResources;
     }
 

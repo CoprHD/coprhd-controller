@@ -203,7 +203,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                
            }
            _dbClient.updateAndReindexObject(snap);
-           cgSnapshotCreateRes.id = CinderApiUtils.splitString(rep.getId().toString(),":",3);
+           cgSnapshotCreateRes.id = CinderApiUtils.splitString(snapshotUri.toString(),":",3);
            cgSnapshotCreateRes.name = param.cgsnapshot.name;
        }
        
@@ -227,9 +227,9 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     public Response getConsistencyGroupSnapshotDetail(@PathParam("tenant_id") String openstack_tenant_id,
             @PathParam("consistencyGroupSnapshot_id") String consistencyGroupSnapshot_id, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             @Context HttpHeaders header) {
-        final BlockSnapshot snapshot = findSnapshot(consistencyGroupSnapshot_id, openstack_tenant_id);
+        final BlockSnapshot snapshot = findSnapshot(consistencyGroupSnapshot_id, openstack_tenant_id);        
         ConsistencyGroupSnapshotDetail cgSnapshotDetail = new ConsistencyGroupSnapshotDetail();
-        cgSnapshotDetail.id = CinderApiUtils.splitString(snapshot.getId().toString(), ":", 3);
+        cgSnapshotDetail.id = consistencyGroupSnapshot_id;
         cgSnapshotDetail.name = snapshot.getLabel();
         cgSnapshotDetail.created_at = CinderApiUtils.timeFormat(snapshot.getCreationTime());
         StringMap extensions = snapshot.getExtensions();

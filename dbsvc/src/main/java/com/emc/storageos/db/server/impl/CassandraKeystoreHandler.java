@@ -72,7 +72,7 @@ public class CassandraKeystoreHandler {
                 keystore.getKey(KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS, null),
                 password, keystore.getCertificateChain(KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS));
         ks.store(new FileOutputStream(keyStoreFile), password);
-        setFilePermissionToOwnerRead(keyStoreFile);
+        setFilePermission(keyStoreFile);
         log.info("The keystore file {} is generated successfully.", keyStoreFile);
     }
 
@@ -94,11 +94,11 @@ public class CassandraKeystoreHandler {
             ks.setEntry(alias, trustedCertEntry, null);
         }
         ks.store(new FileOutputStream(trustStoreFile), password);
-        setFilePermissionToOwnerRead(trustStoreFile);
+        setFilePermission(trustStoreFile);
         log.info("The truststore file {} is generated successfully.", trustStoreFile);
     }
 
-    private void setFilePermissionToOwnerRead(String file) throws Exception {
+    private void setFilePermission(String file) throws Exception {
         Set<PosixFilePermission> perms = EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
         Files.setPosixFilePermissions(new File(file).toPath(), perms);
     }

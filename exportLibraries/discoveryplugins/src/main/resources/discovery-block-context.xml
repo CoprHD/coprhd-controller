@@ -38,6 +38,8 @@
 				<ref bean="getStoragePools"/>
 				
 				<ref bean="getReplicationGroups"/>
+				
+				<ref bean="getVolumesPartOfReplicationGroups" />
 
 				<!-- get Storage Volume info with provider 8.x -->
 				<!-- getAllocatedFromStoragePoolsFor8x is needed by getStorageVolumesFor8x -->
@@ -1053,9 +1055,9 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="result" value="volumeToReplicationGroup" />
+		<property name="result" value="replicationGroups" />
 		<property name="method" value="associatorNames" />
-		<property name="processor" ref="replicationGroupProcessor" />
+		<property name="processor" ref="cimpathprocessor" />
 		<property name="message" value="Invoking associatorNames to get ReplicationGroups"/>
 	</bean>
 	
@@ -1065,9 +1067,36 @@
 		<property name="value" value="SE_ReplicationGroup" />
 	</bean>
 
-    <!-- Processors -->
-	<bean id="replicationGroupProcessor"
-		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ReplicationGroupProcessor" />
+	<!-- SMI Call to get volumes part of existing CGs-->
+	<bean id="getVolumesPartOfReplicationGroups" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="reference-replicationGroups" />
+                <ref bean="null" />
+				<ref bean="resultClass-storageVolume" />
+				<ref bean="null" />
+				<ref bean="null" />
+
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="result" value="storagePools" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="replicationGrouptoVolumeProcessor" />
+        <property name="message" value="Invoking associatorNames to volumes of the ReplicationGroup." />
+	</bean>
+
+	<bean id="reference-replicationGroups" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="replicationGroups" />
+	</bean>
+
+	<!-- Processors -->
+	<bean id="replicationGrouptoVolumeProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ReplicationGroupToVolumeProcessor" />
+
+
 
 	<!-- SMI Call to getSupported Volume Size Ranges for THIN Pools -->
 	<bean id="getSupportedSizeRanges-thin" class="com.emc.storageos.plugins.common.domainmodel.Operation">

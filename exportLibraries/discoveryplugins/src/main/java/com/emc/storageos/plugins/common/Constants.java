@@ -4,10 +4,10 @@
  */
 package com.emc.storageos.plugins.common;
 
+import java.util.regex.Pattern;
+
 import javax.cim.CIMObjectPath;
 import javax.cim.UnsignedInteger32;
-
-import java.util.regex.Pattern;
 
 public class Constants {
     public static final String _computerSystem = "ComputerSystem";

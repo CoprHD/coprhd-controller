@@ -1,3 +1,13 @@
+/**
+ *  Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
 package com.emc.storageos.api.service.impl.resource.cinder;
 
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
@@ -59,81 +69,93 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 
+/**
+ * This class provides CRUD operations on consistency group snapshot
+ * 
+ * @author singhc1
+ *
+ */
 @Path("/v2/{tenant_id}/cgsnapshots")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = {
         ACL.OWN, ACL.ALL })
-public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupService{
-    
+public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupService {
+
     private static final Logger _log = LoggerFactory.getLogger(ConsistencyGroupSnapshotService.class);
-    
+
     // Block service implementations
     private Map<String, BlockServiceApi> _blockServiceApis;
-    
+
     public void setBlockServiceApis(final Map<String, BlockServiceApi> serviceInterfaces) {
         _blockServiceApis = serviceInterfaces;
     }
-    
+
     // A reference to the placement manager.
     private PlacementManager _placementManager;
-    
+
     /**
      * Setter for the placement manager.
      * 
-     * @param placementManager A reference to the placement manager.
+     * @param placementManager
+     *            A reference to the placement manager.
      */
     public void setPlacementManager(PlacementManager placementManager) {
         _placementManager = placementManager;
     }
-    
+
     /**
      * Create consistency group snapshot
-     * @param openstack_tenant_id openstack tenant Id
-     * @param param Pojo class to bind request
-     * @param isV1Call cinder V1 api
-     * @param header HTTP header
+     * 
+     * @param openstack_tenant_id
+     *            openstack tenant Id
+     * @param param
+     *            Pojo class to bind request
+     * @param isV1Call
+     *            cinder V1 api
+     * @param header
+     *            HTTP header
      * @return Response
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response createConsistencyGroupSnapshot(@PathParam("tenant_id") String openstack_tenant_id, 
-            final ConsistencyGroupSnapshotCreateRequest param, @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header){
+    public Response createConsistencyGroupSnapshot(@PathParam("tenant_id") String openstack_tenant_id,
+            final ConsistencyGroupSnapshotCreateRequest param, @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header) {
         // Query Consistency Group
         final String consistencyGroup_id = param.cgsnapshot.consistencygroup_id;
         final BlockConsistencyGroup consistencyGroup = findConsistencyGroup(consistencyGroup_id, openstack_tenant_id);
-        
+
         // Ensure that the Consistency Group has been created on all of its defined
-        // system types.        
+        // system types.
         if (!consistencyGroup.created()) {
             CinderApiUtils.createErrorResponse(400, "No such consistency group created");
         }
-        
+
         Project project = getCinderHelper().getProject(openstack_tenant_id,
                 getUserFromContext());
-        
+
         URI cgStorageControllerURI = consistencyGroup.getStorageController();
-  
+
         if (!NullColumnValueGetter.isNullURI(cgStorageControllerURI)) {
             // No snapshots for VPLEX consistency groups.
             StorageSystem cgStorageController = _dbClient.queryObject(
-                StorageSystem.class, cgStorageControllerURI);
+                    StorageSystem.class, cgStorageControllerURI);
             if ((DiscoveredDataObject.Type.vplex.name().equals(cgStorageController
-                .getSystemType())) && (!consistencyGroup.checkForType(Types.LOCAL))) {
+                    .getSystemType())) && (!consistencyGroup.checkForType(Types.LOCAL))) {
                 CinderApiUtils.createErrorResponse(400, "cannot create snapshot for vPLEX");
             }
         }
-        
+
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
-        
+
         // Get the volumes in the consistency group.
         List<Volume> volumeList = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
-        
+
         _log.info("Active CG volume list : " + volumeList);
         // Generate task id
         String taskId = UUID.randomUUID().toString();
-        
+
         // Set snapshot type.
         String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
         if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
@@ -147,20 +169,21 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
         if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
             for (Volume volumeToSnap : volumeList) {
                 // Get the RP source volume.
-                if (volumeToSnap.getPersonality() != null && volumeToSnap.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                if (volumeToSnap.getPersonality() != null
+                        && volumeToSnap.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                     snapVolume = volumeToSnap;
                     break;
                 }
             }
-        } else if (!volumeList.isEmpty()){
+        } else if (!volumeList.isEmpty()) {
             // Any volume.
             snapVolume = volumeList.get(0);
         }
-            
+
         // Validate the snapshot request.
         String snapshotName = param.cgsnapshot.name;
         blockServiceApiImpl.validateCreateSnapshot(snapVolume, volumeList, snapshotType, snapshotName, getFullCopyManager());
-        
+
         // Set the create inactive flag.
         Boolean createInactive = Boolean.FALSE;
         Boolean readOnly = Boolean.FALSE;
@@ -170,28 +193,28 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
         List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
         TaskList response = new TaskList();
         snapshotList.addAll(blockServiceApiImpl.prepareSnapshots(
-            volumeList, snapshotType, snapshotName, snapIdList, taskId));
+                volumeList, snapshotType, snapshotName, snapIdList, taskId));
         for (BlockSnapshot snapshot : snapshotList) {
             response.getTaskList().add(toTask(snapshot, taskId));
         }
         blockServiceApiImpl.createSnapshot(snapVolume, snapIdList, snapshotType, createInactive, readOnly, taskId);
-       
+
         auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.cgsnapshot.name,
                 consistencyGroup.getId().toString());
         ConsistencyGroupSnapshotCreateResponse cgSnapshotCreateRes = new ConsistencyGroupSnapshotCreateResponse();
-       
-       for (TaskResourceRep rep : response.getTaskList()) {
-           URI snapshotUri = rep.getResource().getId();
-           BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class,
+
+        for (TaskResourceRep rep : response.getTaskList()) {
+            URI snapshotUri = rep.getResource().getId();
+            BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class,
                     snapshotUri);
-           snap.setId(snapshotUri);
-           snap.setConsistencyGroup(consistencyGroup.getId());
-           snap.setLabel(snapshotName);
-           if(snap != null){
-               StringMap extensions = snap.getExtensions();
-             
-                if (extensions == null){
+            snap.setId(snapshotUri);
+            snap.setConsistencyGroup(consistencyGroup.getId());
+            snap.setLabel(snapshotName);
+            if (snap != null) {
+                StringMap extensions = snap.getExtensions();
+
+                if (extensions == null) {
                     extensions = new StringMap();
                 }
                 extensions.put("status", ComponentStatus.CREATING.getStatus().toLowerCase());
@@ -199,25 +222,30 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                 snap.setExtensions(extensions);
                 ScopedLabelSet tagSet = new ScopedLabelSet();
                 snap.setTag(tagSet);
-                tagSet.add(new ScopedLabel(project.getTenantOrg().getURI().toString(), CinderApiUtils.splitString(snapshotUri.toString(), ":", 3)));
-               
-           }
-           _dbClient.updateAndReindexObject(snap);
-           cgSnapshotCreateRes.id = CinderApiUtils.splitString(snapshotUri.toString(),":",3);
-           cgSnapshotCreateRes.name = param.cgsnapshot.name;
-       }
-       
-       
-       return CinderApiUtils.getCinderResponse(cgSnapshotCreateRes, header, true);
-        
+                tagSet.add(new ScopedLabel(project.getTenantOrg().getURI().toString(), CinderApiUtils.splitString(snapshotUri.toString(),
+                        ":", 3)));
+
+            }
+            _dbClient.updateAndReindexObject(snap);
+            cgSnapshotCreateRes.id = CinderApiUtils.splitString(snapshotUri.toString(), ":", 3);
+            cgSnapshotCreateRes.name = param.cgsnapshot.name;
+        }
+
+        return CinderApiUtils.getCinderResponse(cgSnapshotCreateRes, header, true);
+
     }
-    
+
     /**
      * Get Consistency Group Snapshot info
-     * @param openstack_tenant_id openstack tenant Id
-     * @param consistencyGroupSnapshot_id Consistency Group Snapshot Id
-     * @param isV1Call Cinder V1 api
-     * @param header HTTP Header
+     * 
+     * @param openstack_tenant_id
+     *            openstack tenant Id
+     * @param consistencyGroupSnapshot_id
+     *            Consistency Group Snapshot Id
+     * @param isV1Call
+     *            Cinder V1 api
+     * @param header
+     *            HTTP Header
      * @return Response
      */
     @GET
@@ -227,7 +255,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     public Response getConsistencyGroupSnapshotDetail(@PathParam("tenant_id") String openstack_tenant_id,
             @PathParam("consistencyGroupSnapshot_id") String consistencyGroupSnapshot_id, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             @Context HttpHeaders header) {
-        final BlockSnapshot snapshot = findSnapshot(consistencyGroupSnapshot_id, openstack_tenant_id);        
+        final BlockSnapshot snapshot = findSnapshot(consistencyGroupSnapshot_id, openstack_tenant_id);
         ConsistencyGroupSnapshotDetail cgSnapshotDetail = new ConsistencyGroupSnapshotDetail();
         cgSnapshotDetail.id = consistencyGroupSnapshot_id;
         cgSnapshotDetail.name = snapshot.getLabel();
@@ -293,12 +321,16 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
         return CinderApiUtils.getCinderResponse(cgSnapshotDetail, header, true);
 
     }
-    
+
     /**
      * Detail Info for Consistency group snapshot
-     * @param openstack_tenant_id Openstack tenant id
-     * @param isV1Call openstack V1 call
-     * @param header Http Headers
+     * 
+     * @param openstack_tenant_id
+     *            Openstack tenant id
+     * @param isV1Call
+     *            openstack V1 call
+     * @param header
+     *            Http Headers
      * @return Response
      */
     @GET
@@ -310,25 +342,36 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             @Context HttpHeaders header) {
         ConsistencyGroupSnapshotListDetail cgSnapshotDetailListResponse = new ConsistencyGroupSnapshotListDetail();
-        URIQueryResultList uris = getCinderHelper().getConsistencyGroupSnapshotUris(getCinderHelper().getConsistencyGroupsUris(openstack_tenant_id, getUserFromContext()));
-        if (null != uris) {
-            for (URI cgSnapshotURI : uris) {
-                BlockSnapshot blockSnapshot = _dbClient.queryObject(BlockSnapshot.class, cgSnapshotURI);
-                if (null != blockSnapshot && !(blockSnapshot.getInactive())) {
-                    cgSnapshotDetailListResponse.addConsistencyGroupSnapshotDetail(getConsistencyGroupSnapshotDetail(blockSnapshot));
+        URIQueryResultList cgUris = getCinderHelper().getConsistencyGroupsUris(openstack_tenant_id, getUserFromContext());
+        if (null != cgUris) {
+            for (URI cgUri : cgUris) {
+                URIQueryResultList uris = getCinderHelper().getConsistencyGroupSnapshotUris(cgUri);
+                if (null != uris) {
+                    for (URI cgSnapshotURI : uris) {
+                        BlockSnapshot blockSnapshot = _dbClient.queryObject(BlockSnapshot.class, cgSnapshotURI);
+                        if (null != blockSnapshot && !(blockSnapshot.getInactive())) {
+                            cgSnapshotDetailListResponse
+                                    .addConsistencyGroupSnapshotDetail(getConsistencyGroupSnapshotDetail(blockSnapshot));
+                        }
+                    }
                 }
             }
         }
         return CinderApiUtils.getCinderResponse(cgSnapshotDetailListResponse, header, false);
 
     }
-    
+
     /**
      * Delete a consistency group snapshot
-     * @param openstack_tenant_id openstack tenant id
-     * @param consistencyGroupSnapshot_id consistency group snapshot id
-     * @param isV1Call Cinder V1 call
-     * @param header Http Header
+     * 
+     * @param openstack_tenant_id
+     *            openstack tenant id
+     * @param consistencyGroupSnapshot_id
+     *            consistency group snapshot id
+     * @param isV1Call
+     *            Cinder V1 call
+     * @param header
+     *            Http Header
      * @return Response
      */
     @DELETE
@@ -388,8 +431,8 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
         return null;
 
     }
-    
-    //internal function
+
+    // internal function
     private BlockServiceApi getBlockServiceImpl(final BlockConsistencyGroup cg) {
         BlockServiceApi blockServiceApiImpl = null;
         if (cg.checkForType(Types.RP)) {
@@ -401,11 +444,11 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
         }
         return blockServiceApiImpl;
     }
-    
+
     private BlockServiceApi getBlockServiceImpl(final String type) {
         return _blockServiceApis.get(type);
     }
-    
+
     /**
      * Creates and returns an instance of the block full copy manager to handle
      * a full copy request.
@@ -414,11 +457,11 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
      */
     private BlockFullCopyManager getFullCopyManager() {
         BlockFullCopyManager fcManager = new BlockFullCopyManager(_dbClient,
-            _permissionsHelper, _auditMgr, _coordinator, _placementManager, sc, uriInfo,
-            _request, null);
+                _permissionsHelper, _auditMgr, _coordinator, _placementManager, sc, uriInfo,
+                _request, null);
         return fcManager;
     }
-    
+
     /**
      * Record audit log for Block service
      * 
@@ -434,16 +477,19 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
      */
     public void auditBlockConsistencyGroup(final OperationTypeEnum auditType,
             final String operationalStatus, final String operationStage, final Object... descparams) {
-        
+
         _auditMgr.recordAuditLog(URI.create(getUserFromContext().getTenantId()),
                 URI.create(getUserFromContext().getName()), "block", auditType,
                 System.currentTimeMillis(), operationalStatus, operationStage, descparams);
     }
-    
+
     /**
      * Find Snapshot based on snapshot id and tenant id
-     * @param snapshot_id Snapshot id
-     * @param openstack_tenant_id tenant Id
+     * 
+     * @param snapshot_id
+     *            Snapshot id
+     * @param openstack_tenant_id
+     *            tenant Id
      * @return BlockSnapshot
      */
     private BlockSnapshot findSnapshot(String snapshot_id,
@@ -464,7 +510,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
         }
         return null;
     }
-    
+
     // internal function
     private ConsistencyGroupSnapshotDetail getConsistencyGroupSnapshotDetail(
             BlockSnapshot blockSnapshot) {

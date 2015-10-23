@@ -431,21 +431,17 @@ public class CinderHelpers{
      * @param consistencyGroupsUris
      * @return URI list
      */
-    public URIQueryResultList getConsistencyGroupSnapshotUris(URIQueryResultList consistencyGroupsUris) {
-        URIQueryResultList blockSnapshotUris = new URIQueryResultList();
-        if (consistencyGroupsUris != null) {
-            for (URI blockCGUri : consistencyGroupsUris) {
+    public URIQueryResultList getConsistencyGroupSnapshotUris(URI consistencyGroupsUri) {
+        URIQueryResultList snapshotUris = new URIQueryResultList();
+        if (consistencyGroupsUri != null) {
                 BlockConsistencyGroup blockCG = _dbClient.queryObject(
-                        BlockConsistencyGroup.class, blockCGUri);
-                URIQueryResultList snapshotUris = new URIQueryResultList();
+                        BlockConsistencyGroup.class, consistencyGroupsUri);
                 if (null != blockCG && !(blockCG.getInactive())) {
                     _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup(blockCG.getId()),
                             snapshotUris);
-                    blockSnapshotUris.addAll(snapshotUris);
                 }
             }
-        }
-        return blockSnapshotUris;
+        return snapshotUris;
     }
         
     

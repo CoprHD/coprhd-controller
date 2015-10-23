@@ -181,7 +181,7 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
                                     tgtPool, URI.create(targetVarrayId), targetVpoolSpecifiesVPlex);
                             // Check to see if the protection systems line up between the source storage pool
                             // and at least one target storage pool.
-                            boolean macthFound = false;
+                            boolean matchFound = false;
                             for (ProtectionSystem targetProtectionSystem : targetProtectionSystems) {
                                 if (targetProtectionSystem != null 
                                         && targetProtectionSystem.getId().equals(ps.getId())) {
@@ -191,11 +191,11 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
                                             tgtPool.getLabel(), tgtPool.getId(), ps.getLabel(), ps.getId(),
                                             storagePool.getLabel(), storagePool.getId()));
                                     validStoragePoolForProtection.put(targetVarrayId, Boolean.TRUE);
-                                    macthFound = true;
+                                    matchFound = true;
                                     break;
                                 } 
                             }
-                            if (macthFound) {
+                            if (matchFound) {
                                 // No need to loop through all the target pools, 
                                 // we found at least one match.
                                 break;

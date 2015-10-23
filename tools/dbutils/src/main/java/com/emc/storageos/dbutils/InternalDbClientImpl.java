@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbIndex;
 import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
@@ -256,6 +257,13 @@ public class InternalDbClientImpl extends InternalDbClient {
         return corruptRowCount == 0;
     }
 
+    /**
+     * Scan all the data object records, to find out the object record is existing
+     * but the related index is missing.
+     * 
+     * @return True, when no corrupted data found
+     * @throws ConnectionException
+     */
     public boolean checkCFIndices() throws ConnectionException {
         logAndPrintToScreen("\nStart to check Data Object records that the related index is missing.\n");
         int corruptRowCount = 0;
@@ -306,7 +314,8 @@ public class InternalDbClientImpl extends InternalDbClient {
                             if (indexKey == null) {
                                 continue;
                             }
-                            boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey, DetectHelper.getIndexColumns(indexedField, column, row.getKey()));
+                            boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
+                                    DetectHelper.getIndexColumns(indexedField, column, row.getKey()));
                             if (!isColumnInIndex) {
                                 corruptRowCount++;
                                 logAndPrintToScreen(String.format(
@@ -315,10 +324,8 @@ public class InternalDbClientImpl extends InternalDbClient {
                                         indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
                                         true);
                             }
-
                         }
                     }
-
                 }
             }
         }
@@ -333,7 +340,7 @@ public class InternalDbClientImpl extends InternalDbClient {
 
     private boolean isColumnInIndex(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, String[] indexColumns)
             throws ConnectionException {
-        CompositeRangeBuilder builder = CompositeColumnNameSerializer.get().buildRange();
+        CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange();
         for (int i = 0; i < indexColumns.length; i++) {
             if (i == (indexColumns.length - 1)) {
                 builder.greaterThanEquals(indexColumns[i]).lessThanEquals(indexColumns[i]).limit(1);

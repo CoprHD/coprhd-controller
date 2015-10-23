@@ -375,8 +375,8 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private void reconfigAndRestartIPsec() {
-        //localRepository.reconfigProperties("ipsec");
-        //localRepository.restart("ipsec");
+        localRepository.reconfigProperties("ipsec");
+        localRepository.restart("ipsec");
     }
 
     /**

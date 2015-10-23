@@ -302,14 +302,8 @@ public class TenantsService extends TaggedResource {
         }
         
         if (param.getNamespace() != null && !param.getNamespace().isEmpty()) {
-            if (TenantOrg.isRootTenant(tenant)) {
-                checkForDuplicateNamespace(param.getNamespace(), tenant.getId(), tenant);
-            } else {
-                NamedURI uriParent = tenant.getParentTenant();
-                TenantOrg parent = _dbClient.queryObject(TenantOrg.class, uriParent);
-                checkForDuplicateNamespace(param.getNamespace(), uriParent.getURI(), parent);
-            }
-            
+            checkForDuplicateNamespace(param.getNamespace());
+
             if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
                 if (!tenant.getNamespace().equalsIgnoreCase(param.getNamespace())) {
                     //Though we are not deleting need to check no dependencies on this tenant
@@ -415,7 +409,7 @@ public class TenantsService extends TaggedResource {
         subtenant.setLabel(param.getLabel());
         subtenant.setDescription(param.getDescription());
         if (param.getNamespace() != null) {
-            checkForDuplicateNamespace(param.getNamespace(), parent.getId(), parent);
+            checkForDuplicateNamespace(param.getNamespace());
             subtenant.setNamespace(param.getNamespace());
         }
 

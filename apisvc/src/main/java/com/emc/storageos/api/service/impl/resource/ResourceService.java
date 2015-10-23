@@ -182,21 +182,20 @@ public abstract class ResourceService {
     }
 
     /**
-     * Check if a resource with the same namespace exists
-     * @param namespace     namespave of the tenant
-     * @param tenantId      root tenant id
-     * @param parent        root tenant
+     * Check if a tenant with the same namespace exists
+     * @param namespace     namespace of the tenant
      */
-    public void checkForDuplicateNamespace(String namespace, URI tenantId, TenantOrg parent) {
+    public void checkForDuplicateNamespace(String namespace) {
         TenantOrgList list = new TenantOrgList();
         //Verify with root tenant if current is not root
-        if (parent != null && parent.getNamespace() != null && parent.getNamespace().equalsIgnoreCase(namespace)) {
+        if (_permissionsHelper.getRootTenant() != null && _permissionsHelper.getRootTenant().getNamespace() != null 
+                && _permissionsHelper.getRootTenant().getNamespace().equalsIgnoreCase(namespace)) {
             throw APIException.badRequests.duplicateNamespace(namespace);
         }
 
         NamedElementQueryResultList subtenants = new NamedElementQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getTenantOrgSubTenantConstraint(tenantId), subtenants);
+                .getTenantOrgSubTenantConstraint(_permissionsHelper.getRootTenant().getId()), subtenants);
         for (NamedElementQueryResultList.NamedElement el : subtenants) {
             TenantOrg currTenant = _dbClient.queryObject(TenantOrg.class, el.getId());
             if (currTenant.getNamespace() != null && currTenant.getNamespace().equalsIgnoreCase(namespace)) {

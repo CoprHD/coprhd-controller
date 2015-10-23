@@ -982,10 +982,9 @@ public class TenantsService extends TaggedResource {
         // This validates the tenant
         TenantOrg tenant = getTenantById(tid, true);
         VcenterService service = _vcenterService;
-        service.validateVcenter(createParam, null, validateConnection);
 
-        // create and persist the vcenter
-        Vcenter vcenter = service.createNewVcenter(tenant, createParam);
+        // validates the create param and validation is successful then creates and persist the vcenter
+        Vcenter vcenter = service.createNewTenantVcenter(tenant, createParam, validateConnection);
         vcenter.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
         _dbClient.createObject(vcenter);
         recordTenantResourceOperation(OperationTypeEnum.CREATE_VCENTER, tid, vcenter);

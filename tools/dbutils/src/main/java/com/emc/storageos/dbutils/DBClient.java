@@ -1119,6 +1119,7 @@ public class DBClient {
         try {
             _dbClient.checkDataObjects();
             _dbClient.checkIndexingCFs(generateCleanupFile);
+            _dbClient.checkCFIndices();
 
             String msg = "\nAll the checks have been done.";
             System.out.println(msg);

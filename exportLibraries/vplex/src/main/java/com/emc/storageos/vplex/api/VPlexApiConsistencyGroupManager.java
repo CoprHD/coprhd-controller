@@ -26,7 +26,7 @@ public class VPlexApiConsistencyGroupManager {
     private static Logger s_logger = LoggerFactory.getLogger(VPlexApiConsistencyGroupManager.class);
 
     // A reference to the API client.
-    private VPlexApiClient _vplexApiClient;
+    private final VPlexApiClient _vplexApiClient;
 
     /**
      * Package protected constructor.
@@ -486,6 +486,10 @@ public class VPlexApiConsistencyGroupManager {
                         virtualVolumeInfo = volumeInfo;
                         break;
                     }
+                }
+
+                if (virtualVolumeInfo != null) {
+                    break;
                 }
             }
 

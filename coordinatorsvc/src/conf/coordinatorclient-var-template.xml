@@ -51,4 +51,8 @@
     <bean id="productName" class="com.emc.storageos.coordinator.client.model.ProductName">
         <property name="name" value="vipr" />
     </bean>
+    
+    <bean id="drUtil" class="com.emc.storageos.coordinator.client.service.DrUtil">
+    	<property name="coordinator" ref="coordinator"/>
+    </bean>
 </beans>

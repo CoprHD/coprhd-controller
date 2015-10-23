@@ -36,6 +36,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesQueryResult;
@@ -109,6 +110,9 @@ public class DbClientTest extends DbsvcTestBase {
         dbClient.setBypassMigrationLock(true);
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
+        DrUtil drUtil = new DrUtil();
+        drUtil.setCoordinator(_coordinator);
+        dbClient.setDrUtil(drUtil);
 
         DbClientContext localCtx = new DbClientContext();
         localCtx.setClusterName("Test");

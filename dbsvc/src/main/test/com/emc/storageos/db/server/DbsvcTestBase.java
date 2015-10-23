@@ -7,6 +7,7 @@ package com.emc.storageos.db.server;
 
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.db.client.DbClient;
@@ -289,6 +290,10 @@ public class DbsvcTestBase {
         dbClient.setLocalContext(localCtx);
 
         VdcUtil.setDbClient(dbClient);
+        
+        DrUtil drUtil = new DrUtil();
+        drUtil.setCoordinator(_coordinator);
+        dbClient.setDrUtil(drUtil);
 
         return dbClient;
     }

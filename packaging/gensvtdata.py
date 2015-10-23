@@ -16,9 +16,8 @@ with open(workingDir+version+".MD5SUMS", 'r') as f:
             continue
         md5, name = row.split()
         ext = os.path.splitext(workingDir+name)[1].split('.')[1]
-        mbSize = os.path.getsize(workingDir+name)/(1024*1024.0)
-        size = int(round(mbSize))
-        url = urlRoot+version.replace('vipr-','')+"/"+name
+        size = os.path.getsize(workingDir+name) >> 20
+        url = urlRoot+version+"/"+name
         print name,ext,size,md5,url
 
 #

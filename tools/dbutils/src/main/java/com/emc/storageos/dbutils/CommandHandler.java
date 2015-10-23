@@ -57,9 +57,7 @@ public abstract class CommandHandler {
             }
         }
 
-        try (DbManagerOps dbManagerOps = new DbManagerOps(isGeodb ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME)) {
-            dbManagerOps.startNodeRepair(canResume, crossVdc);
-        }
+        new DbManagerOps(isGeodb ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME).startNodeRepair(canResume, crossVdc);
 
         return 0;
     }

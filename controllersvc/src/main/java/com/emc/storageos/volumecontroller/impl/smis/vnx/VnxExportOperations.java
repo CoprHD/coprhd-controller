@@ -847,36 +847,36 @@ public class VnxExportOperations implements ExportMaskOperations {
 
             Multimap<URI, Initiator> targetPortsToInitiators = ArrayListMultimap.create();
 
-            //Some of the Initiaors are already registered partially on the array based on pre existing zoning
-            //COP-16954 We need to  manually register them, the Initiaors will have HardwareId created but,
-            //The registration is not complete..  createHardwareIDs method above will include those Initiaors
+            //Some of the Initiators are already registered partially on the array based on pre existing zoning
+            //COP-16954 We need to  manually register them, the Initiators will have HardwareId created but,
+            //The registration is not complete..  createHardwareIDs method above will include those Initiators
 
-            _log.info("Preregistered Target and Inititor ports processing .. Start");
+            _log.info("Preregistered Target and Initiator ports processing .. Start");
+            //Map to hash translations
+            HashMap<String, URI> targetPortMap = new HashMap<>();
             for (String initPort : existingTargets.keySet()) {
-                _log.info("IntiatorPort {} and TargetStoragePort {}", initPort, existingTargets.get(initPort));
+                _log.info("InitiatorPort {} and TargetStoragePort {}", initPort, existingTargets.get(initPort));
                 // IntiatorPort 50012481006B7807 and TargetStoragePort
                 // [CLARIION+CKM00115001014+PORT+50:06:01:60:3E:A0:45:79,
                 // CLARIION+CKM00115001014+PORT+50:06:01:61:3E:A0:45:79]
-                if(WWNUtility.isValidNoColonWWN(initPort)) {
-                    _log.info("IntiatorPort {} is not a valid FC WWN so ignore it", initPort);
+                if (!WWNUtility.isValidNoColonWWN(initPort)) {
+                    _log.info("InitiatorPort {} is not a valid FC WWN so ignore it", initPort);
                     continue;
                 }
                 Collection<String> targetPorts = existingTargets.get(initPort);
-                //Map to hash translations
-                HashMap<String, URI> targetPortMap = new HashMap();
-                for(String targetPortGuid : targetPorts) {
+                for (String targetPortGuid : targetPorts) {
                     URI targetPortURI = targetPortMap.get(targetPortGuid);
-                    if(targetPortURI == null) {
+                    if (targetPortURI == null) {
                         targetPortURI = getStoragePortURI(targetPortGuid);
                         targetPortMap.put(targetPortGuid, targetPortURI);
                     }
                     Initiator translatedInitiator = getInitiatorForWWN(initPort);
-                    _log.info("Calculating Intitiator {} and Target {}", translatedInitiator, targetPortURI);
+                    _log.info("Calculating Initiator {} and Target {}", translatedInitiator, targetPortURI);
                     if (targetPortURI != null && translatedInitiator != null) {
                         targetPortsToInitiators.put(targetPortURI, translatedInitiator);
                     } else {
-                        _log.info("Intiator WWN {} translation was null or targetPort is null {}",
-                                initPort,  targetPortURI);
+                        _log.info("Initiator WWN {} translation was null or targetPort is null {}",
+                                initPort, targetPortURI);
                     }
                 }
             }
@@ -886,7 +886,6 @@ public class VnxExportOperations implements ExportMaskOperations {
                 _log.info("InitiatorList is null or Empty so call exposePathsWithVolumesOnly");
                 paths.addAll(Arrays.asList(exposePathsWithVolumesOnly(storage, exportMaskURI, volumeURIHLUs)));
             } else {
-                //Multimap<URI, Initiator> targetPortsToInitiators = ArrayListMultimap.create();
                 ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 for (Initiator initiator : initiatorList) {
                     // TODO - Ask Tom is there is a reason why we should not do this instead of old code
@@ -1292,7 +1291,7 @@ public class VnxExportOperations implements ExportMaskOperations {
      * Gets the Storage Port(s) associated with the GUID passed
      * Returns empty list if no storage ports found
      */
-    private URI getStoragePortURI(String storagePortGuid){
+    private URI getStoragePortURI(String storagePortGuid) {
         URIQueryResultList uriQueryList = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getStoragePortByNativeGuidConstraint(storagePortGuid), uriQueryList);
@@ -1311,10 +1310,10 @@ public class VnxExportOperations implements ExportMaskOperations {
      * Gets the Initiator Port associated with the WWN passed
      * Returns null if no Initiators are found
      */
-    private Initiator getInitiatorForWWN(String WWN){
+    private Initiator getInitiatorForWWN(String WWN) {
         String formatedWWN = WWNUtility.getWWNWithColons(WWN);
         Initiator init = ExportUtils.getInitiator(formatedWWN, _dbClient);
-        _log.info("getInitiatorForWWN called with {} and result {}", WWN +":"+formatedWWN, init);
+        _log.info("getInitiatorForWWN called with {} and result {}", WWN + ":" + formatedWWN, init);
         return init;
     }
     

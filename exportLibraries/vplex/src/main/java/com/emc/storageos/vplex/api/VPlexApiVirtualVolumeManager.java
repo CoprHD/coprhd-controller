@@ -316,9 +316,10 @@ public class VPlexApiVirtualVolumeManager {
      */
     public void attachMirror(String locality, String sourceVirtualVolumeName, String mirrorDeviceName)
             throws VPlexApiException {
+        String sourceDeviceName = sourceVirtualVolumeName.substring(0,
+                sourceVirtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-        VPlexVirtualVolumeInfo vplexVirtualVolumeInfo = findVirtualVolumeAndUpdateInfo(sourceVirtualVolumeName, discoveryMgr);
-        String sourceDeviceName = vplexVirtualVolumeInfo.getSupportingDevice();
 
         // Find mirror device
         VPlexDeviceInfo mirrorLocalDevice = discoveryMgr.findLocalDevice(mirrorDeviceName);
@@ -1360,11 +1361,8 @@ public class VPlexApiVirtualVolumeManager {
             VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
         // Determine the "local" device
         String virtualVolumeName = virtualVolume.getName();
-        String localDeviceName = virtualVolume.getSupportingDevice();
-        if (!virtualVolumeName.equals(localDeviceName + VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
-            // We don't want to rename if original volume is not following default naming convention.
-            rename = false;
-        }
+        String localDeviceName = virtualVolumeName.substring(0,
+                virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
 
         // Find the storage volumes corresponding to the passed remote
         // volume information, discovery them if required.
@@ -1439,8 +1437,11 @@ public class VPlexApiVirtualVolumeManager {
 
         try {
             // Find virtual volume and return.
+            StringBuilder volumeNameBuilder = new StringBuilder();
+            volumeNameBuilder.append(localDeviceName);
+            volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
             VPlexVirtualVolumeInfo vvInfo = discoveryMgr.findVirtualVolume(
-                    localDevice.getCluster(), virtualVolumeName, false);
+                    localDevice.getCluster(), volumeNameBuilder.toString(), false);
 
             // Compute updated name and rename the distributed virtual volume.
             if (rename) {
@@ -2121,10 +2122,11 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-            VPlexVirtualVolumeInfo vplexVirtualVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName, discoveryMgr);
+            discoveryMgr.findVirtualVolume(virtualVolumeName, false);
 
             // Find the distributed device for the virtual volume.
-            String ddName = vplexVirtualVolumeInfo.getSupportingDevice();
+            String ddName = virtualVolumeName.substring(0,
+                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
             VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(ddName);
             if (ddInfo == null) {
                 throw VPlexApiException.exceptions
@@ -2142,28 +2144,6 @@ public class VPlexApiVirtualVolumeManager {
                         detachedDeviceName, virtualVolumeName);
             }
             String mirrorDevicePath = mirrorDeviceInfo.getPath();
-
-            String originalDeviceName = ddName;
-            boolean rename = false;
-            if (ddName.length() > VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR) {
-                // COP-17337 : If device length is greater than 47 character then VPLEX does not
-                // allow attaching mirror. This is mostly going to be the case for the
-                // distributed volume with XIO back-end on both legs
-                // Temporarily rename the device to 47 characters and then attach mirror
-                try {
-                    rename = true;
-                    ddName = ddName.substring(0, VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR);
-                    s_logger.info("Renaming device name from {} to {} temporarily to be able to attach mirror as its longer than 47 "
-                            + " characters and VPLEX expects it to be 47 characters or less to be able to attach mirror.",
-                            originalDeviceName, ddName);
-                    ddInfo = renameVPlexResource(ddInfo, ddName);
-                } catch (Exception ex) {
-                    s_logger.info("Unable to rename device {} longer than 47 character to {} to be able to attach mirror back.",
-                            originalDeviceName, ddName);
-                    throw VPlexApiException.exceptions
-                            .cantRenameDevice(originalDeviceName, ddName, ex);
-                }
-            }
 
             // Reattach this local device to the distributed device.
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
@@ -2217,16 +2197,6 @@ public class VPlexApiVirtualVolumeManager {
                     if (response != null) {
                         response.close();
                     }
-                }
-            }
-            if (rename) {
-                try {
-                    s_logger.info("Renaming device {} back to original name {} ", ddName, originalDeviceName);
-                    renameVPlexResource(ddInfo, originalDeviceName);
-                } catch (Exception ex) {
-                    s_logger.info("Unable to rename device {} back to original name {} ", ddName, originalDeviceName);
-                    throw VPlexApiException.exceptions
-                            .cantRenameDeviceBackToOriginalName(originalDeviceName, ddName, ex);
                 }
             }
         } catch (VPlexApiException vae) {

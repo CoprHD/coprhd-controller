@@ -9,40 +9,36 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
-import com.emc.storageos.model.valid.Length;
-
 @XmlRootElement(name = "compute_imageserver_update")
 public class ComputeImageServerUpdate {
-    private String name;
     private String imageServerIp;
     private String imageServerSecondIp;
     private String imageServerUser;
     private String imageServerPassword;
     private String tftpBootDir;
-    private Integer osInstallTimeout;
+    private Integer osInstallTimeoutMs;
 
     public ComputeImageServerUpdate() {
 
     }
 
-    public ComputeImageServerUpdate(String name, String imageServerAddress,
+    public ComputeImageServerUpdate(String imageServerAddress,
             String imageServerSecondIp, String imageServerUser,
             String imageServerPassword, String tftpBootDir,
-            Integer osInstallTimeout) {
+            Integer osInstallTimeoutMs) {
         super();
-        this.setName(name);
         this.imageServerIp = imageServerAddress;
         this.imageServerSecondIp = imageServerSecondIp;
         this.imageServerUser = imageServerUser;
         this.imageServerPassword = imageServerPassword;
         this.tftpBootDir = tftpBootDir;
-        this.osInstallTimeout = osInstallTimeout;
+        this.osInstallTimeoutMs = osInstallTimeoutMs;
     }
 
     /**
      * @return the imageServerIp
      */
-    @XmlElement(name = "imageserver_ip")
+    @XmlElement(required = true, name = "imageserver_ip")
     @JsonProperty("imageserver_ip")
     public String getImageServerIp() {
         return imageServerIp;
@@ -59,7 +55,7 @@ public class ComputeImageServerUpdate {
     /**
      * @return the imageServerSecondIp
      */
-    @XmlElement(name = "imageserver_secondip")
+    @XmlElement(required = true, name = "imageserver_secondip")
     @JsonProperty("imageserver_secondip")
     public String getImageServerSecondIp() {
         return imageServerSecondIp;
@@ -76,7 +72,7 @@ public class ComputeImageServerUpdate {
     /**
      * @return the imageServerUser
      */
-    @XmlElement(name = "imageserver_user")
+    @XmlElement(required = true, name = "imageserver_user")
     @JsonProperty("imageserver_user")
     public String getImageServerUser() {
         return imageServerUser;
@@ -110,7 +106,7 @@ public class ComputeImageServerUpdate {
     /**
      * @return the tftpBootDir
      */
-    @XmlElement(name = "tftpBootDir")
+    @XmlElement(required = true, name = "tftpBootDir")
     @JsonProperty("tftpBootDir")
     public String getTftpBootDir() {
         return tftpBootDir;
@@ -125,35 +121,19 @@ public class ComputeImageServerUpdate {
     }
 
     /**
-     * @return the osInstallTimeout
+     * @return the osInstallTimeoutMs
      */
-    @XmlElement(name = "osinstall_timeout")
-    @JsonProperty("osinstall_timeout")
-    public Integer getOsInstallTimeout() {
-        return osInstallTimeout;
+    @XmlElement(required = true, name = "osinstall_timeoutms")
+    @JsonProperty("osinstall_timeoutms")
+    public Integer getOsInstallTimeoutMs() {
+        return osInstallTimeoutMs;
     }
 
     /**
-     * @param osInstallTimeout
-     *            the osInstallTimeout to set
+     * @param osInstallTimeoutMs
+     *            the osInstallTimeoutMs to set
      */
-    public void setOsInstallTimeout(Integer osInstallTimeout) {
-        this.osInstallTimeout = osInstallTimeout;
-    }
-
-    /**
-     * @return the name
-     */
-    @XmlElement
-    @Length(min = 2, max = 128)
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * @param name the name to set
-     */
-    public void setName(String name) {
-        this.name = name;
+    public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
+        this.osInstallTimeoutMs = osInstallTimeoutMs;
     }
 }

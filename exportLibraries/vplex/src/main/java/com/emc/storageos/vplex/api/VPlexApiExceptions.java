@@ -756,13 +756,7 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException establishVolumeFullCopyGroupRelationFailed(String fullCopyId, final Throwable cause);
-
+    
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedToExecuteDrillDownCommand(String deviceName, String response);
-
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException cantRenameDevice(String originalDeviceName, String newName, final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException cantRenameDeviceBackToOriginalName(String originalDeviceName, String newName, final Throwable cause);
 }

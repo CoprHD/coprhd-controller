@@ -9,43 +9,38 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
-import com.emc.storageos.model.valid.Length;
-
 @XmlRootElement(name = "compute_imageserver_create")
 public class ComputeImageServerCreate {
-    private String name;
     private String imageServerIp;
     private String imageServerSecondIp;
     private String imageServerUser;
     private String imageServerPassword;
     private String tftpBootDir;
-    private Integer osInstallTimeout;
+    private Integer osInstallTimeoutMs;
 
     public ComputeImageServerCreate() {
     }
 
     /**
      * ComputeImageServerCreate Constructor
-     * @param name
      * @param imageServerAddress
      * @param imageServerSecondIp
      * @param imageServerUser
      * @param imageServerPassword
      * @param tftpBootDir
-     * @param osInstallTimeout
+     * @param osInstallTimeoutMs
      */
-    public ComputeImageServerCreate(String name, String imageServerAddress,
+    public ComputeImageServerCreate(String imageServerAddress,
             String imageServerSecondIp, String imageServerUser,
             String imageServerPassword, String tftpBootDir,
-            Integer osInstallTimeout) {
+            Integer osInstallTimeoutMs) {
         super();
-        this.name = name;
         this.imageServerIp = imageServerAddress;
         this.imageServerSecondIp = imageServerSecondIp;
         this.imageServerUser = imageServerUser;
         this.imageServerPassword = imageServerPassword;
         this.tftpBootDir = tftpBootDir;
-        this.osInstallTimeout = osInstallTimeout;
+        this.osInstallTimeoutMs = osInstallTimeoutMs;
     }
 
     /**
@@ -134,36 +129,20 @@ public class ComputeImageServerCreate {
     }
 
     /**
-     * @return the osInstallTimeout
+     * @return the osInstallTimeoutMs
      */
-    @XmlElement(required = true, name = "osinstall_timeout")
-    @JsonProperty("osinstall_timeout")
-    public Integer getOsInstallTimeout() {
-        return osInstallTimeout;
+    @XmlElement(required = true, name = "osinstall_timeoutms")
+    @JsonProperty("osinstalltimeoutms")
+    public Integer getOsInstallTimeoutMs() {
+        return osInstallTimeoutMs;
     }
 
     /**
-     * @param osInstallTimeout
-     *            the osInstallTimeout to set
+     * @param osInstallTimeoutMs
+     *            the osInstallTimeoutMs to set
      */
-    public void setOsInstallTimeout(Integer osInstallTimeout) {
-        this.osInstallTimeout = osInstallTimeout;
-    }
-
-    /**
-     * @return the name
-     */
-    @XmlElement(required = true)
-    @Length(min = 2, max = 128)
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * @param name the name to set
-     */
-    public void setName(String name) {
-        this.name = name;
+    public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
+        this.osInstallTimeoutMs = osInstallTimeoutMs;
     }
 
 }

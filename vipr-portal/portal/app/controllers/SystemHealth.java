@@ -23,7 +23,6 @@ import models.datatable.NodeServicesDataTable;
 import models.datatable.NodesDataTable;
 
 import org.apache.commons.beanutils.ConvertUtils;
-import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 
@@ -322,7 +321,7 @@ public class SystemHealth extends Controller {
     }
 
     public static void logsJson(String uri) {
-        String url = BourneUtil.getSysApiUrl() + StringEscapeUtils.unescapeHtml(uri);
+        String url = BourneUtil.getSysApiUrl() + uri;
         renderViprProxy(url, Security.getAuthToken(), null);
     }
 

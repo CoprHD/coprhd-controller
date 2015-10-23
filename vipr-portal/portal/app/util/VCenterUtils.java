@@ -4,7 +4,9 @@
  */
 package util;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
+import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterCreateParam;
@@ -12,6 +14,8 @@ import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterUpdateParam;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.exceptions.TimeoutException;
+import com.emc.vipr.client.exceptions.ViPRException;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import controllers.security.Security;
 import org.apache.commons.httpclient.HttpStatus;
@@ -19,8 +23,11 @@ import org.springframework.util.CollectionUtils;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
+import static com.emc.vipr.client.core.util.ResourceUtils.mapById;
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 public class VCenterUtils {
@@ -109,7 +116,7 @@ public class VCenterUtils {
 
     public static Task<VcenterRestRep> createVCenter(VcenterCreateParam vcenterCreateParam, boolean validateConnection,
                                                      ACLAssignmentChanges aclAssignmentChanges) {
-        boolean updateAcls = canUpdateVcenterACLs() && isValidAclAssignments(aclAssignmentChanges);
+        boolean updateAcls = canUpdateACLs() && isValidAclAssignments(aclAssignmentChanges);
         Task<VcenterRestRep> vCenterCreateTask = getViprClient().vcenters().create(vcenterCreateParam, validateConnection, !updateAcls);
         if (updateAcls) {
             return updateAcl(aclAssignmentChanges, vCenterCreateTask);
@@ -120,7 +127,7 @@ public class VCenterUtils {
 
     public static Task<VcenterRestRep> updateVCenter(URI vcenterId, VcenterUpdateParam vcenterUpdateParam,
                                                      boolean validateConnection, ACLAssignmentChanges aclAssignmentChanges) {
-        boolean updateAcls = canUpdateVcenterACLs() && isValidAclAssignments(aclAssignmentChanges);
+        boolean updateAcls = canUpdateACLs() && isValidAclAssignments(aclAssignmentChanges);
         Task<VcenterRestRep> vCenterUpdateTask = getViprClient().vcenters().update(vcenterId, vcenterUpdateParam, validateConnection, !updateAcls);
         if (updateAcls) {
             return updateAcl(vcenterId, aclAssignmentChanges);
@@ -130,7 +137,7 @@ public class VCenterUtils {
     }
 
     private static Task<VcenterRestRep> updateAcl(ACLAssignmentChanges aclAssignmentChanges, Task<VcenterRestRep> vCenterTask) {
-        if (canUpdateVcenterACLs() && isValidAclAssignments(aclAssignmentChanges)) {
+        if (canUpdateACLs() && isValidAclAssignments(aclAssignmentChanges)) {
             VcenterRestRep vCenter = vCenterTask.get();
             return updateAcl(vCenter.getId(), aclAssignmentChanges);
         }
@@ -138,14 +145,14 @@ public class VCenterUtils {
     }
 
     public static Task<VcenterRestRep> updateAcl(URI vCenterId, ACLAssignmentChanges aclAssignmentChanges) {
-        if (canUpdateVcenterACLs() && isValidAclAssignments(aclAssignmentChanges)) {
+        if (canUpdateACLs() && isValidAclAssignments(aclAssignmentChanges)) {
             return getViprClient().vcenters().updateAcls(vCenterId, aclAssignmentChanges);
         }
         return null;
     }
 
-    public static boolean canUpdateVcenterACLs() {
-        return Security.hasAnyRole(Security.SYSTEM_ADMIN);
+    public static boolean canUpdateACLs() {
+        return Security.hasAnyRole(Security.SECURITY_ADMIN, Security.SYSTEM_ADMIN);
     }
 
     public static boolean isValidAclAssignments (ACLAssignmentChanges aclAssignmentChanges) {

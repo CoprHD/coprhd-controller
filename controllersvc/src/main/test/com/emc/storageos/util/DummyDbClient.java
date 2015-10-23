@@ -234,21 +234,6 @@ public class DummyDbClient implements DbClient {
     }
 
     @Override
-    public <T extends DataObject> void updateObject(T object) {
-        // TODO Auto-generated method stub
-    }
-
-    @Override
-    public <T extends DataObject> void updateObject(Collection<T> objects) {
-        // TODO Auto-generated method stub
-    }
-
-    @Override
-    public <T extends DataObject> void updateObject(T... object) {
-        // TODO Auto-generated method stub
-    }
-
-    @Override
     public Operation ready(Class<? extends DataObject> clazz, URI id, String opId)
             throws DatabaseException {
         // TODO Auto-generated method stub

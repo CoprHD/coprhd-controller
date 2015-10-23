@@ -38,9 +38,6 @@ function handleClusterState(data) {
         else if (isMaintenanceComplete(data.currentState)) {
             window.location.href = "${targetUrl}";
         }
-        else if (isFail(data.currentState)) {
-            window.location.href = "/maintenance/fail";
-        }
         else {
             waitForStableCluster();
         }
@@ -48,11 +45,6 @@ function handleClusterState(data) {
     else {
         waitForStableCluster();
     }
-}
-
-function isFail(state) {
-    var stateUpper = state.toUpperCase();
-    return stateUpper == 'UPGRADING_FAILED';
 }
 
 function isMaintenanceComplete(state) {

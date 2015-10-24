@@ -106,12 +106,6 @@ public class CustomQueryUtility {
                 AlternateIdConstraint.Factory.getMirrorByNativeGuid(nativeGuid));
     }
 
-    public static List<Volume> getActiveVolumesByReplicationSet(DbClient dbClient, String replicationSet) {
-        return queryActiveResourcesByConstraint(dbClient,
-                Volume.class,
-                AlternateIdConstraint.Factory.getVolumesByReplicationSetConstraint(replicationSet));
-    }
-
     public static <T extends DataObject> List<T> queryActiveResourcesByAltId(DbClient dbClient,
             Class<T> clazz,
             String columnField,

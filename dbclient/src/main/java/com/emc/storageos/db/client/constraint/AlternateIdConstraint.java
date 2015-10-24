@@ -606,11 +606,6 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(CifsShareACL.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("fileSystemShareACLIndex"), fileSystemShareACLIndex);
         }
-
-        public static AlternateIdConstraint getVolumesByReplicationSetConstraint(String replicationSet) {
-            DataObjectType doType = TypeMap.getDoType(Volume.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("replication_set"), replicationSet);
-        }
     }
 
 }

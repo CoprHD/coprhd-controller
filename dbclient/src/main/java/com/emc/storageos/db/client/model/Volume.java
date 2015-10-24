@@ -413,7 +413,6 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     @Name("replication_set")
-    @AlternateId("ReplicationSetAltIndex")
     public String getRSetName() {
         return _rSetName;
     }

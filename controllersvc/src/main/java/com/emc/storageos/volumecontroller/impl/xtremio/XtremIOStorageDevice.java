@@ -524,6 +524,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             // We still need throw exception for standard CG.
             if (!client.isVersion2() && consistencyGroup.isProtectedCG()) {
+                consistencyGroup.removeSystemConsistencyGroup(storage.getId().toString(), consistencyGroup.getLabel());
                 _log.info("{} Operation deleteConsistencyGroup not supported for the xtremio array version");
             } else {
                 String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
@@ -559,6 +560,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             boolean isXioV2 = client.isVersion2();
             if (!isXioV2 && consistencyGroup.isProtectedCG()) {
                 _log.info("{} Operation createConsistencyGroup not supported for the xtremio array version");
+                consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), consistencyGroup.getLabel());
             } else {
                 String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
                 Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
@@ -591,6 +593,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             // Check if the consistency group exists
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             if (!client.isVersion2()) {
+                _log.info("Nothing to add to consistency group {}", consistencyGroup.getLabel());
                 taskCompleter.ready(dbClient);
                 return;
             }
@@ -644,6 +647,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             // Check if the consistency group exists
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             if (!client.isVersion2()) {
+                _log.info("Nothing to remove from consistency group {}", consistencyGroup.getLabel());
                 taskCompleter.ready(dbClient);
                 return;
             }

@@ -438,7 +438,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             StorageSystem cgStorageController = _dbClient.queryObject(
                     StorageSystem.class, cgStorageControllerURI);
             if ((DiscoveredDataObject.Type.vplex.name().equals(cgStorageController
-                    .getSystemType())) && (!consistencyGroup.checkForType(Types.LOCAL))) {
+                    .getSystemType())) && (!consistencyGroup.checkForType(Types.LOCAL))
+                    && (null == consistencyGroup.getSystemConsistencyGroups() || consistencyGroup.getSystemConsistencyGroups().isEmpty())) {
                 throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
             }
         }

@@ -40,7 +40,11 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
     public void setCoordinatorClient(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
-
+    
+    public CoordinatorClient getCoordinatorClient() {
+        return _coordinator;
+    }
+    
     /**
      * DB client version in use
      * 

@@ -89,7 +89,6 @@ public class DbClientContext {
     private boolean isClientToNodeEncrypted;
 
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
-    private DrUtil drUtil;
     
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
@@ -209,7 +208,7 @@ public class DbClientContext {
         this.trustStorePassword = trustStorePassword;
     }
 
-    public void init(final HostSupplierImpl hostSupplier, final DrUtil drUtil) {
+    public void init(final HostSupplierImpl hostSupplier) {
         String svcName = hostSupplier.getDbSvcName();
         log.info("Initializing hosts for {}", svcName);
         List<Host> hosts = hostSupplier.get();
@@ -254,7 +253,8 @@ public class DbClientContext {
         keyspaceContext.start();
         keyspace = keyspaceContext.getClient();
 
-        // Check and reset default write consistency level 
+        // Check and reset default write consistency level
+        final DrUtil drUtil = hostSupplier.getCoordinatorClient().getDrUtil();
         if (drUtil.isPrimary()) {
             log.info("Schedule db consistency level monitor on DR primary site");
             exe.scheduleWithFixedDelay(new Runnable() {

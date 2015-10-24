@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbAggregatorItf;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -141,8 +140,6 @@ public class DbClientImpl implements DbClient {
 
     private boolean initDone = false;
     private String _geoVersion;
-    
-    private DrUtil drUtil;
 
     public String getGeoVersion() {
         if (this._geoVersion == null) {
@@ -235,14 +232,6 @@ public class DbClientImpl implements DbClient {
         _bypassMigrationLock = bypassMigrationLock;
     }
 
-    public DrUtil getDrUtil() {
-        return drUtil;
-    }
-
-    public void setDrUtil(DrUtil drUtil) {
-        this.drUtil = drUtil;
-    }
-
     @Override
     public synchronized void start() {
         if (initDone) {
@@ -313,7 +302,7 @@ public class DbClientImpl implements DbClient {
         hostSupplier.setDbClientVersion(_dbVersionInfo.getSchemaVersion());
         hostSupplier.setCoordinatorClient(_coordinator);
         hostSupplier.setDbSvcName(dbSvcName);
-        ctx.init(hostSupplier, drUtil);
+        ctx.init(hostSupplier);
     }
 
     /**

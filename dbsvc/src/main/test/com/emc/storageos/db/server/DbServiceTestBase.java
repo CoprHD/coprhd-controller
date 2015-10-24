@@ -7,7 +7,6 @@ package com.emc.storageos.db.server;
 
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
@@ -192,9 +191,6 @@ public abstract class DbServiceTestBase {
         dbClient.setBypassMigrationLock(true);
         dbClient.setLocalContext(createLocalContext());
         VdcUtil.setDbClient(dbClient);
-        DrUtil drUtil = new DrUtil();
-        drUtil.setCoordinator(coordinator);
-        dbClient.setDrUtil(drUtil);
         
         return dbClient;
     }

@@ -30,5 +30,4 @@
         <property name="ovfProperties" ref="ovfProperties"/>
         <property name="dbVersionInfo" ref="dbVersionInfo"/>
     </bean>
-
 </beans>

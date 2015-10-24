@@ -78,6 +78,7 @@ import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.LicenseInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.WorkPool;
@@ -130,6 +131,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private String siteId;
     private DistributedAroundHook ownerLockAroundHook;
+    private DrUtil drUtil = new DrUtil(this);
 
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
@@ -1718,8 +1720,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
 	@Override
 	public String getPrimarySiteId() {
-	    Configuration config = queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
-	    return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
+	    return drUtil.getPrimarySiteId();
 	}  
 	
 	@Override
@@ -1746,5 +1747,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public DistributedAroundHook getDistributedOwnerLockAroundHook() {
         return ownerLockAroundHook;
+    }
+    
+    @Override
+    public DrUtil getDrUtil() {
+        return drUtil;
     }
 }

@@ -620,4 +620,10 @@ public interface CoordinatorClient {
      * @return An instance to help with owner lock management.
      */
     DistributedAroundHook getDistributedOwnerLockAroundHook();
+    
+    /**
+     * Get a DrUtil instance for DR related routines
+     * @return
+     */
+    DrUtil getDrUtil();
 }

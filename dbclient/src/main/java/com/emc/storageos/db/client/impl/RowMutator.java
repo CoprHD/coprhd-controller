@@ -149,6 +149,8 @@ public class RowMutator {
                     mutator.execute();
                     log.info("Reduce write consistency level to CL_LOCAL_QUORUM");
                     ((AstyanaxConfigurationImpl)_keyspace.getConfig()).setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
+                    _indexMutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
+                    _recordMutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                 }
             }
         }

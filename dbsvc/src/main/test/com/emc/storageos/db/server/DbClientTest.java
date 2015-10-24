@@ -110,9 +110,6 @@ public class DbClientTest extends DbsvcTestBase {
         dbClient.setBypassMigrationLock(true);
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
-        DrUtil drUtil = new DrUtil();
-        drUtil.setCoordinator(_coordinator);
-        dbClient.setDrUtil(drUtil);
 
         DbClientContext localCtx = new DbClientContext();
         localCtx.setClusterName("Test");

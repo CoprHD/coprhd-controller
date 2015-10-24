@@ -39,6 +39,7 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -88,6 +89,7 @@ public class DisasterRecoveryService {
     private CoordinatorClient coordinator;
     private DbClient dbClient;
     private ScheduledThreadPoolExecutor siteErrorThreadExecutor = new ScheduledThreadPoolExecutor(1);
+    private DrUtil drUtil;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -117,7 +119,7 @@ public class DisasterRecoveryService {
         
         try {
             VirtualDataCenter vdc = queryLocalVDC();
-            List<Site> existingSites = getStandbySites(vdc.getId());
+            List<Site> existingSites = drUtil.listStandbySites();
 
             // parameter validation and precheck
             validateAddParam(param, existingSites);
@@ -168,11 +170,12 @@ public class DisasterRecoveryService {
             primarySite.setUuid(coordinator.getSiteId());
             primarySite.setVip(vdc.getApiEndpoint());
             primarySite.setNodeCount(vdc.getHostCount());
+            primarySite.setState(String.valueOf(SiteState.PRIMARY));
             
             configParam.setPrimarySite(primarySite);
             
             List<SiteParam> standbySites = new ArrayList<SiteParam>();
-            for (Site standby : getStandbySites(vdc.getId())) {
+            for (Site standby : drUtil.listStandbySites()) {
                 SiteParam standbyParam = new SiteParam();
                 siteMapper.map(standby, standbyParam);
                 standbySites.add(standbyParam);
@@ -224,6 +227,11 @@ public class DisasterRecoveryService {
             
             coordinator.addSite(primary.getUuid());
             coordinator.setPrimarySite(primary.getUuid());
+            Site primarySite = new Site();
+            siteMapper.map(primary, primarySite);
+            primarySite.setState(SiteState.PRIMARY);
+            primarySite.setVdc(vdc.getId());
+            coordinator.persistServiceConfiguration(primarySite.toConfiguration());
             
             // Add other standby sites
             for (SiteParam standby : configParam.getStandbySites()) {
@@ -258,8 +266,7 @@ public class DisasterRecoveryService {
         log.info("Begin to list all standby sites of local VDC");
         SiteList standbyList = new SiteList();
 
-        VirtualDataCenter vdc = queryLocalVDC();
-        for (Site site : getSites(vdc.getId())) {
+        for (Site site : drUtil.listSites()) {
              standbyList.getSites().add(siteMapper.map(site));
         }
         return standbyList;
@@ -323,8 +330,7 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(toBeRemovedSite.toConfiguration());
 
             log.info("Notify all sites for reconfig");
-            VirtualDataCenter vdc = queryLocalVDC();
-            for (Site standbySite : getSites(vdc.getId())) {
+            for (Site standbySite : drUtil.listSites()) {
                 updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
             return siteMapper.map(toBeRemovedSite);
@@ -446,7 +452,7 @@ public class DisasterRecoveryService {
             ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcId);
             ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcId);
 
-            for (Site site : getStandbySites(vdc.getId())) {
+            for (Site site : drUtil.listStandbySites()) {
                 updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
 
@@ -561,7 +567,7 @@ public class DisasterRecoveryService {
             }
             
             //this site should not be standby site
-            String primaryID = coordinator.getPrimarySiteId();
+            String primaryID = drUtil.getPrimarySiteId();
             if (primaryID != null && !primaryID.equals(coordinator.getSiteId())) {
                 throw new Exception("This site is also a standby site");
             }
@@ -605,28 +611,6 @@ public class DisasterRecoveryService {
         throw new Exception("Failed to generate standby short id");
     }
 
-    private List<Site> getStandbySites(URI vdcId) {
-        List<Site> result = new ArrayList<Site>();
-        for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
-            if (site.getVdc().equals(vdcId) && site.getState() != SiteState.PRIMARY) {
-                result.add(site);
-            }
-        }
-        return result;
-    }
-    
-    private List<Site> getSites(URI vdcId) {
-        List<Site> result = new ArrayList<Site>();
-        for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
-            if (vdcId.equals(site.getVdc())) {
-                result.add(site);
-            }
-        }
-        return result;
-    }
-    
     private boolean isClusterStable() {
         return coordinator.getControlNodesState() == ClusterInfo.ClusterState.STABLE;
     }
@@ -700,6 +684,7 @@ public class DisasterRecoveryService {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
+        this.drUtil = coordinator.getDrUtil();
     }
     
     class SiteErrorUpdater implements Runnable {
@@ -714,8 +699,7 @@ public class DisasterRecoveryService {
             log.info("launch site error updater");
             try {
                 if (siteId == null) {
-                    URI vdcId = queryLocalVDC().getId();
-                    List<Site> sites = getSites(vdcId);
+                    List<Site> sites = drUtil.listSites();
 
                     for (Site site : sites) {
                         setSiteError(site);

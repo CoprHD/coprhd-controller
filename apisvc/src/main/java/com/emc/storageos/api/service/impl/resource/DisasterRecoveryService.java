@@ -495,7 +495,6 @@ public class DisasterRecoveryService {
      * @return return accepted response if operation is successful
      */
     @POST
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{uuid}/failover")
     public Response doFailover(@PathParam("uuid") String uuid) {
@@ -529,15 +528,13 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(newPrimarySite.getUuid(), newPrimarySite.toConfiguration());
 
             // Set old primary site's state, short id and key
-            SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
             Site oldPrimarySite = new Site(coordinator.queryConfiguration(Site.CONFIG_KIND, oldPrimaryUUID));
-            oldPrimarySite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
             oldPrimarySite.setStandbyShortId(generateShortId(existingSites));
             oldPrimarySite.setState(SiteState.STANDBY_SYNCED);
             coordinator.persistServiceConfiguration(oldPrimarySite.getUuid(), oldPrimarySite.toConfiguration());
 
             // trigger local property change to reconfig
-            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+            updateVdcTargetVersion(oldPrimaryUUID, SiteInfo.RECONFIG_RESTART);
 
             // trigger other site property change to reconfig
             for (Site site : existingSites) {

@@ -61,7 +61,9 @@ import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
+import com.emc.vipr.model.sys.TargetVersionResponse;
 
 public class DisasterRecoveryServiceTest {
 
@@ -197,9 +199,13 @@ public class DisasterRecoveryServiceTest {
         String username = "root";
         String password = "password";
         String uuid = "new-added-standby-site-1";
+        String version = "vipr-2.4.0.0.100";
 
         // mock a ViPRCoreClient with specific UUID
         doReturn(mockViPRCoreClient(uuid)).when(drService).createViPRCoreClient(vip, username, password);
+
+        // mock a ViPRSystemClient with specific UUID
+        doReturn(mockViPRSystemClient(version)).when(drService).createViPRSystemClient(vip, username, password);
 
         // mock a local VDC
         doReturn(localVDC).when(drService).queryLocalVDC();
@@ -530,5 +536,19 @@ public class DisasterRecoveryServiceTest {
             }
         }
         return new MockViPRCoreClient();
+    }
+
+    protected ViPRSystemClient mockViPRSystemClient(final String version) {
+        class MockViPRSystemClient extends ViPRSystemClient {
+            //.upgrade().getTargetVersion().getTargetVersion()
+            @Override
+            public com.emc.vipr.client.system.Upgrade upgrade() {
+                com.emc.vipr.client.system.Upgrade upgrade = mock(com.emc.vipr.client.system.Upgrade.class);
+                TargetVersionResponse targetVersionResponse = new TargetVersionResponse(version);
+                doReturn(targetVersionResponse).when(upgrade).getTargetVersion();
+                return upgrade;
+            }
+        }
+        return new MockViPRSystemClient();
     }
 }

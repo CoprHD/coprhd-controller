@@ -11,6 +11,8 @@ import com.sun.tools.attach.AgentInitializationException;
 import com.sun.tools.attach.AgentLoadException;
 import com.sun.tools.attach.AttachNotSupportedException;
 import com.sun.tools.attach.VirtualMachine;
+
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +23,7 @@ import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -77,9 +80,8 @@ public class DbManagerOps implements AutoCloseable {
         try {
             String connectorAddress = vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
             if (connectorAddress == null) {
-                String agent = Strings.join(File.separator,
-                        vm.getSystemProperties().getProperty("java.home"),
-                        "lib", "management-agent.jar");
+                String javaHome = vm.getSystemProperties().getProperty("java.home");
+                String agent = StringUtils.join(new String[] {javaHome, "lib", "management-agent.jar"}, File.separator);
                 vm.loadAgent(agent);
 
                 connectorAddress = vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);

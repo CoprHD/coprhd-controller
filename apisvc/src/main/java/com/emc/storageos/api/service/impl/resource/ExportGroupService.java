@@ -294,17 +294,14 @@ public class ExportGroupService extends TaskResourceService {
         // the ExportGroup.
         validateNotSameNameProjectAndVarray(param);
         
-        // If ExportPathParameter block is presnet, and volumes are present, capture those arguments.
-        ExportPathParams exportPathParam = null;
+        // If ExportPathParameter block is present, and volumes are present, validate have permissions.
+        // Processing will be in the aysnc. task.
         if (param.getExportPathParameters() != null && !volumeMap.keySet().isEmpty()) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
             if (!_permissionsHelper.userHasGivenRole(user,
                     null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
-            exportPathParam = validateAndCreateExportPathParam(param.getExportPathParameters(), 
-                                exportGroup, volumeMap.keySet());
-            addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
         }
 
         // COP-14028
@@ -320,9 +317,7 @@ public class ExportGroupService extends TaskResourceService {
         Operation.Status status = storageMap.isEmpty() ? Operation.Status.ready : Operation.Status.pending;
 
         _dbClient.createObject(exportGroup);
-        if (exportPathParam != null) {
-            _dbClient.createObject(exportPathParam);
-        }
+        
         Operation op = initTaskStatus(exportGroup, task, status, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);
 
         // persist the export group to the database
@@ -333,8 +328,8 @@ public class ExportGroupService extends TaskResourceService {
 
         // call thread that does the work.
         CreateExportGroupSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, neighborhood, project,
-                exportGroup, storageMap,
-                param.getClusters(), param.getHosts(), param.getInitiators(), volumeMap, task, taskRes);
+                exportGroup, storageMap, param.getClusters(), param.getHosts(), 
+                param.getInitiators(), volumeMap, param.getExportPathParameters(), task, taskRes);
 
         _log.info("Kicked off thread to perform export create scheduling. Returning task: " + taskRes.getId());
 
@@ -2591,6 +2586,10 @@ public class ExportGroupService extends TaskResourceService {
         _log.info("Requested path parameters: " + pathParam.toString());
         Map<String, String> conflictingMasks = new HashMap<String, String>();
         StringSet initiators = exportGroup.getInitiators();
+        if (initiators == null) {
+            // No initiators currently in export, nothing to do
+            return;
+        }
         for (String initiatorId : initiators) {
             Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
             if (initiator == null || initiator.getInactive()) {

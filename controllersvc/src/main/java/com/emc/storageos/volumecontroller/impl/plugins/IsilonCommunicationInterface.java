@@ -338,7 +338,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
             if(quotas != null && quotas.size() > 0) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
-                    if(quota.getThresholds() != null) {
+                    if(quota.getThresholds().getHard() != null ) {
                         totalProvCap = totalProvCap + quota.getThresholds().getHard();
                         totalFsCount ++;
                     } else {

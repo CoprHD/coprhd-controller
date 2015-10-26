@@ -326,8 +326,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      */
     private void populateDbMetricsAz(final IsilonAccessZone accessZone, IsilonApi isilonApi, StringMap dbMetrics) {
         
-        Long totalProvCap = 0L;
-        Long totalFsCount = 0L;
+        long totalProvCap = 0L;
+        long totalFsCount = 0L;
         String resumeToken = null;
         String zoneName = accessZone.getName();
         String baseDirPath = accessZone.getPath();
@@ -362,7 +362,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 resumeToken = snapshots.getToken();
             }
         } while (resumeToken != null);
-        _log.info("Total fs Count {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
+        _log.info("Total fs Count {} for access zone : {}", String.valueOf(totalFsCount), accessZone.getName());
         _log.info("Total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());
        
         //get total exports
@@ -377,7 +377,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 resumeToken = isilonNfsExports.getToken();
             }
         } while(resumeToken != null);
-        _log.info("Total NFS exports {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
+        _log.info("Total NFS exports {} for access zone : {}", String.valueOf(nfsExportsCount), accessZone.getName());
 
         //get cifs exports for given access zone
         resumeToken = null;
@@ -389,7 +389,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 resumeToken = isilonCifsExports.getToken();
             }
         } while(resumeToken != null);
-        _log.info("Total CIFS sharess {} for access zone : {}", totalFsCount.toString(), accessZone.getName());
+        _log.info("Total CIFS sharess {} for access zone : {}", String.valueOf(cifsSharesCount), accessZone.getName());
 
         if(dbMetrics == null) {
             dbMetrics = new StringMap();

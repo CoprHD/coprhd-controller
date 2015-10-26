@@ -616,6 +616,7 @@ public class IsilonApi {
             URLBuffer.append("?zone=").append(zoneName);
             uri = URI.create(URLBuffer.toString());
         }
+        sLogger.info("get list of nfs exports for accesszone {} and uri", zoneName, uri.toString());
         return list(_baseUrl.resolve(uri), "exports", IsilonExport.class, resumeToken);
     }
 
@@ -703,7 +704,7 @@ public class IsilonApi {
             StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
             URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
             uri = URI.create(URLBuffer.toString());
-            sLogger.info("get list of quotas for pathbaseDir {} and uri", pathBaseDir, uri.toString());
+            sLogger.info("get list of smart quotas for pathbaseDir {} and uri", pathBaseDir, uri.toString());
         }
         return list(_baseUrl.resolve(uri), "quotas", IsilonSmartQuota.class, resumeToken);
     }
@@ -821,8 +822,8 @@ public class IsilonApi {
             StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
             URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
             uri = URI.create(URLBuffer.toString());
+            sLogger.info("get list of snapshots for pathbaseDir {} and uri", pathBaseDir, uri.toString());
         }
-        sLogger.info("get list of snapshots for pathbaseDir {} and uri", pathBaseDir, uri.toString());
         return list(uri, "snapshots", IsilonSnapshot.class, resumeToken);
     }
 
@@ -896,6 +897,7 @@ public class IsilonApi {
             URLBuffer.append("?zone=").append(zoneName);
             uri = URI.create(URLBuffer.toString());
         }
+        sLogger.info("get list of shares for accesszone {} and uri", zoneName, uri.toString());
         return list(_baseUrl.resolve(uri), "shares", IsilonSMBShare.class, resumeToken);
     }
 

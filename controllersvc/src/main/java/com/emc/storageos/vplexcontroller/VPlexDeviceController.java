@@ -6682,9 +6682,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private List<VolumeDescriptor> getDescriptorsForFullCopySrcVolumes(
             List<VolumeDescriptor> volumeDescriptors) {
         List<VolumeDescriptor> vplexSrcVolumeDescrs = new ArrayList<VolumeDescriptor>();
-       /* List<VolumeDescriptor> vplexVolumeDescriptors = VolumeDescriptor.filterByType(
-                volumeDescriptors, new VolumeDescriptor.Type[] { Type.VPLEX_VIRT_VOLUME },
-                new VolumeDescriptor.Type[] {});*/
         _log.info("Got all descriptors for VPLEX volumes");
         Iterator<VolumeDescriptor> volumeDescrIter = volumeDescriptors.iterator();
         while (volumeDescrIter.hasNext()) {

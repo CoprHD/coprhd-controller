@@ -46,7 +46,7 @@ public final class TestBlockProviderFilter {
             boolean isInConsistencyGroup = isInConsistencyGroup(detail.volume);
             boolean isXio3XVolume = hasXIO3XVolumes(detail.volume);
 
-            if (isXio3XVolume || (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume)))) {
+            if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume || isXio3XVolume))) {
                 options.add(BlockProvider.createVolumeOption(client, null, detail.volume, volumeNames));
                 System.out.println("\t* " + detail.volume.getName());
             } else {

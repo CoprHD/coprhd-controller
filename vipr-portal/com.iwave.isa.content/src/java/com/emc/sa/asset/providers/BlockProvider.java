@@ -1093,7 +1093,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 debug("filter[ localSnapSupported=%s, isRPTargetVolume=%s, isRPSourceVolume=%s, isInConsistencyGroup=%s, isXio3XVolume=%s ]",
                         localSnapSupported, isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup, isXio3XVolume);
 
-                if (isXio3XVolume || (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume)))) {
+                if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume || isXio3XVolume))) {
                     options.add(createVolumeOption(client, null, detail.volume, volumeNames));
                 }
             }

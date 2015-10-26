@@ -20,10 +20,6 @@ public class DistributedAtomicIntegerBuilder {
     private String siteId;
     private String pathName;
     
-    public static DistributedAtomicIntegerBuilder create() {
-        return new DistributedAtomicIntegerBuilder();
-    }
-    
     public DistributedAtomicIntegerBuilder client(CoordinatorClient coordinatorClient) {
         this.coordinatorClient = coordinatorClient;
         return this;

@@ -754,10 +754,12 @@ public class VdcSiteManager extends AbstractManager {
         
         log.info("site: {}", site.toString());
         
+        DistributedAtomicIntegerBuilder distributedAtomicIntegerBuilder = new DistributedAtomicIntegerBuilder();
+        
         if (site.getState().equals(SiteState.PRIMARY_PLANNED_FAILOVERING)) {
             log.info("This is primary planned failover site");
             
-            DistributedAtomicInteger distributedAtomicInteger = DistributedAtomicIntegerBuilder.create()
+            DistributedAtomicInteger distributedAtomicInteger = distributedAtomicIntegerBuilder
                     .client(coordinator.getCoordinatorClient()).siteId(site.getUuid())
                     .path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_PRIMARY_NODECOUNT).build();
             AtomicValue<Integer> nodeCountLeft = distributedAtomicInteger.decrement();
@@ -774,7 +776,7 @@ public class VdcSiteManager extends AbstractManager {
         if (site.getState().equals(SiteState.STANDBY_PLANNED_FAILOVERING)) {
             log.info("This is standby planned failover site");
             
-            DistributedAtomicInteger distributedAtomicInteger = DistributedAtomicIntegerBuilder.create()
+            DistributedAtomicInteger distributedAtomicInteger = distributedAtomicIntegerBuilder
                     .client(coordinator.getCoordinatorClient()).siteId(site.getUuid())
                     .path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_STANDBY_NODECOUNT).build();
             AtomicValue<Integer> nodeCountLeft = distributedAtomicInteger.decrement();

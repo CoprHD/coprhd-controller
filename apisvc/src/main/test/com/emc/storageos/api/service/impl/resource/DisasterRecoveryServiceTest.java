@@ -28,6 +28,7 @@ import java.util.List;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
+import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,6 +41,7 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.impl.DistributedAtomicIntegerBuilder;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -141,6 +143,7 @@ public class DisasterRecoveryServiceTest {
         localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
         localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
         localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
+        localVDC.setHostCount(3);
         
         // mock DBClient
         dbClientMock = mock(DbClientImpl.class);
@@ -548,11 +551,13 @@ public class DisasterRecoveryServiceTest {
     }
     
     @Test
-    public void testFailover_noError() throws Exception {
+    public void testPlannedFailover_noError() throws Exception {
         List<Configuration> siteConfigurations = new ArrayList<Configuration>();
         siteConfigurations.add(standbySite1.toConfiguration());
         siteConfigurations.add(standbySite2.toConfiguration());
         
+        DistributedAtomicIntegerBuilder distributedAtomicIntegerBuilder = mock(DistributedAtomicIntegerBuilder.class);
+        DistributedAtomicInteger distributedAtomicInteger = mock(DistributedAtomicInteger.class);
         
         SecretKey keyMock = mock(SecretKey.class);
         InternalApiSignatureKeyGenerator apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
@@ -565,8 +570,9 @@ public class DisasterRecoveryServiceTest {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState("site-uuid-2", 3);
         doReturn(siteConfigurations).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
+        doReturn(distributedAtomicInteger).when(distributedAtomicIntegerBuilder).build();
         
-        
+        drService.setDistributedAtomicIntegerBuilder(distributedAtomicIntegerBuilder);
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         drService.doPlannedFailover("site-uuid-2");
         

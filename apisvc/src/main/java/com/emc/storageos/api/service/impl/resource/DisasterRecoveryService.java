@@ -90,9 +90,11 @@ public class DisasterRecoveryService {
     private CoordinatorClient coordinator;
     private DbClient dbClient;
     private ScheduledThreadPoolExecutor siteErrorThreadExecutor = new ScheduledThreadPoolExecutor(1);
+    private DistributedAtomicIntegerBuilder distributedAtomicIntegerBuilder;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
+        distributedAtomicIntegerBuilder = new DistributedAtomicIntegerBuilder();
     }
     
     /**
@@ -539,11 +541,11 @@ public class DisasterRecoveryService {
             oldPrimarySite.setState(SiteState.PRIMARY_PLANNED_FAILOVERING);
             coordinator.persistServiceConfiguration(oldPrimarySite.getUuid(), oldPrimarySite.toConfiguration());
             
-            DistributedAtomicInteger daiNewPrimary = DistributedAtomicIntegerBuilder.create().client(coordinator)
+            DistributedAtomicInteger daiNewPrimary = distributedAtomicIntegerBuilder.client(coordinator)
                     .siteId(newPrimarySite.getUuid()).path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_STANDBY_NODECOUNT).build();
             daiNewPrimary.forceSet(vdc.getHostCount());
             
-            DistributedAtomicInteger daiOldPrimary = DistributedAtomicIntegerBuilder.create().client(coordinator)
+            DistributedAtomicInteger daiOldPrimary = distributedAtomicIntegerBuilder.client(coordinator)
                     .siteId(oldPrimaryUUID).path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_PRIMARY_NODECOUNT).build();
             daiOldPrimary.forceSet(oldPrimaryHostCount);
             
@@ -823,7 +825,11 @@ public class DisasterRecoveryService {
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
-    
+
+    public void setDistributedAtomicIntegerBuilder(DistributedAtomicIntegerBuilder distributedAtomicIntegerBuilder) {
+        this.distributedAtomicIntegerBuilder = distributedAtomicIntegerBuilder;
+    }
+
     class SiteErrorUpdater implements Runnable {
         private String siteId;
 

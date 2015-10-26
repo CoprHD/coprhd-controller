@@ -254,7 +254,7 @@ public class DbClientContext {
         keyspace = keyspaceContext.getClient();
 
         // Check and reset default write consistency level
-        final DrUtil drUtil = hostSupplier.getCoordinatorClient().getDrUtil();
+        final DrUtil drUtil = new DrUtil(hostSupplier.getCoordinatorClient());
         if (drUtil.isPrimary()) {
             log.info("Schedule db consistency level monitor on DR primary site");
             exe.scheduleWithFixedDelay(new Runnable() {

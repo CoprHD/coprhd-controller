@@ -131,8 +131,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private String siteId;
     private DistributedAroundHook ownerLockAroundHook;
-    private DrUtil drUtil = new DrUtil(this);
-
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
      * called
@@ -1717,11 +1715,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 	public String getSiteId() {
 		return siteId;
 	}
-
-	@Override
-	public String getPrimarySiteId() {
-	    return drUtil.getPrimarySiteId();
-	}  
 	
 	@Override
 	public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty) {
@@ -1747,10 +1740,5 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public DistributedAroundHook getDistributedOwnerLockAroundHook() {
         return ownerLockAroundHook;
-    }
-    
-    @Override
-    public DrUtil getDrUtil() {
-        return drUtil;
     }
 }

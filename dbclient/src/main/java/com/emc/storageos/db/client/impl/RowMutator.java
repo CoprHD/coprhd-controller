@@ -37,10 +37,10 @@ public class RowMutator {
     private long _timeStamp;
     private MutationBatch _recordMutator;
     private MutationBatch _indexMutator;
-    private Keyspace _keyspace;
+    private Keyspace keyspace;
     
     public RowMutator(Keyspace keyspace) {
-        this._keyspace = keyspace;
+        this.keyspace = keyspace;
         _timeUUID = TimeUUIDUtils.getUniqueTimeUUIDinMicros();
         _timeStamp = TimeUUIDUtils.getMicrosTimeFromUUID(_timeUUID);
 
@@ -143,12 +143,12 @@ public class RowMutator {
             try {
                 mutator.execute();
             } catch (TimeoutException | TokenRangeOfflineException | OperationTimeoutException ex) {
-                ConsistencyLevel currentConsistencyLevel = _keyspace.getConfig().getDefaultWriteConsistencyLevel();
+                ConsistencyLevel currentConsistencyLevel = keyspace.getConfig().getDefaultWriteConsistencyLevel();
                 if (currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
                     mutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                     mutator.execute();
                     log.info("Reduce write consistency level to CL_LOCAL_QUORUM");
-                    ((AstyanaxConfigurationImpl)_keyspace.getConfig()).setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
+                    ((AstyanaxConfigurationImpl)keyspace.getConfig()).setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                     _indexMutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                     _recordMutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
                 }

@@ -49,7 +49,7 @@ public class DrUtil {
      * @return true for primary. otherwise false
      */
     public boolean isPrimary() {
-        return coordinator.getPrimarySiteId().equals(coordinator.getSiteId());
+        return getPrimarySiteId().equals(coordinator.getSiteId());
     }
     
     /**

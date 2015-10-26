@@ -81,6 +81,7 @@ public class DisasterRecoveryServiceTest {
     private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
     private VirtualDataCenter localVDC;
+    private DrUtil drUtil;
     
     @Before
     public void setUp() throws Exception {
@@ -152,8 +153,7 @@ public class DisasterRecoveryServiceTest {
         
         // mock coordinator client
         coordinator = mock(CoordinatorClient.class);
-        DrUtil drUtil = new DrUtil(coordinator);
-        doReturn(drUtil).when(coordinator).getDrUtil();
+        drUtil = new DrUtil(coordinator);
         
         natCheckParam = new DRNatCheckParam();
 
@@ -414,7 +414,9 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testPrecheckForStandbyAttach_NotPrimarySite() throws Exception {
         try {
-            doReturn("654321").when(coordinator).getPrimarySiteId();
+            Configuration config = new ConfigurationImpl();
+            config.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, "654321");
+            doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
             doReturn("123456").when(coordinator).getSiteId();
             drService.precheckForStandbyAttach(standby);
             fail();
@@ -434,7 +436,6 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testPrecheckForStandbyAttach_PrimarySite_IsPrimary() throws Exception {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
-        doReturn(primarySite.getUuid()).when(coordinator).getPrimarySiteId();
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         drService.precheckForStandbyAttach(standby);
     }

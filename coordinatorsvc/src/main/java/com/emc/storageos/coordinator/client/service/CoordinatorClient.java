@@ -570,12 +570,6 @@ public interface CoordinatorClient {
     public String getSiteId();
     
     /**
-     * Get a unique id of primary site
-     * @return site uuid
-     */
-    public String getPrimarySiteId();
-    
-    /**
      * Add a site ZNode in ZK
      * This should only be used by the add standby site API
      */
@@ -620,10 +614,4 @@ public interface CoordinatorClient {
      * @return An instance to help with owner lock management.
      */
     DistributedAroundHook getDistributedOwnerLockAroundHook();
-    
-    /**
-     * Get a DrUtil instance for DR related routines
-     * @return
-     */
-    DrUtil getDrUtil();
 }

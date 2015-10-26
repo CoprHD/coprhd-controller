@@ -171,7 +171,7 @@ public class VdcConfigUtil {
 
     private void genSiteProperties(Map<String, String> vdcConfig, VirtualDataCenter vdc) {
         String shortId = vdc.getShortId();
-        DrUtil drUtil = coordinator.getDrUtil();
+        DrUtil drUtil = new DrUtil(coordinator);
         String primarySiteId = drUtil.getPrimarySiteId();
         String currentSiteId = coordinator.getSiteId();
         

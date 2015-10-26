@@ -235,7 +235,6 @@ public class DisasterRecoveryService {
             coordinator.setPrimarySite(primary.getUuid());
             Site primarySite = new Site();
             siteMapper.map(primary, primarySite);
-            primarySite.setState(SiteState.PRIMARY);
             primarySite.setVdc(vdc.getId());
             coordinator.persistServiceConfiguration(primarySite.toConfiguration());
             
@@ -557,7 +556,7 @@ public class DisasterRecoveryService {
         }
         
         //this site should not be standby site
-        String primaryID = coordinator.getPrimarySiteId();
+        String primaryID = drUtil.getPrimarySiteId();
         if (primaryID != null && !primaryID.equals(coordinator.getSiteId())) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed("This site is also a standby site");
         }
@@ -692,7 +691,7 @@ public class DisasterRecoveryService {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
-        this.drUtil = coordinator.getDrUtil();
+        this.drUtil = new DrUtil(coordinator);
     }
     
     class SiteErrorUpdater implements Runnable {

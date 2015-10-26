@@ -20,6 +20,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 
+/**
+ * The class to read and write IPsec Configurations to ZK.
+ */
 public class IPsecConfig {
     private static final Logger log = org.slf4j.LoggerFactory.getLogger(IPsecConfig.class);
 
@@ -34,6 +37,11 @@ public class IPsecConfig {
 
     private CoordinatorConfigStoringHelper coordinatorHelper;
 
+    /**
+     * Get pre-shared key of the current site.
+     * @return
+     * @throws Exception
+     */
     public String getPreSharedKey() throws Exception {
         String preSharedKey = getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
         if (StringUtil.isBlank(preSharedKey)) {
@@ -43,6 +51,11 @@ public class IPsecConfig {
         return preSharedKey;
     }
 
+    /**
+     * write pre-shared key to ZK.
+     * @param preSharedKey
+     * @throws Exception
+     */
     public void setPreSharedKey(String preSharedKey) throws Exception {
         getCoordinatorHelper().createOrUpdateConfig(preSharedKey, IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
     }
@@ -64,10 +77,18 @@ public class IPsecConfig {
         return coordinatorHelper;
     }
 
+    /**
+     * Spring inject method
+     * @param coordinator
+     */
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
 
+    /**
+     * Spring inject method
+     * @param defaultPskFile
+     */
     public void setDefaultPskFile(String defaultPskFile) {
         this.defaultPskFile = defaultPskFile;
     }

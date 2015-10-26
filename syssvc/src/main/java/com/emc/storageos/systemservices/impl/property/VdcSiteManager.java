@@ -285,6 +285,11 @@ public class VdcSiteManager extends AbstractManager {
 
     }
 
+    /**
+     * Load the vdc configurations
+     * @return
+     * @throws Exception
+     */
     private PropertyInfoExt loadVdcConfig() throws Exception {
         targetVdcPropInfo = loadVdcConfigFromDatabase();
         targetVdcPropInfo.addProperty("ipsec_key", ipsecConfig.getPreSharedKey());
@@ -362,12 +367,19 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
 
+    /**
+     * Reconfig IPsec when vdc properties (key, IPs or both) get changed.
+     * @throws Exception
+     */
     private void reconfigIPsec() throws Exception {
         updateVdcPropertiesAndWaitForAll();
         reconfigAndRestartIPsec();
         finishUpdateVdcProperties();
     }
 
+    /**
+     * regenerate ipsec configuration files and restart service
+     */
     private void reconfigAndRestartIPsec() {
         localRepository.reconfigProperties("ipsec");
         localRepository.reload("ipsec");
@@ -387,6 +399,9 @@ public class VdcSiteManager extends AbstractManager {
         leaveBarrier(barrier);
     }
 
+    /**
+     * Finish vdc properties update by saving a real vdc config version.
+     */
     private void finishUpdateVdcProperties() {
         log.info("Setting the real config version for local vdc properties");
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
@@ -394,6 +409,11 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.setVdcPropertyInfo(vdcProperty);
     }
 
+    /**
+     * Waiting for all nodes entering the VdcPropBarrier.
+     * @return
+     * @throws Exception
+     */
     private DistributedDoubleBarrier enterBarrier() throws Exception {
         log.info("Waiting for all nodes entering VdcPropBarrier");
 
@@ -412,6 +432,10 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
 
+    /**
+     * Get the number of nodes should involve the barrier. It's all nodes of a site when adding standby while nodes of a VDC when rotating key.
+     * @return
+     */
     private int getChildrenCountOnBarrier() {
         SiteInfo.ActionScope scope = targetSiteInfo.getActionScope();
         switch (scope) {
@@ -425,6 +449,11 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
 
+    /**
+     * Waiting for all nodes leaving the VdcPropBarrier.
+     * @param barrier
+     * @throws Exception
+     */
     private void leaveBarrier(DistributedDoubleBarrier barrier) throws Exception {
         // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
         log.info("Waiting for all nodes leaving VdcPropBarrier");

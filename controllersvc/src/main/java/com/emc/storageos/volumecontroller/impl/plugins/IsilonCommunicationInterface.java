@@ -372,7 +372,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonList<IsilonExport> isilonNfsExports = null; 
         do {
             isilonNfsExports = isilonApi.listExports(resumeToken, zoneName);
-            if(isilonNfsExports != null && isilonNfsExports.size() > 0) {
+            if (isilonNfsExports != null) {
                 nfsExportsCount = isilonNfsExports.size();
                 resumeToken = isilonNfsExports.getToken();
             }
@@ -384,7 +384,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonList<IsilonSMBShare> isilonCifsExports = null;
         do {
             isilonCifsExports = isilonApi.listShares(resumeToken, zoneName);
-            if(isilonCifsExports != null && !isilonCifsExports.getList().isEmpty()) {
+            if (isilonCifsExports != null) {
                 cifsSharesCount = isilonCifsExports.size();
                 resumeToken = isilonCifsExports.getToken();
             }
@@ -416,7 +416,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         
         double percentageLoadExports = 0.0;
         //percentage calculator
-        if (totalExports > 0) {
+        if (totalExports > 0.0) {
             percentageLoadExports = ((double) (totalExports) / maxExports) * 100;
         }
         double percentageLoadStorObj = ((double) (totalProvCap) / maxCapacity) *100;

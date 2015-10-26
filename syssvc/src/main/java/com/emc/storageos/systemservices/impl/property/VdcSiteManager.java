@@ -149,7 +149,7 @@ public class VdcSiteManager extends AbstractManager {
         final String svcId = coordinator.getMySvcId();
         currentSiteId = coordinator.getCoordinatorClient().getSiteId();
         localVdc = VdcUtil.getLocalVdc();
-        drUtil = coordinator.getCoordinatorClient().getDrUtil();
+        drUtil = new DrUtil(coordinator.getCoordinatorClient());
         
         addSiteInfoListener();
 

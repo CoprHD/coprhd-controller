@@ -257,6 +257,8 @@ public class DisasterRecoveryService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
+        Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
     public SiteList getSites() {
         log.info("Begin to list all standby sites of local VDC");
         SiteList standbyList = new SiteList();
@@ -276,6 +278,8 @@ public class DisasterRecoveryService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
     @Path("/{uuid}")
     public SiteRestRep getSite(@PathParam("uuid") String uuid) {
         log.info("Begin to get standby site by uuid {}", uuid);
@@ -346,6 +350,8 @@ public class DisasterRecoveryService {
     @GET
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
     @Path("/localconfig")
     public SiteConfigRestRep getStandbyConfig() {
         log.info("Begin to get standby config");
@@ -473,6 +479,8 @@ public class DisasterRecoveryService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
     @Path("/{uuid}/error")
     public SiteErrorResponse getSiteError(@PathParam("uuid") String uuid) {
         log.info("Begin to get site error by uuid {}", uuid);

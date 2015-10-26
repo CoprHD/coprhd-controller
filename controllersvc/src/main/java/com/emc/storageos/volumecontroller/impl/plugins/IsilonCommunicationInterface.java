@@ -662,7 +662,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             List<UnManagedCifsShareACL> oldunManagedCifsShareACLList = new ArrayList<UnManagedCifsShareACL>();
 
             HashMap<String, HashSet<Integer>> expMap = discoverAllExports(storageSystem);
+            List<UnManagedNFSShareACL> unManagedNfsShareACLList = new ArrayList<UnManagedNFSShareACL>();
             List<UnManagedNFSShareACL> oldunManagedNfsShareACLList = new ArrayList<UnManagedNFSShareACL>();
+            
+            
 
             UnManagedExportVerificationUtility validationUtility = new UnManagedExportVerificationUtility(
                     _dbClient);
@@ -698,7 +701,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         // get umcifs & ACLs for given filesystem
                         UnManagedCifsShareACL existingACL = null;
                         List<UnManagedCifsShareACL> tempunManagedCifsShareACL = new ArrayList<UnManagedCifsShareACL>();
-                        List<UnManagedNFSShareACL> tempUnManagedNfsShareACL = new ArrayList<UnManagedNFSShareACL>();
+                        
                        
                         int noOfShares = 0;
                         String fsPathName = fs.getPath();
@@ -768,8 +771,32 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 continue;
                             }
                             
+                            List<UnManagedNFSShareACL> tempUnManagedNfsShareACL = new ArrayList<UnManagedNFSShareACL>();
+                            UnManagedNFSShareACL existingNfsACL = null;
                             
-                            getUnmanagedNfsShareACL(unManagedFs, oldunManagedNfsShareACLList, storagePort ,fs.getName(), isilonApi);
+                            getUnmanagedNfsShareACL(unManagedFs, tempUnManagedNfsShareACL, storagePort ,fs.getName(), isilonApi);
+                            
+                            for(UnManagedNFSShareACL unManagedNFSACL : tempUnManagedNfsShareACL){
+                            	 _log.info("Unmanaged File share acls : {}", unManagedNFSACL);
+                                 String fsShareNativeId = unManagedNFSACL.getFileSystemACLIndex();
+                                 _log.info("UMFS Share ACL index {}", fsShareNativeId);
+                                 String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
+                                         .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
+                                 _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
+                                 // set native guid, so each entry unique
+                                 unManagedNFSACL.setNativeGuid(fsUnManagedFileShareNativeGuid);
+                                 // Check whether the NFS share ACL was present in ViPR DB.
+                                 existingNfsACL=checkUnManagedFsNfssACLExistsInDB(_dbClient, unManagedNFSACL.getNativeGuid());
+                                 if (existingNfsACL == null) {
+                                     unManagedNfsShareACLList.add(unManagedNFSACL);
+                                 } else {
+                                     unManagedNfsShareACLList.add(unManagedNFSACL);
+                                     // delete the existing acl
+                                     existingNfsACL.setInactive(true);
+                                     oldunManagedNfsShareACLList.add(existingNfsACL);
+                                 }
+                            	
+                            }
                             
                             
                             List<UnManagedFileExportRule> validExportRules = getUnManagedFSExportRules(unManagedFs, expIdMap, storagePort,
@@ -866,12 +893,28 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _dbClient.createObject(unManagedCifsShareACLList);
                 unManagedCifsShareACLList.clear();
             }
+            
+         // save NFS ACLs in db
+            if (!unManagedNfsShareACLList.isEmpty()) {
+                _log.info("Saving Number of UnManagedNfsShareACL(s) {}", unManagedNfsShareACLList.size());
+                _dbClient.createObject(unManagedNfsShareACLList);
+                unManagedNfsShareACLList.clear();
+            }
+            
             // save old acls
             if (!oldunManagedCifsShareACLList.isEmpty()) {
                 _log.info("Saving Number of UnManagedFileExportRule(s) {}", oldunManagedCifsShareACLList.size());
                 _dbClient.persistObject(oldunManagedCifsShareACLList);
                 oldunManagedCifsShareACLList.clear();
             }
+            
+         // save old acls
+            if (!oldunManagedNfsShareACLList.isEmpty()) {
+                _log.info("Saving Number of NFS UnManagedFileExportRule(s) {}", oldunManagedNfsShareACLList.size());
+                _dbClient.persistObject(oldunManagedNfsShareACLList);
+                oldunManagedNfsShareACLList.clear();
+            }
+            
 
             _log.info("Discovered {} Isilon file systems.", totalIsilonFSDiscovered);
             // Process those active unmanaged fs objects available in database but not in newly discovered items, to mark them inactive.

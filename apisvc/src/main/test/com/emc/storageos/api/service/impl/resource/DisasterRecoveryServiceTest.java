@@ -82,7 +82,7 @@ public class DisasterRecoveryServiceTest {
         
         Constructor constructor = ProductName.class.getDeclaredConstructors()[0];
         constructor.setAccessible(true);
-        ProductName productName = (ProductName)constructor.newInstance(null);
+        ProductName productName = (ProductName)constructor.newInstance();
         productName.setName("vipr");
         
         SoftwareVersion version = new SoftwareVersion("vipr-2.4.0.0.100");
@@ -457,7 +457,7 @@ public class DisasterRecoveryServiceTest {
         standbySite2.setState(SiteState.STANDBY_ERROR);
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
         
-        SiteError error = new SiteError(APIException.internalServerErrors.dataSyncTimeout(DisasterRecoveryService.STANDBY_ADD_TIMEOUT_MINUTES));
+        SiteError error = new SiteError(APIException.internalServerErrors.dataSyncTimeout(20));
         doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);
         
         siteError = drService.getSiteError(standbySite2.getUuid());

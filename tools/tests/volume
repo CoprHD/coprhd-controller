@@ -153,8 +153,11 @@ def volume_change_cos(args):
     bourne.connect(args.ip)
     uri = bourne.volume_query(args.name)
     cos_uri = bourne.cos_query('block', args.cos)
+    cg_uri= ''
+    if (args.consistencyGroup):
+        cg_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
     start = time.time()
-    tr = bourne.volume_change_cos(uri, cos_uri)
+    tr = bourne.volume_change_cos(uri, cos_uri, cg_uri)
     total = time.time() - start
     print "Volume CoS change took", "{0:.2f}".format(total), "seconds to complete"
     if (tr['state'] == 'ready'):
@@ -403,7 +406,7 @@ create.add_argument('size',		help = 'size of volume')
 create.add_argument('--count',		help = 'Number of volumes to create')
 create.add_argument('--protocols',      help = 'volume access storage protocols', nargs='*')
 create.add_argument('--protection',     help = 'data protection level for this volume')
-create.add_argument('--consistencyGroup', help = 'add the volume to the specified consistancy group for snapshot operations')
+create.add_argument('--consistencyGroup', help = 'add the volume to the specified consistency group for snapshot operations')
 create.add_argument('--thinVolume', help = 'boolean indication if volume is thin or thick')
 
 # volume add_journal
@@ -454,6 +457,7 @@ detach.add_argument('name', help = 'Name of the full copy volume to be detached'
 change_cos = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 change_cos.add_argument('name',	help = 'name of volume whose cos is modified')
 change_cos.add_argument('cos', help = 'name of the cos')
+change_cos.add_argument('--consistencyGroup', help = 'use the specified consistency group for the change cos operation')
 
 # volume change_cos_matches
 change_cos_matches = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

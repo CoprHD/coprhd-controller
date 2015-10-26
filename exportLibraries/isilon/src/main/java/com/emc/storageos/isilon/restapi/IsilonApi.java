@@ -21,7 +21,6 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.ClientResponse.Status;
@@ -50,14 +49,11 @@ public class IsilonApi {
     private static final URI URI_CLUSTER_CONFIG = URI.create("/platform/1/cluster/config");
     private static final URI URI_STATS = URI.create("/platform/1/statistics/");
     private static final URI URI_STORAGE_POOLS = URI.create("/platform/1/diskpool/diskpools");
+    private static final URI URI_ARRAY_GLOBAL_STATUS= URI.create("/platform/1/protocols/nfs/settings/global"); 
     private static final URI URI_STORAGE_PORTS = URI
             .create("/platform/1/cluster/smartconnect_zones");
-    private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
-    private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
-    
     // private static final URI URI_EVENTS = URI.create("/platform/1/events/");
     private static final URI URI_EVENTS = URI.create("/platform/2/event/events/");
-    
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
     /**
@@ -133,7 +129,7 @@ public class IsilonApi {
 
         try {
             JSONObject resp = clientResp.getEntity(JSONObject.class);
-            IsilonClusterInfo info = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()), IsilonClusterInfo.class);
+            IsilonClusterInfo info = new Gson().fromJson(resp.toString(), IsilonClusterInfo.class);
             // explicitly parse onefs-version, since the key name has "-", we
             // can not do it directly.
             // TODO: new PAPI does not have ""onefs-version-info" element in the
@@ -167,7 +163,7 @@ public class IsilonApi {
             }
 
             JSONObject resp = clientResp.getEntity(JSONObject.class);
-            IsilonClusterConfig config = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()),
+            IsilonClusterConfig config = new Gson().fromJson(resp.toString(),
                     IsilonClusterConfig.class);
 
             return config;
@@ -383,7 +379,7 @@ public class IsilonApi {
                 JSONArray array = obj.getJSONArray(key);
                 for (int i = 0; i < array.length(); i++) {
                     JSONObject exp = array.getJSONObject(i);
-                    ret.add(new Gson().fromJson(SecurityUtils.sanitizeJsonString(exp.toString()), c));
+                    ret.add(new Gson().fromJson(exp.toString(), c));
                 }
                 // Isilon PAPI sets "total" to "null" string when there are more
                 // entries than default page size (1000 entries). Saw this for
@@ -516,7 +512,7 @@ public class IsilonApi {
                     }
 
                     JSONObject exp = array.getJSONObject(0);
-                    returnInstance = new Gson().fromJson(SecurityUtils.sanitizeJsonString(exp.toString()), c);
+                    returnInstance = new Gson().fromJson(exp.toString(), c);
                 } else {
                     processErrorResponse("get", key + ": " + id, resp.getStatus(), jObj);
                 }
@@ -601,23 +597,6 @@ public class IsilonApi {
     public IsilonList<IsilonExport> listExports(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_NFS_EXPORTS), "exports", IsilonExport.class, resumeToken);
     }
-    
-    /**
-     * List all exports
-     * 
-     * @return IsilonList of IsilonExport objects
-     * @throws IsilonException
-     */
-    public IsilonList<IsilonExport> listExports(String resumeToken, String zoneName) throws IsilonException {
-        URI uri = URI_NFS_EXPORTS;
-        if(zoneName != null) {
-            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
-            URLBuffer.append("?zone=").append(zoneName);
-            uri = URI.create(URLBuffer.toString());
-        }
-        return list(_baseUrl.resolve(uri), "exports", IsilonExport.class, resumeToken);
-    }
-
 
     /**
      * Create export
@@ -629,21 +608,6 @@ public class IsilonApi {
     public String createExport(IsilonExport exp) throws IsilonException {
 
         return create(_baseUrl.resolve(URI_NFS_EXPORTS), "Export", exp);
-    }
-    
-    /**
-     * Create export on access zone
-     * 
-     * @param exp IsilonExport object with paths and clients set
-     * @return String identifier for the export created
-     * @throws IsilonException
-     */
-    public String createExport(IsilonExport exp, String zoneName) throws IsilonException {
-    	
-    	StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_NFS_EXPORTS).toString());
-    	URLBuffer.append("?zone=").append(zoneName);
-    	URI uri = URI.create(URLBuffer.toString());
-        return create(uri, "Export", exp);
     }
 
     /**
@@ -688,24 +652,6 @@ public class IsilonApi {
      */
     public IsilonList<IsilonSmartQuota> listQuotas(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_QUOTAS), "quotas", IsilonSmartQuota.class, resumeToken);
-    }
-    
-    /**
-     * List all smartquotas for given accesszone
-     * @param resumeToken
-     * @param pathBaseDir
-     * @return
-     * @throws IsilonException
-     */
-    public IsilonList<IsilonSmartQuota> listQuotas(String resumeToken, String pathBaseDir) throws IsilonException {
-        URI uri = URI_QUOTAS;
-        if(pathBaseDir != null) {
-            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
-            URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
-            uri = URI.create(URLBuffer.toString());
-            sLogger.info("get list of quotas for pathbaseDir {} and uri", pathBaseDir, uri.toString());
-        }
-        return list(_baseUrl.resolve(uri), "quotas", IsilonSmartQuota.class, resumeToken);
     }
 
     /**
@@ -807,21 +753,6 @@ public class IsilonApi {
     public IsilonList<IsilonSnapshot> listSnapshots(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_SNAPSHOTS), "snapshots", IsilonSnapshot.class, resumeToken);
     }
-    
-    /**
-     * List all snapshot for given access zone
-     * @param resumeToken
-     * @param pathBaseDir
-     * @return
-     * @throws IsilonException
-     */
-    public IsilonList<IsilonSnapshot> listSnapshots(String resumeToken, String pathBaseDir) throws IsilonException {
-        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_SNAPSHOTS).toString());
-        URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
-        URI uri = URI.create(URLBuffer.toString());
-        sLogger.info("get list of snapshots for pathbaseDir {} and uri", pathBaseDir, uri.toString());
-        return list(uri, "snapshots", IsilonSnapshot.class, resumeToken);
-    }
 
     /**
      * Create snapshot
@@ -879,22 +810,6 @@ public class IsilonApi {
     public IsilonList<IsilonSMBShare> listShares(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_SMB_SHARES), "shares", IsilonSMBShare.class, resumeToken);
     }
-    
-    /**
-     * List all SMB Shares
-     * 
-     * @return IsilonList of IsilonSMBShare objects
-     * @throws IsilonException
-     */
-    public IsilonList<IsilonSMBShare> listShares(String resumeToken, String zoneName) throws IsilonException {
-        URI uri = URI_SMB_SHARES;
-        if(zoneName != null) {
-            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
-            URLBuffer.append("?zone=").append(zoneName);
-            uri = URI.create(URLBuffer.toString());
-        }
-        return list(_baseUrl.resolve(uri), "shares", IsilonSMBShare.class, resumeToken);
-    }
 
     /**
      * Create SMB share
@@ -921,21 +836,6 @@ public class IsilonApi {
      */
     public String createShare(IsilonSMBShare smbFileShare) throws IsilonException {
         return create(_baseUrl.resolve(URI_SMB_SHARES), "share", smbFileShare);
-    }
-    
-    /**
-     * Create Isilon SMB share on access zone.
-     * 
-     * @param smbFileShare
-     * @return Identifier of the SMB share created
-     * @throws IsilonException
-     */
-    public String createShare(IsilonSMBShare smbFileShare, String zoneName) throws IsilonException {
-    	
-    	StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_SMB_SHARES).toString());
-    	URLBuffer.append("?zone=").append(zoneName);
-    	URI uri = URI.create(URLBuffer.toString());
-        return create(uri, "share", smbFileShare);
     }
 
     /**
@@ -1004,7 +904,7 @@ public class IsilonApi {
 
             JSONObject resp = clientResp.getEntity(JSONObject.class);
             sLogger.debug(resp.toString());
-            IsilonSmartConnectInfo info = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()),
+            IsilonSmartConnectInfo info = new Gson().fromJson(resp.toString(),
                     IsilonSmartConnectInfo.class);
             return info;
         } catch (Exception e) {
@@ -1031,14 +931,14 @@ public class IsilonApi {
             try {
                 responseString = clientResp.getEntity(String.class);
                 sLogger.debug("Response:" + responseString);
-                info = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                info = new Gson().fromJson(responseString,
                         IsilonSmartConnectInfoV2.class);
             } catch (Exception e) {
                 sLogger.debug("Got Exception trying to get Json out of it " + e);
                 sLogger.debug("Response:String:" + responseString);
                 String fixedString = "{\"settings\":" + responseString + "}";
                 sLogger.debug("Fixed:String:" + fixedString);
-                info = new Gson().fromJson(SecurityUtils.sanitizeJsonString(fixedString),
+                info = new Gson().fromJson(fixedString,
                         IsilonSmartConnectInfoV2.class);
             }
             return info;
@@ -1051,30 +951,7 @@ public class IsilonApi {
             }
         }
     }
-    
-    
-    /**
-     * get the list of access zone
-     * @return
-     * @throws IsilonException
-     */
-    public List<IsilonAccessZone> getAccessZones()throws IsilonException {
-        IsilonList<IsilonAccessZone> accessZoneIsilonList = list(_baseUrl.resolve(URI_ACCESS_ZONES),
-                "zones", IsilonAccessZone.class, null);
-        return accessZoneIsilonList.getList();
 
-    }
-    
-    /**
-     * get the list of network pools
-     * @return
-     * @throws IsilonException
-     */
-    public List<IsilonNetworkPool> getNetworkPools()throws IsilonException {
-        IsilonList<IsilonNetworkPool> accessZoneIsilonList = list(_baseUrl.resolve(URI_NETWORK_POOLS),
-                "pools", IsilonNetworkPool.class, null);
-        return accessZoneIsilonList.getList();
-    }
     /**
      * Get list of events from the url
      * 
@@ -1176,7 +1053,7 @@ public class IsilonApi {
                             statValueCurrent.error.toString());
                 }
                 statValueCurrent.value = new Gson()
-                        .fromJson(SecurityUtils.sanitizeJsonString(entryObj.getString("value")), valueType);
+                        .fromJson(entryObj.getString("value"), valueType);
                 retMap.put(entryKey, statValueCurrent);
             }
             return retMap;
@@ -1233,7 +1110,7 @@ public class IsilonApi {
                         JSONArray entry = (JSONArray) array.get(i);
                         if (entry.length() == 2) {
                             long timestamp = entry.getLong(0);
-                            T value = new Gson().fromJson(SecurityUtils.sanitizeJsonString(entry.getString(1)), valueType);
+                            T value = new Gson().fromJson(entry.getString(1), valueType);
                             statValueHistory.values.put(timestamp, value);
                         }
                     }
@@ -1277,7 +1154,7 @@ public class IsilonApi {
             JSONArray protocols = resp.getJSONArray("protocols");
             for (int i = 0; i < protocols.length(); i++) {
                 JSONObject protocol = protocols.getJSONObject(i);
-                statProtocols.add(new Gson().fromJson(SecurityUtils.sanitizeJsonString(protocol.toString()),
+                statProtocols.add(new Gson().fromJson(protocol.toString(),
                         IsilonStats.Protocol.class));
             }
             return statProtocols;
@@ -1319,10 +1196,35 @@ public class IsilonApi {
         }
     }
     
-    public static void main(String[] args) {
-    	StringBuffer URLBuffer = new StringBuffer(URI_NFS_EXPORTS.toString());
-    	URLBuffer.append("?zone=").append("amit");
-    	URI uri = URI.create(URLBuffer.toString());
-    	System.out.println(uri.toString());
+	/**
+	 * Checks to see if the NFSv4 service is enabled on the isilon device
+	 * @return boolean true if exists, false otherwise
+	 */
+	public boolean nfsv4Enabled() throws IsilonException {
+		ClientResponse resp = null;
+		boolean isNfsv4Enabled = false;
+		try {
+			sLogger.debug("IsilonApi check nfsV4 support retrive global status - start");
+
+			resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS));
+			sLogger.debug("IsilonApi check nfsV4 support retrive global status - complete");
+
+			JSONObject jsonResp = resp.getEntity(JSONObject.class);
+
+			isNfsv4Enabled = Boolean.parseBoolean(jsonResp.getJSONObject(
+					"settings").getString("nfsv4_enabled"));
+
+			sLogger.debug("IsilonApi  nfsv4 is enable/disable is set to {}",
+					isNfsv4Enabled);
+
+		} catch (Exception e) {
+				throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
+		} finally {
+			if (resp != null) {
+				resp.close();
+			}
+		}
+		return isNfsv4Enabled;
 	}
+
 }

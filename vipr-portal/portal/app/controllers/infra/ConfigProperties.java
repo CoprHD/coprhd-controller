@@ -4,6 +4,47 @@
  */
 package controllers.infra;
 
+import static com.emc.storageos.model.property.PropertyConstants.ENCRYPTEDTEXT;
+import static com.emc.storageos.model.property.PropertyConstants.TEXT;
+import static controllers.Common.flashException;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import models.properties.BackupPropertyPage;
+import models.properties.ControllerPropertyPage;
+import models.properties.DefaultPropertyPage;
+import models.properties.DiscoveryPropertyPage;
+import models.properties.NetworkPropertyPage;
+import models.properties.PasswordPropertyPage;
+import models.properties.Property;
+import models.properties.PropertyPage;
+import models.properties.SecurityPropertyPage;
+import models.properties.SmtpPropertyPage;
+import models.properties.SupportPropertyPage;
+import models.properties.UpgradePropertyPage;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
+
+import play.Logger;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.i18n.Messages;
+import play.mvc.Controller;
+import play.mvc.With;
+import util.BourneUtil;
+import util.ConfigPropertyUtils;
+import util.MailSettingsValidator;
+import util.MessagesUtils;
+import util.PasswordUtil;
+import util.SetupUtils;
+import util.ValidationResponse;
+import util.validation.HostNameOrIpAddressCheck;
+
 import com.emc.storageos.model.property.PropertyMetadata;
 import com.emc.storageos.security.password.Constants;
 import com.emc.storageos.services.util.PlatformUtils;
@@ -16,31 +57,6 @@ import controllers.Maintenance;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.security.Security;
-import jobs.UpdatePropertiesJob;
-import models.properties.*;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.math.NumberUtils;
-
-import play.Logger;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.i18n.Messages;
-import play.mvc.Controller;
-import play.mvc.With;
-import util.*;
-import util.validation.HostNameOrIpAddressCheck;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import static com.emc.storageos.model.property.PropertyConstants.ENCRYPTEDTEXT;
-import static com.emc.storageos.model.property.PropertyConstants.TEXT;
-import static controllers.Common.flashException;
-import static util.BourneUtil.getSysClient;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
@@ -110,12 +126,12 @@ public class ConfigProperties extends Controller {
             if (!updated.isEmpty()) {
                 // If reboot is required, submit as a job and go to maintenance page. The cluster reboots immediately
                 if (rebootRequired) {
-                    try{
+                    try {
                         ConfigPropertyUtils.saveProperties(updated);
                         flash.success(MessagesUtils.get("configProperties.submittedReboot"));
-                        Maintenance.maintenance(Common.reverseRoute(ConfigProperties.class,"properties"));
-                    } catch(Exception e) {
-                        Logger.error("reboot exception - ",e);
+                        Maintenance.maintenance(Common.reverseRoute(ConfigProperties.class, "properties"));
+                    } catch (Exception e) {
+                        Logger.error("reboot exception - ", e);
                         flashException(e);
                         handleError(updated);
                     }

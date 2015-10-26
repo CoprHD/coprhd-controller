@@ -345,7 +345,7 @@ public class VdcSiteManager extends AbstractManager {
                 PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
                 vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
                         String.valueOf(targetSiteInfo.getVdcConfigVersion()));
-                localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+                localRepository.setVdcPropertyInfo(vdcProperty);
         }
     }
 

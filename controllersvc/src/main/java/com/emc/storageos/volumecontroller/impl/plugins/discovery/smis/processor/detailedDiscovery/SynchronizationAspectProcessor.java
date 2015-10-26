@@ -10,6 +10,7 @@ import java.util.Map;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
+import javax.wbem.client.WBEMClient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,11 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
 
     @Override
     protected int processInstances(Iterator<CIMInstance> instances) {
+        return processInstances(instances, null);
+    }
+
+    @Override
+    protected int processInstances(Iterator<CIMInstance> instances, WBEMClient client) {
         int count = 0;
         while (instances.hasNext()) {
             try {

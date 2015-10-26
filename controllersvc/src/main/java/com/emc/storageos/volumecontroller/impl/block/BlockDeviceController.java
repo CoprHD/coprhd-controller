@@ -2447,9 +2447,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // Find the volumes this set of mirrors will be promoted to
             List<URI> promotedVolumesForMirrors = findPromotedVolumesForMirrors(mirrorList, promotedVolumes);
 
-            // Create a step for promoting the mirror.
+            // Create a step for promoting the mirrors.
             stepId = workflow.createStep(PROMOTE_MIRROR_STEP_GROUP,
-                    String.format("Promote mirror: %s", mirror.getId()),
+                    String.format("Promote mirrors: %s", Joiner.on("\t").join(mirrorList)),
                     stepId, controller, getDeviceType(controller),
                     this.getClass(),
                     promoteMirrorMethod(mirrorList, promotedVolumesForMirrors, isCG),
@@ -2656,12 +2656,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * An orchestration controller method for detaching and deleting a mirror
      *
      * @param storage URI of storage controller.
-     * @param mirror URI of block mirror
+     * @param mirrorList List of URIs of block mirrors
+     * @param promotees List of URIs of promoted volumes
+     * @param isCG CG mirror or not
      * @param opId Operation ID
      * @throws ControllerException
      */
     @Override
-    public void deactivateMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws ControllerException {
+    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId) throws ControllerException {
         _log.info("deactivateMirror: START");
         TaskCompleter taskCompleter = null;
         String mirrorStr = Joiner.on("\t").join(mirrorList);
@@ -2669,8 +2671,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             Workflow workflow = _workflowService.getNewWorkflow(this, "deactivateMirror", true, opId);
-            taskCompleter = new BlockMirrorDeactivateCompleter(mirrorList, opId);
-
+            taskCompleter = new BlockMirrorDeactivateCompleter(mirrorList, promotees, opId);
             ControllerUtils.checkMirrorConsistencyGroup(mirrorList, _dbClient, taskCompleter);
 
             String detachStep = workflow.createStepId();
@@ -2678,10 +2679,50 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
                     storageSystem.getSystemType(), getClass(), detach, null, detachStep);
 
-            String deleteStep = workflow.createStepId();
-            Workflow.Method delete = deleteMirrorMethod(storage, mirrorList, isCG);
+            // for single volume mirror, the mirror will be deleted
+            List<URI> mirrorsToDelete = mirrorList;
+            // for group mirror, find mirrors to be deleted and mirrors to be promoted, and do the promotion
+            if (isCG) {
+                mirrorsToDelete = new ArrayList<URI>();
+                List<Volume> promotedVolumes = _dbClient.queryObject(Volume.class, promotees);
+                List<URI> orderedMirrorsToPromote = new ArrayList<URI>();
+                List<URI> orderedPromotedVolumes = new ArrayList<URI>();
 
-            workflow.createStep("deactivate", "deleting mirror volume: " + mirrorStr, detachStep, storage,
+                for (URI mirror : mirrorList) {
+                    URI promotedVolume = null;
+                    for (Volume promotee : promotedVolumes) {
+                        OpStatusMap statusMap = promotee.getOpStatus();
+                        for (Map.Entry<String, Operation> entry : statusMap.entrySet()) {
+                            Operation operation = entry.getValue();
+                            if (operation.getAssociatedResourcesField().contains(mirror.toString())) {
+                                promotedVolume = promotee.getId();
+                            }
+                        }
+                    }
+
+                    if (promotedVolume != null) {
+                        orderedMirrorsToPromote.add(mirror);
+                        orderedPromotedVolumes.add(promotedVolume);
+                    } else {
+                        mirrorsToDelete.add(mirror);
+                    }
+                }
+
+                if (!orderedMirrorsToPromote.isEmpty()) {
+                    // Create a step for promoting the mirrors.
+                    String stepId = workflow.createStep(PROMOTE_MIRROR_STEP_GROUP,
+                            String.format("Promote mirrors : %s", Joiner.on("\t").join(orderedMirrorsToPromote)),
+                            detachStep, storage, storageSystem.getSystemType(),
+                            this.getClass(),
+                            promoteMirrorMethod(orderedMirrorsToPromote, orderedPromotedVolumes, isCG),
+                            null, null);
+                }
+            }
+
+            String deleteStep = workflow.createStepId();
+            Workflow.Method delete = deleteMirrorMethod(storage, mirrorsToDelete, isCG);
+
+            workflow.createStep("deactivate", "deleting mirror volume: " + Joiner.on("\t").join(mirrorsToDelete), detachStep, storage,
                     storageSystem.getSystemType(), getClass(), delete, null, deleteStep);
 
             String successMessage = String.format("Successfully deactivated mirror %s on StorageArray %s",

@@ -55,6 +55,10 @@ public class IsilonApi {
             .create("/platform/1/cluster/smartconnect_zones");
     // private static final URI URI_EVENTS = URI.create("/platform/1/events/");
     private static final URI URI_EVENTS = URI.create("/platform/2/event/events/");
+    
+    private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
+    private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
+    
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
     /**
@@ -598,6 +602,22 @@ public class IsilonApi {
     public IsilonList<IsilonExport> listExports(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_NFS_EXPORTS), "exports", IsilonExport.class, resumeToken);
     }
+    
+    /**
+     * List all exports for given access zone
+     * 
+     * @return IsilonList of IsilonExport objects
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonExport> listExports(String resumeToken, String zoneName) throws IsilonException {
+        URI uri = URI_NFS_EXPORTS;
+        if(zoneName != null) {
+            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+            URLBuffer.append("?zone=").append(zoneName);
+            uri = URI.create(URLBuffer.toString());
+        }
+        return list(_baseUrl.resolve(uri), "exports", IsilonExport.class, resumeToken);
+    }
 
     /**
      * Create export
@@ -668,6 +688,24 @@ public class IsilonApi {
      */
     public IsilonList<IsilonSmartQuota> listQuotas(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_QUOTAS), "quotas", IsilonSmartQuota.class, resumeToken);
+    }
+    
+    /**
+     * List all smartquotas for given accesszone
+     * @param resumeToken
+     * @param pathBaseDir
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSmartQuota> listQuotas(String resumeToken, String pathBaseDir) throws IsilonException {
+        URI uri = URI_QUOTAS;
+        if(pathBaseDir != null) {
+            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+            URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
+            uri = URI.create(URLBuffer.toString());
+            sLogger.info("get list of quotas for pathbaseDir {} and uri", pathBaseDir, uri.toString());
+        }
+        return list(_baseUrl.resolve(uri), "quotas", IsilonSmartQuota.class, resumeToken);
     }
 
     /**
@@ -769,6 +807,24 @@ public class IsilonApi {
     public IsilonList<IsilonSnapshot> listSnapshots(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_SNAPSHOTS), "snapshots", IsilonSnapshot.class, resumeToken);
     }
+    
+    /**
+     * List all snapshot for given access zone
+     * @param resumeToken
+     * @param pathBaseDir
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSnapshot> listSnapshots(String resumeToken, String pathBaseDir) throws IsilonException {
+        URI uri = URI_SNAPSHOTS;
+        if (pathBaseDir != null) {
+            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+            URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
+            uri = URI.create(URLBuffer.toString());
+        }
+        sLogger.info("get list of snapshots for pathbaseDir {} and uri", pathBaseDir, uri.toString());
+        return list(uri, "snapshots", IsilonSnapshot.class, resumeToken);
+    }
 
     /**
      * Create snapshot
@@ -825,6 +881,22 @@ public class IsilonApi {
      */
     public IsilonList<IsilonSMBShare> listShares(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_SMB_SHARES), "shares", IsilonSMBShare.class, resumeToken);
+    }
+    
+    /**
+     * List all SMB Shares
+     * 
+     * @return IsilonList of IsilonSMBShare objects
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSMBShare> listShares(String resumeToken, String zoneName) throws IsilonException {
+        URI uri = URI_SMB_SHARES;
+        if(zoneName != null) {
+            StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+            URLBuffer.append("?zone=").append(zoneName);
+            uri = URI.create(URLBuffer.toString());
+        }
+        return list(_baseUrl.resolve(uri), "shares", IsilonSMBShare.class, resumeToken);
     }
 
     /**
@@ -981,6 +1053,29 @@ public class IsilonApi {
                 clientResp.close();
             }
         }
+    }
+    
+    /**
+     * get the list of access zone
+     * @return
+     * @throws IsilonException
+     */
+    public List<IsilonAccessZone> getAccessZones()throws IsilonException {
+        IsilonList<IsilonAccessZone> accessZoneIsilonList = list(_baseUrl.resolve(URI_ACCESS_ZONES),
+                "zones", IsilonAccessZone.class, null);
+        return accessZoneIsilonList.getList();
+
+    }
+    
+    /**
+     * get the list of network pools
+     * @return
+     * @throws IsilonException
+     */
+    public List<IsilonNetworkPool> getNetworkPools()throws IsilonException {
+        IsilonList<IsilonNetworkPool> accessZoneIsilonList = list(_baseUrl.resolve(URI_NETWORK_POOLS),
+                "pools", IsilonNetworkPool.class, null);
+        return accessZoneIsilonList.getList();
     }
 
     /**

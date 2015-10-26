@@ -14,10 +14,10 @@
 
 #{DataTable.header titleKey:'acl.crud.title'/}
 
-#{DataTable.table id:'accessControlList',
+#{DataTable.table id:'nfsAccessControlList',
                   dataTable: dataTable,
                   selectable: true,
-                  source: @listNfsAclJson(fileSystemAndSubDir)}
+                  source: @listNfsAclJson(fileSystemSubDirAndPath)}
 
   #{DataTable.buttonBar}
     #{Form.button name:'button.add', class:'success', icon:'plus', action:'showDialogClick()'/}
@@ -26,8 +26,8 @@
    
 #{/DataTable.table}
 
-%{ formFields = ['aclUrl': aclURL] }%
-#{DataTable.formAction @removeAcl(), id:'removeForm', table:'accessControlList', fields:formFields,
+%{ formFields = ['fileSystemSubDirAndPath': fileSystemSubDirAndPath] }%
+#{DataTable.formAction @removeAcl(), id:'removeForm', table:'nfsAccessControlList', fields:formFields,
                        confirm:messages.get('resources.filesystem.share.acl.deleteConfirm', name)/}
 
 #{Modal.dialog id:'addDialog', cssClass:'wide'}

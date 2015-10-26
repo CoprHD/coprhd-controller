@@ -8,7 +8,7 @@
 #{breadcrumb.container}
   #{breadcrumb.item @fileSystems()}&{'resources.filesystems'}#{/breadcrumb.item}
   #{breadcrumb.item @resources.FileSystems.fileSystem(fileSystemId?:fileSystemId)}${fileSystemName}#{/breadcrumb.item}
-  #{breadcrumb.item @resources.FileSystems.listAcl(fileSystemId,shareName)}${shareName}#{/breadcrumb.item}
+  #{breadcrumb.item @resources.FileSystems.listNfsAcl(fileSystemId,fsMountPath,subDir)}${fsMountPath}#{/breadcrumb.item}
    #{breadcrumb.item active:true}${nfsACL.name} : ${TYPE}#{/breadcrumb.item}
 #{/breadcrumb.container}
 <div class="container">
@@ -16,7 +16,7 @@
 #{Form.header titleKey:titleKey, image: image/}
 
 #{alerts/}
-#{form @saveAce(), id:'shareACL', class:'form form-horizontal', autocomplete:"off"}
+#{form @saveNfsAce(), id:'nfsACL', class:'form form-horizontal', autocomplete:"off"}
    #{field 'fileSystemId'}
       <input type="hidden" name="fileSystemId" value="${fileSystemId}"/>
     #{/field}
@@ -32,6 +32,9 @@
     #{field 'domain'}
       <input type="hidden" name="domain" value="${nfsACL.domain}"/>
     #{/field}
+    #{field 'fsMountPath'}
+      <input type="hidden" name="fsMountPath" value="${fsMountPath}"/>
+    #{/field}
     #{field 'nfsACL.type'}
      %{
         field.cssClass = "bla";
@@ -42,8 +45,8 @@
           field.disabled = true
         }%
         <div class="span6" style="margin-left:0px;">
-          #{Form.radio field:field, value: "Group", label: messages.get("Tenants.edit.roleAssignments.group")/}
-          #{Form.radio field:field, value: "User", label: messages.get("Tenants.edit.roleAssignments.user")/}
+          #{Form.radio field:field, value: "GROUP", label: messages.get("Tenants.edit.roleAssignments.group")/}
+          #{Form.radio field:field, value: "USER", label: messages.get("Tenants.edit.roleAssignments.user")/}
         </div>
       #{/Form.controlGroup}    
     #{/field}
@@ -68,7 +71,7 @@
   #{/field}
     
 
- #{Form.saveCancelButtonBar size:'large', cancelHref:@listAcl(fileSystemId,shareName)/}
+ #{Form.saveCancelButtonBar size:'large', cancelHref:@listNfsAcl(fileSystemId,fsMountPath,subDir)/}
 
     
 #{/form}

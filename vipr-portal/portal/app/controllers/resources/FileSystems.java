@@ -167,7 +167,7 @@ public class FileSystems extends ResourceController {
 		renderArgs.put("subDir", subDir);
 		renderArgs.put("fileSystemId", uri(fileSystemId));
 		renderArgs.put("fsMountPath", fsMountPath);
-		renderArgs.put("fileSystemAndSubDir", fileSystemId + "~~~" + subDir);
+		renderArgs.put("fileSystemSubDirAndPath", fileSystemId + "~~~" + subDir + "~~~"+fsMountPath);
 		 renderArgs.put("permissionOptions", StringOption.options(new String[] { "Read", "Write", "Execute" }));
 		ViPRCoreClient client = BourneUtil.getViprClient();
 		List<NfsACL> nfsAcls = client.fileSystems().getNfsACLs(
@@ -178,18 +178,21 @@ public class FileSystems extends ResourceController {
 		render(nfsAcls);
 	}
 
-	public static void listNfsAclJson(String fileSystemAndSubDir) {
+	public static void listNfsAclJson(String fileSystemSubDirAndPath) {
 		renderArgs.put("dataTable", new NfsACLDataTable());
 		String fileSystemId = null;
 		String subDir = null;
-		if (StringUtils.isNotBlank(fileSystemAndSubDir)) {
-			String[] parts = fileSystemAndSubDir.split("~~~");
-			if (parts.length == 2) {
+		String fsMountPath = null;
+		if (StringUtils.isNotBlank(fileSystemSubDirAndPath)) {
+			String[] parts = fileSystemSubDirAndPath.split("~~~");
+			if (parts.length == 3) {
 				fileSystemId = parts[0];
 				subDir = parts[1];
+				fsMountPath=parts[2];
 			}
 		}
 		renderArgs.put("subDir", subDir);
+		renderArgs.put("fsMountPath", fsMountPath);
 		renderArgs.put("fileSystemId", uri(fileSystemId));
 		renderArgs.put("fileSystemName", uri(fileSystemId));
 		ViPRCoreClient client = BourneUtil.getViprClient();
@@ -207,7 +210,7 @@ public class FileSystems extends ResourceController {
 				String permissions = ace.getPermissions();
 				String domain = ace.getDomain();
 				accessControlList.add(new NfsACLDataTable.NfsAclInfo(name,
-						type, permissions, fileSystemId, subDir, domain));
+						type, permissions, fileSystemId, subDir, domain, fsMountPath));
 			}
 		}
 		renderJSON(DataTablesSupport.createJSON(accessControlList, params));
@@ -220,12 +223,13 @@ public class FileSystems extends ResourceController {
         String fileSystem = NfsACLForm.extractFileSystemFromId(id);
         String subDir = NfsACLForm.extractSubDirFromId(id);
         String permissions = NfsACLForm.extractPermissionsFromId(id);
+        String fsMountPath = NfsACLForm.extractMounPathFromId(id);
         if ("null".equals(domain)) {
             domain = "";
         }
 
         NfsACLForm nfsACL = new NfsACLForm();
-        nfsACL.type = type;
+        nfsACL.type = type.toUpperCase();
         nfsACL.name = name;
         nfsACL.domain = domain;
         nfsACL.permissions = permissions;
@@ -234,8 +238,8 @@ public class FileSystems extends ResourceController {
         ViPRCoreClient client = BourneUtil.getViprClient();
         FileShareRestRep restRep = client.fileSystems().get(uri(fileSystem));
         renderArgs.put("fileSystemName", restRep.getName());
-
-        renderArgs.put("shsubDirareName", subDir);
+        renderArgs.put("subDir", subDir);
+        renderArgs.put("fsMountPath", fsMountPath);
         renderArgs.put("TYPE", type.toUpperCase());
         render(nfsACL);
     }
@@ -247,6 +251,7 @@ public class FileSystems extends ResourceController {
         String type = params.get("type");
         String domain = params.get("domain");
         String subDir = params.get("subDir");
+        String fsMountPath = params.get("fsMountPath");
         String fileSystemId = params.get("fileSystemId");
         String permissions = nfsACL.permissions;
         List<NfsACE> aces = Lists.newArrayList();
@@ -255,7 +260,7 @@ public class FileSystems extends ResourceController {
         nfsAce.setType(type);
         nfsAce.setUser(name);
         nfsAce.setPermissions(permissions);
-        if (domain != null && !"".equals(domain)) {
+        if (domain != null && !"".equals(domain) && !"null".equals(domain)) {
         	nfsAce.setDomain(domain);
         }
         aces.add(nfsAce);
@@ -267,7 +272,7 @@ public class FileSystems extends ResourceController {
         ViPRCoreClient client = BourneUtil.getViprClient();
         client.fileSystems().updateNfsACL(uri(fileSystemId), input);
 
-        listAcl(fileSystemId, subDir);
+        listNfsAcl(fileSystemId,fsMountPath, subDir);
     }
 
     public static void fileSystemExportsJson(String id, String path, String sec) {
@@ -875,15 +880,15 @@ public class FileSystems extends ResourceController {
             }
         }
 
-        public static String createId(String name, String type, String fileSystem, String subDir, String domain, String permissions) {
+        public static String createId(String name, String type, String fileSystem, String subDir, String domain, String permissions, String fsMountPath) {
             return name + ID_DELIMITER + type + ID_DELIMITER + fileSystem + ID_DELIMITER + subDir +
-                    ID_DELIMITER + domain + ID_DELIMITER + permissions;
+                    ID_DELIMITER + domain + ID_DELIMITER + permissions + ID_DELIMITER + fsMountPath;
         }
 
         public static String extractNameFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 6) {
+                if (parts.length == 7) {
                     return parts[0];
                 } else {
                     return id;
@@ -895,7 +900,7 @@ public class FileSystems extends ResourceController {
         public static String extractTypeFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 6) {
+                if (parts.length == 7) {
                     return parts[1];
                 } else {
                     return id;
@@ -907,7 +912,7 @@ public class FileSystems extends ResourceController {
         public static String extractFileSystemFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 6) {
+                if (parts.length == 7) {
                     return parts[2];
                 } else {
                     return id;
@@ -919,7 +924,7 @@ public class FileSystems extends ResourceController {
         public static String extractSubDirFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 6) {
+                if (parts.length == 7) {
                     return parts[3];
                 } else {
                     return id;
@@ -931,7 +936,7 @@ public class FileSystems extends ResourceController {
         public static String extractDomainFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 6) {
+                if (parts.length == 7) {
                     return parts[4];
                 } else {
                     return id;
@@ -943,8 +948,20 @@ public class FileSystems extends ResourceController {
         public static String extractPermissionsFromId(String id) {
             if (StringUtils.isNotBlank(id)) {
                 String[] parts = id.split(ID_DELIMITER);
-                if (parts.length == 6) {
+                if (parts.length == 7) {
                     return parts[5];
+                } else {
+                    return id;
+                }
+            }
+            return null;
+        }
+        
+        public static String extractMounPathFromId(String id) {
+            if (StringUtils.isNotBlank(id)) {
+                String[] parts = id.split(ID_DELIMITER);
+                if (parts.length == 7) {
+                    return parts[6];
                 } else {
                     return id;
                 }

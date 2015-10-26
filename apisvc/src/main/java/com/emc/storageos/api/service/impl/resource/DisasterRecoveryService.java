@@ -114,24 +114,26 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteRestRep addStandby(SiteAddParam param) {
         log.info("Retrieving standby site config from: {}", param.getVip());
-        
-        String siteId = null;
-        
+        VirtualDataCenter vdc = queryLocalVDC();
+        List<Site> existingSites = getStandbySites(vdc.getId());
+
+        // parameter validation and precheck
+        validateAddParam(param,existingSites);
+        precheckStandbyVersion(param);
+
+        ViPRCoreClient viprCoreClient;
+        SiteConfigRestRep standbyConfig;
         try {
-            VirtualDataCenter vdc = queryLocalVDC();
-            List<Site> existingSites = getStandbySites(vdc.getId());
-
-            // parameter validation and precheck
-            validateAddParam(param,existingSites);
-            precheckStandbyVersion(param);
-
-            ViPRCoreClient viprCoreClient = createViPRCoreClient(param.getVip(),param.getUsername(),param.getPassword());
-
-            SiteConfigRestRep standbyConfig = viprCoreClient.site().getStandbyConfig();
-            siteId = standbyConfig.getUuid();
-
-            precheckForStandbyAttach(standbyConfig);
-            
+            viprCoreClient = createViPRCoreClient(param.getVip(),param.getUsername(),param.getPassword());
+            standbyConfig = viprCoreClient.site().getStandbyConfig();
+        } catch (Exception e) {
+            log.error("Unexpected error when retrieving standby config", e);
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Cannot retrieve config from standby site");
+        }
+        
+        String siteId = standbyConfig.getUuid();
+        precheckForStandbyAttach(standbyConfig);
+        try {
             Site standbySite = new Site();
             standbySite.setCreationTime((new Date()).getTime());
             standbySite.setName(param.getName());
@@ -184,13 +186,6 @@ public class DisasterRecoveryService {
             
             return siteMapper.map(standbySite);
         } catch (Exception e) {
-            if (e instanceof InternalServerErrorException) {
-                InternalServerErrorException internalError = ((InternalServerErrorException)e);
-                if (internalError.getServiceCode() == ServiceCode.SYS_DR_ADD_STANDBY_PRECHECK_FAILED) {
-                    throw internalError; // No need to wrap the precheck exception again
-                }
-            }
-            
             log.error("Internal error for updating coordinator on standby", e);
             InternalServerErrorException addStandbyFailedException = APIException.internalServerErrors.addStandbyFailed(e.getMessage());
             setSiteError(siteId, addStandbyFailedException);

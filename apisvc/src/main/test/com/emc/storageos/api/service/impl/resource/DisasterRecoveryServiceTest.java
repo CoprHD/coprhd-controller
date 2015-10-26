@@ -58,6 +58,7 @@ import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerato
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.sys.ClusterInfo;
@@ -329,6 +330,73 @@ public class DisasterRecoveryServiceTest {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn("primary-site-id").when(coordinator).getSiteId();
         drService.precheckForStandbyAttach(standby);
+    }
+
+    @Test
+    public void testPrecheckForPlannedFailover() {
+        String standbyUUID ="a918ebd4-bbf4-378b-8034-b03423f9edfd";
+
+        // test for invalid uuid
+        try {
+            doReturn(null).when(coordinator).queryConfiguration(Site.CONFIG_KIND, "a918ebd4-bbf4-378b-8034-b03423f9edfd");
+            drService.precheckForPlannedFailover(standbyUUID);
+            fail("should throw exception when met invalid standby uuid");
+        } catch (InternalServerErrorException e) {
+            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_PLANNED_FAILOVER_PRECHECK_FAILED);
+        }
+
+        Site site = new Site();
+        site.setUuid(standbyUUID);
+        Configuration config = site.toConfiguration();
+
+        // test for failover to primary
+        try {
+            // Mock a standby in coordinator, so it would pass invalid standby checking, go to next check
+            doReturn(config).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbyUUID);
+
+            doReturn(standbyUUID).when(coordinator).getPrimarySiteId();
+            drService.precheckForPlannedFailover(standbyUUID);
+            fail("should throw exception when trying to failover to a primary site");
+        } catch (InternalServerErrorException e) {
+            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_PLANNED_FAILOVER_PRECHECK_FAILED);
+        }
+
+        // test for primary unstable case
+        try {
+            // Mock a primary site with different uuid with to-be-failover standby, so go to next check
+            doReturn("different-uuid").when(coordinator).getPrimarySiteId();
+
+            doReturn(false).when(drService).isClusterStable();
+            drService.precheckForPlannedFailover(standbyUUID);
+            fail("should throw exception when primary is not stable");
+        } catch (InternalServerErrorException e) {
+            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_PLANNED_FAILOVER_PRECHECK_FAILED);
+        }
+
+        // test for standby unstable case
+        try {
+            // Mock a stable status for primary, so go to next check
+            doReturn(true).when(drService).isClusterStable();
+
+            doReturn(false).when(drService).isSiteStable(any(Site.class));
+            drService.precheckForPlannedFailover(standbyUUID);
+            fail("should throw exception when site to failover to is not stable");
+        } catch (InternalServerErrorException e) {
+            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_PLANNED_FAILOVER_PRECHECK_FAILED);
+        }
+
+        // test for standby not STANDBY_CYNCED state
+        try {
+            // Mock a stable status for standby, so go to next check
+            doReturn(true).when(drService).isSiteStable(any(Site.class));
+
+            config.setConfig("state", "STANDBY_SYNCING"); // not fully synced
+            doReturn(config).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbyUUID);
+            drService.precheckForPlannedFailover(standbyUUID);
+            fail("should throw exception when standby site is not fully synced");
+        } catch (InternalServerErrorException e) {
+            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_PLANNED_FAILOVER_PRECHECK_FAILED);
+        }
     }
 
     @Test

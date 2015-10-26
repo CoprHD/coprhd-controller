@@ -114,11 +114,20 @@ public class BlockMapper {
         to.setThinlyProvisioned(from.getThinlyProvisioned());
         to.setAccessState(from.getAccessState());
         to.setLinkStatus(from.getLinkStatus());
-        StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
+        // Set xio3xvolume in virtualvolume only if it's backend volume belongs to xtremio & version is 3.x
+        if (null != dbClient && null != from.getAssociatedVolumes() && !from.getAssociatedVolumes().isEmpty()) {
+            for (String backendVolumeuri : from.getAssociatedVolumes()) {
+                Volume backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
+                if (null != backendVol) {
+                    StorageSystem system = dbClient.queryObject(StorageSystem.class, backendVol.getStorageController());
 
-        if (StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
-                && !XtremIOProvUtils.is4xXtremIOModel(system.getModel())) {
-            to.setXio3XVolume(Boolean.TRUE);
+                    if (null != system && StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
+                            && !XtremIOProvUtils.is4xXtremIOModel(system.getModel())) {
+                        to.setHasXIO3XVolumes(Boolean.TRUE);
+                        break;
+                    }
+                }
+            }
         }
 
         if (from.getPool() != null) {

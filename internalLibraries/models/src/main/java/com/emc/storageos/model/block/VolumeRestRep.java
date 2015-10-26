@@ -37,7 +37,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
     private ProtectionRestRep protection;
     private String accessState;
     private String linkStatus;
-    private Boolean xio3XVolume;
+    private Boolean hasXIO3XVolumes;
     private RelatedResourceRep pool;
 
     // Fields in a Volume that are specific to RecoverPoint
@@ -582,6 +582,20 @@ public class VolumeRestRep extends BlockObjectRestRep {
     }
 
     /**
+     * Specifies whether this is Xtremio 3.x volume or not.
+     * 
+     * @return
+     */
+    @XmlElement(name = "has_xio_3x_backend_volumes")
+    public Boolean getHasXIO3XVolumes() {
+        return hasXIO3XVolumes;
+    }
+
+    public void setHasXIO3XVolumes(Boolean hasXIO3XVolumes) {
+        this.hasXIO3XVolumes = hasXIO3XVolumes;
+    }
+
+    /**
      * URI for the storage pool containing storage allocated for the volume.
      * 
      * @valid none
@@ -593,20 +607,6 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     public void setPool(RelatedResourceRep pool) {
         this.pool = pool;
-    }
-
-    /**
-     * Specifies whether this is Xtremio 3.x volume or not.
-     * 
-     * @return
-     */
-    @XmlElement(name = "is_xio_3x_volume")
-    public Boolean getXio3XVolume() {
-        return xio3XVolume;
-    }
-
-    public void setXio3XVolume(Boolean xio3xVolume) {
-        xio3XVolume = xio3xVolume;
     }
 
 }

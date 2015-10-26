@@ -440,7 +440,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     StorageSystem.class, cgStorageControllerURI);
             if (DiscoveredDataObject.Type.vplex.name().equals(cgStorageController
                     .getSystemType()) && (!consistencyGroup.checkForType(Types.LOCAL)
-                    || BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient).isEmpty())) {
+                    || BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty())) {
                 _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
                 throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
             }
@@ -621,7 +621,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
         // check for backend CG
-        if (BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient).isEmpty()) {
+        if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
             _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
             throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
         }
@@ -699,7 +699,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
 
         // check for backend CG
-        if (BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient).isEmpty()) {
+        if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
             _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
             throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
         }
@@ -778,7 +778,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
 
         // check for backend CG
-        if (BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient).isEmpty()) {
+        if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
             _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
             throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
         }
@@ -835,7 +835,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
 
         // check for backend CG
-        if (BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient).isEmpty()) {
+        if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
             _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
             throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
         }

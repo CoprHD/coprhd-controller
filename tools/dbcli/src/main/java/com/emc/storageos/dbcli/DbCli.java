@@ -139,7 +139,10 @@ public class DbCli {
      * @Param cfName
      */
     public void printFieldsByCf(String cfName) {
+    	log.info("*********" + " Column Family Name : " + cfName);
         Class clazz = _cfMap.get(cfName);
+        log.info("###########" + " Class Name : " + clazz);
+        
         if (DataObject.class.isAssignableFrom(clazz)) {
             DataObjectType doType = TypeMap.getDoType(clazz);
             System.out.println(String.format("Column Family: %s", doType.getCF().getName()));

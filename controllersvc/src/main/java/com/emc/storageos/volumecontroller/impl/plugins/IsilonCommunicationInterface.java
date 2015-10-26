@@ -336,7 +336,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonApi.IsilonList<IsilonSmartQuota> quotas = null;
         do {
             quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
-            if(quotas != null && !quotas.getList().isEmpty()) {
+            if(quotas != null && quotas.size() > 0) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
                     if(quota.getThresholds() != null) {
                         totalProvCap = totalProvCap + quota.getThresholds().getHard();
@@ -372,7 +372,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonList<IsilonExport> isilonNfsExports = null; 
         do {
             isilonNfsExports = isilonApi.listExports(resumeToken, zoneName);
-            if(isilonNfsExports != null && !isilonNfsExports.getList().isEmpty()) {
+            if(isilonNfsExports != null && isilonNfsExports.size() > 0) {
                 nfsExportsCount = isilonNfsExports.size();
                 resumeToken = isilonNfsExports.getToken();
             }
@@ -743,7 +743,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                        }
                        for(IsilonNetworkPool isiNetworkPool : isilonNetworkPoolsSysAZ) {
                            storagePort = findStoragePortByNativeId(storageSystem, 
-                                   isiNetworkPool.getSc_dns_zone().toLowerCase());
+                                   isiNetworkPool.getSc_dns_zone());
                            if(storagePort != null) {
                                storagePorts.add(storagePort.getId().toString());
                            }

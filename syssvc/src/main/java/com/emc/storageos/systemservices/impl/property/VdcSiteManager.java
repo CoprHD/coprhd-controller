@@ -287,12 +287,6 @@ public class VdcSiteManager extends AbstractManager {
 
     private PropertyInfoExt loadVdcConfig() throws Exception {
         targetVdcPropInfo = loadVdcConfigFromDatabase();
-        // ipsec config is stored in zk
-        targetVdcPropInfo = loadIPsecKeyFromZK();
-        return targetVdcPropInfo;
-    }
-
-    private PropertyInfoExt loadIPsecKeyFromZK() throws Exception {
         targetVdcPropInfo.addProperty("ipsec_key", ipsecConfig.getPreSharedKey());
         return targetVdcPropInfo;
     }

@@ -8,6 +8,13 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 
 
 public class DistributedAtomicIntegerBuilder {
+
+    public static final String PLANNED_FAILOVER_STANDBY_NODECOUNT = "plannedFailoverStandbyNodeCount";
+    public static final String PLANNED_FAILOVER_PRIMARY_NODECOUNT = "plannedFailoverPrimayNodeCount";
+    
+    private static final int RETRY_INTERVAL_MS = 1000;
+    private static final int RETRY_TIME = 5;
+    private static final String ZK_PATH_FORMAT = "%s/%s/%s";
     
     private CoordinatorClient coordinatorClient;
     private String siteId;
@@ -33,8 +40,9 @@ public class DistributedAtomicIntegerBuilder {
     }
     
     public DistributedAtomicInteger build() {
-        DistributedAtomicInteger distributedAtomicInteger = new DistributedAtomicInteger(((CoordinatorClientImpl)coordinatorClient).getZkConnection().curator(), String.format("%s/%s/%s", ZkPath.SITES, siteId, pathName), new RetryNTimes(5, 1000));
-        
+        DistributedAtomicInteger distributedAtomicInteger = new DistributedAtomicInteger(((CoordinatorClientImpl) coordinatorClient)
+                .getZkConnection().curator(), String.format(ZK_PATH_FORMAT, ZkPath.SITES, siteId, pathName), new RetryNTimes(RETRY_TIME, RETRY_INTERVAL_MS));
+
         return distributedAtomicInteger;
     }
 }

@@ -755,29 +755,40 @@ public class VdcSiteManager extends AbstractManager {
         log.info("site: {}", site.toString());
         
         if (site.getState().equals(SiteState.PRIMARY_PLANNED_FAILOVERING)) {
-            log.info("This is primary planned failover site, set state to standby");
+            log.info("This is primary planned failover site");
             
-            site.setState(SiteState.STANDBY_SYNCED);
-            coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+            DistributedAtomicInteger distributedAtomicInteger = DistributedAtomicIntegerBuilder.create()
+                    .client(coordinator.getCoordinatorClient()).siteId(site.getUuid())
+                    .path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_PRIMARY_NODECOUNT).build();
+            AtomicValue<Integer> nodeCountLeft = distributedAtomicInteger.decrement();
+            
+            log.info("{} node left to do failover in this old primary site", nodeCountLeft.postValue());
+            
+            if (nodeCountLeft.postValue() <= 0) {
+                log.info("All nodes have finished failover, set state to SYNCED");
+                site.setState(SiteState.STANDBY_SYNCED);
+                coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+            }
         }
         
         if (site.getState().equals(SiteState.STANDBY_PLANNED_FAILOVERING)) {
             log.info("This is standby planned failover site");
             
             DistributedAtomicInteger distributedAtomicInteger = DistributedAtomicIntegerBuilder.create()
-                    .client(coordinator.getCoordinatorClient()).siteId(site.getUuid()).path("plannedFailoverNodeCount").build();
+                    .client(coordinator.getCoordinatorClient()).siteId(site.getUuid())
+                    .path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_STANDBY_NODECOUNT).build();
             AtomicValue<Integer> nodeCountLeft = distributedAtomicInteger.decrement();
             
-            log.info("{} node left to do failover in this site", nodeCountLeft.postValue());
+            log.info("{} node left to do failover in this new primary site", nodeCountLeft.postValue());
             
             if (nodeCountLeft.postValue() <= 0) {
-                log.info("All nodes have finished failover, set state to primary");
+                log.info("All nodes have finished failover, set state to PRIMARY");
                 site.setState(SiteState.PRIMARY);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
             }
             
-            log.info("Restart controller service after planned failover");
-            localRepository.restart("controllersvc");
+            //log.info("Restart controller service after planned failover");
+            //localRepository.restart("controllersvc");
         }
     }
 }

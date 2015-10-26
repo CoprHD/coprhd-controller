@@ -506,8 +506,10 @@ public class DisasterRecoveryService {
         
         try {
             VirtualDataCenter vdc = queryLocalVDC();
-            final String oldPrimaryUUID = coordinator.getPrimarySiteId();
-            final List<Site> existingSites = getStandbySites(vdc.getId());
+            
+            int oldPrimaryHostCount = vdc.getHostCount();
+            String oldPrimaryUUID = coordinator.getPrimarySiteId();
+            List<Site> existingSites = getStandbySites(vdc.getId());
 
             // update VDC
             Site newPrimarySite = new Site(coordinator.queryConfiguration(Site.CONFIG_KIND, uuid));
@@ -537,9 +539,13 @@ public class DisasterRecoveryService {
             oldPrimarySite.setState(SiteState.PRIMARY_PLANNED_FAILOVERING);
             coordinator.persistServiceConfiguration(oldPrimarySite.getUuid(), oldPrimarySite.toConfiguration());
             
-            DistributedAtomicInteger distributedAtomicInteger = DistributedAtomicIntegerBuilder.create().client(coordinator)
-                    .siteId(newPrimarySite.getUuid()).path("plannedFailoverNodeCount").build();
-            distributedAtomicInteger.forceSet(vdc.getHostCount());
+            DistributedAtomicInteger daiNewPrimary = DistributedAtomicIntegerBuilder.create().client(coordinator)
+                    .siteId(newPrimarySite.getUuid()).path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_STANDBY_NODECOUNT).build();
+            daiNewPrimary.forceSet(vdc.getHostCount());
+            
+            DistributedAtomicInteger daiOldPrimary = DistributedAtomicIntegerBuilder.create().client(coordinator)
+                    .siteId(oldPrimaryUUID).path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_PRIMARY_NODECOUNT).build();
+            daiOldPrimary.forceSet(oldPrimaryHostCount);
             
             // trigger local property change to reconfig
             updateVdcTargetVersion(oldPrimaryUUID, SiteInfo.RECONFIG_RESTART);
@@ -550,7 +556,6 @@ public class DisasterRecoveryService {
             }
         } catch (Exception e) {
             log.error("Failed to do failover {}", e);
-            // TODO There is anther task for error handling for this
         }
 
         return Response.status(Response.Status.ACCEPTED).build();

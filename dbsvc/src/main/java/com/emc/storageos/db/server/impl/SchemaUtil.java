@@ -897,20 +897,14 @@ public class SchemaUtil {
      // No need to add bootstrap records on standby site
         if (isOnStandby()) {
             _log.info("Check bootstrap info on standby");
-            boolean rebuildData = false;
-            if (isGeoDbsvc()) {
-                rebuildData = !isRootTenantExist(dbClient);
-            } else {
-                rebuildData = !isVdcInfoExist(dbClient);
-            }
-            if (rebuildData) {
-                Site currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
-                
-                if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
-                    currentSite.setState(SiteState.STANDBY_SYNCING);
-                    _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-                }
+            Site currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
 
+            if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+                currentSite.setState(SiteState.STANDBY_SYNCING);
+                _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
+            }
+
+            if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
                 Thread dbRebuildThread = new Thread(dbRebuildRunnable);
                 dbRebuildThread.start();
                 try {

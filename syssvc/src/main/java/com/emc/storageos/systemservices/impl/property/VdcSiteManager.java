@@ -7,6 +7,7 @@ package com.emc.storageos.systemservices.impl.property;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,6 +71,8 @@ public class VdcSiteManager extends AbstractManager {
 
     // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
     private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
+    // Timeout in minutes for data sync. If data synchronization takes long than this value, set site to error
+    public static final long DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     
     // data revision time out - 11 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
@@ -192,7 +195,8 @@ public class VdcSiteManager extends AbstractManager {
             } catch (Exception e) {
                 log.error("Step2: Failed to poweroff. {}", e);
             }
-            
+
+            // Step3: update vdc configuration if changed
             log.info("Step3: If VDC configuration is changed update");
             if (vdcPropertiesChanged()) {
                 log.info("Step3: Current vdc properties are not same as target vdc properties. Updating.");
@@ -202,30 +206,33 @@ public class VdcSiteManager extends AbstractManager {
                 try {
                     updateVdcProperties(svcId);
                 } catch (Exception e) {
-                    log.info("Step2: VDC properties update failed and will be retried:", e);
+                    log.info("Step3: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
                     continue;
                 }
                 continue;
             }
 
-            // Step3: change data revision
+            // Step4: change data revision
             String targetDataRevision = targetSiteInfo.getTargetDataRevision();
-            log.info("Step3: check if target data revision is changed - {}", targetDataRevision);
+            log.info("Step4: check if target data revision is changed - {}", targetDataRevision);
             try {
                 String localRevision = localRepository.getDataRevision();
-                log.info("Step3: local data revision is {}", localRevision);
+                log.info("Step4: local data revision is {}", localRevision);
                 if (!targetSiteInfo.isNullTargetDataRevision() && !targetDataRevision.equals(localRevision)) {
                     updateDataRevision();
                     continue;
                 }
             } catch (Exception e) {
-                log.error("Step3: Failed to update data revision. {}", e);
+                log.error("Step4: Failed to update data revision. {}", e);
                 continue;
             }
-            
-            // Step4: sleep
-            log.info("Step4: sleep");
+
+            // Step5: set site error state if on primary
+            updateSiteErrors();
+
+            // Step6: sleep
+            log.info("Step6: sleep");
             longSleep();
         }
     }
@@ -398,7 +405,7 @@ public class VdcSiteManager extends AbstractManager {
         return getStandbyNodeIPAddresses(targetVdcPropInfo);
     }
 
-    private List<String> getStandbyNodeIPAddresses (PropertyInfoExt propertyInfo) {
+    private List<String> getStandbyNodeIPAddresses(PropertyInfoExt propertyInfo) {
         Set<Map.Entry<String, String>> properties = propertyInfo.getAllProperties().entrySet();
 
         // key=server ID e.g. 1, 2 ..
@@ -764,6 +771,35 @@ public class VdcSiteManager extends AbstractManager {
             siteError.cleanup();
             
             coordinator.getCoordinatorClient().setTargetInfo(siteId, siteError);
+        }
+    }
+
+    private void updateSiteErrors() {
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
+        String localSiteId = coordinatorClient.getSiteId();
+        Site localSite = new Site(coordinator.getCoordinatorClient().queryConfiguration(Site.CONFIG_KIND, localSiteId));
+
+        if (!SiteState.PRIMARY.equals(localSite.getState())) {
+            log.info("Step5: current site is a standby, nothing to do");
+            return;
+        }
+
+        for(Configuration config : coordinatorClient.queryAllConfiguration(Site.CONFIG_KIND)) {
+            Site site = new Site(config);
+            if (localSite.getVdc().equals(site.getVdc())) { // sites that belong to the local vdc
+                SiteInfo targetSiteInfo = coordinatorClient.getTargetInfo(site.getUuid(), SiteInfo.class);
+
+                if (SiteState.STANDBY_SYNCING.equals(site.getState())
+                        && (new Date()).getTime() - targetSiteInfo.getVdcConfigVersion() > DATA_SYNC_TIMEOUT_MILLIS) {
+                    log.info("Step5: Site {} set to error due to data sync timeout", site.getName());
+                    SiteError error = new SiteError(APIException.internalServerErrors.dataSyncTimeout(
+                            DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                    coordinatorClient.setTargetInfo(site.getUuid(), error);
+
+                    site.setState(SiteState.STANDBY_ERROR);
+                    coordinatorClient.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+                }
+            }
         }
     }
 }

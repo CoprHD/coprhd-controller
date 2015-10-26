@@ -11,8 +11,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
@@ -74,9 +72,6 @@ import com.emc.vipr.model.sys.ClusterInfo;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class DisasterRecoveryService {
-    /* Timeout in minutes for adding standby timeout. If adding state is long than this value, set site to error */
-    public static final int STANDBY_ADD_TIMEOUT_MINUTES = 20;
-
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     
     private static final String SHORTID_FMT="standby%d";
@@ -87,17 +82,9 @@ public class DisasterRecoveryService {
     private SysUtils sysUtils;
     private CoordinatorClient coordinator;
     private DbClient dbClient;
-    private ScheduledThreadPoolExecutor siteErrorThreadExecutor = new ScheduledThreadPoolExecutor(1);
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
-    }
-    
-    /**
-     * Initialize service, this method will be called by Spring after craete DR service instance
-     */
-    public void initialize(){
-        siteErrorThreadExecutor.schedule(new SiteErrorUpdater(null), 0, TimeUnit.MILLISECONDS);
     }
     
     /**
@@ -141,7 +128,7 @@ public class DisasterRecoveryService {
             String shortId = generateShortId(existingSites);
             standbySite.setStandbyShortId(shortId);
             standbySite.setDescription(param.getDescription());
-            standbySite.setState(SiteState.STANDBY_ADDING);
+            standbySite.setState(SiteState.STANDBY_SYNCING);
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }
@@ -177,8 +164,6 @@ public class DisasterRecoveryService {
             }
             configParam.setStandbySites(standbySites);
             viprClient.site().syncSite(configParam);
-            
-            siteErrorThreadExecutor.schedule(new SiteErrorUpdater(standbySite.getUuid()), STANDBY_ADD_TIMEOUT_MINUTES, TimeUnit.MINUTES);
             
             return siteMapper.map(standbySite);
         } catch (Exception e) {
@@ -749,50 +734,5 @@ public class DisasterRecoveryService {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
-    }
-    
-    class SiteErrorUpdater implements Runnable {
-        private String siteId;
-
-        public SiteErrorUpdater(String siteId) {
-            this.siteId = siteId;
-        }
-
-        @Override
-        public void run() {
-            log.info("launch site error updater");
-            try {
-                if (siteId == null) {
-                    URI vdcId = queryLocalVDC().getId();
-                    List<Site> sites = getSites(vdcId);
-
-                    for (Site site : sites) {
-                        setSiteError(site);
-                    }
-                } else {
-                    Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, siteId);
-                    if (config == null)
-                        return;
-
-                    Site site = new Site(config);
-                    setSiteError(site);
-                }
-            } catch (Exception e) {
-                log.error("Error occurs during update site errors {}", e);
-            }
-
-        }
-
-        private void setSiteError(Site site) {
-            if (SiteState.STANDBY_ADDING.equals(site.getState())
-                    && (new Date()).getTime() - site.getCreationTime() > (STANDBY_ADD_TIMEOUT_MINUTES * 1000 * 60)) {
-                log.info("Site {} is set to error because of adding timeout", site.getName());
-                SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(STANDBY_ADD_TIMEOUT_MINUTES));
-                coordinator.setTargetInfo(site.getUuid(), error);
-
-                site.setState(SiteState.STANDBY_ERROR);
-                coordinator.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
-            }
-        }
     }
 }

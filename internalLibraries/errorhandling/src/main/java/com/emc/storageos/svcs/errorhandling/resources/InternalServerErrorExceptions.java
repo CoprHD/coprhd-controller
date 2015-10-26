@@ -236,8 +236,8 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_FAILED)
     public InternalServerErrorException addStandbyFailed(String errMsg);
     
-    @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_TIMEOUT)
-    public InternalServerErrorException addStandbyFailedTimeout(int timeoutValue);
+    @DeclareServiceCode(ServiceCode.SYS_DR_DATA_SYNC_TIMEOUT)
+    public InternalServerErrorException dataSyncTimeout(final long timeoutValue);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_CONFIG_STANDBY_FAILED)
     public InternalServerErrorException configStandbyFailed(String errMsg);

@@ -457,7 +457,7 @@ public class DisasterRecoveryServiceTest {
         standbySite2.setState(SiteState.STANDBY_ERROR);
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
         
-        SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(DisasterRecoveryService.STANDBY_ADD_TIMEOUT_MINUTES));
+        SiteError error = new SiteError(APIException.internalServerErrors.dataSyncTimeout(DisasterRecoveryService.STANDBY_ADD_TIMEOUT_MINUTES));
         doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);
         
         siteError = drService.getSiteError(standbySite2.getUuid());

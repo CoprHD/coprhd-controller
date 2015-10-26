@@ -1179,7 +1179,7 @@ public class IsilonApi {
                             statValueCurrent.error.toString());
                 }
                 statValueCurrent.value = new Gson()
-                        .fromJson((entryObj.getString("value")), valueType);
+                        .fromJson(SecurityUtils.sanitizeJsonString(entryObj.getString("value")), valueType);
                 retMap.put(entryKey, statValueCurrent);
             }
             return retMap;

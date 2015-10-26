@@ -476,7 +476,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         _log.info("SnapShot Deletion..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
         Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
-        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter) && null != sourceVolume
+        XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+        if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
+                && null != sourceVolume
                 && !sourceVolume.checkForRp()) {
             snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
@@ -491,7 +493,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         _log.info("SnapShot Restore..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
         Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
-        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter) && null != sourceVolume
+        XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+        if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
+                && null != sourceVolume
                 && !sourceVolume.checkForRp()) {
             snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
@@ -506,7 +510,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         _log.info("SnapShot resync..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
         Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
-        if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter) && null != sourceVolume
+        XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
+        if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
+                && null != sourceVolume
                 && !sourceVolume.checkForRp()) {
             snapshotOperations.resyncGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {

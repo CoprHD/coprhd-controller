@@ -562,10 +562,13 @@ public class DisasterRecoveryServiceTest {
         doReturn("site-uuid-1").when(coordinator).getPrimarySiteId();
         doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState("site-uuid-2", 3);
         doReturn(siteConfigurations).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
         
+        
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
-        drService.doFailover("site-uuid-2");
+        drService.doPlannedFailover("site-uuid-2");
         
         verify(coordinator, times(1)).setPrimarySite("site-uuid-2");
         verify(coordinator, times(1)).persistServiceConfiguration(eq("site-uuid-1"), any(Configuration.class));

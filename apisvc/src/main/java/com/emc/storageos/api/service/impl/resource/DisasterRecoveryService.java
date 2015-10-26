@@ -457,19 +457,6 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Failover to a standby site specified by uuid
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{uuid}/failover")
-    public SiteRestRep plannedFailover(@PathParam("uuid") String uuid) {
-        log.info("Begin to failover to site specified by {}" , uuid);
-
-        precheckForPlannedFailover(uuid);
-        // TODO by Yuan
-        return null;
-    }
-    /**
      * Query the latest error message for specific standby site
      * 
      * @param uuid site UUID
@@ -510,9 +497,11 @@ public class DisasterRecoveryService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{uuid}/failover")
-    public Response doFailover(@PathParam("uuid") String uuid) {
+    public Response doPlannedFailover(@PathParam("uuid") String uuid) {
         log.info("Begin to failover for standby UUID {}", uuid);
 
+        precheckForPlannedFailover(uuid);
+        
         try {
             VirtualDataCenter vdc = queryLocalVDC();
             final String oldPrimaryUUID = coordinator.getPrimarySiteId();

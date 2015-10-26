@@ -7,7 +7,6 @@ package com.emc.sa.asset.providers;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalMirrorSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
@@ -703,7 +702,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 new DefaultResourceFilter<BlockSnapshotRestRep>() {
                     @Override
                     public boolean accept(BlockSnapshotRestRep snapshot) {
-                        return !isInConsistencyGroup(snapshot);
+                        VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
+                        return (isRPSourceVolume(parentVolume) || !isInConsistencyGroup(snapshot));
                     }
                 });
 
@@ -1081,14 +1081,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             for (VolumeDetail detail : volumeDetails) {
 
                 boolean localSnapSupported = isLocalSnapshotSupported(detail.vpool);
-                boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
                 boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
-                boolean isInConsistencyGroup = BlockProvider.isInConsistencyGroup(detail.volume);
 
-                debug("filter[ localSnapSupported=%s, isRPTargetVolume=%s, isRPSourceVolume=%s, isInConsistencyGroup=%s ]",
-                        localSnapSupported, isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup);
+                debug("filter[ localSnapSupported=%s, isRPSourceVolume=%s ]",
+                        localSnapSupported, isRPSourceVolume);
 
-                if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume))) {
+                if (isRPSourceVolume || localSnapSupported) {
                     options.add(createVolumeOption(client, null, detail.volume, volumeNames));
                 }
             }
@@ -1190,7 +1188,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
         for (RelatedResourceRep vol : cg.getVolumes()) {
             VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
-            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
+            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
+                    && volume.getProtection().getRpRep().getProtectionSet() != null) {
                 RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
                 ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
                 for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {

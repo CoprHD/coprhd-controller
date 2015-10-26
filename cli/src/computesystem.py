@@ -465,7 +465,7 @@ def computesystem_create(args):
 
         obj.create_computesystem(args.type, args.name, args.computeip,
                         args.computeport, args.user, passwd,
-                        args.osinstallnetwork, args.usessl. args.computeimageserver)
+                        args.osinstallnetwork, args.usessl, args.computeimageserver)
 
     except SOSError as e:
         raise common.format_err_msg_and_raise("create", "computesystem",

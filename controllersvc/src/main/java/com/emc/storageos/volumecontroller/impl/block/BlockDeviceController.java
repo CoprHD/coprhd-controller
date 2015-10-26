@@ -25,7 +25,6 @@ import java.util.Map;
 
 import javax.xml.bind.DataBindingException;
 
-import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,11 +36,31 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.InterfaceType;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.SynchronizationState;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.factories.VolumeFactory;
@@ -124,9 +143,9 @@ import com.google.common.base.Joiner;
 /**
  * Generic Block Controller Implementation that does all of the database
  * operations and calls methods on the array specific implementations
- * 
- * 
- * 
+ *
+ *
+ *
  */
 public class BlockDeviceController implements BlockController, BlockOrchestrationInterface {
     // Constants for Event Types
@@ -189,7 +208,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Creates a rollback workflow method that does nothing, but allows rollback
      * to continue to prior steps back up the workflow chain.
-     * 
+     *
      * @return A workflow method
      */
     Workflow.Method rollbackMethodNullMethod() {
@@ -204,7 +223,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * rollback method is invoked. It says the rollback step succeeded,
      * which will then allow other rollback operations to execute for other
      * workflow steps executed by the other controller.
-     * 
+     *
      * See the VPlexDeviceController restoreVolume method which creates a
      * workflow step that invokes the BlockDeviceController restoreVolume
      * method. The rollback method for this step is this no-op. If the
@@ -212,9 +231,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * method is invoked, which simply says the rollback for the step
      * was successful. This in turn allows the other steps in the workflow
      * rollback.
-     * 
+     *
      * @param stepId The id of the step being rolled back.
-     * 
+     *
      * @throws WorkflowException
      */
     public void rollbackMethodNull(String stepId) throws WorkflowException {
@@ -223,7 +242,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Fail the task
-     * 
+     *
      * @param clazz
      * @param id
      * @param opId
@@ -240,7 +259,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Set the status of operation to 'ready'
-     * 
+     *
      * @param clazz The data object class.
      * @param ids The ids of the data objects for which the task completed.
      * @param opId The task id.
@@ -259,7 +278,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Fail the task. Called when an exception occurs attempting to
      * execute a task on multiple data objects.
-     * 
+     *
      * @param clazz The data object class.
      * @param ids The ids of the data objects for which the task failed.
      * @param opId The task id.
@@ -279,7 +298,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Fail the task. Called when an exception occurs attempting to
      * execute a task.
-     * 
+     *
      * @param clazz The data object class.
      * @param id The id of the data object for which the task failed.
      * @param opId The task id.
@@ -295,7 +314,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Create a nice event based on the volume
-     * 
+     *
      * @param volume Volume for which the event is about
      * @param type Type of event such as VolumeCreated or VolumeDeleted
      * @param description Description for the event if needed
@@ -317,7 +336,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Workflow step associated with creating volumes.
      * TODO: RB3294, Do we really need these steps? Can we just call the method directly if that's all its really doing?
-     * 
+     *
      * @param systemURI storage system
      * @param poolURI storage pool
      * @param volumeURIs list of volume uris that were pre-created in the db
@@ -447,7 +466,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Add Steps to create any BLOCK_MIRRORs specified in the VolumeDescriptor list.
-     * 
+     *
      * @param workflow -- The Workflow being built
      * @param waitFor -- Previous steps to waitFor
      * @param volumes -- List<VolumeDescriptors> -- volumes of all types to be processed
@@ -479,7 +498,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Add Steps to create the required consistency group
-     * 
+     *
      * @param workflow -- The Workflow being built
      * @param waitFor -- Previous steps to waitFor
      * @param volumesDescriptors -- List<VolumeDescriptors> -- volumes of all types to be processed
@@ -562,7 +581,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Add Steps to add volumes to the required consistency group
-     * 
+     *
      * @param workflow -- The Workflow being built
      * @param waitFor -- Previous steps to waitFor
      * @param volumesDescriptors -- List<VolumeDescriptors> -- volumes of all types to be processed
@@ -635,7 +654,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Returns a message containing information about each volume.
-     * 
+     *
      * @param volumeURIs
      * @return
      */
@@ -660,7 +679,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for createVolumes.
-     * 
+     *
      * @param systemURI
      * @param poolURI
      * @param volumeURIs
@@ -677,7 +696,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * Hitachi allows setting of tieringpolicy at LDEV level, hence We should have a LDEV id of a LogicalUnit.
      * But LDEV is only created after we LogicalUnit is created. Hence createVolumes workflow includes creation of LU (i.e. LDEV)
      * And LDEV modification (to set tieringPolicy.)
-     * 
+     *
      */
     @Override
     public void modifyVolumes(URI systemURI, URI poolURI, List<URI> volumeURIs, String opId) throws ControllerException {
@@ -735,7 +754,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for createVolumes.
-     * 
+     *
      * @param systemURI
      * @param poolURI
      * @param volumeURIs
@@ -815,7 +834,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for rollbackCreateVolumes
-     * 
+     *
      * @param systemURI
      * @param volumeURI
      * @return Workflow.Method
@@ -846,19 +865,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     if (Type.xtremio.toString().equalsIgnoreCase(system.getSystemType())) {
                         continue;
                     }
-                }
-                // For quicker garbage collection, remove any reference to journal volumes if it exists
-                if (volume.getRpJournalVolume() != null) {
-                    volume.setRpJournalVolume(NullColumnValueGetter.getNullURI());
-                    _dbClient.persistObject(volume);
-                }
-
-                // For quicker garbage collection, remove any reference to target volumes if it exists
-                if (volume.getRpTargets() != null && !volume.getRpTargets().isEmpty()) {
-                    StringSet ss = volume.getRpTargets();
-                    ss.clear();
-                    volume.setRpTargets(ss);
-                    _dbClient.persistObject(volume);
                 }
                 // clearing targets explicitly, during vpool change if target volume creation failed for same reason,
                 // then we need to clear srdfTargets field for source
@@ -951,7 +957,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for createMetaVolumes.
-     * 
+     *
      * @param systemURI
      * @param poolURI
      * @param volumeURIs
@@ -965,7 +971,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for rollbackCreateMetaVolumes.
-     * 
+     *
      * @param systemURI
      * @param volumeURIs
      * @return Workflow.Method
@@ -976,7 +982,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for createVolumes.
-     * 
+     *
      * @param systemURI
      * @param poolURI
      * @param volumeURI
@@ -990,7 +996,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for rollbackCreateMetaVolume.
-     * 
+     *
      * @param systemURI
      * @param volumeURI
      * @return Workflow.Method
@@ -1063,7 +1069,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for rollbackExpandVolume.
-     * 
+     *
      * @param systemURI
      * @param volumeURI
      * @return Workflow.Method
@@ -1260,7 +1266,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for expandVolume.
-     * 
+     *
      * @param storage storage system
      * @param pool storage pool
      * @param volume volume to expand
@@ -1525,7 +1531,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for deleteVolumes.
-     * 
+     *
      * @param systemURI
      * @param volumeURIs
      * @return
@@ -1594,7 +1600,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Workflow step to delete a volume
-     * 
+     *
      * @param storageURI the storage system ID
      * @param volumes the volume IDs
      * @param token the task ID from the workflow
@@ -1642,7 +1648,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Select volumes from an export group that resides on a given storage array
-     * 
+     *
      * @param exportGroup
      * @param exportMask
      * @return
@@ -1905,7 +1911,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for restoreVolume
-     * 
+     *
      * @param storage storage system
      * @param pool storage pool
      * @param volume target of restore operation
@@ -2030,8 +2036,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // for CG mirror, filter out mirrors with invalid replication group. It is necessary as the fracture/detach/delete will
                 // expect mirrors with valid replication group
                 // for non CG mirror, filter out mirror with no native Id
-                if ((isCG && NullColumnValueGetter.isNullValue(mirror.getReplicationGroupInstance()) ||
-                        (!isCG && isNullOrEmpty(mirror.getNativeId())))) {
+                if ((isCG && NullColumnValueGetter.isNullValue(mirror.getReplicationGroupInstance()) || (!isCG && isNullOrEmpty(mirror
+                        .getNativeId())))) {
                     mirror.setInactive(true);
                     mirrorsNoRollback.add(mirror);
                 }
@@ -2399,7 +2405,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Adds the additional steps necessary to promote mirrors to regular block volumes
-     * 
+     *
      * @param workflow
      * @param waitFor
      * @param descriptors
@@ -2441,9 +2447,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // Find the volumes this set of mirrors will be promoted to
             List<URI> promotedVolumesForMirrors = findPromotedVolumesForMirrors(mirrorList, promotedVolumes);
 
-            // Create a step for promoting the mirror.
+            // Create a step for promoting the mirrors.
             stepId = workflow.createStep(PROMOTE_MIRROR_STEP_GROUP,
-                    String.format("Promote mirror: %s", mirror.getId()),
+                    String.format("Promote mirrors: %s", Joiner.on("\t").join(mirrorList)),
                     stepId, controller, getDeviceType(controller),
                     this.getClass(),
                     promoteMirrorMethod(mirrorList, promotedVolumesForMirrors, isCG),
@@ -2521,7 +2527,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Adds the additional steps necessary to delete local mirrors.
-     * 
+     *
      * @param workflow
      * @param waitFor
      * @param descriptors List<VolumeDescriptor> volumes to be processed
@@ -2648,14 +2654,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * An orchestration controller method for detaching and deleting a mirror
-     * 
+     *
      * @param storage URI of storage controller.
-     * @param mirror URI of block mirror
+     * @param mirrorList List of URIs of block mirrors
+     * @param promotees List of URIs of promoted volumes
+     * @param isCG CG mirror or not
      * @param opId Operation ID
      * @throws ControllerException
      */
     @Override
-    public void deactivateMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws ControllerException {
+    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId) throws ControllerException {
         _log.info("deactivateMirror: START");
         TaskCompleter taskCompleter = null;
         String mirrorStr = Joiner.on("\t").join(mirrorList);
@@ -2663,8 +2671,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             Workflow workflow = _workflowService.getNewWorkflow(this, "deactivateMirror", true, opId);
-            taskCompleter = new BlockMirrorDeactivateCompleter(mirrorList, opId);
-
+            taskCompleter = new BlockMirrorDeactivateCompleter(mirrorList, promotees, opId);
             ControllerUtils.checkMirrorConsistencyGroup(mirrorList, _dbClient, taskCompleter);
 
             String detachStep = workflow.createStepId();
@@ -2672,10 +2679,50 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
                     storageSystem.getSystemType(), getClass(), detach, null, detachStep);
 
-            String deleteStep = workflow.createStepId();
-            Workflow.Method delete = deleteMirrorMethod(storage, mirrorList, isCG);
+            // for single volume mirror, the mirror will be deleted
+            List<URI> mirrorsToDelete = mirrorList;
+            // for group mirror, find mirrors to be deleted and mirrors to be promoted, and do the promotion
+            if (isCG) {
+                mirrorsToDelete = new ArrayList<URI>();
+                List<Volume> promotedVolumes = _dbClient.queryObject(Volume.class, promotees);
+                List<URI> orderedMirrorsToPromote = new ArrayList<URI>();
+                List<URI> orderedPromotedVolumes = new ArrayList<URI>();
 
-            workflow.createStep("deactivate", "deleting mirror volume: " + mirrorStr, detachStep, storage,
+                for (URI mirror : mirrorList) {
+                    URI promotedVolume = null;
+                    for (Volume promotee : promotedVolumes) {
+                        OpStatusMap statusMap = promotee.getOpStatus();
+                        for (Map.Entry<String, Operation> entry : statusMap.entrySet()) {
+                            Operation operation = entry.getValue();
+                            if (operation.getAssociatedResourcesField().contains(mirror.toString())) {
+                                promotedVolume = promotee.getId();
+                            }
+                        }
+                    }
+
+                    if (promotedVolume != null) {
+                        orderedMirrorsToPromote.add(mirror);
+                        orderedPromotedVolumes.add(promotedVolume);
+                    } else {
+                        mirrorsToDelete.add(mirror);
+                    }
+                }
+
+                if (!orderedMirrorsToPromote.isEmpty()) {
+                    // Create a step for promoting the mirrors.
+                    String stepId = workflow.createStep(PROMOTE_MIRROR_STEP_GROUP,
+                            String.format("Promote mirrors : %s", Joiner.on("\t").join(orderedMirrorsToPromote)),
+                            detachStep, storage, storageSystem.getSystemType(),
+                            this.getClass(),
+                            promoteMirrorMethod(orderedMirrorsToPromote, orderedPromotedVolumes, isCG),
+                            null, null);
+                }
+            }
+
+            String deleteStep = workflow.createStepId();
+            Workflow.Method delete = deleteMirrorMethod(storage, mirrorsToDelete, isCG);
+
+            workflow.createStep("deactivate", "deleting mirror volume: " + Joiner.on("\t").join(mirrorsToDelete), detachStep, storage,
                     storageSystem.getSystemType(), getClass(), delete, null, deleteStep);
 
             String successMessage = String.format("Successfully deactivated mirror %s on StorageArray %s",
@@ -2819,13 +2866,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         Volume cloneVol = _dbClient.queryObject(Volume.class, uri);
                         BlockObject sourceObj = BlockObject.fetch(_dbClient, cloneVol.getAssociatedSourceVolume());
                         // detach if source is snapshot, or storage system is not vmax/vnx/hds
-                    	if (storageSystem.deviceIsType(Type.openstack)){
-                    		setCloneReplicaStateStep(workflow, storageSystem, asList(uri), waitForSyncStep, ReplicationState.SYNCHRONIZED);
-                    	}
+                        if (storageSystem.deviceIsType(Type.openstack)) {
+                            setCloneReplicaStateStep(workflow, storageSystem, asList(uri), waitForSyncStep, ReplicationState.SYNCHRONIZED);
+                        }
                         else if (sourceObj instanceof BlockSnapshot
                                 || !(storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.hds)
                                 || storageSystem.deviceIsType(Type.vnxblock))) {
-			    
+
                             Workflow.Method detachMethod = detachFullCopyMethod(storage, asList(uri));
                             workflow.createStep(FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy", waitForSyncStep,
                                     storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
@@ -2989,25 +3036,25 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     @Override
-    public void detachFullCopy(URI storage, List<URI> fullCopyVolume, String taskId)
+    public void detachFullCopy(URI storage, List<URI> fullCopyVolumes, String taskId)
             throws ControllerException {
-        _log.info("START detachFullCopy: {}", fullCopyVolume);
+        _log.info("START detachFullCopy: {}", fullCopyVolumes);
 
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            TaskCompleter taskCompleter = new VolumeDetachCloneCompleter(fullCopyVolume, taskId);
-            if (checkCloneConsistencyGroup(fullCopyVolume.get(0), _dbClient, taskCompleter)) {
+            TaskCompleter taskCompleter = new VolumeDetachCloneCompleter(fullCopyVolumes, taskId);
+            if (checkCloneConsistencyGroup(fullCopyVolumes.get(0), _dbClient, taskCompleter)) {
                 _log.info("detach group full copy");
-                getDevice(storageSystem.getSystemType()).doDetachGroupClone(storageSystem, fullCopyVolume, taskCompleter);
+                getDevice(storageSystem.getSystemType()).doDetachGroupClone(storageSystem, fullCopyVolumes, taskCompleter);
 
             } else {
-                getDevice(storageSystem.getSystemType()).doDetachClone(storageSystem, fullCopyVolume.get(0),
+                getDevice(storageSystem.getSystemType()).doDetachClone(storageSystem, fullCopyVolumes.get(0),
                         taskCompleter);
             }
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(taskId, serviceError);
-            doFailTask(Volume.class, fullCopyVolume, taskId, serviceError);
+            doFailTask(Volume.class, fullCopyVolumes, taskId, serviceError);
         }
     }
 
@@ -3029,7 +3076,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             workflow.executePlan(taskCompleter, "Successfully created group relation between Volume group and Full copy group");
         } catch (Exception e) {
             String msg = String.format("Failed to create group relation between Volume group and Full copy group."
-                            + "Source volume: %s, Full copy: %s",
+                    + "Source volume: %s, Full copy: %s",
                     sourceVolume, fullCopy);
             _log.error(msg, e);
             if (taskCompleter != null) {
@@ -3074,10 +3121,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Creates a connection to monitor events generated by the storage
      * identified by the passed URI.
-     * 
+     *
      * @param storage A database client URI that identifies the storage to be
      *            monitored.
-     * 
+     *
      * @throws ControllerException When errors occur connecting the storage for
      *             event monitoring.
      */
@@ -3109,10 +3156,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Removes a connection that was previously established for monitoring
      * events from the storage identified by the passed URI.
-     * 
+     *
      * @param storage A database client URI that identifies the storage to be
      *            disconnected.
-     * 
+     *
      * @throws ControllerException When errors occur disconnecting the storage
      *             for event monitoring.
      */
@@ -3227,7 +3274,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws WorkflowException
      */
     @Override
@@ -3428,7 +3475,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Get the deviceType for a StorageSystem.
-     * 
+     *
      * @param deviceURI -- StorageSystem URI
      * @return deviceType String
      */
@@ -3446,7 +3493,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * 1) Not null
      * 2) Has valid sync state integer value
      * 3) Sync state is not already fractured (paused) and not resynchronizing
-     * 
+     *
      * @param mirrorList The BlockMirrors to test
      * @return true, if at least one mirror is applicable for pause operation
      */
@@ -3469,7 +3516,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Pending mirrors are mirrors that are pending creation on the physical array
-     * 
+     *
      * @param mirrorURIs
      * @return list of active mirrors, waiting to be created
      */
@@ -3488,7 +3535,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Check if a mirror exists in ViPR as an active model and is pending creation on the
      * storage array.
-     * 
+     *
      * @param mirror
      * @return true if the mirror is pending creation
      */
@@ -3718,7 +3765,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * 
+     *
      * @param sourceVolumeList
      * @return URI list of target volumes for the given source volumes
      */
@@ -3856,7 +3903,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for restoreVolume
-     * 
+     *
      * @param storage storage system
      * @param pool storage pool
      * @param volume target of restore operation
@@ -3997,7 +4044,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     /**
      * Return a Workflow.Method for resync
-     * 
+     *
      * @param storage storage system
      * @param clone list of clones
      * @param updateOpStatus update operation status flag
@@ -4301,7 +4348,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param mirrorList List of URIs for mirrors to be created
      * @return last step added to waitFor
      */
-    public String createListMirrorStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> mirrorList) throws ControllerException {
+    public String createListMirrorStep(Workflow workflow, String waitFor, StorageSystem storageSystem, List<URI> mirrorList)
+            throws ControllerException {
         URI storage = storageSystem.getId();
         waitFor = workflow.createStep(CREATE_MIRRORS_STEP_GROUP, "Creating list mirror", waitFor,
                 storage, storageSystem.getSystemType(),

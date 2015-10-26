@@ -476,9 +476,19 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // system and all other storage systems to which this storage system
         // is connected.
         URI volumeSystemURI = volume.getStorageController();
+        
+        // If the volume storage system is a vplex, we want to find storage systems
+        // associated by network connectivity with the vplex backend ports
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volumeSystemURI);
+        StoragePort.PortType portType = getSystemConnectivityPortType();
+        if (ConnectivityUtil.isAVPlex(storageSystem)) {
+        	s_logger.info("Volume Storage System is a VPLEX, setting port type to backend for storage systems network association check.");
+        	portType = StoragePort.PortType.backend;
+        }
+        
         Set<URI> connectedSystemURIs = ConnectivityUtil
-                .getStorageSystemAssociationsByNetwork(_dbClient, volumeSystemURI,
-                        getSystemConnectivityPortType());
+                .getStorageSystemAssociationsByNetwork(_dbClient, volumeSystemURI, portType);
+                                
         connectedSystemURIs.add(volumeSystemURI);
         Iterator<URI> systemURIsIter = connectedSystemURIs.iterator();
         while (systemURIsIter.hasNext()) {
@@ -1549,7 +1559,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      *
      * @param volume the volume
      */
-    private void verifyIfVolumeHasMultipleReplicas(Volume volume) {
+    protected void verifyIfVolumeHasMultipleReplicas(Volume volume) {
         // multiple snapshot check
         URIQueryResultList list = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),

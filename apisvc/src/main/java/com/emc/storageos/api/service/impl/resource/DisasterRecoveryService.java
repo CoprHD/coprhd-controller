@@ -415,16 +415,7 @@ public class DisasterRecoveryService {
     @Path("/pause/{uuid}")
     public SiteRestRep pauseStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to pause data sync between standby site from local vdc by uuid: {}", uuid);
-        if (!isClusterStable()) {
-            log.error("Cluster is unstable");
-            throw APIException.serviceUnavailable.clusterStateNotStable();
-        }
-
-        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
-        if (config == null) {
-            log.error("Can't find site {} from ZK", uuid);
-            throw APIException.badRequests.siteIdNotFound();
-        }
+        Configuration config = validateSiteConfig(uuid);
 
         Site standby = new Site(config);
         if (!standby.getState().equals(SiteState.STANDBY_SYNCED)) {
@@ -467,16 +458,7 @@ public class DisasterRecoveryService {
     @Path("/resume/{uuid}")
     public SiteRestRep resumeStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to resume data sync to standby site identified by uuid: {}", uuid);
-        if (!isClusterStable()) {
-            log.error("Cluster is unstable");
-            throw APIException.serviceUnavailable.clusterStateNotStable();
-        }
-
-        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
-        if (config == null) {
-            log.error("Can't find site {} from ZK", uuid);
-            throw APIException.badRequests.siteIdNotFound();
-        }
+        Configuration config = validateSiteConfig(uuid);
 
         Site standby = new Site(config);
         if (!standby.getState().equals(SiteState.STANDBY_PAUSED)) {
@@ -512,7 +494,7 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.resumeStandbyFailed(uuid, e.getMessage());
         }
     }
-    
+
     /**
      * Query the latest error message for specific standby site
      * 
@@ -542,6 +524,20 @@ public class DisasterRecoveryService {
         }
         
         return SiteErrorResponse.noError();
+    }
+
+    private Configuration validateSiteConfig(String uuid) {
+        if (!isClusterStable()) {
+            log.error("Cluster is unstable");
+            throw APIException.serviceUnavailable.clusterStateNotStable();
+        }
+
+        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
+        if (config == null) {
+            log.error("Can't find site {} from ZK", uuid);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+        return config;
     }
 
     private void updateVdcTargetVersion(String siteId, String action) throws Exception {

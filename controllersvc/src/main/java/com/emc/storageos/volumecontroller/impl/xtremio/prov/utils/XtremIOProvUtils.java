@@ -33,6 +33,9 @@ public class XtremIOProvUtils {
 
     private static final int SLEEP_TIME = 10000; // 10 seconds
 
+    private static final String DOT_OPERATOR = "\\.";
+    private static final Integer XIO_MIN_4X_VERSION = 4;
+
     public static void updateStoragePoolCapacity(XtremIOClient client, DbClient dbClient, StoragePool storagePool) {
         try {
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storagePool.getStorageDevice());
@@ -402,5 +405,9 @@ public class XtremIOProvUtils {
             }
         }
         return activeProviders;
+    }
+
+    public static boolean is4xXtremIOModel(String model) {
+        return (Integer.valueOf(model.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION);
     }
 }

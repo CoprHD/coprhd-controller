@@ -16,7 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +32,10 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.ProtectionSet;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
@@ -67,6 +68,7 @@ import com.emc.storageos.model.block.tier.StorageTierRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
+import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 
 public class BlockMapper {
 
@@ -112,6 +114,13 @@ public class BlockMapper {
         to.setThinlyProvisioned(from.getThinlyProvisioned());
         to.setAccessState(from.getAccessState());
         to.setLinkStatus(from.getLinkStatus());
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
+
+        if (StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
+                && !XtremIOProvUtils.is4xXtremIOModel(system.getModel())) {
+            to.setXio3XVolume(Boolean.TRUE);
+        }
+
         if (from.getPool() != null) {
             to.setPool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getPool()));
         }

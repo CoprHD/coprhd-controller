@@ -28,6 +28,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +40,7 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.impl.DistributedAtomicIntegerBuilder;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -526,15 +528,19 @@ public class DisasterRecoveryService {
             coordinator.setPrimarySite(uuid);
 
             // set new primary site to ZK
-            newPrimarySite.setState(SiteState.PRIMARY);
+            newPrimarySite.setState(SiteState.STANDBY_PLANNED_FAILOVERING);
             coordinator.persistServiceConfiguration(newPrimarySite.getUuid(), newPrimarySite.toConfiguration());
 
             // Set old primary site's state, short id and key
             Site oldPrimarySite = new Site(coordinator.queryConfiguration(Site.CONFIG_KIND, oldPrimaryUUID));
             oldPrimarySite.setStandbyShortId(generateShortId(existingSites));
-            oldPrimarySite.setState(SiteState.STANDBY_SYNCED);
+            oldPrimarySite.setState(SiteState.PRIMARY_PLANNED_FAILOVERING);
             coordinator.persistServiceConfiguration(oldPrimarySite.getUuid(), oldPrimarySite.toConfiguration());
-
+            
+            DistributedAtomicInteger distributedAtomicInteger = DistributedAtomicIntegerBuilder.create().client(coordinator)
+                    .siteId(newPrimarySite.getUuid()).path("plannedFailoverNodeCount").build();
+            distributedAtomicInteger.forceSet(vdc.getHostCount());
+            
             // trigger local property change to reconfig
             updateVdcTargetVersion(oldPrimaryUUID, SiteInfo.RECONFIG_RESTART);
 
@@ -705,7 +711,7 @@ public class DisasterRecoveryService {
         List<Site> result = new ArrayList<Site>();
         for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
-            if (site.getVdc().equals(vdcId) && site.getState() != SiteState.PRIMARY) {
+            if (site.getVdc().equals(vdcId) && site.getState() != SiteState.PRIMARY && site.getState() != SiteState.PRIMARY_PLANNED_FAILOVERING) {
                 result.add(site);
             }
         }

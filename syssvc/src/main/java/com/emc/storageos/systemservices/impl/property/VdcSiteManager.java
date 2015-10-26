@@ -14,6 +14,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.atomic.AtomicValue;
+import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,7 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.client.service.impl.DistributedAtomicIntegerBuilder;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
@@ -201,6 +204,7 @@ public class VdcSiteManager extends AbstractManager {
 
                 try {
                     updateVdcProperties(svcId);
+                    updatePlannedFailoverSiteState();
                 } catch (Exception e) {
                     log.info("Step2: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
@@ -739,6 +743,41 @@ public class VdcSiteManager extends AbstractManager {
             siteError.cleanup();
             
             coordinator.getCoordinatorClient().setTargetInfo(siteId, siteError);
+        }
+    }
+    
+    private void updatePlannedFailoverSiteState() throws Exception {
+        String siteId = coordinator.getCoordinatorClient().getSiteId();
+        
+        Configuration config = coordinator.getCoordinatorClient().queryConfiguration(Site.CONFIG_KIND, siteId);
+        Site site = new Site(config);  
+        
+        log.info("site: {}", site.toString());
+        
+        if (site.getState().equals(SiteState.PRIMARY_PLANNED_FAILOVERING)) {
+            log.info("This is primary planned failover site, set state to standby");
+            
+            site.setState(SiteState.STANDBY_SYNCED);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+        }
+        
+        if (site.getState().equals(SiteState.STANDBY_PLANNED_FAILOVERING)) {
+            log.info("This is standby planned failover site");
+            
+            DistributedAtomicInteger distributedAtomicInteger = DistributedAtomicIntegerBuilder.create()
+                    .client(coordinator.getCoordinatorClient()).siteId(site.getUuid()).path("plannedFailoverNodeCount").build();
+            AtomicValue<Integer> nodeCountLeft = distributedAtomicInteger.decrement();
+            
+            log.info("{} node left to do failover in this site", nodeCountLeft.postValue());
+            
+            if (nodeCountLeft.postValue() <= 0) {
+                log.info("All nodes have finished failover, set state to primary");
+                site.setState(SiteState.PRIMARY);
+                coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+            }
+            
+            log.info("Restart controller service after planned failover");
+            localRepository.restart("controllersvc");
         }
     }
 }

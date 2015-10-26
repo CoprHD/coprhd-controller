@@ -570,6 +570,9 @@ public class DisasterRecoveryServiceTest {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState("site-uuid-2", 3);
         doReturn(siteConfigurations).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
+        doReturn(distributedAtomicIntegerBuilder).when(distributedAtomicIntegerBuilder).client(any(CoordinatorClient.class));
+        doReturn(distributedAtomicIntegerBuilder).when(distributedAtomicIntegerBuilder).siteId(any(String.class));
+        doReturn(distributedAtomicIntegerBuilder).when(distributedAtomicIntegerBuilder).path(any(String.class));
         doReturn(distributedAtomicInteger).when(distributedAtomicIntegerBuilder).build();
         
         drService.setDistributedAtomicIntegerBuilder(distributedAtomicIntegerBuilder);

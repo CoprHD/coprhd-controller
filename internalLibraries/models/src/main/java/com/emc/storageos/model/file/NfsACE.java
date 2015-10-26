@@ -48,7 +48,7 @@ public class NfsACE implements Serializable {
         MULTIPLE_DOMAINS_FOUND
     }
 
-    @XmlElement(name = "domain")
+    @XmlElement(name = "domain", required = false)
     public String getDomain() {
         return domain;
     }

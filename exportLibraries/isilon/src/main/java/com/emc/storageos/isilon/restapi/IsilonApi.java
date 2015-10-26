@@ -5,7 +5,6 @@
 
 package com.emc.storageos.isilon.restapi;
 
-import java.io.BufferedReader;
 import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.URI;
@@ -1261,7 +1260,7 @@ public class IsilonApi {
 	 * Checks to see if the NFSv4 service is enabled on the isilon device
 	 * 
 	 * @param fspath
-	 *            directory path to chek
+	 *            directory path to check
 	 * @return boolean true if exists, false otherwise
 	 */
 	public boolean nfsv4Enabled() throws IsilonException {
@@ -1282,17 +1281,12 @@ public class IsilonApi {
 					isNfsv4Enabled);
 
 		} catch (Exception e) {
-			if (e.getCause() instanceof ConnectException) {
 				throw IsilonException.exceptions.unableToConnect(_baseUrl, e);
-			}
-			final Status status = resp != null ? resp.getClientResponseStatus()
-					: Status.NOT_FOUND;
 		} finally {
 			if (resp != null) {
 				resp.close();
 			}
 		}
-
 		return isNfsv4Enabled;
 	}
 

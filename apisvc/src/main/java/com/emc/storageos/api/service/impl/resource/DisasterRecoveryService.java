@@ -64,6 +64,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
@@ -115,24 +116,27 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteRestRep addStandby(SiteAddParam param) {
         log.info("Retrieving standby site config from: {}", param.getVip());
-        
-        String siteId = null;
-        
+
+        VirtualDataCenter vdc = queryLocalVDC();
+        List<Site> existingSites = drUtil.listStandbySites();
+
+        // parameter validation and precheck
+        validateAddParam(param,existingSites);
+        precheckStandbyVersion(param);
+
+        ViPRCoreClient viprCoreClient;
+        SiteConfigRestRep standbyConfig;
         try {
-            VirtualDataCenter vdc = queryLocalVDC();
-            List<Site> existingSites = drUtil.listStandbySites();
-
-            // parameter validation and precheck
-            validateAddParam(param,existingSites);
-            precheckStandbyVersion(param);
-
-            ViPRCoreClient viprCoreClient = createViPRCoreClient(param.getVip(),param.getUsername(),param.getPassword());
-
-            SiteConfigRestRep standbyConfig = viprCoreClient.site().getStandbyConfig();
-            siteId = standbyConfig.getUuid();
-
-            precheckForStandbyAttach(standbyConfig);
-            
+            viprCoreClient = createViPRCoreClient(param.getVip(),param.getUsername(),param.getPassword());
+            standbyConfig = viprCoreClient.site().getStandbyConfig();
+        } catch (Exception e) {
+            log.error("Unexpected error when retrieving standby config", e);
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Cannot retrieve config from standby site");
+        }
+        
+        String siteId = standbyConfig.getUuid();
+        precheckForStandbyAttach(standbyConfig);
+        try {
             Site standbySite = new Site();
             standbySite.setCreationTime((new Date()).getTime());
             standbySite.setName(param.getName());
@@ -531,63 +535,50 @@ public class DisasterRecoveryService {
      * Internal method to check whether standby can be attached to current primary site
      */
     protected void precheckForStandbyAttach(SiteConfigRestRep standby) {
-        try {
-            if (!isClusterStable()) {
-                throw new Exception("Current site is not stable");
-            }
+        if (!isClusterStable()) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Current site is not stable");
+        }
 
-            if (!standby.isClusterStable()) {
-                throw new Exception("Remote site is not stable");
-            }
+        if (!standby.isClusterStable()) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Remote site is not stable");
+        }
 
-            //standby should be refresh install
-            if (!standby.isFreshInstallation()) {
-                throw new Exception("Standby is not a fresh installation");
-            }
-            
-            //DB schema version should be same
-            String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
-            String standbyDbSchemaVersion = standby.getDbSchemaVersion();
-            if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
-                throw new Exception(String.format("Standby db schema version %s is not same as primary %s",
-                        standbyDbSchemaVersion, currentDbSchemaVersion));
-            }
-            
-            //this site should not be standby site
-            String primaryID = coordinator.getPrimarySiteId();
-            if (primaryID != null && !primaryID.equals(coordinator.getSiteId())) {
-                throw new Exception("This site is also a standby site");
-            }
-            
-            
-        } catch (Exception e) {
-            log.error("Standby information can't pass pre-check {}", e.getMessage());
-            throw APIException.internalServerErrors.addStandbyPrecheckFailed(e.getMessage());
+        //standby should be refresh install
+        if (!standby.isFreshInstallation()) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("Standby is not a fresh installation");
+        }
+        
+        //DB schema version should be same
+        String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
+        String standbyDbSchemaVersion = standby.getDbSchemaVersion();
+        if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Standby db schema version %s is not same as primary %s",
+                    standbyDbSchemaVersion, currentDbSchemaVersion));
+        }
+        
+        //this site should not be standby site
+        String primaryID = coordinator.getPrimarySiteId();
+        if (primaryID != null && !primaryID.equals(coordinator.getSiteId())) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed("This site is also a standby site");
         }
     }
 
     protected void precheckStandbyVersion(SiteAddParam standby){
+        ViPRSystemClient viprSystemClient = createViPRSystemClient(standby.getVip(),standby.getUsername(),standby.getPassword());
+
+        //software version should be matched
+        SoftwareVersion currentSoftwareVersion;
+        SoftwareVersion standbySoftwareVersion;
         try {
-            ViPRSystemClient viprSystemClient = createViPRSystemClient(standby.getVip(),standby.getUsername(),standby.getPassword());
-
-            //software version should be matched
-            SoftwareVersion currentSoftwareVersion;
-            SoftwareVersion standbySoftwareVersion;
-            try {
-                currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
-                standbySoftwareVersion = new SoftwareVersion(viprSystemClient.upgrade().getTargetVersion().getTargetVersion());
-            } catch (Exception e) {
-                throw new Exception(String.format("Fail to get software version %s", e.getMessage()));
-            }
-
-            if (!isVersionMatchedForStandbyAttach(currentSoftwareVersion,standbySoftwareVersion)) {
-                throw new Exception(String.format("Standby site version %s is not equals to current version %s",
-                        standbySoftwareVersion, currentSoftwareVersion));
-            }
-
+            currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
+            standbySoftwareVersion = new SoftwareVersion(viprSystemClient.upgrade().getTargetVersion().getTargetVersion());
         } catch (Exception e) {
-            log.error("Standby information can't pass pre-check {}", e.getMessage());
-            throw APIException.internalServerErrors.addStandbyPrecheckFailed(e.getMessage());
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Fail to get software version %s", e.getMessage()));
+        }
+
+        if (!isVersionMatchedForStandbyAttach(currentSoftwareVersion,standbySoftwareVersion)) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Standby site version %s is not equals to current version %s",
+                    standbySoftwareVersion, currentSoftwareVersion));
         }
     }
     
@@ -603,7 +594,7 @@ public class DisasterRecoveryService {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
-                throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Site %s is not stable %s", site.getName(), state));
+                throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Site %s is not stable", site.getName()));
             }
         }
     }

@@ -414,7 +414,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             overLoaded = TRUE;
         }
         
-        double percentageLoadExports = 0;
+        double percentageLoadExports = 0.0;
         //percentage calculator
         if (totalExports > 0) {
             percentageLoadExports = ((double) (totalExports) / maxExports) * 100;

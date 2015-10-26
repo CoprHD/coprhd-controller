@@ -194,6 +194,7 @@ public class FileStorageScheduler {
 
             if (vNAS.getStorageDeviceURI().equals(storageDevice)) {
                 fRec.setStoragePorts(storagePortURIList);
+                fRec.setvNAS(vNAS.getId());
                 fileRecommendations.add(fRec);
             }
 

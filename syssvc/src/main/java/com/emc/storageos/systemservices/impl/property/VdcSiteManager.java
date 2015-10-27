@@ -771,6 +771,9 @@ public class VdcSiteManager extends AbstractManager {
                 site.setState(SiteState.STANDBY_SYNCED);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
             }
+            
+            log.info("Restart controller service in old primary after planned failover");
+            localRepository.restart("controllersvc");
         }
         
         if (site.getState().equals(SiteState.STANDBY_PLANNED_FAILOVERING)) {
@@ -789,8 +792,8 @@ public class VdcSiteManager extends AbstractManager {
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
             }
             
-            //log.info("Restart controller service after planned failover");
-            //localRepository.restart("controllersvc");
+            log.info("Restart controller service in new primary after planned failover");
+            localRepository.restart("controllersvc");
         }
     }
 }

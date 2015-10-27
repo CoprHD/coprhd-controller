@@ -255,7 +255,7 @@ public class FileDeviceController implements FileController {
 
             Project proj = _dbClient.queryObject(Project.class, fsObj.getProject());
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fsObj.getTenant());
-            URI vNASUri = fsObj.getVituralNAS();
+            URI vNASUri = fsObj.getVirtualNAS();
             
             if(vNASUri != null) {
             	VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
@@ -500,7 +500,7 @@ public class FileDeviceController implements FileController {
                 args.addFSFileObject(fs);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
                 args.addStoragePool(pool);
-                URI vNASUri = fs.getVituralNAS();
+                URI vNASUri = fs.getVirtualNAS();
                 if(vNASUri != null) {
                 	vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
                 	args.setvNAS(vNAS);
@@ -513,7 +513,7 @@ public class FileDeviceController implements FileController {
                 args.addSnapshotFileObject(snapshotObj);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
                 args.addStoragePool(pool);
-                URI vNASUri = fs.getVituralNAS();
+                URI vNASUri = fs.getVirtualNAS();
                 if(vNASUri != null) {
                 	vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
                 	args.setvNAS(vNAS);
@@ -867,7 +867,7 @@ public class FileDeviceController implements FileController {
                 fileObject = fsObj;
                 args.addFSFileObject(fsObj);
                 args.setFileOperation(true);
-                URI vNASUri = fsObj.getVituralNAS();
+                URI vNASUri = fsObj.getVirtualNAS();
                 vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
                 args.setvNAS(vNAS);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
@@ -896,7 +896,7 @@ public class FileDeviceController implements FileController {
                 fsObj = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
                 args.addFileShare(fsObj);
                 args.setFileOperation(false);
-                URI vNASUri = fsObj.getVituralNAS();
+                URI vNASUri = fsObj.getVirtualNAS();
                 vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
                 args.setvNAS(vNAS);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);

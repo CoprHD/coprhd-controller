@@ -2388,6 +2388,7 @@ public class VolumeIngestionUtil {
         while (resultsIter.hasNext()) {
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, resultsIter.next());
             snapSession.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+            updatedObjects.add(snapSession);
         }
 
         if (isVplexBackendVolume) {

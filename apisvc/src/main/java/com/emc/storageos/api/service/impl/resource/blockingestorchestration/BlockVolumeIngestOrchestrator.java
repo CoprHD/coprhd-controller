@@ -51,6 +51,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
 
         Volume volume = null;
+        List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
 
         URI unManagedVolumeUri = unManagedVolume.getId();
         String volumeNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
@@ -145,6 +146,10 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                     "Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
                     unManagedVolume.getNativeGuid());
             volume.addInternalFlags(INTERNAL_VOLUME_FLAGS);
+            for (BlockSnapshotSession snapSession : snapSessions) {
+                snapSession.addInternalFlags(INTERNAL_VOLUME_FLAGS);
+            }
+            _dbClient.updateAndReindexObject(snapSessions);
         }
 
         return clazz.cast(volume);

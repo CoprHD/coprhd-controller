@@ -54,9 +54,11 @@ public class FileStorageScheduler {
     public final Logger _log = LoggerFactory
             .getLogger(FileStorageScheduler.class);
 
+    private static final String ENABLE_METERING = "enable-metering";
     private DbClient _dbClient;
     private StorageScheduler _scheduler;
     private CustomConfigHandler customConfigHandler;
+    private Map<String, String> configInfo;
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -70,7 +72,15 @@ public class FileStorageScheduler {
         this.customConfigHandler = customConfigHandler;
     }
 
-    /**
+    public Map<String, String> getConfigInfo() {
+		return configInfo;
+	}
+
+	public void setConfigInfo(Map<String, String> configInfo) {
+		this.configInfo = configInfo;
+	}
+
+	/**
      * Schedule storage for fileshare in the varray with the given CoS
      * capabilities.
      * 
@@ -92,10 +102,18 @@ public class FileStorageScheduler {
         // to hold at least one resource of the requested size.
         List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray,
                 vPool, capabilities);
+        
+        // Holds the invalid virtual nas servers from both 
+        // assigned and un-assigned list.
+        // the invalid vnas server clould be
+        // over loaded or protocol not supported or 
+        // the ports from these invalid vnas servers
+        // should not be considered for file provisioning!!!
+        List<VirtualNAS> invalidNasServers = new ArrayList<VirtualNAS>();
 
         // Get the recommendation based on virtual nas servers
         Map<VirtualNAS, List<StoragePool>> vNASPoolMap = getRecommendedVirtualNASBasedOnCandidatePools(
-                vPool, vArray.getId(), candidatePools, project);
+                vPool, vArray.getId(), candidatePools, project, invalidNasServers);
 
         VirtualNAS currvNAS = null;
         List<FileRecommendation> fileRecommendations = null;
@@ -134,8 +152,7 @@ public class FileStorageScheduler {
                     	break;
                     } 
                 }
-            }
-            
+            } 
         }
         
         // In case of
@@ -151,7 +168,7 @@ public class FileStorageScheduler {
                             candidatePools, capabilities);
             
             fileRecommendations = selectStorageHADomainMatchingVpool(vPool,
-                    vArray.getId(), poolRecommendations); 
+                    vArray.getId(), poolRecommendations, invalidNasServers); 
         }
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
@@ -308,7 +325,8 @@ public class FileStorageScheduler {
      */
     private Map<VirtualNAS, List<StoragePool>> getRecommendedVirtualNASBasedOnCandidatePools(
             VirtualPool vPool, URI vArrayURI,
-            List<StoragePool> candidatePools, Project project) {
+            List<StoragePool> candidatePools, Project project,
+            List<VirtualNAS> invalidNasServers) {
 
         Map<VirtualNAS, List<StoragePool>> map = new LinkedHashMap<VirtualNAS, List<StoragePool>>();
 
@@ -317,30 +335,39 @@ public class FileStorageScheduler {
                 project.getLabel());
 
         List<VirtualNAS> vNASList = getVNASServersInProject(project, vArrayURI,
-                vPool);
+                vPool, invalidNasServers);
 
         if (vNASList == null || vNASList.isEmpty()) {
             _log.info(
                     "Get matching recommendations based on un-assigned VNAS in varray {}",
                     vArrayURI);
-            vNASList = getUnassignedVNASServers(vArrayURI, vPool);
+            vNASList = getUnassignedVNASServers(vArrayURI, vPool, project, invalidNasServers);
         }
 
         if (vNASList != null && !vNASList.isEmpty()) {
-
-            String dynamicPerformanceEnabled = customConfigHandler.getComputedCustomConfigValue(
-                    CustomConfigConstants.NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED, "vnxfile", null);
-
-            _log.info("NAS dynamic performance placement enabled? : {}", dynamicPerformanceEnabled);
-
-            if (Boolean.valueOf(dynamicPerformanceEnabled)) {
-                _log.debug("Considering dynamic load to sort virtual NASs");
-                sortVNASListOnDyanamicLoad(vNASList);
-            } else {
-                _log.debug("Considering static load to sort virtual NASs");
-                sortVNASListOnStaticLoad(vNASList);
-            }
-
+        	
+        	boolean meteringEnabled = Boolean.parseBoolean(configInfo.get(ENABLE_METERING));
+        	
+        	if(meteringEnabled) {
+        		
+        		_log.info("Metering collection is enabled. Sort  vNAS list based on performance.");
+        		
+	            String dynamicPerformanceEnabled = customConfigHandler.getComputedCustomConfigValue(
+	                    CustomConfigConstants.NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED, "vnxfile", null);
+	
+	            _log.info("NAS dynamic performance placement enabled? : {}", dynamicPerformanceEnabled);
+	
+	            if (Boolean.valueOf(dynamicPerformanceEnabled)) {
+	                _log.debug("Considering dynamic load to sort virtual NASs");
+	                sortVNASListOnDyanamicLoad(vNASList);
+	            } else {
+	                _log.debug("Considering static load to sort virtual NASs");
+	                sortVNASListOnStaticLoad(vNASList);
+	            }
+	
+	        } else {
+	        	Collections.shuffle(vNASList);
+	        }
         }
 
         for (VirtualNAS vNAS : vNASList) {
@@ -444,7 +471,8 @@ public class FileStorageScheduler {
      * 
      */
     private List<VirtualNAS> getUnassignedVNASServers(URI vArrayURI,
-            VirtualPool vpool) {
+            VirtualPool vpool, Project project,
+            List<VirtualNAS> invalidNasServers ) {
 
         List<VirtualNAS> vNASList = new ArrayList<VirtualNAS>();
 
@@ -459,26 +487,32 @@ public class FileStorageScheduler {
             for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator
                     .hasNext();) {
                 VirtualNAS vNAS = iterator.next();
-                // Remove vNAS assigned to projects
-                if (!NullColumnValueGetter.isNullURI(vNAS.getProject())) {
-                    _log.debug("Removing vNAS {} as it is assigned to project",
-                            vNAS.getId());
-                    iterator.remove();
-                } else if (!isVNASActive(vNAS)) {
+                
+                if (!isVNASActive(vNAS)) {
                     _log.debug("Removing vNAS {} as it is inactive",
                             vNAS.getId());
                     iterator.remove();
+                    invalidNasServers.add(vNAS);
                 } else if (MetricsKeys.getBoolean(MetricsKeys.overLoaded,
                         vNAS.getMetrics())) {
                     _log.debug("Removing vNAS {} as it is overloaded",
                             vNAS.getId());
                     iterator.remove();
+                    invalidNasServers.add(vNAS);
                 } else if (!vNAS.getProtocols().containsAll(
                         vpool.getProtocols())) {
                     _log.debug("Removing vNAS {} as it does not support vpool protocols: {}",
                             vNAS.getId(), vpool.getProtocols());
                     iterator.remove();
-                }
+                    invalidNasServers.add(vNAS);
+                } else if (!NullColumnValueGetter.isNullURI(vNAS.getProject())) {
+                	if ( !project.getId().equals(vNAS.getProject()) ) {
+                		_log.debug("Removing vNAS {} as it is assigned to project",
+                    			vNAS.getId());
+                		iterator.remove();
+                		invalidNasServers.add(vNAS);
+                	} 
+                } 
             }
         }
         if (vNASList != null) {
@@ -567,7 +601,8 @@ public class FileStorageScheduler {
      * 
      */
     private List<VirtualNAS> getVNASServersInProject(Project project,
-            URI varrayUri, VirtualPool vpool) {
+            URI varrayUri, VirtualPool vpool,
+            List<VirtualNAS> invalidNasServers) {
 
         List<VirtualNAS> vNASList = null;
 
@@ -596,21 +631,26 @@ public class FileStorageScheduler {
                 if (!isVNASActive(virtualNAS)) {
                     _log.debug("Removing vNAS {} as it is inactive", virtualNAS.getId());
                     iterator.remove();
+                    invalidNasServers.add(virtualNAS);
+                    
                 } else if (!virtualNAS.getAssignedVirtualArrays().contains(
                         varrayUri.toString())) {
                     _log.debug("Removing vNAS {} as it is not part of varray: {}",
                             virtualNAS.getId(), varrayUri.toString());
                     iterator.remove();
+                    invalidNasServers.add(virtualNAS);
                 } else if (MetricsKeys.getBoolean(MetricsKeys.overLoaded,
                         virtualNAS.getMetrics())) {
                     _log.debug("Removing vNAS {} as it is overloaded",
                             virtualNAS.getId());
                     iterator.remove();
+                    invalidNasServers.add(virtualNAS);
                 } else if (!virtualNAS.getProtocols().containsAll(
                         vpool.getProtocols())) {
                     _log.debug("Removing vNAS {} as it does not support vpool protocols: {}",
                             virtualNAS.getId(), vpool.getProtocols());
                     iterator.remove();
+                    invalidNasServers.add(virtualNAS);
                 }
             }
 
@@ -738,6 +778,24 @@ public class FileStorageScheduler {
         }
     }
 
+    private List<URI> getvNasStoragePortUris(List<VirtualNAS> invalidNasServers) {
+
+    	List<URI> spUriList = new ArrayList<URI>();
+
+    	for ( VirtualNAS vNas : invalidNasServers ) {
+
+    		StringSet spIdSet = vNas.getStoragePorts();
+    		if (spIdSet != null && !spIdSet.isEmpty()) {
+    			for (String id : spIdSet) {
+    				spUriList.add(URI.create(id));
+    			}
+    		}
+    	}	
+    	return spUriList;
+    }
+    	
+    
+    
     /**
      * Select the right StorageHADomain matching vpool protocols.
      * 
@@ -748,7 +806,11 @@ public class FileStorageScheduler {
      * @return list of FileRecommendation
      */
     private List<FileRecommendation> selectStorageHADomainMatchingVpool(
-            VirtualPool vpool, URI vArray, List<Recommendation> poolRecommends) {
+            VirtualPool vpool, URI vArray, List<Recommendation> poolRecommends,
+            List<VirtualNAS> invalidNasServers) {
+    	
+    	// Get the storage ports from invalid vnas servers!!!
+    	List<URI> invalidPorts = getvNasStoragePortUris(invalidNasServers);
 
         _log.debug("select matching StorageHADomain");
         List<FileRecommendation> result = new ArrayList<FileRecommendation>();
@@ -765,6 +827,7 @@ public class FileStorageScheduler {
             if (!storage.getSystemType().equals(Type.netapp.toString())
                     && !storage.getSystemType().equals(Type.netappc.toString())
                     && !storage.getSystemType().equals(Type.vnxe.toString())
+                    && !storage.getSystemType().equals(Type.vnxfile.toString())
                     && !storage.getSystemType().equals(
                             Type.datadomain.toString())) {
                 result.add(rec);
@@ -780,8 +843,15 @@ public class FileStorageScheduler {
             }
 
             List<URI> storagePorts = new ArrayList<URI>();
+            boolean foundValidPort = false;
             for (StoragePort port : portList) {
-
+            	if ( invalidPorts.contains(port.getId()) ) {
+            		_log.debug("Storage port {} belongs to invalid vNas server ",
+                            port.getIpAddress());
+            		continue;
+            	}
+                
+            	foundValidPort = true;
                 _log.debug("Looking for port {}", port.getLabel());
                 URI haDomainUri = port.getStorageHADomain();
                 // Data Domain does not have a filer entity.
@@ -822,12 +892,18 @@ public class FileStorageScheduler {
 
             // select storage port randomly from all candidate ports (to
             // minimize collisions).
-            Collections.shuffle(storagePorts);
-            rec.setStoragePorts(storagePorts);
-            result.add(rec);
+            if ( foundValidPort ) {
+            	Collections.shuffle(storagePorts);
+            	rec.setStoragePorts(storagePorts);
+            	result.add(rec);
+            } else {
+            	_log.info("No valid storage port found from the storage system : "
+            			+ storageUri
+            			+ ", All ports belongs to invalid vNas "
+                        );
+            }
         }
         return result;
-
     }
 
 }

@@ -14,14 +14,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.fapiclient.ws.ClusterUID;
+import com.emc.fapiclient.ws.ConsistencyGroupCopySettings;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySnapshots;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyState;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyUID;
+import com.emc.fapiclient.ws.ConsistencyGroupLinkSettings;
 import com.emc.fapiclient.ws.ConsistencyGroupLinkState;
 import com.emc.fapiclient.ws.ConsistencyGroupSettings;
 import com.emc.fapiclient.ws.ConsistencyGroupState;
 import com.emc.fapiclient.ws.ConsistencyGroupUID;
 import com.emc.fapiclient.ws.ExecutionState;
+import com.emc.fapiclient.ws.FullConsistencyGroupPolicy;
 import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIImpl;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
@@ -76,11 +79,10 @@ public class RecoverPointImageManagementUtils {
         Snapshot snapshotToEnable = null;
         try {
             cgCopyName = impl.getGroupCopyName(cgCopy);
-            cgName = impl.getGroupName(cgCopy.getGroupUID());
-
+            cgName = impl.getGroupName(cgCopy.getGroupUID());            
 			if (waitForLinkState) {
 				// Make sure the CG is ready for enable
-				waitForCGLinkState(impl, cgCopy.getGroupUID(), PipeState.ACTIVE);
+				waitForCGLinkState(impl, cgCopy.getGroupUID(), RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopy.getGroupUID()));
 			}
 
             if (bookmarkName == null) {
@@ -345,9 +347,9 @@ public class RecoverPointImageManagementUtils {
 			cgCopyName = impl.getGroupCopyName(cgCopyUID);
 			cgName = impl.getGroupName(cgCopyUID.getGroupUID());
 			logger.info("Restore the image to copy name: " + cgCopyName + " for CG Name: " + cgName);
-			recoverProductionAndWait(impl, cgCopyUID);
+			recoverProductionAndWait(impl, cgCopyUID);			
         	// For restore, just wait for link state of the copy being restored
-			waitForCGLinkState(impl, cgCopyUID.getGroupUID(), PipeState.ACTIVE);
+			waitForCGLinkState(impl, cgCopyUID.getGroupUID(), RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopyUID.getGroupUID()));
 			logger.info("Successful restore to copy name: " + cgCopyName + " for CG Name: " + cgName);
 		} catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToFailoverCopy(cgCopyName, cgName, e);
@@ -967,9 +969,14 @@ public class RecoverPointImageManagementUtils {
                             allLinksInDesiredState = false;
                             break;
                         }
+                    } else if (PipeState.SNAP_IDLE.equals(desiredPipeState)) {
+                    	 if (PipeState.SNAP_IDLE.equals(pipeState) || PipeState.SNAP_SHIPPING.equals(pipeState)) {
+                             allLinksInDesiredState = true;
+                             break;
+                    	 }
                     } else {
-                        // Other desired states (like UNKNOWN [inactive])
-                        if (pipeState.equals(desiredPipeState)) {
+                        // Other desired states (like UNKNOWN [inactive])                    	
+                    	if (pipeState.equals(desiredPipeState)) {
                             logger.info("CG link state matches the desired state.");
                             allLinksInDesiredState = true;
                         } else {
@@ -1169,5 +1176,52 @@ public class RecoverPointImageManagementUtils {
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.failedToEnableCopy(cgCopyName, cgName, e);
         }
+    } 
+    
+    /**
+     * Determines if the specified consistency group is using snapshot technology
+     * 
+     * @param impl the FAPI reference.
+     * @param cgCopyUID the copy to be set as the production copy.
+     * @throws RecoverPointException
+     * @return boolean indicating if snapshot technology is being used
+     */
+    private static boolean isSnapShotTechnologyEnabled(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID) throws RecoverPointException {       
+    	String cgName = "unknown";
+    	try {
+        	cgName = impl.getGroupName(cgUID);
+            ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgUID);                       
+            List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();                                  
+            for (ConsistencyGroupCopySettings copySetting  : copySettings) {
+            	if (copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() != null &&
+            			copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots()	> 0) {
+            		logger.info("Setting link state for snapshot technology.");
+            		return true;
+            	}            	
+            }
+        } catch (FunctionalAPIActionFailedException_Exception e) {
+            throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
+        } catch (FunctionalAPIInternalError_Exception e) {
+            throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
+        }
+		return false; 
+    }
+    
+    /**
+     * Determines the active pipe state to be looking for when the
+     * when the link is not-snapshot enabled or the link is snapshot enabled
+     * 
+     * @param impl the FAPI reference
+     * @param cgUID The consistency group being examined
+     * @return PipeState indicating the active state of the link
+     *         PipeState.ACTIVE for non-snapshot links
+     *         PipeState.SNAP_IDLE for snapshot enabled links  
+     */
+    public static PipeState getPipeActiveState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID) {
+    	PipeState pipeState = PipeState.ACTIVE;
+    	if (isSnapShotTechnologyEnabled(impl, cgUID)) {
+            pipeState = PipeState.SNAP_IDLE;
+        }
+    	return pipeState;
     }
 }

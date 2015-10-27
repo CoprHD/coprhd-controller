@@ -3388,24 +3388,6 @@ public class VPlexApiDiscoveryManager {
                     VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
                             responseStr, VPlexStorageVolumeInfo.class);
 
-            StringBuilder badComponentTypeMessage = new StringBuilder();
-            if (!storageVolumeInfoList.isEmpty()) {
-                s_logger.info("found these storage volumes for VPLEX device {}:", deviceName);
-                for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
-                    s_logger.info(info.toString());
-                    if (!VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
-                        badComponentTypeMessage.append("Unexpected component type ")
-                                .append(info.getComponentType()).append(" found for volume ")
-                                .append(info.getName()).append(". ");
-                    }
-                }
-            }
-
-            if (badComponentTypeMessage.length() > 0) {
-                s_logger.error(badComponentTypeMessage.toString());
-                throw VPlexApiException.exceptions.failedGettingStorageVolumeInfoForIngestion(badComponentTypeMessage.toString());
-            }
-
             s_logger.info("TIMER: getStorageVolumesForDevice took {}ms",
                     System.currentTimeMillis() - start);
 
@@ -3621,7 +3603,7 @@ public class VPlexApiDiscoveryManager {
                             componentDevice.getName());
                     break;
                 case VPlexApiConstants.ARG_GEOMETRY_RAID1:
-                    s_logger.info("top-level device geometry is raid-1 for component {}, need to find mirror info", 
+                    s_logger.info("top-level device geometry is raid-1 for component {}, need to find mirror info",
                             componentDevice.getName());
                     List<VPlexDeviceInfo> childDeviceInfos =
                             getDeviceComponentInfoForIngestion(componentDevice);
@@ -3703,11 +3685,11 @@ public class VPlexApiDiscoveryManager {
 
             switch (device.getGeometry().toLowerCase()) {
                 case VPlexApiConstants.ARG_GEOMETRY_RAID0:
-                    s_logger.info("top-level device geometry is raid-0 for device {}, no further info needed", 
+                    s_logger.info("top-level device geometry is raid-0 for device {}, no further info needed",
                             device.getName());
                     break;
                 case VPlexApiConstants.ARG_GEOMETRY_RAID1:
-                    s_logger.info("top-level device geometry is raid-1 for device {}, finding children", 
+                    s_logger.info("top-level device geometry is raid-1 for device {}, finding children",
                             device.getName());
                     List<VPlexDeviceInfo> componentDeviceInfoList =
                             getDeviceComponentInfoForIngestion(device);
@@ -3787,7 +3769,7 @@ public class VPlexApiDiscoveryManager {
         for (VPlexDeviceInfo device : deviceInfoList) {
             switch (device.getGeometry().toLowerCase()) {
                 case VPlexApiConstants.ARG_GEOMETRY_RAID0:
-                    s_logger.info("component device geometry is raid-0 for device {}, no further info needed", 
+                    s_logger.info("component device geometry is raid-0 for device {}, no further info needed",
                             device.getName());
                     break;
                 case VPlexApiConstants.ARG_GEOMETRY_RAID1:

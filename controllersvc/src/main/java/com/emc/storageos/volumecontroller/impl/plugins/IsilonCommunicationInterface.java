@@ -336,14 +336,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonApi.IsilonList<IsilonSmartQuota> quotas = null;
         do {
             quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
+            long provisioned = 0;
             if(quotas != null && quotas.size() > 0) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
-                    if(quota.getThresholds().getHard() != null ) {
-                        totalProvCap = totalProvCap + quota.getThresholds().getHard();
+                        provisioned = quota.getThresholds().getHard();
+                        totalProvCap = totalProvCap + provisioned;
                         totalFsCount ++;
-                    } else {
-                        _log.info("Not able to get quota for fs: {}", quota.getPath());
-                    }
                 }
                 resumeToken = quotas.getToken();
             }

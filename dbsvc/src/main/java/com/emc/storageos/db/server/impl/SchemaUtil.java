@@ -899,6 +899,11 @@ public class SchemaUtil {
             _log.info("Check bootstrap info on standby");
             Site currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
 
+            if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+                currentSite.setState(SiteState.STANDBY_SYNCING);
+                _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
+            }
+
             if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
                 Thread dbRebuildThread = new Thread(dbRebuildRunnable);
                 dbRebuildThread.start();

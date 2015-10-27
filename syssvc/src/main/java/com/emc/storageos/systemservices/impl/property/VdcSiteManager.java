@@ -71,8 +71,11 @@ public class VdcSiteManager extends AbstractManager {
 
     // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
     private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
-    // Timeout in minutes for data sync. If data synchronization takes long than this value, set site to error
-    public static final long DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
+    // Timeout in minutes for add/resume/data sync
+    // If data synchronization takes long than this value, set site to error
+    public static final int ADD_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
+    public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
+    public static final int DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     
     // data revision time out - 11 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
@@ -229,7 +232,12 @@ public class VdcSiteManager extends AbstractManager {
             }
 
             // Step5: set site error state if on primary
-            updateSiteErrors();
+            try {
+                updateSiteErrors();
+            } catch (RuntimeException e) {
+                log.error("Step5: Failed to set site errors. {}", e);
+                continue;
+            }
 
             // Step6: sleep
             log.info("Step6: sleep");
@@ -786,20 +794,50 @@ public class VdcSiteManager extends AbstractManager {
 
         for(Configuration config : coordinatorClient.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
-            if (localSite.getVdc().equals(site.getVdc())) { // sites that belong to the local vdc
-                SiteInfo targetSiteInfo = coordinatorClient.getTargetInfo(site.getUuid(), SiteInfo.class);
+            if (!localSite.getVdc().equals(site.getVdc())) {
+                // sites that don't belong to the local vdc
+                continue;
+            }
 
-                if (SiteState.STANDBY_SYNCING.equals(site.getState())
-                        && (new Date()).getTime() - targetSiteInfo.getVdcConfigVersion() > DATA_SYNC_TIMEOUT_MILLIS) {
-                    log.info("Step5: Site {} set to error due to data sync timeout", site.getName());
-                    SiteError error = new SiteError(APIException.internalServerErrors.dataSyncTimeout(
-                            DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
-                    coordinatorClient.setTargetInfo(site.getUuid(), error);
+            SiteError error = getSiteError(site);
+            if (error != null) {
+                coordinatorClient.setTargetInfo(site.getUuid(), error);
 
-                    site.setState(SiteState.STANDBY_ERROR);
-                    coordinatorClient.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
-                }
+                site.setState(SiteState.STANDBY_ERROR);
+                coordinatorClient.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
             }
         }
+    }
+
+    private SiteError getSiteError(Site site) {
+        SiteError error = null;
+        SiteInfo targetSiteInfo = coordinator.getCoordinatorClient().getTargetInfo(site.getUuid(), SiteInfo.class);
+        long lastSiteUpdateTime = targetSiteInfo.getVdcConfigVersion();
+        long currentTime = System.currentTimeMillis();
+
+        switch(site.getState()) {
+            case STANDBY_ADDING:
+                if (currentTime - lastSiteUpdateTime > ADD_STANDBY_TIMEOUT_MILLIS) {
+                    log.info("Step5: Site {} set to error due to add standby timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(
+                            ADD_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                }
+                break;
+            case STANDBY_RESUMING:
+                if (currentTime - lastSiteUpdateTime > RESUME_STANDBY_TIMEOUT_MILLIS) {
+                    log.info("Step5: Site {} set to error due to resume standby timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.resumeStandbyFailedTimeout(
+                            RESUME_STANDBY_TIMEOUT_MILLIS / 60 / 1000));
+                }
+                break;
+            case STANDBY_SYNCING:
+                if (currentTime - lastSiteUpdateTime > DATA_SYNC_TIMEOUT_MILLIS) {
+                    log.info("Step5: Site {} set to error due to data sync timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.dataSyncFailedTimeout(
+                            DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                }
+                break;
+        }
+        return error;
     }
 }

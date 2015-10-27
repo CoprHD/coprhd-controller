@@ -128,7 +128,7 @@ public class DisasterRecoveryService {
             String shortId = generateShortId(existingSites);
             standbySite.setStandbyShortId(shortId);
             standbySite.setDescription(param.getDescription());
-            standbySite.setState(SiteState.STANDBY_SYNCING);
+            standbySite.setState(SiteState.STANDBY_ADDING);
             if (log.isDebugEnabled()) {
                 log.debug(standbySite.toString());
             }

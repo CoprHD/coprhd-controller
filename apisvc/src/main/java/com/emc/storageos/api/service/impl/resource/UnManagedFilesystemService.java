@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
@@ -60,6 +61,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -262,9 +264,12 @@ public class UnManagedFilesystemService extends TaggedResource {
             List<FileExportRule> fsExportRules = new ArrayList<FileExportRule>();
 
             List<CifsShareACL> fsCifsShareAcls = new ArrayList<CifsShareACL>();
+            List<NFSShareACL> fsNfsShareAcls = new ArrayList<NFSShareACL>();
+            
 
             List<UnManagedFileExportRule> inActiveUnManagedExportRules = new ArrayList<UnManagedFileExportRule>();
             List<UnManagedCifsShareACL> inActiveUnManagedShareCifs = new ArrayList<UnManagedCifsShareACL>();
+            List<UnManagedNFSShareACL> inActiveUnManagedShareNfs = new ArrayList<UnManagedNFSShareACL>();
 
             // cifs share acl's
             List<CifsShareACL> cifsShareACLList = new ArrayList<CifsShareACL>();
@@ -483,6 +488,39 @@ public class UnManagedFilesystemService extends TaggedResource {
                                 inActiveUnManagedShareCifs.add(umCifsAcl);
                             }
                         }
+                        
+                        List<UnManagedNFSShareACL> nfsACLs = queryDBNfsShares(unManagedFileSystem);
+                        if (nfsACLs != null && !nfsACLs.isEmpty()) {
+                            for (UnManagedNFSShareACL umNfsAcl : nfsACLs) {
+                                // Step 2 : Convert them to Cifs Share ACL
+                                // Step 3 : Keep them as a list to store in db, down the line at a shot
+                                umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
+                                createNFSACL(umNfsAcl, fsNfsShareAcls, filesystem);
+                                // Step 4: Update the UnManaged Share ACL : Set Inactive as true
+                                umNfsAcl.setInactive(true);
+                                // Step 5 : Keep this list as updated.
+                                inActiveUnManagedShareNfs.add(umNfsAcl);
+                            }
+                        }
+                        
+                        _logger.info("Number of Cifs ACL Found : {} for UnManaged Fs path : {}", cifsACLs.size(),
+                                unManagedFileSystem.getMountPath());
+
+                        if (cifsACLs != null && !cifsACLs.isEmpty()) {
+                            for (UnManagedCifsShareACL umCifsAcl : cifsACLs) {
+                                // Step 2 : Convert them to Cifs Share ACL
+                                // Step 3 : Keep them as a list to store in db, down the line at a shot
+                                umCifsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
+                                createACL(umCifsAcl, fsCifsShareAcls, filesystem);
+                                // Step 4: Update the UnManaged Share ACL : Set Inactive as true
+                                umCifsAcl.setInactive(true);
+                                // Step 5 : Keep this list as updated.
+                                inActiveUnManagedShareCifs.add(umCifsAcl);
+                            }
+                        }
+
+                        
+                        
                     }
                 }
 
@@ -635,6 +673,21 @@ public class UnManagedFilesystemService extends TaggedResource {
 
         return new ArrayList<UnManagedCifsShareACL>();
     }
+    
+    private List<UnManagedNFSShareACL> queryDBNfsShares(UnManagedFileSystem fs)
+    {
+        _logger.info("Querying All Cifs Share ACLs Using FsId {}", fs.getId());
+        try {
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getUnManagedNfsShareAclsConstraint(fs.getId());
+            List<UnManagedNFSShareACL> nfsShareACLList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+            		UnManagedNFSShareACL.class, containmentConstraint);
+            return nfsShareACLList;
+        } catch (Exception e) {
+            _logger.error("Error while querying {}", e);
+        }
+
+        return new ArrayList<UnManagedNFSShareACL>();
+    }
 
     /**
      * copy unmanaged cifs share into new cifs share acls
@@ -781,6 +834,55 @@ public class UnManagedFilesystemService extends TaggedResource {
         _logger.info("share ACLs details {}", shareACL.toString());
 
     }
+    
+    
+    /**
+     * copy unmanaged nfs share into new nfs share acls
+     * 
+     * @param origACL
+     * @param shareACLList
+     * @param fileshare
+     */
+
+    private void createNFSACL(UnManagedNFSShareACL origACL, List<NFSShareACL> shareACLList, FileShare fileshare) {
+
+        NFSShareACL shareACL = new NFSShareACL();
+        
+        // user, permission, permission type
+        shareACL.setId(URIUtil.createId(CifsShareACL.class));
+
+        String user = origACL.getUser();
+        if (user != null) {
+            shareACL.setUser(user);
+        }
+
+        String permissionText = null;
+        switch (origACL.getPermissions().toLowerCase()) {
+            case "read":
+                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_READ;
+                
+                break;
+            case "change":
+                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_CHANGE;
+                break;
+            case "full":
+            case "fullcontrol":
+                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_FULLCONTROL;
+                break;
+        }
+        shareACL.setPermissions(permissionText);
+        // share name
+        shareACL.setFileSystemPath(origACL.getFileSystemPath());
+        // file system id
+        shareACL.setFileSystemId(fileshare.getId());
+
+        // Add new acl into ACL list
+        shareACLList.add(shareACL);
+        _logger.info("share ACLs details {}", shareACL.toString());
+
+    }
+
+    
 
     /**
      * Generate and Record a Bourne filesystem specific event

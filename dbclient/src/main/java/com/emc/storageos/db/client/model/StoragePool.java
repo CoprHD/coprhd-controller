@@ -190,7 +190,8 @@ public class StoragePool extends VirtualArrayTaggedResource {
         block,
         file,
         object,
-        block_file;
+        block_file,
+        vasa;
     }
 
     // tells the type of pool in which it belongs Ex. block, file, object.

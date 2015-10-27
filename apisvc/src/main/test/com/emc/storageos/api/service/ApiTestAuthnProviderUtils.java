@@ -5,13 +5,23 @@
 
 package com.emc.storageos.api.service;
 
+import com.emc.storageos.api.ldap.exceptions.DirectoryOrFileNotFoundException;
+import com.emc.storageos.api.ldap.exceptions.FileOperationFailedException;
+import com.emc.storageos.api.ldap.ldapserver.LDAPServer;
 import com.emc.storageos.model.auth.AuthnCreateParam;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.auth.AuthnUpdateParam;
 import com.emc.storageos.services.util.EnvConfig;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldif.LDIFException;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.net.BindException;
 import java.net.URI;
+import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -23,6 +33,8 @@ import java.util.Set;
  * other tests.
  */
 public class ApiTestAuthnProviderUtils {
+    private final Logger _log = LoggerFactory.getLogger(this.getClass());
+
     private static final String AUTHN_PROVIDER_BASE_URL = "/vdc/admin/authnproviders";
     private static final String AUTHN_PROVIDER_EDIT_URL = AUTHN_PROVIDER_BASE_URL + "/%s";
 
@@ -31,10 +43,10 @@ public class ApiTestAuthnProviderUtils {
     private static final String DEFAULT_TEST_LDAP_AUTHN_PROVIDER_MODE = "ldap";
 
     private static final String DEFAULT_TEST_LDAP_SERVER_URL = "ldap://" + EnvConfig.get("sanity", "ldap2.ip");
-    private static final String DEFAULT_TEST_LDAP_SERVER_DOMIN = "maxcrc.com";
-    private static final String DEFAULT_TEST_LDAP_SERVER_MANAGER_DN = "cn=Manager,dc=maxcrc,dc=com";
+    private static final String DEFAULT_TEST_LDAP_SERVER_DOMIN = "apitest.com";
+    private static final String DEFAULT_TEST_LDAP_SERVER_MANAGER_DN = "cn=Manager,dc=apitest,dc=com";
     private static final String DEFAULT_TEST_LDAP_SERVER_MANAGER_DN_PWD = "secret";
-    private static final String DEFAULT_TEST_LDAP_SERVER_SEARCH_BASE = "ou=vipr,dc=maxcrc,dc=com";
+    private static final String DEFAULT_TEST_LDAP_SERVER_SEARCH_BASE = "dc=apitest,dc=com";
     private static final String DEFAULT_TEST_LDAP_SERVER_SEARCH_SCOPE = "SUBTREE";
     private static final String DEFAULT_TEST_LDAP_SERVER_SEARCH_FILTER = "uid=%U";
     private static final String DEFAULT_TEST_LDAP_SERVER_GROUP_ATTRIBUTE = "CN";
@@ -56,7 +68,8 @@ public class ApiTestAuthnProviderUtils {
     // MarketingNew - groupOfUniqueNames object class.
     // MarketingOuter - groupOfUniqueNames object class.
     private static final String[] DEFAULT_TEST_LDAP_GROUPS = { "ldapViPRUserGroup", "ldapViPRUserGroupNew", "ldapViPRUserGroupOrgRole",
-            "ldapViPRUniqueNameGroup", "ldapViPRPosixGroup", "ldapViPRUserGroupNewOuter", "Marketing", "MarketingNew", "MarketingOuter" };
+            "ldapViPRUniqueNameGroup", "ldapViPRPosixGroup", "ldapViPRUserGroupNewOuter", "Marketing", "MarketingNew", "MarketingOuter",
+            "ldapViPRUserGroupTwo"};
 
     // ldapViPRUser1 - is a member of ldapViPRUserGroup and Marketing.
     // ldapViPRUser2, ldapViPRUser4, ldapViPRUserGroup - is a member of ldapViPRUserGroupNew.
@@ -71,13 +84,26 @@ public class ApiTestAuthnProviderUtils {
     private static final String[] DEFAULT_TEST_LDAP_USERS_UID = { "ldapViPRUser1", "ldapViPRUser2", "ldapViPRUser3", "ldapViPRUser4",
             "ldapViPRUser5", "ldapViPRUser6", "ldapViPRUser7", "ldapViPRUser8", "ldapViPRUser9" };
 
-    private static final String DEFAULT_TEST_LDAP_SERVER_NON_MANAGER_BIND_DN = "uid=ldapViPRUser1,ou=Users,ou=ViPR,dc=maxcrc,dc=com";
+    private static final String DEFAULT_TEST_LDAP_SERVER_NON_MANAGER_BIND_DN = "uid=ldapViPRUser1,ou=Users,ou=ViPR,dc=apitest,dc=com";
 
     private static final String DEFAULT_TEST_TENANT_USERS_PASS_WORD = "secret";
 
     private static final String[] TEST_DEFAULT_ATTRIBUTE_KEYS = { "departmentNumber", "l" }; // l means localityName
     private static final String[] TEST_DEFAULT_ATTRIBUTE_DEPARTMENT_VALUES = { "ENG", "QE", "DEV", "MANAGE" };
     private static final String[] TEST_DEFAULT_ATTRIBUTE_LOCALITY_VALUES = { "Boston", "New York", "West Coast" };
+
+    private static final String[] TEST_DEFAULT_CHILD1_DOMAIN_USERS = {"Child1LdapViPRUser1@child1.apitest.com", "Child1LdapViPRUser2@child1.apitest.com"};
+    private static final String[] TEST_DEFAULT_CHILD2_DOMAIN_GROUPS = {"Child2ViPRUserGroup1", "Child2ViPRUserGroup2"};
+    private static final String[] TEST_DEFAULT_CHILD1_DOMAIN_GROUPS = {"Child1ViPRUserGroup1", "Child1ViPRUserGroup2"};
+    private static final String TEST_DEFAULT_CHILD1_DOMAIN = "child1.apitest.com";
+    private static final String TEST_DEFAULT_CHILD2_DOMAIN = "child2.apitest.com";
+
+    private static final int RETRY_START_COUNT = 0;
+    private static final int MAX_START_RETRIES = 4;
+    private static final int RETRY_WAIT_TIME = 30;
+    private static final int MILLI_SECOND_MULTIPLIER = 1000;
+
+    private LDAPServer ldapServer;
 
     public Set<String> getDefaultGroupObjectClasses() {
         return new HashSet<String>(Arrays.asList(DEFAULT_TEST_LDAP_SERVER_GROUP_OBJECT_CLASSES));
@@ -216,5 +242,64 @@ public class ApiTestAuthnProviderUtils {
 
     public String getAttributeLocalityValue(int index) {
         return TEST_DEFAULT_ATTRIBUTE_LOCALITY_VALUES[index];
+    }
+
+    public String getChild1User(int index) {
+        return TEST_DEFAULT_CHILD1_DOMAIN_USERS[index];
+    }
+
+    public String getChild1Group(int index) {
+        return TEST_DEFAULT_CHILD1_DOMAIN_GROUPS[index];
+    }
+
+    public String getChild2Group(int index) {
+        return TEST_DEFAULT_CHILD2_DOMAIN_GROUPS[index];
+    }
+
+    public String getChild1Domain() {
+        return TEST_DEFAULT_CHILD1_DOMAIN;
+    }
+
+    public String getChild2Domain() {
+        return TEST_DEFAULT_CHILD2_DOMAIN;
+    }
+
+    public void startLdapServer (final String listenerName) throws LDIFException,
+            LDAPException, IOException, FileOperationFailedException,
+            GeneralSecurityException, DirectoryOrFileNotFoundException,
+            InterruptedException {
+        if (ldapServer == null) {
+            ldapServer = new LDAPServer();
+        }
+
+        if (ldapServer.isRunning()) {
+            ldapServer.stop();
+        }
+
+        ldapServer.setListenerName(listenerName);
+        boolean started = false;
+        int iteration = RETRY_START_COUNT;
+
+        while (started != true && iteration < MAX_START_RETRIES) {
+            try {
+                ldapServer.start();
+                started = true;
+            } catch (LDAPException ex) {
+                _log.error("Caught bind exception {}", ex.getCause());
+                _log.info("Retry count {} and waiting for {}secs before next retry.", iteration, RETRY_WAIT_TIME);
+
+                iteration++;
+                Thread.sleep(iteration * RETRY_WAIT_TIME * MILLI_SECOND_MULTIPLIER);
+            }
+        }
+    }
+
+    public void stopLdapServer () {
+        if (ldapServer == null ||
+                !ldapServer.isRunning()) {
+            return;
+        }
+
+        ldapServer.stop();
     }
 }

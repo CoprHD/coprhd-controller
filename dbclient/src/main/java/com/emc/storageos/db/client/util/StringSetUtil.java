@@ -156,7 +156,7 @@ public class StringSetUtil {
     }
 
     /**
-     * Compares that two sets have the same entries
+     * Compares that two sets do not have the same entries
      * 
      * @param set1
      * @param set2
@@ -165,6 +165,17 @@ public class StringSetUtil {
     public static boolean isChanged(StringSet set1, StringSet set2) {
         return !getRemoved(set1, set2).isEmpty() ||
                 !getRemoved(set2, set1).isEmpty();
+    }
+    
+    /**
+     * Compares that two sets have the same entries
+     * @param set1
+     * @param set2
+     * @return
+     */
+    public static boolean areEqual (StringSet set1, StringSet set2) {
+        return getRemoved(set1, set2).isEmpty() &&
+                getRemoved(set2, set1).isEmpty();
     }
 
     /**

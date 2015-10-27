@@ -5,11 +5,14 @@
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +101,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             // a full copy for each volume in the CG.
             Volume fcSourceVolume = (Volume) fcSourceObj;
             URI cgURI = fcSourceVolume.getConsistencyGroup();
-            if (!NullColumnValueGetter.isNullURI(cgURI)) {
+            if (!isNullURI(cgURI)) {
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                 fcSourceObjList.addAll(getActiveCGVolumes(cg));
             } else {
@@ -117,7 +120,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             Volume fullCopyVolume) {
         Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
         URI cgURI = fcSourceObj.getConsistencyGroup();
-        if ((!NullColumnValueGetter.isNullURI(cgURI))
+        if ((!isNullURI(cgURI))
                 && (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient))) {
             // If the full copy is not detached and the source is
             // in a CG, then the full copy is treated as a set and
@@ -170,7 +173,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         if (!fcSourceObjList.isEmpty()) {
             BlockObject fcSourceObj = fcSourceObjList.get(0);
             URI cgURI = fcSourceObj.getConsistencyGroup();
-            if (!NullColumnValueGetter.isNullURI(cgURI)) {
+            if (!isNullURI(cgURI)) {
                 URI fcSourceURI = fcSourceObj.getId();
                 if (URIUtil.isType(fcSourceURI, Volume.class)) {
                     verifyCGVolumeRequestCount(count);
@@ -359,6 +362,10 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 taskList.addTask(task);
             }
         }
+
+        addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+
         return taskList;
     }
 
@@ -564,5 +571,35 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     protected void verifyCGSnapshotRequest() {
         // We don't support creating full copies of snapshots in consistency groups.
         throw APIException.badRequests.fullCopyNotSupportedForConsistencyGroup();
+    }
+
+    /**
+     * Creates tasks against consistency groups associated with a request and adds them to the given task list.
+     *
+     * @param objects
+     * @param taskList
+     * @param taskId
+     * @param operationTypeEnum
+     * @param <T>
+     */
+    protected <T extends BlockObject> void addConsistencyGroupTasks(List<T> objects, TaskList taskList, String taskId,
+                                                                  ResourceOperationTypeEnum operationTypeEnum) {
+        Set<URI> consistencyGroups = new HashSet<>();
+        for (T object : objects) {
+            if (!isNullURI(object.getConsistencyGroup())) {
+                consistencyGroups.add(object.getConsistencyGroup());
+            }
+        }
+
+        if (consistencyGroups.isEmpty()) {
+            return;
+        }
+
+        List<BlockConsistencyGroup> groups = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroups);
+        for (BlockConsistencyGroup group : groups) {
+            Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
+                    operationTypeEnum);
+            taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
+        }
     }
 }

@@ -11,7 +11,6 @@ import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
@@ -32,23 +31,13 @@ public class RestoreBlockSnapshotService extends ViPRService {
     protected List<String> snapshotIds;
 
     @Override
-    public void precheck() throws Exception {
-        super.precheck();
-        if (!ConsistencyUtils.isVolumeStorageType(storageType)) {
-            if (!ConsistencyUtils.validateConsistencyGroupSnapshots(getClient(), consistencyGroupId)) {
-                ExecutionUtils.fail("failTask.ConsistencyGroup.noSnapshots", consistencyGroupId, consistencyGroupId);
-            }
-        }
-    }
-
-    @Override
     public void execute() {
         for (String snapshotId : snapshotIds) {
             Task<? extends DataObjectRestRep> task;
             if (ConsistencyUtils.isVolumeStorageType(storageType)) {
                 task = execute(new RestoreBlockSnapshot(snapshotId));
             } else {
-                task = ConsistencyUtils.restoreSnapshot(consistencyGroupId);
+                task = ConsistencyUtils.restoreSnapshot(consistencyGroupId, uri(snapshotId));
             }
             addAffectedResource(task);
         }

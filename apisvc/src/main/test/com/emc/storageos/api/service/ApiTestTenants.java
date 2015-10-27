@@ -5,6 +5,8 @@
 
 package com.emc.storageos.api.service;
 
+import com.emc.storageos.api.ldap.exceptions.DirectoryOrFileNotFoundException;
+import com.emc.storageos.api.ldap.exceptions.FileOperationFailedException;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.auth.*;
 import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
@@ -13,15 +15,21 @@ import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.*;
 import com.emc.storageos.model.user.UserInfo;
 import com.sun.jersey.api.client.ClientResponse;
+import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldif.LDIFException;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.util.CollectionUtils;
 
+import java.io.IOException;
 import java.net.URI;
+import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,6 +65,21 @@ public class ApiTestTenants extends ApiTestBase {
 
     private List<CleanupResource> _cleanupResourceList = null;
     private ApiTestAuthnProviderUtils apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();
+
+    private static ApiTestTenants apiTestAuthnTenants = new ApiTestTenants();
+
+    @BeforeClass
+    public static void setupTestSuite() throws LDIFException,
+            LDAPException, IOException, FileOperationFailedException,
+            GeneralSecurityException, DirectoryOrFileNotFoundException, InterruptedException {
+        apiTestAuthnTenants.apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();
+        apiTestAuthnTenants.apiTestAuthnProviderUtils.startLdapServer(ApiTestTenants.class.getSimpleName());
+    }
+
+    @AfterClass
+    public static void tearDownTestSuite() {
+        apiTestAuthnTenants.apiTestAuthnProviderUtils.stopLdapServer();
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -130,6 +153,26 @@ public class ApiTestTenants extends ApiTestBase {
 
     private String getGetTenantApi() {
         return TEST_GET_TENANT_API;
+    }
+
+    private String getChild1User(int index) {
+        return apiTestAuthnProviderUtils.getChild1User(index);
+    }
+
+    private String getChild1Group(int index) {
+        return apiTestAuthnProviderUtils.getChild1Group(index);
+    }
+
+    private String getChild2Group(int index) {
+        return apiTestAuthnProviderUtils.getChild2Group(index);
+    }
+
+    private String getChild1Domain() {
+        return apiTestAuthnProviderUtils.getChild1Domain();
+    }
+
+    private String getChild2Domain() {
+        return apiTestAuthnProviderUtils.getChild2Domain();
     }
 
     private UserMappingAttributeParam getDefaultUserMappingAttributeParam(int index) {
@@ -243,6 +286,23 @@ public class ApiTestTenants extends ApiTestBase {
         tenantUpdate.getUserMappingChanges().setAdd(new ArrayList<UserMappingParam>());
         UserMappingParam rootMapping = new UserMappingParam();
         rootMapping.setDomain(getTestDomainName());
+        rootMapping.getGroups().add(group);
+        tenantUpdate.getUserMappingChanges().getAdd().add(rootMapping);
+
+        TenantOrgRestRep getTenantResp = rSys.path(getTestEditApi(tenantId)).get(TenantOrgRestRep.class);
+        Assert.assertNotNull(getTenantResp.getName());
+        tenantUpdate.setLabel(getTenantResp.getName());
+
+        ClientResponse resp = rSys.path(getTestEditApi(tenantId)).put(ClientResponse.class, tenantUpdate);
+        Assert.assertEquals(HttpStatus.SC_OK, resp.getStatus());
+    }
+
+    private void addUserMapping(URI tenantId, String group, String domain) {
+        TenantUpdateParam tenantUpdate = new TenantUpdateParam();
+        tenantUpdate.setUserMappingChanges(new UserMappingChanges());
+        tenantUpdate.getUserMappingChanges().setAdd(new ArrayList<UserMappingParam>());
+        UserMappingParam rootMapping = new UserMappingParam();
+        rootMapping.setDomain(domain);
         rootMapping.getGroups().add(group);
         tenantUpdate.getUserMappingChanges().getAdd().add(rootMapping);
 
@@ -1519,7 +1579,7 @@ public class ApiTestTenants extends ApiTestBase {
         removeUserMapping(rootTenantId, groupToAddInUserMapping);
     }
 
-    // @Test
+    @Test
     public void testSubTenantEditBySubTenantAdmin() throws NoSuchAlgorithmException {
         final String testName = "testSubTenantEditBySubTenantAdmin - ";
 
@@ -1568,7 +1628,7 @@ public class ApiTestTenants extends ApiTestBase {
 
         String subTenantEditApi = getTestEditApi(subTenantId);
 
-        // Edit the provider tenant by changing its description.
+        // Edit the sub tenant by changing its description.
         TenantUpdateParam editParam = new TenantUpdateParam();
         editParam.setDescription(testName + "SubTenant - Set by subtenant admin");
 
@@ -1793,5 +1853,56 @@ public class ApiTestTenants extends ApiTestBase {
 
         // Remove the user mappings.
         removeUserMapping(subTenantId, groupToAddInUserMapping);
+    }
+
+    @Test
+    public void testForestChildDomainConfigForUserMapping() throws NoSuchAlgorithmException {
+        final String testName = "testForestChildDomainConfigForUserMapping - ";
+
+        // Create an authnprovider before creating a tenant.
+        AuthnCreateParam authnProviderCreateParam = getDefaultAuthnCreateParam(testName + getTestDefaultAuthnProviderDescription());
+        authnProviderCreateParam.getDomains().add(getChild1Domain());
+        authnProviderCreateParam.getDomains().add(getChild2Domain());
+
+        ClientResponse clientAuthnProviderCreateResp = rSys.path(getTestAuthnProviderApi()).post(ClientResponse.class,
+                authnProviderCreateParam);
+
+        // Validate the authn provider creation success and add the
+        // resource to the resource clean up list.
+        validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
+
+        TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful Subtenant1 creation");
+        createParam.setLabel("Subtenant1");
+        TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
+
+        validateTenantCreateSuccess(createParam, createResp);
+        URI subTenantId1 = createResp.getId();
+
+        addUserMapping(subTenantId1, getChild2Group(0), getChild2Domain());
+
+        createParam = this.getDefaultTenantCreateParam(testName + "Successful Subtenant2 creation");
+        createParam.setLabel("Subtenant2");
+
+        createParam.getUserMappings().clear();
+        UserMappingParam userMappingParam = new UserMappingParam();
+        userMappingParam.setDomain(getChild1Domain());
+        userMappingParam.getGroups().add(getChild1Group(0));
+        createParam.getUserMappings().add(userMappingParam);
+
+        createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
+
+        validateTenantCreateSuccess(createParam, createResp);
+
+        //addUserMapping(subTenantId2, getChild1Group(0), getChild1Domain());
+
+        BalancedWebResource childUser1 = getHttpsClient(getChild1User(1).toUpperCase(), getLDAPUserPassword());
+        ClientResponse clientResponse = childUser1.path(getUserWhoAmIApi()).get(ClientResponse.class);
+        Assert.assertTrue(clientResponse.getStatus() != HttpStatus.SC_UNAUTHORIZED);
+
+        //User two is part of groups from Child1 and Child2 domains. So, that makes user to be
+        //part of both the sub tenants
+        BalancedWebResource childUser2 = getHttpsClient(getChild1User(0), getLDAPUserPassword());
+        clientResponse = childUser2.path(getUserWhoAmIApi()).get(ClientResponse.class);
+        Assert.assertTrue(clientResponse.getStatus() == HttpStatus.SC_FORBIDDEN);
     }
 }

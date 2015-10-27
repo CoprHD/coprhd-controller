@@ -11,7 +11,6 @@ import static com.emc.sa.service.ServiceParams.VOLUME;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
@@ -29,22 +28,13 @@ public class DetachFullCopyService extends ViPRService {
     protected List<String> copyIds;
 
     @Override
-    public void precheck() throws Exception {
-        super.precheck();
-        if (!ConsistencyUtils.isVolumeStorageType(storageType)) {
-            if (!ConsistencyUtils.validateConsistencyGroupFullCopies(getClient(), consistencyGroupId)) {
-                ExecutionUtils.fail("failTask.ConsistencyGroup.noFullCopies", consistencyGroupId, consistencyGroupId);
-            }
-        }
-    }
-
-    @Override
     public void execute() throws Exception {
-
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             BlockStorageUtils.detachFullCopies(uris(copyIds));
         } else {
-            ConsistencyUtils.detachFullCopy(consistencyGroupId);
+            for (URI copyId : uris(copyIds)) {
+                ConsistencyUtils.detachFullCopy(consistencyGroupId, copyId);
+            }
         }
     }
 

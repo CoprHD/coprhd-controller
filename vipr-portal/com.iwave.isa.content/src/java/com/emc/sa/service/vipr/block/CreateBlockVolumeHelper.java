@@ -66,14 +66,16 @@ public class CreateBlockVolumeHelper {
         }
     }
 
-    public List<BlockObjectRestRep> createAndExportVolumes() {
-        // Create the volumes
+    public List<URI> createVolumes() {
         List<URI> volumeIds = BlockStorageUtils.createVolumes(project, virtualArray, virtualPool, nameParam,
                 sizeInGb, count, consistencyGroup);
         for (URI volumeId : volumeIds) {
             logInfo("create.block.volume.create.volume", volumeId);
         }
+        return volumeIds;
+    }
 
+    public List<BlockObjectRestRep> exportVolumes(List<URI> volumeIds) {
         // See if an existing export exists for the host ports
         ExportGroupRestRep export = null;
         if (cluster != null) {
@@ -114,7 +116,36 @@ public class CreateBlockVolumeHelper {
         return volumes;
     }
 
+    public List<BlockObjectRestRep> createAndExportVolumes() {
+        List<URI> volumeIds = createVolumes();
+        return exportVolumes(volumeIds);
+    }
+
+    public String getName() {
+        return this.nameParam;
+    }
+
+    public URI getProject() {
+        return this.project;
+    }
+
+    public URI getVirtualArray() {
+        return this.virtualArray;
+    }
+
+    public URI getVirtualPool() {
+        return this.virtualPool;
+    }
+
     public Double getSizeInGb() {
         return this.sizeInGb;
+    }
+
+    public URI getConsistencyGroup() {
+        return this.consistencyGroup;
+    }
+
+    public Integer getCount() {
+        return this.count;
     }
 }

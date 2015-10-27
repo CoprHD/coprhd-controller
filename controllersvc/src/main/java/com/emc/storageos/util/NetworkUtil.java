@@ -560,4 +560,36 @@ public class NetworkUtil {
         }
         return map;
     }
+
+    /**
+     * Returns a Map of networkURI => [set of endpoints connected].
+     * 
+     * @param dbClient
+     * @param initiators
+     * @return
+     */
+    public static Map<URI, Set<String>> getNetworkToInitiators(DbClient dbClient, List<Initiator> initiators) {
+        Map<URI, Set<String>> networkToEndPoints = new HashMap<URI, Set<String>>();
+        for (Initiator initiator : initiators) {
+            Set<NetworkLite> networkLites = getEndpointAllNetworksLite(initiator.getInitiatorPort(), dbClient);
+            if (null == networkLites || networkLites.isEmpty()) {
+                _log.info(String.format("getNetworkToInitiators(%s) -- Initiator is not associated with any network",
+                        initiator.getInitiatorPort()));
+            } else {
+                for (NetworkLite networkLite : networkLites) {
+                    URI networkUri = networkLite.getId();
+                    _log.info(String.format("Adding initiator, network (%s, %s) to map", initiator.getInitiatorPort(),
+                            networkLite.getLabel()));
+                    Set<String> endPoints = networkToEndPoints.get(networkUri);
+                    if (null == endPoints) {
+                        endPoints = new HashSet<String>();
+                    }
+                    endPoints.add(initiator.getInitiatorPort());
+                    networkToEndPoints.put(networkUri, endPoints);
+                }
+            }
+        }
+
+        return networkToEndPoints;
+    }
 }

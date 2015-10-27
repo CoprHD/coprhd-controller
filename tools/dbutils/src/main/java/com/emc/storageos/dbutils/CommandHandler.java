@@ -32,6 +32,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
 
 public abstract class CommandHandler {
     public String cfName = null;
@@ -56,9 +57,31 @@ public abstract class CommandHandler {
             }
         }
 
-        new DbManagerOps(isGeodb ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME).startNodeRepair(canResume, crossVdc);
+        try (DbManagerOps dbManagerOps = new DbManagerOps(isGeodb ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME)) {
+            dbManagerOps.startNodeRepair(canResume, crossVdc);
+        }
 
         return 0;
+    }
+    
+    public static class DependencyHandler extends CommandHandler {
+        String id = null;
+
+        public DependencyHandler(String args[]) {
+            if (args.length < 2) {
+                throw new IllegalArgumentException("Invalid command:need at least 2 arguments");
+            }
+            cfName = args[1];
+            if (args.length > 2) {
+                id = args[2];
+            }
+        }
+
+        @Override
+        public void process(DBClient _client) throws Exception {
+            _client.printDependencies(cfName, id == null ? null : URI.create(id));
+        }
+
     }
 
     public static class CountHandler extends CommandHandler {
@@ -278,8 +301,6 @@ public abstract class CommandHandler {
             String type = args[1];
             String file = args[2];
             if (type.equalsIgnoreCase(TYPE_EVENTS)) {
-                _client.queryForCustomDayEvents(queryTimeWindow, file);
-            } else if (type.equalsIgnoreCase(TYPE_STATS)) {
                 _client.queryForCustomDayEvents(queryTimeWindow, file);
             } else if (type.equalsIgnoreCase(TYPE_STATS)) {
                 _client.queryForCustomDayStats(queryTimeWindow, file);

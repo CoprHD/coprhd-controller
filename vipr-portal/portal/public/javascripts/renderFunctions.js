@@ -208,6 +208,7 @@ render.discoveryStatusIcon = function(o, val) {
         'IN_PROGRESS': 'label-info',
         'SCHEDULED':   'label-info',
         'COMPLETE':    'label-success',
+        'PARTIAL_SUCCESS': 'label-warning',
         'ERROR':       'label-danger'
     }
     var icons = {
@@ -215,6 +216,7 @@ render.discoveryStatusIcon = function(o, val) {
         'IN_PROGRESS': 'glyphicon glyphicon-refresh rotate',
         'SCHEDULED':   'glyphicon glyphicon-time',
         'COMPLETE':    'glyphicon glyphicon-ok',
+        'PARTIAL_SUCCESS': 'glyphicon glyphicon-warning-sign',
         'ERROR':       'glyphicon glyphicon-remove'
     };
 
@@ -239,6 +241,7 @@ render.discoveryStatusMessage = function(o, val) {
         'SCHEDULED':   Messages.get("renderFunctions.discovery.status.scheduled"),
         'IN_PROGRESS': Messages.get("renderFunctions.discovery.status.progress"),
         'COMPLETE':    Messages.get("renderFunctions.discovery.status.complete"),
+        'PARTIAL_SUCCESS':    Messages.get("renderFunctions.discovery.status.importFailed"),
         'ERROR':       Messages.get("renderFunctions.discovery.status.failed")
     };
 

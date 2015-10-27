@@ -2,7 +2,7 @@
 
 require:
     - play
-    - play -> play-deadbolt 1.5.3
+    - play -> deadbolt 1.5.3
     - net.sf.jtidy -> jtidy r938:
         id: localdev    
         transitive: false        

@@ -1698,7 +1698,6 @@ public class WorkflowService {
                         StepStatus status = parentWorkflow.getStepStatus(orchestrationId);
                         if (status != null && status.startTime != null) {
                             timeInSeconds = status.startTime.getTime() / MILLISECONDS_IN_SECOND;
-                            ;
                         }
                     }
                 }

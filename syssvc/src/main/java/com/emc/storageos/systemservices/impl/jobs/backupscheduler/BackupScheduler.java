@@ -39,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.model.EncryptionProvider;
@@ -148,6 +149,12 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     @Override
     public void run() {
+        DrUtil drUtil = new DrUtil(coordinatorClient);
+        if(drUtil.isStandby()) {
+            log.info("Skip backup scheduler on standby");
+            return;
+        }
+        
         try {
             log.info("Backup scheduler thread goes live");
 

@@ -20,6 +20,7 @@ import com.emc.storageos.systemservices.impl.upgrade.RemoteRepository;
 import com.emc.storageos.systemservices.impl.upgrade.UpgradeManager;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.systemservices.SysSvc;
 import com.emc.storageos.systemservices.impl.audit.SystemAudit;
 import com.emc.storageos.db.client.DbClient;
@@ -159,7 +160,11 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startPropertyManager();
             startVdcManager();
             startIpReconfigManager();
-            _recoveryMgr.init();
+            
+            DrUtil drUtil = new DrUtil(_coordinator.getCoordinatorClient());
+            if (drUtil.isPrimary()) {
+                _recoveryMgr.init();
+            }
             startSystemAudit(_dbClient);
             _svcBeacon.start();
         } else {

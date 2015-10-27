@@ -146,14 +146,18 @@ public class ControllerLockingUtil {
     /**
      * Make a consistencyGroup / storageSystem duple key.
      * 
-     * @param cgURI
-     * @param storageURI (could be a Protection System or null in which case only host in key)
+     * @param cgURI -- consistencyGroup may not exist but cgURI must be non NULL
+     * @param storageURI (could be a Protection System or null)
      * @return
      */
     static public String getConsistencyGroupStorageKey(DbClient dbClient, URI cgURI, URI storageURI)  {
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
         String storageKey = getStorageKey(dbClient, storageURI);
+        if (consistencyGroup != null) {
             return consistencyGroup.getLabel() + DELIMITER + storageKey;
+        } else {
+            return cgURI.toString() + DELIMITER + storageKey;
+        }
     }
     
     /**
@@ -163,6 +167,10 @@ public class ControllerLockingUtil {
      * @return
      */
     static private String getStorageKey(DbClient dbClient, URI storageURI) {
+        if (storageURI == null) {
+            // Return an empty string if no storageURI supplied
+            return "";
+        }
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageURI);
         if (storage != null) {
             return storage.getNativeGuid();
@@ -171,10 +179,6 @@ public class ControllerLockingUtil {
         if (protection != null) {
             return protection.getNativeGuid();
         }
-        if (storageURI != null) {
-            return storageURI.toString();
-        }
-        // Return an empty string if no storageURI supplied
-        return "";
+        return storageURI.toString();
     }
 }

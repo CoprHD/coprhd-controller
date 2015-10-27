@@ -96,6 +96,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String UNIXSECURITY = "unix";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String SYSSECURITY = "sys";
+    private static final String NFSv4 = "NFSv4";
 
     private IsilonApiFactory _factory;
 
@@ -298,7 +299,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // try to connect to the Isilon cluster first to check if cluster is available
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             isilonApi.getClusterInfo();
-
+            
             discoverCluster(storageSystem);
             _dbClient.persistObject(storageSystem);
             if (!storageSystem.getReachableStatus()) {
@@ -431,7 +432,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             StoragePool storagePool;
-
+            boolean isNfsV4Enabled = isilonApi.nfsv4Enabled();
+            
             List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
             for (IsilonStoragePool isilonPool : isilonStoragePools) {
                 // Check if this storage pool was already discovered
@@ -465,6 +467,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     StringSet protocols = new StringSet();
                     protocols.add("NFS");
                     protocols.add("CIFS");
+
                     storagePool.setProtocols(protocols);
                     storagePool.setPoolName(isilonPool.getNativeId());
                     storagePool.setNativeId(isilonPool.getNativeId());
@@ -477,6 +480,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 } else {
                     existingPools.add(storagePool);
                 }
+                
+
+				if (isNfsV4Enabled) {
+					storagePool.getProtocols().add(NFSv4);
+				} else {
+					storagePool.getProtocols().remove(NFSv4);
+				}
 
                 // scale capacity size
                 storagePool.setFreeCapacity(isilonPool.getAvailable() / BYTESCONVERTER);
@@ -754,6 +764,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 }
                                 _log.info("FS {} is ignored because it has conflicting exports {}", fs.getPath(), invalidExports);
                                 unManagedFs.setInactive(true);
+                                // Persists the inactive state before picking next UMFS!!!
+                                _dbClient.persistObject(unManagedFs);
                                 continue;
                             }
                             List<UnManagedFileExportRule> validExportRules = getUnManagedFSExportRules(unManagedFs, expIdMap, storagePort,
@@ -791,10 +803,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                         newUnManagedExportRules.size());
                             }
                         }
-                        if (expIdMap.keySet().isEmpty() && noOfShares == 0) {
-                            // NO exports found
+                        
+                        if (unManagedFs.getHasExports() || unManagedFs.getHasShares()) {
+                        	_log.info("FS {} is having exports/shares", fs.getPath());
+                        	unManagedFs.putFileSystemCharacterstics(
+                                    UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString(), TRUE);
+                        } else {
+                             // NO exports found
                             _log.info("FS {} is ignored because it doesnt have exports and shares", fs.getPath());
-                            unManagedFs.setInactive(true);
                         }
 
                         if (alreadyExist) {
@@ -1272,6 +1288,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             if (null != pool) {
                 unManagedFileSystem.setStoragePoolUri(pool.getId());
             }
+            unManagedFileSystem.setHasExports(false);
+            unManagedFileSystem.setHasShares(false);
         }
 
         if (null == unManagedFileSystem.getExtensions()) {
@@ -1291,7 +1309,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(), TRUE);
+                        .toString(), FALSE);
 
         if (null != pool) {
             StringSet pools = new StringSet();

@@ -24,12 +24,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
@@ -2268,6 +2270,31 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
                 }
             }
+            
+            // Check if the volumes have been in the CG, and not ingestion case
+            if (consistencyGroup.getTypes().contains(Types.LOCAL.toString()) && !cgVolumes.isEmpty()) {
+                Set<String> cgVolumesURISet = new HashSet<String>();
+                for (Volume cgVolume : cgVolumes) {
+                    cgVolumesURISet.add(cgVolume.getId().toString());
+                }
+                Iterator<URI> iter = addVolumes.iterator();
+                while (iter.hasNext()) {
+                    if (cgVolumesURISet.contains(iter.next().toString())) {
+                         iter.remove();
+                    }
+                }
+                
+                if (addVolumes.isEmpty()) {
+                    // All volumes in the addVolumes list have been in the CG. return success
+                    s_logger.info("The volumes have been added to the CG");
+                    Operation op = new Operation();
+                    op.setResourceType(ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
+                    op.ready("Volumes have been added to the consistency group");
+                    _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(), taskId, op);      
+                    return toTask(consistencyGroup, taskId, op);
+                }
+                
+            }
         }
 
         // Only add snapshot or full copies to CG if backend volumes are from the same storage system.
@@ -3134,7 +3161,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
-            List<URI> volumeURIs) {
+            List<URI> volumeURIs, String deletionType) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         for (URI volumeURI : volumeURIs) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
@@ -3258,6 +3285,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public void verifyAddVolumeToCG(Volume volume, BlockConsistencyGroup cg,
             List<Volume> cgVolumes, StorageSystem cgStorageSystem) {
         super.verifyAddVolumeToCG(volume, cg, cgVolumes, cgStorageSystem);
+        
+        Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+        verifyIfVolumeHasMultipleReplicas(backendVolume);
 
         // We will not allow a VPLEX volume that was created using the target
         // volume of a block snapshot to be added to a consistency group.

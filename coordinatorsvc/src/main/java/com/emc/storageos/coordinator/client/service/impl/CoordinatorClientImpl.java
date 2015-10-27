@@ -968,6 +968,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
     }
 
+    @Override
+    public void removeRuntimeState(String key) throws CoordinatorException {
+        String servicePath = String.format("%1$s/%2$s", ZkPath.STATE, key);
+        try {
+            _zkConnection.curator().delete().forPath(servicePath);
+        } catch (Exception e) {
+            throw CoordinatorException.fatals.unableToRemoveTheState(key, e);
+        }
+    }
+
     /**
      * Get control nodes' state
      */

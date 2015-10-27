@@ -38,6 +38,9 @@ import controllers.util.FlashException;
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class DisasterRecovery extends Controller {
     protected static final String SAVED_SUCCESS = "disasterRecovery.save.success";
+    protected static final String PAUSED_SUCCESS = "disasterRecovery.pause.success";
+    protected static final String PAUSED_ERROR = "disasterRecovery.pause.error";
+    protected static final String RESUMED_SUCCESS = "disasterRecovery.resume.success";
     protected static final String SAVED_ERROR = "disasterRecovery.save.error";
     protected static final String DELETED_SUCCESS = "disasterRecovery.delete.success";
     protected static final String DELETED_ERROR = "disasterRecovery.delete.error";
@@ -58,15 +61,20 @@ public class DisasterRecovery extends Controller {
         render(dataTable);
     }
 
-    public static void pause(){
+    public static void pause(String id){
+        SiteRestRep result = DisasterRecoveryUtils.getSite(id);
+        if(result != null) {
+            SiteRestRep sitepause = DisasterRecoveryUtils.pauseStandby(id);
+            flash.success(MessagesUtils.get(PAUSED_SUCCESS, sitepause.getName()));
+        }
+        list();
+    }
+    
+    public static void resume(String id) {
         
     }
     
-    public static void stop() {
-        
-    }
-    
-    public static void testMode() {
+    public static void test(String id) {
         
     }
     
@@ -115,7 +123,6 @@ public class DisasterRecovery extends Controller {
             
             SiteRestRep result = DisasterRecoveryUtils.addStandby(standbySite);
             flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
-            backToReferrer();
             list();
         }
     }
@@ -125,19 +132,18 @@ public class DisasterRecovery extends Controller {
         List <String> uuids = Arrays.asList(ids);
         for (String uuid : uuids) {
             if (!DisasterRecoveryUtils.hasStandbySite(uuid)) {
-                flash.error(MessagesUtils.get(DELETED_ERROR));
+                flash.error(MessagesUtils.get(UNKNOWN, uuid));
                 list();
             }
             
             SiteRestRep result = DisasterRecoveryUtils.deleteStandby(uuid);
             flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
-            backToReferrer();
             list();
         }
     }
 
 
- // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.
+    // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.
     @SuppressWarnings("squid:S2068")
     public static class DisasterRecoveryForm {
         public String id;

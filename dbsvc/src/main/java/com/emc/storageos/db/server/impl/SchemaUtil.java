@@ -403,7 +403,7 @@ public class SchemaUtil {
         }
 
         _log.info("vdcList={}", _vdcList);
-        if (!onStandby && _vdcList.size() == 1) {
+        if (!onStandby && _vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
             // the current vdc is removed
             strategyOptions.clear();
         }
@@ -857,6 +857,7 @@ public class SchemaUtil {
         site.setState(SiteState.PRIMARY);
         site.setCreationTime(System.currentTimeMillis());
         site.setVip(_vdcEndpoint);
+        site.setNodeCount(vdc.getHostCount());
         _coordinator.persistServiceConfiguration(site.toConfiguration());
     }
 

@@ -681,7 +681,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             String mountPath = null;
             // Update the mount path as required
-            if(vNASPath != null && vNASPath.length() > 0 && !"".equals(vNASPath.trim())) {
+            if(vNASPath != null && !vNASPath.isEmpty() && !"".equals(vNASPath.trim())) {
 	        	if (projName != null && tenantOrg != null) {
 		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s", vNASPath,
 		                    args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),

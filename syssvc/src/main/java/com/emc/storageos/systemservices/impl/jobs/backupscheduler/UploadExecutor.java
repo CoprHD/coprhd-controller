@@ -47,7 +47,7 @@ public abstract class UploadExecutor {
         this.cli = cli;
     }
 
-    public void runOnce() throws Exception {
+    public void runOnce(String backupTag) throws Exception {
         if (this.cfg.uploadUrl == null) {
             log.info("Upload URL is empty, upload disabled");
             return;
@@ -56,7 +56,7 @@ public abstract class UploadExecutor {
         try (AutoCloseable lock = this.cfg.lock()) {
             this.cfg.reload();
             cleanupCompletedTags();
-            upload();
+            upload(backupTag);
         } catch (Exception e) {
             log.error("Fail to run upload backup", e);
         }
@@ -69,7 +69,7 @@ public abstract class UploadExecutor {
      * @return null if succeeded, or error message from last retry if failed.
      * @throws InterruptedException
      */
-    private String tryUpload(String tag) throws InterruptedException {
+    public String tryUpload(String tag) throws InterruptedException {
         String lastErrorMessage = null;
         for (int i = 0; i < UPLOAD_RETRY_TIMES; i++) {
             try {
@@ -105,12 +105,23 @@ public abstract class UploadExecutor {
         return lastErrorMessage;
     }
 
-    private void upload() throws Exception {
+    private void upload(String backupTag) throws Exception {
         log.info("Begin upload");
 
-        List<String> toUpload = getIncompleteUploads();
-        if (toUpload.isEmpty()) {
+        List<String> incompleteUploads = getIncompleteUploads();
+        if (incompleteUploads.isEmpty()) {
             return;
+        }
+        List<String> toUpload = new ArrayList<String>();
+        if (backupTag == null) {
+            toUpload = incompleteUploads;
+        } else {
+            if(incompleteUploads.contains(backupTag)) {
+                toUpload.add(backupTag);
+            } else {
+                log.info("No need to upload backup({})");
+                return;
+            }
         }
 
         List<String> succUploads = new ArrayList<>();

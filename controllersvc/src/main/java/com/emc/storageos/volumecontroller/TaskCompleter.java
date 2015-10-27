@@ -9,7 +9,9 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -46,7 +48,10 @@ public abstract class TaskCompleter implements Serializable {
     protected String _opId;
 
     @XmlElement
-    private final List<URI> _ids = new ArrayList<URI>();;
+    private final List<URI> _ids = new ArrayList<URI>();
+
+    @XmlElement
+    private final Set<URI> _consistencyGroupIds = new HashSet<>();
 
     // Whether to notify workflow when task is complete
     @XmlTransient
@@ -113,6 +118,17 @@ public abstract class TaskCompleter implements Serializable {
 
     public void setOpId(String taskId) {
         _opId = taskId;
+    }
+
+    public Set<URI> getConsistencyGroupIds() {
+        return _consistencyGroupIds;
+    }
+
+    public boolean addConsistencyGroupId(URI consistencyGroupId) {
+        if (consistencyGroupId != null) {
+            return _consistencyGroupIds.add(consistencyGroupId);
+        }
+        return false;
     }
 
     public boolean isNotifyWorkflow() {

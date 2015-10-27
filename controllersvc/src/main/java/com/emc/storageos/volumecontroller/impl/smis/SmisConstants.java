@@ -88,6 +88,7 @@ public interface SmisConstants {
     static final int STORAGE_SYNCHRONIZED_VALUE = 2;
     static final int VP_SNAP_VALUE = 32768;
     static final int CREATE_NEW_TARGET_VALUE = 2;
+    static final int STORAGE_ELEMENT_CAPACITY_EXPANSION_VALUE = 12;
     static final int MODE_SYNCHRONOUS = 2;
     static final int RELINK_TARGET_VALUE = 0x8001;
 
@@ -243,6 +244,7 @@ public interface SmisConstants {
     static final String THIN_PROVISIONING_POLICY = "ThinProvisioningPolicy";
     static final String EMC_SETUNSET_RECOVERPOINT = "EMCSetUnsetRecoverPoint";
     public static final String EMC_BOUND_TO_THIN_STORAGE_POOL = "EMCBoundToThinStoragePool";
+    static final String EMC_STORAGE_CONFIGURATION_CAPABILITIES = "EMC_StorageConfigurationCapabilities";
 
     // Constants used for VMAX Masking names
     static public char MASK_NAME_DELIMITER = '_';
@@ -385,6 +387,7 @@ public interface SmisConstants {
     static final String CP_COLLECTIONS = "Collections";
     static final String CP_EMC_FORCE = "EMCForce";
     static final String CP_MAX_UNITS_CONTROLLED = "MaxUnitsControlled";
+    static final String CP_SUPPORTED_STORAGE_ELEMENT_FEATURES = "SupportedStorageElementFeatures";
 
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";
@@ -415,6 +418,7 @@ public interface SmisConstants {
     static final String[] PS_EMC_CLAR_PRIVILEGE = new String[] { CP_EMC_FAILOVER_MODE, CP_EMC_INITIATOR_TYPE };
     static final String[] PS_DEVICE_ID = new String[] { CP_DEVICE_ID };
     static final String[] PS_EMC_HOST_NAME = new String[] { CP_EMC_HOST_NAME };
+    static final String[] PS_SUPPORTED_STORAGE_ELEMENT_FEATURES = new String[] { CP_SUPPORTED_STORAGE_ELEMENT_FEATURES };
     static final String NONE = "NONE";
     // EMCRecoverPointEnabled tag required on VMAX volumes for working with RP.
 

@@ -16,6 +16,7 @@ public class UpdateCertificateJob extends Job {
     public UpdateCertificateJob(Keystore api, KeyAndCertificateChain keyAndCert) {
         this.api = api;
         this.keyAndCert = keyAndCert;
+        api.setKeyAndCertificateChain(keyAndCert);
     }
 
     @Override

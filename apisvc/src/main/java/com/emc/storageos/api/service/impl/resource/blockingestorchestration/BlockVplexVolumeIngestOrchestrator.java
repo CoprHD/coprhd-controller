@@ -240,6 +240,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         }
 
+        // validate the supporting device structure is compatible with vipr
+        context.validateSupportingDeviceStructure();
+
         for (UnManagedVolume vol : unManagedBackendVolumes) {
             _logger.info("checking for non native mirrors on backend volume " + vol.getNativeGuid());
             StringSet mirrors = PropertySetterUtil.extractValuesFromStringSet(
@@ -645,7 +648,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         vplexMirror.setAllocatedCapacity(mirrorVolume.getAllocatedCapacity());
                         vplexMirror.setProvisionedCapacity(mirrorVolume.getProvisionedCapacity());
                         vplexMirror.setSource(new NamedURI(virtualVolume.getId(), virtualVolume.getLabel()));
-                        vplexMirror.setStorageController(mirrorVolume.getStorageController());
+                        vplexMirror.setStorageController(virtualVolume.getStorageController());
                         vplexMirror.setTenant(mirrorVolume.getTenant());
                         vplexMirror.setThinPreAllocationSize(mirrorVolume.getThinVolumePreAllocationSize());
                         vplexMirror.setThinlyProvisioned(mirrorVolume.getThinlyProvisioned());
@@ -665,13 +668,19 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         mirrorVolume.setProject(new NamedURI(
                                 context.getBackendProject().getId(), mirrorVolume.getLabel()));
 
+                        // update flags on mirror volume
+                        mirrorVolume.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+                        // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
+                        mirrorVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
+
                         // deviceLabel will be the very last part of the native guid
                         String[] devicePathParts = entry.getValue().split("/");
                         String deviceName = devicePathParts[devicePathParts.length - 1];
                         vplexMirror.setDeviceLabel(deviceName);
 
-                        // save the new VplexMirror
+                        // save the new VplexMirror & persist backend
                         _dbClient.createObject(vplexMirror);
+                        _dbClient.updateAndReindexObject(mirrorVolume);
 
                         // set mirrors property on the parent virtual volume
                         StringSet mirrors = virtualVolume.getMirrors();

@@ -509,7 +509,7 @@ public interface BlockStorageDevice {
             Boolean createInactive, TaskCompleter taskCompleter);
 
     /**
-     * Create a clone for a consisstency group.
+     * Create a clone for a consistency group.
      * 
      * @param storageSystem
      * @param cloneVolumes
@@ -854,6 +854,28 @@ public interface BlockStorageDevice {
             TaskCompleter completer) throws Exception;
 
     /**
+     * Create list replica.
+     *
+     * @param storage the storage system
+     * @param replicaList the replicas
+     * @param createInactive
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doCreateListReplica(StorageSystem storage, List<URI> replicaList, Boolean createInactive, TaskCompleter taskCompleter)
+            throws Exception;
+
+    /**
+     * Detach list replica.
+     *
+     * @param storage the storage system
+     * @param replicaList the replicas
+     * @param taskCompleter the task completer
+     * @throws Exception
+     */
+    public void doDetachListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws Exception;
+
+    /*
      * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs
      *
      * @param storage the storage system

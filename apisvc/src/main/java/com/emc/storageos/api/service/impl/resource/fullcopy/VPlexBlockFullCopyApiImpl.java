@@ -57,6 +57,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -192,14 +193,23 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                         throw APIException.badRequests.fullCopyNotAllowedWhenCGAcrossMultipleSystems();
                     }
                 }
+
                 // Check if the source volume is an ingested CG, without any back end CGs yet. if yes, throw error
                 Volume srcVol = (Volume) fcSourceObjList.get(0);
                 if (VPlexUtil.isVolumeInIngestedCG(srcVol, _dbClient)) {
                     throw APIException.badRequests.fullCopyNotAllowedForIngestedCG(srcVol.getId().toString());
                 }
+
                 // Platform specific checks.
                 for (BlockObject fcSourceObj : fcSourceObjList) {
                     Volume fcSourceVolume = (Volume) fcSourceObj;
+
+                    // If the volume is a VPLEX volume created on a block snapshot,
+                    // we don't support creation of a full copy.
+                    if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, fcSourceVolume)) {
+                        throw APIException.badRequests.fullCopyNotAllowedForVPLEXVolumeBuiltOnSnapshot(fcSourceVolume.getId().toString());
+                    }
+
                     StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                             fcSourceVolume.getStorageController());
                     if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
@@ -877,6 +887,59 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
 
         BlockFullCopyUtils.validateActiveFullCopyCount(srcBackendVolume, count, _dbClient);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TaskList establishVolumeAndFullCopyGroupRelation(Volume sourceVolume, Volume fullCopyVolume) {
+
+        // Create the task list.
+        TaskList taskList = new TaskList();
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        // Get the id of the source volume.
+        URI sourceVolumeURI = sourceVolume.getId();
+
+        // Get the id of the full copy volume.
+        URI fullCopyURI = fullCopyVolume.getId();
+
+        // Get the storage system for the source volume.
+        StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
+                sourceVolume.getStorageController());
+        URI sourceSystemURI = sourceSystem.getId();
+
+        // Create the task on the full copy volume.
+        Operation op = _dbClient.createTaskOpStatus(Volume.class, fullCopyURI,
+                taskId, ResourceOperationTypeEnum.ESTABLISH_VOLUME_FULL_COPY);
+        fullCopyVolume.getOpStatus().put(taskId, op);
+        TaskResourceRep fullCopyVolumeTask = TaskMapper.toTask(
+                fullCopyVolume, taskId, op);
+        taskList.getTaskList().add(fullCopyVolumeTask);
+
+        // Invoke the controller.
+        try {
+            VPlexController controller = getController(VPlexController.class,
+                    DiscoveredDataObject.Type.vplex.toString());
+            controller.establishVolumeAndFullCopyGroupRelation(sourceSystemURI, sourceVolumeURI,
+                    fullCopyURI, taskId);
+        } catch (InternalException ie) {
+            s_logger.error("Controller error", ie);
+
+            // Update the status for the VPLEX volume copies and their
+            // corresponding tasks.
+            if (op != null) {
+                op.error(ie);
+                fullCopyVolume.getOpStatus().updateTaskStatus(taskId, op);
+                _dbClient.persistObject(fullCopyVolume);
+                fullCopyVolumeTask.setState(op.getStatus());
+                fullCopyVolumeTask.setMessage(op.getMessage());
+            }
+        }
+        return taskList;
     }
 
     /**

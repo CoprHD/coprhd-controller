@@ -1597,6 +1597,7 @@ public class VPlexApiClient {
      * @return the name of the top level device for the given storage volume
      * @throws VPlexApiException
      */
+    @Deprecated
     public String getDeviceForStorageVolume(String volumeNativeId,
             String wwn, String backendArraySerialNum) throws VPlexApiException {
 
@@ -1652,5 +1653,50 @@ public class VPlexApiClient {
     public Map<String, String> getDistributedDevicePathToClusterMap()
             throws VPlexApiException {
         return _discoveryMgr.getDistributedDevicePathToClusterMap();
+    }
+
+    /**
+     * This method finds virtual volume on the VPLEX and then updates virtual volume info.
+     * 
+     * @param virtualVolumeName virtual volume name
+     * @param discoveryMgr reference to VPlexApiDiscoveryManager
+     * @return VPlexVirtualVolumeInfo object with updated info.
+     */
+    public VPlexVirtualVolumeInfo findVirtualVolumeAndUpdateInfo(String virtualVolumeName) {
+        return _virtualVolumeMgr.findVirtualVolumeAndUpdateInfo(virtualVolumeName, null);
+    }
+
+    /**
+     * This method collapses the one legged device for the passed virtual volume device.
+     * After this device will change back to local device.
+     * 
+     * @param sourceDeviceName source device name
+     * @throws VPlexApiException
+     */
+    public void deviceCollapse(String sourceDeviceName) throws VPlexApiException {
+        s_logger.info("Request to collpase device {}", _baseURI);
+        _virtualVolumeMgr.deviceCollapse(sourceDeviceName);
+    }
+
+    /**
+     * This method sets device visibility to local.
+     * 
+     * @param sourceDeviceName source device name
+     * @throws VPlexApiException
+     */
+    public void setDeviceVisibility(String sourceDeviceName) throws VPlexApiException {
+        s_logger.info("Request to set device visibility {}", _baseURI);
+        _virtualVolumeMgr.setDeviceVisibility(sourceDeviceName);
+    }
+
+    /**
+     * Calls the VPLEX CLI "drill-down" command for the given device name.
+     * 
+     * @param deviceName a device name to check with the drill-down command
+     * @return the String drill-down command response from the VPLEX API
+     * @throws VPlexApiException if the device structure is incompatible with ViPR
+     */
+    public String getDrillDownInfoForDevice(String deviceName) throws VPlexApiException {
+        return _discoveryMgr.getDrillDownInfoForDevice(deviceName);
     }
 }

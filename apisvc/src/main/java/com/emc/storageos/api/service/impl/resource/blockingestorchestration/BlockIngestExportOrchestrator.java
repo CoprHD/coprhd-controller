@@ -62,10 +62,12 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
      * @param masksIngestedCount number of export masks ingested
      * @param deviceInitiators collection of initiators from a device 
      *                         (such as VPLEX) rather than a Host or Cluster
+     * @param errorMessages a List of error message strings collected during processing
      */
     protected <T extends BlockObject> void ingestExportMasks(UnManagedVolume unManagedVolume,
             List<UnManagedExportMask> unManagedMasks, VolumeExportIngestParam param, ExportGroup exportGroup, T blockObject,
-            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount, List<Initiator> deviceInitiators)
+            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount, List<Initiator> deviceInitiators,
+            List<String> errorMessages)
             throws IngestionException {
         try {
             _logger.info("Starting with unmanaged masks {} for unmanaged volume {}",
@@ -124,7 +126,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             while (itr.hasNext()) {
                 UnManagedExportMask unManagedExportMask = itr.next();
                 if (!VolumeIngestionUtil.validateStoragePortsInVarray(_dbClient, blockObject, param.getVarray(),
-                        unManagedExportMask.getKnownStoragePortUris(), unManagedExportMask)) {
+                        unManagedExportMask.getKnownStoragePortUris(), unManagedExportMask, errorMessages)) {
                     // logs already inside the above method.
                     itr.remove();
                     continue;
@@ -226,7 +228,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     }
 
                     eligibleMasks = VolumeIngestionUtil.findMatchingExportMaskForCluster(blockObject, unManagedMasks, iniGroupByHost,
-                            _dbClient, param.getVarray(), param.getVpool(), param.getCluster());
+                            _dbClient, param.getVarray(), param.getVpool(), param.getCluster(), errorMessages);
                     // Volume cannot be exposed to both Cluster and Host
                     if (eligibleMasks.size() == 1) {
                         // all initiators of all hosts in 1 MV
@@ -259,7 +261,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                             _dbClient);
                     eligibleMasks = VolumeIngestionUtil.findMatchingExportMaskForHost(blockObject, unManagedMasks, initiatorSet,
                             iniByProtocol, _dbClient, param.getVarray(), param.getVpool(), hostPartOfCluster,
-                            getInitiatorsOfCluster(host.getCluster(), hostPartOfCluster), null);
+                            getInitiatorsOfCluster(host.getCluster(), hostPartOfCluster), null, errorMessages);
                     if (!eligibleMasks.isEmpty()) {
                         _logger.info("Eligible masks {} found for Host {}", Joiner.on(",").join(eligibleMasks), host.getId());
                     } else {
@@ -286,7 +288,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                             blockObject, unManagedMasks, initiatorSet,
                             iniByProtocol, _dbClient, param.getVarray(), 
                             param.getVpool(), hostPartOfCluster,
-                            getInitiatorsOfCluster(null, hostPartOfCluster), null);
+                            getInitiatorsOfCluster(null, hostPartOfCluster), null, errorMessages);
                     if (!eligibleMasks.isEmpty()) {
                         _logger.info("Eligible masks {} found for device initiators {}", 
                                 Joiner.on(",").join(eligibleMasks), deviceInitiators);

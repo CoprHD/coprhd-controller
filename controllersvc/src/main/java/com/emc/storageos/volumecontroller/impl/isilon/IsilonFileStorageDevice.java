@@ -681,7 +681,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             String mountPath = null;
             // Update the mount path as required
-            if(vNASPath != null && !vNASPath.isEmpty() && !"".equals(vNASPath.trim())) {
+            if(vNASPath != null && !vNASPath.trim().isEmpty()) {
 	        	if (projName != null && tenantOrg != null) {
 		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s", vNASPath,
 		                    args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
@@ -690,7 +690,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 		            mountPath = String.format("%1$s/%2$s/%3$s", vNASPath,
 		                    args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
 		        }
-	        } else if(Boolean.valueOf(usePhysicalNASForProvisioning) && mountPath == null) {
+	        } else if(Boolean.valueOf(usePhysicalNASForProvisioning)) {
 		        if (projName != null && tenantOrg != null) {
 		            mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
 		                    args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
@@ -700,7 +700,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 		                    args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
 		        }
 	        } else {
-	        	_log.error("Provisioning on System access zone is disabled");
+	        	_log.error("No suitable access zone found for provisioning. Provisioning on System access zone is disabled");
 	        	throw DeviceControllerException.exceptions.createFileSystemOnPhysicalNASDisabled();
 	        }
 

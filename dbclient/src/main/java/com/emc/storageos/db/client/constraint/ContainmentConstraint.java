@@ -67,6 +67,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCif
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -619,6 +620,13 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField(FILE_SYSTEM_ID);
             return new ContainmentConstraintImpl(fs, UnManagedCifsShareACL.class, field);
         }
+        
+        public static ContainmentConstraint getUnManagedNfsShareAclsConstraint(URI fs) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedNFSShareACL.class);
+            ColumnField field = doType.getColumnField(FILE_SYSTEM_ID);
+            return new ContainmentConstraintImpl(fs, UnManagedNFSShareACL.class, field);
+        }
+
 
         public static ContainmentConstraint getFileExportRulesConstraintByFileIndex(URI fsIndex) {
             DataObjectType doType = TypeMap.getDoType(FileExportRule.class);

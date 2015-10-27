@@ -1360,4 +1360,30 @@ public class VPlexUtil {
 
         return isBuiltOnSnapshot;
     }
+    
+    /**
+     * Determines if the back-end is OpenStack Cinder, if yes returns true
+     * otherwise returns false.
+     * 
+     * @param fcObject
+     * @param dbClient
+     * @return
+     */
+    public static boolean isOpenStackBackend(BlockObject fcObject, DbClient dbClient) {
+        
+        URI backendStorageSystem = null;
+        if(fcObject instanceof Volume) {            
+            Volume backendVolume = getVPLEXBackendVolume((Volume)fcObject, true, dbClient, true);
+            backendStorageSystem = backendVolume.getStorageController();
+        } else {
+            backendStorageSystem = fcObject.getStorageController();
+        }
+        StorageSystem backendStorage = dbClient.queryObject(StorageSystem.class, backendStorageSystem);
+        String systemType = backendStorage.getSystemType();
+        if(DiscoveredDataObject.Type.openstack.name().equals(systemType)) {
+            return true;
+        }
+        
+        return false;
+    }
 }

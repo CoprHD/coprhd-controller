@@ -28,6 +28,7 @@ import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.resource.TenantsService;
 import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -601,8 +602,14 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // Set the VPLEX source volume for the copy.
         vplexCopyVolume.setAssociatedSourceVolume(fcSourceObject.getId());
 
-        // Copies always created active.
-        vplexCopyVolume.setSyncActive(Boolean.TRUE);
+        //Except for the Openstack, all Copies always created active.
+        if(VPlexUtil.isOpenStackBackend(fcSourceObject, _dbClient)) {
+            vplexCopyVolume.setSyncActive(Boolean.FALSE);
+        } else {
+            vplexCopyVolume.setSyncActive(Boolean.TRUE);
+        }
+            
+        
 
         // Persist the copy.
         _dbClient.persistObject(vplexCopyVolume);
@@ -980,4 +987,34 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
         return taskList;
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean volumeCanBeDeleted(Volume volume) {
+        
+        // For OpenStack, not required to do the detach checks
+        if(VPlexUtil.isOpenStackBackend(volume, _dbClient)) {
+            return true;
+        }
+        
+        return super.volumeCanBeDeleted(volume);
+        
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean volumeCanBeExpanded(Volume volume) {
+        
+        // For OpenStack, not required to do the detach checks
+        if(VPlexUtil.isOpenStackBackend(volume, _dbClient)) {
+            return true;
+        }
+        
+        return super.volumeCanBeExpanded(volume);
+    }
+
 }

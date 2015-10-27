@@ -68,7 +68,11 @@ public class DrUtil {
      */
     public String getPrimarySiteId() {
         Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
-        return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
+        if (config !=null) {
+            return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
+        } else {
+            return coordinator.getSiteId();
+        }
     }
     
     /**

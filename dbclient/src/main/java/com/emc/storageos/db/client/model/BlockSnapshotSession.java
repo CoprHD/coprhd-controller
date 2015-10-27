@@ -101,6 +101,7 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
         setChanged("sessionLabel");
     }
 
+    @AlternateId("SessionInstanceAltIdIndex")
     @Name("sessionInstance")
     public String getSessionInstance() {
         return _sessionInstance;

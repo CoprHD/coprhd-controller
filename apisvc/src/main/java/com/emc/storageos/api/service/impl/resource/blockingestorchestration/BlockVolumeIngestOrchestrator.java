@@ -5,6 +5,8 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -13,11 +15,18 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -84,6 +93,38 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                 String replicaState = PropertySetterUtil.extractValueFromStringSet(
                         SupportedVolumeInformation.REPLICA_STATE.toString(), unManagedVolume.getVolumeInformation());
                 volume.setReplicaState(replicaState);
+            }
+
+            // Create snapshot sessions for each synchronization aspect for the volume.
+            // Not really sure where this goes?
+            List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
+            StringSet syncAspectInfoForVolume = PropertySetterUtil.extractValuesFromStringSet(
+                    SupportedVolumeInformation.SNAPSHOT_SESSIONS.toString(), unManagedVolume.getVolumeInformation());
+            if ((syncAspectInfoForVolume != null) && (!syncAspectInfoForVolume.isEmpty())) {
+                for (String syncAspectInfo : syncAspectInfoForVolume) {
+                    String[] syncAspectInfoComponents = syncAspectInfo.split(":");
+                    String syncAspectName = syncAspectInfoComponents[0];
+                    String syncAspectObjPath = syncAspectInfoComponents[1];
+                    BlockSnapshotSession session = new BlockSnapshotSession();
+                    session.setId(URIUtil.createId(BlockSnapshotSession.class));
+                    session.setLabel(syncAspectName);
+                    session.setSessionLabel(syncAspectName);
+                    session.setParent(new NamedURI(volume.getId(), volume.getLabel()));
+                    session.setProject(new NamedURI(project.getId(), volume.getLabel()));
+                    session.setSessionInstance(syncAspectObjPath);
+                    StringSet linkedTargetURIs = new StringSet();
+                    URIQueryResultList queryResults = new URIQueryResultList();
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotBySettingsInstance(syncAspectObjPath),
+                            queryResults);
+                    Iterator<URI> queryResultsIter = queryResults.iterator();
+                    while (queryResultsIter.hasNext()) {
+                        linkedTargetURIs.add(queryResultsIter.next().toString());
+                    }
+                    session.setLinkedTargets(linkedTargetURIs);
+                    session.setOpStatus(new OpStatusMap());
+                    snapSessions.add(session);
+                }
+                _dbClient.createObject(snapSessions);
             }
         }
 

@@ -67,18 +67,14 @@ public class SmisBlockSnapshotSessionCreateJob extends SmisJob {
                 // Update Settings instance for the session.
                 CIMConnectionFactory cimConnectionFactory = jobContext.getCimConnectionFactory();
                 WBEMClient client = getWBEMClient(dbClient, cimConnectionFactory);
-                syncAspectIter = client
-                        .associatorNames(getCimJob(), null, SmisConstants.SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE, null, null);
+                syncAspectIter = client.associatorNames(getCimJob(), null,
+                        SmisConstants.SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE, null, null);
                 if (syncAspectIter.hasNext()) {
                     CIMObjectPath syncAspectPath = syncAspectIter.next();
-                    settingsStateIter = client.referenceNames(syncAspectPath, SmisConstants.CIM_SETTINGS_DEFINE_STATE, null);
-                    if (settingsStateIter.hasNext()) {
-                        CIMObjectPath settingsStatePath = settingsStateIter.next();
-                        String instanceId = settingsStatePath.toString();
-                        s_logger.info("SettingsState instance id is {}", instanceId);
-                        snapSession.setSessionInstance(instanceId);
-                        dbClient.persistObject(snapSession);
-                    }
+                    String instanceId = syncAspectPath.toString();
+                    s_logger.info("SynchronizationAspect instance id is {}", instanceId);
+                    snapSession.setSessionInstance(instanceId);
+                    dbClient.persistObject(snapSession);
                 }
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 s_logger.info("Failed to create snapshot session for task ", getTaskCompleter().getOpId());

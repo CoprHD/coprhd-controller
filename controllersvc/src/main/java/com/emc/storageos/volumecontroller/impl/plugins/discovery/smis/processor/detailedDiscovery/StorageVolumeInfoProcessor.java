@@ -934,10 +934,15 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             // Array snapshot sessions for which the volume is the source.
             if (volumeToSyncAspectMap.containsKey(unManagedVolume.getNativeGuid())) {
                 _logger.info("Found in SyncAspectMap {}", unManagedVolume.getNativeGuid());
-                Map<String, String> aspectMapForVolume = volumeToSyncAspectMap.get(unManagedVolume.getNativeGuid());
-                StringSet aspectsForVolume = new StringSet();
-                aspectsForVolume.addAll(aspectMapForVolume.values());
-                unManagedVolumeInformation.put(SupportedVolumeInformation.SNAPSHOT_SESSIONS.name(), aspectsForVolume);
+                StringSet syncAspectInfoForForVolume = new StringSet();
+                Map<String, String> syncAspectMap = volumeToSyncAspectMap.get(unManagedVolume.getNativeGuid());
+                for (String syncAspectKey : syncAspectMap.keySet()) {
+                    String syncAspectName = syncAspectKey.split(Constants.COLON)[1];
+                    String syncAspectObjPath = syncAspectMap.get(syncAspectKey);
+                    String syncAspectInfo = syncAspectName + Constants.COLON + syncAspectObjPath;
+                    syncAspectInfoForForVolume.add(syncAspectInfo);
+                }
+                unManagedVolumeInformation.put(SupportedVolumeInformation.SNAPSHOT_SESSIONS.name(), syncAspectInfoForForVolume);
             }
 
             // set volume's isSyncActive

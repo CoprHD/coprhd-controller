@@ -37,7 +37,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +51,6 @@ import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -94,6 +91,7 @@ import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy.IG_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 
@@ -1299,7 +1297,7 @@ public class SmisCommandHelper implements SmisConstants {
         ArrayList<CIMArgument> list = new ArrayList<CIMArgument>();
         try {
             CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storageDevice, volume);
-            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false, new String[]{CP_THINLY_PROVISIONED});
+            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false, new String[] { CP_THINLY_PROVISIONED });
             String isThinVolume = CIMPropertyFactory.getPropertyValue(volumeInstance, CP_THINLY_PROVISIONED);
             list.add(_cimArgument.reference(CP_THE_ELEMENT, volumePath));
             list.add(_cimArgument.uint64(CP_SIZE, size));
@@ -2619,29 +2617,13 @@ public class SmisCommandHelper implements SmisConstants {
 
     public CIMArgument[] getRestoreFromSnapshotInputArguments(StorageSystem storage, Volume to, BlockSnapshot from)
             throws Exception {
+        CIMObjectPath volumePath = _cimPath.getVolumePath(storage, to.getNativeId());
 
-        CIMObjectPath syncSettingsPath = null;
-        URIQueryResultList snapSessionURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(from.getId()), snapSessionURIs);
-        Iterator<URI> snapSessionURIsIter = snapSessionURIs.iterator();
-        if (snapSessionURIsIter.hasNext()) {
-            // If the BlockSnapshot instance is a linked target volume
-            // for a BlockSnapshotSession, then we simply get the path
-            // for the CIM_SettingsDefineState from the session where
-            // we store it. When a BlockSnapshotSession is created,
-            // there is no presumption of a linked target and as such
-            // the path of its associated CIM_SettingsDefineState
-            // does not reflect the target volume for the passed
-            // BlockSnapshot.
-            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURIsIter.next());
-            syncSettingsPath = _cimPath.objectPath(snapSession.getSessionInstance());
-        } else {
-            CIMObjectPath volumePath = _cimPath.getVolumePath(storage, to.getNativeId());
-            if (from.getSettingsInstance() == null) {
-                throw DeviceControllerException.exceptions.snapSettingsInstanceNull(from.getSnapsetLabel(), from.getId().toString());
-            }
-            syncSettingsPath = _cimPath.getSyncSettingsPath(storage, volumePath, from.getSettingsInstance());
+        if (from.getSettingsInstance() == null) {
+            throw DeviceControllerException.exceptions.snapSettingsInstanceNull(from.getSnapsetLabel(), from.getId().toString());
         }
+
+        CIMObjectPath syncSettingsPath = _cimPath.getSyncSettingsPath(storage, volumePath, from.getSettingsInstance());
 
         return new CIMArgument[] {
                 _cimArgument.uint16(CP_OPERATION, RESTORE_FROM_SYNC_SETTINGS),

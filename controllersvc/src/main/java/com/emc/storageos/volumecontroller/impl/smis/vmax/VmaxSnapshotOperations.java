@@ -1444,8 +1444,9 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     // Now link the target to the array snapshot represented by the session.
                     CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                     BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-                    String settingsStateInstanceId = snapSession.getSessionInstance();
-                    CIMObjectPath settingsStatePath = _cimPath.objectPath(settingsStateInstanceId);
+                    CIMObjectPath sourceVolumePath = _cimPath.getVolumePath(system, sourceVolume.getNativeId());
+                    String syncAspectPath = snapSession.getSessionInstance();
+                    CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourceVolumePath, syncAspectPath);
                     CIMObjectPath targetDevicePath = _cimPath.getVolumePath(system, targetDeviceIds.get(0));
                     CIMArgument[] inArgs = null;
                     CIMArgument[] outArgs = new CIMArgument[5];
@@ -1482,8 +1483,11 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
                 CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                String settingsStateInstanceId = tgtSnapSession.getSessionInstance();
-                CIMObjectPath settingsStatePath = _cimPath.objectPath(settingsStateInstanceId);
+                URI sourceURI = tgtSnapSession.getParent().getURI();
+                BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
+                CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
+                String syncAspectPath = tgtSnapSession.getSessionInstance();
+                CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
                 CIMObjectPath targetDevicePath = _cimPath.getBlockObjectPath(system, snapshot);
                 CIMArgument[] inArgs = null;
                 CIMArgument[] outArgs = new CIMArgument[5];
@@ -1601,8 +1605,11 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
                 terminateAnyRestoreSessions(system, null, snapSession.getParent().getURI(), completer);
                 CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                String settingsStateInstanceId = snapSession.getSessionInstance();
-                CIMObjectPath settingsStatePath = _cimPath.objectPath(settingsStateInstanceId);
+                URI sourceURI = snapSession.getParent().getURI();
+                BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
+                CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
+                String syncAspectPath = snapSession.getSessionInstance();
+                CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
                 CIMArgument[] inArgs = null;
                 CIMArgument[] outArgs = new CIMArgument[5];
                 inArgs = _helper.getRestoreFromSettingsStateInputArguments(settingsStatePath);
@@ -1633,8 +1640,11 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 _log.info("Delete snapshot session {} START", snapSessionURI);
                 BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
                 CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                String settingsStateInstanceId = snapSession.getSessionInstance();
-                CIMObjectPath settingsStatePath = _cimPath.objectPath(settingsStateInstanceId);
+                URI sourceURI = snapSession.getParent().getURI();
+                BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
+                CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
+                String syncAspectPath = snapSession.getSessionInstance();
+                CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
                 CIMArgument[] inArgs = null;
                 CIMArgument[] outArgs = new CIMArgument[5];
                 inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(settingsStatePath, false);

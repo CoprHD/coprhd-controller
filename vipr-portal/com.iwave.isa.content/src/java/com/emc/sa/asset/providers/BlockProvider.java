@@ -707,7 +707,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 new DefaultResourceFilter<BlockSnapshotRestRep>() {
                     @Override
                     public boolean accept(BlockSnapshotRestRep snapshot) {
-                        return !isInConsistencyGroup(snapshot);
+                        VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
+                        return (isRPSourceVolume(parentVolume) || !isInConsistencyGroup(snapshot) || hasXIO3XVolumes(parentVolume));
                     }
                 });
 

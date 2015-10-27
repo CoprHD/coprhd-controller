@@ -99,6 +99,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String UNIXSECURITY = "unix";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String SYSSECURITY = "sys";
+    private static final String NFSv4 = "NFSv4";
 
     private IsilonApiFactory _factory;
 
@@ -434,9 +435,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             StoragePool storagePool;
+            boolean isNfsV4Enabled = isilonApi.nfsv4Enabled();
             
-            boolean nfsv4Support = isilonApi.nfsv4Enabled();
-
             List<IsilonStoragePool> isilonStoragePools = isilonApi.getStoragePools();
             for (IsilonStoragePool isilonPool : isilonStoragePools) {
                 // Check if this storage pool was already discovered
@@ -470,9 +470,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     StringSet protocols = new StringSet();
                     protocols.add("NFS");
                     protocols.add("CIFS");
-                    if(nfsv4Support){
-                    	protocols.add("NFSv4");
-                    }
+
                     storagePool.setProtocols(protocols);
                     storagePool.setPoolName(isilonPool.getNativeId());
                     storagePool.setNativeId(isilonPool.getNativeId());
@@ -485,6 +483,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 } else {
                     existingPools.add(storagePool);
                 }
+
+				if (isNfsV4Enabled) {
+					storagePool.getProtocols().add(NFSv4);
+				} else {
+					storagePool.getProtocols().remove(NFSv4);
+				}
 
                 // scale capacity size
                 storagePool.setFreeCapacity(isilonPool.getAvailable() / BYTESCONVERTER);

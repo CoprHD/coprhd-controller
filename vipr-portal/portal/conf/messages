@@ -702,6 +702,7 @@ CustomConfigs.configType.HDSHostStorageDomainNickName=Host Group Nick Name
 CustomConfigs.configType.HDSHostModeOption=Host Mode Option
 CustomConfigs.configType.VPlexStorageViewName=Storage View Name
 CustomConfigs.configType.NasDynamicPerformancePlacementEnabled=Dynamic Performance Placement Enabled
+CustomConfigs.configType.NasUsePhysicalNASForProvisioning=Use Physical NAS For Provisioning
 CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.scopeType.global=Global

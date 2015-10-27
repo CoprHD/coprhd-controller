@@ -7,6 +7,7 @@ package com.emc.storageos.db.server.impl;
 
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -15,10 +16,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.crypto.SecretKey;
+
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.CassandraOperationType;
@@ -33,6 +38,7 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +77,8 @@ import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.password.PasswordUtils;
 
 /**
@@ -104,6 +112,7 @@ public class SchemaUtil {
     private DbClientContext clientContext;
     private boolean onStandby = false;
     private String _standbyId;
+    private InternalApiSignatureKeyGenerator apiSignatureGenerator;
 
     public void setClientContext(DbClientContext clientContext) {
         this.clientContext = clientContext;
@@ -854,6 +863,10 @@ public class SchemaUtil {
         site.setState(SiteState.PRIMARY);
         site.setCreationTime(System.currentTimeMillis());
         site.setVip(_vdcEndpoint);
+        
+        SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
+        site.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
+        
         _coordinator.persistServiceConfiguration(site.toConfiguration());
     }
 
@@ -1181,4 +1194,8 @@ public class SchemaUtil {
         }
         return true;
    }
+    
+    public void setApiSignatureGenerator(InternalApiSignatureKeyGenerator apiSignatureGenerator) {
+        this.apiSignatureGenerator = apiSignatureGenerator;
+    }
 }

@@ -452,7 +452,7 @@ public class DisasterRecoveryService {
         }
 
         try {
-            standby.setState(SiteState.STANDBY_SYNCING);
+            standby.setState(SiteState.STANDBY_RESUMING);
             coordinator.persistServiceConfiguration(standby.toConfiguration());
 
             VirtualDataCenter vdc = queryLocalVDC();

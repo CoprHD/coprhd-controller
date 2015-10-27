@@ -7,7 +7,6 @@ package com.emc.storageos.systemservices.impl.property;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -677,6 +676,11 @@ public class VdcSiteManager extends AbstractManager {
         Configuration localSiteConfig = coordinatorClient.queryConfiguration(Site.CONFIG_KIND,
                 coordinatorClient.getSiteId());
         Site localSite = new Site(localSiteConfig);
+
+        if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+            localSite.setState(SiteState.STANDBY_SYNCING);
+            coordinatorClient.persistServiceConfiguration(localSite.toConfiguration());
+        }
 
         // here we simply check if the site state is STANDBY_SYNCING
         // we leave the majority of the checks to DbRebuildRunnable since it need to validate all the criteria

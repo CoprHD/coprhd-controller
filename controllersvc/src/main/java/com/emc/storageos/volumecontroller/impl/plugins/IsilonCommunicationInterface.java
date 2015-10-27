@@ -339,7 +339,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             long provisioned = 0;
             if(quotas != null && quotas.size() > 0) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
-                    if (quota.getThresholds() != null) {
+                    if (quota.getThresholds() != null && quota.getThresholds().getHard() != null) {
                         provisioned = quota.getThresholds().getHard();
                         totalProvCap = totalProvCap + provisioned;
                         totalFsCount ++;
@@ -2380,7 +2380,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         //set the max capacity in GB
         Double MaxCapacity = 0.0;
         MaxCapacity = getClusterStorageCapacity(system);
-        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity.longValue()));
         return;
     }
     

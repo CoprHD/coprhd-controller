@@ -2206,7 +2206,7 @@ def restore_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of Snapshot',
                                 required=True)
-    mandatory_args.add_argument('-tenant', '-tn',
+    restore_parser.add_argument('-tenant', '-tn',
                                 metavar='<tenantname>',
                                 dest='tenant',
                                 help='Name of tenant',
@@ -2291,7 +2291,7 @@ def resync_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of Snapshot',
                                 required=True)
-    mandatory_args.add_argument('-tenant', '-tn',
+    resync_parser.add_argument('-tenant', '-tn',
                                 metavar='<tenantname>',
                                 dest='tenant',
                                 help='Name of tenant',
@@ -2302,10 +2302,6 @@ def resync_parser(subcommand_parsers, common_parser):
                                 help='Name of project',
                                 required=True)
     group = resync_parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-filesystem', '-fs',
-                       metavar='<filesystemname>',
-                       dest='filesystem',
-                       help='Name of filesystem')
     group.add_argument('-volume', '-vol',
                        metavar='<volumename>',
                        dest='volume',

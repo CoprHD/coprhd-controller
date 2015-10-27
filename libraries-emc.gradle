@@ -14,7 +14,7 @@ ext {
     ]
 
     netapp = [
-        "com.netapp:manageontap:4.1"
+        "com.netapp:manageontap:5.4"
     ]
 
     charva = [

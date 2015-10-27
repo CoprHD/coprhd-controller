@@ -44,10 +44,14 @@ public class Preferences extends Controller {
         }
         else {
             user.save();
-            redirect(getRedirectUrl());
+            update();
         }
     }
 
+    public static void cancel() {
+        update();
+    }
+    
     private static void storeReferer(PreferencesForm user) {
         final String referer = getRefererUrl();
         flash.put(FLASH_REFERER, referer);
@@ -55,19 +59,7 @@ public class Preferences extends Controller {
         Logger.debug("Referer stored in Flash: %s", referer);
     }
 
-    private static String getRedirectUrl() {
-        // if we have a referer URL we should use that
-        final String referer = getRefererUrl();
-        if (StringUtils.isNotBlank(referer)) {
-            Logger.debug("redirecting to %s", referer);
-            return referer;
-        }
-
-        // otherwise use the dashboard
-        Logger.debug("redirecting to %s", referer);
-        return Common.reverseRoute(Dashboard.class, "index");
-    }
-
+   
     private static String getRefererUrl() {
         // if there is a referer URL stored in the flash we should use that
         final String flashReferer = flash.get(FLASH_REFERER);

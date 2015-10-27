@@ -49,11 +49,10 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
         boolean useOldVpoolMap = (oldVpool == null);
-        switch (status) {
+        try {
+            switch (status) {
             case error:
-                _log.error(
-                        "An error occurred during virtual pool change "
-                                + "- restore the old virtual pool to the volume(s): {}",
+                _log.error("An error occurred during virtual pool change " + "- restore the old virtual pool to the volume(s): {}",
                         serviceCoded.getMessage());
                 // We either are using a single old Vpool URI or a map of Volume URI to old Vpool URI
                 for (URI id : getIds()) {
@@ -69,17 +68,13 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
 
                     volume.setVirtualPool(oldVpoolURI);
                     _log.info("Set volume's virtual pool back to {}", oldVpoolURI);
-                    
+
                     dbClient.persistObject(volume);
 
                     if (volume.checkForRp()) {
                         VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
                         RPHelper.rollbackProtectionOnVolume(volume, oldVpool, dbClient);
-                    }                                  
-                }
-
-                for (URI migrationURI : migrationURIs) {
-                    dbClient.error(Migration.class, migrationURI, getOpId(), serviceCoded);
+                    }
                 }
                 break;
             case ready:
@@ -98,17 +93,26 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                         recordBourneVolumeEvent(dbClient, id, evType, status, evDesc);
                     }
                 } catch (Exception ex) {
-                    _logger.error(
-                            "Failed to record block volume operation {}, err: {}",
-                            opType.toString(), ex);
-                }
-                for (URI migrationURI : migrationURIs) {
-                    dbClient.ready(Migration.class, migrationURI, getOpId());
+                    _logger.error("Failed to record block volume operation {}, err: {}", opType.toString(), ex);
                 }
                 break;
             default:
                 break;
+            }
+        } finally {
+            switch (status) {
+            case error:
+                for (URI migrationURI : migrationURIs) {
+                    dbClient.error(Migration.class, migrationURI, getOpId(), serviceCoded);
+                }
+                break;
+            case ready:
+            default:
+                for (URI migrationURI : migrationURIs) {
+                    dbClient.ready(Migration.class, migrationURI, getOpId());
+                }
+            }
+            super.complete(dbClient, status, serviceCoded);
         }
-        super.complete(dbClient, status, serviceCoded);
     }
 }

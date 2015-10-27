@@ -70,10 +70,18 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String HOST_IO_LIMIT_IOPS = "hostIOLimitIOPs";
     private static final String AUTO_CROSS_CONNECT_EXPORT = "autoCrossConnectExport";
     private static final String RP_RPO_VALUE = "rpRpoValue";
+    private static final String RP_RPO_TYPE = "rpRpoType";
+    private static final String RP_COPY_MODE = "rpCopyMode";    
     private static final String HA_CONNECTED_TO_RP = "haVarrayConnectedToRp";
+    private static final String JOURNAL_SIZE = "journalSize";
+    private static final String JOURNAL_VARRAY = "journalVarray";
+    private static final String JOURNAL_VPOOL = "journalVpool";
+    private static final String MULTI_VOLUME_CONSISTENCY = "multivolumeconsistency";
+    private static final String METROPOINT = "metroPoint";
 
     private static final String[] INCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] { AUTO_TIER_POLICY_NAME,
             HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS };
+    
     private static final String[] EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] {
             AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, ARRAY_INFO,
             UNIQUE_AUTO_TIERING_POLICY_NAMES, ASSIGNED_STORAGE_POOLS,
@@ -1301,6 +1309,63 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
         s_logger.info("RP change protection operation is supported.");
 
+        return true;
+    }
+    
+    /**
+     * Determines if the volume qualifies for RP protection. (and if not, why not)
+     * 
+     
+     */
+    
+    /**
+     * Checks to see if the remove protection operation is supported.
+     * 
+     * @param volume A reference to the volume.
+     * @param currentVpool A reference to the current volume Vpool.
+     * @param newVpool The desired new Vpool.
+     * @param dbClient A reference to a DB client.
+     * @param notSuppReasonBuff Buffer for error messages
+     * @return true is remove protection is supported
+     */
+    public static boolean isSupportedRPRemoveProtectionVirtualPoolChange(Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
+            DbClient dbClient, StringBuffer notSuppReasonBuff) {
+        s_logger.info(String.format("Checking isSupportedRPRemoveProtectionVirtualPoolChange from [%s] to [%s]...",
+                currentVpool.getLabel(), newVpool.getLabel()));
+
+        // Make sure the Vpool are not the same instance.
+        if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
+            return false;
+        }        
+           
+        if (volume.checkForRp()
+                && VirtualPool.vPoolSpecifiesProtection(currentVpool)
+                && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {            
+            // Check that nothing other than the excluded attributes changed.
+            List<String> excluded = new ArrayList<String>();
+            String[] exclude = new String[] { PROTECTION_VARRAY_SETTINGS, RP_RPO_VALUE, RP_RPO_TYPE, 
+                    RP_COPY_MODE, ARRAY_INFO, DRIVE_TYPE, JOURNAL_SIZE, JOURNAL_VARRAY, JOURNAL_VPOOL, 
+                    MULTI_VOLUME_CONSISTENCY, METROPOINT };
+            excluded.addAll(Arrays.asList(exclude));
+            excluded.addAll(Arrays.asList(generallyExcluded));
+            Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
+            if (!changes.isEmpty()) {
+                notSuppReasonBuff.append("These target pool differences are invalid: ");
+                for (String key : changes.keySet()) {
+                    s_logger.info("Unexpected Remove RP Protection Vpool attribute change: " + key);
+                    notSuppReasonBuff.append(key + " ");
+                }
+                s_logger.info("Virtual Pool change not supported {}", notSuppReasonBuff.toString());
+                s_logger.info(String.format("Parameters other than %s were changed",
+                        (Object[]) exclude));
+                return false;
+            }
+        } else {
+            s_logger.warn("RP remove protection operation is NOT supported.");
+            return false;
+        }
+        
+        s_logger.info("RP remove protection operation is supported.");
         return true;
     }
 }

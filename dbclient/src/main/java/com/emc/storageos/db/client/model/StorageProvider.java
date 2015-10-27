@@ -31,6 +31,11 @@ import com.emc.storageos.model.valid.EnumType;
 @Cf("StorageProvider")
 public class StorageProvider extends DataObject {
 
+    /**
+     * serialVersionUID
+     */
+    private static final long serialVersionUID = -860528426935487712L;
+
     private static final Logger logger = LoggerFactory.getLogger(StorageProvider.class);
 
     private StringSet _storageSystems;

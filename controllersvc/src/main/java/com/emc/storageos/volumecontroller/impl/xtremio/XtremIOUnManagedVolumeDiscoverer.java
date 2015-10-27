@@ -47,6 +47,7 @@ import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
@@ -149,12 +150,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         log.info("Started discovery of UnManagedVolumes for system {}", accessProfile.getSystemId());
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
                 accessProfile.getSystemId());
-        xtremioRestClientFactory.setModel(storageSystem.getFirmwareVersion());
-        XtremIOClient xtremIOClient = (XtremIOClient) xtremioRestClientFactory
-                .getRESTClient(URI.create(XtremIOConstants.getXIOBaseURI(accessProfile.getIpAddress(),
-                        accessProfile.getPortNumber())),
-                        accessProfile.getUserName(),
-                        accessProfile.getPassword(), true);
+        XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(storageSystem, xtremioRestClientFactory);
 
         unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
         unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();
@@ -307,7 +303,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         StringSet isReadOnly = new StringSet();
         Boolean readOnly = XtremIOConstants.XTREMIO_READ_ONLY_TYPE.equals(xioSnap.getSnapshotType()) ? Boolean.TRUE : Boolean.FALSE;
         isReadOnly.add(readOnly.toString());
-        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), isReadOnly);
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.IS_READ_ONLY.toString(), isReadOnly);
 
         StringSet techType = new StringSet();
         techType.add(BlockSnapshot.TechnologyType.NATIVE.toString());
@@ -429,7 +425,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 }
             }
 
-            UnManagedExportMask mask = getUnManagedExportMask(hostInitiators.get(0).getInitiatorPort(), dbClient);
+            UnManagedExportMask mask = getUnManagedExportMask(hostInitiators.get(0).getInitiatorPort(), dbClient, systemId);
             mask.setStorageSystemUri(systemId);
             // set the host name as the mask name
             mask.setMaskName(hostname);
@@ -496,15 +492,21 @@ public class XtremIOUnManagedVolumeDiscoverer {
         mask.setZoningMap(zoningMap);
     }
 
-    private UnManagedExportMask getUnManagedExportMask(String knownInitiatorNetworkId, DbClient dbClient) {
+    private UnManagedExportMask getUnManagedExportMask(String knownInitiatorNetworkId, DbClient dbClient, URI systemURI) {
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedExportMaskKnownInitiatorConstraint(knownInitiatorNetworkId), result);
         UnManagedExportMask uem = null;
         Iterator<URI> it = result.iterator();
-        if (it.hasNext()) {
-            uem = dbClient.queryObject(UnManagedExportMask.class, it.next());
-            unManagedExportMasksToUpdate.add(uem);
+        while (it.hasNext()) {
+            UnManagedExportMask potentialUem = dbClient.queryObject(UnManagedExportMask.class, it.next());
+            // Check whether the uem belongs to the same storage system. This to avoid in picking up the
+            // vplex uem.
+            if (URIUtil.identical(potentialUem.getStorageSystemUri(), systemURI)) {
+                uem = potentialUem;
+                unManagedExportMasksToUpdate.add(uem);
+                break;
+            }
         }
         if (uem != null && !uem.getInactive()) {
             // clean up collections (we'll be refreshing them)

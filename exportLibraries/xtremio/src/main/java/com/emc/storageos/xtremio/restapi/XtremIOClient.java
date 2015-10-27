@@ -95,7 +95,9 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             } else if (xtremIOCode == 401) {
                 throw XtremIOApiException.exceptions.authenticationFailure(uri.toString());
             } else {
-                throw XtremIOApiException.exceptions.internalError(uri.toString(), obj.toString());
+                // Sometimes the response object can be null, just empty when it is null.
+                String objStr = (obj == null) ? "" : obj.toString();
+                throw XtremIOApiException.exceptions.internalError(uri.toString(), objStr);
             }
         } else {
             return errorCode;

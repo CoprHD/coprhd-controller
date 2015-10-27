@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.smis.job;
 
 import java.net.URI;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,25 +17,32 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
+import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
+import com.google.common.base.Joiner;
 
 public class SmisReplicaCreationJobs extends SmisJob {
 
     private static final Logger _log = LoggerFactory.getLogger(SmisReplicaCreationJobs.class);
+    protected static final String[] _volumeProps = { SmisConstants.CP_DEVICE_ID, SmisConstants.CP_ELEMENT_NAME, SmisConstants.CP_WWN_NAME,
+            SmisConstants.CP_NAME, SmisConstants.CP_CONSUMABLE_BLOCKS, SmisConstants.CP_BLOCK_SIZE };
 
     public SmisReplicaCreationJobs(CIMObjectPath cimJob, URI storageSystem,
             TaskCompleter taskCompleter, String jobName) {
@@ -96,15 +104,13 @@ public class SmisReplicaCreationJobs extends SmisJob {
      * @param replicationGroupId
      * @throws Exception
      */
-    protected void processCGClones(CloseableIterator<CIMObjectPath> syncVolumeIter, WBEMClient client,
+    protected void processCGClones(CloseableIterator<CIMInstance> syncVolumeIter, WBEMClient client,
             DbClient dbClient, List<Volume> clones, String replicationGroupId, boolean isSyncActive) throws Exception {
-        Map<String, URI> deviceIdToVolumeMap = new HashMap<String, URI>();
-        Map<URI, Volume> sourceToCloneMap = new HashMap<URI, Volume>();
+        Map<String, Volume> srcNativeIdToCloneMap = new HashMap<String, Volume>();
         Set<URI> pools = new HashSet<URI>();
         for (Volume clone : clones) {
             Volume volume = dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
-            deviceIdToVolumeMap.put(volume.getNativeId(), volume.getId());
-            sourceToCloneMap.put(volume.getId(), clone);
+            srcNativeIdToCloneMap.put(volume.getNativeId(), clone);
             pools.add(clone.getPool());
         }
 
@@ -124,8 +130,8 @@ public class SmisReplicaCreationJobs extends SmisJob {
         Calendar now = Calendar.getInstance();
         while (syncVolumeIter.hasNext()) {
             // Get the sync volume native device id
-            CIMObjectPath syncVolumePath = syncVolumeIter.next();
-            CIMInstance syncVolume = client.getInstance(syncVolumePath, false, false, null);
+            CIMInstance syncVolume = syncVolumeIter.next();
+            CIMObjectPath syncVolumePath = syncVolume.getObjectPath();
             String syncDeviceID = syncVolumePath.getKey(SmisConstants.CP_DEVICE_ID).getValue().toString();
             String elementName = CIMPropertyFactory.getPropertyValue(syncVolume, SmisConstants.CP_ELEMENT_NAME);
             // Get the associated source volume for this sync volume
@@ -139,10 +145,8 @@ public class SmisReplicaCreationJobs extends SmisJob {
             String alternativeName =
                     CIMPropertyFactory.getPropertyValue(syncVolume,
                             SmisConstants.CP_NAME);
-            // Lookup the associated clone based on the elemenat name, and set the associated volumes.
-            URI sourceVolume = deviceIdToVolumeMap.get(volumeDeviceID);
-            Volume theClone = sourceToCloneMap.get(sourceVolume);
-
+            // Lookup the associated clone based on the source volume's ID.
+            Volume theClone = srcNativeIdToCloneMap.get(volumeDeviceID);
             theClone.setNativeId(syncDeviceID);
             theClone.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, theClone));
             theClone.setReplicationGroupInstance(replicationGroupId);
@@ -154,7 +158,6 @@ public class SmisReplicaCreationJobs extends SmisJob {
             theClone.setAlternateName(alternativeName);
             theClone.setProvisionedCapacity(getProvisionedCapacityInformation(client, syncVolume));
             theClone.setAllocatedCapacity(getAllocatedCapacityInformation(client, syncVolume));
-            theClone.setInactive(false);
             if (isSyncActive) {
                 theClone.setReplicaState(ReplicationState.CREATED.name());
             } else {
@@ -164,4 +167,69 @@ public class SmisReplicaCreationJobs extends SmisJob {
         }
     }
 
+    /**
+     * Update storage pool capacity and remove reservation for mirror capacities from pool's reserved capacity map.
+     *
+     * @param client
+     * @param dbClient
+     * @param replicas
+     * @throws Exception
+     */
+    protected void updatePools(WBEMClient client, DbClient dbClient, List<? extends Volume> replicas) throws Exception {
+        Set<URI> poolURIs = new HashSet<URI>();
+        for (Volume replica : replicas) {
+            poolURIs.add(replica.getPool());
+        }
+
+        for (URI poolURI : poolURIs) {
+            SmisUtils.updateStoragePoolCapacity(dbClient, client, poolURI);
+            StoragePool pool = dbClient.queryObject(StoragePool.class, poolURI);
+            StringMap reservationMap = pool.getReservedCapacityMap();
+            for (URI volumeId : getTaskCompleter().getIds()) {
+                // remove from reservation map
+                reservationMap.remove(volumeId.toString());
+            }
+
+            dbClient.persistObject(pool);
+        }
+    }
+
+    /*
+     * Construct target native ID to source native ID mapping using getReplicationRelationships SMI-S call.
+     *
+     * @param dbClient DBClient
+     * @param helper SmisCommandHelper
+     * @param storage StorageSystem
+     * @param srcDevIds Collection of source native IDs
+     * @param syncType integer value of sync type to query (clone, mirror, snapshot)
+     * @return the target native ID to source native ID mapping
+     */
+    protected Map<String, String> getConsistencyGroupSyncPairs(DbClient dbClient, SmisCommandHelper helper,
+            StorageSystem storage, Collection<String> srcDevIds, int syncType) throws WBEMException {
+        Map<String, String> tgtToSrcMap = new HashMap<String, String>();
+        List<CIMObjectPath> syncPairs = helper.getReplicationRelationships(
+                storage, SmisConstants.LOCAL_LOCALITY_VALUE, syncType, SmisConstants.SYNCHRONOUS_MODE_VALUE,
+                        SmisConstants.STORAGE_SYNCHRONIZED_VALUE);
+
+        if (_log.isDebugEnabled()) {
+            _log.debug("Found {} relationships", syncPairs.size());
+            _log.debug("Looking for System elements on {} with IDs {}", storage.getNativeGuid(), Joiner.on(',').join(srcDevIds));
+        }
+
+        for (CIMObjectPath syncPair : syncPairs) {
+            _log.info("Checking {}", syncPair);
+            String srcProp = syncPair.getKeyValue(SmisConstants.CP_SYSTEM_ELEMENT).toString();
+            CIMObjectPath srcPath = new CIMObjectPath(srcProp);
+            String srcId = srcPath.getKeyValue(SmisConstants.CP_DEVICE_ID).toString();
+
+            if (srcDevIds.contains(srcId)) {
+                String tgtProp = syncPair.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
+                CIMObjectPath tgtPath = new CIMObjectPath(tgtProp);
+                String tgtId = tgtPath.getKeyValue(SmisConstants.CP_DEVICE_ID).toString();
+                tgtToSrcMap.put(tgtId, srcId);
+            }
+        }
+
+        return tgtToSrcMap;
+    }
 }

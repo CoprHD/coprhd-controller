@@ -10,8 +10,9 @@ import java.util.Map;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ControllerException;
 
 public interface VPlexController extends Controller {
 
@@ -249,4 +250,26 @@ public interface VPlexController extends Controller {
      */
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber);
 
+    /**
+     * Establishes group relation between volume group and full copy group.
+     * 
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param fullCopy the full copy
+     * @param opId the op id
+     * @throws ControllerException the controller exception
+     */
+    public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId)
+            throws InternalException;
+
+    /**
+     * Resynchronizes a snapshot of a VPLEX volume.
+     * 
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param snapshotURI The URI of the snapshot.
+     * @param opId The unique operation identifier.
+     * 
+     * @throws InternalException
+     */
+    public void resyncSnapshot(URI vplexURI, URI snapshotURI, String opId) throws InternalException;
 }

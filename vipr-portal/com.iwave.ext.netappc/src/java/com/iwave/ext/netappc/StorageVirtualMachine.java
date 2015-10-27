@@ -12,10 +12,8 @@ import netapp.manage.NaServer;
 
 import org.apache.log4j.Logger;
 
-import com.iwave.ext.netappc.NetAppCException;
-
 public class StorageVirtualMachine {
-    private Logger log = Logger.getLogger(getClass());
+    private final Logger log = Logger.getLogger(getClass());
 
     private String name = "";
     private NaServer server = null;
@@ -54,12 +52,14 @@ public class StorageVirtualMachine {
                             svmInfo.setUuid(svm.getChildContent("uuid"));
                             svmInfo.setRootVolume(svm.getChildContent("root-volume"));
                             svms.add(svmInfo);
+                            log.info("Found Data SVM : {}" + name);
                         }
                     }
                 }
                 if (tag != null && !tag.isEmpty()) {
                     svmElem = new NaElement("vserver-get-iter");
-                    svmResult.addNewChild("tag", tag);
+                    svmElem.addNewChild("tag", tag);
+                    log.info("Updating the tag value as there are one or more svms available");
                 }
             } while (tag != null && !tag.isEmpty());
         } catch (Exception e) {
@@ -85,6 +85,7 @@ public class StorageVirtualMachine {
                                     if (dataProtocol != null) {
                                         if (dataProtocol.getContent().equalsIgnoreCase(FIBRE_CHANNEL_CONNECTIONS)) {
                                             invalid = true;
+                                            break;
                                         }
                                     }
                                 }
@@ -97,16 +98,22 @@ public class StorageVirtualMachine {
                                     svmNetInfo.setNetMask(vsnet.getChildContent("netmask"));
                                     svmNetInfo.setRole(vsnet.getChildContent("role"));
                                     netInfo.add(svmNetInfo);
+                                    log.info("Found vserver network interface: {}" + svmNetInfo.getNetInterface());
                                 }
                             }
                         }
 
-                        svmInfo.setInterfaces(netInfo);
+                        if (svmInfo.getInterfaces() == null) {
+                            List<SVMNetInfo> interfaces = new ArrayList<SVMNetInfo>();
+                            svmInfo.setInterfaces(interfaces);
+                        }
+                        svmInfo.getInterfaces().addAll(netInfo);
                     }
                 }
                 if (tag != null && !tag.isEmpty()) {
                     intfElem = new NaElement("net-interface-get-iter");
-                    intfResult.addNewChild("tag", tag);
+                    intfElem.addNewChild("tag", tag);
+                    log.info("Updating the tag value as there are one or more network interfaces available");
                 }
             } while (tag != null && !tag.isEmpty());
         } catch (Exception e) {

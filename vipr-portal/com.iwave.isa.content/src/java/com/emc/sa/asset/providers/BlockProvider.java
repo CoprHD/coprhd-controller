@@ -39,6 +39,7 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.StringComparator;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -540,6 +541,53 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         UnexportedBlockResourceFilter<BlockSnapshotRestRep> unexportedSnapshotFilter =
                 new UnexportedBlockResourceFilter<BlockSnapshotRestRep>(exportedBlockResources);
         return getSnapshotOptionsForProject(ctx, projectId, unexportedSnapshotFilter);
+    }
+
+    @Asset("vplexVolumeWithSnapshots")
+    @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
+    public List<AssetOption> getVplexSnapshotVolumes(AssetOptionsContext ctx, URI project, String volumeOrConsistencyType) {
+        final ViPRCoreClient client = api(ctx);
+        if (isVolumeType(volumeOrConsistencyType)) {
+            List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
+                @Override
+                public boolean accept(VolumeRestRep volume) {
+                    if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()
+                            && !client.blockSnapshots().getByVolume(volume.getId()).isEmpty() && !isInConsistencyGroup(volume)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            });
+            return createVolumeOptions(client, volumes);
+        } else {
+            List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups().findByProject(project,
+                    new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
+                        @Override
+                        public boolean accept(BlockConsistencyGroupRestRep cg) {
+                            if (cg.getTypes() != null && cg.getTypes().contains(Types.VPLEX.name())) {
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        }
+
+                    });
+            return createBaseResourceOptions(consistencyGroups);
+        }
+    }
+
+    @Asset("vplexBlockSnapshot")
+    @AssetDependencies({ "project", "blockVolumeOrConsistencyType", "vplexVolumeWithSnapshots" })
+    public List<AssetOption> getVplexBlockSnapshots(AssetOptionsContext ctx, URI projectId, String type, URI volumeOrCGId) {
+        if (isVolumeType(type) && BlockProviderUtils.isType(volumeOrCGId, VOLUME_TYPE)) {
+            List<BlockSnapshotRestRep> snapshots = api(ctx).blockSnapshots().getByVolume(volumeOrCGId);
+            return constructSnapshotOptions(api(ctx), projectId, snapshots);
+        } else if (isConsistencyGroupType(type) && BlockProviderUtils.isType(volumeOrCGId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
+            return getConsistencyGroupSnapshots(ctx, volumeOrCGId);
+        } else {
+            return new ArrayList<AssetOption>();
+        }
     }
 
     public static class UnexportedBlockResourceFilter<T extends BlockObjectRestRep> extends DefaultResourceFilter<T> {

@@ -62,6 +62,7 @@
             #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
               #{nav.item 'adminDashboardPage', href: @AdminDashboard.dashboard()/}
               #{nav.item 'systemHealthDashboard', href: @SystemHealth.systemHealth()/}
+               #{nav.item 'backup', href: @Backup.list()/}
               #{if controllers.SystemHealth.isNodeRecoveryEnabled()}
                 #{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
               #{/if}
@@ -95,6 +96,7 @@
           #{license.ifController}
             #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
               #{nav.item 'computeImages', href: @compute.ComputeImages.list()/}
+              #{nav.item 'computeImageServers', href: @compute.ComputeImageServers.list()/}
               #{nav.item 'computeSystems', href: @compute.ComputeSystems.list()/}
             #{/deadbolt.restrict}
             #{deadbolt.restrict roles:[['TENANT_ADMIN']]}

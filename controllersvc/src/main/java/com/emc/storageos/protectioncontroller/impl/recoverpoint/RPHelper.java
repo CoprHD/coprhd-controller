@@ -80,6 +80,13 @@ public class RPHelper {
     private static final String HTTPS = "https";
     private static final String WSDL = "wsdl";
     private static final String RP_ENDPOINT = "/fapi/version4_1";
+    
+    private static final String LOG_MSG_OPERATION_TYPE_DELETE = "delete";
+    private static final String LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION = "remove protection from";    
+    private static final String LOG_MSG_VOLUME_TYPE_RP = "RP_SOURCE";
+    private static final String LOG_MSG_VOLUME_TYPE_RPVPLEX = "RP_VPLEX_VIRT_SOURCE";
+    
+    public static final String REMOVE_PROTECTION = "REMOVE_PROTECTION";
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -263,61 +270,111 @@ public class RPHelper {
     }
 
     /**
-     * gets volume descriptors for volumes in an RP protection to be deleted
+     * Gets volume descriptors for volumes in an RP protection to be deleted
      * handles vplex andnon-vplex as well as mixed storage configurations
      * (e.g. vplex source and non-vplex targets)
-     *
-     * @param systemURI
-     * @param volumeURIs
-     * @return
+     * 
+     * @param systemURI System that the delete request belongs to
+     * @param volumeURIs All volumes to be deleted
+     * @param deletionType The type of deletion
+     * @param newVpool Only used when removing protection, the new vpool to move the volume to
+     * @return All descriptors needed to clean up volumes
      */
     public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
-            List<URI> volumeURIs) {
+            List<URI> volumeURIs, String deletionType, VirtualPool newVpool) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         try {
             Set<URI> allVolumeIds = getVolumesToDelete(volumeURIs);
 
-            for (URI volumeURI : allVolumeIds) {
-                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-
+            for (URI volumeURI : allVolumeIds) {                
+                Volume volume = _dbClient.queryObject(Volume.class, volumeURI);                
                 VolumeDescriptor descriptor = null;
-
+                boolean isSourceVolume = false;
+                
                 // if RP source, add a descriptor for the RP source
                 if (volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                    isSourceVolume = true;
+                    String volumeType = LOG_MSG_VOLUME_TYPE_RP;
+                    String operationType = LOG_MSG_OPERATION_TYPE_DELETE;
                     if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
-                        _log.info(String.format("Adding RP_VPLEX_VIRT_SOURCE descriptor to delete virtual volume [%s] ", volume.getLabel()));
-                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE, systemURI, volume.getId(), null, null);
-                    } else {
-                        _log.info(String.format("Adding RP_SOURCE descriptor to delete virtual volume [%s] ", volume.getLabel()));
-                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_SOURCE, systemURI, volumeURI, null, null);
+                        volumeType = LOG_MSG_VOLUME_TYPE_RPVPLEX;
+                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE, 
+                                volume.getStorageController(), volume.getId(), null, null);
+                    } else {                        
+                        descriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_SOURCE, 
+                                volume.getStorageController(), volume.getId(), null, null);
                     }
-                    volumeDescriptors.add(descriptor);
+                    
+                    if (REMOVE_PROTECTION.equals(deletionType)) {
+                        operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
+                        Map<String, Object> volumeParams = new HashMap<String, Object>();
+                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE); 
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId()); 
+                        descriptor.setParameters(volumeParams);
+                    }
+                                                        
+                    _log.info(String.format("Adding %s descriptor to %s%s volume [%s] (%s)", 
+                            volumeType, operationType, 
+                            (volumeType.equals(LOG_MSG_VOLUME_TYPE_RP) ? "" : "virtual "), 
+                            volume.getLabel(), volume.getId()));
+                    volumeDescriptors.add(descriptor);                                        
                 }
-
-                // if this is a virtual volume, add a descriptor for the virtual volume
-                if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
-                    // VPLEX virtual volume
-                    _log.info(String.format("Adding VPLEX_VIRT_VOLUME descriptor to delete virtual volume [%s] ", volume.getLabel()));
+                
+                // If this is a virtual volume, add a descriptor for the virtual volume
+                if (RPHelper.isVPlexVolume(volume)) {
+                    // VPLEX virtual volume                                      
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(),
                             volume.getId(), null, null);
-                    volumeDescriptors.add(descriptor);
-
+                    String operationType = LOG_MSG_OPERATION_TYPE_DELETE;
+                    // Add a flag to not delete this virtual volume if this is a Source volume and
+                    // the deletion type is Remove Protection
+                    if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
+                        operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
+                        Map<String, Object> volumeParams = new HashMap<String, Object>();
+                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
+                        descriptor.setParameters(volumeParams);
+                    }
+                    
+                    _log.info(String.format("Adding VPLEX_VIRT_VOLUME descriptor to %s virtual volume [%s] (%s)", 
+                            operationType, volume.getLabel(), volume.getId()));                    
+                    volumeDescriptors.add(descriptor);                    
+                    
                     // Next, add all the BLOCK volume descriptors for the VPLEX back-end volumes
                     for (String associatedVolumeId : volume.getAssociatedVolumes()) {
+                        operationType = LOG_MSG_OPERATION_TYPE_DELETE;
                         Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeId));
                         // a previous failed delete may have already removed associated volumes
-                        if (associatedVolume != null && !associatedVolume.getInactive()) {
-                            _log.info(String.format("Adding BLOCK_DATA descriptor to delete virtual volume backing volume [%s] ",
-                                    associatedVolume.getLabel()));
+                        if (associatedVolume != null && !associatedVolume.getInactive()) {                            
                             descriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, associatedVolume.getStorageController(),
                                     associatedVolume.getId(), null, null);
+                            // Add a flag to not delete these backing volumes if this is a Source volume and
+                            // the deletion type is Remove Protection
+                            if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
+                                operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
+                                Map<String, Object> volumeParams = new HashMap<String, Object>();
+                                volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);                    
+                                descriptor.setParameters(volumeParams);
+                            }
+                            _log.info(String.format("Adding BLOCK_DATA descriptor to %s virtual volume backing volume [%s] (%s)",
+                                    operationType, associatedVolume.getLabel(), associatedVolume.getId()));
                             volumeDescriptors.add(descriptor);
                         }
                     }
-                } else {
-                    _log.info(String.format("Adding BLOCK_DATA descriptor to delete volume [%s] ", volume.getLabel()));
+                } else {                    
+                    String operationType = LOG_MSG_OPERATION_TYPE_DELETE;
                     descriptor = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, volume.getStorageController(), volume.getId(),
                             null, null);
+                    // Add a flag to not delete this volume if this is a Source volume and
+                    // the deletion type is Remove Protection
+                    if (isSourceVolume && REMOVE_PROTECTION.equals(deletionType)) {
+                        operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
+                        Map<String, Object> volumeParams = new HashMap<String, Object>();
+                        volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE); 
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
+                        descriptor.setParameters(volumeParams);
+                    }
+                    _log.info(String.format("Adding BLOCK_DATA descriptor to %s volume [%s] (%s)", 
+                            operationType, volume.getLabel(), volume.getId()));
                     volumeDescriptors.add(descriptor);
                 }
             }
@@ -1039,8 +1096,8 @@ public class RPHelper {
         // Filter only source volumes
         if (cgVolumes != null) {
             for (Volume cgVolume : cgVolumes) {
-                if (NullColumnValueGetter.isNotNullValue(cgVolume.getPersonality())
-                        && cgVolume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) {
+                if (NullColumnValueGetter.isNotNullValue(cgVolume.getPersonality()) 
+                        && PersonalityTypes.SOURCE.toString().equals(cgVolume.getPersonality())) {
                     cgSourceVolumes.add(cgVolume);
                 }
             }
@@ -1509,7 +1566,7 @@ public class RPHelper {
 
                 _log.info("Rollback the secondary journal");
                 // Rollback the secondary journal volume if it was created
-                volume.setRpJournalVolume(NullColumnValueGetter.getNullURI());
+                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
                 if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
                     rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
                 }

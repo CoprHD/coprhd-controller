@@ -1879,44 +1879,6 @@ rpvplex_ha()
         --highavailability vplex_local
 }
 
-# Regular vpool used as base for change vpool tests
-rp_regular()
-{
-    cos create block rp_regular$1 true \
-        --description 'Regular vpool used as base for change vpool tests' \
-        --protocols FC \
-        --numpaths 2 \
-        --provisionType 'Thin' \
-        --neighborhoods $RECOVERPOINT_VARRAY1 \
-        --max_snapshots 10
-}
-
-# Regular VPLEX local vpool used as base for change vpool tests
-rpvplex_local_regular()
-{
-    cos create block rpvplex_local_regular$1 true \
-        --description 'Regular VPLEX local vpool used as base for change vpool tests' \
-        --protocols FC \
-        --numpaths 2 \
-        --provisionType 'Thin' \
-        --neighborhoods $RECOVERPOINT_VARRAY1 \
-        --highavailability vplex_local
-}
-
-# Regular VPLEX dist vpool used as base for change vpool tests
-rpvplex_dist_regular()
-{
-    cos create block rpvplex_dist_regular$1 true \
-        --description 'Regular VPLEX dist vpool used as base for change vpool tests' \
-        --protocols FC \
-        --numpaths 2 \
-        --provisionType 'Thin' \
-        --neighborhoods $RECOVERPOINT_VARRAY1 \
-        --highavailability vplex_distributed \
-        --haNeighborhood $RECOVERPOINT_VARRAY2 \
-        --haCos rpvplex_ha
-}
-
 # RP CDP
 rp_cdp()
 {
@@ -2083,14 +2045,51 @@ mp_clr()
         --activeProtectionAtHASite false
 }
 
+# RP - NO PROTECTION
+rp_noprotection()
+{
+    cos create block rp_noprotection$1 true \
+        --description 'RP - NO PROTECTION'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency
+}
+
+# RP+VPLEX LOCAL - NO PROTECTION
+rpvplexlocal_noprotection()
+{
+    cos create block rpvplexlocal_noprotection$1 true \
+        --description 'RP+VPLEX LOCAL - NO PROTECTION'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --highavailability vplex_local
+}
+
+# RP+VPLEX DIST - NO PROTECTION
+rpvplexdist_noprotection()
+{
+    cos create block rpvplexdist_noprotection$1 true \
+        --description 'RP+VPLEX DIST - NO PROTECTION'  \
+        --protocols FC \
+        --numpaths 2 \
+        --provisionType 'Thin' \
+        --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --multiVolumeConsistency \
+        --highavailability vplex_distributed \
+        --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --haCos rpvplex_ha
+}
+
 rp_vpool_setup()
 {
     rp_targets
     rpvplex_targets
     rpvplex_ha
-    rp_regular
-    rpvplex_local_regular
-    rpvplex_dist_regular
     rp_cdp
     rp_crr
     rp_clr
@@ -2100,6 +2099,9 @@ rp_vpool_setup()
     mp_cdp
     mp_crr
     mp_clr
+    rp_noprotection
+    rpvplexlocal_noprotection
+    rpvplexdist_noprotection
 }
 
 rp_varray_setup()
@@ -2594,17 +2596,15 @@ recoverpoint_cg_failover_test()
 recoverpoint_vpool_change_test()
 {
     base_volume=${1}
-    base_vpool=${2}
-    base_varray=${3}
+    noprotection_vpool=${2}
+    rp_vpool=${3}
+    rp_cg=${4}
 
-    rp_vpool=${4}
-    rp_cg=${5}
+    echo 'Change Virtual Pool - Remove Protection'
+    run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
 
-    echo 'Create base volume'
-    run volume create ${base_volume} $PROJECT ${base_varray} ${base_vpool} 1GB --count=2
-
-    echo 'Change vpool of base volume to RP'
-    run volume change_cos ${PROJECT}/${base_volume}-1 ${rp_vpool}
+    echo 'Change Virtual Pool - Add Protection'
+    run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
 }
 
 recoverpoint_add_journal_volume()
@@ -2731,6 +2731,10 @@ recoverpoint_tests()
         rpvplex_src_varray=$RECOVERPOINT_VARRAY1
         mp_src_varray=$RECOVERPOINT_VARRAY1
 
+        rp_noprotection_vpool='rp_noprotection'
+        rpvplex_noprotection_vpool='rpvplexdist_noprotection'
+        mp_noprotection_vpool='rpvplexdist_noprotection'
+
         rp_type=''
 
         if [ "$RP_CDP" = "1" ]; then
@@ -2741,14 +2745,13 @@ recoverpoint_tests()
             rp_tgt_varray=$RECOVERPOINT_VARRAY1
 			rp_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rp_tgt_vpool='rp_targets'
-            rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
 			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rpvplex_tgt_vpool='rpvplex_targets'
-            rpvplex_base_cvp1='rpvplex_local_regular'
-            rpvplex_base_cvp2='rpvplex_dist_regular'
+            # RP+VPLEX CDP uses VPLEX local, set this for no protection vpool
+            rpvplex_noprotection_vpool='rpvplexlocal_noprotection'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
@@ -2765,14 +2768,11 @@ recoverpoint_tests()
             rp_tgt_varray=$RECOVERPOINT_VARRAY3
 			rp_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rp_tgt_vpool='rp_targets'
-            rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY3
 			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rpvplex_tgt_vpool='rpvplex_targets'
-            rpvplex_base_cvp1='rpvplex_local_regular'
-            rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
@@ -2789,14 +2789,11 @@ recoverpoint_tests()
             rp_tgt_varray=$RECOVERPOINT_VARRAY3
 			rp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
             rp_tgt_vpool='rp_targets'
-            rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
 			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
             rpvplex_tgt_vpool='rpvplex_targets'
-            rpvplex_base_cvp1='rpvplex_local_regular'
-            rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
@@ -2821,42 +2818,21 @@ recoverpoint_tests()
         mpvolumetarget=${mpvolume}'-target-'${mp_active_tgt_varray}
 
         # Setup test volumes...
-        # Either use volumes that have gone through the change vpool process or
-        # use straight up created RP volumes.
-        if [ "$RP_CHANGE_VPOOL" = "1" ]; then
-            echo '*** RP change vpool volumes ***'
+        echo '*** RP create volumes ***'
 
-            if [ "$RP_TESTS" = "1" ]; then
-                echo 'RP change vpool...'
-                recoverpoint_vpool_change_test ${rpvolume} ${rp_base_cvp} ${rp_src_varray} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
-            fi
+        if [ "$RP_TESTS" = "1" ]; then
+            echo 'RP volume create...'
+            run volume create ${rpvolume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+        fi
 
-            if [ "$RPVPLEX_TESTS" = "1" ]; then
-                echo 'RP+VPLEX change vpool...NOT SUPPORTED YET!!'
-                #recoverpoint_vpool_change_test ${rpvplexvolume} ${rpvplex_base_cvp1} ${rpvplex_src_varray} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
-            fi
+        if [ "$RPVPLEX_TESTS" = "1" ]; then
+            echo 'RP+VPLEX volume create...'
+            run volume create ${rpvplexvolume} $PROJECT ${rpvplex_src_varray} ${rpvplex_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_VPLEX_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+        fi
 
-            if [ "$MP_TESTS" = "1" ]; then
-                echo 'MP change vpool...NOT SUPPORTED YET!!'
-            fi
-
-        else
-            echo '*** RP create volumes ***'
-
-            if [ "$RP_TESTS" = "1" ]; then
-                echo 'RP volume create...'
-                run volume create ${rpvolume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-            fi
-
-            if [ "$RPVPLEX_TESTS" = "1" ]; then
-                echo 'RP+VPLEX volume create...'
-                run volume create ${rpvplexvolume} $PROJECT ${rpvplex_src_varray} ${rpvplex_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_VPLEX_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-            fi
-
-            if [ "$MP_TESTS" = "1" ]; then
-                echo 'MetroPoint volume create...'
-                run volume create ${mpvolume} $PROJECT ${mp_src_varray} ${mp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_METROPOINT_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-            fi
+        if [ "$MP_TESTS" = "1" ]; then
+            echo 'MetroPoint volume create...'
+            run volume create ${mpvolume} $PROJECT ${mp_src_varray} ${mp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_METROPOINT_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
         fi
 
         # Have to account for "-1" being added to volume name if
@@ -2866,6 +2842,26 @@ recoverpoint_tests()
             volume_name_modifier=''
         else
             volume_name_modifier='-1'
+        fi
+
+        # Run change vpool tests on the volume if the flag is set.
+        if [ "$RP_CHANGE_VPOOL" = "1" ]; then
+            echo '*** RP change vpool volumes ***'
+
+            if [ "$RP_TESTS" = "1" ]; then
+                echo 'RP change vpool...'
+                recoverpoint_vpool_change_test ${rpvolume}${volume_name_modifier} ${rp_noprotection_vpool} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
+            fi
+
+            if [ "$RPVPLEX_TESTS" = "1" ]; then
+                echo 'RP+VPLEX change vpool'
+                recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+            fi
+
+            if [ "$MP_TESTS" = "1" ]; then
+                echo 'MP change vpool'
+                recoverpoint_vpool_change_test ${mpvolume}${volume_name_modifier} ${mp_noprotection_vpool} ${mp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+            fi
         fi
 
 		# Compile a list of target volume names that have been created for RP
@@ -2896,8 +2892,8 @@ recoverpoint_tests()
         if [ "$RP_RUN_VOLUME_CREATE_ONLY" = "0" ]; then
             if [ "$RP_TESTS" = "1" ]; then
                 echo 'RP tests...'
-		# Add Journal Test
-		recoverpoint_add_journal_volume ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
+                # Add Journal Test
+                recoverpoint_add_journal_volume ${rp_tgt_varray} ${rp_tgt_varray} ${rp_tgt_vpool} ${RP_CONSISTENCY_GROUP}
 		
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier} ${rp_src_varray}
@@ -2913,9 +2909,9 @@ recoverpoint_tests()
             if [ "$RPVPLEX_TESTS" = "1" ]; then
                 echo 'RP+VPLEX tests...'
                 # Add Journal Test
-		recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+                recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
 		
-		# Snapshot/Bookmark Test
+                # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier} ${rpvplex_src_varray}
 
                 # Failover Test
@@ -2928,8 +2924,8 @@ recoverpoint_tests()
             # MP test cases
             if [ "$MP_TESTS" = "1" ]; then
                 echo 'MetroPoint tests...'
-		# Add Journal Test
-		recoverpoint_add_journal_volume ${mp_active_tgt_varray} ${mp_active_tgt_varray} ${mp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+                # Add Journal Test
+                recoverpoint_add_journal_volume ${mp_active_tgt_varray} ${mp_active_tgt_varray} ${mp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
 		
                 # Snapshot/Bookmark Test
                 recoverpoint_auto_snapshot_cleanup_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier} ${mp_src_varray}

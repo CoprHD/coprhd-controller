@@ -36,6 +36,7 @@ addProjects(
         "tools/dbutils",
         "tools/zkutils",
         "tools/dbcli",
+		"tools/migrationtool",
         "tools/geniso",
         "tools/ipreconfig",
         "vipr-portal/vipr-client",

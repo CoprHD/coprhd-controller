@@ -1,0 +1,14 @@
+apply plugin: 'scripts'
+
+scripts {
+    migrationtool {
+        mainClass = 'com.emc.storageos.migrationtool.Main'
+        maxMemory = '512m'
+        service = false
+        gcDetails = false
+    }
+}
+
+dependencies {
+    compile project(":dbsvc")
+}       

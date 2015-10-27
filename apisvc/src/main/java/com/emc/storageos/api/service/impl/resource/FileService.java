@@ -1422,7 +1422,7 @@ public class FileService extends TaskResourceService {
         }
         
         if(placement.getvNAS() != null) {
-        	fs.setVituralNAS(placement.getvNAS());
+        	fs.setVirtualNAS(placement.getvNAS());
         }
         
         fs.setOpStatus(new OpStatusMap());

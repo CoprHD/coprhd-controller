@@ -336,7 +336,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonApi.IsilonList<IsilonSmartQuota> quotas = null;
         do {
             quotas = isilonApi.listQuotas(resumeToken, baseDirPath);
-            long provisioned = 0;
+            Long provisioned = 0L;
             if(quotas != null && quotas.size() > 0) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
                     if (quota.getThresholds() != null && quota.getThresholds().getHard() != null) {
@@ -405,9 +405,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics) + 
                                 MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
         Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
-        Long maxCapacity = (Long)MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
+        Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
         
-        double totalExports = (double)(nfsExportsCount + cifsSharesCount);
+        Long totalExports = Long.valueOf(nfsExportsCount + cifsSharesCount);
         //setting overLoad factor (true or false)
         String overLoaded = FALSE;
         if (totalExports >= maxExports || totalProvCap >= maxCapacity || totalFsCount >= maxStorObjs) {
@@ -2378,9 +2378,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(MaxCifsShares));
         
         //set the max capacity in GB
-        Double MaxCapacity = 0.0;
-        MaxCapacity = getClusterStorageCapacity(system);
-        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity.longValue()));
+        
+        long MaxCapacity = Math.round(getClusterStorageCapacity(system));
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
         return;
     }
     

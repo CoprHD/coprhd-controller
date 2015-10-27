@@ -339,9 +339,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             long provisioned = 0;
             if(quotas != null && quotas.size() > 0) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
+                    if (quota.getThresholds() != null) {
                         provisioned = quota.getThresholds().getHard();
                         totalProvCap = totalProvCap + provisioned;
                         totalFsCount ++;
+                    }
                 }
                 resumeToken = quotas.getToken();
             }
@@ -403,7 +405,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics) + 
                                 MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
         Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
-        Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
+        Long maxCapacity = (Long)MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
         
         double totalExports = (double)(nfsExportsCount + cifsSharesCount);
         //setting overLoad factor (true or false)

@@ -615,9 +615,12 @@ public class IsilonApi {
             StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
             URLBuffer.append("?zone=").append(zoneName);
             uri = URI.create(URLBuffer.toString());
+            sLogger.info("get list of nfs exports for accesszone {} and uri {} ", zoneName, uri.toString());
+        } else {
+            uri = _baseUrl.resolve(uri);
         }
-        sLogger.info("get list of nfs exports for accesszone {} and uri", zoneName, uri.toString());
-        return list(_baseUrl.resolve(uri), "exports", IsilonExport.class, resumeToken);
+        
+        return list(uri, "exports", IsilonExport.class, resumeToken);
     }
 
     /**
@@ -900,8 +903,11 @@ public class IsilonApi {
             StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
             URLBuffer.append("?zone=").append(zoneName);
             uri = URI.create(URLBuffer.toString());
+            sLogger.info("get list of shares for accesszone {} and uri {}", zoneName, uri.toString());
+        } else {
+            uri = _baseUrl.resolve(uri);
         }
-        sLogger.info("get list of shares for accesszone {} and uri", zoneName, uri.toString());
+        
         return list(_baseUrl.resolve(uri), "shares", IsilonSMBShare.class, resumeToken);
     }
 

@@ -191,7 +191,7 @@ public abstract class DbServiceTestBase {
         dbClient.setBypassMigrationLock(true);
         dbClient.setLocalContext(createLocalContext());
         VdcUtil.setDbClient(dbClient);
-
+        
         return dbClient;
     }
 

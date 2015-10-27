@@ -40,7 +40,11 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
     public void setCoordinatorClient(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
-
+    
+    public CoordinatorClient getCoordinatorClient() {
+        return _coordinator;
+    }
+    
     /**
      * DB client version in use
      * 
@@ -50,6 +54,10 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
         _version = version;
     }
 
+    public String getDbClientVersion() {
+        return _version;
+    }
+    
     @Override
     public List<Host> get() {
         int sleepDuration = SLEEP_BETWEEN_RETRY;

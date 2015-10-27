@@ -22,6 +22,7 @@ public class SiteConfigRestRep extends SiteRestRep {
     private String secretKey;
     private Map<String, String> hostIPv4AddressMap;
     private Map<String, String> hostIPv6AddressMap;
+    private int nodeCount;
     private Map<String, Object> extraProperties;
     
     @XmlElement(name = "softwareVersion")
@@ -77,8 +78,16 @@ public class SiteConfigRestRep extends SiteRestRep {
     public void setHostIPv6AddressMap(Map<String, String> hostIPv6AddressMap) {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
     }
-    
-    
+
+    @XmlElement(name = "nodeCount")
+    public int getNodeCount() {
+        return nodeCount;
+    }
+
+    public void setNodeCount(int nodeCount) {
+        this.nodeCount = nodeCount;
+    }
+
     @XmlElement(name = "isClusterStable")
     public boolean isClusterStable() {
         return isClusterStable;

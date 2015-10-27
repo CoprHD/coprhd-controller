@@ -9,6 +9,7 @@ import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.services.util.Strings;
 
 import org.apache.cassandra.service.StorageService;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.slf4j.Logger;
@@ -79,7 +80,7 @@ public class DbRepairRunnable implements Runnable {
 
         Collections.sort(nodeIds);
 
-        return Strings.join(",", nodeIds);
+        return StringUtils.join(nodeIds, ',');
     }
 
     public static String getStateKey(String keySpaceName, boolean isGeoDbsvc) {

@@ -757,21 +757,13 @@ public class VdcSiteManager extends AbstractManager {
 
     private void updateSiteErrors() {
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
-        String localSiteId = coordinatorClient.getSiteId();
-        Site localSite = new Site(coordinator.getCoordinatorClient().queryConfiguration(Site.CONFIG_KIND, localSiteId));
 
-        if (!SiteState.PRIMARY.equals(localSite.getState())) {
+        if (!drUtil.isPrimary()) {
             log.info("Step5: current site is a standby, nothing to do");
             return;
         }
 
-        for(Configuration config : coordinatorClient.queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
-            if (!localSite.getVdc().equals(site.getVdc())) {
-                // sites that don't belong to the local vdc
-                continue;
-            }
-
+        for(Site site : drUtil.listStandbySites()) {
             SiteError error = getSiteError(site);
             if (error != null) {
                 coordinatorClient.setTargetInfo(site.getUuid(), error);

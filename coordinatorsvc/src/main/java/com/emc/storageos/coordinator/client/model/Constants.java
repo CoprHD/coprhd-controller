@@ -131,4 +131,7 @@ public interface Constants {
     public static final String VDC_NODECOUNT_KEY_TEMPLATE= "vdc_%s_node_count";
     public static final String ZK_SERVER_CONFIG_PREFIX= "server.";
     public static final String STANDBY_PROPERTY_REGEX=".*standby\\d_network_\\d_ipaddr6?";
+    
+    public static final String PLANNED_FAILOVER_STANDBY_NODECOUNT = "plannedFailoverStandbyNodeCount";
+    public static final String PLANNED_FAILOVER_PRIMARY_NODECOUNT = "plannedFailoverPrimayNodeCount";
 }

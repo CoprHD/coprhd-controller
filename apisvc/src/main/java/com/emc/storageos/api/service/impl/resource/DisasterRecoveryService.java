@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
@@ -40,7 +41,6 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.impl.DistributedAtomicIntegerBuilder;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -90,11 +90,9 @@ public class DisasterRecoveryService {
     private CoordinatorClient coordinator;
     private DbClient dbClient;
     private ScheduledThreadPoolExecutor siteErrorThreadExecutor = new ScheduledThreadPoolExecutor(1);
-    private DistributedAtomicIntegerBuilder distributedAtomicIntegerBuilder;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
-        distributedAtomicIntegerBuilder = new DistributedAtomicIntegerBuilder();
     }
     
     /**
@@ -541,12 +539,12 @@ public class DisasterRecoveryService {
             oldPrimarySite.setState(SiteState.PRIMARY_PLANNED_FAILOVERING);
             coordinator.persistServiceConfiguration(oldPrimarySite.getUuid(), oldPrimarySite.toConfiguration());
             
-            DistributedAtomicInteger daiNewPrimary = distributedAtomicIntegerBuilder.client(coordinator)
-                    .siteId(newPrimarySite.getUuid()).path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_STANDBY_NODECOUNT).build();
+            DistributedAtomicInteger daiNewPrimary = coordinator.getDistributedAtomicInteger(newPrimarySite.getUuid(),
+                    Constants.PLANNED_FAILOVER_STANDBY_NODECOUNT);
             daiNewPrimary.forceSet(vdc.getHostCount());
-            
-            DistributedAtomicInteger daiOldPrimary = distributedAtomicIntegerBuilder.client(coordinator)
-                    .siteId(oldPrimaryUUID).path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_PRIMARY_NODECOUNT).build();
+
+            DistributedAtomicInteger daiOldPrimary = coordinator.getDistributedAtomicInteger(oldPrimaryUUID,
+                    Constants.PLANNED_FAILOVER_PRIMARY_NODECOUNT);
             daiOldPrimary.forceSet(oldPrimaryHostCount);
             
             // trigger local property change to reconfig
@@ -824,10 +822,6 @@ public class DisasterRecoveryService {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
-    }
-
-    public void setDistributedAtomicIntegerBuilder(DistributedAtomicIntegerBuilder distributedAtomicIntegerBuilder) {
-        this.distributedAtomicIntegerBuilder = distributedAtomicIntegerBuilder;
     }
 
     class SiteErrorUpdater implements Runnable {

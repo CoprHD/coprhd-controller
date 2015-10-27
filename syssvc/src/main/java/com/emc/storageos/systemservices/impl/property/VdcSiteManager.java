@@ -29,7 +29,6 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.coordinator.client.service.impl.DistributedAtomicIntegerBuilder;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
@@ -754,14 +753,11 @@ public class VdcSiteManager extends AbstractManager {
         
         log.info("site: {}", site.toString());
         
-        DistributedAtomicIntegerBuilder distributedAtomicIntegerBuilder = new DistributedAtomicIntegerBuilder();
-        
         if (site.getState().equals(SiteState.PRIMARY_PLANNED_FAILOVERING)) {
             log.info("This is primary planned failover site");
             
-            DistributedAtomicInteger distributedAtomicInteger = distributedAtomicIntegerBuilder
-                    .client(coordinator.getCoordinatorClient()).siteId(site.getUuid())
-                    .path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_PRIMARY_NODECOUNT).build();
+            DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
+                    site.getUuid(), Constants.PLANNED_FAILOVER_PRIMARY_NODECOUNT);
             AtomicValue<Integer> nodeCountLeft = distributedAtomicInteger.decrement();
             
             log.info("{} node left to do failover in this old primary site", nodeCountLeft.postValue());
@@ -779,9 +775,8 @@ public class VdcSiteManager extends AbstractManager {
         if (site.getState().equals(SiteState.STANDBY_PLANNED_FAILOVERING)) {
             log.info("This is standby planned failover site");
             
-            DistributedAtomicInteger distributedAtomicInteger = distributedAtomicIntegerBuilder
-                    .client(coordinator.getCoordinatorClient()).siteId(site.getUuid())
-                    .path(DistributedAtomicIntegerBuilder.PLANNED_FAILOVER_STANDBY_NODECOUNT).build();
+            DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
+                    site.getUuid(), Constants.PLANNED_FAILOVER_STANDBY_NODECOUNT);
             AtomicValue<Integer> nodeCountLeft = distributedAtomicInteger.decrement();
             
             log.info("{} node left to do failover in this new primary site", nodeCountLeft.postValue());

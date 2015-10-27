@@ -41,7 +41,6 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.impl.DistributedAtomicIntegerBuilder;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -556,7 +555,6 @@ public class DisasterRecoveryServiceTest {
         siteConfigurations.add(standbySite1.toConfiguration());
         siteConfigurations.add(standbySite2.toConfiguration());
         
-        DistributedAtomicIntegerBuilder distributedAtomicIntegerBuilder = mock(DistributedAtomicIntegerBuilder.class);
         DistributedAtomicInteger distributedAtomicInteger = mock(DistributedAtomicInteger.class);
         
         SecretKey keyMock = mock(SecretKey.class);
@@ -570,12 +568,8 @@ public class DisasterRecoveryServiceTest {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState("site-uuid-2", 3);
         doReturn(siteConfigurations).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
-        doReturn(distributedAtomicIntegerBuilder).when(distributedAtomicIntegerBuilder).client(any(CoordinatorClient.class));
-        doReturn(distributedAtomicIntegerBuilder).when(distributedAtomicIntegerBuilder).siteId(any(String.class));
-        doReturn(distributedAtomicIntegerBuilder).when(distributedAtomicIntegerBuilder).path(any(String.class));
-        doReturn(distributedAtomicInteger).when(distributedAtomicIntegerBuilder).build();
+        doReturn(distributedAtomicInteger).when(coordinator).getDistributedAtomicInteger(any(String.class), any(String.class));
         
-        drService.setDistributedAtomicIntegerBuilder(distributedAtomicIntegerBuilder);
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         drService.doPlannedFailover("site-uuid-2");
         

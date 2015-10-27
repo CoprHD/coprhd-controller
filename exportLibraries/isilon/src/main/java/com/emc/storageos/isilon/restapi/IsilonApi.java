@@ -705,8 +705,10 @@ public class IsilonApi {
             URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
             uri = URI.create(URLBuffer.toString());
             sLogger.info("get list of smart quotas for pathbaseDir {} and uri {}", pathBaseDir, uri.toString());
+        } else {
+            uri = _baseUrl.resolve(uri);
         }
-        return list(_baseUrl.resolve(uri), "quotas", IsilonSmartQuota.class, resumeToken);
+        return list(uri, "quotas", IsilonSmartQuota.class, resumeToken);
     }
 
     /**
@@ -822,7 +824,9 @@ public class IsilonApi {
             StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
             URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
             uri = URI.create(URLBuffer.toString());
-            sLogger.info("get list of snapshots for pathbaseDir {} and uri {}", pathBaseDir, uri.toString());
+            sLogger.info("get list of snapshots for pathbaseDir {} and uri {} .", pathBaseDir, uri.toString());
+        } else {
+            uri = _baseUrl.resolve(uri);
         }
         return list(uri, "snapshots", IsilonSnapshot.class, resumeToken);
     }

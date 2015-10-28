@@ -33,15 +33,18 @@ public class NfsACLDataTable extends DataTable {
 		public String subDir;
 
 		public NfsAclInfo(String name, String type, String permissions,
-				String fileSystem, String subDir, String domain, String fsMountPath) {
+				String fileSystem, String subDir, String domain,
+				String fsMountPath) {
 			this.name = name;
 			this.domain = domain;
 			this.type = type;
-			this.permissions = permissions;
+			this.permissions = permissions.replaceAll(",", "/");
 			this.subDir = subDir;
 			this.fileSystem = fileSystem;
 			this.fsMountPath = fsMountPath;
-			this.id = NfsACLForm.createId(this.name, this.type, this.fileSystem, this.subDir, this.domain, this.permissions, this.fsMountPath);
+			this.id = NfsACLForm.createId(this.name, this.type,
+					this.fileSystem, this.subDir, this.domain,
+					this.permissions, this.fsMountPath);
 		}
 	}
 

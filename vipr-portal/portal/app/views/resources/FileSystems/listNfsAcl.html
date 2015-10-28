@@ -27,21 +27,21 @@
 #{/DataTable.table}
 
 %{ formFields = ['fileSystemSubDirAndPath': fileSystemSubDirAndPath] }%
-#{DataTable.formAction @removeAcl(), id:'removeForm', table:'nfsAccessControlList', fields:formFields,
+#{DataTable.formAction @removeNfsAcl(), id:'removeForm', table:'nfsAccessControlList', fields:formFields,
                        confirm:messages.get('resources.filesystem.share.acl.deleteConfirm', name)/}
 
-#{Modal.dialog id:'addDialog', cssClass:'wide'}
+#{Modal.dialog id:'addNfsAclDialog', cssClass:'wide'}
   #{Modal.header}
     <h4 class="modal-title">&{'resources.filesystem.share.acl.add'}</h4>
   #{/Modal.header}
   #{Modal.body}
-    <div ng-controller="FileShareAclCtrl" id="acl">
+    <div ng-controller="NfsAclCtrl" id="acl">
        <div class="container-fluid">
            <div class="row" style="padding-top:20px; padding-bottom:0px;">
-                <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'shareACL.type'}</strong></div>
-                <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'shareACL.name'}</strong></div>
-                <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'shareACL.domain'}</strong></div>
-                <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'shareACL.permission'}</strong></div>
+                <div class="pull-left col-md-2" style="text-align:center;"><strong>&{'nfsACL.type'}</strong></div>
+                <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'nfsACL.name'}</strong></div>
+                <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'nfsACL.domain'}</strong></div>
+                <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'nfsACL.permissions'}</strong></div>
                 <div class="pull-left col-md-1"></div>
            </div>
            <hr style="margin:5px;"/>
@@ -49,15 +49,15 @@
                <div class="pull-left col-md-2" v-field="info.type" style="padding-right:0px;"><select-one options="typeOpt"></select-one></div>
                <div class="pull-left col-md-3" v-field="info.name"><input-text></input-text><label style="position: absolute; color:#a94442; font-size: 18px; right: -0px; top: 8px;">*</label></div>
                <div class="pull-left col-md-3" v-field="info.domain"><input-text></input-text></div>
-               <div class="pull-left col-md-3" v-field="info.permission" style="padding-right:0px;"><select-one options="permOpt"></select-one></div>
+               <div class="pull-left col-md-3" v-field="info.permission" style="padding-right:0px;"><input type="checkbox" options="permOpt"></<input><select-many options="permOpt"></select-many></div>
                <div class="pull-left col-md-1" style="padding-left:0px; margin-top:5px;"><button type="button" ng-click="deleteACE($index)" class="close">&times;</button></div>
            </div>
            <div class="row">
                <div class="pull-left col-sm-11"><button type="button" ng-click="addACE()" class="btn btn-sm btn-success"><i v-icon=plus></i> &{'button.add'}</button></div>
            </div>
-           #{form @addShareAcl(), id:'shareACLForm', class:'form form-horizontal', autocomplete:"off"}
+           #{form @addNfsAcl(), id:'nfsACLForm', class:'form form-horizontal', autocomplete:"off"}
              <input type="hidden" name="formAccessControlList" ng-value="formAccessControlList"/>
-             <input type="hidden" name="aclURL" value="${aclURL}">
+             <input type="hidden" name="fileSystemSubDirAndPath" value="${fileSystemSubDirAndPath}">
              
              <div class="row">
                #{Modal.buttonBar}
@@ -83,7 +83,7 @@
   function showDialog() {
 	    var scope = angular.element($('#acl')).scope();
 		scope.populateModal();
-		$('#addDialog').modal('show');
+		$('#addNfsAclDialog').modal('show');
   }
 </script>
 

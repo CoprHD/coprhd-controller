@@ -100,14 +100,15 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         return getIdUrl() + "/shares/{shareName}/acl";
     }
     
-    /**
-     * Gets the base URL for NFS ACL for a filesystem: <tt>/file/filesystems/{id}/acl?allDir=true</tt>
-     * 
-     * @return the shares URL.
-     */
-    protected String getNfsACLsUrl() {
-        return "/file/filesystems/{id}/acl";
-    }
+	/**
+	 * Gets the base URL for NFS ACL for a filesystem:
+	 * <tt>/file/filesystems/{id}/acl</tt>
+	 * 
+	 * @return the NFS ACL URL.
+	 */
+	protected String getNfsACLsUrl() {
+		return "/file/filesystems/{id}/acl";
+	}
     
 
     @Override
@@ -412,16 +413,15 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
     
 	/**
-	 * Gets the share ACLs for the given file system by ID.
+	 * Gets the all NFS ACLs for the given file system by ID.
 	 * <p>
 	 * API Call:
-	 * <tt>GET /file/filesystems/{id}/shares/{shareName}/acl?allDir=true</tt>
+	 * <tt>GET /file/filesystems/{id}/acl?allDir=true</tt>
 	 * 
 	 * @param id
 	 *            the ID of the file system.
-	 * @param shareName
-	 *            the shareName to get list of ACLS associated.
-	 * @return the list of share ACLs for the given file system.
+	 * 
+	 * @return the list of NFS ACLs for the given file system.
 	 */
 	public List<NfsACL> getAllNfsACLs(URI id) {
 		Properties queryParam = new Properties();
@@ -432,16 +432,16 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
 	}
 
 	/**
-	 * Gets the share ACLs for the given file system by ID.
+	 * Gets the NFS ACLs for the given file system by ID.
 	 * <p>
 	 * API Call:
-	 * <tt>GET /file/filesystems/{id}/shares/{shareName}/acl?subDir=<subDirId></tt>
+	 * <tt>GET /file/filesystems/{id}/acl?subDir=<subDirId></tt>
 	 * 
 	 * @param id
 	 *            the ID of the file system.
-	 * @param shareName
-	 *            the shareName to get list of ACLS associated.
-	 * @return the list of share ACLs for the given file system.
+	 * @param subDir
+	 *            the subDir to get list of ACLS associated.
+	 * @return the list of NFS ACLs for the given file system.
 	 */
 	public List<NfsACL> getNfsACLs(URI id, String subDir) {
 		Properties queryParam = new Properties();
@@ -458,14 +458,12 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
 	}
 	
 	/**
-     * Update file system share ACL
+     * Update file system NFSv4 ACL
      * 
      * API Call: <tt>PUT /file/filesystems/{id}/acl</tt>
      * 
      * @param id
      *            the ID of the filesystem.
-     * @param shareName
-     *            the shareName to update associated ACLs
      * @param param
      *            the update/create configuration
      * @return a task for monitoring the progress of the operation.

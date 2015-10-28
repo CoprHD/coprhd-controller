@@ -417,6 +417,49 @@ angular.module("portalApp").controller({
     	    $scope.$apply();
        }
     },
+    NfsAclCtrl: function($scope, $http, $window, translate) {
+    	
+    	$scope.add = {type:'User', name:'', domain:'', permission:'Read'};
+    	
+    	$scope.typeOpt = [{id:'User', name:translate('resources.filesystem.acl.user')},
+    	                 {id:'Group', name:translate('resources.filesystem.acl.group')}];
+
+    	$scope.permOpt = [{id:'Read', name:translate('resources.filesystem.nfsacl.read')}, 
+    	                  {id:'Write', name:translate('resources.filesystem.nfsacl.write')}, 
+    	                  {id:'Execute', name:translate('resources.filesystem.nfsacl.execute')}];
+    	
+    	var setData = function(data) {
+    		$scope.acl = data;
+    	}
+    	
+    	var resetModal = function() {
+    		$scope.acl = {};
+    	}
+    	
+    	$scope.populateModal = function() {
+    		    resetModal();
+    			$scope.acl.accesscontrols = [];
+        		$scope.acl.accesscontrols.push(angular.copy($scope.add));
+        		$scope.$apply();
+
+    	}
+
+    	$scope.deleteACE = function(idx) { $scope.acl.accesscontrols.splice(idx, 1); }
+    	$scope.addACE = function() { $scope.acl.accesscontrols.push(angular.copy($scope.add)); }
+    	
+    	$scope.$watch('acl', function(newVal) {
+    		var accessList = [];
+    		angular.forEach($scope.acl.accesscontrols, function(obj) {
+    			if (obj.name != '') {
+    				var val = obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission;
+    				val =val.split(",").join("/")
+    				accessList.push(val);
+    			}
+    		});
+    		
+    		$scope.formAccessControlList = accessList.toString();
+    	}, true);
+    },
     FileQuotaCtrl: function($scope, $http, $filter, translate) {
         $scope.securityOptions = [{id:"unix", name:translate('resources.filesystem.quota.security.unix')}, 
                                   {id:"ntfs", name:translate('resources.filesystem.quota.security.ntfs')},

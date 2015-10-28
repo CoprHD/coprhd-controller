@@ -385,7 +385,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         do {
             isilonNfsExports = isilonApi.listExports(resumeToken, zoneName);
             if (isilonNfsExports != null) {
-                nfsExportsCount = isilonNfsExports.size();
+                nfsExportsCount = nfsExportsCount + isilonNfsExports.size();
                 resumeToken = isilonNfsExports.getToken();
             }
         } while(resumeToken != null);
@@ -397,7 +397,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         do {
             isilonCifsExports = isilonApi.listShares(resumeToken, zoneName);
             if (isilonCifsExports != null) {
-                cifsSharesCount = isilonCifsExports.size();
+                cifsSharesCount = cifsSharesCount + isilonCifsExports.size();
                 resumeToken = isilonCifsExports.getToken();
             }
         } while(resumeToken != null);

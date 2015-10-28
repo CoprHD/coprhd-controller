@@ -42,34 +42,26 @@ public final class TestBlockProviderFilter {
             boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
             boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
             boolean isInConsistencyGroup = BlockProvider.isInConsistencyGroup(detail.volume);
-            // Note not currently used in the filter, informational flag only
-            boolean isVPLEXVolume = isVPlexVolume(detail.volume);
 
             if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume))) {
                 options.add(BlockProvider.createVolumeOption(client, null, detail.volume, volumeNames));
-                System.out.print("* " + detail.volume.getName());
+                System.out.println("\t* " + detail.volume.getName());
             } else {
-                System.out.print(detail.volume.getName());
+                System.out.println("\t" + detail.volume.getName());
             }
-            System.out.println(String.format(" [ %s ]", getVolumePersonality(detail.volume)));
 
-            String extra = String.format(
-                    "[localSnapSupported: %s, isRPTargetVolume: %s, isRPSourceVolume: %s, isInConsistencyGroup: %s, isVPLEXVolume: %s]",
+            String extra = String.format("[localSnapSupported: %s, isRPTargetVolume: %s, isRPSourceVolume: %s, isInConsistencyGroup: %s]",
                     localSnapSupported,
-                    isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup, isVPLEXVolume);
+                    isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup);
 
             System.out.println(String.format("\t\t[ %s ] [ %s ]", getVolumePersonality(detail.volume), extra));
         }
     }
 
-    static boolean isVPlexVolume(VolumeRestRep item) {
-        return item.getHaVolumes() != null && !item.getHaVolumes().isEmpty();
-    }
-
     public static void main(String[] args) throws URISyntaxException {
         Logger.getRootLogger().setLevel(Level.OFF);
         ViPRCoreClient client =
-                new ViPRCoreClient("host", true).withLogin("user", "pass");
+                new ViPRCoreClient("host", true).withLogin("root", "password");
         try {
 
             for (ProjectRestRep project : client.projects().getByUserTenant()) {

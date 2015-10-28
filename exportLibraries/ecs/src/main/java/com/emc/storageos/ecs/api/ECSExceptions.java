@@ -47,4 +47,7 @@ public interface ECSExceptions {
     @DeclareServiceCode(ServiceCode.ECS_BUCKET_DELETE_ERROR)
     public ECSException bucketDeleteFailed(final String bucketName, final String info);
 
+    @DeclareServiceCode(ServiceCode.ECS_BUCKET_GET_OWNER_ERROR)
+    public ECSException getBucketOwnerFailed(final String bucketName, final String info);
+
 }

@@ -190,7 +190,7 @@ public class ComputeImageServers extends ViprResourceController {
             this.status = computeImageServer.getComputeImageServerStatus();
             this.tftpBootDir = computeImageServer.getTftpBootDir();
             this.userName = computeImageServer.getImageServerUser();
-            this.osInstallTimeOut = computeImageServer.getOsInstallTimeoutMs();
+            this.osInstallTimeOut = computeImageServer.getOsInstallTimeout();
             this.computeImages = computeImageServer.getComputeImages();
             this.failedImages = computeImageServer.getFailedImages();
             this.password = ""; // the platform will never return the real password //NOSONAR
@@ -238,7 +238,7 @@ public class ComputeImageServers extends ViprResourceController {
             createParam.setImageServerIp(this.imageServerIp);
             createParam.setImageServerUser(this.userName);
             createParam.setImageServerPassword(this.password);
-            createParam.setOsInstallTimeoutMs(this.osInstallTimeOut);
+            createParam.setOsInstallTimeout(this.osInstallTimeOut);
             createParam.setTftpBootDir(this.tftpBootDir);
             createParam.setImageServerSecondIp(this.osInstallNetworkAddress);
             return ComputeImageServerUtils.create(createParam);
@@ -249,7 +249,7 @@ public class ComputeImageServers extends ViprResourceController {
 
             updateParam.setImageServerIp(this.imageServerIp);
             updateParam.setTftpBootDir(this.tftpBootDir);
-            updateParam.setOsInstallTimeoutMs(this.osInstallTimeOut);
+            updateParam.setOsInstallTimeout(this.osInstallTimeOut);
             updateParam.setImageServerUser(this.userName);
             updateParam.setImageServerSecondIp(this.osInstallNetworkAddress);
             if (this.password != null && this.password.length() > 0) {

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.lang.Math;
 
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -37,6 +38,7 @@ import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.gc.GarbageCollectionExecutor;
@@ -47,9 +49,9 @@ import com.emc.storageos.db.server.impl.StartupMode.GeodbRestoreMode;
 import com.emc.storageos.db.server.impl.StartupMode.HibernateMode;
 import com.emc.storageos.db.server.impl.StartupMode.NormalMode;
 import com.emc.storageos.db.server.impl.StartupMode.ObsoletePeersCleanupMode;
-import com.emc.storageos.services.util.JmxServerWrapper;
-import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+import com.emc.storageos.services.util.*;
 import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
+import static com.emc.storageos.services.util.FileUtils.getLastModified;
 
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
@@ -70,6 +72,11 @@ public class DbServiceImpl implements DbService {
     // run failure detector every 5 min by default
     private static final int DEFAULT_DETECTOR_RUN_INTERVAL_MIN = 5;
     private int _detectorInterval = DEFAULT_DETECTOR_RUN_INTERVAL_MIN;
+
+    // Service outage time should be less than 5 days, or else service will not be allowed to get started any more.
+    // As we checked the downtime every 15 mins, to avoid actual downtime undervalued, setting the max value as 4 days.
+    private static final long MAX_SERVICE_OUTAGE_TIME = 4 * TimeUtils.DAYS;
+    private AlertsLogger alertLog = AlertsLogger.getAlertsLogger();
 
     private String _config;
     private CoordinatorClient _coordinator;
@@ -365,6 +372,43 @@ public class DbServiceImpl implements DbService {
     }
 
     /**
+     * check service monitor info to see if dbsvc/geodbsvc on this node could get started
+     */
+    private void checkDBTrackerConfiguration() {
+        Configuration config = _coordinator.queryConfiguration(Constants.DB_DOWNTIME_TRACKER_CONFIG,
+                _serviceInfo.getName());
+        DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
+
+        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();
+        Long lastActiveTimestamp = dbOfflineEventInfo.geLastActiveTimestamp(localNodeId);
+        long zkTimeStamp = (lastActiveTimestamp == null) ? TimeUtils.getCurrentTime() : lastActiveTimestamp;
+
+        File localDbDir = new File(dbDir);
+        boolean isDirEmpty = localDbDir.list().length == 0;
+        long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : getLastModified(localDbDir).getTime();
+
+        _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
+        long diffTime = Math.abs(zkTimeStamp - localTimeStamp);
+        if (diffTime >= MAX_SERVICE_OUTAGE_TIME) {
+            String errMsg = String.format("We detect database files on local disk are more than %s days older " +
+                    "than last time it was seen in the cluster. It may bring stale data into the database, " +
+                    "so the service cannot continue to boot. It may be the result of a VM snapshot rollback. " +
+                    "Please contact with EMC support engineer for solution.", diffTime/TimeUtils.DAYS);
+            alertLog.error(errMsg);
+            throw new IllegalStateException(errMsg);
+        }
+
+        Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
+        if (offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
+            String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
+                    "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
+                    "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);
+            alertLog.error(errMsg);
+            throw new IllegalStateException(errMsg);
+        }
+    }
+
+    /**
      * Checks and sets INIT_DONE state
      * this means we are done with the actual cf changes on the cassandra side for the target version
      */
@@ -510,6 +554,7 @@ public class DbServiceImpl implements DbService {
             config = checkConfiguration();
             checkGlobalConfiguration();
             checkVersionedConfiguration();
+            checkDBTrackerConfiguration();
             removeStaleConfiguration();
 
             // The num_tokens in ZK is what we previously running at, which could be different from in current .yaml

@@ -50,7 +50,7 @@ public interface BadRequestExceptions {
     public BadRequestException cannotCreateSnapshotOfVplexCG();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException cannotCreateSnapshotOfRPCG();
+    public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotCreateVolumeAsConsistencyGroupHasSnapshots(String label, URI id);
@@ -2058,6 +2058,10 @@ public interface BadRequestExceptions {
             final URI sourceVolumeUri, final URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(
+            final String volumeName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVarrayForVplexVolumeInAppConsistenctCG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2442,6 +2446,9 @@ public interface BadRequestExceptions {
     public BadRequestException vNasServersNotAssociatedToProject();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException oneOrMorevNasServersNotAssociatedToProject();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteOrUpdateImageServerWhileInUse();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2509,10 +2516,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PRECONDITION_FAILED)
     public BadRequestException cannotAddImageWithoutImageServer();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantUpdateCGWithMixedBlockObjects(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantUpdateCGWithReplicaFromMultipleSystems(final String cgName);
 
@@ -2551,6 +2558,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vpoolChangeNotAllowedForVPLEXVolumeBuiltOnSnapshot(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotUpdateTFTPBOOTDirectory();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpBlockApiImplRemoveProtectionException(final String message);

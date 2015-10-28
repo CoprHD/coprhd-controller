@@ -32,7 +32,6 @@ import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
-import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageJob.JobStatus;
 import com.emc.storageos.db.client.model.ComputeImageServer;
@@ -1053,27 +1052,22 @@ public class ImageServerControllerImpl implements ImageServerController {
                 ComputeImageServer imageServer = dbClient.queryObject(
                         ComputeImageServer.class, computeImageServerID);
                 for (ComputeImage computeImage : computeImageList) {
-                    if (computeImage.getComputeImageStatus().equals(
-                            ComputeImageStatus.AVAILABLE.name())) {
-                        if (null == imageServer.getComputeImages()
-                                || !imageServer.getComputeImages().contains(
-                                        computeImage.getId().toString())) {
-                            StringBuilder msg = new StringBuilder(
-                                    "Importing image ");
-                            msg.append(computeImage.getLabel()).append(
-                                    " on to imageServer - ");
-                            msg.append(imageServer.getImageServerIp()).append(
-                                    ".");
+                    if (null == imageServer.getComputeImages()
+                            || !imageServer.getComputeImages().contains(
+                                    computeImage.getId().toString())) {
+                        StringBuilder msg = new StringBuilder(
+                                "Importing image ");
+                        msg.append(computeImage.getLabel()).append(
+                                " on to imageServer - ");
+                        msg.append(imageServer.getImageServerIp()).append(".");
 
-                            workflow.createStep(IMAGESERVER_IMPORT_IMAGES_STEP,
-                                    msg.toString(),
-                                    IMAGESERVER_VERIFICATION_STEP,
-                                    computeImageServerID, computeImageServerID
-                                            .toString(), this.getClass(),
-                                    new Workflow.Method("importImageMethod",
-                                            computeImage.getId(), imageServer,
-                                            opName), null, null);
-                        }
+                        workflow.createStep(IMAGESERVER_IMPORT_IMAGES_STEP, msg
+                                .toString(), IMAGESERVER_VERIFICATION_STEP,
+                                computeImageServerID, computeImageServerID
+                                        .toString(), this.getClass(),
+                                new Workflow.Method("importImageMethod",
+                                        computeImage.getId(), imageServer,
+                                        opName), null, null);
                     }
                 }
             }

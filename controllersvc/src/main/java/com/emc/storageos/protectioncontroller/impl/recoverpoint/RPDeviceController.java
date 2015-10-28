@@ -1212,8 +1212,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 						Map<String, List<Initiator>> rpSiteInitiatorsMap) {
 		
 		_log.info("Start : Acquiring RP lock keys for export");
-		for(RPExport rpExport : rpExports) {
-			
+		for(RPExport rpExport : rpExports) {			
 			List<Initiator> rpSiteInitiators = rpSiteInitiatorsMap.get(rpExport.getRpSite());
 			List<URI> rpSiteInitiatorURIs = new ArrayList<URI>();
 			for(Initiator rpSiteInitiator : rpSiteInitiators) {

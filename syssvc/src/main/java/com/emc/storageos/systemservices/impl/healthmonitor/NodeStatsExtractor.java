@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.healthmonitor.models.CPUStats;
 import com.emc.vipr.model.sys.healthmonitor.DiskStats;
 import com.emc.vipr.model.sys.healthmonitor.ServiceStats;
@@ -52,7 +54,8 @@ public class NodeStatsExtractor implements StatConstants {
             }
             try {
                 String serviceName = ProcStats.getServiceName(pid);
-                if (serviceName != null && !serviceName.isEmpty() && !MONITOR_SVCNAME
+
+                if (!serviceName.isEmpty() && !MONITOR_SVCNAME
                         .equals(serviceName)) {
                     String commandFile = null;
                     try {
@@ -71,6 +74,11 @@ public class NodeStatsExtractor implements StatConstants {
                             ProcStats.getProcStats(pid));
                     tempServiceStatsMap.put(serviceName, serviceStats);
                 }
+            } catch (SyssvcException ex) {
+                if (ex.getServiceCode() == ServiceCode.SYS_INTERNAL_SERVICE_NAME_NOT_FOUND) {
+                    continue;
+                }
+                _log.debug("Syssvc Exception: {}",ex);
             } catch (Exception e) {
                 _log.debug("Internal error: {}", e);
             }

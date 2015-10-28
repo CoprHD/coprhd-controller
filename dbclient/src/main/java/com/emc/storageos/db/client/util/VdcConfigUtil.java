@@ -186,8 +186,10 @@ public class VdcConfigUtil {
             if (drUtil.isLocalSite(site)) {
                 vdcConfig.put(SITE_MYID, siteShortId);
             }
-            
-            shortIds.add(siteShortId);
+
+            if (!isPrimarySite) {
+                shortIds.add(siteShortId);
+            }
         }
         Collections.sort(shortIds);
         vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));

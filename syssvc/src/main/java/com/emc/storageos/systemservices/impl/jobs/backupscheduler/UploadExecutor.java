@@ -9,6 +9,9 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 
 import com.emc.storageos.services.util.Strings;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +24,7 @@ import java.util.Set;
 /**
  * This class uploads backups to user supplied external file server.
  */
-public abstract class UploadExecutor {
+public class UploadExecutor {
     private static final int UPLOAD_RETRY_TIMES = 3;
     private static final int UPLOAD_RETRY_DELAY_MS = 5000; // 5s
 
@@ -29,8 +32,9 @@ public abstract class UploadExecutor {
 
     private BackupScheduler cli;
     protected SchedulerConfig cfg;
+    protected Uploader uploader;
 
-    public static UploadExecutor create(SchedulerConfig cfg, BackupScheduler cli) {
+    private Uploader initUploader(SchedulerConfig cfg, BackupScheduler cli) {
         if (cfg.uploadUrl == null) {
             return null;
         }
@@ -42,17 +46,21 @@ public abstract class UploadExecutor {
         throw new UnsupportedAddressTypeException();
     }
 
-    protected UploadExecutor(SchedulerConfig cfg, BackupScheduler cli) {
+    public UploadExecutor(SchedulerConfig cfg, BackupScheduler cli) {
         this.cfg = cfg;
         this.cli = cli;
     }
 
+    public void runOnce() throws Exception {
+        runOnce(null);
+    }
+
     public void runOnce(String backupTag) throws Exception {
-        if (this.cfg.uploadUrl == null) {
+        this.uploader = initUploader(cfg, cli);
+        if (this.uploader == null) {
             log.info("Upload URL is empty, upload disabled");
             return;
         }
-
         try (AutoCloseable lock = this.cfg.lock()) {
             this.cfg.reload();
             cleanupCompletedTags();
@@ -71,25 +79,29 @@ public abstract class UploadExecutor {
      */
     public String tryUpload(String tag) throws InterruptedException {
         String lastErrorMessage = null;
+
+        setUploadStatus(tag, Status.INIT, null, null);
         for (int i = 0; i < UPLOAD_RETRY_TIMES; i++) {
             try {
                 BackupFileSet files = this.cli.getDownloadFiles(tag);
                 if (files.isEmpty()) {
+                    setUploadStatus(null, Status.FAILED, null, ErrorCode.BACKUP_NOT_EXIST);
                     return String.format("Cannot find target backup set '%s'.", tag);
                 }
                 if (!files.isValid()) {
+                    setUploadStatus(null, Status.FAILED, null, ErrorCode.INVALID_BACKUP);
                     return "Cannot get enough files for specified backup";
                 }
 
                 String zipName = this.cli.generateZipFileName(tag, files);
 
-                Long existingLen = getFileSize(zipName);
+                Long existingLen = uploader.getFileSize(zipName);
                 long len = existingLen == null ? 0 : existingLen;
                 log.info("Uploading {} at offset {}", tag, existingLen);
-                try (OutputStream uploadStream = upload(zipName, len)) {
+                try (OutputStream uploadStream = uploader.upload(zipName, len)) {
                     this.cli.uploadTo(files, len, uploadStream);
                 }
-
+                setUploadStatus(null, Status.DONE, 100, null);
                 return null;
             } catch (Exception e) {
                 lastErrorMessage = e.getMessage();
@@ -102,26 +114,44 @@ public abstract class UploadExecutor {
             Thread.sleep(UPLOAD_RETRY_DELAY_MS);
         }
 
+        setUploadStatus(null, Status.FAILED, null, ErrorCode.UPLOAD_FAILURE);
+
         return lastErrorMessage;
+    }
+
+    public void setUploadStatus(String backupTag, Status status, Integer progress, ErrorCode errorCode) {
+        BackupUploadStatus uploadStatus = this.cfg.queryBackupUploadStatus();
+        uploadStatus.update(backupTag, status, progress, errorCode);
+        this.cfg.persistBackupUploadStatus(uploadStatus);
+    }
+
+    public BackupUploadStatus getUploadStatus(String backupTag) throws Exception {
+        if (backupTag == null) {
+            log.error("Query parameter of backupTag is null");
+            throw new IllegalStateException("Invalid query parameter");
+        }
+        this.cfg.reload();
+        if (this.cfg.uploadedBackups.contains(backupTag)) {
+            return new BackupUploadStatus(backupTag, Status.DONE, 100, null);
+        }
+        if (!getIncompleteUploads().contains(backupTag)) {
+            return new BackupUploadStatus(backupTag, Status.FAILED, 0, ErrorCode.BACKUP_NOT_EXIST);
+        }
+        BackupUploadStatus uploadStatus = this.cfg.queryBackupUploadStatus();
+        if (backupTag.equals(uploadStatus.getBackupName())) {
+            return uploadStatus;
+        } else {
+            return new BackupUploadStatus(backupTag, Status.INIT, null, null);
+        }
     }
 
     private void upload(String backupTag) throws Exception {
         log.info("Begin upload");
 
-        List<String> incompleteUploads = getIncompleteUploads();
-        if (incompleteUploads.isEmpty()) {
+        List<String> toUpload = getWaitingUploads(backupTag);
+        if (toUpload.isEmpty()) {
+            log.info("No backups need to be uploaded");
             return;
-        }
-        List<String> toUpload = new ArrayList<String>();
-        if (backupTag == null) {
-            toUpload = incompleteUploads;
-        } else {
-            if(incompleteUploads.contains(backupTag)) {
-                toUpload.add(backupTag);
-            } else {
-                log.info("No need to upload backup({})");
-                return;
-            }
         }
 
         List<String> succUploads = new ArrayList<>();
@@ -160,6 +190,22 @@ public abstract class UploadExecutor {
                     Strings.join("\r\n", errMsgs.toArray(new String[errMsgs.size()])));
         }
         log.info("Finish upload");
+    }
+
+    private List<String> getWaitingUploads(String backupTag) {
+        List<String> toUpload = new ArrayList<String>();
+
+        List<String> incompleteUploads = getIncompleteUploads();
+        if (backupTag == null) {
+            toUpload = incompleteUploads;
+        } else {
+            if(incompleteUploads.contains(backupTag)) {
+                toUpload.add(backupTag);
+            } else {
+                log.info("Backup({}) has already been uploaded", backupTag);
+            }
+        }
+        return toUpload;
     }
 
     private List<String> getIncompleteUploads() {
@@ -206,23 +252,4 @@ public abstract class UploadExecutor {
             this.cfg.persist();
         }
     }
-
-    /**
-     * Get size of a file on server.
-     * 
-     * @param fileName the name of the file for which to get size info.
-     * @return file size in bytes, or null if file is not exist.
-     * @throws Exception
-     */
-    public abstract Long getFileSize(String fileName) throws Exception;
-
-    /**
-     * Upload file with resuming.
-     * 
-     * @param fileName the file on server to be uploaded to.
-     * @param offset from which offset on server to resume upload.
-     * @return The OutputStream instance to which upload data can be written.
-     * @throws Exception
-     */
-    public abstract OutputStream upload(String fileName, long offset) throws Exception;
 }

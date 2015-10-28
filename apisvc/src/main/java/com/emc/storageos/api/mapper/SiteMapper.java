@@ -26,7 +26,7 @@ public class SiteMapper {
         }
         
         to.setUuid(from.getUuid());
-        to.setVdcId(from.getVdc());
+        to.setVdcShortId(from.getVdcShortId());
         to.setName(from.getName());
         to.setVip(from.getVip());
         to.setDescription(from.getDescription());

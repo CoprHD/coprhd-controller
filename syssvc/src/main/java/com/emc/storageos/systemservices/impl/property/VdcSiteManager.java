@@ -186,7 +186,7 @@ public class VdcSiteManager extends AbstractManager {
             try {
                 initializeLocalAndTargetInfo();
             } catch (Exception e) {
-                log.info("Step1b failed and will be retried: {}", e.getMessage());
+                log.info("Step1b failed and will be retried:", e);
                 retrySleep();
                 continue;
             }

@@ -4,6 +4,14 @@
  */
 package com.emc.storageos.migrationtool;
 
+import javax.cim.CIMObjectPath;
+import javax.security.auth.Subject;
+import javax.wbem.WBEMException;
+import javax.wbem.client.PasswordCredential;
+import javax.wbem.client.UserPrincipal;
+import javax.wbem.client.WBEMClient;
+import javax.wbem.client.WBEMClientFactory;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +47,19 @@ public abstract class Executor {
             System.err.println("Caught Exception: " + e);
             log.error("Caught Exception: ", e);
         }
+    }
+
+    public WBEMClient getCimClient(String ipaddress, String portNumber, String username, String password, boolean useSSL)
+            throws IllegalArgumentException, WBEMException {
+        WBEMClient client = WBEMClientFactory.getClient("CIM-XML");
+        String protocol = useSSL ? "https" : "http";
+        Subject subject = new Subject();
+        subject.getPrincipals().add(new UserPrincipal(username));
+        subject.getPrivateCredentials().add(new PasswordCredential(password));
+        CIMObjectPath path = new CIMObjectPath(protocol,
+                ipaddress, portNumber, null, null, null);
+        client.initialize(path, subject, null);
+        return client;
     }
 
 }

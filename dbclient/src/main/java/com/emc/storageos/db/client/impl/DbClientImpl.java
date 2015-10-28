@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -91,6 +92,7 @@ import com.netflix.astyanax.query.ColumnCountQuery;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.TimeUUIDUtils;
+import com.netflix.astyanax.util.RangeBuilder;
 
 /**
  * Default database client implementation
@@ -1715,6 +1717,359 @@ public class DbClientImpl implements DbClient {
     public boolean checkGeoCompatible(String expectVersion) {
         _geoVersion = VdcUtil.getMinimalVdcVersion();
         return VdcUtil.VdcVersionComparator.compare(_geoVersion, expectVersion) >= 0;
+    }
+
+    /**
+     * Find out all rows in DataObject CFs that can't be deserialized,
+     * such as such as object id cannot be converted to URI.
+     *
+     * @return True, when no corrupted data found
+     */
+    public boolean checkDataObjects(boolean toConsole) {
+        logMessage("Start to check dirty data that cannot be deserialized.", false, toConsole);
+
+        int cfCount = 0;
+        int dirtyCount = 0;
+
+        for (DataObjectType doType : TypeMap.getAllDoTypes()) {
+            cfCount++;
+            _log.info("Check CF {}", doType.getDataObjectClass().getName());
+            try {
+                OperationResult<Rows<String, CompositeColumnName>> result = getKeyspace(
+                        doType.getDataObjectClass()).prepareQuery(doType.getCF())
+                        .getAllRows().setRowLimit(100)
+                        .withColumnRange(new RangeBuilder().setLimit(1).build())
+                        .execute();
+                for (Row<String, CompositeColumnName> row : result.getResult()) {
+                    if (!row.getColumns().isEmpty()) {
+                        try {
+                            URI uri = URI.create(row.getKey());
+                            try {
+                                queryObject(doType.getDataObjectClass(), uri);
+                            } catch (Exception ex) {
+                                dirtyCount++;
+                                logMessage(String.format(
+                                        "Fail to query object for '%s' with err %s ",
+                                        uri, ex.getMessage()), true, toConsole);
+                            }
+                        } catch (Exception ex) {
+                            dirtyCount++;
+                            logMessage(String.format("Row key '%s' failed to convert to URI in CF %s with exception %s",
+                                            row.getKey(), doType.getDataObjectClass()
+                                                    .getName(), ex.getMessage()), true, toConsole);
+                        }
+                    }
+                }
+
+            } catch (ConnectionException e) {
+                throw DatabaseException.retryables.connectionFailed(e);
+            }
+        }
+
+        logMessage(String.format("%nTotally check %d cfs, %d rows are dirty.%n",
+                cfCount, dirtyCount), false, toConsole);
+
+        return dirtyCount == 0;
+    }
+
+    private void logMessage(String msg, boolean isError, boolean toConsole) {
+        if (isError) {
+            _log.error(msg);
+            if (toConsole) {
+                System.err.println(msg);
+            }
+        } else {
+            _log.info(msg);
+            if (toConsole) {
+                System.out.println(msg);
+            }
+        }
+    }
+
+    /*
+    * This class records the Index Data's ColumnFamily and
+    * the related DbIndex type and it belongs to which Keyspace.
+    */
+    class IndexAndCf {
+        private ColumnFamily<String, IndexColumnName> cf;
+        private Class<? extends DbIndex> indexType;
+        private Keyspace keyspace;
+
+        IndexAndCf(Class<? extends DbIndex> indexType,
+                   ColumnFamily<String, IndexColumnName> cf, Keyspace keyspace) {
+            this.indexType = indexType;
+            this.cf = cf;
+            this.keyspace = keyspace;
+        }
+
+        @Override
+        public String toString() {
+            return generateKey();
+        }
+
+        String generateKey() {
+            StringBuffer buffer = new StringBuffer();
+            buffer.append(keyspace.getKeyspaceName()).append("/")
+                    .append(indexType.getSimpleName()).append("/")
+                    .append(cf.getName());
+            return buffer.toString();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof IndexAndCf)) {
+                return false;
+            }
+
+            if (this == obj) {
+                return true;
+            }
+
+            IndexAndCf that = (IndexAndCf) obj;
+            if (cf != null ? !cf.equals(that.cf) : that.cf != null) {
+                return false;
+            }
+            if (indexType != null ? !indexType.equals(that.indexType)
+                    : that.indexType != null) {
+                return false;
+            }
+            if (keyspace != null ? !keyspace.equals(that.keyspace)
+                    : that.keyspace != null) {
+                return false;
+            }
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = cf != null ? cf.hashCode() : 0;
+            result = 31 * result + (indexType != null ? indexType.hashCode() : 0);
+            result = 31 * result + (keyspace != null ? keyspace.hashCode() : 0);
+            return result;
+        }
+    }
+
+    class IndexEntry {
+        private String indexKey;
+        private IndexColumnName columnName;
+
+        public IndexEntry(String indexKey, IndexColumnName columnName) {
+            this.indexKey = indexKey;
+            this.columnName = columnName;
+        }
+
+        public String getIndexKey() {
+            return indexKey;
+        }
+
+        public IndexColumnName getColumnName() {
+            return columnName;
+        }
+
+    }
+
+    private ObjectEntry extractObjectEntryFromIndex(String indexKey,
+                                       IndexColumnName name, Class<? extends DbIndex> type, boolean toConsole) {
+        // The className of a data object CF in a index record
+        String className;
+        // The id of the data object record in a index record
+        String objectId;
+        if (type.equals(AltIdDbIndex.class)) {
+            objectId = name.getTwo();
+            className = name.getOne();
+        } else if (type.equals(RelationDbIndex.class)) {
+            objectId = name.getTwo();
+            className = name.getOne();
+        } else if (type.equals(NamedRelationDbIndex.class)) {
+            objectId = name.getFour();
+            className = name.getOne();
+        } else if (type.equals(DecommissionedDbIndex.class)) {
+            objectId = name.getTwo();
+            className = indexKey;
+        } else if (type.equals(PermissionsDbIndex.class)) {
+            objectId = name.getTwo();
+            className = name.getOne();
+        } else if (type.equals(PrefixDbIndex.class)) {
+            objectId = name.getFour();
+            className = name.getOne();
+        } else if (type.equals(ScopedLabelDbIndex.class)) {
+            objectId = name.getFour();
+            className = name.getOne();
+        } else if (type.equals(AggregateDbIndex.class)) {
+            objectId = name.getTwo();
+            int firstColon = indexKey.indexOf(':');
+            className = firstColon == -1 ? indexKey : indexKey.substring(0, firstColon);
+        } else {
+            String msg = String.format("Unsupported index type %s.", type);
+            logMessage(msg, false, toConsole);
+            return null;
+        }
+
+        return new ObjectEntry(className, objectId);
+    }
+
+    public static class ObjectEntry {
+        private String className;
+        private String objectId;
+
+        public ObjectEntry(String className, String objectId) {
+            this.className = className;
+            this.objectId = objectId;
+        }
+
+        public String getClassName() {
+            return className;
+        }
+
+        public String getObjectId() {
+            return objectId;
+        }
+
+        @Override
+        public String toString() {
+            StringBuffer buffer = new StringBuffer();
+            buffer.append("ObjectEntry ClassName: ").append(className).append(" ObjectId: ").append(objectId);
+            return buffer.toString();
+        }
+    }
+
+    /**
+     * Scan all the indices and related data object records, to find out
+     * the index record is existing but the related data object records is missing.
+     *
+     * @return True, when no corrupted data found
+     * @throws ConnectionException
+     */
+    public boolean checkIndexingCFs(boolean toConsole) throws ConnectionException {
+        logMessage("\nStart to check INDEX data that the related object records are missing.\n", false, toConsole);
+
+        Collection<IndexAndCf> idxCfs = getAllIndices().values();
+        Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
+        int indexRowCount = 0;
+        int objCfCount = 0;
+        int objRowCount = 0;
+        int corruptRowCount = 0;
+
+        for (IndexAndCf indexAndCf : idxCfs) {
+            int corruptRowCountInIdx = 0;
+            _log.info("Check Index CF {}", indexAndCf.cf.getName());
+            Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck = new HashMap<>();
+
+            ColumnFamilyQuery<String, IndexColumnName> query = indexAndCf.keyspace
+                    .prepareQuery(indexAndCf.cf);
+
+            OperationResult<Rows<String, IndexColumnName>> result = query.getAllRows()
+                    .setRowLimit(100)
+                    .withColumnRange(new RangeBuilder().setLimit(0).build()).execute();
+
+            for (Row<String, IndexColumnName> row : result.getResult()) {
+                indexRowCount++;
+                RowQuery<String, IndexColumnName> rowQuery = query.getRow(row.getKey())
+                        .autoPaginate(true)
+                        .withColumnRange(new RangeBuilder().setLimit(100).build());
+                ColumnList<IndexColumnName> columns;
+                while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
+                    for (Column<IndexColumnName> column : columns) {
+                        ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
+                                        column.getName(), indexAndCf.indexType, toConsole);
+                        if (objEntry == null) {
+                            continue;
+                        }
+                        ColumnFamily<String, CompositeColumnName> objCf = objCfs
+                                .get(objEntry.getClassName());
+
+                        Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
+                        if (objKeysIdxEntryMap == null) {
+                            objKeysIdxEntryMap = new HashMap<>();
+                            objsToCheck.put(objCf, objKeysIdxEntryMap);
+                        }
+                        List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
+                        if (idxEntries == null) {
+                            idxEntries = new ArrayList<>();
+                            objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
+                        }
+                        idxEntries.add(new IndexEntry(row.getKey(), column.getName()));
+                    }
+                }
+            }
+
+            objCfCount += objsToCheck.size();
+            // Detect whether the DataObject CFs have the records
+            for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
+                Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
+                OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace
+                        .prepareQuery(objCf).getRowSlice(objKeysIdxEntryMap.keySet())
+                        .withColumnRange(new RangeBuilder().setLimit(1).build())
+                        .execute();
+                for (Row<String, CompositeColumnName> row : objResult.getResult()) {
+                    objRowCount++;
+                    if (row.getColumns().isEmpty()) { // Only support all the columns have been removed now
+                        List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
+                        for (IndexEntry idxEntry : idxEntries) {
+                            corruptRowCount++;
+                            corruptRowCountInIdx++;
+                            logMessage(String.format("Index(%s, type: %s, id: %s, column: %s) is existing "
+                                            + "but the related object record(%s, id: %s) is missing.",
+                                    indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
+                                    idxEntry.getIndexKey(), idxEntry.getColumnName(),
+                                    objCf.getName(), row.getKey()), true, toConsole);
+                        }
+
+                    }
+                }
+            }
+
+            if (corruptRowCountInIdx != 0) {
+                logMessage(String.format(
+                        "\n%d corrupted index records found in Index %s of Index type %s.\n",
+                        corruptRowCountInIdx, indexAndCf.cf.getName(),
+                        indexAndCf.indexType.getSimpleName()), true, toConsole);
+            }
+        }
+
+        logMessage(String.format(
+                "\nFinish to check INDEX data, totally check %s rows of %s indices and %s rows of %s object cfs, "
+                        + "%s corrupted data found.", indexRowCount, idxCfs.size(), objRowCount, objCfCount, corruptRowCount), false, toConsole);
+
+        return corruptRowCount == 0;
+    }
+
+    private Map<String, IndexAndCf> getAllIndices() {
+        Map<String, IndexAndCf> idxCfs = new TreeMap<>(); // Map<Index_CF_Name, <DbIndex, ColumnFamily, Map<Class_Name, object-CF_Name>>>
+        for (DataObjectType objType : TypeMap.getAllDoTypes()) {
+            Keyspace keyspace = getKeyspace(objType.getDataObjectClass());
+            for (ColumnField field : objType.getColumnFields()) {
+                DbIndex index = field.getIndex();
+                if (index == null) {
+                    continue;
+                }
+
+                IndexAndCf indexAndCf = new IndexAndCf(index.getClass(), field.getIndexCF(), keyspace);
+                String key = indexAndCf.generateKey();
+                IndexAndCf idxAndCf = idxCfs.get(key);
+                if (idxAndCf == null) {
+                    idxAndCf = new IndexAndCf(index.getClass(), field.getIndexCF(),
+                            keyspace);
+                    idxCfs.put(key, idxAndCf);
+                }
+            }
+        }
+
+        return idxCfs;
+    }
+
+    private Map<String, ColumnFamily<String, CompositeColumnName>> getDataObjectCFs() {
+        Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = new TreeMap<>();
+        for (DataObjectType objType : TypeMap.getAllDoTypes()) {
+            String simpleClassName = objType.getDataObjectClass().getSimpleName();
+            ColumnFamily<String, CompositeColumnName> objCf = objCfs.get(simpleClassName);
+            if (objCf == null) {
+                objCfs.put(simpleClassName, objType.getCF());
+            }
+        }
+
+        return objCfs;
     }
 
     private void serializeTasks(DataObject dataObject, RowMutator mutator, List<URI> objectsToCleanup) {

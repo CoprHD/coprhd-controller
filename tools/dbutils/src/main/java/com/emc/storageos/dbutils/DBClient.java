@@ -1126,8 +1126,8 @@ public class DBClient {
 
     public void checkDB() {
         try {
-            _dbClient.checkDataObjects();
-            _dbClient.checkIndexingCFs();
+            _dbClient.checkDataObjects(true);
+            _dbClient.checkIndexingCFs(true);
 
             String msg = "\nAll the checks have been done.";
             System.out.println(msg);

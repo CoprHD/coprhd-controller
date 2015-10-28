@@ -109,7 +109,7 @@ public class DisasterRecoveryService {
      * @param operationStage
      * @param descparams
      */
-    private void auditDisasterRecoveryOps(OperationTypeEnum auditType,
+    protected void auditDisasterRecoveryOps(OperationTypeEnum auditType,
             String operationalStatus,
             String operationStage,
             Object... descparams) {

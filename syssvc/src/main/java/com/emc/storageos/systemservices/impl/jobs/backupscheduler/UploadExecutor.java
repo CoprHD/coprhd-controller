@@ -15,6 +15,8 @@ import com.emc.vipr.model.sys.backup.BackupUploadStatus.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.nio.channels.UnsupportedAddressTypeException;
 import java.util.ArrayList;
@@ -44,11 +46,11 @@ public class UploadExecutor {
     }
 
     public void runOnce(String backupTag) throws Exception {
-        this.uploader = Uploader.create(cfg, cli);
+        /*this.uploader = Uploader.create(cfg, cli);
         if (this.uploader == null) {
             log.info("Upload URL is empty, upload disabled");
             return;
-        }
+        }*/
         try (AutoCloseable lock = this.cfg.lock()) {
             this.cfg.reload();
             cleanupCompletedTags();
@@ -83,12 +85,16 @@ public class UploadExecutor {
 
                 String zipName = this.cli.generateZipFileName(tag, files);
 
-                Long existingLen = uploader.getFileSize(zipName);
+                /*Long existingLen = uploader.getFileSize(zipName);
                 long len = existingLen == null ? 0 : existingLen;
                 log.info("Uploading {} at offset {}", tag, existingLen);
                 try (OutputStream uploadStream = uploader.upload(zipName, len)) {
                     this.cli.uploadTo(files, len, uploadStream);
+                }*/
+                try (OutputStream uploadStream = new FileOutputStream(new File("/tmp", zipName))) {
+                    this.cli.uploadTo(files, 0, uploadStream);
                 }
+
                 setUploadStatus(null, Status.DONE, 100, null);
                 return null;
             } catch (Exception e) {

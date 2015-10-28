@@ -1035,19 +1035,21 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     void setDiscPathForAccess(List<IsilonAccessZone> accessZones) {
         if (accessZones != null && !accessZones.isEmpty()) {
             for (IsilonAccessZone isilonAccessZone : accessZones) {
-                getDiscPathsForUnManaged().add(isilonAccessZone.getPath() + "/");
-                _log.info("setDiscPathForAccess: {}", isilonAccessZone.getPath() + "/");
+                if (isilonAccessZone.isSystem() == false) {
+                    getDiscPathsForUnManaged().add(isilonAccessZone.getPath() + "/");
+                    _log.info("setDiscPathForAccess: {}", isilonAccessZone.getPath() + "/");
+                }
             }
         }
     }
     
-    private NASServer getMatchedNASServer(final Map<String, NASServer> nasServerMap, final String fsPath) {
+    private NASServer getMatchedNASServer(Map<String, NASServer> nasServerMap, String fsPath) {
         NASServer nasServer = null;
         if(nasServerMap != null && !nasServerMap.isEmpty()) {
             for (Entry<String, NASServer> entry : nasServerMap.entrySet()) {
                 if (fsPath.startsWith(entry.getKey())) {
-                    nasServer = entry.getValue();
-                    _log.info("get matched Server and details key {} ",entry.getKey());
+                    nasServer = (NASServer)entry.getValue();
+                    _log.info("get matched Server and details key {} and value {}",entry.getKey(), nasServer.toString());
                 }
             }
         }
@@ -1145,6 +1147,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
                         //get the matched vNAS Server
                         NASServer nasServer = getMatchedNASServer(nasServers, fsPathName);
+                        if(nasServer != null) {
+                            _log.info("fs path {} and nas server details {}", fs.getPath(), nasServer.toString());
+                        } else {
+                            _log.info("fs path {} and vnas server not found", fs.getPath(), nasServer.toString());
+                        }
                         
                         boolean alreadyExist = unManagedFs == null ? false : true;
                         unManagedFs = createUnManagedFileSystem(unManagedFs,
@@ -1788,6 +1795,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 storagePorts.addAll(nasServer.getStoragePorts());
                 unManagedFileSystemInformation.put(
                     UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_PORT.toString(), storagePorts);
+                _log.info("StoragePorts :"
+                        + Joiner.on("\t").join(storagePorts));
             }
             
             StringSet nasServerSet= new StringSet();

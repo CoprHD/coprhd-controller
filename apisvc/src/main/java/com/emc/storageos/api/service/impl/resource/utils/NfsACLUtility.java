@@ -133,7 +133,7 @@ public class NfsACLUtility {
             for (String permission : ace.getPermissionSet()) {
                 if (!isValidEnum(permission, NfsPermission.class)) {
 
-                    throw APIException.badRequests.invalidPermission(permission);
+                    throw APIException.badRequests.invalidPermissionForACL(permission);
                 }
 
             }

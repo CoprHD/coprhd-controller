@@ -794,7 +794,7 @@ public class VdcSiteManager extends AbstractManager {
     
     private void restartServicesForSwitchover(){
         localRepository.restart("controllersvc");
-        localRepository.restart("dbsvc");
+        //localRepository.restart("dbsvc");
         localRepository.restart("vasasvc");
     }
 }

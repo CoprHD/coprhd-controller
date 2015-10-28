@@ -849,7 +849,7 @@ disasterRecovery.testButton=Test
 disasterRecovery.pauseButton=Pause
 disasterRecovery.resumeButton=Resume
 
-disasterRecovery.save.success=Saved standby: '%s'
+disasterRecovery.save.success=Added standby: '%s'
 disasterRecovery.pause.success=Pause request initiated for site: '%s'
 disasterRecovery.resume.success=Resume request initiated for site: '%s'
 disasterRecovery.test.success=Test Mode request initiated for site: '%s'
@@ -864,7 +864,6 @@ disasterRecovery.unknown=Unknown Standby with ID '%s'
 disasterRecovery.standby.testLink=Test Mode
 disasterRecovery.standby.pauseLink=Pause Synchronization
 disasterRecovery.standby.resumeLink=Resume Synchronization
-
 
 disasterRecovery.standby.deleteConfirm=Are you sure you want to delete this standby cluster?
 disasterRecovery.standby.stopConfirm=Are you sure you want to pause standby synchronization?
@@ -3400,7 +3399,7 @@ button.copy=Copy To Clipboard
 button.actions=Actions
 button.associate=Associate Project
 button.dissociate=Dissociate Project
-
+button.failover=Failover
 selectOne.chooseOption=-- Please Choose --
 
 common.yes=Yes

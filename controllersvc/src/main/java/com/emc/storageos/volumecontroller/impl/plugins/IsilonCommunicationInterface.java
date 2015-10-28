@@ -1301,27 +1301,32 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             List<UnManagedNFSShareACL> unManagedNfsACLList,
             StoragePort storagePort,
             String fsName,
-            IsilonApi isilonApi) {
-    	
-    	_log.info("getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start", fsName);
-        IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(unManagedFileSystem.getPath());
-        
-        for(IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()){
-        	
-            UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
-            unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
-            
-            unmanagedNFSAcl.setFileSystemPath(unManagedFileSystem.getPath());
-            
-            unmanagedNFSAcl.setUser(isilonNFSAcl.getOwner().getName());
-            unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
-            unmanagedNFSAcl.setPermissions(StringUtils.join(tempAcl.getAccessrights(), ","));
-            
-            unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
-            unManagedNfsACLList.add(unmanagedNFSAcl);
-            
-        }
-    }
+ IsilonApi isilonApi) {
+
+		_log.info(
+				"getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start",
+				fsName);
+		IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(unManagedFileSystem
+				.getPath());
+
+		for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
+
+			UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
+			unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+
+			unmanagedNFSAcl.setFileSystemPath(unManagedFileSystem.getPath());
+
+			unmanagedNFSAcl.setUser(isilonNFSAcl.getOwner().getName());
+			unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+			unmanagedNFSAcl.setPermissions(StringUtils.join(
+					getIsilonAccessList(tempAcl.getAccessrights()), ","));
+
+			unmanagedNFSAcl.setUser(tempAcl.getTrustee().getName());
+			unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+			unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+
+		}
+	}
 
     @Override
     public void scan(AccessProfile arg0) throws BaseCollectionException {
@@ -2032,5 +2037,31 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return expMapTree;
     }
+    
+    /**
+     * convert Isilon's access permissions key set to ViPR's NFS permission set
+     * @param permissions
+     * @return
+     */
+    private ArrayList<String> getIsilonAccessList(ArrayList<String> permissions) {
+
+        ArrayList<String> accessRights = new ArrayList<String>();
+        for (String per : permissions) {
+
+            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_read.toString())) {
+                accessRights.add("read");
+            }
+            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.std_write_dac.toString())) {
+                accessRights.add("read");
+            }
+            if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_execute.toString())) {
+                accessRights.add("execute");
+            }
+
+        }
+        return accessRights;
+
+    }
+    
 
 }

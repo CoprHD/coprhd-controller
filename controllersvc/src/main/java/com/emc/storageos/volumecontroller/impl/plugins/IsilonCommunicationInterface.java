@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Stat;
@@ -362,6 +363,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 resumeToken = snapshots.getToken();
             }
         } while (resumeToken != null);
+        //convert bytes to GB
+        if(totalProvCap > 1073741824) {
+            totalProvCap = totalProvCap/1073741824;
+        }
+        
         _log.info("Total fs Count {} for access zone : {}", String.valueOf(totalFsCount), accessZone.getName());
         _log.info("Total fs Capacity {} for access zone : {}", String.valueOf(totalProvCap), accessZone.getName());
        
@@ -1021,6 +1027,32 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             throw ice;
         }
     }
+    
+    /**
+     * set the access zone 
+     * @param accessZones
+     */
+    void setDiscPathForAccess(List<IsilonAccessZone> accessZones) {
+        if (accessZones != null && !accessZones.isEmpty()) {
+            for (IsilonAccessZone isilonAccessZone : accessZones) {
+                getDiscPathsForUnManaged().add(isilonAccessZone.getPath() + "/");
+                _log.info("setDiscPathForAccess: {}", isilonAccessZone.getPath() + "/");
+            }
+        }
+    }
+    
+    private NASServer getMatchedNASServer(final Map<String, NASServer> nasServerMap, final String fsPath) {
+        NASServer nasServer = null;
+        if(nasServerMap != null && !nasServerMap.isEmpty()) {
+            for (Entry<String, NASServer> entry : nasServerMap.entrySet()) {
+                if (fsPath.startsWith(entry.getKey())) {
+                    nasServer = entry.getValue();
+                    _log.info("get matched Server and details key {} ",entry.getKey());
+                }
+            }
+        }
+        return nasServer;
+    }
 
     private void discoverUmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
 
@@ -1070,6 +1102,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             String resumeToken = null;
 
             int totalIsilonFSDiscovered = 0;
+            
+          //get the associated storage port for vnas Server
+            List<IsilonAccessZone> isilonAccessZones = isilonApi.getAccessZones();
+            setDiscPathForAccess(isilonAccessZones);
+            Map<String, NASServer> nasServers = getNASServer(storageSystem, isilonAccessZones);
+            
 
             // Get All FileShare
             HashMap<String, HashSet<String>> allSMBShares = discoverAllSMBShares(storageSystem);
@@ -1103,17 +1141,20 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         String fsUnManagedFsNativeGuid =
                                 NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(storageSystem.getSystemType(),
                                         storageSystem.getSerialNumber(), fs.getNativeId());
-
+                        String fsPathName = fs.getPath();
                         UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
+                        //get the matched vNAS Server
+                        NASServer nasServer = getMatchedNASServer(nasServers, fsPathName);
+                        
                         boolean alreadyExist = unManagedFs == null ? false : true;
                         unManagedFs = createUnManagedFileSystem(unManagedFs,
-                                fsUnManagedFsNativeGuid, storageSystem, storagePool, storagePort, fs);
+                                fsUnManagedFsNativeGuid, storageSystem, storagePool, nasServer, fs);
 
                         // get umcifs & ACLs for given filesystem
                         UnManagedCifsShareACL existingACL = null;
                         List<UnManagedCifsShareACL> tempunManagedCifsShareACL = new ArrayList<UnManagedCifsShareACL>();
                         int noOfShares = 0;
-                        String fsPathName = fs.getPath();
+                        
                         // get all shares for given file system path
                         HashSet<String> smbShareHashSet = new HashSet<String>();
                         for (Entry<String, HashSet<String>> entry : allSMBShares.entrySet()) {
@@ -1495,6 +1536,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         for (String discPath : _discPathsForUnManaged) {
             if (fsNativeId.startsWith(discPath)) {
+                _log.info("discPathsForUnManaged {} of fs native id - {}", discPath, fsNativeId);
                 qualified = true;
                 break;
             }
@@ -1683,7 +1725,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private UnManagedFileSystem createUnManagedFileSystem(
             UnManagedFileSystem unManagedFileSystem,
             String unManagedFileSystemNativeGuid, StorageSystem storageSystem,
-            StoragePool pool, StoragePort storagePort, FileShare fileSystem)
+            StoragePool pool, NASServer nasServer, FileShare fileSystem)
             throws IOException, IsilonCollectionException {
 
         if (null == unManagedFileSystem) {
@@ -1737,12 +1779,22 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
 
         }
+        
+        
 
-        if (null != storagePort) {
+        if (null != nasServer) {
             StringSet storagePorts = new StringSet();
-            storagePorts.add(storagePort.getId().toString());
-            unManagedFileSystemInformation.put(
+            if (nasServer.getStoragePorts() != null && !nasServer.getStoragePorts().isEmpty()) {
+                storagePorts.addAll(nasServer.getStoragePorts());
+                unManagedFileSystemInformation.put(
                     UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_PORT.toString(), storagePorts);
+            }
+            
+            StringSet nasServerSet= new StringSet();
+            nasServerSet.add(nasServer.getId().toString());
+            unManagedFileSystem.putFileSystemInfo(
+                    UnManagedFileSystem.SupportedFileSystemInformation.NAS.toString(), nasServerSet);
+            _log.info("NAS server on unmanaged filesystem", nasServer.getId().toString());
         }
 
         unManagedFileSystemCharacteristics.put(
@@ -1970,6 +2022,25 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
         return null;
     }
+    
+    private Map<String, NASServer> getNASServer(final StorageSystem storageSystem, 
+                                            List<IsilonAccessZone> accessZones) {
+        NASServer nasServer = null;
+        Map<String, NASServer> accessZonesMap = new HashMap<String, NASServer>();
+        if (accessZones != null && !accessZones.isEmpty()) {
+            for (IsilonAccessZone isilonAccessZone: accessZones) {
+                if (isilonAccessZone.isSystem() == false) {
+                    nasServer = findvNasByNativeId(storageSystem, isilonAccessZone.getId());
+                    accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                } else {
+                    nasServer = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getId());
+                    accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
+                }
+            }
+        }
+        return accessZonesMap;
+    }
+    
 
     /**
      * Generate Export Map for UnManagedFileSystem

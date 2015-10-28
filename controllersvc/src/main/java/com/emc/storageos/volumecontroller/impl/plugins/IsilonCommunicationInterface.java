@@ -1049,7 +1049,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             for (Entry<String, NASServer> entry : nasServerMap.entrySet()) {
                 if (fsPath.startsWith(entry.getKey())) {
                     nasServer = (NASServer)entry.getValue();
-                    _log.info("get matched Server and details key {} and value {}",entry.getKey(), nasServer.toString());
+                    _log.info("get matched Server and details key {} and value {}",entry.getKey(), nasServer.getLabel());
                 }
             }
         }
@@ -1105,7 +1105,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             int totalIsilonFSDiscovered = 0;
             
-          //get the associated storage port for vnas Server
+            //get the associated storage port for vnas Server
             List<IsilonAccessZone> isilonAccessZones = isilonApi.getAccessZones();
             setDiscPathForAccess(isilonAccessZones);
             Map<String, NASServer> nasServers = getNASServer(storageSystem, isilonAccessZones);
@@ -2039,10 +2039,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if (accessZones != null && !accessZones.isEmpty()) {
             for (IsilonAccessZone isilonAccessZone: accessZones) {
                 if (isilonAccessZone.isSystem() == false) {
-                    nasServer = findvNasByNativeId(storageSystem, isilonAccessZone.getId());
+                    nasServer = findvNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
+
                     accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
                 } else {
-                    nasServer = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getId());
+                    nasServer = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                     accessZonesMap.put(isilonAccessZone.getPath() + "/", nasServer);
                 }
             }

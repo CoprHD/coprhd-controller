@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.isilon.restapi;
@@ -263,9 +263,9 @@ public class IsilonSshApi {
         char bitFormat = data.charAt(data.length()-1);
         Double totalBytes = Double.parseDouble(data.substring(0, data.length() - 1));
         if(bitFormat == 'P') {
-            bytes = (totalBytes *1000)*1000;
+            bytes = (totalBytes *1024)*1024;
         } else if (bitFormat == 'T') {
-            bytes = totalBytes * 1000;
+            bytes = totalBytes * 1024;
         } else if (bitFormat == 'G') {
             bytes = totalBytes;
         } else {

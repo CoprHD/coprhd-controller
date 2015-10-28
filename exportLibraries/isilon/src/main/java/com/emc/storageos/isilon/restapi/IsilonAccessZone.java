@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2011 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.isilon.restapi;
@@ -10,8 +10,7 @@ import java.util.ArrayList;
  * 
  */
 public class IsilonAccessZone {
-    private boolean all_auth_providers;
-
+    
     //authenticate provider
     private ArrayList<String> auth_providers;
     
@@ -20,15 +19,13 @@ public class IsilonAccessZone {
 
     private String name;
     
-    private String netbios_name;
+
     //root directory path
     private String path;
 
     
     //nas type
     private boolean system;
-
-    private String system_provider;
     
     //zone id
     private Integer zone_id;

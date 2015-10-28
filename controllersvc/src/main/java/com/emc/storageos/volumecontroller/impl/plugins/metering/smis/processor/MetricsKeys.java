@@ -49,12 +49,12 @@ public enum MetricsKeys {
     maxStorageObjects,
     /** Maximum storage capacity of storage objects */
     maxStorageCapacity,
-    /** Number of storage objects (FS + Check points) */
+   
+    /** Max Number of NFS exports on each access zone */
     maxNFSExports,
-    /**Max Number of NFS exports on each access zone */
+    /** Max Number of CIFS shares on each access zone */
     maxCifsShares,
-    /**Max Number of CIFS shares on each access zone */
-    /** */
+    /** Number of storage objects (FS + Check points)*/
     storageObjects,
     /** Used Storage capacity of storage objects */
     usedStorageCapacity,

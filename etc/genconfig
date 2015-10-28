@@ -306,7 +306,7 @@ _genconfig_system_init() {
    
     # generae dr flag to disable sasvc, controllersvc and vasasvc
     for svc in controller sa vasa ; do
-	_genconfig_dr_flag ${svc}
+        _genconfig_dr_flag ${svc}
     done
 }
 

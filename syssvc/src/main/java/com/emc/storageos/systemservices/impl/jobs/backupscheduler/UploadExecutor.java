@@ -46,11 +46,11 @@ public class UploadExecutor {
     }
 
     public void runOnce(String backupTag) throws Exception {
-        /*this.uploader = Uploader.create(cfg, cli);
+        this.uploader = Uploader.create(cfg, cli);
         if (this.uploader == null) {
             log.info("Upload URL is empty, upload disabled");
             return;
-        }*/
+        }
         try (AutoCloseable lock = this.cfg.lock()) {
             this.cfg.reload();
             cleanupCompletedTags();
@@ -85,14 +85,11 @@ public class UploadExecutor {
 
                 String zipName = this.cli.generateZipFileName(tag, files);
 
-                /*Long existingLen = uploader.getFileSize(zipName);
+                Long existingLen = uploader.getFileSize(zipName);
                 long len = existingLen == null ? 0 : existingLen;
                 log.info("Uploading {} at offset {}", tag, existingLen);
                 try (OutputStream uploadStream = uploader.upload(zipName, len)) {
                     this.cli.uploadTo(files, len, uploadStream);
-                }*/
-                try (OutputStream uploadStream = new FileOutputStream(new File("/tmp", zipName))) {
-                    this.cli.uploadTo(files, 0, uploadStream);
                 }
 
                 setUploadStatus(null, Status.DONE, 100, null);
@@ -163,7 +160,7 @@ public class UploadExecutor {
     private List<String> getWaitingUploads(String backupTag) {
         List<String> toUpload = new ArrayList<String>();
 
-        Set<String> incompleteUploads = getIncompleteUploads();
+        List<String> incompleteUploads = getIncompleteUploads();
         if (backupTag == null) {
             toUpload.addAll(incompleteUploads);
         } else {
@@ -176,16 +173,21 @@ public class UploadExecutor {
         return toUpload;
     }
 
-    private Set<String> getIncompleteUploads() {
+    private List<String> getIncompleteUploads() {
+        List<String> toUpload = new ArrayList<>(this.cfg.retainedBackups.size());
         Set<String> allBackups = this.cli.getClusterBackupTags(true);
         allBackups.removeAll(ScheduledBackupTag.pickScheduledBackupTags(allBackups));
         allBackups.addAll(this.cfg.retainedBackups);
-
+        for (String tagName : allBackups) {
+            if (!this.cfg.uploadedBackups.contains(tagName)) {
+                toUpload.add(tagName);
+            }
+        }
         log.info("Tags in retain list: {}, incomplete ones are: {}",
                 this.cfg.retainedBackups.toArray(new String[this.cfg.retainedBackups.size()]),
-                allBackups.toArray(new String[allBackups.size()]));
+                toUpload.toArray(new String[toUpload.size()]));
 
-        return allBackups;
+        return toUpload;
     }
 
     public void setUploadStatus(String backupTag, Status status, Integer progress, ErrorCode errorCode) {
@@ -200,7 +202,8 @@ public class UploadExecutor {
             throw new IllegalStateException("Invalid query parameter");
         }
         this.cfg.reload();
-        log.info("Current uploaded backup list: {}; Im");
+        log.info("Current uploaded backup list: {}",
+                this.cfg.uploadedBackups.toArray(new String[this.cfg.uploadedBackups.size()]));
         if (this.cfg.uploadedBackups.contains(backupTag)) {
             log.info("{} is in the uploaded backup list", backupTag);
             return new BackupUploadStatus(backupTag, Status.DONE, 100, null);

@@ -104,7 +104,6 @@ public class NfsACLUtility {
         if (deleteList != null && !deleteList.isEmpty()) {
             verifyNfsACLsModifyOrDeleteList(deleteList, userSetDB);
         }
-
     }
 
     /**
@@ -157,11 +156,8 @@ public class NfsACLUtility {
 
                     }
                 }
-
             }
-
         }
-
     }
 
     /**
@@ -179,10 +175,8 @@ public class NfsACLUtility {
             if (userSet.contains(ace.getUser())) {
                 throw APIException.badRequests.nfsACLAlreadyExists("add",
                         ace.getUser());
-
             }
         }
-
     }
 
     /**
@@ -269,7 +263,6 @@ public class NfsACLUtility {
         }
 
         return null;
-
     }
 
     /**
@@ -301,7 +294,6 @@ public class NfsACLUtility {
             getNFSAce(nfsAcl, ace);
             nfsAceList.add(ace);
             nfsAclMap.put(fsPath, nfsAceList);
-
         }
         
         // Convert all ACE to ACLs!!
@@ -314,8 +306,7 @@ public class NfsACLUtility {
                 nfsAcl.setSubDir(mountPath.substring(fs.getPath().length() + 1));
             }
 
-            nfsAclList.add(nfsAcl);
-        	
+            nfsAclList.add(nfsAcl);       	
         }
         
         if( !nfsAclList.isEmpty()) {
@@ -345,7 +336,5 @@ public class NfsACLUtility {
             dest.setType(orig.getType());
         } 
         dest.setUser(orig.getUser());
-
     }
-
 }

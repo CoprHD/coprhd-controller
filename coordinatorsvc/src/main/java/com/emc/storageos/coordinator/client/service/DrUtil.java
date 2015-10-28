@@ -108,11 +108,11 @@ public class DrUtil {
      */
     public List<Site> listSites() {
         Site primarySite = getSite(getPrimarySiteId());
-        URI vdcId = primarySite.getVdc();
-        List<Site> result = new ArrayList<Site>();
+        String vdcId = primarySite.getVdcShortId();
+        List<Site> result = new ArrayList<>();
         for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
-            if (site.getVdc().equals(vdcId)) {
+            if (site.getVdcShortId().equals(vdcId)) {
                 result.add(site);
             }
         }
@@ -163,5 +163,14 @@ public class DrUtil {
             log.error("Unexpected error when checking site service becons", ex);
             return true;
         }
+    }
+
+    /**
+     * Check if a specific site is the local site
+     * @param site
+     * @return true if the specified site is the local site
+     */
+    public boolean isLocalSite(Site site) {
+        return site.getUuid().equals(coordinator.getSiteId());
     }
 }

@@ -125,7 +125,7 @@ public class DisasterRecoveryService {
             Site standbySite = new Site();
             standbySite.setCreationTime((new Date()).getTime());
             standbySite.setName(param.getName());
-            standbySite.setVdc(vdc.getId());
+            standbySite.setVdcShortId(vdc.getShortId());
             standbySite.setVip(param.getVip());
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
@@ -219,7 +219,7 @@ public class DisasterRecoveryService {
             coordinator.setPrimarySite(primary.getUuid());
             Site primarySite = new Site();
             siteMapper.map(primary, primarySite);
-            primarySite.setVdc(vdc.getId());
+            primarySite.setVdcShortId(vdc.getShortId());
             coordinator.persistServiceConfiguration(primarySite.toConfiguration());
             
             // Add other standby sites
@@ -227,7 +227,7 @@ public class DisasterRecoveryService {
                 Site site = new Site();
                 site.setCreationTime((new Date()).getTime());
                 siteMapper.map(standby, site);
-                site.setVdc(vdc.getId());
+                site.setVdcShortId(vdc.getShortId());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
                 coordinator.addSite(standby.getUuid());
                 log.info("Persist standby site {} to ZK", standby.getVip());

@@ -15,7 +15,7 @@ import com.emc.storageos.db.client.model.ShareACL;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
 
-@Cf("UnManagedCifsShareACL")
+@Cf("UnManagedNFSShareACL")
 public class UnManagedNFSShareACL extends NFSShareACL {
 	
 	private String nativeGuid;

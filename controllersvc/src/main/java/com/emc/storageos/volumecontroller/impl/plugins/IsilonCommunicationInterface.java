@@ -778,7 +778,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             List<UnManagedNFSShareACL> tempUnManagedNfsShareACL = new ArrayList<UnManagedNFSShareACL>();
                             UnManagedNFSShareACL existingNfsACL = null;
                             
-                            getUnmanagedNfsShareACL(unManagedFs, tempUnManagedNfsShareACL, storagePort ,fs.getName(), isilonApi);
+                            getUnmanagedNfsShareACL(unManagedFs, tempUnManagedNfsShareACL, storagePort ,fs, isilonApi);
                             
                             for(UnManagedNFSShareACL unManagedNFSACL : tempUnManagedNfsShareACL){
                             	 _log.info("Unmanaged File share acls : {}", unManagedNFSACL);
@@ -1290,40 +1290,40 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     
     /**
      * get UnManaged Cifs Shares and their ACLs
-     * 
      * @param unManagedFileSystem
-     * @param smbShares
-     * @param unManagedCifsShareACLList
-     * @param fsPath
+     * @param unManagedNfsACLList
+     * @param storagePort
+     * @param fs
      * @param isilonApi
      */
     private void getUnmanagedNfsShareACL(UnManagedFileSystem unManagedFileSystem,
             List<UnManagedNFSShareACL> unManagedNfsACLList,
             StoragePort storagePort,
-            String fsName,
+            FileShare fs,
  IsilonApi isilonApi) {
 
 		_log.info(
 				"getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start",
-				fsName);
-		IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(unManagedFileSystem
-				.getPath());
+				fs.getName());
+		IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(fs.getPath());
 
 		for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
 
 			UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
-			unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+			unmanagedNFSAcl.setFileSystemId(fs.getId());
 
-			unmanagedNFSAcl.setFileSystemPath(unManagedFileSystem.getPath());
+			unmanagedNFSAcl.setFileSystemPath(fs.getPath());
 
 			unmanagedNFSAcl.setUser(isilonNFSAcl.getOwner().getName());
 			unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
 			unmanagedNFSAcl.setPermissions(StringUtils.join(
-					getIsilonAccessList(tempAcl.getAccessrights()), ","));
+			getIsilonAccessList(tempAcl.getAccessrights()), ","));
 
 			unmanagedNFSAcl.setUser(tempAcl.getTrustee().getName());
 			unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
 			unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+			
+			unManagedNfsACLList.add(unmanagedNFSAcl);
 
 		}
 	}

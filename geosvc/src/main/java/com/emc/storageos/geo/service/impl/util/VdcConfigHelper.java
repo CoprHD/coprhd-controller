@@ -100,10 +100,7 @@ public class VdcConfigHelper {
                     new SoftwareVersion("vipr-2.1.0.0.*"),
                     new SoftwareVersion("vipr-2.1.0.1.*"),
                     new SoftwareVersion("vipr-2.2.0.0.*"),
-                    new SoftwareVersion("vipr-2.2.0.1.*"),
-                    new SoftwareVersion("vipr-2.2.1.0.*"),
-                    new SoftwareVersion("vipr-2.3.0.0.*"),
-                    new SoftwareVersion("vipr-2.3.0.1.*")));
+                    new SoftwareVersion("vipr-2.3.0.0.*")));
 
     private static final int NODE_REACHABLE_TIMEOUT = 30 * 1000; // 30 seconds
     private static final int NODE_REACHABLE_PORT = 4443;

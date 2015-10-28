@@ -16,7 +16,12 @@
         <property name="geoContext" ref="geodbclientcontext"/>
     </bean>
 
-    <bean id="migrationtool" class="com.emc.storageos.migrationtool.DbMigrationTool">
+    <bean id="cgRelationEstablisher" class="com.emc.storageos.migrationtool.CGRelationshipEstablisher">
+        <property name="dbClient" ref="dbclient" />
+    </bean>
+    
+    
+    <bean id="rgNameUpdater" class="com.emc.storageos.migrationtool.ReplicationGroupUpdater">
         <property name="dbClient" ref="dbclient" />
     </bean>
 

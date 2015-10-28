@@ -6650,7 +6650,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 VolumeDescriptor vplexSrcVolumeDescr = vplexSrcVolumeDescrs.get(0);
                 vplexSrcVolumeURI = vplexSrcVolumeDescr.getVolumeURI();
                 primarySourceObject = getPrimaryForFullCopySrcVolume(vplexSrcVolumeURI);
-                _log.info("Primary volume is {}", primarySourceObject.getId());
             } else {
                 // For snapshot full copy
                 URI importVolUri = importVolumeDescriptors.get(0).getVolumeURI();
@@ -6658,6 +6657,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 URI assocSrcVolumeURI = volumeToBeImported.getAssociatedSourceVolume();
                 primarySourceObject = _dbClient.queryObject(BlockSnapshot.class, assocSrcVolumeURI);
             }
+            
+            _log.info("Primary volume/snapshot is {}", primarySourceObject.getId());
             
 
             // Now create the step to do the native full copy of this
@@ -6796,7 +6797,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * 
      * @param workflow A reference to the workflow.
      * @param vplexURI The URI of the VPLEX storage system.
-     * @param vplexSrcPrimaryVolume The primary backend volume that was copied.
+     * @param sourceBlockObject The primary backend volume/snapshot that was copied.
      * @param vplexVolumeDescriptors The volume descriptors representing the
      *            copies of the VPLEX volume.
      * @param assocVolumeDescriptors The volume descriptors representing the
@@ -6810,18 +6811,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *         wait.
      */
     private String createStepsForFullCopyImport(Workflow workflow, URI vplexURI,
-            BlockObject vplexSrcPrimaryVolume, List<VolumeDescriptor> vplexVolumeDescriptors,
+            BlockObject sourceBlockObject, List<VolumeDescriptor> vplexVolumeDescriptors,
             List<VolumeDescriptor> assocVolumeDescriptors, String waitFor) {
         StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
         _log.info("Got VPLEX {}", vplexURI);
         
         URI projectURI = null;
         URI tenantURI = null;
-        if(vplexSrcPrimaryVolume instanceof Volume) {
-            projectURI = ((Volume)vplexSrcPrimaryVolume).getProject().getURI();
-            tenantURI = ((Volume)vplexSrcPrimaryVolume).getTenant().getURI();
+        if(sourceBlockObject instanceof Volume) {
+            projectURI = ((Volume)sourceBlockObject).getProject().getURI();
+            tenantURI = ((Volume)sourceBlockObject).getTenant().getURI();
         } else {
-            BlockSnapshot srcSnapshot = ((BlockSnapshot)vplexSrcPrimaryVolume);
+            BlockSnapshot srcSnapshot = ((BlockSnapshot)sourceBlockObject);
             URI parentVolumeURI = srcSnapshot.getParent().getURI();
             Volume srcSnapParentVolume = _dbClient.queryObject(Volume.class, parentVolumeURI);
             projectURI = srcSnapParentVolume.getProject().getURI();

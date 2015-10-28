@@ -395,7 +395,7 @@ public class SchedulerConfig {
     /**
      * Persist upload status to ZK
      */
-    private void persistBackupUploadStatus(BackupUploadStatus status) {
+    public void persistBackupUploadStatus(BackupUploadStatus status) {
         Map<String, String> allItems = (status != null) ? status.getAllItems(): null;
         if (allItems == null || allItems.size() == 0){
             return;

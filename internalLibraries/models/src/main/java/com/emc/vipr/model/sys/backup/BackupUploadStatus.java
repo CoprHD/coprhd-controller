@@ -112,13 +112,9 @@ public class BackupUploadStatus {
     }
 
     private void updatePostCheck() {
-        log.info("Backup upload status before post check: {}", this);
+        log.info("Backup upload status before the check: {}", this);
         if (this.status == null) {
             return;
-        }
-        if (this.backupName == null) {
-            //throw new IllegalStateException("Backup name should not be null");
-            log.error("Backup name should not be null");
         }
         switch (this.status) {
             case INIT:
@@ -132,6 +128,12 @@ public class BackupUploadStatus {
                 }
                 this.errorCode = null;
                 break;
+        }
+        if (this.backupName == null) {
+            log.warn("Backup name should not be null");
+            this.status = null;
+            this.progress = null;
+            this.errorCode = null;
         }
     }
 

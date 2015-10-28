@@ -69,9 +69,6 @@ import com.google.common.base.Joiner;
  */
 public class RPHelper {
 
-    /**
-     *
-     */
     private static final String VOL_DELIMITER = "-";
     private static final double RP_DEFAULT_JOURNAL_POLICY = 0.25;
     public static final String REMOTE = "remote";
@@ -275,7 +272,7 @@ public class RPHelper {
                 for (String vol : staleVolumes) {
                     protectionSet.getVolumes().remove(vol);
                 }
-                _dbClient.persistObject(protectionSet);
+                _dbClient.updateObject(protectionSet);
             }
         }
 
@@ -1569,7 +1566,7 @@ public class RPHelper {
                             protectionSet.setInactive(true);
                         }
 
-                        dbClient.persistObject(protectionSet);
+                        dbClient.updateObject(protectionSet);
                     }
                 }
 
@@ -1591,7 +1588,7 @@ public class RPHelper {
                     if (protectionSet != null) {
                         // Remove volume ID from the Protection Set
                         protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
-                        dbClient.persistObject(protectionSet);
+                        dbClient.updateObject(protectionSet);
                     }
                 }
 
@@ -1603,7 +1600,7 @@ public class RPHelper {
 
             _log.info(String.format("Rollback of RP protection changes for volume [%s] (%s) has completed.", volume.getLabel(),
                     volume.getId()));
-            dbClient.persistObject(volume);
+            dbClient.updateObject(volume);
         }
     }
 
@@ -1620,10 +1617,16 @@ public class RPHelper {
         Volume volume = dbClient.queryObject(Volume.class, volumeURI);
         if (volume != null && !volume.getInactive()) {
             _log.info(String.format("Rollback volume [%s]...", volume.getLabel()));
-            volume.setInactive(true);
-            volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
-            volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-            dbClient.persistObject(volume);
+            if (volume.getProvisionedCapacity() == null
+                    || volume.getProvisionedCapacity() == 0) {
+                // Only set the volume to inactive if it has never
+                // been provisioned. Otherwise let regular rollback
+                // steps take care of cleaning it up.
+                volume.setInactive(true);
+                volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+            }
+            volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());            
+            dbClient.updateObject(volume);
 
             // Rollback any VPLEX backing volumes too
             if (volume.getAssociatedVolumes() != null
@@ -1632,9 +1635,15 @@ public class RPHelper {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {
                         _log.info(String.format("Rollback volume [%s]...", associatedVolume.getLabel()));
-                        associatedVolume.setInactive(true);
+                        if (associatedVolume.getProvisionedCapacity() == null
+                                || associatedVolume.getProvisionedCapacity() == 0) {
+                            // Only set the volume to inactive if it has never
+                            // been provisioned. Otherwise let regular rollback
+                            // steps take care of cleaning it up.
+                            associatedVolume.setInactive(true);
+                        }
                         associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
-                        dbClient.persistObject(associatedVolume);
+                        dbClient.updateObject(associatedVolume);
                     }
                 }
             }

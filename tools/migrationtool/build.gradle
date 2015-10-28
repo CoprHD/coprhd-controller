@@ -10,5 +10,6 @@ scripts {
 }
 
 dependencies {
-    compile project(":dbsvc")
+    compile project(":dbsvc"),
+	        library(sblim_cim_client2)
 }       

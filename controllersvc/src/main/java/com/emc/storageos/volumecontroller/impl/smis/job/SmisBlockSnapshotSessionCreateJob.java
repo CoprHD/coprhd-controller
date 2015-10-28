@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
@@ -71,7 +72,7 @@ public class SmisBlockSnapshotSessionCreateJob extends SmisJob {
                         SmisConstants.SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE, null, null);
                 if (syncAspectIter.hasNext()) {
                     CIMObjectPath syncAspectPath = syncAspectIter.next();
-                    String instanceId = syncAspectPath.toString();
+                    String instanceId = syncAspectPath.getKeyValue(Constants.INSTANCEID).toString();
                     s_logger.info("SynchronizationAspect instance id is {}", instanceId);
                     snapSession.setSessionInstance(instanceId);
                     dbClient.persistObject(snapSession);

@@ -540,7 +540,7 @@ public class RemoteRepository {
     private void writePostContent(HttpURLConnection connection, String postContent) throws Exception {
         connection.setRequestMethod("POST");
         connection.addRequestProperty("Content-Type",
-                "application/x-www-form-urlencoded; charset=utf-8");
+                "application/xml; charset=utf-8");
         // set the output and input to true
         connection.setDoOutput(true);
         connection.setDoInput(true);

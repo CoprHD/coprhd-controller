@@ -468,17 +468,6 @@ public class DisasterRecoveryService {
             standby.setState(SiteState.STANDBY_RESUMING);
             coordinator.persistServiceConfiguration(standby.toConfiguration());
 
-            VirtualDataCenter vdc = queryLocalVDC();
-            int nodeCount = standby.getHostIPv4AddressMap().size();
-            if (nodeCount == 0) {
-                nodeCount = standby.getHostIPv6AddressMap().size();
-            }
-
-            // add back the paused site from strategy options of dbsvc and geodbsvc
-            String dcId = String.format("%s-%s", vdc.getShortId(), standby.getStandbyShortId());
-            ((DbClientImpl)dbClient).getLocalContext().addDcToStrategyOptions(dcId, nodeCount);
-            ((DbClientImpl)dbClient).getGeoContext().addDcToStrategyOptions(dcId, nodeCount);
-
             for (Site site : drUtil.listStandbySites()) {
                 updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
             }

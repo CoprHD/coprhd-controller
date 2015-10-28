@@ -681,6 +681,14 @@ public class VdcSiteManager extends AbstractManager {
         Site localSite = new Site(localSiteConfig);
 
         if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+            VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, localSite.getVdc());
+            int nodeCount = localSite.getNodeCount();
+
+            // add back the paused site from strategy options of dbsvc and geodbsvc
+            String dcId = String.format("%s-%s", vdc.getShortId(), localSite.getStandbyShortId());
+            ((DbClientImpl)dbClient).getLocalContext().addDcToStrategyOptions(dcId, nodeCount);
+            ((DbClientImpl)dbClient).getGeoContext().addDcToStrategyOptions(dcId, nodeCount);
+
             localSite.setState(SiteState.STANDBY_SYNCING);
             coordinatorClient.persistServiceConfiguration(localSite.toConfiguration());
         }

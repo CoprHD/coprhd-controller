@@ -2592,7 +2592,7 @@ public class FileDeviceController implements FileController {
      * Create the DB object from the NfsACE object
      * 
      * @param ace given NfsACE object
-     * @param dbShareAcl BD object need to be formed
+     * @param dbShareAcl DB object need to be formed
      * @param fs FileShare object
      * @param args FileDeviceInputOutput object
      */
@@ -2658,12 +2658,10 @@ public class FileDeviceController implements FileController {
 
         Iterator<URI> it = result.iterator();
         while (it.hasNext()) {
-            if (result.iterator().hasNext()) {
-                acl = _dbClient.queryObject(NFSShareACL.class, it.next());
-                if (acl != null && !acl.getInactive()) {
-                    _log.info("Existing ACE found in DB: {}", acl);
-                    return acl;
-                }
+            acl = _dbClient.queryObject(NFSShareACL.class, it.next());
+            if (acl != null && !acl.getInactive()) {
+                _log.info("Existing ACE found in DB: {}", acl);
+                return acl;
             }
         }
 
@@ -3032,7 +3030,7 @@ public class FileDeviceController implements FileController {
     }
 
     /**
-     * Update the DB object ,this method need to be called after the success of
+     * Update the DB object, this method need to be called after the success of
      * back end command
      * 
      * @param param object of NfsACLUpdateParams
@@ -3199,8 +3197,9 @@ public class FileDeviceController implements FileController {
     /**
      * To get all the ACLs associated with the a FileShare
      * 
-     * @param fs
-     * @return
+     * @param fs File Share
+     * @param subDir Sub directory
+     * @return List of NFS ACL present in DB.
      */
     private List<NFSShareACL> queryAllNfsACLInDB(FileShare fs, String subDir) {
         List<NFSShareACL> nfsShareAcl = null;
@@ -3265,7 +3264,7 @@ public class FileDeviceController implements FileController {
 
             } else {
 
-                nfsAce.setPermissionType("allow");
+                nfsAce.setPermissionType(FileControllerConstants.NFS_FILE_PERMISSION_TYPE_ALLOW);
 
             }
             String type = nfsShareACL.getType();

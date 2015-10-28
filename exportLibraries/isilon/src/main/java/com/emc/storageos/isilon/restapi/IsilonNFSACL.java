@@ -14,14 +14,14 @@ public class IsilonNFSACL {
     }
 
     public class Persona {
-        private String type;   // optional
-        private String id;     // optional
-        private String name;
+        private final String type;   // optional
+        private final String id;     // optional
+        private final String name;
 
-        public Persona(String account_type, String i, String n) {
+        public Persona(String account_type, String id, String name) {
             this.type = account_type;
-            id = i;
-            name = n;
+            this.id = id;
+            this.name = name;
         }
 
         public String getId() {

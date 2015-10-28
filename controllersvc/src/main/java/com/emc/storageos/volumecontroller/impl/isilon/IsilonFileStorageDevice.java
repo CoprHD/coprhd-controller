@@ -46,6 +46,7 @@ import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
@@ -1803,7 +1804,6 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             aclCompleteList.add(acl);
         }
 
-        // ArrayList<IsilonNFSACL.Acl> aclModifyList = new ArrayList<IsilonNFSACL.Acl>();
         List<NfsACE> aceToModify = args.getNfsAclsToModify();
         for (NfsACE nfsACE : aceToModify) {
             IsilonNFSACL.Acl acl = isilonAcl.new Acl();
@@ -1824,7 +1824,6 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             aclCompleteList.add(acl);
         }
 
-        // ArrayList<IsilonNFSACL.Acl> aclDeleteList = new ArrayList<IsilonNFSACL.Acl>();
         List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
         for (NfsACE nfsACE : aceToDelete) {
             IsilonNFSACL.Acl acl = isilonAcl.new Acl();
@@ -1868,15 +1867,15 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         ArrayList<String> accessRights = new ArrayList<String>();
         for (String per : permissions) {
 
-            if (per.equalsIgnoreCase("read")) {
+            if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_READ)) {
                 accessRights.add(IsilonNFSACL.AccessRights.dir_gen_read.toString());
 
             }
-            if (per.equalsIgnoreCase("write")) {
+            if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_WRITE)) {
                 accessRights.add(IsilonNFSACL.AccessRights.std_write_dac.toString());
 
             }
-            if (per.equalsIgnoreCase("execute")) {
+            if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE)) {
                 accessRights.add(IsilonNFSACL.AccessRights.dir_gen_execute.toString());
 
             }

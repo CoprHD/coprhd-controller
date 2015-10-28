@@ -585,10 +585,10 @@ public class FileService extends TaskResourceService {
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())
-        		&& !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+                && !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
             // Throw an error
             throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool doesn't support "
-                    + StorageProtocol.File.NFS.name()+" or "+StorageProtocol.File.NFSv4 +  " protocol");
+                    + StorageProtocol.File.NFS.name() + " or " + StorageProtocol.File.NFSv4 + " protocol");
         }
 
         // locate storage port for exporting file System
@@ -1677,10 +1677,10 @@ public class FileService extends TaskResourceService {
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())
-        		&& !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+                && !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
             // Throw an error
             throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
-                    + StorageProtocol.File.NFS.name()+" or "+StorageProtocol.File.NFSv4 + " protocol");
+                    + StorageProtocol.File.NFS.name() + " or " + StorageProtocol.File.NFSv4 + " protocol");
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
@@ -1999,18 +1999,19 @@ public class FileService extends TaskResourceService {
     }
 
     /**
-     * GET the ACL for fileSystem
+     * GET all ACLs for a fileSystem
      * 
      * @param id the URN of a ViPR fileSystem
-     * @param allDirs all directory within a filesystem
-     * @param subDir sub-directory within a filesystem
-     * @return
+     * @param allDirs all directory within a fileSystem
+     * @param subDir sub-directory within a fileSystem
+     * @return list of ACLs for file system.
+     * @throws InternalException
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/acl")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public NfsACLs getFileSahreACLs(@PathParam("id") URI id,
+    public NfsACLs getFileShareACLs(@PathParam("id") URI id,
             @QueryParam("allDirs") boolean allDirs,
             @QueryParam("subDir") String subDir) {
 
@@ -2044,10 +2045,10 @@ public class FileService extends TaskResourceService {
 
     /**
      * 
-     * Upadte existing file system ACL
+     * Update existing file system ACL
      * 
      * @param id the URN of a ViPR fileSystem
-     * @param subDir sub-directory within a filesystem
+     * @param subDir sub-directory within a fileSystem
      * @brief Update file system ACL
      * @return Task resource representation
      * @throws InternalException
@@ -2114,11 +2115,11 @@ public class FileService extends TaskResourceService {
     }
 
     /**
-     * Delete the all existing ACL of a filesystem or subDirectory
+     * Delete all the existing ACLs of a fileSystem or subDirectory
      * 
      * @param id the URN of a ViPR fileSystem
-     * @param subDir sub-directory within a filesystem
-     * @return
+     * @param subDir sub-directory within a fileSystem
+     * @return Task resource representation
      */
     @DELETE
     @Path("/{id}/acl")

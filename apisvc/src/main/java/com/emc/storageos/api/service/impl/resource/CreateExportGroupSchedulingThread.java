@@ -14,10 +14,14 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.export.ExportPathParameters;
+import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.volumecontroller.BlockExportController;
 
@@ -41,11 +45,11 @@ class CreateExportGroupSchedulingThread implements Runnable {
     private Map<URI, Integer> volumeMap;
     private String task;
     private TaskResourceRep taskRes;
+    private ExportPathParameters pathParam;
 
-    public CreateExportGroupSchedulingThread(ExportGroupService exportGroupService, VirtualArray virtualArray, Project project,
-            ExportGroup exportGroup,
+    public CreateExportGroupSchedulingThread(ExportGroupService exportGroupService, VirtualArray virtualArray, Project project, ExportGroup exportGroup,
             Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap,
-            String task, TaskResourceRep taskRes) {
+            ExportPathParameters pathParam, String task, TaskResourceRep taskRes) {
         this.exportGroupService = exportGroupService;
         this.virtualArray = virtualArray;
         this.project = project;
@@ -57,6 +61,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
         this.volumeMap = volumeMap;
         this.task = task;
         this.taskRes = taskRes;
+        this.pathParam = pathParam;
     }
 
     @Override
@@ -71,6 +76,14 @@ class CreateExportGroupSchedulingThread implements Runnable {
                     clusters, hosts, initiators,
                     volumeMap.keySet());
             _log.info("Initiators {} will be used.", affectedInitiators);
+            
+            // If ExportPathParameter block is present, and volumes are present, capture those arguments.
+            if (pathParam!= null && !volumeMap.keySet().isEmpty()) {
+                ExportPathParams exportPathParam = exportGroupService.validateAndCreateExportPathParam(pathParam, 
+                                    exportGroup, volumeMap.keySet());
+                exportGroupService.addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
+                exportGroupService._dbClient.createObject(exportPathParam);
+            }
             this.exportGroupService._dbClient.persistObject(exportGroup);
 
             // If initiators list is empty or storage map is empty, there's no work to do (yet).
@@ -114,6 +127,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
      * @param hosts hosts
      * @param initiators initiators
      * @param volumeMap volume map
+     * @param pathParam ExportPathParameters from 
      * @param task task
      * @param taskRes task resource object
      */
@@ -121,10 +135,10 @@ class CreateExportGroupSchedulingThread implements Runnable {
             VirtualArray virtualArray, Project project,
             ExportGroup exportGroup,
             Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap,
-            String task, TaskResourceRep taskRes) {
+            ExportPathParameters pathParam, String task, TaskResourceRep taskRes) {
 
         CreateExportGroupSchedulingThread schedulingThread = new CreateExportGroupSchedulingThread(exportGroupService, virtualArray,
-                project, exportGroup, storageMap, clusters, hosts, initiators, volumeMap, task, taskRes);
+                project, exportGroup, storageMap, clusters, hosts, initiators, volumeMap, pathParam, task, taskRes);
         try {
             executorService.execute(schedulingThread);
         } catch (Exception e) {

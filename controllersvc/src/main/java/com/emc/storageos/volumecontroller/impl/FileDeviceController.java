@@ -255,12 +255,7 @@ public class FileDeviceController implements FileController {
 
             Project proj = _dbClient.queryObject(Project.class, fsObj.getProject());
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fsObj.getTenant());
-            URI vNASUri = fsObj.getVirtualNAS();
-            
-            if(vNASUri != null) {
-            	VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
-            	args.setvNAS(vNAS);
-            }
+            setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
             args.setTenantOrg(tenant);
             args.setProject(proj);
 
@@ -486,7 +481,6 @@ public class FileDeviceController implements FileController {
         FileShare fs = null;
         Snapshot snapshotObj = null;
         StorageSystem storageObj = null;
-        VirtualNAS vNAS = null;
         
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -500,11 +494,7 @@ public class FileDeviceController implements FileController {
                 args.addFSFileObject(fs);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
                 args.addStoragePool(pool);
-                URI vNASUri = fs.getVirtualNAS();
-                if(vNASUri != null) {
-                	vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
-                	args.setvNAS(vNAS);
-                }
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
             } else {
                 snapshotObj = _dbClient.queryObject(Snapshot.class, uri);
                 fsObj = snapshotObj;
@@ -513,11 +503,7 @@ public class FileDeviceController implements FileController {
                 args.addSnapshotFileObject(snapshotObj);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
                 args.addStoragePool(pool);
-                URI vNASUri = fs.getVirtualNAS();
-                if(vNASUri != null) {
-                	vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
-                	args.setvNAS(vNAS);
-                }
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
             }
 
             args.setFileOperation(isFile);
@@ -860,18 +846,14 @@ public class FileDeviceController implements FileController {
             SMBFileShare smbFileShare = smbShare.getSMBFileShare();
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             args.setOpId(opId);
-            VirtualNAS vNAS = null;
             
             if (URIUtil.isType(uri, FileShare.class)) {
                 fsObj = _dbClient.queryObject(FileShare.class, uri);
                 fileObject = fsObj;
                 args.addFSFileObject(fsObj);
                 args.setFileOperation(true);
-                URI vNASUri = fsObj.getVirtualNAS();
-                if(vNASUri != null) {
-	                vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
-	                args.setvNAS(vNAS);
-                }
+                setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
+                
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -898,11 +880,7 @@ public class FileDeviceController implements FileController {
                 fsObj = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
                 args.addFileShare(fsObj);
                 args.setFileOperation(false);
-                URI vNASUri = fsObj.getVirtualNAS();
-                if(vNASUri != null) {
-	                vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
-	                args.setvNAS(vNAS);
-                }
+                setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -941,7 +919,8 @@ public class FileDeviceController implements FileController {
         }
     }
 
-    @Override
+
+	@Override
     public void deleteShare(URI storage, URI uri, FileSMBShare smbShare, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         FileObject fileObject = null;
@@ -2879,4 +2858,17 @@ public class FileDeviceController implements FileController {
         }
 
     }
+    
+    /**
+     * Set is the vNAS entity in args only if vNASURI is not null
+     * @param vNASURI the URI of VirtualNAS
+     * @param args instance of FileDeviceInputOutput
+     */
+    private void setVirtualNASinArgs(URI vNASURI, FileDeviceInputOutput args) {
+    	
+        if(vNASURI != null) {
+            VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
+            args.setvNAS(vNAS);
+        }
+	}
 }

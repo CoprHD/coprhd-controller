@@ -1310,7 +1310,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 		for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
 
 			UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
-			unmanagedNFSAcl.setFileSystemId(fs.getId());
+			unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
 
 			unmanagedNFSAcl.setFileSystemPath(fs.getPath());
 

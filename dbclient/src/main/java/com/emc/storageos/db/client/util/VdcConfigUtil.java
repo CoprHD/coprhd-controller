@@ -77,7 +77,7 @@ public class VdcConfigUtil {
             // THere's no way to know that without querying db, unless we persist such information in ZK too.
             vdcConfig.put(VDC_MYID, vdcShortId);
 
-            genSiteProperties(vdcConfig, vdcShortId);
+            genSiteProperties(vdcConfig, vdcShortId, vdcSiteMap.get(vdcShortId));
         }
 
         if (vdcSiteMap.isEmpty()) {
@@ -114,15 +114,11 @@ public class VdcConfigUtil {
         return vdcSiteMap;
     }
 
-    private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId) {
+    private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
         DrUtil drUtil = new DrUtil(coordinator);
         String primarySiteId = drUtil.getPrimarySiteId();
-        String currentSiteId = coordinator.getSiteId();
         
-        // Sort the sites by creation time - ascending order
-        List<Site> siteList = drUtil.listStandbySites();
-        
-        Collections.sort(siteList, new Comparator<Site>() {
+        Collections.sort(sites, new Comparator<Site>() {
             @Override
             public int compare(Site a, Site b) {
                 return (int)(a.getCreationTime() - b.getCreationTime());
@@ -130,7 +126,7 @@ public class VdcConfigUtil {
         });
         
         List<String> shortIds = new ArrayList<>();
-        for (Site site : siteList) {
+        for (Site site : sites) {
             boolean isPrimarySite = site.getUuid().equals(primarySiteId);
 
             if (shouldExcludeFromConfig(site)) {
@@ -195,10 +191,8 @@ public class VdcConfigUtil {
         }
         Collections.sort(shortIds);
         vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
-        
-        
-        boolean isStandby = !currentSiteId.equals(primarySiteId);
-        vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
+
+        vdcConfig.put(SITE_IS_STANDBY, String.valueOf(!drUtil.isPrimary()));
     }
 
     private List<String> getHostsFromIPAddrMap(Map<String, String> IPv4Addresses, Map<String, String> IPv6Addresses) {

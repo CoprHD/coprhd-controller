@@ -659,4 +659,11 @@ public class VirtualPoolUtil {
     public static boolean validateNullDriveTypeForHDSSystems(String policy, StringSet sysTypeSet, String driveType) {
         return (null != policy && sysTypeSet.contains(VirtualPool.SystemType.hds.toString()) && (driveType == null));
     }
+
+    @SuppressWarnings("unchecked")
+    public static void validateStorageContainerCreateParams(BlockVirtualPoolParam param, DbClient dbClient) throws DatabaseException {
+        // Starts object VirtualPool validation chain using objectNameValidator.
+        objectTypeValidator.validateVirtualPoolCreateParam(param, dbClient);
+
+    }
 }

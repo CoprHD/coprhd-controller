@@ -32,6 +32,7 @@ import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.ProtectionCopyPolicy;
 import com.emc.storageos.model.vpool.ProtectionSourcePolicy;
+import com.emc.storageos.model.vpool.StorageContainerCreateResponse;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolHighAvailabilityParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionMirrorParam;
@@ -252,6 +253,14 @@ public class VirtualPoolMapper {
             return null;
         }
         ObjectVirtualPoolRestRep to = new ObjectVirtualPoolRestRep();
+        return mapVirtualPoolFields(from, to, null);
+    }
+    
+    public static StorageContainerCreateResponse toStorageContainer(VirtualPool from) {
+        if (from == null) {
+            return null;
+        }
+        StorageContainerCreateResponse to = new StorageContainerCreateResponse();
         return mapVirtualPoolFields(from, to, null);
     }
     

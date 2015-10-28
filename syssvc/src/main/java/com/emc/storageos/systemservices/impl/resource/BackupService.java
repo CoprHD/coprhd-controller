@@ -61,13 +61,18 @@ public class BackupService {
 
     /**
      * Sets backup client
-     *
+     * 
      * @param backupOps the backup client instance
      */
     public void setBackupOps(BackupOps backupOps) {
         this.backupOps = backupOps;
     }
 
+    /**
+     * Sets backup scheduler client
+     *
+     * @param backupScheduler the backup scheduler client instance
+     */
     public void setBackupScheduler(BackupScheduler backupScheduler) {
         this.backupScheduler = backupScheduler;
     }
@@ -81,7 +86,7 @@ public class BackupService {
     /**
      * List the info of backupsets that have zk backup file and
      * quorum db and geodb backup files
-     *
+     * 
      * @brief List current backup info
      * @prereq none
      * @return A list of backup info
@@ -116,13 +121,13 @@ public class BackupService {
 
     /**
      * Create a near Point-In-Time copy of DB & ZK data files on all controller nodes.
-     *
+     * 
      * @brief Create a backup set
-     *
+     * 
      *        <p>
      *        Limitations of the argument: 1. Maximum length is 200 characters 2. Underscore "_" is not supported 3. Any character that is
      *        not supported by Linux file name is not allowed
-     *
+     * 
      * @param backupTag The name of backup. This parameter is optional,
      *            default is timestamp(for example 20140531193000).
      * @param forceCreate If true, will ignore the errors during the operation
@@ -150,7 +155,7 @@ public class BackupService {
 
     /**
      * Delete the specific backup files on each controller node of cluster
-     *
+     * 
      * @brief Delete a backup
      * @param backupTag The name of backup
      * @prereq This backup sets should have been created
@@ -219,7 +224,7 @@ public class BackupService {
      * Download the zip archive that composed of DB & ZK backup files on all controller nodes
      * It's suggest to download backupset to external media timely after the creation
      * and then delete it to release the storage space
-     *
+     * 
      * @brief Download a specific backupset
      * @param backupTag The name of backup
      * @prereq This backup sets should have been created
@@ -255,7 +260,7 @@ public class BackupService {
      * *Internal API, used only between nodes*
      * <p>
      * Get backup file name
-     *
+     * 
      * @param fileName
      * @return the name and content info of backup files
      */
@@ -279,7 +284,7 @@ public class BackupService {
 
     /**
      * This method returns a list of files on each node to be downloaded for specified tag
-     *
+     * 
      * @param backupTag
      * @return backupFileSet,
      *         if its size() is 0, means can not find the backup set of specified tag;
@@ -289,12 +294,6 @@ public class BackupService {
         BackupFileSet files = this.backupOps.listRawBackup(true);
 
         BackupFileSet filesForTag = files.subsetOf(backupTag, null, null);
-        for (BackupFile file : files) {
-            log.info("Grace: file name={}", file.info.getName());
-        }
-        for (BackupFile file : filesForTag) {
-            log.info("Grace: filesForTag name={}", file.info.getName());
-        }
         return filesForTag;
     }
 
@@ -330,7 +329,6 @@ public class BackupService {
 
         List<NodeInfo> nodes = ClusterNodesUtil.getClusterNodeInfo(new ArrayList<>(Arrays.asList(uniqueNodes.toArray(new String[uniqueNodes
                 .size()]))));
-        log.info("Grace-nodes={}, uniqueNodes={}", nodes, uniqueNodes);
         if (nodes.size() < uniqueNodes.size()) {
             log.info("Only {}/{} nodes available for the backup, cannot download.", uniqueNodes.size(), nodes.size());
             return;
@@ -346,24 +344,22 @@ public class BackupService {
         URI postUri = SysClientFactory.URI_NODE_BACKUPS_DOWNLOAD;
         boolean propertiesFileFound = false;
         int collectFileCount = 0;
+        int totalFileCount = files.size();
         for (final NodeInfo node : nodes) {
             String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
                     node.getIpAddress(), node.getPort());
-            log.info("processing node: {}", baseNodeURL);
+            log.debug("processing node: {}", baseNodeURL);
             SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
                     URI.create(baseNodeURL));
             for (String fileName : getFileNameList(files.subsetOf(null, null, node.getId()))) {
-                int progress = collectFileCount * 100 / files.size();
-                log.info("Collected file count={}, total file count={}", collectFileCount, files.size());
+                int progress = collectFileCount / totalFileCount * 100;
                 backupScheduler.getUploadExecutor().setUploadStatus(null, Status.IN_PROGRESS, progress, null);
 
                 String fullFileName = backupTag + File.separator + fileName;
-                log.info("Grace-fileName={}, fullFileName={}", fileName, fullFileName);
                 InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
                 newZipEntry(zos, in, fileName);
                 collectFileCount++;
             }
-
             try {
                 String fileName = backupTag + BackupConstants.BACKUP_INFO_SUFFIX;
                 String fullFileName = backupTag + File.separator + fileName;

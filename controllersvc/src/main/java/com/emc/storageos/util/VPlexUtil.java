@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -44,6 +45,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.joiner.Joiner;
@@ -445,7 +447,7 @@ public class VPlexUtil {
             boolean connected = false;
             String hostName = "unknown-host";
             for (Initiator initiator : hostInitiators) {
-                hostName = initiator.getHostName();
+                hostName = getInitiatorHostResourceName(initiator);
                 if (srcVarrayInitiators.contains(initiator.getId())
                         || haVarrayInitiators.contains(initiator.getId())) {
                     connected = true;
@@ -547,10 +549,10 @@ public class VPlexUtil {
             }
             if (NullColumnValueGetter.isNullURI(initiatorForHost.getHost())) {
                 // No Host URI
-                if (initiatorForHost.getHostName() != null) {
+                if (getInitiatorHostResourceName(initiatorForHost) != null) {
                     // Save the name
                     if (hostName == null) {
-                        hostName = initiatorForHost.getHostName();
+                        hostName = getInitiatorHostResourceName(initiatorForHost);
                         _log.info(String.format("Initiator %s has no Host URI, hostName %s",
                                 initiatorForHost.getInitiatorPort(), hostName));
                     }
@@ -589,10 +591,10 @@ public class VPlexUtil {
      */
     public static URI getInitiatorHost(Initiator initiator) {
         if (NullColumnValueGetter.isNullURI(initiator.getHost())) {
-            if (initiator.getHostName() != null) {
+            if (getInitiatorHostResourceName(initiator) != null) {
                 _log.info(String.format("Initiator %s -> Host %s",
-                        initiator.getInitiatorPort(), initiator.getHostName()));
-                return URI.create(initiator.getHostName().replaceAll("\\s", ""));
+                        initiator.getInitiatorPort(), getInitiatorHostResourceName(initiator)));
+                return URI.create(getInitiatorHostResourceName(initiator).replaceAll("\\s", ""));
             } else {
                 return NullColumnValueGetter.getNullURI();
             }
@@ -603,6 +605,24 @@ public class VPlexUtil {
         }
     }
 
+    
+    /**
+     * 
+     * Returns the initiator's host name. If the initiator is an RP initiator, returns the cluster name.
+     * In the case of RP, only one StorageView per RP cluster need to be created. RP initiators have a cluster name
+     * as well as host name fields populated and returning the host name would result in creation of 2 StorageView's
+     * for the same RP cluster. 
+     * @param initiator Initiator
+     * @return Initiator's host name per the above rules.
+     */
+    public static String getInitiatorHostResourceName(Initiator initiator) {
+    	
+    	if (initiator.checkInternalFlags(Flag.RECOVERPOINT)) {
+    		return initiator.getClusterName();
+    	}
+    	
+    	return initiator.getHostName();
+    }
     /**
      * Filter a list of initiators to contain only those with protocols
      * supported by the VPLEX.
@@ -897,7 +917,7 @@ public class VPlexUtil {
 
         // There is possibility of shared export mask only if there is more than one host in the exportGroup
         // and we found only one exportMask in database for the VPLEX cluster
-        if (exportGrouphosts.size() > 1 && exportMasksForVplexCluster.size() == 1) {
+        if (exportGrouphosts != null && exportGrouphosts.size() > 1 && exportMasksForVplexCluster.size() == 1) {
             ExportMask exportMask = exportMasksForVplexCluster.get(0);
             ArrayList<String> exportMaskInitiators = new ArrayList<String>(exportMask.getInitiators());
             Map<URI, List<Initiator>> exportMaskHostInitiatorsMap = makeHostInitiatorsMap(URIUtil.toURIList(exportMaskInitiators), dbClient);
@@ -949,7 +969,6 @@ public class VPlexUtil {
         return sharedVplexExportMask;
     }
 
-    
     /**
      * Check if the backend volumes for the vplex volumes in a consistency group are in the same storage system.
      * 
@@ -960,25 +979,25 @@ public class VPlexUtil {
      * 
      */
     public static boolean isVPLEXCGBackendVolumesInSameStorage(List<Volume> vplexVolumes, DbClient dbClient) {
-        Set<String> backendSystems = new HashSet<String> ();
+        Set<String> backendSystems = new HashSet<String>();
         Set<String> haBackendSystems = new HashSet<String>();
         boolean result = true;
         for (Volume vplexVolume : vplexVolumes) {
             Volume srcVolume = getVPLEXBackendVolume(vplexVolume, true, dbClient);
             backendSystems.add(srcVolume.getStorageController().toString());
-            
+
             Volume haVolume = getVPLEXBackendVolume(vplexVolume, false, dbClient);
             if (haVolume != null) {
                 haBackendSystems.add(haVolume.getStorageController().toString());
             }
-            
+
         }
         if (backendSystems.size() > 1 || haBackendSystems.size() > 1) {
             result = false;
         }
         return result;
     }
-    
+
     /**
      * Verifies if the passed volumes are all the volumes in the same backend arrays in the passed
      * consistency group.
@@ -991,7 +1010,7 @@ public class VPlexUtil {
         List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, dbClient, null);
         return verifyVolumesInCG(volumes, cgVolumes, dbClient);
     }
-    
+
     /**
      * Verifies if the passed volumes are all the volumes in the same backend arrays in the passed
      * consistency group volumes.
@@ -1040,16 +1059,17 @@ public class VPlexUtil {
             List<String> selectedVols = entry.getValue();
             List<String> cgVols = cgBackendSystemToVolumesMap.get(systemId);
             if (selectedVols.size() < cgVols.size()) {
-                //not all volumes from the same backend system are selected.
+                // not all volumes from the same backend system are selected.
                 result = false;
                 break;
             }
         }
         return result;
     }
-    
+
     /**
      * Check if the volume is in an ingested VPlex consistency group
+     * 
      * @param volume The volume to be checked on
      * @param dbClient
      * @return true or false
@@ -1332,5 +1352,31 @@ public class VPlexUtil {
         }
         
         return false;
+    }
+
+    /**
+     * Determines if the passed VPLEX volume is built on top of a target
+     * volume for a block snapshot.
+     * 
+     * @param dbClient A reference to a database client.
+     * @param vplexVolume A reference to a VPLEX volume.
+     * 
+     * @return true of the Volume is built on a block snapshot, false otherwise.
+     */
+    public static boolean isVolumeBuiltOnBlockSnapshot(DbClient dbClient, Volume vplexVolume) {
+        boolean isBuiltOnSnapshot = false;
+        Volume srcSideBackendVolume = getVPLEXBackendVolume(vplexVolume, true, dbClient, false);
+        if (srcSideBackendVolume != null) {
+            String nativeGuid = srcSideBackendVolume.getNativeGuid();
+            List<BlockSnapshot> snapshots = CustomQueryUtility.getActiveBlockSnapshotByNativeGuid(dbClient, nativeGuid);
+            if (!snapshots.isEmpty()) {
+                // There is a snapshot with the same native GUID as the source
+                // side backend volume, and therefore the VPLEX volume is built
+                // on a block snapshot target volume.
+                isBuiltOnSnapshot = true;
+            }
+        }
+
+        return isBuiltOnSnapshot;
     }
 }

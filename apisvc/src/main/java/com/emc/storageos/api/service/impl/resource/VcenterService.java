@@ -131,7 +131,7 @@ public class VcenterService extends TaskResourceService {
         validateVcenter(updateParam, vcenter, validateConnection);
 
         // check the user permissions for this tenant org
-        verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
+        verifyAuthorizedSystemAdminOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
 
         populateVcenterData(vcenter, updateParam);
 
@@ -334,7 +334,7 @@ public class VcenterService extends TaskResourceService {
             Vcenter vcenter = queryObject(Vcenter.class, id, true);
 
             // check the user permissions for this tenant org
-            verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
+            verifyAuthorizedSystemAdminOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
 
             checkIfOtherTenantsUsingTheVcenter(vcenter);
 
@@ -982,6 +982,22 @@ public class VcenterService extends TaskResourceService {
     /**
      * Checks if the user is authorized to view the vCenter.
      * Authorized if,
+     * The user has SysAdmin role.
+     * The user is a TenantAdmin of one of the that shares the vCenter.
+     *
+     * @param aclEntries the tenants list that shares the vCenter.
+     */
+    protected void verifyAuthorizedSystemAdminOrTenantOrgUser(List<ACLEntry> aclEntries) {
+        if (isSystemAdmin()) {
+            return;
+        }
+
+        verifyAuthorizedInTenantOrg(aclEntries);
+    }
+
+    /**
+     * Checks if the user is authorized to view the vCenter.
+     * Authorized if,
      * The user a TenantOrg user of one the tenant that shares the vCenter.
      * The user is a TenantAdmin of one of the tenant that shares the vCenter.
      *
@@ -1037,7 +1053,8 @@ public class VcenterService extends TaskResourceService {
      * @param vcenter to be deleted.
      */
     private void checkIfOtherTenantsUsingTheVcenter(Vcenter vcenter) {
-        if (!isSystemAdmin() && vcenter.getAcls().size() > 1) {
+        if (!isSystemAdmin() && !CollectionUtils.isEmpty(vcenter.getAcls()) &&
+                vcenter.getAcls().size() > 1) {
             throw APIException.forbidden.tenantAdminCannotDeleteVcenter(getUserFromContext().getName(), vcenter.getLabel());
         }
     }

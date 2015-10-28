@@ -7,7 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolChangeRep;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
-import static com.emc.storageos.db.client.model.BlockMirror.SynchronizationState.FRACTURED;
+import static com.emc.storageos.db.client.model.SynchronizationState.FRACTURED;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.google.common.collect.Collections2.transform;
 
@@ -338,7 +338,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
         // Get volume descriptor for all volumes to be deleted.
         List<VolumeDescriptor> volumeDescriptors = getDescriptorsForVolumesToBeDeleted(
-                systemURI, volumeURIs);
+                systemURI, volumeURIs, deletionType);
 
         // Mark the volumes for deletion for a VIPR only delete, otherwise get
         // the controller and delete the volumes.
@@ -395,7 +395,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return The list of volume descriptors.
      */
     abstract protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(
-            URI systemURI, List<URI> volumeURIs);
+            URI systemURI, List<URI> volumeURIs, String deletionType);
 
     /**
      * Get the volume descriptors for all volumes to be deleted given the passed
@@ -1560,7 +1560,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      *
      * @param volume the volume
      */
-    private void verifyIfVolumeHasMultipleReplicas(Volume volume) {
+    protected void verifyIfVolumeHasMultipleReplicas(Volume volume) {
         // multiple snapshot check
         URIQueryResultList list = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),

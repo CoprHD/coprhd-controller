@@ -2182,7 +2182,7 @@ public class DbClientTest extends DbsvcTestBase {
 
         @Override
         public String getGeoVersion() {
-            return "2.4";
+            return getSchemaVersion();
         }
 
         @Override

@@ -114,21 +114,21 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
         standbySite1.setState(SiteState.PRIMARY);
-        standbySite1.setVdc(localVDC.getId());
+        standbySite1.setVdcShortId(localVDC.getShortId());
         standbySite1.setNodeCount(1);
         
 
         standbySite2 = new Site();
         standbySite2.setUuid("site-uuid-2");
         standbySite2.setState(SiteState.STANDBY_SYNCED);
-        standbySite2.setVdc(localVDC.getId());
+        standbySite2.setVdcShortId(localVDC.getShortId());
         standbySite2.setNodeCount(1);
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
-        standbySite3.setVdc(new URI("fake-vdc-id"));
+        standbySite3.setVdcShortId("fake-vdc-id");
         standbySite3.setState(SiteState.PRIMARY);
-        standbySite3.setVdc(localVDC.getId());
+        standbySite3.setVdcShortId(localVDC.getShortId());
         standbySite3.setNodeCount(1);
 
         primarySite = new Site();
@@ -137,7 +137,7 @@ public class DisasterRecoveryServiceTest {
         primarySite.setSecretKey("secret-key");
         primarySite.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
         primarySite.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
-        primarySite.setVdc(localVDC.getId());
+        primarySite.setVdcShortId(localVDC.getShortId());
         primarySite.setState(SiteState.PRIMARY);
         primarySite.setNodeCount(3);
         

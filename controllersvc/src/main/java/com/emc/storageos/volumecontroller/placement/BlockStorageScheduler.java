@@ -1407,6 +1407,7 @@ public class BlockStorageScheduler {
      * @param overrideNumPaths - if greater than zero, will override the calculation and be returned.
      * @param storageSystemURI URI of Storage System, if not null, filters out
      *            BlockObjects created on other systems
+     * @param exportGroupURI exportGroupURI
      * @return numPaths
      */
     public ExportPathParams calculateExportPathParamForVolumes(Collection<URI> blockObjectURIs,

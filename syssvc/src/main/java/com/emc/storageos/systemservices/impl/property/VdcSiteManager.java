@@ -22,23 +22,25 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.util.VdcConfigUtil;
-import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
@@ -82,6 +84,8 @@ public class VdcSiteManager extends AbstractManager {
     private String currentSiteId;
     
     private VirtualDataCenter localVdc;
+    
+    private DrUtil drUtil;
    
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
@@ -145,7 +149,8 @@ public class VdcSiteManager extends AbstractManager {
         final String svcId = coordinator.getMySvcId();
         currentSiteId = coordinator.getCoordinatorClient().getSiteId();
         localVdc = VdcUtil.getLocalVdc();
-                
+        drUtil = new DrUtil(coordinator.getCoordinatorClient());
+        
         addSiteInfoListener();
 
         while (doRun) {
@@ -337,6 +342,7 @@ public class VdcSiteManager extends AbstractManager {
             case SiteInfo.RECONFIG_RESTART:
                 checkAndRemoveStandby();
                 reconfigRestartSvcs();
+                cleanupSiteErrorIfNecessary();
                 break;
             default:
                 localRepository.setVdcPropertyInfo(targetVdcPropInfo);
@@ -358,29 +364,39 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private void reconfigRestartSvcs() throws Exception {
-        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-        // set the vdc_config_version to an invalid value so that it always gets retried on failure.
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
-        localRepository.setVdcPropertyInfo(vdcProperty);
+        try {
+            PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+            // set the vdc_config_version to an invalid value so that it always gets retried on failure.
+            vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
+            localRepository.setVdcPropertyInfo(vdcProperty);
 
-        localRepository.reconfigProperties("firewall");
-        localRepository.reload("firewall");
+            localRepository.reconfigProperties("firewall");
+            localRepository.reload("firewall");
 
-        // Reconfigure ZK
-        // TODO: think again how to make use of the dynamic zookeeper configuration
-        // The previous approach disconnects all the clients, no different than a service restart.
-        localRepository.reconfigProperties("coordinator");
-        localRepository.restart("coordinatorsvc");
 
-        localRepository.reconfigProperties("db");
-        //localRepository.restart("dbsvc");
+            localRepository.reconfigProperties("ipsec");
+            localRepository.reload("ipsec");
 
-        localRepository.reconfigProperties("geodb");
-        //localRepository.restart("geodbsvc");
+            // Reconfigure ZK
+            // TODO: think again how to make use of the dynamic zookeeper configuration
+            // The previous approach disconnects all the clients, no different than a service restart.
+            localRepository.reconfigProperties("coordinator");
+            localRepository.restart("coordinatorsvc");
 
-        log.info("Step2: Updating the hash code for local vdc properties");
-        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
-        localRepository.setVdcPropertyInfo(vdcProperty);
+
+            localRepository.reconfigProperties("db");
+            //localRepository.restart("dbsvc");
+
+            localRepository.reconfigProperties("geodb");
+            //localRepository.restart("geodbsvc");
+
+            log.info("Step2: Updating the hash code for local vdc properties");
+            vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+            localRepository.setVdcPropertyInfo(vdcProperty);
+        } catch (Exception e) {
+            populateStandbySiteErrorIfNecessary(e);
+            throw e;
+        }
     }
 
     private List<String> getJoiningZKNodes() {
@@ -564,9 +580,7 @@ public class VdcSiteManager extends AbstractManager {
      * @return
      */
     private boolean isRemovingStandby() {
-        List<Site> sites = listSites(localVdc);
-
-        for(Site site : sites) {
+        for(Site site : drUtil.listSites()) {
             if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
                 if (!currentSiteId.equals(site.getUuid())) {
                     return true;
@@ -583,10 +597,10 @@ public class VdcSiteManager extends AbstractManager {
      */
     private void checkAndRemoveStandby() throws Exception{
         String svcId = coordinator.getMySvcId();
-        String primarySiteId = coordinator.getCoordinatorClient().getPrimarySiteId();
+        boolean isStandby = drUtil.isStandby();
         
         while (isRemovingStandby()) {
-            if (!primarySiteId.equals(currentSiteId)) {
+            if (isStandby) {
                 log.info("Waiting for completion of site removal from primary site");
                 retrySleep();
                 continue;
@@ -598,15 +612,19 @@ public class VdcSiteManager extends AbstractManager {
             }
             
             try {
-                List<Site> sites = listSites(localVdc);
-                for(Site site : sites) {
-                    if (!site.getState().equals(SiteState.STANDBY_REMOVING)) {
-                        continue;
-                    }
-                    if (currentSiteId.equals(site.getUuid())) {
-                        log.info("Current site is removed from a DR. It could be manually promoted as primary site");
-                    } else {
-                        removeSiteFromReplication(site);
+                for(Site site : drUtil.listSites()) {
+                    try {
+                        if (!site.getState().equals(SiteState.STANDBY_REMOVING)) {
+                            continue;
+                        }
+                        if (currentSiteId.equals(site.getUuid())) {
+                            log.info("Current site is removed from a DR. It could be manually promoted as primary site");
+                        } else {
+                            removeSiteFromReplication(site);
+                        }
+                    } catch (Exception e) { 
+                        populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
+                        throw e;
                     }
                 }
             } finally {
@@ -641,52 +659,58 @@ public class VdcSiteManager extends AbstractManager {
         log.info("Removed site {} configuration from ZK", site.getUuid());
     }
     
-    private List<Site> listSites(VirtualDataCenter vdc) {
-        List<Site> result = new ArrayList<Site>();
-        for(Configuration config : coordinator.getCoordinatorClient().queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
-            if (!vdc.getId().equals(site.getVdc())) {
-                continue;
-            }
-            result.add(site);
-        }
-        return result;
-    }
-
     private void poweroffRemoteSite(Site site) {
-        if (!isSiteUp(site)) {
+        String siteId = site.getUuid();
+        if (!drUtil.isSiteUp(siteId)) {
             log.info("Site {} is down. no need to poweroff it", site.getUuid());
             return;
         }
         // all syssvc shares same port
         String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVip(), service.getEndpoint().getPort());
         SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
-        log.info("Powering off site {}", site.getUuid());
-        while(isSiteUp(site)) {
+        log.info("Powering off site {}", siteId);
+        while(drUtil.isSiteUp(siteId)) {
             log.info("Short sleep and will check site status later");
             retrySleep();
         }
     }
 
-    private boolean isSiteUp(Site site) {
-        // Get service beacons for given site - - assume syssvc on all sites share same service name in beacon
-        try {
-            List<Service> svcs = coordinator.getCoordinatorClient().locateAllServices(site.getUuid(), service.getName(), service.getVersion(),
-                    (String) null, null);
-
-            List<String> nodeList = new ArrayList<String>();
-            for(Service svc : svcs) {
-                nodeList.add(svc.getNodeId());
+    private void populateStandbySiteErrorIfNecessary(Exception e) {
+        for (Site site : drUtil.listSites()) {
+            if (site.getUuid().equals(currentSiteId)) {
+                if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
+                    populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
+                }
+                
+                break;
             }
-            log.info("Site {} is up. active nodes {}", site.getUuid(), StringUtils.join(nodeList, ","));
-            return true;
-        } catch (CoordinatorException ex) {
-            if (ex.getServiceCode() == ServiceCode.COORDINATOR_SVC_NOT_FOUND) {
-                return false; // no service beacon found for given site
-            }
-            log.error("Unexpected error when checking site service becons", ex);
-            return true;
         }
     }
-
+    
+    private void populateStandbySiteErrorIfNecessary(Site site, InternalServerErrorException e) {
+        SiteError error = new SiteError(e);
+        
+        log.info("Set error state for site: {}", site.getUuid());
+        coordinator.getCoordinatorClient().setTargetInfo(site.getUuid(),  error);
+        
+        site.setState(SiteState.STANDBY_ERROR);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+    }
+    
+    private void cleanupSiteErrorIfNecessary() {
+        String siteId = coordinator.getCoordinatorClient().getSiteId();
+        
+        Configuration config = coordinator.getCoordinatorClient().queryConfiguration(Site.CONFIG_KIND, siteId);
+        Site site = new Site(config);
+        
+        log.info("site: {}", site.toString());
+        
+        if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
+            log.info("Cleanup site error");
+            SiteError siteError = coordinator.getCoordinatorClient().getTargetInfo(siteId, SiteError.class);
+            siteError.cleanup();
+            
+            coordinator.getCoordinatorClient().setTargetInfo(siteId, siteError);
+        }
+    }
 }

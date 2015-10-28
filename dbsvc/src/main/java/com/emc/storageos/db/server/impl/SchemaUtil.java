@@ -400,7 +400,7 @@ public class SchemaUtil {
         }
 
         _log.info("vdcList={}", _vdcList);
-        if (!onStandby && _vdcList.size() == 1) {
+        if (!onStandby && _vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
             // the current vdc is removed
             strategyOptions.clear();
         }
@@ -854,6 +854,7 @@ public class SchemaUtil {
         site.setState(SiteState.PRIMARY);
         site.setCreationTime(System.currentTimeMillis());
         site.setVip(_vdcEndpoint);
+        site.setNodeCount(vdc.getHostCount());
         _coordinator.persistServiceConfiguration(site.toConfiguration());
     }
 
@@ -901,9 +902,19 @@ public class SchemaUtil {
                 rebuildData = !isVdcInfoExist(dbClient);
             }
             if (rebuildData) {
-                _log.info("Rebuild bootstrap data from primary site");
-                StorageService.instance.rebuild(_vdcShortId);
                 Site currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
+                
+                if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+                    currentSite.setState(SiteState.STANDBY_SYNCING);
+                    _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
+                }
+                
+                _log.info("Rebuild bootstrap data from primary site");
+                
+                //Potential issue here, we need to wait for all nodes finish rebuilding date and then set SYNCED
+                StorageService.instance.rebuild(_vdcShortId);
+                
+                currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
                 currentSite.setState(SiteState.STANDBY_SYNCED);
                 _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
                 _log.info("Update current standby site state to SYNCED");

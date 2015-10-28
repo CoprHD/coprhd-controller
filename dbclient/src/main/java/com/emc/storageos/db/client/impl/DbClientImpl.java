@@ -256,7 +256,6 @@ public class DbClientImpl implements DbClient {
         setupContext();
 
         _indexCleaner = new IndexCleaner();
-
         initDone = true;
     }
 

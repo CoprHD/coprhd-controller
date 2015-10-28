@@ -437,11 +437,6 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     }
 
     @Override
-    public String getPrimarySiteId() {
-        return "test-primary-site-id";
-    }
-    
-    @Override
     public void addSite(String siteId) {
         throw new UnsupportedOperationException();
     }

@@ -19,6 +19,7 @@ public class SiteParam {
     private String shortId;
     private Map<String, String> hostIPv4AddressMap;
     private Map<String, String> hostIPv6AddressMap;
+    private int nodeCount;
     private String softwareVersion;
     private String dbSchemaVersion;
     private boolean freshInstallation;
@@ -122,6 +123,15 @@ public class SiteParam {
 
     public void setState(String state) {
         this.state = state;
+    }
+
+    @XmlElement(name = "node_count")
+    public int getNodeCount() {
+        return nodeCount;
+    }
+
+    public void setNodeCount(int nodeCount) {
+        this.nodeCount = nodeCount;
     }
 
     @Override

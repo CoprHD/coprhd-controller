@@ -215,7 +215,6 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public VirtualDataCenterList getVirtualDataCenters() {
         VirtualDataCenterList vdcList = new VirtualDataCenterList();
 
@@ -229,7 +228,6 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     @Path("/{id}")
     public VirtualDataCenterRestRep getVirtualDataCenter(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, VirtualDataCenter.class, "id");
@@ -491,7 +489,6 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Path("/keystore")
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
     public CertificateChain getCertificateChain() {
         CertificateChain chain = new CertificateChain();
         try {
@@ -666,7 +663,6 @@ public class VirtualDataCenterService extends TaskResourceService {
      */
     @GET
     @Path("check-geo-distributed")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public Response checkGeoSetup() {
         Boolean isGeo = false;
         List<URI> ids = _dbClient.queryByType(VirtualDataCenter.class, true);

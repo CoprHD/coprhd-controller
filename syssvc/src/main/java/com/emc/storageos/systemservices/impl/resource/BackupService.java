@@ -47,7 +47,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
-import static com.emc.vipr.model.sys.backup.BackupUploadStatus.ErrorCode;
 
 /**
  * Defines the API for making requests to the backup service.
@@ -59,11 +58,10 @@ public class BackupService {
     private BackupScheduler backupScheduler;
     private NamedThreadPoolExecutor backupUploader;
     private NamedThreadPoolExecutor backupDownloader;
-    private static int progress = 0;
 
     /**
      * Sets backup client
-     *
+     * 
      * @param backupOps the backup client instance
      */
     public void setBackupOps(BackupOps backupOps) {

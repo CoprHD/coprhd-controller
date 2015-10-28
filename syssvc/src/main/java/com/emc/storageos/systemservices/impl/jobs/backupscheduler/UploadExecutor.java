@@ -34,18 +34,6 @@ public class UploadExecutor {
     protected SchedulerConfig cfg;
     protected Uploader uploader;
 
-    private Uploader initUploader(SchedulerConfig cfg, BackupScheduler cli) {
-        if (cfg.uploadUrl == null) {
-            return null;
-        }
-
-        if (FtpsUploader.isSupported(cfg.uploadUrl)) {
-            return new FtpsUploader(cfg, cli);
-        }
-
-        throw new UnsupportedAddressTypeException();
-    }
-
     public UploadExecutor(SchedulerConfig cfg, BackupScheduler cli) {
         this.cfg = cfg;
         this.cli = cli;
@@ -56,7 +44,7 @@ public class UploadExecutor {
     }
 
     public void runOnce(String backupTag) throws Exception {
-        this.uploader = initUploader(cfg, cli);
+        this.uploader = Uploader.create(cfg, cli);
         if (this.uploader == null) {
             log.info("Upload URL is empty, upload disabled");
             return;
@@ -77,7 +65,7 @@ public class UploadExecutor {
      * @return null if succeeded, or error message from last retry if failed.
      * @throws InterruptedException
      */
-    public String tryUpload(String tag) throws InterruptedException {
+    private String tryUpload(String tag) throws InterruptedException {
         String lastErrorMessage = null;
 
         setUploadStatus(tag, Status.INIT, null, null);
@@ -119,32 +107,6 @@ public class UploadExecutor {
         return lastErrorMessage;
     }
 
-    public void setUploadStatus(String backupTag, Status status, Integer progress, ErrorCode errorCode) {
-        BackupUploadStatus uploadStatus = this.cfg.queryBackupUploadStatus();
-        uploadStatus.update(backupTag, status, progress, errorCode);
-        this.cfg.persistBackupUploadStatus(uploadStatus);
-    }
-
-    public BackupUploadStatus getUploadStatus(String backupTag) throws Exception {
-        if (backupTag == null) {
-            log.error("Query parameter of backupTag is null");
-            throw new IllegalStateException("Invalid query parameter");
-        }
-        this.cfg.reload();
-        if (this.cfg.uploadedBackups.contains(backupTag)) {
-            return new BackupUploadStatus(backupTag, Status.DONE, 100, null);
-        }
-        if (!getIncompleteUploads().contains(backupTag)) {
-            return new BackupUploadStatus(backupTag, Status.FAILED, 0, ErrorCode.BACKUP_NOT_EXIST);
-        }
-        BackupUploadStatus uploadStatus = this.cfg.queryBackupUploadStatus();
-        if (backupTag.equals(uploadStatus.getBackupName())) {
-            return uploadStatus;
-        } else {
-            return new BackupUploadStatus(backupTag, Status.INIT, null, null);
-        }
-    }
-
     private void upload(String backupTag) throws Exception {
         log.info("Begin upload");
 
@@ -152,17 +114,6 @@ public class UploadExecutor {
         if (toUpload.isEmpty()) {
             log.info("No backups need to be uploaded");
             return;
-        }
-        List<String> toUpload = new ArrayList<String>();
-        if (backupTag == null) {
-            toUpload = incompleteUploads;
-        } else {
-            if(incompleteUploads.contains(backupTag)) {
-                toUpload.add(backupTag);
-            } else {
-                log.info("No need to upload backup({})");
-                return;
-            }
         }
 
         List<String> succUploads = new ArrayList<>();
@@ -235,6 +186,31 @@ public class UploadExecutor {
                 toUpload.toArray(new String[toUpload.size()]));
 
         return toUpload;
+    }
+    public void setUploadStatus(String backupTag, Status status, Integer progress, ErrorCode errorCode) {
+        BackupUploadStatus uploadStatus = this.cfg.queryBackupUploadStatus();
+        uploadStatus.update(backupTag, status, progress, errorCode);
+        this.cfg.persistBackupUploadStatus(uploadStatus);
+    }
+
+    public BackupUploadStatus getUploadStatus(String backupTag) throws Exception {
+        if (backupTag == null) {
+            log.error("Query parameter of backupTag is null");
+            throw new IllegalStateException("Invalid query parameter");
+        }
+        this.cfg.reload();
+        if (this.cfg.uploadedBackups.contains(backupTag)) {
+            return new BackupUploadStatus(backupTag, Status.DONE, 100, null);
+        }
+        if (!getIncompleteUploads().contains(backupTag)) {
+            return new BackupUploadStatus(backupTag, Status.FAILED, 0, ErrorCode.BACKUP_NOT_EXIST);
+        }
+        BackupUploadStatus uploadStatus = this.cfg.queryBackupUploadStatus();
+        if (backupTag.equals(uploadStatus.getBackupName())) {
+            return uploadStatus;
+        } else {
+            return new BackupUploadStatus(backupTag, Status.INIT, null, null);
+        }
     }
 
     /**

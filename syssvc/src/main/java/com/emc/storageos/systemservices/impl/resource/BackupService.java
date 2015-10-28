@@ -31,7 +31,6 @@ import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
-import com.emc.storageos.systemservices.impl.jobs.backupscheduler.UploadExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

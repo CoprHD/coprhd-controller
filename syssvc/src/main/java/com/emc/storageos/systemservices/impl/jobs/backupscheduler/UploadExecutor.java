@@ -153,6 +153,17 @@ public class UploadExecutor {
             log.info("No backups need to be uploaded");
             return;
         }
+        List<String> toUpload = new ArrayList<String>();
+        if (backupTag == null) {
+            toUpload = incompleteUploads;
+        } else {
+            if(incompleteUploads.contains(backupTag)) {
+                toUpload.add(backupTag);
+            } else {
+                log.info("No need to upload backup({})");
+                return;
+            }
+        }
 
         List<String> succUploads = new ArrayList<>();
         List<String> failureUploads = new ArrayList<>();

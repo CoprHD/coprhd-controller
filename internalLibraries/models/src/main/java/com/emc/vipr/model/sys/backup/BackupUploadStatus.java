@@ -145,7 +145,7 @@ public class BackupUploadStatus {
      */
     public enum ErrorCode {
         FTP_NOT_CONFIGURED,      // FTP server has not been configured
-        BACKUP_NOT_EXIST,        // Can’t find the target backup files on disk
+        BACKUP_NOT_EXIST,        // Can not find the target backup files on disk
         INVALID_BACKUP,          // Target backup is invalid
         UPLOAD_FAILURE           // internal failures during the upload
     }

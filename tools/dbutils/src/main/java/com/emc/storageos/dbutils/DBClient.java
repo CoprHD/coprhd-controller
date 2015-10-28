@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.dbutils;
 
+import com.emc.storageos.db.client.impl.DbChecker;
 import org.apache.commons.lang3.StringUtils;
 
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -1126,8 +1127,9 @@ public class DBClient {
 
     public void checkDB() {
         try {
-            _dbClient.checkDataObjects(true);
-            _dbClient.checkIndexingCFs(true);
+            DbChecker checker = new DbChecker(_dbClient);
+            checker.checkDataObjects(true);
+            checker.checkIndexingCFs(true);
 
             String msg = "\nAll the checks have been done.";
             System.out.println(msg);

@@ -163,9 +163,9 @@ public class UploadExecutor {
     private List<String> getWaitingUploads(String backupTag) {
         List<String> toUpload = new ArrayList<String>();
 
-        List<String> incompleteUploads = getIncompleteUploads();
+        Set<String> incompleteUploads = getIncompleteUploads();
         if (backupTag == null) {
-            toUpload = incompleteUploads;
+            toUpload.addAll(incompleteUploads);
         } else {
             if(incompleteUploads.contains(backupTag)) {
                 toUpload.add(backupTag);
@@ -176,23 +176,18 @@ public class UploadExecutor {
         return toUpload;
     }
 
-    private List<String> getIncompleteUploads() {
-        List<String> toUpload = new ArrayList<>(this.cfg.retainedBackups.size());
+    private Set<String> getIncompleteUploads() {
         Set<String> allBackups = this.cli.getClusterBackupTags(true);
         allBackups.removeAll(ScheduledBackupTag.pickScheduledBackupTags(allBackups));
         allBackups.addAll(this.cfg.retainedBackups);
-        for (String tagName : allBackups) {
-            if (!this.cfg.uploadedBackups.contains(tagName)) {
-                toUpload.add(tagName);
-            }
-        }
 
         log.info("Tags in retain list: {}, incomplete ones are: {}",
                 this.cfg.retainedBackups.toArray(new String[this.cfg.retainedBackups.size()]),
-                toUpload.toArray(new String[toUpload.size()]));
+                allBackups.toArray(new String[allBackups.size()]));
 
-        return toUpload;
+        return allBackups;
     }
+
     public void setUploadStatus(String backupTag, Status status, Integer progress, ErrorCode errorCode) {
         BackupUploadStatus uploadStatus = this.cfg.queryBackupUploadStatus();
         uploadStatus.update(backupTag, status, progress, errorCode);

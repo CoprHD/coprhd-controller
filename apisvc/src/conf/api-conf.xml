@@ -200,6 +200,12 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="matcherFramework" ref="matcherFramework"/>
     </bean>
+    
+    <bean id="StorageContainerService" class="com.emc.storageos.api.service.impl.resource.StorageContainerService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="matcherFramework" ref="matcherFramework"/>
+    </bean>
 
     <bean id="virtualArrayService" class="com.emc.storageos.api.service.impl.resource.VirtualArrayService">
         <property name="dbClient" ref="dbclient"/>

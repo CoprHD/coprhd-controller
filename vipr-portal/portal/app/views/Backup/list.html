@@ -8,3 +8,22 @@
   
 #{/DataTable.crudTable}
 
+<script>
+render.uploadBtn = function(o, val) {
+	var odata = o.aData;
+	var url = #{jsAction @upload(':id')/};
+	var href = url(odata);
+	if (val.indexOf("_enable")>0){
+		return "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
+	}else{
+		return "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  disabled class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
+	}
+}
+
+render.uploadBtnDisable = function(o, val) {
+	var odata = o.aData;
+	var url = #{jsAction @upload(':id')/};
+	var href = url(odata);
+	return "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  disabled class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
+}
+</script>

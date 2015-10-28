@@ -7,6 +7,7 @@ package util;
 import java.util.List;
 
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 
 /**
  * Utility for backup.
@@ -27,4 +28,12 @@ public class BackupUtils {
 	 public static void deleteBackup(String name){
 		 BourneUtil.getSysClient().backup().deleteBackup(name);
 	 }
+	 
+	 public static void uploadBackup(String name){
+         BourneUtil.getSysClient().backup().uploadBackup(name);
+    }
+	 
+	 public static BackupUploadStatus getUploadStatus(String name){
+        return BourneUtil.getSysClient().backup().uploadBackupStatus(name);
+    }
 }

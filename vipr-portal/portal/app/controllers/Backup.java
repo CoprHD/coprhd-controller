@@ -23,6 +23,7 @@ import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.vipr.client.exceptions.ViPRException;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
@@ -93,6 +94,18 @@ public class Backup extends Controller {
         list();
     }
 
+    public static void upload(String id) {
+            BackupUtils.uploadBackup(id);
+            list();
+            
+    }
+    
+    public static void getUploadStatus(String id) {
+            BackupUploadStatus status = BackupUtils.getUploadStatus(id);
+            renderJSON(status);
+        
+    }
+    
     private static void backToReferrer() {
         String referrer = Common.getReferrer();
         if (StringUtils.isNotBlank(referrer)) {

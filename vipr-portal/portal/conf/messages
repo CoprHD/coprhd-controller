@@ -723,6 +723,7 @@ CustomConfigs.scopeValue.Linux=Linux
 CustomConfigs.scopeValue.AIX=AIX
 CustomConfigs.scopeValue.Esx=ESX
 CustomConfigs.scopeValue.HPUX=HPUX
+CustomConfigs.scopeValue.isilon=Isilon
 CustomConfigs.host_name.description=The DNS name of the host
 CustomConfigs.host_assigned_name.description=The host assigned name in ViPR
 CustomConfigs.hba_wwn.description=The initiator port WWN

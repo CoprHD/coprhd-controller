@@ -782,7 +782,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             
                             for(UnManagedNFSShareACL unManagedNFSACL : tempUnManagedNfsShareACL){
                             	 _log.info("Unmanaged File share acls : {}", unManagedNFSACL);
-                                 String fsShareNativeId = unManagedNFSACL.getFileSystemACLIndex();
+                                 String fsShareNativeId = unManagedNFSACL.getFileSystemNfsACLIndex();
                                  _log.info("UMFS Share ACL index {}", fsShareNativeId);
                                  String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
                                          .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
@@ -1310,11 +1310,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         	
             UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
             unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+            
             unmanagedNFSAcl.setFileSystemPath(unManagedFileSystem.getPath());
+            
             unmanagedNFSAcl.setUser(isilonNFSAcl.getOwner().getName());
             unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
-            unmanagedNFSAcl.setUser(tempAcl.getTrustee().getName());
             unmanagedNFSAcl.setPermissions(StringUtils.join(tempAcl.getAccessrights(), ","));
+            
             unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
             unManagedNfsACLList.add(unmanagedNFSAcl);
             

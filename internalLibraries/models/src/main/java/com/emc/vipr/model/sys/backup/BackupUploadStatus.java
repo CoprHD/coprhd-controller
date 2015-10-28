@@ -110,6 +110,8 @@ public class BackupUploadStatus {
     }
 
     private void updatePostCheck() {
+        log.info("Current status is: {}", this);
+        log.info("Test Current status is: {}", this.toString());
         if (this.status == null) {
             return;
         }

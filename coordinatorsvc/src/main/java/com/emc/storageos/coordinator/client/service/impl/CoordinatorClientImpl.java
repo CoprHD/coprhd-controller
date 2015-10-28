@@ -1756,9 +1756,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public DistributedAtomicInteger getDistributedAtomicInteger(String siteId, String name) {
-        DistributedAtomicInteger distributedAtomicInteger = new DistributedAtomicInteger(getZkConnection().curator(), String.format(
-                ATOMIC_INTEGER_ZK_PATH_FORMAT, ZkPath.SITES, siteId, name), new RetryNTimes(ATOMIC_INTEGER_RETRY_TIME,
-                ATOMIC_INTEGER_RETRY_INTERVAL_MS));
+        String counterPath = String.format(ATOMIC_INTEGER_ZK_PATH_FORMAT, ZkPath.SITES, siteId, name);
+        DistributedAtomicInteger distributedAtomicInteger = new DistributedAtomicInteger(getZkConnection().curator(), counterPath,
+                new RetryNTimes(ATOMIC_INTEGER_RETRY_TIME,
+                        ATOMIC_INTEGER_RETRY_INTERVAL_MS));
 
         return distributedAtomicInteger;
     }

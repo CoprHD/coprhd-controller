@@ -498,7 +498,7 @@ public class DisasterRecoveryService {
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{uuid}/failover")
+    @Path("/{uuid}/switchover")
     public Response doPlannedFailover(@PathParam("uuid") String uuid) {
         log.info("Begin to failover for standby UUID {}", uuid);
 
@@ -529,22 +529,22 @@ public class DisasterRecoveryService {
             // Set new UUID as primary site ID
             coordinator.setPrimarySite(uuid);
 
-            // set new primary site to ZK
-            newPrimarySite.setState(SiteState.STANDBY_PLANNED_FAILOVERING);
-            coordinator.persistServiceConfiguration(newPrimarySite.getUuid(), newPrimarySite.toConfiguration());
-
             // Set old primary site's state, short id and key
             Site oldPrimarySite = new Site(coordinator.queryConfiguration(Site.CONFIG_KIND, oldPrimaryUUID));
             oldPrimarySite.setStandbyShortId(generateShortId(existingSites));
-            oldPrimarySite.setState(SiteState.PRIMARY_PLANNED_FAILOVERING);
+            oldPrimarySite.setState(SiteState.PRIMARY_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(oldPrimarySite.getUuid(), oldPrimarySite.toConfiguration());
             
+            // set new primary site to ZK
+            newPrimarySite.setState(SiteState.STANDBY_SWITCHING_OVER);
+            coordinator.persistServiceConfiguration(newPrimarySite.getUuid(), newPrimarySite.toConfiguration());
+            
             DistributedAtomicInteger daiNewPrimary = coordinator.getDistributedAtomicInteger(newPrimarySite.getUuid(),
-                    Constants.PLANNED_FAILOVER_STANDBY_NODECOUNT);
+                    Constants.SWITCHOVER_STANDBY_NODECOUNT);
             daiNewPrimary.forceSet(vdc.getHostCount());
 
             DistributedAtomicInteger daiOldPrimary = coordinator.getDistributedAtomicInteger(oldPrimaryUUID,
-                    Constants.PLANNED_FAILOVER_PRIMARY_NODECOUNT);
+                    Constants.SWITCHOVER_PRIMARY_NODECOUNT);
             daiOldPrimary.forceSet(oldPrimaryHostCount);
             
             // trigger local property change to reconfig
@@ -716,7 +716,7 @@ public class DisasterRecoveryService {
         List<Site> result = new ArrayList<Site>();
         for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
-            if (site.getVdc().equals(vdcId) && site.getState() != SiteState.PRIMARY && site.getState() != SiteState.PRIMARY_PLANNED_FAILOVERING) {
+            if (site.getVdc().equals(vdcId) && site.getState() != SiteState.PRIMARY && site.getState() != SiteState.PRIMARY_SWITCHING_OVER) {
                 result.add(site);
             }
         }

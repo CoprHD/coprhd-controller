@@ -85,8 +85,6 @@ public class VdcSiteManager extends AbstractManager {
     
     private String currentSiteId;
     
-    private VirtualDataCenter localVdc;
-    
     private DrUtil drUtil;
    
     public void setDbClient(DbClient dbClient) {
@@ -150,7 +148,6 @@ public class VdcSiteManager extends AbstractManager {
     protected void innerRun() {
         final String svcId = coordinator.getMySvcId();
         currentSiteId = coordinator.getCoordinatorClient().getSiteId();
-        localVdc = VdcUtil.getLocalVdc();
         drUtil = new DrUtil(coordinator.getCoordinatorClient());
         
         addSiteInfoListener();
@@ -371,9 +368,9 @@ public class VdcSiteManager extends AbstractManager {
      */
     private String getCassandraDcId(Site site) {
         if (site.getState().equals(SiteState.PRIMARY)) {
-            return localVdc.getShortId();
+            return site.getVdcShortId();
         } else {
-            return String.format("%s-%s", localVdc.getShortId(), site.getStandbyShortId());
+            return String.format("%s-%s", site.getVdcShortId(), site.getStandbyShortId());
         }
     }
 

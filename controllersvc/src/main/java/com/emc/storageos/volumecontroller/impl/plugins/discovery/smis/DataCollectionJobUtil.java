@@ -665,7 +665,9 @@ public class DataCollectionJobUtil {
                     storageSystem = createStorageSystem(
                             scannedSystemsNativeGuidsMap.get(scannedSystemNativeGuid),
                             scannedSystemNativeGuid, providersToUpdate);
-                    systemsToCreate.add(storageSystem);
+                    if (storageSystem != null) {
+                        systemsToCreate.add(storageSystem);
+                    }
                 }
             } catch (Exception e) {
                 _logger.error(e.getMessage(), e);
@@ -747,9 +749,20 @@ public class DataCollectionJobUtil {
         StorageSystem newStorageSystem = null;
         Iterator<String> iterator = providerSet.iterator();
         if (iterator.hasNext()) {
-            String provider = iterator.next();
-            StorageProvider providerFromDB = _dbClient.queryObject(StorageProvider.class,
-                    URI.create(provider));
+            // Find StorageProvider that should be associated with this StorageSystem.
+            StorageProvider providerFromDB;
+            do {
+                String provider = iterator.next();
+                providerFromDB = _dbClient.queryObject(StorageProvider.class, URI.create(provider));
+            } while (iterator.hasNext() && (providerFromDB == null || providerFromDB.getInactive()));
+
+            // If after looking through the provider list there was nothing active found, return null
+            if (providerFromDB == null || providerFromDB.getInactive()) {
+                _logger.info(String.format("StorageSystem %s was found during scan but could not find its associated active providers. " +
+                        "Could have been deleted while scan was occurring.", scannedStorageSystemNativeGuid));
+                return null;
+            }
+
             newStorageSystem = new StorageSystem();
             newStorageSystem.setId(URIUtil.createId(StorageSystem.class));
             newStorageSystem.setNativeGuid(scannedStorageSystemNativeGuid);

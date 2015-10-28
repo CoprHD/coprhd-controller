@@ -278,20 +278,14 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             } else {
                 
                 BlockSnapshot sourceSnapshot = (BlockSnapshot)fcSourceObj;
-                URI parentVolURI = sourceSnapshot.getParent().getURI();
-                Volume parentVolume = _dbClient.queryObject(Volume.class, parentVolURI);
-                String label = parentVolume.getLabel();
                 
-                //Get the VPLEX volume label by stripping "-0" or "-1" at the and
-                int lastIndex = label.lastIndexOf('-');
-                String vplexVolLabel = label.substring(0, lastIndex);
-                
-                List<Volume> vplexVols = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                        Volume.class, PrefixConstraint.Factory.getFullMatchConstraint(Volume.class, "label",
-                                vplexVolLabel));
-                
-                if(!vplexVols.isEmpty()) {
-                    Volume vplexVolume = vplexVols.get(0);
+                URIQueryResultList queryResults = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeByAssociatedVolumesConstraint(sourceSnapshot.getParent().getURI()
+                                .toString()), queryResults);
+                URI vplexVolumeURI = queryResults.iterator().next();                
+                if(null!=vplexVolumeURI) {
+                    Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
                     vplexSrcSystemId = vplexVolume.getStorageController();
                 }
             }
@@ -639,11 +633,6 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // Get the placement recommendations for the primary volume copies.
         // Use the same method as is done for native volume copy.
         VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, srcBlockObject.getVirtualArray());
-        
-        //For volume full copy, the back-end volume's vpool should be fetched
-        if(srcBlockObject instanceof Volume) {
-            vPool = _dbClient.queryObject(VirtualPool.class, ((Volume)srcBlockObject).getVirtualPool());
-        }
         List<VolumeRecommendation> recommendations = ((VPlexScheduler) _scheduler).getBlockScheduler()
                 .getRecommendationsForVolumeClones(vArray, vPool, srcBlockObject,
                         srcCapabilities);

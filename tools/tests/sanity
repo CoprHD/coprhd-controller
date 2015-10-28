@@ -2414,31 +2414,36 @@ recoverpoint_ingest_test()
 	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
     fi 
 
-    # Ingest Journals, Target, then Source
+    # Set up labels for ingest
     RECOVERPOINT_INGEST_VOL1_SRC=${RECOVERPOINT_INGEST_VOL1BASE}_${vpool}
-    RECOVERPOINT_INGEST_VOL1_SRC_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-primary-source-journal
-    if [ "${RP_CDP}" = "1" ]; then
+    RECOVERPOINT_INGEST_VOL1_SRC_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-1
+    if [ "${vpool}" = "rp_cdp" ]; then
 	RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY1}
-	RECOVERPOINT_INGEST_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-target-journal-${RECOVERPOINT_VARRAY1}
+	RECOVERPOINT_INGEST_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-2
+    elif [ "${vpool}" = "rp_crr" ]; then
+	RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY3}
+	RECOVERPOINT_INGEST_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY3}-journal-1
+    elif [ "${vpool}" = "rp_clr" ]; then
+	RECOVERPOINT_INGEST_VOL1_V1TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY1}
+	RECOVERPOINT_INGEST_VOL1_V1TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-2
+	RECOVERPOINT_INGEST_VOL1_V3TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY3}
+	RECOVERPOINT_INGEST_VOL1_V3TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY3}-journal-1
+
+	# For post-ingest operations
+	RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_V1TGT}
+    fi
+
+    if [ "${vpool}" = "rp_cdp" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-    elif [ "${RP_CRR}" = "1" ]; then
-	RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY3}
-	RECOVERPOINT_INGEST_VOL1_TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-target-journal-${RECOVERPOINT_VARRAY3}
+    elif [ "${vpool}" = "rp_crr" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-    elif [ "${RP_CLR}" = "1" ]; then
-	RECOVERPOINT_INGEST_VOL1_V1TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY1}
-	RECOVERPOINT_INGEST_VOL1_V1TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-target-journal-${RECOVERPOINT_VARRAY1}
-	RECOVERPOINT_INGEST_VOL1_V3TGT=${RECOVERPOINT_INGEST_VOL1_SRC}-target-${RECOVERPOINT_VARRAY3}
-	RECOVERPOINT_INGEST_VOL1_V3TGT_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-target-journal-${RECOVERPOINT_VARRAY3}
-
-	# For post-ingest operations
-	RECOVERPOINT_INGEST_VOL1_TGT=${RECOVERPOINT_INGEST_VOL1_V1TGT}
+    elif [ "${vpool}" = "rp_clr" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V1TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V1TGT_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V3TGT}"
@@ -2449,7 +2454,6 @@ recoverpoint_ingest_test()
 
     # now perform failover tests
     recoverpoint_failover_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}"
-
     # Add a volume to the protection
     RECOVERPOINT_INGEST_VOL1_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}_${vpool}
     run volume create "${RECOVERPOINT_INGEST_VOL1_SRC}"-2 ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
@@ -2457,8 +2461,8 @@ recoverpoint_ingest_test()
     # Remove a volume from the protection
     run volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}"-2 --wait
 
-    # Inventory-only remove of RP volume
-    run volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly
+    # Inventory-only remove of RP volume (Note: Don't put "run" in front of this one)
+    volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly
 
     # Recreate unmanaged volumes/protection sets
     run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
@@ -2470,17 +2474,17 @@ recoverpoint_ingest_test()
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
     # Re-ingest
-    if [ "${RP_CDP}" = "1" ]; then
+    if [ "${vpool}" = "rp_cdp" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
-    elif [ "${RP_CRR}" = "1" ]; then
+    elif [ "${vpool}" = "rp_crr" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
-    elif [ "${RP_CLR}" = "1" ]; then
+    elif [ "${vpool}" = "rp_clr" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V1TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V1TGT_JRNL}"
@@ -2504,9 +2508,9 @@ recoverpoint_ingest_primer()
     # This method will create those CGs.  For now, it's likely you'll run this, then
     # kill off your DB and run the ingest test
     RECOVERPOINT_INGEST_VOL1_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}_${vpool}
-    run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_CG}_${vpool}
-    run volume create ${RECOVERPOINT_INGEST_VOL1_SRC}_${vpool} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_CG}_${vpool}
-    run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC}_${vpool} --vipronly
+    run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_CG}
+    run volume create ${RECOVERPOINT_INGEST_VOL1_SRC}_${vpool} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_CG}
+    volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC}_${vpool} --vipronly
 }
 
 recoverpoint_failover_test()
@@ -3033,9 +3037,13 @@ recoverpoint_tests()
 	    echo '*** RP ingest volumes ***'
 	    if [ "$RP_CDP" = "1" ] ; then
 		recoverpoint_ingest_test rp_cdp
-	    elif [ "$RP_CRR" = "1" ] ; then
+	    fi
+
+	    if [ "$RP_CRR" = "1" ] ; then
 		recoverpoint_ingest_test rp_crr
-	    elif [ "$RP_CLR" = "1" ] ; then
+	    fi
+
+	    if [ "$RP_CLR" = "1" ] ; then
 		recoverpoint_ingest_test rp_clr
 	    fi
 	else

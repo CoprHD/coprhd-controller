@@ -489,7 +489,10 @@ public class DisasterRecoveryService {
             return siteMapper.map(standby);
         } catch (Exception e) {
             log.error("Error resuming site {}", uuid, e);
-            throw APIException.internalServerErrors.resumeStandbyFailed(uuid, e.getMessage());
+            InternalServerErrorException resumeStandbyFailedException =
+                    APIException.internalServerErrors.resumeStandbyFailed(uuid, e.getMessage());
+            setSiteError(uuid, resumeStandbyFailedException);
+            throw resumeStandbyFailedException;
         }
     }
 

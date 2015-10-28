@@ -353,7 +353,8 @@ public class BackupService {
             SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
                     URI.create(baseNodeURL));
             for (String fileName : getFileNameList(files.subsetOf(null, null, node.getId()))) {
-                int progress = collectFileCount / files.size() * 100;
+                int progress = collectFileCount * 100 / files.size();
+                log.info("Collected file count={}, total file count={}", collectFileCount, files.size());
                 backupScheduler.getUploadExecutor().setUploadStatus(null, Status.IN_PROGRESS, progress, null);
 
                 String fullFileName = backupTag + File.separator + fileName;

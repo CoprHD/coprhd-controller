@@ -102,16 +102,17 @@ public class BackupUploadStatus {
     }
 
     public void update(String backupName, Status status, Integer progress, ErrorCode errorCode) {
+        log.info("Backup upload status before updating: {}", this);
         this.backupName = (backupName != null) ? backupName: this.backupName;
         this.progress = (progress != null) ? progress : this.progress;
         this.errorCode = (errorCode != null) ? errorCode : this.errorCode;
         this.status = (status != null) ? status : this.status;
         updatePostCheck();
+        log.info("Backup upload status after updating: {}", this);
     }
 
     private void updatePostCheck() {
-        log.info("Current status is: {}", this);
-        log.info("Test Current status is: {}", this.toString());
+        log.info("Backup upload status before post check: {}", this);
         if (this.status == null) {
             return;
         }

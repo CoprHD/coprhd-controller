@@ -187,7 +187,7 @@ public class BackupService {
                 public void run() {
                     try {
                         log.info("Upload backup({}) begin", backupTag);
-                        backupScheduler.runUpload(backupTag);
+                        backupScheduler.getUploadExecutor().runOnce(backupTag);
                         log.info("Upload backup({}) finish", backupTag);
                     } catch (Exception e) {
                         log.error("Upload backup({}) failed", backupTag, e);
@@ -208,30 +208,13 @@ public class BackupService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public BackupUploadStatus getBackupUploadStatus(@QueryParam("tag") String backupTag) {
         log.info("Received get upload status request, backup tag={}", backupTag);
-        BackupUploadStatus status = new BackupUploadStatus();
-
-        if (backupTag == null) {
-            status.setStatus(Status.DONE);
-            status.setProgress(100);
-        } else if (backupTag.contains("Fail")){
-            status.setStatus(Status.FAILED);
-            status.setProgress(0);
-            status.setErrorCode(ErrorCode.UPLOAD_FAILURE);
-        } else if (backupTag.contains("Success")) {
-            status.setStatus(Status.DONE);
-            status.setProgress(100);
-        } else {
-            progress += 10;
-            status.setProgress(progress);
-            if (progress < 100) {
-                status.setStatus(Status.IN_PROGRESS);
-            } else {
-                status.setStatus(Status.DONE);
-                progress = 0;
-            }
+        try {
+            BackupUploadStatus uploadStatus = backupScheduler.getUploadExecutor().getUploadStatus(backupTag);
+            return uploadStatus;
+        } catch (Exception e) {
+            log.error("Failed to get upload status", e);
+            throw APIException.internalServerErrors.getObjectError("Upload status", e);
         }
-
-        return status;
     }
 
     /**
@@ -364,6 +347,7 @@ public class BackupService {
 
         URI postUri = SysClientFactory.URI_NODE_BACKUPS_DOWNLOAD;
         boolean propertiesFileFound = false;
+        int collectFileCount = 0;
         for (final NodeInfo node : nodes) {
             String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
                     node.getIpAddress(), node.getPort());
@@ -371,10 +355,14 @@ public class BackupService {
             SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
                     URI.create(baseNodeURL));
             for (String fileName : getFileNameList(files.subsetOf(null, null, node.getId()))) {
+                int progress = collectFileCount / files.size() * 100;
+                backupScheduler.getUploadExecutor().setUploadStatus(null, Status.IN_PROGRESS, progress, null);
+
                 String fullFileName = backupTag + File.separator + fileName;
                 log.info("Grace-fileName={}, fullFileName={}", fileName, fullFileName);
                 InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
                 newZipEntry(zos, in, fileName);
+                collectFileCount++;
             }
 
             try {

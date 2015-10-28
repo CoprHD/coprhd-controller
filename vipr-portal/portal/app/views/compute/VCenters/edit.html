@@ -49,93 +49,84 @@
     #{/field}
   #{/if}
 
-  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
   <fieldset>
-  
-  #{field 'vCenter.name'}
-    %{
-      field.cssClass = 'span6 initialFocus';
-      field.required = true
-    }%
-    #{Form.inputTextControlGroup field:field /}
-  #{/field}
-  
-  #{field 'vCenter.hostname'}
-    %{
-      field.required = true
-    }%        
-    #{Form.inputTextControlGroup field:field /}
-  #{/field}
-  
-  #{field 'vCenter.port'}
-    %{
-      field.required = true
-      field.cssClass = "span2"
-    }%        
-    #{Form.inputTextControlGroup field:field /}
-  #{/field}
-  
-  #{field 'vCenter.username'}
-    %{
-      field.required = true
-    }%        
-    #{Form.inputTextControlGroup field:field /}
-  #{/field}
-    
-  #{field 'vCenter.password'}
-    %{
-      field.required = true
-    }%        
-    #{Form.inputPasswordControlGroup field:field /}
-  #{/field}
-  
-  #{field 'vCenter.passwordConfirm'}
-    %{
-      field.required = true
-    }%        
-    #{Form.inputPasswordControlGroup field:field /}
-  #{/field}
+    #{field 'vCenter.name'}
+      %{
+        field.cssClass = 'span6 initialFocus';
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'vCenter.hostname'}
+      %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'vCenter.port'}
+      %{
+        field.required = true
+        field.cssClass = "span2"
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'vCenter.username'}
+      %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'vCenter.password'}
+      %{
+        field.required = true
+      }%
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
+
+    #{field 'vCenter.passwordConfirm'}
+      %{
+        field.required = true
+      }%
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
   </fieldset>
-  #{/deadbolt.restrict}
 
   *{ tenantOptions are only available for users that can set tenant ACLs }*
-  #{if tenantOptions}
-  <fieldset>
-    <legend>&{'security.tenantControlList'}<small>&{'security.tenantControlList.description.vcenter'}</small></legend>
-    #{field 'vCenter.cascadeTenancy'}
-      %{
-        field.disabled = disableCascadeTenancy;
-        field.helpTextKey = field.name + '.description'
-      }%
-      #{Form.booleanCheckBoxControlGroup field:field /}
-    #{/field}
+  #{if tenantOptions }
     <fieldset>
-        #{field 'vCenter.tenants'}
+      <legend>&{'security.tenantControlList'}<small>&{'security.tenantControlList.description.vcenter'}</small></legend>
+      #{field 'vCenter.cascadeTenancy'}
         %{
+          field.disabled = disableCascadeTenancy;
           field.helpTextKey = field.name + '.description'
         }%
-        #{Form.selectManyControlGroup field:field, options:tenantOptions /}
+        #{Form.booleanCheckBoxControlGroup field:field /}
       #{/field}
+      <fieldset>
+          #{field 'vCenter.tenants'}
+          %{
+            field.helpTextKey = field.name + '.description'
+          }%
+          #{Form.selectManyControlGroup field:field, options:tenantOptions /}
+        #{/field}
+      </fieldset>
+      <fieldset>
+        #{field 'vCenter.tenant'}
+          %{
+            field.helpTextKey = field.name + '.description'
+          }%
+          #{Form.selectOneControlGroup field:field, options:tenantOptionsWithNone /}
+        #{/field}
+      </fieldset>
     </fieldset>
-    <fieldset>
-      #{field 'vCenter.tenant'}
-        %{
-          field.helpTextKey = field.name + '.description'
-        }%
-        #{Form.selectOneControlGroup field:field, options:tenantOptionsWithNone /}
-      #{/field}
-    </fieldset>
-  </fieldset>
   #{/if}
-  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
-     #{Form.saveValidateCancelButtonBar size:'large'/}
-  #{/deadbolt.restrict}
-  #{deadbolt.restrict roles:[['!SYSTEM_ADMIN', '!TENANT_ADMIN']]}
-     #{Form.saveCancelButtonBar size:'large'/}
-  #{/deadbolt.restrict}
+  #{Form.saveValidateCancelButtonBar size:'large'/}
 #{/}
 
-#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
 #{if play.mode.isDev() && dbVCenter}
   <fieldset class="discovery vcenter">
       <legend>&{'discovery.details'}<small>&{'discovery.details.description'}</small></legend>
@@ -207,10 +198,9 @@
                   #{/if}
                 </li>
               #{/list}
+            </ul>
         #{/list}
       </ul>
   </fieldset>
 #{/if}
-#{/deadbolt.restrict}
-
 </div>

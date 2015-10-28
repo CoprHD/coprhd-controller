@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements upload protocol using FTPS
  */
-public class FtpsUploader extends UploadExecutor {
+public class FtpsUploader extends Uploader {
     private static final Logger log = LoggerFactory.getLogger(FtpsUploader.class);
 
     private final static String CONTENT_LENGTH_HEADER = "Content-Length:";

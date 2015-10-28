@@ -80,7 +80,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     private SchedulerConfig cfg;
     private BackupExecutor backupExec;
-    private UploadExecutor uploadExec;
+    public UploadExecutor uploadExec;
 
     private ScheduledExecutorService service;
     private ScheduledFuture<?> scheduledTask;
@@ -90,6 +90,13 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     public static BackupScheduler getSingletonInstance() {
         return singletonInstance;
+    }
+
+    public UploadExecutor getUploadExecutor() {
+        if (this.uploadExec == null) {
+            this.uploadExec = new UploadExecutor(this.cfg, this);
+        }
+        return this.uploadExec;
     }
 
     private void cancelScheduledTask() {
@@ -123,6 +130,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         }
 
         log.info("Enabling scheduler");
+
+        this.backupExec = new BackupExecutor(this.cfg, this);
+        this.uploadExec = new UploadExecutor(this.cfg, this);
 
         // Run once immediately in case we're crashed previously
         run();

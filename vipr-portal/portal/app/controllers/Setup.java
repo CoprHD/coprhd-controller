@@ -15,6 +15,7 @@ import com.google.common.net.InetAddresses;
 import controllers.deadbolt.Deadbolt;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
+import controllers.infra.ConfigProperties;
 import controllers.security.Security;
 
 import org.apache.commons.io.FileUtils;
@@ -264,7 +265,7 @@ public class Setup extends Controller {
         else {
             settings.server = setup.smtpServer;
         }
-        settings.port = setup.smtpPort;
+        settings.port = ConfigProperties.getPort(setup.smtpPort, setup.smtpEnableTls);
         settings.username = setup.smtpUsername;
         settings.password = PasswordUtil.decryptedValue(setup.smtpPassword);
         settings.channel = StringUtils.equals("yes", setup.smtpEnableTls) ? "starttls" : "clear";

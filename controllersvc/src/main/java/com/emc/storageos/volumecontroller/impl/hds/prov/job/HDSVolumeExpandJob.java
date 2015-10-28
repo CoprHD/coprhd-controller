@@ -4,6 +4,12 @@
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov.job;
 
+import java.net.URI;
+import java.util.ArrayList;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -16,13 +22,6 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandCompleter;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.workflow.WorkflowService;
-
-import org.milyn.payload.JavaResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
 
 /**
  * Job for volumeExpand operation.
@@ -45,6 +44,7 @@ public class HDSVolumeExpandJob extends HDSJob {
      * @param jobContext
      *            The job context.
      */
+    @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         LogicalUnit logicalUnit = null;
         try {
@@ -59,9 +59,6 @@ public class HDSVolumeExpandJob extends HDSJob {
             HDSApiClient hdsApiClient = jobContext.getHdsApiFactory().getClient(
                     HDSUtils.getHDSServerManagementServerInfo(storageSystem),
                     storageSystem.getSmisUserName(), storageSystem.getSmisPassword());
-
-            JavaResult javaResult = hdsApiClient
-                    .checkAsyncTaskStatus(getHDSJobMessageId());
 
             // If terminal state update storage pool capacity and remove
             // reservation for volume capacity
@@ -91,7 +88,7 @@ public class HDSVolumeExpandJob extends HDSJob {
                 volume.setIsComposite(taskCompleter.isComposite());
                 volume.setCompositionType(taskCompleter.getMetaVolumeType());
 
-                logicalUnit = (LogicalUnit) javaResult.getBean("logicalunit");
+                logicalUnit = (LogicalUnit) _javaResult.getBean("logicalunit");
                 if (null != logicalUnit) {
                     long capacityInBytes = (Long.valueOf(logicalUnit.getCapacityInKB())) * 1024L;
                     volume.setProvisionedCapacity(capacityInBytes);

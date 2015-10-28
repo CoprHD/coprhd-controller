@@ -30,6 +30,7 @@ import com.emc.storageos.management.backup.BackupFile;
 import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
+import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +45,8 @@ import com.emc.storageos.systemservices.impl.resource.util.NodeInfo;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.backup.BackupSets;
+import com.emc.vipr.model.sys.backup.BackupUploadStatus;
+import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 
 /**
  * Defines the API for making requests to the backup service.
@@ -52,7 +55,9 @@ import com.emc.vipr.model.sys.backup.BackupSets;
 public class BackupService {
     private static final Logger log = LoggerFactory.getLogger(BackupService.class);
     private BackupOps backupOps;
-    private NamedThreadPoolExecutor executor = new NamedThreadPoolExecutor("backup-download", 10);
+    private BackupScheduler backupScheduler;
+    private NamedThreadPoolExecutor backupUploader;
+    private NamedThreadPoolExecutor backupDownloader;
 
     /**
      * Sets backup client
@@ -61,6 +66,15 @@ public class BackupService {
      */
     public void setBackupOps(BackupOps backupOps) {
         this.backupOps = backupOps;
+    }
+
+    /**
+     * Sets backup scheduler client
+     *
+     * @param backupScheduler the backup scheduler client instance
+     */
+    public void setBackupScheduler(BackupScheduler backupScheduler) {
+        this.backupScheduler = backupScheduler;
     }
 
     /**
@@ -164,6 +178,48 @@ public class BackupService {
         return Response.ok().build();
     }
 
+    @POST
+    @Path("backup/upload/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public Response uploadBackup(@QueryParam("tag") final String backupTag) {
+        log.info("Received upload backup request, backup tag={}", backupTag);
+        try {
+            backupUploader = new NamedThreadPoolExecutor("Backup Uploader", 1);
+            Runnable upload = new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        log.info("Upload backup({}) begin", backupTag);
+                        backupScheduler.getUploadExecutor().runOnce(backupTag);
+                        log.info("Upload backup({}) finish", backupTag);
+                    } catch (Exception e) {
+                        log.error("Upload backup({}) failed", backupTag, e);
+                    }
+                }
+            };
+            backupUploader.execute(upload);
+        } catch (BackupException e) {
+            log.error("Failed to upload backup(tag={})", backupTag, e);
+            throw APIException.internalServerErrors.createObjectError("Backup files", e);
+        }
+        return Response.ok().build();
+    }
+
+    @GET
+    @Path("backup/upload/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public BackupUploadStatus getBackupUploadStatus(@QueryParam("tag") String backupTag) {
+        log.info("Received get upload status request, backup tag={}", backupTag);
+        try {
+            BackupUploadStatus uploadStatus = backupScheduler.getUploadExecutor().getUploadStatus(backupTag);
+            return uploadStatus;
+        } catch (Exception e) {
+            log.error("Failed to get upload status", e);
+            throw APIException.internalServerErrors.getObjectError("Upload status", e);
+        }
+    }
+
     /**
      * Download the zip archive that composed of DB & ZK backup files on all controller nodes
      * It's suggest to download backupset to external media timely after the creation
@@ -245,6 +301,7 @@ public class BackupService {
         final PipedOutputStream pipeOut = new PipedOutputStream();
         PipedInputStream pipeIn = new PipedInputStream(pipeOut);
 
+        this.backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
         Runnable runnable = new Runnable() {
             public void run() {
                 try {
@@ -259,7 +316,7 @@ public class BackupService {
                 }
             }
         };
-        this.executor.submit(runnable);
+        this.backupDownloader.submit(runnable);
 
         return pipeIn;
     }
@@ -286,6 +343,8 @@ public class BackupService {
 
         URI postUri = SysClientFactory.URI_NODE_BACKUPS_DOWNLOAD;
         boolean propertiesFileFound = false;
+        int collectFileCount = 0;
+        int totalFileCount = files.size();
         for (final NodeInfo node : nodes) {
             String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
                     node.getIpAddress(), node.getPort());
@@ -293,9 +352,13 @@ public class BackupService {
             SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
                     URI.create(baseNodeURL));
             for (String fileName : getFileNameList(files.subsetOf(null, null, node.getId()))) {
+                int progress = collectFileCount / totalFileCount * 100;
+                backupScheduler.getUploadExecutor().setUploadStatus(null, Status.IN_PROGRESS, progress, null);
+
                 String fullFileName = backupTag + File.separator + fileName;
                 InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
                 newZipEntry(zos, in, fileName);
+                collectFileCount++;
             }
 
             try {

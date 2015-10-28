@@ -929,7 +929,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             }
             s_logger.info("Virtual Pool change not supported {}", notSuppReasonBuff.toString());
             s_logger.info(String.format("Parameters other than %s were changed",
-                    (Object[]) exclude));
+                    Arrays.toString(exclude)));
             return false;
         }
         return true;
@@ -1046,9 +1046,6 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         excluded.addAll(Arrays.asList(generallyExcluded));
         if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(currentVpool)
                 && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(newVpool)) {
-            // ignore VPLEX HA vArray/vPool settings difference when the new vPool satisfies Tiering Policy change
-            excluded.add(HA_VARRAY_VPOOL_MAP);
-
             // get current & new HA vPools and compare
             VirtualPool currentHAVpool = getHaVpool(currentVpool, _dbClient);
             VirtualPool newHAVpool = getHaVpool(newVpool, _dbClient);
@@ -1056,32 +1053,36 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 s_logger.info("Comparing HA vPool attributes {} {}", currentHAVpool.getLabel(), newHAVpool.getLabel());
                 Map<String, Change> changes = analyzeChanges(currentHAVpool, newHAVpool, null, excluded.toArray(exclude), null);
                 if (!changes.isEmpty()) {
-                    notSuppReasonBuff.append("These target HA vPool differences are invalid: ");
-                    for (String key : changes.keySet()) {
-                        s_logger.info("Unexpected Auto-tiering Policy HA vPool attribute change: {}", key);
-                        notSuppReasonBuff.append(key + " ");
-                    }
-                    s_logger.info("Virtual Pool change not supported {}", notSuppReasonBuff.toString());
-                    s_logger.info(String.format("Parameters other than %s were changed",
-                            (Object[]) exclude));
+                    logNotSupportedReasonForTieringPolicyChange(changes, notSuppReasonBuff, exclude, "HA vPool");
                     return false;
                 }
             }
+
+            // ignore VPLEX HA vArray/vPool settings difference when the new vPool satisfies Tiering Policy change
+            excluded.add(HA_VARRAY_VPOOL_MAP);
         }
 
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
         if (!changes.isEmpty()) {
-            notSuppReasonBuff.append("These target vPool differences are invalid: ");
-            for (String key : changes.keySet()) {
-                s_logger.info("Unexpected Auto-tiering Policy vPool attribute change: {}", key);
-                notSuppReasonBuff.append(key + " ");
-            }
-            s_logger.info("Virtual Pool change not supported {}", notSuppReasonBuff.toString());
-            s_logger.info(String.format("Parameters other than %s were changed",
-                    (Object[]) exclude));
+            logNotSupportedReasonForTieringPolicyChange(changes, notSuppReasonBuff, exclude, "vPool");
             return false;
         }
         return true;
+    }
+
+    /**
+     * For Auto-tiering policy change check, it logs the not supported reasons.
+     */
+    private static void logNotSupportedReasonForTieringPolicyChange(Map<String, Change> changes, StringBuffer notSuppReasonBuff,
+            String[] exclude, String vPoolType) {
+        notSuppReasonBuff.append(String.format("These target %s differences are invalid: ", vPoolType));
+        for (String key : changes.keySet()) {
+            s_logger.info("Unexpected Auto-tiering Policy {} attribute change: {}", vPoolType, key);
+            notSuppReasonBuff.append(key + " ");
+        }
+        s_logger.info("Virtual Pool change not supported {}", notSuppReasonBuff.toString());
+        s_logger.info(String.format("Parameters other than %s were changed",
+                Arrays.toString(exclude)));
     }
 
     /**

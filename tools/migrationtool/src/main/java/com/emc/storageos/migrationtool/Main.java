@@ -26,7 +26,12 @@ public class Main {
         CGRELATIONUPDATE {
             @Override
             int validArgs(String[] args) {
-                return 0;
+                if (args != null && args.length == 4) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+
             }
         },
         RGNAMEUPDATER {
@@ -50,6 +55,10 @@ public class Main {
             return;
         }
 
+        for (String arg : args) {
+            log.info(arg);
+        }
+
         Command cmd;
         try {
             cmd = Command.valueOf(args[0].trim().toUpperCase());
@@ -71,9 +80,22 @@ public class Main {
                     usage();
                     break;
                 case CGRELATIONUPDATE:
-                    executor = (CGRelationshipEstablisher) ctx.getBean("cgRelationEstablisher"); // NOSONAR ("squid:S2444")
-                    executor.start();
-                    result = executor.execute();
+                    CGRelationshipEstablisher cgEstablisher =
+                            (CGRelationshipEstablisher) ctx.getBean("cgRelationEstablisher"); // NOSONAR
+                    /*
+                     * cgEstablisher.setHost(args[1]); // ("squid:S2444")
+                     * cgEstablisher.setUser(args[2]);
+                     * cgEstablisher.setPass(args[3]);
+                     * cgEstablisher.setPort(args[4]);
+                     * cgEstablisher.setUseSSL(Boolean.getBoolean(args[5]));
+                     */
+                    cgEstablisher.setHost("lglw9071.lss.emc.com");
+                    cgEstablisher.setUser("admin");
+                    cgEstablisher.setPass("#1Password");
+                    cgEstablisher.setPort("5988");
+                    cgEstablisher.setUseSSL(Boolean.getBoolean("false"));
+                    // cgEstablisher.start();
+                    result = cgEstablisher.execute();
                     break;
 
                 case RGNAMEUPDATER:

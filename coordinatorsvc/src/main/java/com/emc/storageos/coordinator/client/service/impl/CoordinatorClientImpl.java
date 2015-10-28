@@ -80,6 +80,7 @@ import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.LicenseInfo;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.WorkPool;
@@ -136,7 +137,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private String siteId;
     private DistributedAroundHook ownerLockAroundHook;
-
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
      * called
@@ -768,11 +768,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
             if (endpointKey == null) {
                 // default endpoint
-                URI endpoint = expandEndpointURI(service.getEndpoint());
+                URI endpoint = expandEndpointURI(service.getEndpoint(), siteId);
                 ((ServiceImpl) service).setEndpoint(endpoint);
             } else {
                 // swap the ip for the entry with the endpointkey in the map
-                URI endpoint = expandEndpointURI(service.getEndpoint(endpointKey));
+                URI endpoint = expandEndpointURI(service.getEndpoint(endpointKey), siteId);
                 ((ServiceImpl) service).setEndpoint(endpointKey, endpoint);
             }
             log.debug("locateAllServices->service endpoint: " + service.getEndpoint());
@@ -788,7 +788,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * @param endpoint
      * @return
      */
-    private URI expandEndpointURI(URI endpoint) {
+    private URI expandEndpointURI(URI endpoint, String siteId) {
         if (getSiteId().equals(siteId)) {
             return getInetAddessLookupMap().expandURI(endpoint);
         }
@@ -1721,12 +1721,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 	public String getSiteId() {
 		return siteId;
 	}
-
-	@Override
-	public String getPrimarySiteId() {
-	    Configuration config = queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
-	    return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
-	}  
 	
 	@Override
 	public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty) {

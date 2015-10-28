@@ -409,7 +409,7 @@ public class SchemaUtil {
         }
 
         _log.info("vdcList={}", _vdcList);
-        if (!onStandby && _vdcList.size() == 1) {
+        if (!onStandby && _vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
             // the current vdc is removed
             strategyOptions.clear();
         }
@@ -863,10 +863,12 @@ public class SchemaUtil {
         site.setState(SiteState.PRIMARY);
         site.setCreationTime(System.currentTimeMillis());
         site.setVip(_vdcEndpoint);
-        
+
         SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
         site.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
-        
+
+        site.setNodeCount(vdc.getHostCount());
+
         _coordinator.persistServiceConfiguration(site.toConfiguration());
     }
 

@@ -174,6 +174,7 @@ public enum ServiceCode {
     // Retryable Coordinator Client Errors (9500 - 9999):
     COORDINATOR_QUEUE_TOO_BUSY(9500),
     COORDINATOR_SVC_NOT_FOUND(9501),
+    COORDINATOR_SITE_NOT_FOUND(9502),
 
     // Fatal Security Client Errors (10000 - 10499):
     SECURITY_ERROR(10000),

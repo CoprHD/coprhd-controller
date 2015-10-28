@@ -570,12 +570,6 @@ public interface CoordinatorClient {
     public String getSiteId();
     
     /**
-     * Get a unique id of primary site
-     * @return site uuid
-     */
-    public String getPrimarySiteId();
-    
-    /**
      * Add a site ZNode in ZK
      * This should only be used by the add standby site API
      */

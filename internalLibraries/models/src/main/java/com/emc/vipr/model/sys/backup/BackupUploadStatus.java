@@ -25,7 +25,7 @@ public class BackupUploadStatus {
     private static final String KEY_ERROR_CODE = "errorCode";
 
     private String backupName;
-    private Status status = Status.INIT;
+    private Status status;
     private Integer progress;
     private ErrorCode errorCode;
 
@@ -37,11 +37,7 @@ public class BackupUploadStatus {
     }
 
     public BackupUploadStatus(Map<String, String> configs) {
-        String backupName = configs.get(KEY_BACKUP_NAME);
-        Status status = (configs.get(KEY_STATUS) != null) ? Status.valueOf(configs.get(KEY_STATUS)) : null;
-        Integer progress = (configs.get(KEY_PROGRESS) != null) ? Integer.parseInt(configs.get(KEY_PROGRESS)) : null;
-        ErrorCode errCode = (configs.get(KEY_ERROR_CODE) != null) ? ErrorCode.valueOf(configs.get(KEY_ERROR_CODE)) : null;
-        update(backupName, status, progress, errCode);
+        update(configs);
     }
 
     @XmlElement(name = "backup_name")
@@ -97,35 +93,41 @@ public class BackupUploadStatus {
         return uploadStatus;
     }
 
+    private void update(Map<String, String> configs) {
+        String backupName = configs.get(KEY_BACKUP_NAME);
+        Status status = (configs.get(KEY_STATUS) != null) ? Status.valueOf(configs.get(KEY_STATUS)) : null;
+        Integer progress = (configs.get(KEY_PROGRESS) != null) ? Integer.parseInt(configs.get(KEY_PROGRESS)) : null;
+        ErrorCode errCode = (configs.get(KEY_ERROR_CODE) != null) ? ErrorCode.valueOf(configs.get(KEY_ERROR_CODE)) : null;
+        update(backupName, status, progress, errCode);
+    }
+
     public void update(String backupName, Status status, Integer progress, ErrorCode errorCode) {
-        if (backupName != null) {
-            this.backupName = backupName;
-        }
-        if (progress != null) {
-            this.progress = progress;
-        }
-        if (errorCode != null) {
-            this.errorCode = errorCode;
-        }
-        if (status != null) {
-            this.status = status;
-        }
+        this.backupName = (backupName != null) ? backupName: this.backupName;
+        this.progress = (progress != null) ? progress : this.progress;
+        this.errorCode = (errorCode != null) ? errorCode : this.errorCode;
+        this.status = (status != null) ? status : this.status;
         updatePostCheck();
     }
 
     private void updatePostCheck() {
+        if (this.status == null) {
+            return;
+        }
         if (this.backupName == null) {
             throw new IllegalStateException("Backup name should not be null");
         }
-        if (status == Status.INIT) {
-            this.progress = null;
-            this.errorCode = null;
-        } else if (status == Status.DONE) {
-            if (this.progress != 100) {
-                log.warn("Upload progress should be 100 percents, while it's " + this.progress);
-                this.progress = 100;
-            }
-            this.errorCode = null;
+        switch (this.status) {
+            case INIT:
+                this.progress = null;
+                this.errorCode = null;
+                break;
+            case DONE:
+                if (this.progress != 100) {
+                    log.warn("Upload progress should be 100 percents, while it's " + this.progress);
+                    this.progress = 100;
+                }
+                this.errorCode = null;
+                break;
         }
     }
 

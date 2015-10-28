@@ -1622,7 +1622,7 @@ public class RPHelper {
                 // Only set the volume to inactive if it has never
                 // been provisioned. Otherwise let regular rollback
                 // steps take care of cleaning it up.
-                volume.setInactive(true);
+                dbClient.markForDeletion(volume);
                 volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
             }
             volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());            
@@ -1640,7 +1640,7 @@ public class RPHelper {
                             // Only set the volume to inactive if it has never
                             // been provisioned. Otherwise let regular rollback
                             // steps take care of cleaning it up.
-                            associatedVolume.setInactive(true);
+                            dbClient.markForDeletion(associatedVolume);
                         }
                         associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
                         dbClient.updateObject(associatedVolume);

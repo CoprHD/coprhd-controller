@@ -122,7 +122,7 @@ public class BlockMapper {
                     StorageSystem system = dbClient.queryObject(StorageSystem.class, backendVol.getStorageController());
 
                     if (null != system && StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
-                            && !XtremIOProvUtils.is4xXtremIOModel(system.getModel())) {
+                            && !XtremIOProvUtils.is4xXtremIOModel(system.getFirmwareVersion())) {
                         to.setHasXIO3XVolumes(Boolean.TRUE);
                         break;
                     }

@@ -12,21 +12,25 @@ import com.emc.sa.service.vipr.block.ExportVMwareBlockVolumeHelper;
 import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.vipr.client.Task;
 
 public class CreateExport extends WaitForTask<ExportGroupRestRep> {
-    private String name;
-    private URI varrayId;
-    private URI projectId;
-    private List<URI> volumeIds;
-    private Integer hlu;
-    private URI hostId;
-    private URI clusterId;
-    private Map<URI, Integer> volumeHlus;
+    private final String name;
+    private final URI varrayId;
+    private final URI projectId;
+    private final List<URI> volumeIds;
+    private final Integer hlu;
+    private final URI hostId;
+    private final URI clusterId;
+    private final Map<URI, Integer> volumeHlus;
+    private final Integer minPaths;
+    private final Integer maxPaths;
+    private final Integer pathsPerInitiator;
 
     public CreateExport(String name, URI varrayId, URI projectId, List<URI> volumeIds, Integer hlu, String hostName, URI hostId,
-            URI clusterId, Map<URI, Integer> volumeHlus) {
+            URI clusterId, Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         this.name = name;
         this.varrayId = varrayId;
         this.projectId = projectId;
@@ -35,6 +39,9 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
         this.hostId = hostId;
         this.clusterId = clusterId;
         this.volumeHlus = volumeHlus;
+        this.minPaths = minPaths;
+        this.maxPaths = maxPaths;
+        this.pathsPerInitiator = pathsPerInitiator;
         if (clusterId != null) {
             provideDetailArgs(name, getMessage("CreateExport.cluster"), hostName, volumeIds, hlu);
         }
@@ -78,6 +85,14 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
         else {
             export.addHost(hostId);
             export.setType("Host");
+        }
+
+        if (minPaths != null && maxPaths != null && pathsPerInitiator != null) {
+            ExportPathParameters exportPathParameters = new ExportPathParameters();
+            exportPathParameters.setMinPaths(minPaths);
+            exportPathParameters.setMaxPaths(maxPaths);
+            exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
+            export.setExportPathParameters(exportPathParameters);
         }
 
         return getClient().blockExports().create(export);

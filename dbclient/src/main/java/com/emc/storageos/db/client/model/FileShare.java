@@ -253,7 +253,6 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("originalProject");
     }
     
-    @RelationIndex(cf = "RelationIndex", type = VirtualNAS.class)
     @Name("virtualNAS")
 	public URI getVirtualNAS() {
 		return virtualNAS;

@@ -3063,9 +3063,11 @@ public class FileDeviceController implements FileController {
                     NFSShareACL dbNfsAcl = new NFSShareACL();
                     copyToPersistNfsACL(ace, dbNfsAcl, fs, args);
                     NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args.getFileOperation());
-                    dbNfsAcl.setId(dbNfsAclTemp.getId());
-                    _log.info("Modifying acl in DB: {}", dbNfsAcl);
-                    _dbClient.persistObject(dbNfsAcl);
+                    if (dbNfsAclTemp != null ) {
+                    	dbNfsAcl.setId(dbNfsAclTemp.getId());
+                        _log.info("Modifying acl in DB: {}", dbNfsAcl);
+                        _dbClient.persistObject(dbNfsAcl);
+                    } 
                 }
             }
 
@@ -3076,10 +3078,13 @@ public class FileDeviceController implements FileController {
                     NFSShareACL dbNfsAcl = new NFSShareACL();
                     copyToPersistNfsACL(ace, dbNfsAcl, fs, args);
                     NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args.getFileOperation());
-                    dbNfsAcl.setId(dbNfsAclTemp.getId());
-                    dbNfsAcl.setInactive(true);
-                    _log.info("Marking acl inactive in DB: {}", dbNfsAcl);
-                    _dbClient.persistObject(dbNfsAcl);
+                    if ( dbNfsAclTemp != null) {
+                    	dbNfsAcl.setId(dbNfsAclTemp.getId());
+                        dbNfsAcl.setInactive(true);
+                        _log.info("Marking acl inactive in DB: {}", dbNfsAcl);
+                        _dbClient.persistObject(dbNfsAcl);
+                    }
+                    
                 }
             }
         }
@@ -3106,7 +3111,7 @@ public class FileDeviceController implements FileController {
 
             args.setSubDirectory(subDir);
 
-            _log.info("Controller Recieved Nfs ACL DELETE Operation ");
+            _log.info("FileDeviceController::deleteNFSAcls Recieved Nfs ACL DELETE Operation ");
 
             // File
             if (URIUtil.isType(fsURI, FileShare.class)) {
@@ -3137,7 +3142,7 @@ public class FileDeviceController implements FileController {
             args.setOpId(opId);
 
             List<NfsACE> aceDeleteList = new ArrayList<NfsACE>();
-            List<NFSShareACL> dbNfsAclTemp = queryAllNfsACLInDB(fs, subDir);
+            List<NFSShareACL> dbNfsAclTemp = queryAllNfsACLInDB(fs, subDir, args);
             makeNfsAceFromDB(aceDeleteList, dbNfsAclTemp);
             args.setNfsAclsToDelete(aceDeleteList);
 
@@ -3147,13 +3152,12 @@ public class FileDeviceController implements FileController {
 
             if (result.isCommandSuccess()) {
                 // Update Database
-
-                for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
-                    nfsShareACL.setInactive(true);
-                    _dbClient.persistObject(nfsShareACL);
-
-                }
-
+            	if ( !dbNfsAclTemp.isEmpty()) {
+            		for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
+                        nfsShareACL.setInactive(true);
+                    }
+            		 _dbClient.persistObject(dbNfsAclTemp);
+            	}
             }
 
             if (result.getCommandPending()) {
@@ -3201,12 +3205,22 @@ public class FileDeviceController implements FileController {
      * @param subDir Sub directory
      * @return List of NFS ACL present in DB.
      */
-    private List<NFSShareACL> queryAllNfsACLInDB(FileShare fs, String subDir) {
+    private List<NFSShareACL> queryAllNfsACLInDB(FileShare fs, String subDir, FileDeviceInputOutput args) {
         List<NFSShareACL> nfsShareAcl = null;
         _log.info("Querying all Nfs File System ACL Using FsId {}", fs.getId());
         try {
+        	
+        	ContainmentConstraint containmentConstraint = null;
 
-            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileNfsAclsConstraint(fs.getId());
+        	if ( args.getFileOperation() ) {
+        		containmentConstraint = ContainmentConstraint.Factory
+        				.getFileNfsAclsConstraint(fs.getId());
+        		
+        	} else {
+        		containmentConstraint = ContainmentConstraint.Factory
+        				.getSnapshotNfsAclsConstraint(args.getSnapshotId());
+        	}
+            
             nfsShareAcl = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, NFSShareACL.class,
                     containmentConstraint);
 
@@ -3239,6 +3253,7 @@ public class FileDeviceController implements FileController {
     private void makeNfsAceFromDB(List<NfsACE> nfsAcls, List<NFSShareACL> dbNfsAclTemp) {
 
         for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
+        	
             NfsACE nfsAce = new NfsACE();
 
             String permission = nfsShareACL.getPermissions();

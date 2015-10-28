@@ -2021,22 +2021,14 @@ public class FileService extends TaskResourceService {
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        // top level acls which contains many acl inside.
-
-        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
-            // Throw an error
-            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
-                    + StorageProtocol.File.NFSv4.name() + " protocol");
-        }
-
+        
+        // Get the All ACLs of fs from data base and group them based on path!!
         NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, subDir);
         NfsACLs acls = util.getNfsAclFromDB(allDirs);
-        if (acls.getNfsACLs() != null)
-        {
+        
+        if (acls.getNfsACLs() != null && !acls.getNfsACLs().isEmpty()) {
             _log.info("Number of Acl rules returning {}", acls.getNfsACLs().size());
         } else {
-
             _log.info("No Acl rules found for filesystem  {}", fs.getId());
         }
         return acls;
@@ -2048,7 +2040,7 @@ public class FileService extends TaskResourceService {
      * Update existing file system ACL
      * 
      * @param id the URN of a ViPR fileSystem
-     * @param subDir sub-directory within a fileSystem
+     * @param param FileNfsACLUpdateParams 
      * @brief Update file system ACL
      * @return Task resource representation
      * @throws InternalException
@@ -2099,9 +2091,7 @@ public class FileService extends TaskResourceService {
 
             auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_NFS_ACL, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), param);
-
-        } catch (InternalException e) {
-            _log.error("Error Processing File System  ACL Updates {}, {}", e.getMessage(), e);
+            
         } catch (BadRequestException e) {
             op = _dbClient.error(FileShare.class, fs.getId(), task, e);
             _log.error("Error Processing File System ACL Updates {}, {}", e.getMessage(), e);

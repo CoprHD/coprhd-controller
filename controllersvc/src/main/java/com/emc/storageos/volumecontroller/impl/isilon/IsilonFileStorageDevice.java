@@ -1861,7 +1861,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
         return result;
     }
-
+    
     private ArrayList<String> getIsilonAccessList(Set<String> permissions) {
 
         ArrayList<String> accessRights = new ArrayList<String>();
@@ -1881,12 +1881,50 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             }
         }
         return accessRights;
-
     }
 
     @Override
-    public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
-        return deleteNfsACLs(storageObj, args);
+    public BiosCommandResult deleteNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
+    	
+    	IsilonNFSACL isilonAcl = new IsilonNFSACL();
+        ArrayList<IsilonNFSACL.Acl> aclCompleteList = new ArrayList<IsilonNFSACL.Acl>();
+ 
+        List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
+        for (NfsACE nfsACE : aceToDelete) {
+            IsilonNFSACL.Acl acl = isilonAcl.new Acl();
+            ArrayList<String> inheritFlags = new ArrayList<String>();
+            inheritFlags.add("object_inherit");
+            inheritFlags.add("inherit_only");
+            acl.setInherit_flags(inheritFlags);
+            acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
+            acl.setOp("delete");
+            acl.setAccesstype(nfsACE.getPermissionType());
+            String user = nfsACE.getUser();
+            if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
+                user = nfsACE.getDomain() + "\\" + nfsACE.getUser();
+            }
+
+            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
+            acl.setTrustee(trustee);
+            aclCompleteList.add(acl);
+        }
+
+        isilonAcl.setAction("update");
+        isilonAcl.setAuthoritative("acl");
+        isilonAcl.setAcl(aclCompleteList);
+        String path = args.getFileSystemPath();
+        if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
+            path = path + "/" + args.getSubDirectory();
+
+        }
+
+        // Process new ACLs
+        IsilonApi isi = getIsilonDevice(storage);
+        _log.info("Calling Isilon API: to delete NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
+        isi.modifyNFSACL(path, isilonAcl);
+        _log.info("End deleteNfsACLs");
+        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
+        return result;
     }
 
 }

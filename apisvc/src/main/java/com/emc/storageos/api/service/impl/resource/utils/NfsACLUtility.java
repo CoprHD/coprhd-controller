@@ -80,19 +80,21 @@ public class NfsACLUtility {
      * This function verify the NfsACLUpdateParams data provided by user to set ACL is valid or not
      * it throw exception for invalid NfsACLUpdateParams data
      * 
-     * @param param input data converted from xml payload.
+     * @param param : input ACLs to be updated.
      */
     public void verifyNfsACLs(NfsACLUpdateParams param) {
 
         List<NfsACE> addList = param.getAcesToAdd();
         List<NfsACE> modifyList = param.getAcesToModify();
         List<NfsACE> deleteList = param.getAcesToDelete();
+        
         List<NFSShareACL> dbACLList = queryDBSFileNfsACLs(false);
         Set<String> userSetDB = new HashSet<String>();
         for (NFSShareACL dbAcl : dbACLList) {
             userSetDB.add(dbAcl.getUser());
 
         }
+        
         if (addList != null && !addList.isEmpty()) {
             verifyNfsACLsAddList(addList, userSetDB);
         }
@@ -115,9 +117,8 @@ public class NfsACLUtility {
         for (NfsACE ace : nfsAces) {
             // PermissionType is optional , if provided check it is proper
             if (ace.getPermissionType() != null && !ace.getPermissionType().isEmpty()) {
-
+            	
                 if (!isValidEnum(ace.getPermissionType(), NfsPermissionType.class)) {
-
                     throw APIException.badRequests.invalidPermissionType(ace.getPermissionType());
                 }
             }
@@ -126,22 +127,21 @@ public class NfsACLUtility {
             if (ace.getType() != null && !ace.getType().isEmpty()) {
 
                 if (!isValidEnum(ace.getType(), NfsUserType.class)) {
-
                     throw APIException.badRequests.invalidUserType(ace.getType());
                 }
             }
+            
             for (String permission : ace.getPermissionSet()) {
                 if (!isValidEnum(permission, NfsPermission.class)) {
-
                     throw APIException.badRequests.invalidPermission(permission);
                 }
-
             }
+            
             // check if two times domain is provided
             int index = ace.getUser().indexOf("\\");
             if (index >= 0) {
                 if (ace.getDomain() != null && !ace.getDomain().isEmpty()) {
-
+                	
                     throw APIException.badRequests.multipleDomainsFound("update", ace.getDomain(), ace.getUser().substring(0, index));
                 } else {
                     // split takes regex so need 4 backslash
@@ -199,7 +199,6 @@ public class NfsACLUtility {
             if (!userSet.contains(ace.getUser())) {
                 throw APIException.badRequests.nfsACLNotFound("modify or delete",
                         ace.getUser());
-
             }
         }
     }
@@ -258,10 +257,11 @@ public class NfsACLUtility {
                 }
             }
             if (!absoluteSubdir.isEmpty()) {
-
+            	 _log.info( "Found {} Nfs ACLs for subdir {} ", subDirAclList.size(), 
+            			 this.subDir);
                 return subDirAclList;
             }
-
+            _log.info( "Found {} Nfs ACLs ", rootAclList.size());
             return rootAclList;
 
         } catch (Exception e) {
@@ -282,12 +282,14 @@ public class NfsACLUtility {
         NfsACLs acls = new NfsACLs();
         List<NfsACL> nfsAclList = new ArrayList<NfsACL>();
         Map<String, List<NfsACE>> nfsAclMap = new HashMap<String, List<NfsACE>>();
+        
+        _log.info("Subdir value {} and allDirs={}", this.subDir, allDirs);
+        
         // Query All ACl Specific to a File System.
         List<NFSShareACL> nfsAcls = queryDBSFileNfsACLs(allDirs);
-        _log.info("Subdir value {} and allDirs={}", this.subDir, allDirs);
         _log.info("Number of existing ACL found : {} ", nfsAcls.size());
 
-        // All ACL
+        // Group the ACLs based on file system path!!!
         for (NFSShareACL nfsAcl : nfsAcls) {
             String fsPath = nfsAcl.getFileSystemPath();
             List<NfsACE> nfsAceList = nfsAclMap.get(fsPath);
@@ -301,23 +303,29 @@ public class NfsACLUtility {
             nfsAclMap.put(fsPath, nfsAceList);
 
         }
-
-        for (String fsPath : nfsAclMap.keySet()) {
-            NfsACL nfsAcl = new NfsACL(fsPath, nfsAclMap.get(fsPath));
-
-            if (fsPath.length() > fs.getPath().length()) {
-                nfsAcl.setSubDir(fsPath.substring(fs.getPath().length() + 1));
+        
+        // Convert all ACE to ACLs!!
+        for (Map.Entry<String, List<NfsACE>> pathAcls : nfsAclMap.entrySet()) {
+        	
+        	String mountPath = pathAcls.getKey();
+        	NfsACL nfsAcl = new NfsACL(mountPath, pathAcls.getValue());
+        	
+        	if (mountPath.length() > fs.getPath().length()) {
+                nfsAcl.setSubDir(mountPath.substring(fs.getPath().length() + 1));
             }
 
             nfsAclList.add(nfsAcl);
-
+        	
         }
-        acls.setNfsACLs(nfsAclList);
+        
+        if( !nfsAclList.isEmpty()) {
+        	acls.setNfsACLs(nfsAclList);
+        }
         return acls;
     }
 
     /**
-     * This function is to convert DB object into xml NfsACE object
+     * This function is to convert DB object into NfsACE object
      * 
      * @param orig provided DB object
      * @param dest updated NfsACE object
@@ -326,21 +334,16 @@ public class NfsACLUtility {
 
         dest.setDomain(orig.getDomain());
         dest.setPermissions(orig.getPermissions());
+        
+        dest.setPermissionType(FileControllerConstants.NFS_FILE_PERMISSION_TYPE_ALLOW);
         if (orig.getPermissionType() != null && !orig.getPermissionType().isEmpty()) {
-
             dest.setPermissionType(orig.getPermissionType());
-        } else {
-            dest.setPermissionType(FileControllerConstants.NFS_FILE_PERMISSION_TYPE_ALLOW);
-
         }
+        
+        dest.setType(REQUEST_PARAM_USER);
         if (orig.getType() != null && !orig.getType().isEmpty()) {
-
             dest.setType(orig.getType());
-        } else {
-            dest.setType(REQUEST_PARAM_USER);
-
-        }
-
+        } 
         dest.setUser(orig.getUser());
 
     }

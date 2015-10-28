@@ -59,7 +59,7 @@ public class BackupUploadStatus {
     }
 
     @XmlElement(name = "progress")
-    public int getProgress() {
+    public Integer getProgress() {
         return this.progress;
     }
 

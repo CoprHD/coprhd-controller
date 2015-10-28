@@ -30,6 +30,7 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
@@ -56,11 +57,13 @@ import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -84,6 +87,7 @@ public class DisasterRecoveryService {
     
     private static final String SHORTID_FMT="standby%d";
     private static final int MAX_NUM_OF_STANDBY = 10;
+    private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -93,6 +97,31 @@ public class DisasterRecoveryService {
     private ScheduledThreadPoolExecutor siteErrorThreadExecutor = new ScheduledThreadPoolExecutor(1);
     private DrUtil drUtil;
     
+    @Autowired
+    private AuditLogManager auditMgr;
+
+
+    /**
+     * Record audit log for DisasterRecoveryService
+     *
+     * @param auditType
+     * @param operationalStatus
+     * @param operationStage
+     * @param descparams
+     */
+    protected void auditDisasterRecoveryOps(OperationTypeEnum auditType,
+            String operationalStatus,
+            String operationStage,
+            Object... descparams) {
+        auditMgr.recordAuditLog(null, null,
+                EVENT_SERVICE_TYPE,
+                auditType,
+                System.currentTimeMillis(),
+                operationalStatus,
+                operationStage,
+                descparams);
+    }
+
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
     }
@@ -190,10 +219,11 @@ public class DisasterRecoveryService {
             viprCoreClient.site().syncSite(configParam);
             
             siteErrorThreadExecutor.schedule(new SiteErrorUpdater(standbySite.getUuid()), STANDBY_ADD_TIMEOUT_MINUTES, TimeUnit.MINUTES);
-            
+            auditDisasterRecoveryOps(OperationTypeEnum.ADD_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, param.toString());
             return siteMapper.map(standbySite);
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
+            auditDisasterRecoveryOps(OperationTypeEnum.ADD_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, param.toString());
             InternalServerErrorException addStandbyFailedException = APIException.internalServerErrors.addStandbyFailed(e.getMessage());
             setSiteError(siteId, addStandbyFailedException);
             throw addStandbyFailedException;
@@ -338,9 +368,11 @@ public class DisasterRecoveryService {
             for (Site standbySite : drUtil.listSites()) {
                 updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
+            auditDisasterRecoveryOps(OperationTypeEnum.REMOVE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
             return siteMapper.map(toBeRemovedSite);
         } catch (Exception e) {
             log.error("Failed to remove site {}", uuid, e);
+            auditDisasterRecoveryOps(OperationTypeEnum.REMOVE_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, uuid);
             throw APIException.internalServerErrors.removeStandbyFailed(uuid, e.getMessage());
         }
     }
@@ -463,10 +495,11 @@ public class DisasterRecoveryService {
 
             // update the local(primary) site last
             updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
-
+            auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
             return siteMapper.map(standby);
         } catch (Exception e) {
             log.error("Error pausing site {}", uuid, e);
+            auditDisasterRecoveryOps(OperationTypeEnum.PAUSE_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, uuid);
             throw APIException.internalServerErrors.pauseStandbyFailed(uuid, e.getMessage());
         }
     }

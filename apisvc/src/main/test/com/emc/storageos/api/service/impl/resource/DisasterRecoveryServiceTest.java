@@ -9,6 +9,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -55,8 +56,10 @@ import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -154,7 +157,10 @@ public class DisasterRecoveryServiceTest {
         // mock coordinator client
         coordinator = mock(CoordinatorClient.class);
         drUtil = new DrUtil(coordinator);
-        
+
+        // mock AuditLogManager
+        AuditLogManager auditMgr = mock(AuditLogManager.class);
+
         natCheckParam = new DRNatCheckParam();
 
         localVDC.setApiEndpoint("127.0.0.2");
@@ -170,9 +176,9 @@ public class DisasterRecoveryServiceTest {
         drService.setCoordinator(coordinator);
         drService.setSiteMapper(new SiteMapper());
         drService.setSysUtils(new SysUtils());
-
-        drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         
+        drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
+
         standbyConfig = new Site();
         standbyConfig.setUuid("standby-site-uuid-1");
         standbyConfig.setVip(localVDC.getApiEndpoint());
@@ -187,6 +193,8 @@ public class DisasterRecoveryServiceTest {
         doReturn(primarySite.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, primarySite.getUuid());
         doReturn(localVDC).when(drService).queryLocalVDC();
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
+        // Don't need to record audit log in UT
+        doNothing().when(drService).auditDisasterRecoveryOps(any(OperationTypeEnum.class), anyString(), anyString(), any());
         doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
     }
 

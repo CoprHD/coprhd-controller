@@ -393,7 +393,12 @@ public enum OperationTypeEnum {
     ArrayGeneric("", "", ""),
     IMAGESERVER_VERIFY_IMPORT_IMAGES("IMAGESERVER_VERIFY_IMPORT_IMAGES", "", "operation to verify a compute image server and import images."),
     UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "", "operation to update and verify a compute image server."),
-    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),;
+    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
+
+    /* Disaster Recovery Operations */
+    ADD_STANDBY("ADD STANDBY", "", "operation to add a new standby to ensemble"),
+    REMOVE_STANDBY("REMOVE STANDBY", "", "operation to remove an existing standby from ensemble"),
+    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to pause replication between primary and standby"),;
 
     private final String _evType;
     private final String _fail_evType;

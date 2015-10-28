@@ -399,7 +399,7 @@ public class BlockFullCopyManager {
             throws InternalException {
         s_logger.info("START detach full copy {}", fullCopyURI);
 
-        // Check if full copy has been detached. 
+        // Check if full copy has been detached.
         // It will return success if it has been detached
         Volume fullCopy = (Volume) BlockFullCopyUtils.queryFullCopyResource(fullCopyURI, _uriInfo, false, _dbClient);
         if (BlockFullCopyUtils.isFullCopyDetached(fullCopy, _dbClient)) {
@@ -410,7 +410,7 @@ public class BlockFullCopyManager {
             op.setResourceType(ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
             op.ready("Full copy is already detached");
             _dbClient.createTaskOpStatus(Volume.class, fullCopyURI, taskId, op);
-                    
+
             TaskResourceRep task = TaskMapper.toTask(fullCopy, taskId, op);
             taskList.addTask(task);
             return taskList;
@@ -588,14 +588,14 @@ public class BlockFullCopyManager {
      * @throws InternalException
      */
     public TaskList startFullCopy(URI sourceURI, URI fullCopyURI)
-        throws InternalException {
+            throws InternalException {
         s_logger.info(
                 "START establish group relation between Volume group and Full copy group."
                         + " Source: {}, Full copy: {}", sourceURI, fullCopyURI);
 
         // Verify passed URIs for the full copy request.
         Map<URI, BlockObject> resourceMap = BlockFullCopyUtils.verifySourceAndFullCopy(
-            sourceURI, fullCopyURI, _uriInfo, _dbClient);
+                sourceURI, fullCopyURI, _uriInfo, _dbClient);
 
         // Get the source and full copy volumes
         Volume sourceVolume = (Volume) resourceMap.get(sourceURI);
@@ -604,7 +604,7 @@ public class BlockFullCopyManager {
         if (!sourceVolume.hasConsistencyGroup() ||
                 fullCopyVolume.getReplicationGroupInstance() == null) {
             // check if this is vplex
-            if(!VPlexUtil.isBackendFullCopyInReplicationGroup(fullCopyVolume, _dbClient)) {
+            if (!VPlexUtil.isBackendFullCopyInReplicationGroup(fullCopyVolume, _dbClient)) {
                 throw APIException.badRequests.blockObjectHasNoConsistencyGroup();
             }
         }
@@ -612,13 +612,13 @@ public class BlockFullCopyManager {
         // Check if the full copy is detached.
         if (BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) {
             throw APIException.badRequests
-                .cannotEstablishGroupRelationForDetachedFullCopy(fullCopyURI.toString());
+                    .cannotEstablishGroupRelationForDetachedFullCopy(fullCopyURI.toString());
         }
 
         // Check if the full copy was not activated.
         if (BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient)) {
             throw APIException.badRequests
-                .cannotEstablishGroupRelationForInactiveFullCopy(fullCopyURI.toString());
+                    .cannotEstablishGroupRelationForInactiveFullCopy(fullCopyURI.toString());
         }
 
         // Get the platform specific full copy implementation.
@@ -629,7 +629,7 @@ public class BlockFullCopyManager {
 
         // Log an audit message
         auditOp(OperationTypeEnum.ESTABLISH_VOLUME_FULL_COPY, true,
-            AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
+                AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
 
         s_logger.info("FINISH establish group relation between Volume group and FullCopy group");
         return taskList;
@@ -712,7 +712,7 @@ public class BlockFullCopyManager {
     public VolumeRestRep getFullCopy(URI fullCopyURI) {
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
                 fullCopyURI, _uriInfo, false, _dbClient);
-        return BlockMapper.map(fullCopyVolume);
+        return BlockMapper.map(_dbClient, fullCopyVolume);
     }
 
     /**
@@ -986,5 +986,5 @@ public class BlockFullCopyManager {
 
         return Integer.MAX_VALUE;
     }
-    
+
 }

@@ -1721,6 +1721,9 @@ public class UcsDiscoveryWorker {
              * the VSAN will only be available via the pinned port(s)
              */
             if (vsanId.equals("1") && unpinnedVsans.get(fcPIo.getSwitchId()) != null) {
+                StringSet vsanStringSet = new StringSet();
+                vsanStringSet.add(vsanId);
+                cfup.setVsans(vsanStringSet);
                 cfup.addVsans(unpinnedVsans.get(fcPIo.getSwitchId()));
             }
             else {
@@ -1826,6 +1829,9 @@ public class UcsDiscoveryWorker {
          * If not found, the uplink port channel needs to be removed.
          */
         if (vsanId.equals("1") && unpinnedVsans.get(pc.getSwitchId()) != null) {
+            StringSet vsanStringSet = new StringSet();
+            vsanStringSet.add(vsanId);
+            cfup.setVsans(vsanStringSet);
             cfup.addVsans(unpinnedVsans.get(pc.getSwitchId()));
         }
         else {
@@ -1873,15 +1879,12 @@ public class UcsDiscoveryWorker {
 
         for (SwFcSanEp swInterfaces : fcInterfaceMap.values()) {
             Set<String> vsanSet = switchWiseVsan.get(swInterfaces.getSwitchId());
-
-            if (vsanList == null) {
+            if (vsanSet == null) {
                 continue;
             }
 
             if (vsanSet.contains(swInterfaces.getPortVsanId())) {
-                vsanList.remove(swInterfaces.getPortVsanId());
-                // vasnList contains swVsan and this code tries to remove the String element which is not correct
-
+                vsanSet.remove(swInterfaces.getPortVsanId());
             }
         }
         return switchWiseVsan;

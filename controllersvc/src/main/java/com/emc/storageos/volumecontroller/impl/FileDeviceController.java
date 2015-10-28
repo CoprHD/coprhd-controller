@@ -868,8 +868,10 @@ public class FileDeviceController implements FileController {
                 args.addFSFileObject(fsObj);
                 args.setFileOperation(true);
                 URI vNASUri = fsObj.getVirtualNAS();
-                vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
-                args.setvNAS(vNAS);
+                if(vNASUri != null) {
+	                vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
+	                args.setvNAS(vNAS);
+                }
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -897,8 +899,10 @@ public class FileDeviceController implements FileController {
                 args.addFileShare(fsObj);
                 args.setFileOperation(false);
                 URI vNASUri = fsObj.getVirtualNAS();
-                vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
-                args.setvNAS(vNAS);
+                if(vNASUri != null) {
+	                vNAS = _dbClient.queryObject(VirtualNAS.class, vNASUri);
+	                args.setvNAS(vNAS);
+                }
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {

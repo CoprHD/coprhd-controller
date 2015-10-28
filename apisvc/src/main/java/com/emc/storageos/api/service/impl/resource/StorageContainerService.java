@@ -18,8 +18,8 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.StorageContainerCreateResponse;
+import com.emc.storageos.model.vpool.StorageContainerRequestParam;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -28,7 +28,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-@Path("/stroagecontainer")
+@Path("/storagecontainer")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
         readAcls = { ACL.USE },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -48,7 +48,7 @@ public class StorageContainerService extends VirtualPoolService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StorageContainerCreateResponse createStorageContainer(
-            BlockVirtualPoolParam param) throws DatabaseException {
+            StorageContainerRequestParam param) throws DatabaseException {
         ArgValidator.checkFieldNotEmpty(param.getName(), VPOOL_NAME);
         checkForDuplicateName(param.getName(), VirtualPool.class);
         ArgValidator.checkFieldNotEmpty(param.getDescription(), VPOOL_DESCRIPTION);
@@ -59,7 +59,7 @@ public class StorageContainerService extends VirtualPoolService {
 
     }
 
-    private VirtualPool prepareVirtualPool(BlockVirtualPoolParam param) {
+    private VirtualPool prepareVirtualPool(StorageContainerRequestParam param) {
         VirtualPool vPool = new VirtualPool();
         vPool.setType(VirtualPool.Type.storageContainer.name());
         // set common VirtualPool parameters.

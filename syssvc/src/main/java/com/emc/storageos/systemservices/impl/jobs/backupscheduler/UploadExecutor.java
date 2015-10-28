@@ -51,6 +51,7 @@ public class UploadExecutor {
             log.info("Upload URL is empty, upload disabled");
             return;
         }
+
         try (AutoCloseable lock = this.cfg.lock()) {
             this.cfg.reload();
             cleanupCompletedTags();
@@ -183,6 +184,7 @@ public class UploadExecutor {
                 toUpload.add(tagName);
             }
         }
+
         log.info("Tags in retain list: {}, incomplete ones are: {}",
                 this.cfg.retainedBackups.toArray(new String[this.cfg.retainedBackups.size()]),
                 toUpload.toArray(new String[toUpload.size()]));

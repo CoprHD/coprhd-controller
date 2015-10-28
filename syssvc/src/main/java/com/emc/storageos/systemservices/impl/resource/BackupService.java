@@ -289,12 +289,6 @@ public class BackupService {
         BackupFileSet files = this.backupOps.listRawBackup(true);
 
         BackupFileSet filesForTag = files.subsetOf(backupTag, null, null);
-        for (BackupFile file : files) {
-            log.info("Grace: file name={}", file.info.getName());
-        }
-        for (BackupFile file : filesForTag) {
-            log.info("Grace: filesForTag name={}", file.info.getName());
-        }
         return filesForTag;
     }
 
@@ -330,7 +324,6 @@ public class BackupService {
 
         List<NodeInfo> nodes = ClusterNodesUtil.getClusterNodeInfo(new ArrayList<>(Arrays.asList(uniqueNodes.toArray(new String[uniqueNodes
                 .size()]))));
-        log.info("Grace-nodes={}, uniqueNodes={}", nodes, uniqueNodes);
         if (nodes.size() < uniqueNodes.size()) {
             log.info("Only {}/{} nodes available for the backup, cannot download.", uniqueNodes.size(), nodes.size());
             return;
@@ -358,7 +351,6 @@ public class BackupService {
                 backupScheduler.getUploadExecutor().setUploadStatus(null, Status.IN_PROGRESS, progress, null);
 
                 String fullFileName = backupTag + File.separator + fileName;
-                log.info("Grace-fileName={}, fullFileName={}", fileName, fullFileName);
                 InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
                 newZipEntry(zos, in, fileName);
                 collectFileCount++;

@@ -561,9 +561,6 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testPlannedFailover_noError() throws Exception {
-//        List<Configuration> siteConfigurations = new ArrayList<Configuration>();
-//        siteConfigurations.add(standbySite1.toConfiguration());
-//        siteConfigurations.add(standbySite2.toConfiguration());
         List<Site> sites = new ArrayList<Site>();
         sites.add(standbySite1);
         sites.add(standbySite2);
@@ -576,13 +573,10 @@ public class DisasterRecoveryServiceTest {
         doReturn("SecreteKey".getBytes()).when(keyMock).getEncoded();
         doReturn(keyMock).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
         doReturn("site-uuid-1").when(drUtil).getPrimarySiteId();
-//        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
         doReturn(standbySite1).when(drUtil).getSite(eq("site-uuid-1"));
-//        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
         doReturn(standbySite2).when(drUtil).getSite(eq("site-uuid-2"));
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState("site-uuid-2", 3);
-//        doReturn(siteConfigurations).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
         doReturn(sites).when(drUtil).listSites();
         doReturn(distributedAtomicInteger).when(coordinator).getDistributedAtomicInteger(any(String.class), any(String.class));
         doNothing().when(drService).precheckForSwitchover("site-uuid-2");

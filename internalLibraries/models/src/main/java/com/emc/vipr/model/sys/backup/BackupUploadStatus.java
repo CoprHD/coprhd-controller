@@ -114,7 +114,8 @@ public class BackupUploadStatus {
             return;
         }
         if (this.backupName == null) {
-            throw new IllegalStateException("Backup name should not be null");
+            //throw new IllegalStateException("Backup name should not be null");
+            log.error("Backup name should not be null");
         }
         switch (this.status) {
             case INIT:

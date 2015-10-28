@@ -165,6 +165,9 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
         String authToken = req.getHeader(RequestProcessingUtils.AUTH_TOKEN_HEADER);
         String proxyToken = req.getHeader(RequestProcessingUtils.AUTH_PROXY_TOKEN_HEADER);
         String keystoneUserAuthToken = req.getHeader(RequestProcessingUtils.KEYSTONE_AUTH_TOKEN_HEADER);
+    	_log.info("RAG getUserFromRequestInternal- before authtok {}",authToken);
+    	_log.info("RAG getUserFromRequestInternal- before proxyToken {}",proxyToken);
+    	_log.info("RAG getUserFromRequestInternal- before keystoneUserAuthToken {}",keystoneUserAuthToken);
         if (authToken != null) 
         {
             if (proxyLookup) 
@@ -275,6 +278,8 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
     		osUser = new StorageOSUser(userName, viprTenantId);
     		//TODO - remove this once the keystone api is fixed to is_admin=1|0 based on the roles in OpenStack
     		osUser.addRole(Role.TENANT_ADMIN.toString());
+    		osUser.setToken(keystoneUserAuthToken);
+    		_log.info("RAG UserAfter Set Token {}",keystoneUserAuthToken);
     		    		
     		//Map the role to ViPR role
     		int role_num = validToken.getAccess().getMetadata().getIs_admin();

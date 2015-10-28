@@ -28,6 +28,8 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.WebResource.Builder;
 
+import com.emc.storageos.keystone.restapi.model.response.ServiceList;
+import com.emc.storageos.keystone.restapi.model.response.EndpointList;
 
 /**
  * Keystone API client to execute rest APIs on
@@ -197,4 +199,76 @@ public class KeystoneApiClient extends StandardRestClient
 		return responseCode;
 	}
 
+public ServiceList getKeystoneServiceList(String port)
+{
+
+	//_base = URI.create("http://10.247.39.185:" + port); // need to be changed
+    URI serviceURI = _base.resolve(URI.create(KeystoneConstants.URI_SERVICE_LIST));
+   	log.info("RAGA-- INSIDE getKeystoneServiceList URI : {}",serviceURI.toString() );
+    ClientResponse response = _client.resource(serviceURI).header(KeystoneConstants.AUTH_TOKEN, _authToken)
+            .get(ClientResponse.class);
+
+    log.info("RAGA-- INSIDE getKeystoneServiceList After response AUTHTOKEN: {}", _authToken);
+    if (response.getClientResponseStatus() != ClientResponse.Status.OK)
+    {
+        //throw KeystoneApiException.exceptions.authenticationFailure(_base.toString());
+    	log.info("RAGA-- getKeystoneServiceList is NOTOK");
+    	
+    }
+
+    log.info("RAGA-- RESPONSE String : {} ", response.toString());
+    log.info("RAGA-- RESPONSE Length : {}", response.getLength());
+    //log.info("RAGA-- RESPONSE Location : {}", response.getLocation().toString());
+
+    
+    //Read the response and get the serviceList
+    ServiceList responseBody = null;
+    try
+    {
+    	log.info("RAGA-- GETTT responseBody");
+    	//String rawdata = getResponseObject(String.class, response);
+    	//log.info("RAGA -- RESPONSE raw data : {} ", rawdata);
+		responseBody = getResponseObject(ServiceList.class, response);
+	} 
+    catch (Exception e) 
+    {
+    	log.info("RAGA-- GETTT responseBody Failuere responseJsonParseFailure");
+    	throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
+	}
+    log.info("RAGA-- RESPONSE : {}", responseBody.toString());
+    log.info("RAGA-- RESPONSE size : {}", responseBody.getServices().size());
+
+    // log.info("RAGA-- RESPONSE first NAME : {}", responseBody.getServices().ge);
+    
+    return responseBody;
 }
+
+public EndpointList getKeystoneEndPointList()
+{
+	log.info("RAGA-- INSIDE getKeystoneEndPointList ");
+    URI serviceURI = _base.resolve(URI.create(KeystoneConstants.URI_ENDPOINT_LIST));
+    ClientResponse response = _client.resource(serviceURI).header(KeystoneConstants.AUTH_TOKEN, _authToken)
+            .get(ClientResponse.class);
+
+    if (response.getClientResponseStatus() != ClientResponse.Status.OK)
+    {
+        //throw KeystoneApiException.exceptions.authenticationFailure(_base.toString());
+    	log.info("RAGA-- getKeystoneEndPointList is NOTOK");
+    	
+    }
+    
+    //Read the response and get the endpointList
+    EndpointList endPoints = null;
+    try
+    {
+    	endPoints = getResponseObject(EndpointList.class, response);
+	} 
+    catch (Exception e) 
+    {
+    	throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
+	}
+    return endPoints;
+}   
+
+}
+

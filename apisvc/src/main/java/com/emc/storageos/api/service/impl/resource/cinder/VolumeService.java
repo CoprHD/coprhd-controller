@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -52,9 +53,11 @@ import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.CinderConstants.ComponentStatus;
 import com.emc.storageos.cinder.model.Attachment;
 import com.emc.storageos.cinder.model.CinderVolume;
+import com.emc.storageos.cinder.model.SnapshotListResponse;
 import com.emc.storageos.cinder.model.UsageStats;
 import com.emc.storageos.cinder.model.VolumeCreateRequestGen;
 import com.emc.storageos.cinder.model.VolumeDetail;
@@ -73,6 +76,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
@@ -90,7 +94,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.SizeUtil;
+import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -110,8 +114,25 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.gson.Gson;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.Client;
+import com.emc.storageos.glance.api.GlanceApi;
+import com.emc.storageos.glance.api.GlanceApiFactory;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.emc.storageos.glance.rest.client.GlanceRESTClient;
+import com.emc.storageos.glance.GlanceEndPointInfo;
+import com.emc.storageos.glance.GlanceConstants;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
+import org.apache.commons.io.IOUtils;
 @DefaultPermissions( readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
 readAcls = {ACL.OWN, ACL.ALL},
 writeRoles = { Role.TENANT_ADMIN },
@@ -135,6 +156,10 @@ public class VolumeService extends TaskResourceService {
 	private static final String TRUE = "true";
 	
 
+	//private GlanceApiFactory objGlanceApiFactory = new GlanceApiFactory();
+    //@Autowired
+    protected GlanceApiFactory _glanceApiFactory;
+    private GlanceEndPointInfo glanceEndPointInfo = null;
 	protected PlacementManager _placementManager;
 	private CinderHelpers helper;// = new CinderHelpers(_dbClient , _permissionsHelper);
 
@@ -936,6 +961,150 @@ public class VolumeService extends TaskResourceService {
 	protected TaskList	volumeFromImage(String name,Project project,VirtualArray varray,
 			VolumeCreateRequestGen param,int volumeCount,BlockFullCopyManager blkFullCpManager, String imageId)
 	{
+    	_log.info("CinderApi - start volumeFromImage");
+    	List<URI> authProvidersUri = _dbClient.queryByType(AuthnProvider.class, true);
+    	List<AuthnProvider> allProviders = _dbClient.queryObject(AuthnProvider.class,authProvidersUri);
+    	AuthnProvider keystoneAuthProvider = null;
+    	for(AuthnProvider provider : allProviders)
+    	{
+    		if(AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(provider.getMode()))
+    		{
+    			keystoneAuthProvider = provider;
+    			break; //Getting keystone provider only
+    		}
+    	}
+    	_log.info("RAG Provider verified ");
+    	URI glanceBaseUri = null;
+    	if(null!=keystoneAuthProvider)
+    	{
+        	Set<String> serverUris = keystoneAuthProvider.getServerUrls();
+        	for(String uri : serverUris)
+        	{
+        		glanceBaseUri = URI.create(uri);
+        		//Single URI will be present
+            	_log.info("RAG Auth Provider Keystone  {}",glanceBaseUri.toString());
+        		break;
+        	}
+    	}
+    	
+    	
+    	String restBaseUri1 = glanceBaseUri.toString()+ GlanceConstants.IMAGE_NAME + imageId;
+    	_log.info("RAG glanceBaseUri  {}",restBaseUri1);
+    	
+    	
+    	//
+    	
+    	
+		GlanceEndPointInfo ep = new GlanceEndPointInfo("10.247.39.185","ranjith", "ChangeMe", "raga");
+    	
+    	StorageOSUser user = getUserFromContext();
+    
+		ClientConfig config = new DefaultClientConfig();
+		Client jerseyClient = Client.create(config);
+		GlanceApi glanceApi = new GlanceApi(ep, jerseyClient);
+		
+		String restBaseUri = "http://10.247.39.185:9292/v1/images/bac0e68b-0736-4b18-b4dc-198b8077520f";
+		_log.info("RAG Auth token {}", user.getToken()); 
+		_log.info("RAG Auth TenantId {}", user.getTenantId()); 
+		_log.info("RAG Auth UserName  {}", user.getUserName()); 
+		_log.info("RAG Auth Proxytoken {}", user.getProxyToken()); 
+		_log.info("RAG Auth Getname {}", user.getName()); 
+		
+		if(restBaseUri.startsWith(GlanceConstants.HTTP_URL)) 
+        {
+        	ep.setGlanceBaseUriHttp(restBaseUri);
+        }
+        else 
+        {
+        	ep.setGlanceBaseUriHttps(restBaseUri); // for HTTPS
+        }
+        
+		ep.setGlanceToken(user.getToken()); 
+		
+    	
+    	//GlanceApi apiClient = (GlanceApi) _glanceApiFactory.GlanceRESTClient(jerseyClient, user.getToken());
+
+   
+	    /*private GlanceApiFactory _glanceApiFactory;
+	    private GlanceEndPointInfo glanceEndPointInfo = null;
+        if(null == glanceEndPointInfo)
+        {
+        	glanceEndPointInfo = new GlanceEndPointInfo(hostName, restuserName, restPassword, tenantName);
+            if(restBaseUri.startsWith(GlanceConstants.HTTP_URL)) 
+            {
+            	glanceEndPointInfo.setGlanceBaseUriHttp(restBaseUri);
+            }
+            else 
+            {
+            	glanceEndPointInfo.setGlanceBaseUriHttps(restBaseUri);
+            }
+            
+            //Always set the token and tenant id, when new instance is created
+            glanceEndPointInfo.setGlanceToken(oldToken);
+            glanceEndPointInfo.setGlanceTenantId(tenantId);
+        }          
+        
+        GlanceApi api = _glanceApiFactory.getApi(providerUri, glanceEndPointInfo);
+        _logger.debug("discover : Got the glance api factory for provider with id: {}", providerUri); */
+    	
+    	
+    	
+    	
+    	
+    	/*SnapshotListResponse listRes = null;
+    	String listSnapshotsUri = endPoint.getBaseUri()  +
+    									  String.format(CinderConstants.URI_LIST_SNAPSHOTS, 
+    									  new Object[]{endPoint.getCinderTenantId()}); */
+    	//String glanceServiceUri =  "http://10.247.39.185:9292/v1/images/bd61339a-0bb4-441d-a900-2266b8fa58e1";
+    			
+    	//GlanceApi.getClient().setAuthTokenHeader(token);
+    	//ClientResponse js_response = objGlanceApiFactory.getApi().get(URI.create(glanceServiceUri));
+    	
+		ClientResponse js_response =  glanceApi.getGlanceImage(restBaseUri, user.getToken());
+    	_log.info("uri {} : Response status {}", restBaseUri, String.valueOf(js_response.getStatus()));
+    	if(js_response.getStatus() == ClientResponse.Status.OK.getStatusCode())
+    	{
+    		//String jsonString = js_response.getEntity(String.class);
+    		//listRes = new Gson().fromJson(jsonString, SnapshotListResponse.class);
+    	 	_log.info("RAG CinderApi - Get status OK ");
+    	 	//_log.info("RAG CinderApi Response String Length  {}",jsonString.length());
+    		File file = new File("/opt/storageos/image2.txt");
+    	 	//FileOutputStream  file = new FileOutputStream("/opt/storageos/image.txt");
+    	 	InputStream image_data = js_response.getEntity(InputStream.class);
+    	 	//Files.copy(image_data, image_files);
+    	 	
+    	 	
+    	 	_log.info("RAG CinderApi Iamge length {}",js_response.getLength());
+    	 	
+    	 	
+    		try (FileOutputStream fop = new FileOutputStream(file)) {
+        	 	//byte[] imageByteArray = IOUtils.toByteArray(image_data);  
+    			// if file doesn't exists, then create it
+    			if (!file.exists()) {
+    				file.createNewFile();
+    			}
+/*
+    			// get the content in bytes
+    			byte[] contentInBytes = image_data.toString().getBytes();
+
+    			fop.write(contentInBytes);
+    			fop.flush();
+    			fop.close(); 
+*/
+    			 IOUtils.copyLarge(image_data,fop);
+    			 fop.close(); 
+    			_log.info("RAG CinderApi Image file copied length {}",image_data.toString().length());
+
+    		} catch (IOException e) {
+    			e.printStackTrace();
+    		}
+    	 	
+    	 	
+  
+    	}
+    	
+    	_log.info("CinderApi - end volumeFromImage ");
+    	//return listRes;
 		return null;
 	}
 

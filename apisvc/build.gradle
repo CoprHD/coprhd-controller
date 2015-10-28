@@ -23,6 +23,7 @@ dependencies {
             project(":security"),
             project(":processmonitor"),
             project(":serviceutils"),
+            project(":glance"),
              project(":keystone")
 
     testCompile library(enunciate),

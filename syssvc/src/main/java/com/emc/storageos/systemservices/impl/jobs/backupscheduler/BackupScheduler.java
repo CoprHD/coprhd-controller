@@ -80,7 +80,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     private SchedulerConfig cfg;
     private BackupExecutor backupExec;
-    public UploadExecutor uploadExec;
+    private UploadExecutor uploadExec;
 
     private ScheduledExecutorService service;
     private ScheduledFuture<?> scheduledTask;
@@ -161,8 +161,8 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             this.cfg.reload();
 
             // If we made any new backup, notify uploader thread to perform upload
-            runBackup();
-            runUpload(null);
+            this.backupExec.runOnce();
+            this.uploadExec.runOnce();
 
         } catch (Exception e) {
             log.error("Exception occurred in scheduler", e);
@@ -186,20 +186,6 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
                 }
             }
         }
-    }
-
-    private void runBackup() throws Exception {
-        if (this.backupExec == null) {
-            this.backupExec = new BackupExecutor(this.cfg, this);
-        }
-        this.backupExec.runOnce();
-    }
-
-    public void runUpload(String backupTag) throws Exception {
-        if (this.uploadExec == null) {
-            this.uploadExec = UploadExecutor.create(this.cfg, this);
-        }
-        this.uploadExec.runOnce(backupTag);
     }
 
     public void auditBackup(OperationTypeEnum auditType,

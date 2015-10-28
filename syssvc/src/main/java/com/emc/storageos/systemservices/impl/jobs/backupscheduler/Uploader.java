@@ -4,9 +4,6 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.OutputStream;
 import java.nio.channels.UnsupportedAddressTypeException;
 

@@ -25,8 +25,10 @@ import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
 import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
+import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -135,11 +137,14 @@ public class DisasterRecovery extends Controller {
                 flash.error(MessagesUtils.get(UNKNOWN, uuid));
                 list();
             }
-
-            SiteRestRep result = DisasterRecoveryUtils.deleteStandby(uuid);
-            flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
-            list();
+            
         }
+
+        SiteIdListParam param = new SiteIdListParam();
+        param.getIds().addAll(uuids);
+        DisasterRecoveryUtils.deleteStandby(param);
+        flash.success(MessagesUtils.get(DELETED_SUCCESS));
+        list();
     }
 
     // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.

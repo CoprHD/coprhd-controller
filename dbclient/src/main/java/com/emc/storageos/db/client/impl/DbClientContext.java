@@ -328,24 +328,29 @@ public class DbClientContext {
      * @param wait whether need to wait until schema agreement is reached.
      * @throws Exception
      */
-    public void setCassandraStrategyOptions(Map<String, String> strategyOptions, boolean wait) throws Exception {
-        Cluster cluster = getCluster();
-        KeyspaceDefinition kd = cluster.describeKeyspace(keyspaceName);
-
-        KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
-        update.setName(getKeyspaceName());
-        update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-        update.setStrategyOptions(strategyOptions);
-
-        String schemaVersion;
-        if (kd != null) {
-            schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
-        } else {
-            schemaVersion = cluster.addKeyspace(update).getResult().getSchemaId();
-        }
-
-        if (wait) {
-            waitForSchemaChange(schemaVersion);
+    public void setCassandraStrategyOptions(Map<String, String> strategyOptions, boolean wait) {
+        try {
+            Cluster cluster = getCluster();
+            KeyspaceDefinition kd = cluster.describeKeyspace(keyspaceName);
+    
+            KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
+            update.setName(getKeyspaceName());
+            update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
+            update.setStrategyOptions(strategyOptions);
+    
+            String schemaVersion;
+            if (kd != null) {
+                schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
+            } else {
+                schemaVersion = cluster.addKeyspace(update).getResult().getSchemaId();
+            }
+    
+            if (wait) {
+                waitForSchemaChange(schemaVersion);
+            }
+        } catch (ConnectionException ex) {
+            log.error("Fail to update strategy option", ex);
+            throw DatabaseException.fatals.failedToChangeStrategyOption(ex.getMessage());
         }
     }
 
@@ -356,8 +361,14 @@ public class DbClientContext {
      * @param dcId the dc to be removed
      * @throws Exception
      */
-    public void removeDcFromStrategyOptions(String dcId) throws Exception {
-        Map<String, String> strategyOptions = getKeyspace().describeKeyspace().getStrategyOptions();
+    public void removeDcFromStrategyOptions(String dcId)  {
+        Map<String, String> strategyOptions;
+        try {
+            strategyOptions = getKeyspace().describeKeyspace().getStrategyOptions();
+        } catch (ConnectionException ex) {
+            log.error("Unexpected errors to describe keyspace", ex);
+            throw DatabaseException.fatals.failedToChangeStrategyOption(ex.getMessage());
+        }
         if (strategyOptions.containsKey(dcId)) {
             log.info("Remove dc {} from strategy options", dcId);
             strategyOptions.remove(dcId);
@@ -372,7 +383,7 @@ public class DbClientContext {
      * @param schemaVersion version we are waiting for
      * @throws InterruptedException
      */
-    public void waitForSchemaChange(String schemaVersion) throws InterruptedException {
+    public void waitForSchemaChange(String schemaVersion) {
         long start = System.currentTimeMillis();
         while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
             Map<String, List<String>> versions;
@@ -391,7 +402,9 @@ public class DbClientContext {
             }
 
             log.info("waiting for schema change ...");
-            Thread.sleep(SCHEMA_RETRY_SLEEP_MILLIS);
+            try {
+                Thread.sleep(SCHEMA_RETRY_SLEEP_MILLIS);
+            } catch (InterruptedException ex) {}
         }
         log.warn("Unable to sync schema version {}", schemaVersion);
     }

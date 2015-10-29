@@ -305,7 +305,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
         doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
 
-        SiteRestRep response = drService.removeStandby(standbySite2.getUuid());
+        drService.remove(standbySite2.getUuid());
     }
 
     @Test

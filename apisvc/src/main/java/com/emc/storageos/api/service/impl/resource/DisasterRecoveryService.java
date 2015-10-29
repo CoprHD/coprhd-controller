@@ -29,6 +29,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.security.authorization.CheckPermission;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,7 @@ import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
@@ -55,6 +57,7 @@ import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
+import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -350,39 +353,77 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @Path("/{uuid}")
-    public SiteRestRep removeStandby(@PathParam("uuid") String uuid) {
-        log.info("Begin to remove standby site from local vdc by uuid: {}", uuid);
-        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, uuid);
-        if (config == null) {
-            log.error("Can't find site {} from ZK", uuid);
-            throw APIException.badRequests.siteIdNotFound();
+    public Response remove(@PathParam("uuid") String uuid) {
+        SiteIdListParam param = new SiteIdListParam();
+        param.getIds().add(uuid);
+        return remove(param);
+    }
+    
+    /**
+     * Remove multiple standby sites. After successfully done, it stops data replication to those sites
+     * 
+     * @param idList site uuid list to be removed
+     * @return
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    @Path("/remove")
+    public Response remove(SiteIdListParam idList) {
+        List<String> siteIdList = idList.getIds();
+        String siteIdStr = StringUtils.join(siteIdList, ",");
+        log.info("Begin to remove standby site from local vdc by uuid: {}", siteIdStr);
+        List<Site> toBeRemovedSites = new ArrayList<>();
+        for (String siteId : siteIdList) {
+            try {
+                Site site = drUtil.getSite(siteId);
+                if (site.getState().equals(SiteState.PRIMARY)) {
+                    log.error("Unable to remove this site {}. It is primary", siteId);
+                    throw APIException.badRequests.operationNotAllowedOnPrimarySite();
+                }
+                toBeRemovedSites.add(site);
+            } catch (Exception ex) {
+                log.error("Can't load site {} from ZK", siteId);
+                throw APIException.badRequests.siteIdNotFound();
+            }
         }
-
+        
+        if (drUtil.isStandby()) {
+            throw APIException.internalServerErrors.removeStandbyPrecheckFailed(siteIdStr, "Operation is allowed on primary only");
+        }
         if (!isClusterStable()) {
-            throw APIException.internalServerErrors.removeStandbyFailed(uuid, "Cluster is not stable");
+            throw APIException.internalServerErrors.removeStandbyPrecheckFailed(siteIdStr, "Cluster is not stable");
         }
-
-        Site toBeRemovedSite = new Site(config);
-        if (toBeRemovedSite.getState().equals(SiteState.PRIMARY)) {
-            log.error("Unable to remove this site {}. It is primary", uuid);
-            throw APIException.badRequests.operationNotAllowedOnPrimarySite();
+        
+        for (Site site : drUtil.listStandbySites()) {
+            if (siteIdStr.contains(site.getUuid())) {
+                continue;
+            }
+            int nodeCount = site.getNodeCount();
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                log.info("Site {} is not stable {}", site.getUuid(), state);
+                throw APIException.internalServerErrors.removeStandbyPrecheckFailed(siteIdStr, String.format("Site %s is not stable", site.getName()));
+            }
         }
         
         try {
-            log.info("Find standby site in local VDC and remove it");
-            toBeRemovedSite.setState(SiteState.STANDBY_REMOVING);
-            coordinator.persistServiceConfiguration(toBeRemovedSite.toConfiguration());
-
+            log.info("Removing sites");
+            for (Site site : toBeRemovedSites) {
+                site.setState(SiteState.STANDBY_REMOVING);
+                coordinator.persistServiceConfiguration(site.toConfiguration());
+            }
             log.info("Notify all sites for reconfig");
             for (Site standbySite : drUtil.listSites()) {
                 updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
-            auditDisasterRecoveryOps(OperationTypeEnum.REMOVE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
-            return siteMapper.map(toBeRemovedSite);
+            auditDisasterRecoveryOps(OperationTypeEnum.REMOVE_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, siteIdStr);
+            return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
-            log.error("Failed to remove site {}", uuid, e);
-            auditDisasterRecoveryOps(OperationTypeEnum.REMOVE_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, uuid);
-            throw APIException.internalServerErrors.removeStandbyFailed(uuid, e.getMessage());
+            log.error("Failed to remove site {}", siteIdStr, e);
+            auditDisasterRecoveryOps(OperationTypeEnum.REMOVE_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, siteIdStr);
+            throw APIException.internalServerErrors.removeStandbyFailed(siteIdStr, e.getMessage());
         }
     }
     

@@ -579,12 +579,24 @@ public class VdcSiteManager extends AbstractManager {
      * 
      * @return
      */
-    private boolean isRemovingStandby() {
+    private boolean hasRemovingStandby(List<Site> toBeRemovedSites) {
+        return !toBeRemovedSites.isEmpty();
+    }
+    
+    private List<Site> listRemovingStandby() {
+        List<Site> result = new ArrayList<Site>();
         for(Site site : drUtil.listSites()) {
             if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
-                if (!currentSiteId.equals(site.getUuid())) {
-                    return true;
-                }
+                result.add(site);
+            }
+        }
+        return result;
+    }
+    
+    private boolean isRemovingCurrentSite(List<Site> toBeRemovedSites) {
+        for(Site site : toBeRemovedSites) {
+            if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
+                return true;
             }
         }
         return false;
@@ -596,46 +608,63 @@ public class VdcSiteManager extends AbstractManager {
      * @throws Exception
      */
     private void checkAndRemoveStandby() throws Exception{
+        if (drUtil.isPrimary()) {
+            checkAndRemoveOnPrimary();
+        } else {
+            checkAndRemoveOnStandby();
+        }
+    }
+
+    private void checkAndRemoveOnPrimary() throws Exception {
         String svcId = coordinator.getMySvcId();
-        boolean isStandby = drUtil.isStandby();
         
-        while (isRemovingStandby()) {
-            if (isStandby) {
-                log.info("Waiting for completion of site removal from primary site");
-                retrySleep();
-                continue;
-            }
-            
+        List<Site> toBeRemovedSites = listRemovingStandby();
+        while (hasRemovingStandby(toBeRemovedSites)) {
             if (!getVdcLock(svcId)) {
                 retrySleep(); // retry until we get the lock
                 continue;
             }
             
             try {
-                for(Site site : drUtil.listSites()) {
+                for (Site site : toBeRemovedSites) {
                     try {
-                        if (!site.getState().equals(SiteState.STANDBY_REMOVING)) {
-                            continue;
-                        }
-                        if (currentSiteId.equals(site.getUuid())) {
-                            log.info("Current site is removed from a DR. It could be manually promoted as primary site");
-                        } else {
-                            removeSiteFromReplication(site);
-                        }
+                        removeDbNodes(site);
                     } catch (Exception e) { 
                         populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
                         throw e;
                     }
                 }
-            } finally {
+                for (Site site : toBeRemovedSites) {
+                    try {
+                        removeDbReplication(site);
+                    } catch (Exception e) { 
+                        populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
+                        throw e;
+                    }
+                }
+                toBeRemovedSites = listRemovingStandby();
+            }  finally {
                 coordinator.releasePersistentLock(svcId, vdcLockId);
             }
         }
     }
-
-    private void removeSiteFromReplication(Site site) throws Exception {
-        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
-        
+    
+    private void checkAndRemoveOnStandby() {
+        List<Site> toBeRemovedSites = listRemovingStandby();
+        if (isRemovingCurrentSite(toBeRemovedSites)) {
+            log.info("Current standby site is removed from DR. You can power it on and promote it as primary later");
+            return;
+        } else {
+            log.info("Waiting for completion of site removal from primary site");
+            while (hasRemovingStandby(toBeRemovedSites)) {
+                log.info("Waiting for completion of site removal from primary site");
+                retrySleep();
+                toBeRemovedSites = listRemovingStandby();
+            }
+        }
+    }
+    
+    private void removeDbNodes(Site site) throws Exception {
         poweroffRemoteSite(site);
         
         String dcName = getCassandraDcId(site);
@@ -645,7 +674,6 @@ public class VdcSiteManager extends AbstractManager {
         } finally {
             dbOps.close();
         }
-        ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcName);
         
         DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME);
         try {
@@ -653,8 +681,13 @@ public class VdcSiteManager extends AbstractManager {
         } finally {
             geodbOps.close();
         }
+    }
+    
+    private void removeDbReplication(Site site) {
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
+        String dcName = getCassandraDcId(site);
+        ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcName);
         ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcName);
-        
         coordinatorClient.removeServiceConfiguration(site.toConfiguration());
         log.info("Removed site {} configuration from ZK", site.getUuid());
     }

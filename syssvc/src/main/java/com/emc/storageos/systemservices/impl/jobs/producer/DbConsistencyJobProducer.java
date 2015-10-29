@@ -6,6 +6,7 @@ package com.emc.storageos.systemservices.impl.jobs.producer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
@@ -18,18 +19,12 @@ public class DbConsistencyJobProducer {
     public static final String QUEUE_NAME = "dbconsistencyservice";
     public static final int DEFAULT_MAX_THREADS = 1;
     public static final long DEFAULT_MAX_WAIT_STOP = 60 * 1000;
-    
-    private CoordinatorClient coordinator;
     private DistributedQueue<DbConsistencyJob> queue;
-    private DbConsistencyJobConsumer consumer;
-    
-    public CoordinatorClient getCoordinator() {
-        return coordinator;
-    }
 
-    public void setCoordinator(CoordinatorClient coordinator) {
-        this.coordinator = coordinator;
-    }
+    @Autowired
+    private CoordinatorClient coordinator;
+    @Autowired
+    private DbConsistencyJobConsumer consumer;
     
     /**
      * Start db consistency job queue

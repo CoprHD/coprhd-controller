@@ -1,9 +1,5 @@
 package com.emc.storageos.storagedriver.model;
 
-import com.emc.storageos.storagedriver.CapabilityInstance;
-
-import java.util.List;
-
 
 public class StorageVolume extends StorageObject {
 
@@ -27,9 +23,6 @@ public class StorageVolume extends StorageObject {
 
     // thin or thick volume type. Type: Input.
     Boolean thinlyProvisioned = false;
-
-    // Capabilities associated with volumes. Type: Output.
-    private List<CapabilityInstance> capabilities;
 
     public String getStorageSystemId() {
         return storageSystemId;
@@ -79,11 +72,4 @@ public class StorageVolume extends StorageObject {
         this.thinlyProvisioned = thinlyProvisioned;
     }
 
-    public List<CapabilityInstance> getCapabilities() {
-        return capabilities;
-    }
-
-    public void setCapabilities(List<CapabilityInstance> capabilities) {
-        this.capabilities = capabilities;
-    }
 }

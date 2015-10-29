@@ -2,6 +2,8 @@ package com.emc.storageos.storagedriver.impl;
 
 import com.emc.storageos.storagedriver.*;
 import com.emc.storageos.storagedriver.model.*;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,10 +1,12 @@
 package com.emc.storageos.volumecontroller.impl.plugins;
 
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.storagedriver.model.StoragePool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,21 +110,22 @@ public class ExternalDeviceCommunicationInterface extends
         storageSystem.setUsername(accessProfile.getUserName());
         storageSystem.setPassword(accessProfile.getPassword());
         List<StorageSystem> storageSystems = Collections.singletonList(storageSystem);
+        com.emc.storageos.db.client.model.StorageSystem internalStorageSystem =
+                _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
         try {
             _log.info("discoverStorageSystem information for storage system {} - start", accessProfile.getSystemId());
             DriverTask task = driver.discoverStorageSystem(storageSystems);
 
             // check task status and monitor until completion.
-            // TODO: this is short cut for now, assuming synchronous implementation
-            // need to async implementation.
+            // TODO: this is short cut for now, assuming synchronous driver implementation
+            // We will implement support for async case later.
             // process discovery results.
-            com.emc.storageos.db.client.model.StorageSystem internalStorageSystem =
-                    _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
             if (task.getStatus() == DriverTask.TaskStatus.READY)  {
                 // discovery completed
                 internalStorageSystem.setSerialNumber(storageSystem.getSerialNumber());
+                internalStorageSystem.setNativeId(storageSystem.getNativeId());
                 String nativeGuid = NativeGUIDGenerator.generateNativeGuid(accessProfile.getSystemType(),
-                        storageSystem.getSerialNumber());
+                        storageSystem.getNativeId());
                 internalStorageSystem.setNativeGuid(nativeGuid);
                 internalStorageSystem.setFirmwareVersion(storageSystem.getFirmwareVersion());
                 if (storageSystem.isSupportedVersion()) {
@@ -145,15 +148,28 @@ public class ExternalDeviceCommunicationInterface extends
                 throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
                         null, errorMsg, null, null);
             }
+            String message = String.format("Storage array %s with native id %s was discovered successfully.",
+                    internalStorageSystem.getId(), internalStorageSystem.getNativeGuid());
+            internalStorageSystem.setLastDiscoveryStatusMessage(message);
         } catch (Exception e) {
+            if (internalStorageSystem != null) {
+                String message = String.format("Failed to discover storage array %s with native id %s : %s .",
+                        internalStorageSystem.getId(), internalStorageSystem.getNativeGuid(), e.getMessage());
+                internalStorageSystem.setLastDiscoveryStatusMessage(message);
+            }
             throw e;
         } finally {
+            if (internalStorageSystem != null) {
+                _dbClient.persistObject(internalStorageSystem);
+            }
             _log.info("Discovery of storage system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
         }
     }
 
     private void discoverStoragePools(DiscoveryDriver driver, AccessProfile accessProfile)
             throws BaseCollectionException {
+        List<StoragePool> storagePools = new ArrayList<StoragePool>();
+
 
     }
 

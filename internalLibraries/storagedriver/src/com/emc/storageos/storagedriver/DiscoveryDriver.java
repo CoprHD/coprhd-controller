@@ -4,6 +4,8 @@ package com.emc.storageos.storagedriver;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.model.StorageVolume;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
 import org.apache.commons.lang.mutable.MutableInt;
 
 import java.util.List;
@@ -59,6 +61,6 @@ public interface DiscoveryDriver extends StorageDriver{
      *              that last page was returned. Type: Input/Output.
      * @return
      */
-    public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StoragePort> storageVolumes, MutableInt token);
+    public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token);
 
 }

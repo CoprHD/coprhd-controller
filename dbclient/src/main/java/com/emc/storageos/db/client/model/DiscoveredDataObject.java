@@ -9,6 +9,9 @@ public class DiscoveredDataObject extends DataObject {
     // Unique Bourne identifier.
     private String _nativeGuid;
 
+    // Unigue native identifier (system level identifier)
+    private String _nativeId;
+
     // known device types
     public static enum Type {
         isilon,
@@ -105,5 +108,13 @@ public class DiscoveredDataObject extends DataObject {
     public void setNativeGuid(String nativeGuid) {
         _nativeGuid = nativeGuid;
         setChanged("nativeGuid");
+    }
+
+    public String getNativeId() {
+        return _nativeId;
+    }
+
+    public void setNativeId(String nativeId) {
+        _nativeId = nativeId;
     }
 }

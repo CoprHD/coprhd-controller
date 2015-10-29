@@ -1,6 +1,8 @@
 package com.emc.storageos.storagedriver;
 
 import com.emc.storageos.storagedriver.model.*;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 import java.util.List;
 
@@ -26,29 +28,27 @@ public interface BlockStorageDriver extends StorageDriver {
      * Before completion of the request, set all required data for provisioned volumes in "volumes" parameter.
      *
      * @param volumes Input/output argument for volumes.
-     * @param capabilities Input argument for capabilities.
+     * @param capabilities Input argument for capabilities. Defines storage capabilities of volumes to create.
      * @return task
      */
-    public DriverTask createVolumes(List<StorageVolume> volumes, List<CapabilityInstance> capabilities);
+    public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities);
 
     /**
      * Expand volume.
      * Before completion of the request, set all required data for expanded volume in "volume" parameter.
      *
-     * @param volume  Volume to expand. Type: Input argument.
+     * @param volume  Volume to expand. Type: Input/Output argument.
      * @param newCapacity  Requested capacity. Type: input argument.
-     * @param capabilities Input argument for capabilities.
      * @return task
      */
-    public DriverTask expandVolume(StorageVolume volume, long newCapacity, List<CapabilityInstance> capabilities);
+    public DriverTask expandVolume(StorageVolume volume, long newCapacity);
 
     /**
      * Delete volumes.
      * @param volumes Volumes to delete.
-     * @param capabilities Input argument for capabilities.
-     * @return
+     * @return task
      */
-    public DriverTask deleteVolumes(List<StorageVolume> volumes, List<CapabilityInstance> capabilities);
+    public DriverTask deleteVolumes(List<StorageVolume> volumes);
 
     // Block Snapshot operations
 
@@ -57,67 +57,63 @@ public interface BlockStorageDriver extends StorageDriver {
      *
      * @param volumes volumes to snap. Type: Input.
      * @param snapshots Type: Output.
-     * @param capabilities
-     * @return
+     * @param capabilities capabilities required from snapshots. Type: Input.
+     * @return task
      */
-    public DriverTask createVolumeSnapshot(List<StorageVolume> volumes, List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities);
+    public DriverTask createVolumeSnapshot(List<StorageVolume> volumes, List<VolumeSnapshot> snapshots, StorageCapabilities capabilities);
 
     /**
-     * Restore volume from snapshot.
+     * Restore volume to snapshot state.
      *
      * @param volume Type: Input/Output.
      * @param snapshot  Type: Input.
-     * @param capabilities
-     * @return
+     * @return task
      */
-    public DriverTask restoreFromSnapshot(StorageVolume volume, VolumeSnapshot snapshot, List<CapabilityInstance> capabilities);
+    public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot);
 
     /**
      * Delete snapshots.
      * @param snapshots Type: Input.
-     * @param capabilities
-     * @return
+
+     * @return task
      */
-    public DriverTask  deleteVolumeSnapshot(List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities);
+    public DriverTask  deleteVolumeSnapshot(List<VolumeSnapshot> snapshots);
 
     // Block clone operations
 
     /**
      * Clone volumes.
-     * @param volume  Type: Input.
+     * @param volumes  Type: Input.
      * @param clones  Type: Output.
-     * @param capabilities
-     * @return
+     * @param capabilities capabilities of clones. Type: Input.
+     * @return task
      */
-    public DriverTask createVolumeClone(List<StorageVolume> volume, List<VolumeClone> clones, List<CapabilityInstance> capabilities);
+    public DriverTask createVolumeClone(List<StorageVolume> volumes, List<VolumeClone> clones, StorageCapabilities capabilities);
 
     /**
      * Detach volume clones.
      *
      * @param clones Type: Input/Output.
-     * @param capabilities
-     * @return
+     * @return task
      */
-    public DriverTask detachVolumeClone(List<VolumeClone> clones, List<CapabilityInstance> capabilities);
+    public DriverTask detachVolumeClone(List<VolumeClone> clones);
 
     /**
      * Restore from clone.
      *
-     * @param volume  Type: Input.
+     * @param volume  Type: Input/Output.
      * @param clone   Type: Input.
-     * @param capabilities
-     * @return
+     * @return task
      */
-    public DriverTask restoreFromClone(StorageVolume volume, VolumeClone clone, List<CapabilityInstance> capabilities);
+    public DriverTask restoreFromClone(StorageVolume volume, VolumeClone clone);
 
     /**
      * Delete volume clones.
      *
-     * @param clones  Type: Input.
-     * @param capabilities
+     * @param clones clones to delete. Type: Input.
      * @return
      */
-    public DriverTask deleteVolumeClone(List<VolumeClone> clones, List<CapabilityInstance> capabilities);
+    public DriverTask deleteVolumeClone(List<VolumeClone> clones);
 
     // Block Mirror operations
 
@@ -126,46 +122,42 @@ public interface BlockStorageDriver extends StorageDriver {
      *
      * @param volumes  Type: Input.
      * @param mirrors  Type: Output.
-     * @param capabilities
-     * @return
+     * @param capabilities capabilities of mirrors. Type: Input.
+     * @return task
      */
-    public DriverTask createVolumeMirror(List<StorageVolume> volumes, List<VolumeMirror> mirrors, List<CapabilityInstance> capabilities);
+    public DriverTask createVolumeMirror(List<StorageVolume> volumes, List<VolumeMirror> mirrors, StorageCapabilities capabilities);
 
     /**
      * Delete mirrors.
      *
-     * @param mirrors Type: Input.
-     * @param capabilities
-     * @return
+     * @param mirrors mirrors to delete. Type: Input.
+     * @return task
      */
-    public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors, List<CapabilityInstance> capabilities);
+    public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors);
 
     /**
      * Split mirrors
      * @param mirrors  Type: Input/Output.
-     * @param capabilities
-     * @return
+     * @return task
      */
-    public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors, List<CapabilityInstance> capabilities);
+    public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors);
 
     /**
      * Resume mirrors after split
      *
      * @param mirrors  Type: Input/Output.
-     * @param capabilities
-     * @return
+     * @return task
      */
-    public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors, List<CapabilityInstance> capabilities);
+    public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors);
 
     /**
      * Restore volume from a mirror
      *
      * @param volume  Type: Input/Output.
      * @param mirror  Type: Input.
-     * @param capabilities
-     * @return
+     * @return task
      */
-    public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror, List<CapabilityInstance> capabilities);
+    public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror);
 
 
 
@@ -175,31 +167,31 @@ public interface BlockStorageDriver extends StorageDriver {
      *
      * @param storageSystem Storage system to get ITLs from. Type: Input.
      * @param initiators Type: Input.
-     * @return
+     * @return list of export masks
      */
     public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators);
 
     /**
-     * Export volumes to initiators through a given set of ports
+     * Export volumes to initiators through a given set of ports. If ports are not provided,
+     * use port requirements from ExportPathsServiceOption storage capability
      *
      * @param initiators Type: Input.
      * @param volumes    Type: Input.
-     * @param recommendedPorts recommended list of ports.  Type: Input.
-     * @param capabilities
-     * @return
+     * @param recommendedPorts recommended list of ports. Optional. Type: Input.
+     * @param capabilities storage capabilities. Type: Input.
+     * @return task
      */
     public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, List<StoragePort> recommendedPorts,
-                                                List<CapabilityInstance> capabilities);
+                                                StorageCapabilities capabilities);
 
     /**
      * Unexport volumes from initiators
      *
      * @param initiators  Type: Input.
      * @param volumes     Type: Input.
-     * @return
+     * @return task
      */
-    public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
-                                                    List<CapabilityInstance> capabilities);
+    public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes);
 
     // Consistency group operations.
     /**
@@ -212,36 +204,36 @@ public interface BlockStorageDriver extends StorageDriver {
     /**
      * Create snapshot of consistency group.
      * @param consistencyGroup input parameter
-     * @param snapshot   output parameter
-     * @param capabilities
+     * @param snapshots   output parameter
+     * @param capabilities Capabilities of snapshots. Type: Input.
      * @return
      */
-    public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, VolumeSnapshot snapshot,
+    public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots,
                                                      List<CapabilityInstance> capabilities);
 
     /**
      * Delete snapshot.
-     * @param snapshot  Input.
+     * @param snapshots  Input.
      * @return
      */
-    public DriverTask deleteConsistencyGroupSnapshot(VolumeSnapshot snapshot);
+    public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots);
 
     /**
-     * Create clone.
+     * Create clone of consistency group.
      * @param consistencyGroup input/output
-     * @param clone output
-     * @param capabilities input
+     * @param clones output
+     * @param capabilities Capabilities of clones. Type: Input.
      * @return
      */
-    public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, VolumeClone clone,
+    public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
                                                      List<CapabilityInstance> capabilities);
 
     /**
-     * Delete clone
-     * @param clone  output
+     * Delete consistency group clone
+     * @param clones  output
      * @return
      */
-    public DriverTask deleteConsistencyGroupClone(VolumeClone clone);
+    public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones);
 
 
 }

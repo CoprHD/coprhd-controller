@@ -1,4 +1,4 @@
-package com.emc.storageos.storagedriver;
+package com.emc.storageos.storagedriver.storagecapabilities;
 
 
 /**

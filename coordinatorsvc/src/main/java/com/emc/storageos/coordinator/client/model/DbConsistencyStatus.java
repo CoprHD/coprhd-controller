@@ -171,7 +171,7 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
     @JsonIgnore
     public void updateCFProgress(int total, String workingPoint, int inconsistencyCount) {
         this.checkedCount++;
-        this.progress = (int)(this.checkedCount/total/2);
+        this.progress = (int)(this.checkedCount/total/2*100);
         this.workingPoint = workingPoint;
         this.inconsistencyCount = inconsistencyCount;
     }
@@ -179,8 +179,14 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
     @JsonIgnore
     public void updateIndexProgress(int total, String workingPoint, int inconsistencyCount) {
         this.checkedCount++;
-        this.progress = (int)(this.checkedCount/total);
+        this.progress = (int)(this.checkedCount/total*100);
         this.workingPoint = workingPoint;
         this.inconsistencyCount += inconsistencyCount;
+    }
+    
+    @JsonIgnore
+    public void markResult(Status status) {
+        this.endTime = new Date();
+        this.status = status;
     }
 }

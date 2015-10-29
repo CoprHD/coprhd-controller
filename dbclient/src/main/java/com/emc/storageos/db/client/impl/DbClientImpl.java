@@ -1995,6 +1995,7 @@ public class DbClientImpl implements DbClient {
         // Detect whether the DataObject CFs have the records
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
             Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
+            logMessage(String.format("objCf %s", objCf), false, toConsole);
             OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace
                     .prepareQuery(objCf).getRowSlice(objKeysIdxEntryMap.keySet())
                     .withColumnRange(new RangeBuilder().setLimit(1).build())

@@ -57,16 +57,17 @@ public class DbChecker {
      * @return number of the corrupted rows in data CFs
      */
     public int checkDataObjects(boolean toConsole) {
-        dbClient.logMessage("Start to check dirty data that cannot be deserialized.", false, toConsole);
-
         Collection<DataObjectType> allDoTypes = TypeMap.getAllDoTypes();
-        Collection<DataObjectType> sortedTypes = getAllDoTypes(allDoTypes);
-        int cfCount = allDoTypes.size();
-        DbConsistencyStatus status = getStatusFromZk();
-        Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, status.getWorkingPoint(), toConsole);
-        int dirtyCount = 0;
+        Collection<DataObjectType> sortedTypes = getSortedTypes(allDoTypes);
         
+        DbConsistencyStatus status = getStatusFromZk();
+        dbClient.logMessage(String.format("status {] in zk", status.toString()), false, false);
+        Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, status.getWorkingPoint(), toConsole);
+        dbClient.logMessage(String.format("total cf count %d", cfCount), false, false);
+        int dirtyCount = 0;
+
         for (DataObjectType doType : filteredTypes) {
+            dbClient.logMessage(String.format("processing %s cf", doType.getCF().getName()), false, false);
             if ( !toConsole && isCancelled() ) {
                 cancel(status);
                 return dirtyCount;
@@ -148,7 +149,7 @@ public class DbChecker {
         return this.coordinator.queryRuntimeState(Constants.DB_CONSISTENCY_STATUS, DbConsistencyStatus.class);
     }
 
-    private Collection<DataObjectType> getAllDoTypes(Collection<DataObjectType> allDoTypes) {
+    private Collection<DataObjectType> getSortedTypes(Collection<DataObjectType> allDoTypes) {
         List<DataObjectType> types = new ArrayList<DataObjectType>(allDoTypes);
         Collections.sort(types, new Comparator<DataObjectType>() {
 
@@ -171,14 +172,17 @@ public class DbChecker {
         dbClient.logMessage("\nStart to check INDEX data that the related object records are missing.\n", false, toConsole);
 
         Collection<IndexAndCf> idxCfs = getAllIndices().values();
+
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
         DbConsistencyStatus status = getStatusFromZk();
+        dbClient.logMessage(String.format("db consistency status %s", status), false, toConsole);
         Collection<IndexAndCf> sortedIdxCfs = sortIndexCfs(idxCfs);
         Collection<IndexAndCf> filteredIdCfs = filterOutIndexAndCfs(sortedIdxCfs, status.getWorkingPoint(), toConsole);
         int corruptRowCount = 0;
         int totalCorruptCount = 0;
         
         for (DbClientImpl.IndexAndCf indexAndCf : filteredIdCfs) {
+            dbClient.logMessage(String.format("indexAndCf ", indexAndCf.generateKey()), false, toConsole);
             if ( !toConsole && isCancelled() ) {
                 cancel(status);
                 return totalCorruptCount;

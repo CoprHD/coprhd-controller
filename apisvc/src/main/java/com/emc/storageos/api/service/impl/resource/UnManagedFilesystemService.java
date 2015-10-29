@@ -489,24 +489,6 @@ public class UnManagedFilesystemService extends TaggedResource {
                             }
                         }
                         
-                        _logger.info("Number of Cifs ACL Found : {} for UnManaged Fs path : {}", cifsACLs.size(),
-                                unManagedFileSystem.getMountPath());
-
-                        if (cifsACLs != null && !cifsACLs.isEmpty()) {
-                            for (UnManagedCifsShareACL umCifsAcl : cifsACLs) {
-                                // Step 2 : Convert them to Cifs Share ACL
-                                // Step 3 : Keep them as a list to store in db, down the line at a shot
-                                umCifsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
-                                createACL(umCifsAcl, fsCifsShareAcls, filesystem);
-                                // Step 4: Update the UnManaged Share ACL : Set Inactive as true
-                                umCifsAcl.setInactive(true);
-                                // Step 5 : Keep this list as updated.
-                                inActiveUnManagedShareCifs.add(umCifsAcl);
-                            }
-                        }
-
-                        
-                        
                     }
                 }
                 

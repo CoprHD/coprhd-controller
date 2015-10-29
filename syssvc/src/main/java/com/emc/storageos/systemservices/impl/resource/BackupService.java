@@ -344,7 +344,7 @@ public class BackupService {
         URI postUri = SysClientFactory.URI_NODE_BACKUPS_DOWNLOAD;
         boolean propertiesFileFound = false;
         int collectFileCount = 0;
-        int totalFileCount = files.size();
+        int totalFileCount = files.size() * 2;
         for (final NodeInfo node : nodes) {
             String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
                     node.getIpAddress(), node.getPort());

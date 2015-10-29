@@ -41,15 +41,21 @@ public class UploadExecutor {
         this.cli = cli;
     }
 
+    public void setUploader(Uploader uploader) {
+        this.uploader = uploader;
+    }
+
     public void runOnce() throws Exception {
         runOnce(null);
     }
 
     public void runOnce(String backupTag) throws Exception {
-        this.uploader = Uploader.create(cfg, cli);
         if (this.uploader == null) {
-            log.info("Upload URL is empty, upload disabled");
-            return;
+            setUploader(Uploader.create(cfg, cli));
+            if (this.uploader == null) {
+                log.info("Upload URL is empty, upload disabled");
+                return;
+            }
         }
 
         try (AutoCloseable lock = this.cfg.lock()) {
@@ -71,7 +77,7 @@ public class UploadExecutor {
     private String tryUpload(String tag) throws InterruptedException {
         String lastErrorMessage = null;
 
-        setUploadStatus(tag, Status.INIT, null, null);
+        setUploadStatus(tag, Status.NOT_STARTED, null, null);
         for (int i = 0; i < UPLOAD_RETRY_TIMES; i++) {
             try {
                 BackupFileSet files = this.cli.getDownloadFiles(tag);
@@ -217,7 +223,7 @@ public class UploadExecutor {
         if (backupTag.equals(uploadStatus.getBackupName())) {
             return uploadStatus;
         } else {
-            return new BackupUploadStatus(backupTag, Status.INIT, null, null);
+            return new BackupUploadStatus(backupTag, Status.NOT_STARTED, null, null);
         }
     }
 

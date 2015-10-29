@@ -78,7 +78,7 @@ public class StorageContainerService extends VirtualPoolService {
 
     @Override
     protected Type getVirtualPoolType() {
-        return null;
+        return Type.storageContainer;
     }
 
     @Override

@@ -58,6 +58,16 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
         protected Set<String> getUsageAclsFromURI(String tenantId, UriInfo uriInfo) {
             return null;
         }
+
+        /**
+         * Get tenant ids from the uri
+         *
+         * @return
+         */
+        @Override
+        protected Set<URI> getTenantIdsFromURI(UriInfo uriInfo) {
+            return null;
+        }
     }
 
     /**

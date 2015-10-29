@@ -16,14 +16,14 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.model.file.ExportRule;
 import com.iwave.ext.netapp.AggregateInfo;
-import com.iwave.ext.netappc.NFSSecurityStyle;
 import com.iwave.ext.netapp.QuotaCommands.QuotaStatus;
-import com.iwave.ext.netappc.NetAppClusterFacade;
-import com.iwave.ext.netappc.model.CifsAcl;
-import com.iwave.ext.netappc.model.CifsAccess;
-import com.iwave.ext.netapp.model.Qtree;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
+import com.iwave.ext.netapp.model.Qtree;
+import com.iwave.ext.netappc.NFSSecurityStyle;
+import com.iwave.ext.netappc.NetAppClusterFacade;
 import com.iwave.ext.netappc.StorageVirtualMachineInfo;
+import com.iwave.ext.netappc.model.CifsAccess;
+import com.iwave.ext.netappc.model.CifsAcl;
 
 /*
  * Following Jiras raised for tracking. The fix will be made in the future release.
@@ -70,6 +70,7 @@ public class NetAppClusterApi {
         cifsPermissionMap.put(VIPR_CIFS_PERM_CHANGE, NTP_CIFS_PERM_CHANGE);
         cifsPermissionMap.put(VIPR_CIFS_PERM_READ, NTP_CIFS_PERM_READ);
     }
+
     private static final Logger _logger = LoggerFactory
             .getLogger(NetAppClusterApi.class);
 
@@ -504,7 +505,7 @@ public class NetAppClusterApi {
             String convertedVers = "";
             for (int i = 0; i < parseVersion.length; i++) {
                 _logger.info(parseVersion[i]);
-                Number num = ((Number) NumberFormat.getInstance().parse(parseVersion[i])).intValue();
+                Number num = NumberFormat.getInstance().parse(parseVersion[i]).intValue();
                 convertedVers = convertedVers + num.toString() + ".";
             }
             convertedVers = convertedVers.substring(0, convertedVers.length() - 1);
@@ -678,6 +679,16 @@ public class NetAppClusterApi {
         }
     }
 
+    public List<String> listFileSystems() throws NetAppCException {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppClusterFacade.listVolumes();
+        } catch (Exception e) {
+            throw NetAppCException.exceptions.listFileSystems(_ipAddress, e.getMessage());
+        }
+    }
+
     public List<Map<String, String>> listShares(String shareName) throws NetAppCException {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
@@ -822,7 +833,7 @@ public class NetAppClusterApi {
 
     public Boolean modifyNFSShare(String fsName, String qtreeName, String exportPath,
             ExportRule oldRule, ExportRule newRule)
-            throws NetAppCException {
+                    throws NetAppCException {
         try {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName, _password, _https, true, _svmName);
             _logger.info("NetApp Inputs for modifyNFSShare exportPath: {} ", exportPath);

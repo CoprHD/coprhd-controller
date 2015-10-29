@@ -26,6 +26,8 @@
                 <value>vdc1</value>
             </list>
         </property>
+        <property name="onStandby" value="false"/>
+        <property name="standbyId" value=""/>
     </bean>
     
 </beans>

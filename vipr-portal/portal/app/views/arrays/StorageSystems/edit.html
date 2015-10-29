@@ -31,7 +31,7 @@
     var nonSSLStorageSystemList = [];
     #{list items:nonSSLStorageSystemList, as:'typeList'}
     nonSSLStorageSystemList.push('${typeList.id}');
-    #{/list}
+    #{/list}    
     
     // Port Map of all default ports for various storage array types
     var portMap = new Object();
@@ -240,7 +240,7 @@
             $('#storageArray_resourceLimitControlGroup').show();
         }
     }
-    
+        
     function isHideSSLCheckboxStorageSystem(storageSystemType) {
         return $.inArray(storageSystemType, nonSSLStorageSystemList) >= 0;
     }
@@ -277,11 +277,23 @@
                     $('#storageArray_secondaryUsernameControlGroup').show();
                     $('#storageArray_secondaryPasswordControlGroup').show();
                     $('#storageArray_secondaryPasswordConfirmControlGroup').show();
+                } else if ($('#storageArray_type').val() == '${scaleIOApiStorageSystemType}') {              	
+                	
+                	$('#storageArray_userNameControlGroup').hide();
+                	$('#storageArray_userPasswordControlGroup').hide();
+                	$('#storageArray_confirmPasswordControlGroup').hide();
+                	$('#storageArray_secondaryUsernameControlGroup').show();
+                    $('#storageArray_secondaryPasswordControlGroup').show();
+                    $('#storageArray_secondaryPasswordConfirmControlGroup').show();
+                    $('#storageArray_elementManagerURLControlGroup').hide();
                 } else {
+                	$('#storageArray_userNameControlGroup').show();
+                	$('#storageArray_userPasswordControlGroup').show();
+                	$('#storageArray_confirmPasswordControlGroup').show();
                     $('#storageArray_secondaryUsernameControlGroup').hide();
                     $('#storageArray_secondaryPasswordControlGroup').hide();
-                    $('#storageArray_secondaryPasswordConfirmControlGroup').hide();
-                }
+                    $('#storageArray_secondaryPasswordConfirmControlGroup').hide();                                  	
+                }    	
             } else {
             	$('#storageArray_secondaryUsernameControlGroup').hide();
                 $('#storageArray_secondaryPasswordControlGroup').hide();
@@ -305,6 +317,9 @@
 	  		}
 	  		
       } else  if (isNonSmisStorageSystem(selectedType) ) {
+    	  	$('#storageArray_userNameControlGroup').show();
+      		$('#storageArray_userPasswordControlGroup').show();
+      		$('#storageArray_confirmPasswordControlGroup').show();
   	  		$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.ipAddress')}"+":");
   	  	    $('#storageArray_ipAddressControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.ipAddress.help')}");
 //   			$('#storageArray_serialNumberControlGroup').show().addClass('required');    		
@@ -435,14 +450,23 @@
     #{/field}
     
     #{field 'storageArray.secondaryUsername'}
+    %{
+        field.required = !editMode
+      }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
  
     #{field 'storageArray.secondaryPassword'}
+    %{
+        field.required = !editMode
+      }%
       #{Form.inputPasswordControlGroup field:field /}
     #{/field}
  
     #{field 'storageArray.secondaryPasswordConfirm'}
+    %{
+        field.required = !editMode
+      }%
       #{Form.inputPasswordControlGroup field:field /}
     #{/field}
  

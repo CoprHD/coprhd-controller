@@ -15,13 +15,13 @@ public class XtremIOVolumesInfo {
 
     @SerializedName("volumes")
     @JsonProperty(value = "volumes")
-    private XtremIOVolumeInfo[] volumeInfo;
+    private XtremIOObjectInfo[] volumeInfo;
 
-    public XtremIOVolumeInfo[] getVolumeInfo() {
+    public XtremIOObjectInfo[] getVolumeInfo() {
         return volumeInfo != null ? volumeInfo.clone() : volumeInfo;
     }
 
-    public void setVolumeInfo(XtremIOVolumeInfo[] volumeInfo) {
+    public void setVolumeInfo(XtremIOObjectInfo[] volumeInfo) {
         if (volumeInfo != null) {
             this.volumeInfo = volumeInfo.clone();
         }

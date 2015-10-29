@@ -24,7 +24,7 @@ public class UnmanagedVolumeVirtualPoolFilter extends DefaultResourceFilter<UnMa
             return false;
         }
 
-        Set<URI> vpools = getVpoolsForUnmanaged(item.getVolumeInformation(), item.getVolumeCharacteristics());
+        Set<URI> vpools = getVpoolsForUnmanaged(item.getVolumeCharacteristics(), item.getSupportedVPoolUris());
         return vpools.contains(virtualPoolId);
     }
 }

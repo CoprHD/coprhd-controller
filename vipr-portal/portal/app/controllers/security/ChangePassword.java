@@ -74,7 +74,7 @@ public class ChangePassword extends Controller {
 
             try {
                 BourneUtil.getSysClient().password().update(oldPassword, newPassword, false);
-                flash.success(Messages.get("passwordForm.success"));
+                Security.clearAuthToken();
             } catch (Exception e) {
                 Common.flashException(e);
             }

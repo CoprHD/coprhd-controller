@@ -86,7 +86,7 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
                     profile.getSystemId());
             boolean isVmax3 = device.checkIfVmax3();
             if (isVmax3) {
-                sloNames = new HashSet<>();
+                sloNames = (Set<String>) keyMap.get(Constants.SLO_NAMES);
                 newSLOList = new ArrayList<>();
                 updateSLOList = new ArrayList<>();
             }
@@ -287,7 +287,6 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
         if (updateList != null) {
             _dbClient.updateAndReindexObject(updateList);
         }
-        performPolicyBookKeeping(_dbClient, sloNames, storageSystem.getId());
     }
 
     /**
@@ -367,34 +366,4 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
         }
     }
 
-    /**
-     * if the policy had been removed from the Array, the rediscovery cycle should set the fast Policy to inactive.
-     * 
-     * @param dbClient [in] - Database client
-     * @param policyNames [in] - List SLO nativeGUIDs
-     * @param storageSystemURI [in] - URI of StorageSystem object
-     * @throws java.io.IOException
-     */
-    private void performPolicyBookKeeping(DbClient dbClient, Set<String> policyNames, URI storageSystemURI)
-            throws IOException {
-        List<URI> policiesInDB = dbClient
-                .queryByConstraint(ContainmentConstraint.Factory
-                        .getStorageDeviceFASTPolicyConstraint(storageSystemURI));
-        for (URI policy : policiesInDB) {
-            AutoTieringPolicy policyObject = dbClient.queryObject(
-                    AutoTieringPolicy.class, policy);
-            // Process only SLO based AutoTieringPolicies here.
-            if (policyObject == null || Strings.isNullOrEmpty(policyObject.getVmaxSLO())) {
-                continue;
-            }
-            String policyName = policyObject.getPolicyName();
-            if (!policyNames.contains(policyName)) {
-                policyObject.setPolicyEnabled(false);
-                policyObject.getPools().clear();
-                policyObject.setInactive(true);
-                dbClient.updateAndReindexObject(policyObject);
-            }
-
-        }
-    }
 }

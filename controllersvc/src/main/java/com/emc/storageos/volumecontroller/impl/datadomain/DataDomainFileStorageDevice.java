@@ -5,7 +5,18 @@
 
 package com.emc.storageos.volumecontroller.impl.datadomain;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.datadomain.restapi.DataDomainApiConstants;
+import com.emc.storageos.datadomain.restapi.DataDomainClient;
 import com.emc.storageos.datadomain.restapi.DataDomainClientFactory;
 import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainApiException;
 import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainResourceNotFoundException;
@@ -16,12 +27,20 @@ import com.emc.storageos.datadomain.restapi.model.DDExportInfoDetail;
 import com.emc.storageos.datadomain.restapi.model.DDExportList;
 import com.emc.storageos.datadomain.restapi.model.DDMCInfoDetail;
 import com.emc.storageos.datadomain.restapi.model.DDMTreeInfo;
+import com.emc.storageos.datadomain.restapi.model.DDMTreeInfoDetail;
 import com.emc.storageos.datadomain.restapi.model.DDServiceStatus;
 import com.emc.storageos.datadomain.restapi.model.DDShareInfo;
 import com.emc.storageos.datadomain.restapi.model.DDShareInfoDetail;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.datadomain.restapi.*;
+import com.emc.storageos.db.client.model.FSExportMap;
+import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.SMBFileShare;
+import com.emc.storageos.db.client.model.SMBShareMap;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
@@ -32,12 +51,6 @@ import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.*;
 
 /**
  * DataDomain specific file controller implementation.
@@ -448,7 +461,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
 
     private void ddCreateExports(DataDomainClient ddClient, String storagePoolId,
             FSExportMap exportMap, List<FileExport> createFileExports)
-            throws DataDomainApiException {
+                    throws DataDomainApiException {
         for (FileExport fileExport : createFileExports) {
             // Build export map for export create
             String exportName;
@@ -481,8 +494,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
             FSExportMap exportMap, List<FileExport> modifyFileExports) {
         for (FileExport fileExport : modifyFileExports) {
             fileExport.setNativeId(exportMap.get(fileExport.getFileExportKey()).getNativeId());
-            List<DDExportClientModify> ddExportClients = ddBuildModifyExportClientList
-                    (exportMap, fileExport);
+            List<DDExportClientModify> ddExportClients = ddBuildModifyExportClientList(exportMap, fileExport);
             DDExportInfoDetail ddExport = ddClient.getExport(storagePoolId,
                     fileExport.getNativeId());
             if (ddExport.getPathStatus() != DataDomainApiConstants.PATH_EXISTS) {
@@ -508,10 +520,8 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
         DDShareInfo ddShareInfo = ddClient.createShare(storagePoolId,
                 shareName, sharePath, maxUsers, desc, permissionType, permission);
         if (ddShareInfo.getPathStatus() != DataDomainApiConstants.PATH_EXISTS) {
-            DDServiceStatus ddSvcStatus = ddClient.deleteShare
-                    (storagePoolId, ddShareInfo.getId());
-            throw DataDomainApiException.exceptions.
-                    failedSharePathDoesNotExist(sharePath);
+            DDServiceStatus ddSvcStatus = ddClient.deleteShare(storagePoolId, ddShareInfo.getId());
+            throw DataDomainApiException.exceptions.failedSharePathDoesNotExist(sharePath);
         }
         smbFileShare.setNativeId(ddShareInfo.getId());
     }
@@ -529,8 +539,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
             if (ddclient == null) {
                 _log.error("doCreateFS failed, provider unreachable");
                 String op = "FS create";
-                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
-                        operationFailedProviderInaccessible(op));
+                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.operationFailedProviderInaccessible(op));
             }
             // Update path and mountPath
             // TODO: try to mount export
@@ -597,8 +606,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
             if (ddClient == null) {
                 _log.error("doDeleteFS failed, provider unreachable");
                 String op = "FS delete";
-                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
-                        operationFailedProviderInaccessible(op));
+                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.operationFailedProviderInaccessible(op));
             }
 
             URI storagePoolId = args.getFs().getPool();
@@ -651,6 +659,25 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     }
 
     @Override
+    public boolean doCheckFSExists(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
+        _log.info("checking file system existence on array: ", args.getFsName());
+        boolean isMtreeExists = true;
+        try {
+            DataDomainClient ddClient = getDataDomainClient(storage);
+            URI storagePoolId = args.getFs().getPool();
+            StoragePool storagePool = _dbClient.queryObject(StoragePool.class, storagePoolId);
+            DDMTreeInfoDetail mtreeInfo = ddClient.getMTree(storagePool.getNativeId(), args.getFs().getNativeId());
+            if (mtreeInfo != null && (mtreeInfo.id.equals(args.getFsNativeId()))) {
+                isMtreeExists = true;
+            }
+        } catch (DataDomainResourceNotFoundException e) {
+            _log.info("Mtree not found.", e);
+            isMtreeExists = false;
+        }
+        return isMtreeExists;
+    }
+
+    @Override
     public BiosCommandResult doExpandFS(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
         try {
@@ -659,22 +686,19 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
             if (ddClient == null) {
                 _log.error("doExpandFS failed, provider unreachable");
                 String op = "FS expand";
-                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
-                        operationFailedProviderInaccessible(op));
+                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.operationFailedProviderInaccessible(op));
             }
             Long newSize = args.getNewFSCapacity();
             Long currSize;
             if ((args.getFsCapacity() != null) && (args.getFsCapacity() > 0)) {
                 currSize = args.getFsCapacity();
             } else {
-                ServiceError serviceError =
-                        DeviceControllerErrors.datadomain.doFailedToGetCurrSize();
+                ServiceError serviceError = DeviceControllerErrors.datadomain.doFailedToGetCurrSize();
                 return BiosCommandResult.createErrorResult(serviceError);
             }
 
             if (currSize >= newSize) {
-                ServiceError serviceError =
-                        DeviceControllerErrors.datadomain.doShrinkFSFailed(currSize, newSize);
+                ServiceError serviceError = DeviceControllerErrors.datadomain.doShrinkFSFailed(currSize, newSize);
                 return BiosCommandResult.createErrorResult(serviceError);
             }
 
@@ -708,8 +732,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
         _log.info("DataDomainFileStorageDevice doExport {} - start", args.getFileObjId());
         // Snapshot Export operation is not supported by Data Domain.
         if (args.getFileOperation() == false) {
-            return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
-                    doCreateSnapshotExportFailed());
+            return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.doCreateSnapshotExportFailed());
         }
 
         if ((exportList == null) || (exportList.isEmpty())) {
@@ -721,8 +744,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
             if (ddClient == null) {
                 _log.error("doExport failed, provider unreachable");
                 String op = "FS export";
-                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
-                        operationFailedProviderInaccessible(op));
+                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.operationFailedProviderInaccessible(op));
             }
 
             if ((args.getFsExports() == null) || (args.getFsExports().isEmpty())) {
@@ -766,8 +788,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
             if (ddClient == null) {
                 _log.error("doUnexport failed, provider unreachable");
                 String op = "FS unexport";
-                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
-                        operationFailedProviderInaccessible(op));
+                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.operationFailedProviderInaccessible(op));
             }
             URI storagePoolId = args.getFs().getPool();
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class,
@@ -793,14 +814,12 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
             if (ddClient == null) {
                 _log.error("doShare failed, provider unreachable");
                 String op = "FS share create";
-                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
-                        operationFailedProviderInaccessible(op));
+                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.operationFailedProviderInaccessible(op));
             }
 
             // Check if this is a new share or update of the existing share
             SMBShareMap smbShareMap = args.getFileObjShares();
-            SMBFileShare existingShare = (smbShareMap == null) ? null :
-                    smbShareMap.get(smbFileShare.getName());
+            SMBFileShare existingShare = (smbShareMap == null) ? null : smbShareMap.get(smbFileShare.getName());
 
             String shareId;
             DDShareInfo ddShareInfo;
@@ -815,14 +834,11 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
                 URI storagePoolId = args.getFs().getPool();
                 StoragePool storagePool = _dbClient.queryObject(
                         StoragePool.class, storagePoolId);
-                DDShareInfoDetail ddShareInfoDetail = ddClient.getShare
-                        (storagePool.getNativeId(), shareId);
+                DDShareInfoDetail ddShareInfoDetail = ddClient.getShare(storagePool.getNativeId(), shareId);
 
                 if (ddShareInfoDetail.getPathStatus() == 0) {
-                    DDServiceStatus ddSvcStatus = ddClient.deleteShare
-                            (storagePool.getNativeId(), shareId);
-                    throw DataDomainApiException.exceptions.failedSharePathDoesNotExist
-                            (ddShareInfoDetail.getPath());
+                    DDServiceStatus ddSvcStatus = ddClient.deleteShare(storagePool.getNativeId(), shareId);
+                    throw DataDomainApiException.exceptions.failedSharePathDoesNotExist(ddShareInfoDetail.getPath());
                 }
                 ddShareInfo = ddClient.modifyShare(
                         storagePool.getNativeId(),
@@ -857,15 +873,14 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-            throws ControllerException {
+                    throws ControllerException {
         try {
             _log.info("DataDomainFileStorageDevice doDeleteShare: {} - start");
             DataDomainClient ddClient = getDataDomainClient(storage);
             if (ddClient == null) {
                 _log.error("doDeleteShare failed, provider unreachable");
                 String op = "FS share delete";
-                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
-                        operationFailedProviderInaccessible(op));
+                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.operationFailedProviderInaccessible(op));
             }
             URI storagePoolId = args.getFs().getPool();
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class,
@@ -892,8 +907,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
             if (ddClient == null) {
                 _log.error("doDeleteShares failed, provider unreachable");
                 String op = "FS shares delete";
-                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
-                        operationFailedProviderInaccessible(op));
+                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.operationFailedProviderInaccessible(op));
             }
             URI storagePoolId = args.getFs().getPool();
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class,
@@ -972,7 +986,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doDeleteSnapshot(StorageSystem storage,
             FileDeviceInputOutput args)
-            throws ControllerException {
+                    throws ControllerException {
 
         String message = "Data Domain snapshots not supported yet, delete operation failed";
         _log.error(message);
@@ -1020,7 +1034,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-            throws ControllerException {
+                    throws ControllerException {
         // TODO To be implemented once Data Domain provides snapshot APIs
         String message = "Data Domain snapshots not supported yet, get list operation failed";
         _log.error(message);
@@ -1229,8 +1243,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
         if (ddClient == null) {
             _log.error("updateExportRules failed, provider unreachable");
             String op = "Update export rules";
-            return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
-                    operationFailedProviderInaccessible(op));
+            return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.operationFailedProviderInaccessible(op));
         }
         URI storagePoolId = args.getFs().getPool();
         StoragePool storagePool = _dbClient.queryObject(StoragePool.class,
@@ -1500,8 +1513,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
             if (ddClient == null) {
                 _log.error("deleteExportRules failed, provider unreachable");
                 String op = "Delete export rules";
-                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
-                        operationFailedProviderInaccessible(op));
+                return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.operationFailedProviderInaccessible(op));
             }
             URI storagePoolId = args.getFs().getPool();
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class,

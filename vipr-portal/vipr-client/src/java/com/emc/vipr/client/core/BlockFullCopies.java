@@ -103,6 +103,20 @@ public class BlockFullCopies extends ProjectResources<VolumeRestRep> implements 
     }
 
     /**
+     * Begins creating group synchronization between
+     * volume group and full copy group.
+     * <p>
+     * API Call: <tt>POST /block/full-copies/{id}/start</tt>
+     * 
+     * @param copyId
+     *            the ID of the full copy.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Tasks<VolumeRestRep> startFullCopy(URI copyId) {
+        return postTasks(getIdUrl() + "/start", copyId);
+    }
+
+    /**
      * Gets the full copy volume with an updated value of the progress of the operation. The progress can be retrieved
      * from: <tt>volume.getProtection().getFullCopy().getPercentSynced()</tt>
      * <p>

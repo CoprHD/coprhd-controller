@@ -28,7 +28,6 @@ BT_USER3_PA="bulkapiprojectadmin2@" + BT_TENANT_DOMAIN
 #
 # the tenant user mapping attributes and values
 #
-BT_TENANT_ATTRIBUTE_KEY="title"
 BT_TENANT_ATTRIBUTE_VALUE="BulkAPIUsers"
 
 # the subtenant
@@ -167,7 +166,7 @@ def bulkapi_fileshare_bulkpost(ids):
 def bulkapi_tenant_setup():
     bulkapi_login(sysuser, syspasswd)
    
-    tenant_attr = dict(BT_TENANT_ATTRIBUTE_KEY=BT_TENANT_ATTRIBUTE_VALUE)
+    tenant_attr = dict(title=BT_TENANT_ATTRIBUTE_VALUE)
     tenantid = bulkapi_create_tenant(BT_SUBTENANT, BT_TENANT_DOMAIN, tenant_attr)
     
     bulkapi_add_tenant_role(tenantid, 'subject_id', BT_USER1_TA, 'TENANT_ADMIN')

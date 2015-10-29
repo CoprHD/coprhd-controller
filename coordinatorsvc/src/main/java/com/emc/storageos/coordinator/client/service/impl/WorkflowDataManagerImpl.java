@@ -72,6 +72,18 @@ public class WorkflowDataManagerImpl implements DistributedDataManager {
     }
 
     @Override
+    public void removeNode(String path, boolean recursive) throws Exception {
+        if (recursive) {
+            Stat stat = checkExists(path);
+            if (stat != null) {
+                _zkClient.delete().deletingChildrenIfNeeded().forPath(path);
+            }
+        } else {
+            removeNode(path);
+        }
+    }
+
+    @Override
     public void putData(String path, Object object) throws Exception {
         Stat stat = checkExists(path);
         byte[] data = GenericSerializer.serialize(object);

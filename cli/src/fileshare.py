@@ -567,14 +567,14 @@ class Fileshare(object):
 
 
     # Deletes a fileshare given a fileshare name
-    def delete(self, name, forceDelete=False, sync=False):
+    def delete(self, name, forceDelete=False, delete_type='FULL', sync=False):
         '''
         Deletes a fileshare based on fileshare name
         Parameters:
             name: name of fileshare
         '''
         fileshare_uri = self.fileshare_query(name)
-        return self.delete_by_uri(fileshare_uri, forceDelete, sync)
+        return self.delete_by_uri(fileshare_uri, forceDelete, delete_type, sync)
     
         # Deletes a fileshare given a fileshare name
     def delete_acl(self, name, sharename):
@@ -646,13 +646,13 @@ class Fileshare(object):
 
 
     # Deletes a fileshare given a fileshare uri
-    def delete_by_uri(self, uri, forceDelete=False, sync=False):
+    def delete_by_uri(self, uri, forceDelete=False, delete_type='FULL', sync=False):
         '''
         Deletes a fileshare based on fileshare uri
         Parameters:
             uri: uri of fileshare
         '''
-        request = {"forceDelete": forceDelete}
+        request = {"forceDelete": forceDelete,"delete_type": delete_type}
         body = json.dumps(request)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -1015,6 +1015,13 @@ def delete_parser(subcommand_parsers, common_parser):
         dest='forceDelete',
         help='Delete fileshare forecibly, default false',
         default=False)
+    delete_parser.add_argument(
+        '-deleteType', '-dt',
+        metavar='<delete_type>',
+        dest='delete_type',
+        help='Delete fileshare either from Inventory only or full delete, default FULL',
+        default='FULL',
+        choices=["FULL", "VIPR_ONLY"])
     delete_parser.set_defaults(func=fileshare_delete)
 
 
@@ -1025,7 +1032,7 @@ def fileshare_delete(args):
     try:
         obj.delete(
             args.tenant + "/" + args.project + "/" + args.name,
-            args.forceDelete, args.sync)
+            args.forceDelete, args.delete_type, args.sync)
     except SOSError as e:
         common.format_err_msg_and_raise("delete", "filesystem",
                                         e.err_text, e.err_code)

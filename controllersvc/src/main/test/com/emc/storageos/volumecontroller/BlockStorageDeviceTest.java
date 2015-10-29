@@ -374,7 +374,7 @@ public class BlockStorageDeviceTest {
         TaskCompleter taskCompleter = new BlockSnapshotCreateCompleter(
                 snapshotList, token);
         _deviceController.doCreateSnapshot(_storageSystem, snapshotList,
-                createInactive, taskCompleter);
+                createInactive, false, taskCompleter);
     }
 
     @Test

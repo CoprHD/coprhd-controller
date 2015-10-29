@@ -75,7 +75,7 @@ public class VolumeSettingProcessor extends StorageProcessor {
                 // Now, filter those vPools based on policy associated
                 DiscoveryUtils.filterSupportedVpoolsBasedOnTieringPolicy(unManagedVolume, policyName, system, _dbClient);
 
-                _dbClient.persistObject(unManagedVolume);
+                _dbClient.updateAndReindexObject(unManagedVolume);
             }
         } catch (Exception e) {
             _logger.error("Updating Auto Tier Policies failed on unmanaged volumes", e);

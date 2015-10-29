@@ -518,7 +518,7 @@ public abstract class TaggedResource extends ResourceService {
     }
 
     protected void verifySystemAdmin() {
-        if (!isSystemAdmin()) {
+        if (!isSystemOrRestrictedSystemAdmin()) {
             throw APIException.forbidden
                     .insufficientPermissionsForUser(getUserFromContext().getName());
         }
@@ -526,6 +526,19 @@ public abstract class TaggedResource extends ResourceService {
 
     protected boolean isSystemAdmin() {
         return _permissionsHelper.userHasGivenRole(
-                getUserFromContext(), null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN);
+                getUserFromContext(), null, Role.SYSTEM_ADMIN);
+    }
+
+    protected boolean isRestrictedSystemAdmin() {
+        return _permissionsHelper.userHasGivenRole(
+                getUserFromContext(), null, Role.RESTRICTED_SYSTEM_ADMIN);
+    }
+
+    protected boolean isSystemOrRestrictedSystemAdmin() {
+        return isSystemAdmin() || isRestrictedSystemAdmin();
+    }
+
+    protected boolean isSecurityAdmin() {
+        return _permissionsHelper.userHasGivenRole(getUserFromContext(), null, Role.SECURITY_ADMIN);
     }
 }

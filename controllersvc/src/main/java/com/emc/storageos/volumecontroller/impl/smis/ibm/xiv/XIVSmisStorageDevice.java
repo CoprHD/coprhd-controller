@@ -617,17 +617,17 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doCreateSnapshot(final StorageSystem storage,
             final List<URI> snapshotList, final Boolean createInactive,
-            final TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean readOnly, final TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(
                     BlockSnapshot.class, snapshotList);
             if (inReplicationGroup(snapshots)) {
                 _snapshotOperations.createGroupSnapshots(storage, snapshotList,
-                        createInactive, taskCompleter);
+                        createInactive, readOnly, taskCompleter);
             } else {
                 URI snapshot = snapshots.get(0).getId();
                 _snapshotOperations.createSingleVolumeSnapshot(storage,
-                        snapshot, createInactive, taskCompleter);
+                        snapshot, createInactive, readOnly, taskCompleter);
             }
         } catch (DatabaseException e) {
             String message = String

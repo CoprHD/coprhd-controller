@@ -11,6 +11,7 @@ package com.emc.storageos.coordinator.common.impl;
 public enum ZkPath {
     SERVICE("/service"),
     QUEUE("/queue"),
+    LOCKQUEUE("/lockqueue"),
     WORKPOOL("/workpool"),
     SEMAPHORE("/semaphore"),
     MUTEX("/mutex"),
@@ -22,7 +23,8 @@ public enum ZkPath {
     AUTHN("/authservice"),
     STATE("/state"),
     LOCKDATA("/lockdata"),
-    KVSTORE("/kvstore");
+    KVSTORE("/kvstore"),
+    SITES("/sites");
 
     private final String _path;
 

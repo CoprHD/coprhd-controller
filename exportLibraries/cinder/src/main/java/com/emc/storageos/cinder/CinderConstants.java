@@ -31,8 +31,10 @@ public interface CinderConstants {
 
     public final static String CINDER_PORT_GROUP = "Cinder-PortGroup";
 
-    public final static long BYTES_TO_GB = 1024 * 1024 * 1024;
-
+    public final static String PREFIX_ITL = "ITL-";
+    
+    public final static long BYTES_TO_GB = 1024*1024*1024;
+    
     /**
      * URIs for volume types
      */

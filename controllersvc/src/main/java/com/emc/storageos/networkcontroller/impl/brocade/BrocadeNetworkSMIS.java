@@ -581,14 +581,21 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                 memberPath = cimStringProperty(ins, _SettingData);
                 wwn = getPropertyValueFromString(memberPath, SmisConstants.CP_FABRIC);
                 if (StringUtils.equalsIgnoreCase(wwn, fabricWwn)) {
-                    alias = new ZoneWwnAlias();
-                    alias.setAddress(formatWWN(getPropertyValueFromString(memberPath, SmisConstants.CP_NSNAME)));
-                    alias.setName(getPropertyValueFromString(aliasPath, SmisConstants.CP_NSNAME));
-                    // Use a map to handle the unsupported scenario when an alias has more than one member
-                    // in this code the alias will arbitrarily have the the last members discovered.
-                    // this is needed to ensure code dependent on this code does not receive duplicates
-                    aliases.put(alias.getName(), alias);
-                    _log.debug("Retreived alias name " + alias.getName() + " and address " + alias.getAddress());
+                    try {
+                        alias = new ZoneWwnAlias();
+                        alias.setAddress(formatWWN(getPropertyValueFromString(memberPath, SmisConstants.CP_NSNAME)));
+                        alias.setName(getPropertyValueFromString(aliasPath, SmisConstants.CP_NSNAME));
+                        // Use a map to handle the unsupported scenario when an alias has more than one member
+                        // in this code the alias will arbitrarily have the the last members discovered.
+                        // this is needed to ensure code dependent on this code does not receive duplicates
+                        aliases.put(alias.getName(), alias);
+                        _log.debug("Retreived alias name " + alias.getName() + " and address " + alias.getAddress());
+                    } catch (Exception e){
+                        //if the WWN is not a valid one and setAddress will throw an error
+                        //Catch it , log it , skip it it and move forward with processing the rest of the data
+                        _log.warn("An exception was encountered while processing " + wwn + " may be it is malformed "
+                                + e.getMessage());
+                    }
                 }
             }
         } catch (Exception ex) {

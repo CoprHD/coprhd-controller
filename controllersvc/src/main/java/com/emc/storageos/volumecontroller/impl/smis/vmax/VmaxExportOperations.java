@@ -8,6 +8,7 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,17 +47,17 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -227,6 +228,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @param taskCompleter
      * @throws DeviceControllerException
      */
+    @Override
     public void createExportMask(StorageSystem storage,
             URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs,
@@ -245,6 +247,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
         try {
 
             ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            String maskingViewName = generateMaskViewName(storage, mask);
+
             // Fill this in now so we have it in case of exceptions
             String cascadedIGCustomTemplateName = CustomConfigConstants.VMAX_HOST_CASCADED_IG_MASK_NAME;
             String initiatorGroupCustomTemplateName = CustomConfigConstants.VMAX_HOST_INITIATOR_GROUP_MASK_NAME;
@@ -300,7 +304,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     :
                     createOrSelectStorageGroup(storage, exportMaskURI, initiatorList, volumeURIHLUs, csgName,
                             newlyCreatedChildVolumeGroups, taskCompleter);
-            createMaskingView(storage, exportMaskURI, volumeParentGroupPath,
+            createMaskingView(storage, exportMaskURI, maskingViewName, volumeParentGroupPath,
                     volumeURIHLUs, targetPortGroupPath, cascadedIG, taskCompleter);
         } catch (Exception e) {
             _log.error(String.format("createExportMask failed - maskName: %s", exportMaskURI.toString()), e);
@@ -310,6 +314,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         _log.info("{} createExportMask END...", storage.getSerialNumber());
     }
 
+    @Override
     public void deleteExportMask(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
@@ -648,6 +653,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
     }
 
+    @Override
     public void addVolume(StorageSystem storage,
             URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs,
@@ -1027,6 +1033,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         return result;
     }
 
+    @Override
     public void removeVolume(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
@@ -1274,6 +1281,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
     }
 
+    @Override
     public void addInitiator(StorageSystem storage, URI exportMaskURI,
             List<Initiator> initiatorList, List<URI> targetURIList, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} addInitiator START...", storage.getSerialNumber());
@@ -1354,6 +1362,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         _log.info("{} addInitiator END...", storage == null ? null : storage.getSerialNumber());
     }
 
+    @Override
     public void removeInitiator(StorageSystem storage,
             URI exportMaskURI,
             List<Initiator> initiatorList,
@@ -1533,52 +1542,41 @@ public class VmaxExportOperations implements ExportMaskOperations {
      *            considered a hit.
      * @return Map of port name to Set of ExportMask URIs
      */
+    @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
             boolean mustHaveAllPorts) {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
-        CloseableIterator<CIMInstance> lunMaskingIter = null;
+        CloseableIterator<CIMInstance> maskInstanceItr = null;
         try {
             StringBuilder builder = new StringBuilder();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
-            lunMaskingIter = _helper.getSymmLunMaskingViews(storage);
-            while (lunMaskingIter.hasNext()) {
-                CIMInstance instance = lunMaskingIter.next();
-                String systemName = CIMPropertyFactory.getPropertyValue(instance,
-                        SmisConstants.CP_SYSTEM_NAME);
+            HashMap<String, CIMObjectPath> initiatorPathsMap = _cimPath.getInitiatorToInitiatorPath(storage, initiatorNames);
 
-                if (!systemName.contains(storage.getSerialNumber())) {
-                    // We're interested in the specific StorageSystem's masks.
-                    // The above getSymmLunMaskingViews call will get
-                    // a listing of for all the protocol controllers seen by the
-                    // SMISProvider pointed to by 'storage' system.
-                    continue;
-                }
+            List<String> maskNames = new ArrayList<String>();
+            for (String initiatorName : initiatorPathsMap.keySet()) {
+                CIMObjectPath initiatorPath = initiatorPathsMap.get(initiatorName);
 
-                String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
-                CIMProperty<String> deviceIdProperty =
-                        (CIMProperty<String>) instance.getObjectPath().
-                                getKey(SmisConstants.CP_DEVICE_ID);
+                maskInstanceItr = _helper.getAssociatorInstances(storage, initiatorPath, null, SmisConstants.SYMM_LUN_MASKING_VIEW, null,
+                        null, SmisConstants.PS_LUN_MASKING_CNTRL_NAME_AND_ROLE);
+                while (maskInstanceItr.hasNext()) {
+                    CIMInstance instance = maskInstanceItr.next();
+                    String systemName = CIMPropertyFactory.getPropertyValue(instance,
+                            SmisConstants.CP_SYSTEM_NAME);
 
-                // Get volumes and initiators for the masking instance
-                List<String> initiatorPorts =
-                        _helper.getInitiatorsFromLunMaskingInstance(client, instance);
-                // Find out if the port is in this masking container
-
-                List<String> matchingInitiators = new ArrayList<String>();
-                for (String port : initiatorNames) {
-                    String normalizedName = port;
-                    if (WWNUtility.isValidWWN(port)) {
-                        normalizedName = WWNUtility.getUpperWWNWithNoColons(port);
+                    if (!systemName.contains(storage.getSerialNumber())) {
+                        // We're interested in the specific StorageSystem's masks.
+                        // The above getSymmLunMaskingViews call will get
+                        // a listing of for all the protocol controllers seen by the
+                        // SMISProvider pointed to by 'storage' system.
+                        continue;
                     }
-                    if (initiatorPorts.contains(normalizedName)) {
-                        matchingInitiators.add(normalizedName);
-                    }
-                }
-                builder.append(String.format("%nXM:%s I:{%s}", name,
-                        Joiner.on(',').join(initiatorPorts)));
-                if (!matchingInitiators.isEmpty()) {
+
+                    String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
+                    CIMProperty<String> deviceIdProperty = (CIMProperty<String>) instance.getObjectPath()
+                            .getKey(SmisConstants.CP_DEVICE_ID);
+
                     // Look up ExportMask by deviceId/name and storage URI
                     boolean foundMaskInDb = false;
                     ExportMask exportMask = null;
@@ -1596,6 +1594,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             break;
                         }
                     }
+
                     // If there was no export group found in the database,
                     // then create a new one
                     if (!foundMaskInDb) {
@@ -1605,6 +1604,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         exportMask.setStorageDevice(storage.getId());
                         exportMask.setId(URIUtil.createId(ExportMask.class));
                         exportMask.setCreatedBySystem(false);
+                    }
+
+                    if (!maskNames.contains(name)) {
+                        // Update the tracking containers
+                        Map<String, Integer> volumeWWNs =
+                                _helper.getVolumesFromLunMaskingInstance(client, instance);
+                        exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
+
                         // Grab the storage ports that have been allocated for this
                         // existing mask and add them.
                         List<String> storagePorts =
@@ -1617,31 +1624,22 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 "         URI{ %s }\n",
                                 Joiner.on(',').join(storagePorts),
                                 Joiner.on(',').join(storagePortURIs)));
-                    } else {
-                        // Refresh the mask
-                        refreshExportMask(storage, exportMask);
-                        builder.append('\n');
+                        // Add the mask name to the list for which volumes are already updated
+                        maskNames.add(name);
                     }
+                    exportMask.addToExistingInitiatorsIfAbsent(initiatorName);
 
-                    // Update the tracking containers
-                    Map<String, Integer> volumeWWNs =
-                            _helper.getVolumesFromLunMaskingInstance(client, instance);
-                    exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
-                    exportMask.addToExistingInitiatorsIfAbsent(initiatorPorts);
-                    // Add references to initiators based on existing initiators.
-                    for (String port : initiatorPorts) {
-                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), _dbClient);
-                        if (existingInitiator == null) {
-                            _log.warn(String
-                                    .format("Found that port %s is associated to MaskingView %s through SMI-S, but the port is not in the database",
-                                            port, name));
-                            continue;
-                        }
-                        exportMask.addInitiator(existingInitiator);
+                    Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(initiatorName), _dbClient);
+                    if (existingInitiator == null) {
+                        _log.warn(String
+                                .format("Found that port %s is associated to MaskingView %s through SMI-S, but the port is not in the database",
+                                        initiatorName, name));
+                        continue;
                     }
-
-                    String volumes = (exportMask.getExistingVolumes().size() < 100) ?
-                            Joiner.on(',').join(exportMask.getExistingVolumes().keySet()) : "...";
+                    exportMask.addInitiator(existingInitiator);
+                    StringMap existingVolumes = exportMask.getExistingVolumes();
+                    String volumes = (null != existingVolumes && existingVolumes.size() < 100) ?
+                            Joiner.on(',').join(existingVolumes.keySet()) : "...";
                     builder.append(String.format("XM:%s is matching. " +
                             "EI: { %s }, EV: { %s }",
                             name, Joiner.on(',').join(exportMask.getExistingInitiators()), volumes));
@@ -1651,16 +1649,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     } else {
                         _dbClient.createObject(exportMask);
                     }
-                    if (matchesSearchCriteria(exportMask, initiatorNames,
+
+                    if (matchesSearchCriteria(exportMask, new ArrayList<String>(Arrays.asList(initiatorName)),
                             mustHaveAllPorts)) {
-                        for (String it : matchingInitiators) {
-                            Set<URI> maskURIs = matchingMasks.get(it);
-                            if (maskURIs == null) {
-                                maskURIs = new HashSet<URI>();
-                                matchingMasks.put(it, maskURIs);
-                            }
-                            maskURIs.add(exportMask.getId());
+                        Set<URI> maskURIs = matchingMasks.get(initiatorName);
+                        if (maskURIs == null) {
+                            maskURIs = new HashSet<URI>();
+                            matchingMasks.put(initiatorName, maskURIs);
                         }
+                        maskURIs.add(exportMask.getId());
                     }
                 }
             }
@@ -1671,8 +1668,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             throw SmisException.exceptions.queryExistingMasksFailure(msg, e);
         } finally {
-            if (lunMaskingIter != null) {
-                lunMaskingIter.close();
+            if (maskInstanceItr != null) {
+                maskInstanceItr.close();
             }
             long totalTime = System.currentTimeMillis() - startTime;
             _log.info(String.format("findExportMasks took %f seconds", (double) totalTime / (double) 1000));
@@ -1824,6 +1821,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     if (initiatorIdsToRemove != null && !initiatorIdsToRemove.isEmpty()) {
                         mask.removeInitiators(_dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                     }
+                    // https://coprhd.atlassian.net/browse/COP-17224 - For those cases where InitiatorGroups are shared by
+                    // MaskingViews, if CoprHD processes one ExportMask by updating it with new initiators, then it could
+                    // affect another ExportMasks. Consider that this refreshExportMask is against that other ExportMask.
+                    // We shouldn't read the initiators that we find as 'existing' (that is created outside of CoprHD),
+                    // instead we should consider them userAdded for this ExportMask, as well.
+                    List<Initiator> userAddedInitiators = findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorIdsToAdd);
+                    mask.addToUserCreatedInitiators(userAddedInitiators);
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
                     mask.addInitiators(initiatorIdsToAdd);
                     mask.removeFromExistingVolumes(volumesToRemove);
@@ -2329,20 +2333,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @return the CIM instance
      */
     private CIMInstance findCascadingInitiatorGroup(StorageSystem storage,
-            ExportMask mask, CIMObjectPath cigPath, List<CIMObjectPath> initiatorGroupPaths) {
-        CloseableIterator<CIMInstance> cigInstances = null;
-        try {
-            _log.info(String.format("findCascadingInitiatorGroup - Trying to find cascading initiator group for mask: %s",
-                    mask.getMaskName()));
-
-            // First see if the cig path sent in exists. If it does, use it.
-            // This may not be a smart decision to make off the top; we'll see
-            CIMInstance cigNamedInstance = _helper.checkExists(storage, cigPath, false, false);
-            if (cigNamedInstance != null) {
-                _log.info(String.format("findCascadingInitiatorGroup - Found that cascading initiator group %s exists by name, using it",
-                        cigNamedInstance.getObjectPath()));
-                return cigNamedInstance;
-            }
+    		ExportMask mask, CIMObjectPath cigPath, List<CIMObjectPath> initiatorGroupPaths) {
+    	CloseableIterator<CIMInstance> cigInstances = null;
+    	try {
+    		_log.info(String.format("findCascadingInitiatorGroup - Trying to find cascading initiator group for mask: %s",
+    				mask.getMaskName()));
 
             // Get the masking view associated with the export.
             CIMInstance maskingViewInstance = this.maskingViewExists(storage, mask.getMaskName());
@@ -2391,34 +2386,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
         return null;
     }
 
-    private void createMaskingView(StorageSystem storage,
-            URI exportMaskURI,
-            CIMObjectPath volumeGroupPath,
-            VolumeURIHLU[] volumeURIHLUs,
-            CIMObjectPath targetPortGroupPath,
-            CIMObjectPath initiatorGroupPath,
-            TaskCompleter taskCompleter) throws Exception {
+	private void createMaskingView(StorageSystem storage,
+                                   URI exportMaskURI,
+                                   String maskingViewName, CIMObjectPath volumeGroupPath,
+                                   VolumeURIHLU[] volumeURIHLUs,
+                                   CIMObjectPath targetPortGroupPath,
+                                   CIMObjectPath initiatorGroupPath,
+                                   TaskCompleter taskCompleter) throws Exception {
         _log.debug("{} createMaskingView START...", storage.getSerialNumber());
-        ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-        String groupName = exportMask.getMaskName();
-        CIMInstance maskingViewInstance = maskingViewExists(storage, groupName);
-
-        // if name already existed, generate unique name by append index
-        int maskingViewNameIndex = 0;
-        while (maskingViewInstance != null) {
-            _log.info("{} Masking view already exists: {}, check next name: {} ", storage.getSerialNumber(), groupName);
-            // generate new name if one already existed
-            groupName += "_" + (++maskingViewNameIndex);
-            _log.info("Generated new masking view name: {} ", storage.getSerialNumber(), groupName);
-            maskingViewInstance = maskingViewExists(storage, groupName);
-        }
-        // if mask name change, persist it
-        if (!StringUtils.equals(groupName, exportMask.getMaskName())) {
-            exportMask.setMaskName(groupName);
-            _dbClient.persistObject(exportMask);
-        }
-
-        // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
+	// Flag to indicate whether or not we need to use the EMCForce flag on this operation.
         // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
         // operation on these volumes would fail otherwise.
         boolean forceFlag = false;
@@ -2441,7 +2417,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
         String[] deviceNumbersStr = {};
         CIMArgument[] inMVArgs = _helper.getCreateMaskingViewInputArguments(volumeGroupPath, targetPortGroupPath,
-                initiatorGroupPath, deviceNumbers.toArray(deviceNumbersStr), groupName, forceFlag);
+                initiatorGroupPath, deviceNumbers.toArray(deviceNumbersStr), maskingViewName, forceFlag);
         CIMArgument[] outMVArgs = new CIMArgument[5];
         try {
             _helper.invokeMethod(storage, _cimPath.getControllerConfigSvcPath(storage),
@@ -2455,11 +2431,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
         } catch (WBEMException we) {
             _log.info("{} Problem when trying to create masking view ... going to look up masking view.",
                     storage.getSerialNumber(), we);
-            if (handleCreateMaskingViewException(storage, groupName)) {
-                _log.info("{} Found masking view: {}", storage.getSerialNumber(), groupName);
+            if(handleCreateMaskingViewException(storage, maskingViewName)) {
+                _log.info("{} Found masking view: {}", storage.getSerialNumber(), maskingViewName);
                 taskCompleter.ready(_dbClient);
             } else {
-                _log.debug("{} Problem when looking up masking view: {}", storage.getSerialNumber(), groupName);
+                _log.debug("{} Problem when looking up masking view: {}", storage.getSerialNumber(), maskingViewName);
                 throw we;
             }
         }
@@ -3869,6 +3845,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @param taskCompleter
      * @throws Exception the exception
      */
+    @Override
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception {
@@ -4556,4 +4533,84 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
         return isRPJournal;
     }
+
+    @Override
+    public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
+        return Collections.emptyMap();
+    }
+
+    /**
+     * Given a list of Initiators, find if any are in an ExportMask's userAddedInitiators list- other than the 'exportMask' passed into
+     * the routine. If such an ExportMask is found, then the initiator will be removed from 'newInitiators' and added to the result list.
+     *
+     * @param exportMask [IN] - ExportMask that should be excluded from matches. This is the ExportMask that we're checking against.
+     * @param newInitiators [OUT] - List of Initiators that need to be added to 'exportMask'. We need to determine if they need to go into
+     *                      the existingInitiators list or the userAddedInitiators list.
+     * @return List of Initiators that should added to exportMask's userAddedInitiator list. ExportMasks should be on the same array as
+     * 'exportMask'.
+     */
+    private List<Initiator> findIfInitiatorsAreUserAddedInAnotherMask(ExportMask exportMask, List<Initiator> newInitiators) {
+        List<Initiator> userAddedInitiators = new ArrayList<>();
+
+        // Iterate through the set of ExportMasks that contain 'newInitiators' and find if it has the initiator in its userAddedInitiator
+        // list. If it does, we add the initiator to the result list and remove it from 'newInitiator'.
+        for (ExportMask matchedMask : ExportMaskUtils.getExportMasksWithInitiators(_dbClient, newInitiators).values()) {
+            // Exclude 'exportMask' and ExportMasks on different arrays from the search
+            if (matchedMask.getId().equals(exportMask.getId()) ||
+                    !matchedMask.getStorageDevice().equals(exportMask.getStorageDevice())) {
+                continue;
+            }
+            // Iterate through the set of initiators and find if any exist in the ExportMask's userAddedInitiator list
+            Iterator<Initiator> iterator = newInitiators.iterator();
+            while (iterator.hasNext()) {
+                Initiator initiator = iterator.next();
+                if (matchedMask.hasUserInitiator(initiator.getId())) {
+                    // This initiator is user-added for this matchedMask
+                    userAddedInitiators.add(initiator);
+                    // Since this ExportMask has the initiator, we need to remove it from 'newInitiators'.
+                    iterator.remove();
+                }
+            }
+        }
+
+        Collection portNames = Collections2.transform(userAddedInitiators, CommonTransformerFunctions.fctnInitiatorToPortName());
+        _log.info(String.format("The following initiators were found in another ExportMask as user-added initiators: %s",
+                CommonTransformerFunctions.collectionToString(portNames)));
+        return userAddedInitiators;
+    }
+
+    /**
+     * There could already be a MaskingView with ExportMask.maskName already existing on the array, so check for this condition.
+     * If so, we will have to generate a new name. This name will be returned by the routine and also saved to the ExportMask.
+     *
+     * @param storage [IN] - Storage array to check
+     * @param exportMask [IN] - ExportMask that has the name to verify
+     * @return String MaskingView name that does not already exist on the array
+     */
+    private String generateMaskViewName(StorageSystem storage, ExportMask exportMask) {
+        String maskingViewName = exportMask.getMaskName();
+        CIMInstance maskingViewInstance = maskingViewExists(storage, maskingViewName);
+
+        // if name already existed, generate unique name by appended index
+        if (maskingViewInstance != null) {
+            _log.info(String.format("MaskingView '%s' already exists on %s. Going to generate a new name ...", maskingViewName,
+                    storage.getNativeGuid()));
+            int maskingViewNameIndex = 0;
+            String name = maskingViewName;
+            while (maskingViewInstance != null) {
+                // generate new name if one already existed
+                maskingViewName = String.format("%s_%d", name, ++maskingViewNameIndex);
+                _log.info(String.format("Checking if '%s' already exists on %s", maskingViewName, storage.getNativeGuid()));
+                _log.info("Trying new MaskingView name: {} ", maskingViewName);
+                maskingViewInstance = maskingViewExists(storage, maskingViewName);
+            }
+
+            _log.info(String.format("MaskingView will be named '%s'", maskingViewName));
+            exportMask.setMaskName(maskingViewName);
+            _dbClient.persistObject(exportMask);
+        }
+
+        return maskingViewName;
+    }
+
 }

@@ -100,6 +100,7 @@ public abstract class BlockSnapshotTaskCompleter extends TaskLockingCompleter {
                     }
                     break;
                 case RESTORE_VOLUME_SNAPSHOT:
+                case RESYNCHRONIZE_VOLUME_SNAPSHOT:
                     volume = (Volume) extParam[1];
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, snapshot.getId().toString(), volume.getId().toString());
                     break;

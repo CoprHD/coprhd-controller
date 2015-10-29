@@ -7,7 +7,10 @@ package com.emc.storageos.volumecontroller;
 
 import java.util.List;
 
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.SMBFileShare;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 /**
@@ -24,6 +27,16 @@ public interface FileStorageDevice {
      * @throws ControllerException
      */
     public BiosCommandResult doCreateFS(StorageSystem storage, FileDeviceInputOutput fd)
+            throws ControllerException;
+
+    /**
+     * 
+     * @param storage storage device operation is to be performed on
+     * @param fd FileDeviceInputOutput object holding the data objects
+     * @return true if FS exists on Array else false
+     * @throws ControllerException
+     */
+    public boolean doCheckFSExists(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
 
     /**

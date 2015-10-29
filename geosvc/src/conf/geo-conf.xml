@@ -79,6 +79,7 @@
 
     <bean id="vdcConfService" class="com.emc.storageos.geo.service.impl.resource.VdcConfigService">
         <property name="service" ref="serviceinfo"/>
+        <property name="sysUtils" ref="sysUtils" />
     </bean>
 
     <bean id="vdcConfHelper" class="com.emc.storageos.geo.service.impl.util.VdcConfigHelper"/>
@@ -212,7 +213,9 @@
         <property name="ciphersToInclude" ref="strongCiphers"/>
         <property name="coordinator" ref="coordinator"/>  
     </bean>
-
+	
+	<bean id="sysUtils" class="com.emc.storageos.services.util.SysUtils" />
+	
     <!--
     <bean id="restLinkFactory" class="com.emc.storageos.api.service.impl.response.RestLinkFactory">
         <property name="dbClient" ref="dbclient"/>

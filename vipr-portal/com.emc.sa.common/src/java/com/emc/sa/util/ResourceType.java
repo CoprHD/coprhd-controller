@@ -42,6 +42,8 @@ public enum ResourceType {
     UNMANAGED_FILESYSTEM("UnManagedFileSystem"),
     UNMANAGED_EXPORTMASK("UnManagedExportMask"),
 
+    BUCKET("Bucket"),
+    
     UNKNOWN("Unknown");
 
     private static final Pattern RESOURCE_ID = Pattern.compile("urn\\:storageos\\:([^\\:]+)");

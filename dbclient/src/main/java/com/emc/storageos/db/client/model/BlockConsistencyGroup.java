@@ -335,6 +335,29 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     }
 
     /**
+     * Gets the first CG name that corresponds to the provided storage system URI.
+     * A BlockConsistencyGroup can only map to a single consistency group on a single
+     * storage system so that's why we only return the first entry.
+     * 
+     * @param storageSystemUri
+     * @return
+     */
+    public String fetchArrayCgName(URI storageSystemUri) {
+        if (storageSystemUri == null) {
+            return null;
+        }
+
+        if (systemConsistencyGroups != null && !systemConsistencyGroups.isEmpty()) {
+            StringSet cgNames = systemConsistencyGroups.get(storageSystemUri.toString());
+            if (cgNames != null && cgNames.iterator().hasNext()) {
+                return cgNames.iterator().next();
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * checks to see if the CG name matches the name ViPR has stored for the storage system
      *
      * @param cgId id of the CG in the DB

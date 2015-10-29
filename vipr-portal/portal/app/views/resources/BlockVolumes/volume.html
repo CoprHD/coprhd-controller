@@ -2,8 +2,8 @@
 #{set navSelected: ['nav.storage', 'nav.block.volumes'] /}
 
 %{
- final FRACTURED = '6'
-}%
+ final FRACTURED = '13'
+ }%
 
 #{breadcrumb.container}
   #{breadcrumb.item @volumes()}&{'resources.volumes'}#{/breadcrumb.item}
@@ -27,11 +27,11 @@
     
     #{Resources.actions hide:volume?.inactive }
       #{if isBlockContinuousCopy}
-        #{if volume.syncState == FRACTURED}
+        #{if volume.syncState != FRACTURED}
           <a href="@{pauseContinuousCopy(params.volumeId, volume.id)}"
           >&{'resources.continuouscopy.pauseLink'}</a><br/>
         #{/if}
-        #{if volume.syncState != FRACTURED}
+        #{if volume.syncState == FRACTURED}
           <a href="@{resumeContinuousCopy(params.volumeId, volume.id)}"
           >&{'resources.continuouscopy.resumeLink'}</a><br/>              
         #{/if}

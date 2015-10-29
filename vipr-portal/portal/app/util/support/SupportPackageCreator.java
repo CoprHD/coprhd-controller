@@ -22,6 +22,7 @@ import java.util.zip.ZipOutputStream;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.commons.lang.StringUtils;
@@ -183,22 +184,24 @@ public class SupportPackageCreator {
         }
     }
 
-    private Set<String> getSelectedNodeIds() {
-        Set<String> activeNodeIds = Sets.newTreeSet();
+    private Map<String,String> getSelectedNodeIds() {
+        Map<String,String> activeNodeIds = Maps.newTreeMap();
 
         for (NodeHealth activeNode : MonitorUtils.getNodeHealth(api())) {
             if (!StringUtils.containsIgnoreCase(activeNode.getStatus(), "unavailable") || Play.mode.isDev()) {
-                activeNodeIds.add(activeNode.getNodeId());
+                activeNodeIds.put(activeNode.getNodeId(),activeNode.getNodeName());
             }
         }
 
-        Set<String> selectedNodeIds = Sets.newTreeSet();
+        Map<String,String> selectedNodeIds = Maps.newTreeMap();
         if ((nodeIds == null) || nodeIds.isEmpty()) {
-            selectedNodeIds.addAll(activeNodeIds);
+            selectedNodeIds.putAll(activeNodeIds);
         }
         else {
-            selectedNodeIds.addAll(nodeIds);
-            selectedNodeIds.retainAll(activeNodeIds);
+            for (String node :nodeIds) {
+                if (activeNodeIds.containsKey(node))
+                    selectedNodeIds.put(node, activeNodeIds.get(node));
+            }
         }
         return selectedNodeIds;
     }
@@ -271,17 +274,18 @@ public class SupportPackageCreator {
         if (logNames != null) {
             // Ensure no duplicate log names
             Set<String> selectedLogNames = Sets.newLinkedHashSet(logNames);
-            Set<String> selectedNodeIds = getSelectedNodeIds();
-            for (String nodeId : selectedNodeIds) {
+            Map<String,String> selectedNodeIds = getSelectedNodeIds();
+            for (String nodeId : selectedNodeIds.keySet()) {
+                String nodeName = selectedNodeIds.get(nodeId);
                 for (String logName : selectedLogNames) {
-                    writeLog(zip, nodeId, logName);
+                    writeLog(zip, nodeId, nodeName, logName);
                 }
             }
         }
     }
 
-    private void writeLog(ZipOutputStream zip, String nodeId, String logName) throws IOException {
-        String path = String.format("logs/%s.%s.log", logName, nodeId);
+    private void writeLog(ZipOutputStream zip, String nodeId, String nodeName, String logName) throws IOException {
+        String path = String.format("logs/%s_%s_%s.log", logName, nodeId, nodeName);
         OutputStream stream = nextEntry(zip, path);
 
         Set<String> nodeIds = Collections.singleton(nodeId);

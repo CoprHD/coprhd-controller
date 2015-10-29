@@ -10,12 +10,16 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import com.netflix.astyanax.connectionpool.SSLConnectionContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.emc.storageos.coordinator.client.model.Constants;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
+import com.netflix.astyanax.connectionpool.SSLConnectionContext;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.Host;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolType;
@@ -25,10 +29,22 @@ import com.netflix.astyanax.partitioner.Murmur3Partitioner;
 import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.retry.RetryPolicy;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
+import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 public class DbClientContext {
 
-    private static final Logger _log = LoggerFactory.getLogger(DbClientContext.class);
+    private static final Logger log = LoggerFactory.getLogger(DbClientContext.class);
 
     private static final int DEFAULT_MAX_CONNECTIONS = 64;
     private static final int DEFAULT_MAX_CONNECTIONS_PER_HOST = 14;
@@ -39,6 +55,13 @@ public class DbClientContext {
     private static final long DEFAULT_CONNECTION_POOL_MONITOR_INTERVAL = 1000;
     private static final int MAX_QUERY_RETRY = 5;
     private static final int QUERY_RETRY_SLEEP_SECONDS = 1000;
+    private static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
+    private static final int SCHEMA_RETRY_SLEEP_MILLIS = 1000;
+    private static final String LOCAL_HOST = "localhost";
+    private static final int DB_THRIFT_PORT = 9160;
+    private static final int GEODB_THRIFT_PORT = 9260;
+    private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
+    private static final int DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC = 30;
 
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
@@ -53,8 +76,10 @@ public class DbClientContext {
     private String keyspaceName = LOCAL_KEYSPACE_NAME;
     private String clusterName = LOCAL_CLUSTER_NAME;
 
-    private AstyanaxContext<Keyspace> context;
+    private AstyanaxContext<Keyspace> keyspaceContext;
     private Keyspace keyspace;
+    private AstyanaxContext<Cluster> clusterContext;
+    private Cluster cluster;
 
     private boolean initDone = false;
     private String cipherSuite;
@@ -63,6 +88,8 @@ public class DbClientContext {
     private String trustStorePassword;
     private boolean isClientToNodeEncrypted;
 
+    private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
+    
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
     }
@@ -84,21 +111,35 @@ public class DbClientContext {
     }
 
     public Keyspace getKeyspace() {
-        if (context == null) {
+        if (keyspaceContext == null) {
             throw new IllegalStateException();
         }
         return keyspace;
     }
 
+    public AstyanaxContext<Cluster> getClusterContext() {
+        if (clusterContext == null) {
+            initClusterContext();
+        }
+        return clusterContext;
+    }
+
+    public Cluster getCluster() {
+        if (clusterContext == null) {
+            initClusterContext();
+        }
+        return cluster;
+    }
+
     public void setHosts(Collection<Host> hosts) {
-        if (context == null) {
+        if (keyspaceContext == null) {
             throw new IllegalStateException();
         }
-        context.getConnectionPool().setHosts(hosts);
+        keyspaceContext.getConnectionPool().setHosts(hosts);
     }
 
     public int getPort() {
-        return context.getConnectionPoolConfiguration().getPort();
+        return keyspaceContext.getConnectionPoolConfiguration().getPort();
     }
 
     /**
@@ -134,7 +175,11 @@ public class DbClientContext {
     public void setMonitorIntervalSecs(long monitorIntervalSecs) {
         this.monitorIntervalSecs = monitorIntervalSecs;
     }
-
+    
+    public long getMonitorIntervalSecs() {
+        return monitorIntervalSecs;
+    }
+    
     public boolean isInitDone() {
         return initDone;
     }
@@ -163,42 +208,36 @@ public class DbClientContext {
         this.trustStorePassword = trustStorePassword;
     }
 
-    public void init(HostSupplierImpl hostSupplier) {
+    public void init(final HostSupplierImpl hostSupplier) {
         String svcName = hostSupplier.getDbSvcName();
-        _log.info("Initializing hosts for {}", svcName);
+        log.info("Initializing hosts for {}", svcName);
         List<Host> hosts = hostSupplier.get();
         if ((hosts != null) && (hosts.isEmpty())) {
             throw new IllegalStateException(String.format("DbClientContext.init() : host list in hostsupplier for %s is empty", svcName));
         } else {
             int hostCount = hosts == null ? 0 : hosts.size();
-            _log.info(String.format("number of hosts in the hostsupplier for %s is %d", svcName, hostCount));
+            log.info(String.format("number of hosts in the hostsupplier for %s is %d", svcName, hostCount));
         }
         Partitioner murmur3partitioner = Murmur3Partitioner.get();
-        Map<String, Partitioner> partitioners = new HashMap<String, Partitioner>();
+        Map<String, Partitioner> partitioners = new HashMap<>();
         partitioners.put("org.apache.cassandra.dht.Murmur3Partitioner.class.getCanonicalName()",
                 murmur3partitioner);
 
-        ConsistencyLevel readCL = ConsistencyLevel.CL_QUORUM;
-        ConsistencyLevel writeCL = ConsistencyLevel.CL_QUORUM;
-
-        // Set different consistency level for goedbsvc
-        if (Constants.GEODBSVC_NAME.equals(svcName)) {
-            readCL = ConsistencyLevel.CL_LOCAL_QUORUM;
-            writeCL = ConsistencyLevel.CL_EACH_QUORUM;
-        }
+        ConsistencyLevel readCL = ConsistencyLevel.CL_LOCAL_QUORUM;
+        ConsistencyLevel writeCL = ConsistencyLevel.CL_EACH_QUORUM;
 
         ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(DEFAULT_CN_POOL_NANE).setMaxConns(maxConnections)
                 .setMaxConnsPerHost(maxConnectionsPerHost).setConnectTimeout(DEFAULT_CONN_TIMEOUT)
                 .setMaxBlockedThreadsPerHost(DEFAULT_MAX_BLOCKED_THREADS).setPartitioner(murmur3partitioner);
 
-        _log.info("The client to node is encrypted={}", isClientToNodeEncrypted);
+        log.info("The client to node is encrypted={}", isClientToNodeEncrypted);
         if (isClientToNodeEncrypted) {
             SSLConnectionContext sslContext = getSSLConnectionContext();
             cfg.setSSLConnectionContext(sslContext);
         }
 
         // TODO revisit it to see if we need set different retry policy, timeout, discovery delay etc for geodb
-        context = new AstyanaxContext.Builder().withHostSupplier(hostSupplier)
+        keyspaceContext = new AstyanaxContext.Builder().withHostSupplier(hostSupplier)
                 .forCluster(clusterName)
                 .forKeyspace(keyspaceName)
                 .withAstyanaxConfiguration(
@@ -211,24 +250,174 @@ public class DbClientContext {
                 .withConnectionPoolConfiguration(cfg)
                 .withConnectionPoolMonitor(new CustomConnectionPoolMonitor(monitorIntervalSecs))
                 .buildKeyspace(ThriftFamilyFactory.getInstance());
-        context.start();
-        keyspace = context.getClient();
+        keyspaceContext.start();
+        keyspace = keyspaceContext.getClient();
+
+        // Check and reset default write consistency level
+        final DrUtil drUtil = new DrUtil(hostSupplier.getCoordinatorClient());
+        if (drUtil.isPrimary()) {
+            log.info("Schedule db consistency level monitor on DR primary site");
+            exe.scheduleWithFixedDelay(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        checkAndResetConsistencyLevel(drUtil, hostSupplier.getDbSvcName(), hostSupplier.getDbClientVersion());
+                    } catch (Exception ex) {
+                        log.warn("Encounter Unexpected exception during check consistency level. Retry in next run", ex);
+                    }
+                }
+            }, 60, DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC, TimeUnit.SECONDS);
+        }
+        
         initDone = true;
     }
 
+    /**
+     * Initialize the cluster context and cluster instances.
+     * This has to be separated from init() because dbsvc need this to start
+     * while init() depends on dbclient which in turn depends on dbsvc.
+     */
+    private void initClusterContext() {
+        int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
+
+        ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(clusterName)
+                .setMaxConnsPerHost(1)
+                .setSeeds(String.format("%1$s:%2$d", LOCAL_HOST, port));
+
+        if (isClientToNodeEncrypted()) {
+            SSLConnectionContext sslContext = getSSLConnectionContext();
+            cfg.setSSLConnectionContext(sslContext);
+        }
+
+        clusterContext = new AstyanaxContext.Builder()
+                .forCluster(clusterName)
+                .forKeyspace(getKeyspaceName())
+                .withAstyanaxConfiguration(new AstyanaxConfigurationImpl()
+                        .setRetryPolicy(new QueryRetryPolicy(10, 1000)))
+                .withConnectionPoolConfiguration(cfg)
+                .buildCluster(ThriftFamilyFactory.getInstance());
+        clusterContext.start();
+        cluster = clusterContext.getClient();
+    }
+
     public SSLConnectionContext getSSLConnectionContext() {
-        List<String> cipherSuites = new ArrayList(1);
+        List<String> cipherSuites = new ArrayList<>(1);
         cipherSuites.add(cipherSuite);
 
         return new SSLConnectionContext(trustStoreFile, trustStorePassword, SSLConnectionContext.DEFAULT_SSL_PROTOCOL, cipherSuites);
     }
 
     public synchronized void stop() {
-        if (context == null) {
+        if (keyspaceContext == null) {
             throw new IllegalStateException();
         }
 
-        context.shutdown();
-        context = null;
+        keyspaceContext.shutdown();
+        keyspaceContext = null;
+
+        if (clusterContext != null) {
+            clusterContext.shutdown();
+            clusterContext = null;
+        }
     }
+
+    /**
+     * Update the strategy options for db or geodb service, depending on the content of this context instance.
+     *
+     * @param strategyOptions new strategy options to be updated
+     * @param wait whether need to wait until schema agreement is reached.
+     * @throws Exception
+     */
+    public void setCassandraStrategyOptions(Map<String, String> strategyOptions, boolean wait) throws Exception {
+        Cluster cluster = getCluster();
+        KeyspaceDefinition kd = cluster.describeKeyspace(keyspaceName);
+
+        KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
+        update.setName(getKeyspaceName());
+        update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
+        update.setStrategyOptions(strategyOptions);
+
+        String schemaVersion;
+        if (kd != null) {
+            schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
+        } else {
+            schemaVersion = cluster.addKeyspace(update).getResult().getSchemaId();
+        }
+
+        if (wait) {
+            waitForSchemaChange(schemaVersion);
+        }
+    }
+
+    /**
+     * Remove a specific dc from strategy options, and wait till the new schema reaches all sites.
+     * If the dc doesn't exist in the current strategy options, nothing changes.
+     *
+     * @param dcId the dc to be removed
+     * @throws Exception
+     */
+    public void removeDcFromStrategyOptions(String dcId) throws Exception {
+        Map<String, String> strategyOptions = getKeyspace().describeKeyspace().getStrategyOptions();
+        if (strategyOptions.containsKey(dcId)) {
+            log.info("Remove dc {} from strategy options", dcId);
+            strategyOptions.remove(dcId);
+
+            setCassandraStrategyOptions(strategyOptions, true);
+        }
+    }
+
+    /**
+     * Waits for schema change to propagate through cluster
+     *
+     * @param schemaVersion version we are waiting for
+     * @throws InterruptedException
+     */
+    public void waitForSchemaChange(String schemaVersion) throws InterruptedException {
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < DbClientContext.MAX_SCHEMA_WAIT_MS) {
+            Map<String, List<String>> versions;
+            try {
+                versions = getCluster().describeSchemaVersions();
+            } catch (final ConnectionException e) {
+                throw DatabaseException.retryables.connectionFailed(e);
+            }
+
+            log.info("schema version to sync to: {}", schemaVersion);
+            log.info("schema versions found: {}", versions);
+
+            if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
+                log.info("schema version sync to: {} done", schemaVersion);
+                return;
+            }
+
+            log.info("waiting for schema change ...");
+            Thread.sleep(SCHEMA_RETRY_SLEEP_MILLIS);
+        }
+        log.warn("Unable to sync schema version {}", schemaVersion);
+    }
+
+    private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName, String dbVersion) {
+        ConsistencyLevel currentConsistencyLevel = getKeyspace().getConfig().getDefaultWriteConsistencyLevel();
+        if (currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
+            log.debug("Write consistency level is EACH_QUORUM. No need adjust");
+            return;
+        }
+        
+        log.info("Db consistency level for {} is downgraded as LOCAL_QUORUM. Check if we need reset it back", svcName);
+        for(Site site : drUtil.listStandbySites()) {
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                continue; // ignore a standby site which is paused by customer explicitly
+            }
+            String siteUuid = site.getUuid();
+            int count = drUtil.getNumberOfLiveServices(siteUuid, svcName, dbVersion);
+            if (count <= site.getNodeCount() / 2) {
+                log.info("Service {} of quorum nodes on site {} is down. Still keep write consistency level to LOCAL_QUORUM", svcName, siteUuid);
+                return;
+            }      
+        }
+        log.info("Service {} of quorum nodes on all standby sites are up. Reset default write consistency level back to EACH_QUORUM", svcName);
+        AstyanaxConfigurationImpl config = (AstyanaxConfigurationImpl)keyspaceContext.getAstyanaxConfiguration();
+        config.setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);
+    }
+    
 }

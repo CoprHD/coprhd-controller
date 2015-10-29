@@ -57,11 +57,7 @@ public class PlacementManager {
 
         // Select an implementation of the right scheduler
         Scheduler scheduler;
-        if ((VirtualPool.vPoolSpecifiesProtection(vpool)
-                && VirtualPool.vPoolSpecifiesHighAvailability(vpool)) ||
-                hasHaRpCopyTarget(vpool)) {
-            scheduler = storageSchedulers.get("rpvplex");
-        } else if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
+        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
             scheduler = storageSchedulers.get("rp");
         } else if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
             scheduler = storageSchedulers.get("vplex");

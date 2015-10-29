@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.HOST;
+import static com.emc.sa.service.ServiceParams.INGESTION_METHOD;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
@@ -18,6 +19,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumesByHostOrCluster;
 import com.emc.sa.service.vipr.block.tasks.IngestExportedUnmanagedVolumes;
+import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 
@@ -34,6 +36,9 @@ public class IngestExportedUnmanagedVolumesService extends ViPRService {
 
     @Param(VIRTUAL_ARRAY)
     protected URI virtualArray;
+    
+    @Param(value = INGESTION_METHOD, required = false)
+    protected String ingestionMethod;
 
     @Param(VOLUMES)
     protected List<String> volumeIds;
@@ -53,10 +58,15 @@ public class IngestExportedUnmanagedVolumesService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
+        if (ingestionMethod == null || ingestionMethod.isEmpty()) {
+            ingestionMethod = IngestionMethodEnum.FULL.toString();
+        }
+        
         int succeed = execute(new IngestExportedUnmanagedVolumes(virtualPool, virtualArray, project,
                 host == null ? null : host.getId(),
                 cluster == null ? null : cluster.getId(),
-                uris(volumeIds)
+                uris(volumeIds),
+                ingestionMethod
                 )).getTasks().size();
         logInfo("ingest.exported.unmanaged.volume.service.ingested", succeed);
         logInfo("ingest.exported.unmanaged.volume.service.skipped", volumeIds.size() - succeed);

@@ -1,0 +1,21 @@
+{
+  baseKey:"AddVolumesToConsistencyGroup.Block",
+  serviceId:"AddVolumesToConsistencyGroup",
+  destructive: true,
+  fields: {
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    consistencyGroup:{
+      type:"assetType.vipr.consistencyGroup",
+      lockable: true
+    },
+    
+    volumes:{
+      type:"assetType.vipr.sourceBlockVolumeInConsistencyGroup",
+      select: "many"
+    }
+  }
+}

@@ -12,9 +12,13 @@ import com.emc.storageos.management.jmx.recovery.DbManagerMBean;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+
 import org.apache.cassandra.config.Config;
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.YamlConfigurationLoader;
 import org.apache.cassandra.exceptions.ConfigurationException;
+import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.service.StorageService;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -22,11 +26,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jmx.export.annotation.ManagedResource;
 
+import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -304,4 +311,27 @@ public class DbManager implements DbManagerMBean {
             }
         }, REPAIR_INITIAL_WAIT_FOR_DBSTART_MINUTES, repairFreqMin, TimeUnit.MINUTES);
     }
+    
+    @Override
+    public void removeDataCenter(String dcName) {
+        log.info("Remove Cassandra data center {}", dcName);
+        Set<InetAddress> liveNodes = Gossiper.instance.getLiveMembers();
+        Set<InetAddress> unreachableNodes = Gossiper.instance.getUnreachableMembers();
+        List<InetAddress> allNodes = new ArrayList<InetAddress>();
+        allNodes.addAll(liveNodes);
+        allNodes.addAll(unreachableNodes);
+        for (InetAddress nodeIp : allNodes) {
+            IEndpointSnitch snitch = DatabaseDescriptor.getEndpointSnitch();
+            String dc = snitch.getDatacenter(nodeIp);
+            log.info("node Ip {}, dcName {} ", nodeIp, dc);
+            if (dc.equals(dcName)) {
+                Map<String, String> hostIdMap = StorageService.instance.getHostIdMap();
+                String guid = hostIdMap.get(nodeIp.getHostAddress());
+                log.info("Removing Cassandra node {} on vipr node {}", guid, nodeIp);
+                Gossiper.instance.convict(nodeIp, 0);
+                StorageService.instance.removeNode(guid);
+            }
+        }
+   }
+
 }

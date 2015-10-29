@@ -27,7 +27,7 @@ public class ScaleIORestClientTest {
     private static final String HOST = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.ipaddress");
     private static final String USER = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.user");
     private static final String PASSWORD = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "scaleio.host.api.password");
-    static int PORT = 443;
+    private static int PORT = 443;
 
     @BeforeClass
     static public void setUp() {
@@ -121,7 +121,6 @@ public class ScaleIORestClientTest {
             Long sizeInGB = Long.parseLong(size) / 1024L / 1024L;
             System.out.println("size is :" + sizeInGB.toString());
         } catch (Exception e) {
-            e.printStackTrace();
             log.error("Exception: ", e);
         }
     }

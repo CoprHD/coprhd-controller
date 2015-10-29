@@ -20,6 +20,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 
 public class RemoteConnCollectionToVolumeProcessor extends StorageProcessor {
     private List<Object> args;
@@ -44,6 +45,10 @@ public class RemoteConnCollectionToVolumeProcessor extends StorageProcessor {
                 _log.warn("RA Group {} not found", ragGroupId);
                 return;
             }
+            boolean is80Provider = keyMap.containsKey(Constants.IS_NEW_SMIS_PROVIDER)
+                    && Boolean.valueOf(keyMap.get(Constants.IS_NEW_SMIS_PROVIDER).toString());
+            RemoteDirectorGroup targetRemoteGroup = SRDFUtils.getAssociatedTargetRemoteDirectorGroup(_dbClient,
+                    is80Provider, ragGroupId);
             while (it.hasNext()) {
                 CIMObjectPath volumePath = it.next();
                 RemoteMirrorObject rmObj = new RemoteMirrorObject();
@@ -53,7 +58,10 @@ public class RemoteConnCollectionToVolumeProcessor extends StorageProcessor {
                 // volumes.
                 // This won't be any impact on these volumes and all other srdf operations should work normally.
                 rmObj.setCopyMode(remoteGroup.getSupportedCopyMode());
-                rmObj.setRaGroupUri(remoteGroup.getId());
+                rmObj.setSourceRaGroupUri(remoteGroup.getId());
+                if (targetRemoteGroup != null) {
+                    rmObj.setTargetRaGroupUri(targetRemoteGroup.getId());
+                }
                 if (!volumeToRAGroupMap.containsKey(unManagedVolumeNativeGuid)) {
                     volumeToRAGroupMap.put(unManagedVolumeNativeGuid, rmObj);
                 }

@@ -132,6 +132,9 @@ public class TaskMapper {
         taskResourceRep.setStartTime(task.getStartTime());
         taskResourceRep.setEndTime(task.getEndTime());
         taskResourceRep.setProgress(task.getProgress() != null ? task.getProgress() : 0);
+        taskResourceRep.setQueuedStartTime(task.getQueuedStartTime());
+        taskResourceRep.setQueueName(task.getQueueName());
+
         return taskResourceRep;
     }
 
@@ -171,8 +174,7 @@ public class TaskMapper {
         Task task = operation.getTask(resource.getId());
         if (task != null) {
             return toTask(task);
-        }
-        else {
+        } else {
             // It wasn't recently serialized, so fallback to looking for the task in the DB
             task = TaskUtils.findTaskForRequestId(getConfig().getDbClient(), resource.getId(), taskId);
             if (task != null) {

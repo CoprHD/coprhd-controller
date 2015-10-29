@@ -17,21 +17,23 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.coordinator.client.service.PropertyInfoUtil;
+
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 import com.emc.storageos.coordinator.exceptions.InvalidRepositoryInfoException;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
-
 import com.emc.storageos.systemservices.exceptions.SyssvcException;
-
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.Strings;
@@ -69,6 +71,8 @@ public class LocalRepository {
     private static final String _SYSTOOL_SET_VDC_PROPS = "--setvdcprops";
     private static final String _SYSTOOL_GET_SSL_PROPS = "--getsslprops";
     private static final String _SYSTOOL_SET_SSL_PROPS = "--setsslprops";
+    private static final String _SYSTOOL_SET_DATA_REVISION = "--set-data-revision";
+    private static final String _SYSTOOL_GET_DATA_REVISION = "--get-data-revision";
 
     private static final String _SYSTOOL_REBOOT = "--reboot";
     private static final String _SYSTOOL_POWEROFF = "--poweroff";
@@ -434,6 +438,59 @@ public class LocalRepository {
 
         _log.info(prefix + ret[0]);
         return Boolean.valueOf(ret[0]);
+    }
+
+    /***
+     * Update data revision property
+     *
+     * @param state
+     * @param committed 
+     * @throws LocalRepositoryException
+     */
+    public void setDataRevision(String revisionTag, boolean committed) throws LocalRepositoryException {
+        final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , revisionTag, committed);
+        _log.debug(prefix);
+
+        final Path tmpFilePath = FileSystems.getDefault().getPath(DATA_REVISION_TMP);
+        StringBuilder s = new StringBuilder();
+        s.append(KEY_DATA_REVISION);
+        s.append(PropertyInfoExt.ENCODING_EQUAL);
+        s.append(revisionTag == null ? "" : revisionTag);
+        s.append(PropertyInfoExt.ENCODING_NEWLINE);
+        s.append(KEY_DATA_REVISION_COMMITTED);
+        s.append(PropertyInfoExt.ENCODING_EQUAL);
+        s.append(String.valueOf(committed));
+        createTmpFile(tmpFilePath, s.toString(), prefix);
+
+        try {
+            final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_DATA_REVISION, DATA_REVISION_TMP };
+            exec(prefix, cmd);
+            _log.info(prefix + " Success");
+        } finally {
+            cleanupTmpFile(tmpFilePath);
+        }
+    }
+
+    /***
+     * Get data revision from disk
+     * 
+     * @return DataRevisonTag
+     */
+    public String getDataRevision() throws LocalRepositoryException {
+        final String prefix = "getDataRevision(): ";
+        _log.debug(prefix);
+
+        final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_DATA_REVISION };
+        String[] props = exec(prefix, cmd1);
+
+        _log.debug(prefix + "properties={}", Strings.repr(props));
+        Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
+        String revision = map.get(KEY_DATA_REVISION);
+        String committed = map.get(KEY_DATA_REVISION_COMMITTED);
+        if (committed != null && Boolean.valueOf(committed)) {
+            return revision;
+        }
+        return SiteInfo.DEFAULT_TARGET_VERSION;
     }
 
     /**

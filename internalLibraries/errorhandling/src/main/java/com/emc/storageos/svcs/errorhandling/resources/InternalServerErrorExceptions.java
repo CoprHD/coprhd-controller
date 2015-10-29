@@ -9,6 +9,7 @@ import java.net.URI;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 /**
  * This interface holds all the methods used to create an error condition that
@@ -156,6 +157,14 @@ public interface InternalServerErrorExceptions {
             final String uris);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException storagePoolNotMatchingVirtualPoolNicer(final String storagePool, 
+            final String type, final String volume);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException virtualPoolNotMatchingStoragePoolNicer(final String virtualPool, 
+            final String storagePool, final String type, final String volume, final String vpoolList);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException objectAlreadyManaged(final String parameter, final String guid);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
@@ -217,4 +226,34 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_IPRECONFIG_TRIGGER_FAILED)
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_PRECHECK_FAILED)
+    public InternalServerErrorException addStandbyPrecheckFailed(String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_NAT_CHECK_FAILED)
+    public InternalServerErrorException invalidNatCheckCall(String clientIP, String directClientIp);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_FAILED)
+    public InternalServerErrorException addStandbyFailed(String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_TIMEOUT)
+    public InternalServerErrorException addStandbyFailedTimeout(int timeoutValue);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_CONFIG_STANDBY_FAILED)
+    public InternalServerErrorException configStandbyFailed(String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
+    public InternalServerErrorException removeStandbyFailed(final String siteId, String errMsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_RECONFIG_FAIL)
+    public InternalServerErrorException removeStandbyReconfigFailed(String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_FAILED)
+    public InternalServerErrorException pauseStandbyFailed(final String siteId, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
+    public InternalServerErrorException unexpectedErrorVolumePlacement(Exception ex);
+
+    @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
+    public InternalServerErrorException unexpectedErrorExportGroupPlacement(Exception ex);
 }

@@ -4,9 +4,11 @@
  */
 package com.emc.storageos.model.block;
 
+import java.io.Serializable;
+import java.net.URI;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.net.URI;
 
 /**
  * Specifies the copy to be operated on
@@ -18,7 +20,12 @@ import java.net.URI;
  * count: number of mirrors to create using start operation
  */
 @XmlRootElement(name = "copy")
-public class Copy {
+public class Copy implements Serializable {
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -8250892549720042299L;
 
     private String type;
     private String sync;
@@ -26,6 +33,7 @@ public class Copy {
     private String name;
     private Integer count;
     private String syncDirection;
+    private String copyMode;
 
     public enum SyncDirection {
         SOURCE_TO_TARGET,
@@ -115,7 +123,7 @@ public class Copy {
      * 
      * @valid SOURCE_TO_TARGET
      * @valid TARGET_TO_SOURCE
-     * @return User provided direction for sync
+     * @return The Sync Direction
      */
     @XmlElement(name = "syncDirection", required = false)
     public String getSyncDirection() {
@@ -124,6 +132,23 @@ public class Copy {
 
     public void setSyncDirection(String syncDirection) {
         this.syncDirection = syncDirection;
+    }
+
+    /**
+     * User provided SRDF copy mode for the synchronization.
+     * 
+     * @valid SYNCHRONOUS - Change SRDF copy mode to SYNCHRONOUS
+     * @valid ASYNCHRONOUS - Change SRDF copy mode to ASYNCHRONOUS
+     * @valid ADAPTIVECOPY - Change SRDF copy mode to ADAPTIVE
+     * @return
+     */
+    @XmlElement(name = "copyMode", required = false)
+    public String getCopyMode() {
+        return copyMode;
+    }
+
+    public void setCopyMode(String copyMode) {
+        this.copyMode = copyMode;
     }
 
 }

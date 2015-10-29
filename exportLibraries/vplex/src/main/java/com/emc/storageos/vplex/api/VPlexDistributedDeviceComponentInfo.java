@@ -100,7 +100,7 @@ public class VPlexDistributedDeviceComponentInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("DistributedDeviceComponentInfo ( ");
         str.append(super.toString());
-        str.append(", clusterId: " + clusterId);
+        str.append(", clusterId: ").append(clusterId);
         str.append(" )");
 
         return str.toString();

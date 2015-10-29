@@ -112,7 +112,7 @@ public class InvalidLoginManager {
 
     private boolean isClientInvalidRecordExpired(InvalidLogins invLogins) {
         if (null != invLogins &&
-                (getCurrentTimeInMins() - invLogins.getLastAccessTimeInLong()) > _maxAuthnLoginAttemtsLifeTimeInMins) {
+                (getCurrentTimeInMins() - invLogins.getLastAccessTimeInLong()) >= _maxAuthnLoginAttemtsLifeTimeInMins) {
             return true;
         }
         return false;
@@ -127,15 +127,7 @@ public class InvalidLoginManager {
      */
     public void removeInvalidRecord(String clientIP) {
         try {
-            if (!StringUtils.isBlank(clientIP)) {
-
-                // check if zk contains the IP.
-                InvalidLogins invLogins = (InvalidLogins) _distDataManager.getData(getZkPath(clientIP), false);
-                if (null == invLogins) {
-                    _log.debug("{} doesn't in zk, return from removeInvalidRecord", clientIP);
-                    return;
-                }
-
+            if (isClientIPExist(clientIP)) {
                 // zk contains the ClientIP, start removing.
                 InterProcessLock lock = null;
                 try {
@@ -162,6 +154,31 @@ public class InvalidLoginManager {
             }
         } catch (Exception ex) {
             _log.error("Unexpected exception", ex);
+        }
+    }
+
+    /**
+     * check if zk contains the IP.
+     *
+     * @param clientIP
+     * @return
+     */
+    public boolean isClientIPExist(String clientIP) {
+        if (StringUtils.isBlank(clientIP)) {
+            return false;
+        }
+
+        InvalidLogins invLogins = null;
+        try {
+            invLogins = (InvalidLogins) _distDataManager.getData(getZkPath(clientIP), false);
+        } catch (Exception ex) {
+            _log.error("Unexpected exception", ex);
+        }
+        if (null == invLogins) {
+            _log.debug("{} doesn't in zk", clientIP);
+            return false;
+        } else {
+            return true;
         }
     }
 
@@ -427,5 +444,32 @@ public class InvalidLoginManager {
         }
 
         return false;
+    }
+
+
+    /**
+     * get time difference in minutes, between current time and the specified client ip's last access time.
+     * if specified ip is not recorded in zk, return 0.
+     *
+     * @param clientIP
+     * @return
+     */
+    public int getTimeLeftToUnblock(String clientIP) {
+
+        InvalidLogins invLogins = null;
+        try {
+            invLogins = (InvalidLogins) _distDataManager.getData(getZkPath(clientIP), false);
+        } catch (Exception ex) {
+            _log.error("Failed to get failed-login-ip record in zk", ex);
+        }
+        if (null == invLogins) {
+            _log.debug("{} doesn't in zk, return 0", clientIP);
+            return 0;
+        } else {
+            long lastAccesstime = invLogins.getLastAccessTimeInLong();  // number of minutes
+            int remainingTime = (int)(lastAccesstime + _maxAuthnLoginAttemtsLifeTimeInMins
+                    - getCurrentTimeInMins());
+            return remainingTime > 0 ? remainingTime : 0;
+        }
     }
 }

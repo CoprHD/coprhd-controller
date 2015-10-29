@@ -484,7 +484,7 @@ public class ConfigService {
     private Map<String, String> getMutatedProps(boolean maskSecretsProperties) {
         Map<String, String> overrides;
         try {
-            overrides = _coordinator.getTargetInfo(PropertyInfoExt.class).getProperties();
+            overrides = _coordinator.getTargetProperties().getProperties();
         } catch (Exception e) {
             _log.info("Fail to get the cluster information ", e);
             return new TreeMap<>();
@@ -578,11 +578,7 @@ public class ConfigService {
 
             // perform before handlers
             _propertyHandlers.before(oldProps, currentProps);
-
-            PropertyInfoExt targetProps = null;
-            _coordinator.setTargetInfo(targetProps = new PropertyInfoExt(currentProps.getAllProperties()));
-            _log.info("target properties changed successfully. target properties {}", targetProps.toString());
-
+            _coordinator.setTargetProperties(currentProps.getAllProperties());
             for (Map.Entry<String, String> entry : updateProps.getAllProperties().entrySet()) {
                 if (propChanges.length() > 0) {
                     propChanges.append(",");
@@ -913,6 +909,10 @@ public class ConfigService {
     public Response removeLoginFailedIP(@PathParam("ip") String ip) {
         if (StringUtils.isEmpty(ip)) {
             throw APIException.badRequests.propertyIsNullOrEmpty();
+        }
+
+        if (!_invLoginManager.isClientIPExist(ip)) {
+            throw APIException.badRequests.clientIpNotExist();
         }
 
         _invLoginManager.removeInvalidRecord(ip);

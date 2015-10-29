@@ -20,9 +20,7 @@
     <bean id="tokenEncoder" class="com.emc.storageos.security.authentication.Base64TokenEncoder" init-method="validatorInit"/>
     <bean id="tokenKeyGenerator" class="com.emc.storageos.security.authentication.TokenKeyGenerator" destroy-method="destroy" />
     <bean id="tokenMaxLifeValuesHolder" class="com.emc.storageos.security.authentication.TokenMaxLifeValuesHolder">
-        <!-- Uncomment this to set the maxTokenLifeTimeInMins for testing proxy token expiration
-        <property name="maxTokenLifeTimeInMins" value="1"/>
-        -->
+        <property name="coordinator" ref="coordinator"/>
     </bean>
     <bean id="authSvcEndpointLocator" class="com.emc.storageos.security.authentication.AuthSvcEndPointLocator"/>
         

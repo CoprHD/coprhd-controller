@@ -124,8 +124,8 @@ public class VPlexSystemVolumeInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("SystemVolumeInfo ( ");
         str.append(super.toString());
-        str.append(", volumeType: " + volumeType);
-        str.append(", capacity: " + capacity);
+        str.append(", volumeType: ").append(volumeType);
+        str.append(", capacity: ").append(capacity);
         str.append(" )");
         return str.toString();
     }

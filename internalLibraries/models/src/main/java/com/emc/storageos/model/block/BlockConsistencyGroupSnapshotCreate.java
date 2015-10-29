@@ -15,14 +15,16 @@ public class BlockConsistencyGroupSnapshotCreate {
 
     private String name;
     private Boolean createInactive;
+    private Boolean readOnly;
 
     public BlockConsistencyGroupSnapshotCreate() {
     }
 
     public BlockConsistencyGroupSnapshotCreate(String name,
-            Boolean createInactive) {
+            Boolean createInactive, Boolean readOnly) {
         this.name = name;
         this.createInactive = createInactive;
+        this.readOnly = readOnly;
     }
 
     /**
@@ -63,4 +65,21 @@ public class BlockConsistencyGroupSnapshotCreate {
         this.createInactive = createInactive;
     }
 
+    /**
+     * If read_only is set to true, then the snapshot will be created
+     * as read only, i.e., it will not be possible to write into the snapshot.
+     * 
+     * The default value is false. That is, the snapshot will be created as writable.
+     * 
+     * @valid true
+     * @valid false
+     */
+    @XmlElement(name = "read_only", required = false, defaultValue = "false")
+	public Boolean getReadOnly() {
+		return readOnly;
+	}
+
+	public void setReadOnly(Boolean readOnly) {
+		this.readOnly = readOnly;
+	}
 }

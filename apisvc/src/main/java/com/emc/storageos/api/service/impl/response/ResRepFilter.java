@@ -152,4 +152,20 @@ public abstract class ResRepFilter<E extends RelatedResourceRep> {
                 URI.create(_user.getTenantId()), resource);
     }
 
+    protected boolean isSystemAdmin() {
+        return _permissionsHelper.userHasGivenRole(
+                _user, null, Role.SYSTEM_ADMIN);
+    }
+
+    protected boolean isRestrictedSystemAdmin() {
+        return _permissionsHelper.userHasGivenRole(_user, null, Role.RESTRICTED_SYSTEM_ADMIN);
+    }
+
+    protected boolean isSystemOrRestrictedSystemAdmin() {
+        return isSystemAdmin() || isRestrictedSystemAdmin();
+    }
+
+    protected boolean isSecurityAdmin() {
+        return _permissionsHelper.userHasGivenRole(_user, null, Role.SECURITY_ADMIN);
+    }
 }

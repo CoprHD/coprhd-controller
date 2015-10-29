@@ -271,7 +271,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                     BlockObject blockObject = ingestStrategy.ingestBlockObjects(full_systems, full_pools, system, unManagedVolume, vpool,
                             varray,
                             project, tenant, unManagedVolumes, createdObjectMap, updatedObjectMap, false,
-                            getBlockObjectClass(unManagedVolume), taskStatusMap);
+                            VolumeIngestionUtil.getBlockObjectClass(unManagedVolume), taskStatusMap, param.getVplexIngestionMethod());
                     _logger.info("Ingestion ended for unmanagedvolume {}", unManagedVolume.getNativeGuid());
                     if (null == blockObject) {
                         throw IngestionException.exceptions.generalVolumeException(
@@ -282,10 +282,10 @@ public class UnManagedVolumeService extends TaskResourceService {
                     processedUnManagedVolumeMap.put(unManagedVolume.getNativeGuid(), unManagedVolume);
 
                 } catch (APIException ex) {
-                    _logger.debug("APIException occurred", ex);
+                    _logger.error("APIException occurred", ex);
                     _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
                 } catch (Exception ex) {
-                    _logger.debug("Exception occurred", ex);
+                    _logger.error("Exception occurred", ex);
                     _dbClient.error(UnManagedVolume.class, unManagedVolumeUri,
                             taskId, IngestionException.exceptions.generalVolumeException(
                                     unManagedVolume.getLabel(), ex.getLocalizedMessage()));
@@ -381,7 +381,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             List<UnManagedVolume> unManagedVolumesToBeDeleted, Map<String, BlockObject> createdObjectMap,
             Map<String, List<DataObject>> updatedObjectMap,
             Map<String, UnManagedVolume> processedUnManagedVolumeMap, Map<String, TaskResourceRep> taskMap,
-            Map<String, StringBuffer> taskStatusMap) {
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) {
 
         for (URI unManagedVolumeUri : unManagedVolumeUris) {
             UnManagedVolume unManagedVolume = _dbClient.queryObject(UnManagedVolume.class,
@@ -407,7 +407,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool,
                         virtualArray,
                         project, tenant, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, true,
-                        getBlockObjectClass(unManagedVolume), taskStatusMap);
+                        VolumeIngestionUtil.getBlockObjectClass(unManagedVolume), taskStatusMap, vplexIngestionMethod);
 
                 _logger.info("Ingestion ended for exported unmanagedvolume {}", unManagedVolume.getNativeGuid());
                 if (null == blockObject) {
@@ -419,10 +419,10 @@ public class UnManagedVolumeService extends TaskResourceService {
                 createdObjectMap.put(blockObject.getNativeGuid(), blockObject);
                 processedUnManagedVolumeMap.put(unManagedVolume.getNativeGuid(), unManagedVolume);
             } catch (APIException ex) {
-                _logger.warn(ex.getLocalizedMessage(), ex);
+                _logger.warn("error: " + ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
             } catch (Exception ex) {
-                _logger.warn(ex.getLocalizedMessage(), ex);
+                _logger.warn("error: " + ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class, unManagedVolumeUri,
                         taskId, IngestionException.exceptions.generalVolumeException(
                                 unManagedVolume.getLabel(), ex.getLocalizedMessage()));
@@ -471,7 +471,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 // Build the Strategy , which contains reference to Block object & export orchestrators
                 IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
                 BlockObject blockObject = ingestStrategy.ingestExportMasks(processedUnManagedVolume, exportIngestParam, exportGroup,
-                        processedBlockObject, unManagedVolumesToBeDeleted, system, exportGroupCreated);
+                        processedBlockObject, unManagedVolumesToBeDeleted, system, exportGroupCreated, null);
                 if (null == blockObject) {
                     throw IngestionException.exceptions.generalVolumeException(
                             processedUnManagedVolume.getLabel(), "check the logs for more details");
@@ -619,7 +619,8 @@ public class UnManagedVolumeService extends TaskResourceService {
             // First ingest the block objects
             ingestBlockObjects(systemCache, full_systems, full_pools, exportIngestParam.getUnManagedVolumes(), vpool, varray, project,
                     tenant,
-                    unManagedVolumes, createdObjectMap, updatedObjectMap, processedUnManagedVolumeMap, taskMap, taskStatusMap);
+                    unManagedVolumes, createdObjectMap, updatedObjectMap, processedUnManagedVolumeMap, taskMap, taskStatusMap, 
+                    exportIngestParam.getVplexIngestionMethod());
             _logger.info("Ingestion of unmanaged volumes ended....");
             // next ingest the export masks for the unmanaged volumes which have been fully ingested
             _logger.info("Ingestion of unmanaged exportmasks started....");
@@ -655,18 +656,6 @@ public class UnManagedVolumeService extends TaskResourceService {
         }
 
         return taskList;
-    }
-
-    @SuppressWarnings("rawtypes")
-    private Class getBlockObjectClass(UnManagedVolume unManagedVolume) {
-        Class blockObjectClass = Volume.class;
-        if (VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
-            blockObjectClass = BlockSnapshot.class;
-        } else if (VolumeIngestionUtil.isMirror(unManagedVolume)) {
-            blockObjectClass = BlockMirror.class;
-        }
-
-        return blockObjectClass;
     }
 
     /**

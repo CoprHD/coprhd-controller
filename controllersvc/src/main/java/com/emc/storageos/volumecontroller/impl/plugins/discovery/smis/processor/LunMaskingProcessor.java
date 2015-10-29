@@ -190,7 +190,7 @@ public class LunMaskingProcessor extends StorageProcessor {
 
             _logger.info("Bw {} and Iops {} found for SG : {} ",
                     new Object[] { hostIoBw, hostIoPs, String.valueOf(instance.getPropertyValue(Constants.ELEMENTNAME)) });
-            if (hostIoBw == "0" && hostIoPs == "0") {
+            if (hostIoBw.equals("0") && hostIoPs.equals("0")) {
                 hostIoBw = parentHostIoBw;
                 hostIoPs = parentHostIoPs;
             }

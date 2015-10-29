@@ -7,35 +7,49 @@ package com.emc.storageos.api.mapper;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDiscoveredDataObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDiscoveredSystemObjectFields;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.DecimalFormat;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.NasCifsServer;
+import com.emc.storageos.db.client.model.PhysicalNAS;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.smis.SMISProviderRestRep;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.DecommissionedResourceRep;
+import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
 
 public class SystemsMapper {
     private static final String MINUS_ONE_LONG = "-1";
+    private static final Long GBsINKB = 1048576L;
 
     @Deprecated
     public static SMISProviderRestRep mapStorageProviderToSMISRep(StorageProvider from) {
@@ -104,6 +118,114 @@ public class SystemsMapper {
         to.setRegistrationStatus(from.getRegistrationStatus());
         to.setSecondaryUsername(from.getSecondaryUsername());
         to.setElementManagerURL(from.getElementManagerURL());
+        return to;
+    }
+
+    public static RDFGroupRestRep map(RemoteDirectorGroup from, List<URI> volumeURIList) {
+        if (from == null) {
+            return null;
+        }
+        RDFGroupRestRep to = new RDFGroupRestRep();
+        mapDiscoveredDataObjectFields(from, to);
+        to.setActive(from.getActive());
+        to.setConnectivityStatus(from.getConnectivityStatus());
+        to.setSupportedCopyMode(from.getSupportedCopyMode());
+        to.setCopyState(from.getCopyState());
+        to.setRemoteGroupId(from.getRemoteGroupId());
+        to.setRemotePort(from.getRemotePort());
+        to.setSourceGroupId(from.getSourceGroupId());
+        to.setSourcePort(from.getSourcePort());
+        to.setSourceReplicationGroupName(from.getSourceReplicationGroupName());
+        to.setSupported(from.getSupported());
+        to.setTargetReplicationGroupName(from.getTargetReplicationGroupName());
+        to.setSourceStorageSystemUri(from.getSourceStorageSystemUri());
+        to.setRemoteStorageSystemUri(from.getRemoteStorageSystemUri());
+        to.setVolumes(volumeURIList);
+        return to;
+    }
+
+    public static VirtualNASRestRep map(VirtualNAS from, DbClient dbClient) {
+        if (from == null) {
+            return null;
+        }
+
+        VirtualNASRestRep to = new VirtualNASRestRep();
+        mapDiscoveredDataObjectFields(from, to);
+        to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
+        to.setBaseDirPath(from.getBaseDirPath());
+        to.setCompatibilityStatus(from.getCompatibilityStatus());
+        to.setConnectedVirtualArrays(from.getConnectedVirtualArrays());
+        to.setDiscoveryStatus(from.getDiscoveryStatus());
+        to.setNasName(from.getNasName());
+        to.setName(from.getNasName());
+        to.setNasState(from.getNasState());
+        to.setNasTag(from.getNAStag());
+
+        if (from.getParentNasUri() != null) {
+            PhysicalNAS pNAS = dbClient.queryObject(PhysicalNAS.class, from.getParentNasUri());
+
+            // Self link will be empty as there is no Resource Type available for PhysicalNAS
+            to.setParentNASURI(toNamedRelatedResource(pNAS, pNAS.getNasName()));
+        }
+
+        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
+
+        to.setProtocols(from.getProtocols());
+        to.setRegistrationStatus(from.getRegistrationStatus());
+
+        Set<String> cifsServers = new HashSet<String>();
+        Set<String> cifsDomains = new HashSet<String>();
+        if (from.getCifsServersMap() != null && !from.getCifsServersMap().isEmpty()) {
+            Set<Entry<String, NasCifsServer>> nasCifsServers = from.getCifsServersMap().entrySet();
+            for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
+                String serverDomain = nasCifsServer.getKey();
+                NasCifsServer cifsServer = nasCifsServer.getValue();
+                if (cifsServer.getDomain() != null) {
+                    serverDomain = serverDomain + " = " + cifsServer.getDomain();
+                    cifsDomains.add(cifsServer.getDomain());
+                }
+                cifsServers.add(serverDomain);
+            }
+
+            if (cifsServers != null && !cifsServers.isEmpty()) {
+                to.setCifsServers(cifsServers);
+                to.setStorageDomain(cifsDomains);
+            }
+        }
+
+        for (String port : from.getStoragePorts()) {
+            to.getStoragePorts().add(toRelatedResource(
+                    ResourceTypeEnum.STORAGE_PORT, URI.create(port)));
+        }
+
+        to.setTaggedVirtualArrays(from.getTaggedVirtualArrays());
+
+        to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDeviceURI()));
+        DecimalFormat df = new DecimalFormat("0.00");
+        // Set the metrics!!!
+        Double maxStorageCapacity = MetricsKeys.getDouble(MetricsKeys.maxStorageCapacity, from.getMetrics()) / GBsINKB;
+        to.setMaxStorageCapacity(df.format(maxStorageCapacity));
+        to.setMaxStorageObjects(MetricsKeys.getLong(MetricsKeys.maxStorageObjects, from.getMetrics()).toString());
+
+        to.setStorageObjects(MetricsKeys.getLong(MetricsKeys.storageObjects, from.getMetrics()).toString());
+        Double usedStorageCapacity = MetricsKeys.getDouble(MetricsKeys.usedStorageCapacity, from.getMetrics()) / GBsINKB;
+        to.setUsedStorageCapacity(df.format(usedStorageCapacity));
+        Double percentLoad = MetricsKeys.getDoubleOrNull(MetricsKeys.percentLoad, from.getMetrics());
+        if (percentLoad != null) {
+            to.setPercentLoad(df.format(percentLoad));
+        }
+        to.setIsOverloaded(MetricsKeys.getBoolean(MetricsKeys.overLoaded, from.getMetrics()));
+
+        Double percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.emaPercentBusy, from.getMetrics());
+        if (percentBusy != null) {
+
+            to.setAvgEmaPercentagebusy(df.format(percentBusy));
+        }
+        percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, from.getMetrics());
+        if (percentBusy != null) {
+            to.setAvgPercentagebusy(df.format(percentBusy));
+        }
+
         return to;
     }
 

@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.fullcopy;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -192,6 +193,10 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             TaskResourceRep volumeTask = TaskMapper.toTask(volume, taskId, op);
             taskList.getTaskList().add(volumeTask);
         }
+
+        addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
+
         try {
             BlockController controller = getController(BlockController.class,
                     storageSystem.getSystemType());
@@ -259,6 +264,9 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             taskList.getTaskList().add(fullCopyVolumeTask);
         }
 
+        addConsistencyGroupTasks(Arrays.asList(sourceVolume), taskList, taskId,
+                ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_FULL_COPY);
+
         // Invoke the controller.
         try {
             BlockController controller = getController(BlockController.class,
@@ -311,6 +319,9 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             taskList.getTaskList().add(fullCopyVolumeTask);
         }
 
+        addConsistencyGroupTasks(Arrays.asList(sourceVolume), taskList, taskId,
+                ResourceOperationTypeEnum.RESYNCHRONIZE_CONSISTENCY_GROUP_FULL_COPY);
+
         // Invoke the controller.
         try {
             BlockController controller = getController(BlockController.class,
@@ -325,6 +336,14 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
 
         return taskList;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TaskList establishVolumeAndFullCopyGroupRelation(Volume sourceVolume, Volume fullCopyVolume) {
+        return super.establishVolumeAndFullCopyGroupRelation(sourceVolume, fullCopyVolume);
     }
 
     /**
@@ -359,7 +378,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @param sc A reference to the error.
      * @param markInactive true to mark the volumes inactive, false otherwise.
      */
-    private void handleFailedRequest(String taskId, TaskList taskList,
+    protected void handleFailedRequest(String taskId, TaskList taskList,
             List<Volume> volumes, ServiceCoded sc, boolean markInactive) {
         for (TaskResourceRep volumeTask : taskList.getTaskList()) {
             volumeTask.setState(Operation.Status.error.name());

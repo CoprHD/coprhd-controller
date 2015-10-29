@@ -295,5 +295,5 @@ public class Constants {
     public static final String STORAGE_GROUPS_PROCESSED = "StorageGroupsProccessed";
 
     public static final String WORKLOAD = "Workload";
-
+    public static final String SLO_NAMES = "SLONames";
 }

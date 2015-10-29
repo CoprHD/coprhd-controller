@@ -154,6 +154,10 @@ public class AdminDashboardUtils {
     public static Promise<Integer> fileVirtualPoolCount() {
         return new BulkResourceCount(FILE_VIRTUAL_POOL_COUNT_KEY, getViprClient().fileVpools()).asPromise();
     }
+    
+    public static Promise<Integer> objectVirtualPoolCount() {
+    	return new BulkResourceCount(OBJECT_VIRTUAL_POOL_COUNT_KEY, getViprClient().objectVpools()).asPromise();
+    }
 
     public static Promise<Integer> computeVirtualPoolCount() {
         return new BulkResourceCount(COMPUTE_VIRTUAL_POOL_COUNT_KEY, getViprClient().computeVpools()).asPromise();

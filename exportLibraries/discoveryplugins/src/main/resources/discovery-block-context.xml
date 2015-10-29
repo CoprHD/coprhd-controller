@@ -69,7 +69,9 @@
 				<ref bean="getSupportedAsynchronousActions"/>
 				
 				<ref bean="getPoolSettings"/>
-				
+
+                <ref bean="vmaxSLOBookkeeping"/>
+
 				<ref bean="getRemoteConnectivityCollection"/>
                 
                 <ref bean="getConnectivityRelationships"/>
@@ -1669,7 +1671,22 @@
 	<bean id="poolsettingProcessor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StoragePoolSettingProcessor" />
 
+    <!-- To be run after poolsettingProcessor: keep SLO AutoTieringPolicies in-sync with array -->
+    <bean id="vmaxSLOBookkeeping" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="arguments">
+            <list>
+                <ref bean="bool-true"/>
+            </list>
+        </property>
+        <property name="instance" ref="smiutility"/>
+        <property name="result" value=""/>
+        <property name="method" value="byPassControlToProcessor"/>
+        <property name="processor" ref="vmaxSLOBookkeepingProcessor"/>
+        <property name="message" value="Examining VMAX3 SLO AutoTieringPolicies and making sure they are in sync with the array"/>
+    </bean>
 
+    <bean id="vmaxSLOBookkeepingProcessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.VmaxSLOBookkeepingProcessor"/>
 
 	<!-- SMI Call to get associated StorageAdapter for an Array -->
 	<bean id="getStorageProcessor" class="com.emc.storageos.plugins.common.domainmodel.Operation">

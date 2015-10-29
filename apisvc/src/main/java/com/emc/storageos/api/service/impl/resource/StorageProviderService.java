@@ -442,7 +442,8 @@ public class StorageProviderService extends TaskResourceService {
             if (param.getInterfaceType() != null) {
                 ArgValidator.checkFieldValueFromEnum(param.getInterfaceType(), "interface_type", EnumSet.of(
                         StorageProvider.InterfaceType.hicommand, StorageProvider.InterfaceType.smis,
-                        StorageProvider.InterfaceType.ibmxiv, StorageProvider.InterfaceType.scaleioapi));
+                        StorageProvider.InterfaceType.ibmxiv, StorageProvider.InterfaceType.scaleioapi, 
+                        StorageProvider.InterfaceType.xtremio));
                 storageProvider.setInterfaceType(param.getInterfaceType());
             }
 

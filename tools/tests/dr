@@ -1,0 +1,136 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+import time
+
+#----------------------------------------------------------------------
+# dr cli functions
+#----------------------------------------------------------------------
+
+def dr_add_standby(args):
+    bourne.connect(args.ip)
+    standby=bourne.dr_add_standby(args.name, args.description, args.vip, args.username, args.password)
+    uuid=standby['uuid']
+    print uuid
+
+def dr_list_standby(args):
+    bourne.connect(args.ip)
+    sites=bourne.dr_list_standby()
+    if args.name:
+        for site in sites['site']:
+            if args.name in site['name']:
+                print site['uuid']
+                return
+        raise ValueError("site "+args.name+" doesn't exist")
+
+def dr_get_standby(args):
+    bourne.connect(args.ip)
+    standby=bourne.dr_get_standby(args.uuid)
+    if args.property:
+    	print standby[args.property]
+
+def dr_delete_standby(args):
+    bourne.connect(args.ip)
+    bourne.dr_delete_standby(args.uuid)
+
+def wait_for_state(args):
+    timeCounter = 0
+    modifier=''
+    if args.n:
+        modifier='not '
+    print "Waiting for standby state to "+modifier+"be "+args.state
+    bourne.connect(args.ip)
+    while True:
+        try:
+            resp=bourne.dr_get_standby(args.uuid)
+            if args.n != (resp['state'] == args.state):
+                print "Standby state is "+modifier+args.state
+                return
+        except:
+            raise Exception("Exception while checking for api success")
+        time.sleep(args.sleep)
+        timeCounter += args.sleep
+        print  "Retrying... time elapsed: [" + str(timeCounter) + "s]"
+        if (timeCounter >= args.length):
+            print("giving up wait_for_state. counter %s args.length %s" % (timeCounter, args.length))
+            raise Exception("Timeout occurred while waiting for standby state to "+modifier+"be "+args.state)
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# dr <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
+parser.add_argument('cmd', help = 'cmd = (add|list|get|delete|waitforstate)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# add dr standby
+draddstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+draddstandby.add_argument('name',	     help = 'name of standby site')
+draddstandby.add_argument('description', help = 'the description of standby site to be added')
+draddstandby.add_argument('vip',         help = 'the vip of standby site to be added')
+draddstandby.add_argument('username',    help = 'the username  of standby site to be added')
+draddstandby.add_argument('password',    help = 'the password  of standby site to be added')
+
+# list dr standby
+drliststandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drliststandby.add_argument('name', nargs='?',        help = 'return uuid of stanby site name')
+
+# get dr standby
+drgetstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drgetstandby.add_argument('uuid',    		 	help = 'uuid of standby site')
+drgetstandby.add_argument('property', nargs='?',	help = 'return property of standby site')
+
+# delete dr standby
+drdeletestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drdeletestandby.add_argument('uuid', help = 'uuid of standby site')
+
+# "waitforsync"
+waitforsync = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+waitforsync.add_argument('uuid',		help = 'uuid of standby site')
+waitforsync.add_argument('state',         help = 'state of standby site')
+waitforsync.add_argument('sleep', help = 'sleep of waiting time', type=float)
+waitforsync.add_argument('length', help = 'the whole waiting time', type=float)
+waitforsync.add_argument('-n', action='store_true',  help = 'wait for state to NOT equal')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+if (len(sys.argv) > 1):
+    cmd = sys.argv[1]
+else:
+    cmd = None
+
+bourne = Bourne()
+
+if   (cmd == "add"):
+    args = draddstandby.parse_args()
+    dr_add_standby(args)
+elif (cmd == "list"):
+    args = drliststandby.parse_args()
+    dr_list_standby(args)
+elif (cmd == "get"):
+    args = drgetstandby.parse_args()
+    dr_get_standby(args)
+elif (cmd == "delete"):
+    args = drdeletestandby.parse_args()
+    dr_delete_standby(args)
+elif (cmd == "waitforstate"):
+    args = waitforsync.parse_args()
+    wait_for_state(args)
+else:
+    parser.print_help()

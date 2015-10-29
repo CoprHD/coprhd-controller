@@ -21,6 +21,8 @@ import controllers.util.Models;
 public class TenantSelector extends Controller {
     public static String CURRENT_TENANT_ID = "currentTenantId";
     public static String CURRENT_TENANT_NAME = "currentTenantName";
+    private static String TENANTS = "tenants";
+    private static String TENANT = "Tenant";
 
     public static void selectTenant(String tenantId, String url) {
         Models.setAdminTenantId(tenantId);
@@ -38,14 +40,14 @@ public class TenantSelector extends Controller {
     @Util
     public static void addRenderArgs() {
         if (Security.isSecurityAdmin()) {
-            renderArgs.put("tenants", TenantUtils.getSubTenantOptions());
+            renderArgs.put(TENANTS, TenantUtils.getSubTenantOptions());
         }
         else if (Security.isTenantAdmin()) {
-            renderArgs.put("tenants", TenantUtils.getUserSubTenantOptions());
+            renderArgs.put(TENANTS, TenantUtils.getUserSubTenantOptions());
         }
 
         String tenantId = Models.currentAdminTenant();
-        String tenantName = "Tenant";
+        String tenantName = TENANT;
 
         // Add currently selected tenant information
         if (Security.isSystemMonitor() || Security.isTenantAdmin() || Security.isSecurityAdmin()) {
@@ -60,5 +62,61 @@ public class TenantSelector extends Controller {
         }
         renderArgs.put(CURRENT_TENANT_ID, tenantId);
         renderArgs.put(CURRENT_TENANT_NAME, tenantName);
+    }
+
+    /**
+     * Adds all the options for the tenant selector to the render args.
+     * The options include, all the active tenants and "ALL" to indicate
+     * all the tenants and "NONE" to indicate no tenants. The options
+     * "ALL" and "NONE" should always be first two options in the list.
+     *
+     */
+    @Util
+    public static void addRenderArgsForVcenterObjects() {
+        renderTenantOptionsForVcenters();
+
+        String tenantId = Models.currentAdminTenantForVcenter();
+        String tenantName = TENANT;
+
+        // Add currently selected tenant information
+        if (Security.isSystemMonitor() || Security.isTenantAdmin() ||
+                Security.isSecurityAdmin() || Security.isSystemAdmin()) {
+            try {
+                tenantId = Models.currentAdminTenantForVcenter();
+                if (TenantUtils.getNoTenantSelector().equalsIgnoreCase(tenantId) ||
+                        TenantUtils.getTenantSelectorForUnassigned().equalsIgnoreCase(tenantId)) {
+                    tenantName = tenantId;
+                } else {
+                    tenantName = getViprClient().tenants().get(uri(tenantId)).getName();
+                }
+            } catch (ServiceErrorException tenantNotFound) {
+                Models.resetAdminTenantId();
+                tenantId = Models.currentAdminTenantForVcenter();
+                tenantName = getViprClient().tenants().get(uri(tenantId)).getName();
+            }
+        }
+        renderArgs.put(CURRENT_TENANT_ID, tenantId);
+        renderArgs.put(CURRENT_TENANT_NAME, tenantName);
+    }
+
+    private static void renderTenantOptionsForVcenters() {
+        if (Security.isSecurityAdmin() || Security.isSystemAdmin()) {
+            renderArgs.put(TENANTS, TenantUtils.getSubTenantOptionsWithAdditionalTenants());
+        } else if (Security.isTenantAdmin()) {
+            renderArgs.put(TENANTS, TenantUtils.getUserSubTenantOptions());
+        }
+    }
+
+    public static void selectVcenterTenant(String tenantId, String url) {
+        Models.setVcenterAdminTenantId(tenantId);
+
+        if (url != null) {
+            try {
+                redirect(Common.toSafeRedirectURL(url));
+            } catch (ActionNotFoundException noAction) {
+                Logger.error(noAction, "Action not found for %s", url);
+                badRequest();
+            }
+        }
     }
 }

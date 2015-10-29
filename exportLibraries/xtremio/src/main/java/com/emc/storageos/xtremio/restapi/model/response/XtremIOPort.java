@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.xtremio.restapi.model.response;
 
+import java.util.List;
+
 import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.google.gson.annotations.SerializedName;
@@ -28,6 +30,10 @@ public class XtremIOPort {
     @SerializedName("port-state")
     @JsonProperty(value = "port-state")
     private String operationalStatus;
+
+    @SerializedName("node-id")
+    @JsonProperty(value = "node-id")
+    private List<String> nodeInfo;
 
     public String getName() {
         return name;
@@ -69,4 +75,11 @@ public class XtremIOPort {
         this.operationalStatus = operationalStatus;
     }
 
+    public List<String> getNodeInfo() {
+        return nodeInfo;
+    }
+
+    public void setNodeInfo(List<String> nodeInfo) {
+        this.nodeInfo = nodeInfo;
+    }
 }

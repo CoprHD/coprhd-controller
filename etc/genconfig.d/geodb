@@ -10,7 +10,7 @@
 # it is provided by or on behalf of EMC.
 
 _get_geodbvar_props() {
-    _get_props vdc_myid node_id node_index
+    _get_props vdc_myid node_id node_index site_is_standby site_myid
 }
 
 _get_geodbconf_props() {
@@ -44,7 +44,18 @@ _get_geodbconf_props() {
         done
         IFS="${OLD_IFS}"
     fi
+    # for standby sites, add the first node from primary site to the list as well
+    # TODO: add first node from other standby sites
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
+        var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_1_ipaddr"
+        if [ -z "${!var}" ]; then
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_network_1_ipaddr6"
+        fi
+        list+=" ${!var}"
+    fi
     echo "vdc_seeds_ipaddr=$(echo $list | tr ' ' ',')"
+
+    _get_props site_id
 }
 
 _get_geodb_jmx_props() {
@@ -52,7 +63,11 @@ _get_geodb_jmx_props() {
 }
 
 _get_rackdc_props() {
-    echo "vdc_myid=${_GENCONFIG_vdc_myid}"
+    local myid="${_GENCONFIG_vdc_myid}"
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ] ; then
+        myid+="-${_GENCONFIG_site_myid}"
+    fi
+    echo "vdc_myid=${myid}"
 }
 
 # _gen_template will generate properties based on *-template.xml, replace macro in *-template.*

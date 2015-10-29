@@ -15,6 +15,7 @@ public class VolumeSnapshotParam {
 
     private String name;
     private Boolean createInactive;
+    private Boolean readOnly;
     private String type;
 
     public VolumeSnapshotParam() {
@@ -79,4 +80,19 @@ public class VolumeSnapshotParam {
         this.type = type;
     }
 
+    /**
+     * If read_only is set to true, then the snapshot will be created
+     * as read only, i.e., it will not be possible to write into the snapshot
+     * @valid true
+     * @valid false
+     */
+    @XmlElement(name = "read_only", required = false, defaultValue = "false")
+	public Boolean getReadOnly() {
+		return readOnly;
+	}
+
+	public void setReadOnly(Boolean readOnly) {
+		this.readOnly = readOnly;
+	}
+    
 }

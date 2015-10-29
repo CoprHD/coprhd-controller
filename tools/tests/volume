@@ -43,6 +43,29 @@ def volume_create(args):
             print 'Volume created with id ' + tr['resource']['id']
         else:
             print 'Volume create failed.'
+	    
+def volume_add_journal(args):
+    bourne.connect(args.ip)
+    project_uri = bourne.project_query(args.project)
+    cos_uri = bourne.cos_query('block', args.cos)
+    nh_uri = bourne.neighborhood_query(args.neighborhood)
+    cons_grp_uri= ''
+    cons_grp_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
+
+    volumeCount = 1
+    if (args.count):
+        volumeCount = args.count
+	
+    start = time.time()
+    tr_list = bourne.volume_add_journal(args.copyname, project_uri, nh_uri, cos_uri, args.size, volumeCount, cons_grp_uri)
+    total = time.time() - start
+    print "journal create took", "{0:.2f}".format(total), "seconds to complete"
+    #print 'rp_journal_create debug : ' + str(s)
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Journal created with id ' + tr['resource']['id']
+        else:
+            print 'Journal create failed.'
 
 def volume_full_copy(args):
     bourne.connect(args.ip)
@@ -383,6 +406,16 @@ create.add_argument('--protection',     help = 'data protection level for this v
 create.add_argument('--consistencyGroup', help = 'add the volume to the specified consistancy group for snapshot operations')
 create.add_argument('--thinVolume', help = 'boolean indication if volume is thin or thick')
 
+# volume add_journal
+add_journal = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+add_journal.add_argument('copyname',		help = 'Name of the copy')
+add_journal.add_argument('project',		help = 'container project name')
+add_journal.add_argument('neighborhood',	help = 'neighborhood where journal volume is created')
+add_journal.add_argument('cos',		help = 'cos name for journal volume')
+add_journal.add_argument('size',		help = 'size of journal volume')
+add_journal.add_argument('--count',		help = 'Number of journal volumes to create')
+add_journal.add_argument('--consistencyGroup', help = 'add the journal volume to the specified consistancy group')
+
 # volume full_copy label name
 full_copy = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 full_copy.add_argument('label', help = 'label of volume full copy')
@@ -571,6 +604,9 @@ try:
     elif(cmd == "verify"):
         args = verify.parse_args()
         volume_verify(args)
+    elif (cmd == "add_journal"):
+        args = add_journal.parse_args()
+        volume_add_journal(args)
     else:
         parser.print_help()
 

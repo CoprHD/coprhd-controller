@@ -64,25 +64,6 @@ public class VdcConfigUtilTest {
                 "3.1.1.1");
     }
 
-    @Test
-    public void testHashCode() {
-        Map<String, String> vdcConfig = vdcConfigUtil.genVdcProperties();
-        String hashCode1 = vdcConfig.get(VDC_CONFIG_HASHCODE);
-        vdcConfig = vdcConfigUtil.genVdcProperties();
-        String hashCode2 = vdcConfig.get(VDC_CONFIG_HASHCODE);
-        Assert.assertEquals(hashCode1, hashCode2);
-
-        try {
-            ((VdcDbClient) vdcDbClient).getVdcMap().remove(new URI(
-                    "urn:storageos:VirtualDataCenter:11111111-1111-1111-1111-111111111111:"));
-
-            String hashCode3 = vdcConfig.get(VDC_CONFIG_HASHCODE);
-            Assert.assertNotSame(hashCode1, hashCode3);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private static class VdcDbClient extends DbClientImpl {
         private Map<URI, VirtualDataCenter> vdcMap = new HashMap<>();
 

@@ -36,6 +36,7 @@ public class BlockMirrorTaskCompleter extends TaskCompleter {
 
     public BlockMirrorTaskCompleter(Class clazz, List<URI> ids, String opId) {
         super(clazz, ids, opId);
+        _mirrorURI = ids.get(0);
     }
 
     public void recordBourneBlockMirrorEvent(DbClient dbClient, URI mirrorUri, String evtType,

@@ -5,6 +5,7 @@
 package com.emc.sa.asset.providers;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -41,6 +43,8 @@ import com.google.common.collect.Sets;
 public class FileProvider extends BaseAssetOptionsProvider {
     public static final String CIFS = "CIFS";
     public static final String NFS = "NFS";
+    public static final String EXPORTED_TYPE = "exported";
+    public static final String UNEXPORTED_TYPE = "unexported";
 
     @Asset("fileNfsVirtualPool")
     @AssetDependencies("fileVirtualArray")
@@ -441,6 +445,24 @@ public class FileProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         options.add(newAssetOption("true", "boolean.true"));
         options.add(newAssetOption("false", "boolean.false"));
+        return options;
+    }
+    
+    @Asset("fileDeletionType")
+    public List<AssetOption> getFileDeletionType(AssetOptionsContext ctx) {
+        List<AssetOption> options = new ArrayList<>();
+
+        options.add(newAssetOption(FileControllerConstants.DeleteTypeEnum.FULL.toString(), "file.deletion.type.full"));
+        options.add(newAssetOption(FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString(), "file.deletion.type.vipr_only"));
+
+        return options;
+    }
+
+    @Asset("fileIngestExportType")
+    public List<AssetOption> getFileIngestExportType(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(newAssetOption(EXPORTED_TYPE, "file.ingest.export.type.exported"));
+        options.add(newAssetOption(UNEXPORTED_TYPE, "file.ingest.export.type.unexported"));
         return options;
     }
 }

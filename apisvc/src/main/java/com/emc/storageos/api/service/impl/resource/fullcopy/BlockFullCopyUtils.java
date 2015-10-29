@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexUtil;
 
 /**
  * Utilities class for processing fully copy request
@@ -352,12 +353,13 @@ public class BlockFullCopyUtils {
      * @return true if the full copy is detached from the source, false otherwise.
      */
     public static boolean isFullCopyDetached(Volume volume, DbClient dbClient) {
-        boolean result = true;
+        boolean result = false;
         String replicaState = volume.getReplicaState();
-        if (isVolumeFullCopy(volume, dbClient) && replicaState != null && !replicaState.isEmpty()) {
+        // When the full copy is detached, it will not have reference to the source volume.
+        if (!isVolumeFullCopy(volume, dbClient) && replicaState != null && !replicaState.isEmpty()) {
             ReplicationState state = ReplicationState.getEnumValue(replicaState);
-            if (state != null && state != ReplicationState.DETACHED) {
-                result = false;
+            if (state != null && state == ReplicationState.DETACHED) {
+                result = true;
             }
         }
         return result;
@@ -434,6 +436,38 @@ public class BlockFullCopyUtils {
 
         return isFullCopySource;
     }
+    
+    /**
+     * Determine if the passed volume is a source volume
+     * for any consistency group full copies.
+     * 
+     * @param volume A reference to a volume.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return true if the volume is a CG full copy source, false otherwise.
+     */
+    public static boolean isVolumeCGFullCopySource(Volume volume, DbClient dbClient) {
+        boolean isFullCopySource = false;
+        StringSet fullCopyIds = volume.getFullCopies();
+        if ((fullCopyIds != null) && (!fullCopyIds.isEmpty())) {
+            Iterator<String> fullCopyIdsIter = fullCopyIds.iterator();
+            while (fullCopyIdsIter.hasNext()) {
+                URI fullCopyURI = URI.create(fullCopyIdsIter.next());
+                Volume fullCopyVolume = dbClient.queryObject(Volume.class, fullCopyURI);
+                if ((fullCopyVolume != null) && (!fullCopyVolume.getInactive())) {
+                    String groupName = fullCopyVolume.getReplicationGroupInstance();
+                    if (NullColumnValueGetter.isNotNullValue(groupName) ||
+                            VPlexUtil.isBackendFullCopyInReplicationGroup(fullCopyVolume, dbClient)) {
+                        isFullCopySource = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return isFullCopySource;
+    }
+
 
     /**
      * Determines if the passed volume has an active full copy session.
@@ -494,8 +528,7 @@ public class BlockFullCopyUtils {
         StorageSystem system = dbClient.queryObject(StorageSystem.class, systemURI);
         int maxCount = Integer.MAX_VALUE;
         if (system != null) {
-            maxCount = BlockFullCopyManager.getMaxFullCopiesForSystemType
-                    (system.getSystemType());
+            maxCount = BlockFullCopyManager.getMaxFullCopiesForSystemType(system.getSystemType());
         }
 
         if ((numRequested + currentCount) > maxCount) {

@@ -4,6 +4,16 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.nas.vnxfile.xmlapi.CifsServer;
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Status;
@@ -12,16 +22,6 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.vnx.xmlapi.VNXCifsServer;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
-
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 /**
  * VNXCifsConfigProcessor is responsible for processing the result received
@@ -63,8 +63,21 @@ public class VNXCifsConfigProcessor extends VNXFileProcessor {
                         _logger.info("CIFS Interfaces: {}, for VDM: {}", config.getInterfaces(), config.getMover());
 
                         enabled = true;
+                        // Get the domain of cifs server!!!
+                        String domain = new String();
+                        if (config.getNT40ServerData() != null) {
+                            domain = config.getNT40ServerData().getDomain();
+                        } else if (config.getW2KServerData() != null) {
+                            domain = config.getW2KServerData().getDomain();
+                        } else if (config.getStandaloneServerData() != null) {
+                            domain = config.getStandaloneServerData().getWorkgroup();
+                        }
+                        if (!domain.isEmpty()) {
+                            _logger.info("domain cofigured for cifs : {}", domain);
+                        }
+
                         VNXCifsServer server = new VNXCifsServer(config.getName(), config.getMover(),
-                                config.getType().toString(), config.isMoverIdIsVdm(), config.getInterfaces());
+                                config.getType().toString(), config.isMoverIdIsVdm(), config.getInterfaces(), domain);
                         cifsServers.add(server);
                         _logger.info("Add : {}", server.toString());
                     }

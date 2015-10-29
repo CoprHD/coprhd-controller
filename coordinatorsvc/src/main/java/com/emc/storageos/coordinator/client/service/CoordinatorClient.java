@@ -8,13 +8,17 @@ package com.emc.storageos.coordinator.client.service;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueTaskConsumer;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.ClusterInfo;
+
+import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -101,6 +105,19 @@ public interface CoordinatorClient {
             throws CoordinatorException;
 
     /**
+     * Look up all services with site uuid, given name, version, tag, and endpointKey
+     * 
+     * @param uuid site uuid
+     * @param name service name
+     * @param version service version
+     * @param tag service tag. if null, does not filter on tag
+     * @param endpointKey endpoint key. if null, does not filter on endpoint key
+     * @return matching services
+     */
+    public List<Service> locateAllServices(String uuid, String name, String version, String tag, String endpointKey)
+            throws CoordinatorException;
+    
+    /**
      * Look up all services of all versions with given name
      * 
      * @param name service name
@@ -135,6 +152,18 @@ public interface CoordinatorClient {
      */
     public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer,
             QueueSerializer<T> serializer, int maxThreads)
+            throws CoordinatorException;
+
+    /**
+     * Gets an instance of a DistributedLockQueueManager, creating one if necessary.
+     *
+     * TODO more javadoc
+     *
+     * @param consumer
+     * @param <T>
+     * @return
+     */
+    <T> DistributedLockQueueManager getLockQueue(DistributedLockQueueTaskConsumer<T> consumer)
             throws CoordinatorException;
 
     /**
@@ -228,6 +257,15 @@ public interface CoordinatorClient {
      * @param config
      */
     public void persistServiceConfiguration(Configuration... config) throws CoordinatorException;
+    
+    /**
+     * Persist service configuration for given site
+     * 
+     * @param siteId
+     * @param config
+     * @throws CoordinatorException
+     */
+    public void persistServiceConfiguration(String siteId, Configuration... config) throws CoordinatorException;
 
     /**
      * Removes configured service information. See above notes about when this feature may be used.
@@ -254,6 +292,17 @@ public interface CoordinatorClient {
      */
     public Configuration queryConfiguration(String kind, String id) throws CoordinatorException;
 
+    /**
+     * Query configuration for specific site
+     * 
+     * @param siteId
+     * @param kind
+     * @param id
+     * @return
+     * @throws CoordinatorException
+     */
+    public Configuration queryConfiguration(String siteId, String kind, String id) throws CoordinatorException;
+    
     /**
      * Registers a connection listener
      * 
@@ -346,13 +395,41 @@ public interface CoordinatorClient {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception;
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws CoordinatorException;
 
+    /**
+     * Set Target info
+     * 
+     * @param info
+     * @param id
+     * @param kind
+     * @throws CoordinatorException
+     */
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException;
+    
+    /**
+     * Set target info for specific site
+     * 
+     * @param siteId
+     * @param info
+     * @throws CoordinatorException
+     */
+    public void setTargetInfo(String siteId, final CoordinatorSerializable info) throws CoordinatorException;
+    
     /**
      * Get control nodes' state
      */
     public ClusterInfo.ClusterState getControlNodesState();
 
+    /**
+     * Get control nodes state for specified site
+     * 
+     * @param siteId
+     * @param nodeCount
+     * @return
+     */
+    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount);
+    
     /**
      * Get target info
      * 
@@ -361,7 +438,9 @@ public interface CoordinatorClient {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception;
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException;
+    
+    public <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz) throws CoordinatorException;
 
     /**
      * Get all Node Infos.
@@ -483,4 +562,56 @@ public interface CoordinatorClient {
      * @param listener
      */
     public void removeNodeListener(NodeListener listener);
+    
+    /**
+     * Get a unique id for current site, which is used to access site specific area in ZK
+     * @return site uuid
+     */
+    public String getSiteId();
+    
+    /**
+     * Add a site ZNode in ZK
+     * This should only be used by the add standby site API
+     */
+    public void addSite(String siteId) throws Exception;
+
+    /**
+     * Update the primary site pointer in ZK
+     * This should only be used by the sync site API
+     */
+    public void setPrimarySite(String siteId) throws Exception;
+    
+    /**
+     * Create a Curator recipe - double barrier 
+     * 
+     * @param barrierPath Znode path for this barrier
+     * @param memberQty - number of members that plan to wait on the barrier
+     * @return
+     */
+    public DistributedDoubleBarrier getDistributedDoubleBarrier(String barrierPath, int memberQty);
+
+    /**
+     * Checks for the existence of a lock (znode) at the given path.  The lock is available
+     * if no znode exists at the given path.
+     *
+     * @param lockPath
+     * @return true if the lock is available
+     * @throws Exception
+     */
+    boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception;
+
+    /**
+     * Set an instance of {@link DistributedAroundHook} that exposes the ability to wrap arbitrary code
+     * with before and after hooks that lock and unlock the owner locks "globalLock", respectively.
+     *
+     * @param ownerLockAroundHook An instance to help with owner lock management.
+     */
+    void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook);
+
+    /**
+     * Gets the instance of {@link DistributedAroundHook} for owner lock management.
+     *
+     * @return An instance to help with owner lock management.
+     */
+    DistributedAroundHook getDistributedOwnerLockAroundHook();
 }

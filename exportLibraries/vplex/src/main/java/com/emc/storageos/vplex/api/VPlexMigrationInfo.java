@@ -270,12 +270,12 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("VPlexMigrationInfo ( ");
         str.append(super.toString());
-        str.append(", status: " + status);
-        str.append(", sourceName: " + sourceName);
-        str.append(", targetName: " + targetName);
-        str.append(", percentageDone: " + percentageDone);
-        str.append(", startTime: " + startTime);
-        str.append(", isDeviceMigration: " + String.valueOf(isDeviceMigration));
+        str.append(", status: ").append(status);
+        str.append(", sourceName: ").append(sourceName);
+        str.append(", targetName: ").append(targetName);
+        str.append(", percentageDone: ").append(percentageDone);
+        str.append(", startTime: ").append(startTime);
+        str.append(", isDeviceMigration: ").append(String.valueOf(isDeviceMigration));
         str.append(" )");
 
         return str.toString();

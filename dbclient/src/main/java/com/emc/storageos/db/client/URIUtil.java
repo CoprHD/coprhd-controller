@@ -79,7 +79,7 @@ public class URIUtil {
             try {
                 return Thread.currentThread().getContextClassLoader().loadClass(modelPackage + "." + typeName);
             } catch (ClassNotFoundException ignore) {
-                log.warn("load class failed:{}", ignore);
+                log.debug("load class failed: ", ignore);
             }
         }
 

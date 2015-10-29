@@ -48,12 +48,6 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
     }
 
     @Override
-    public String checkForSnapshotsToCopyToTarget(Workflow workflow, StorageSystem storage, String previousStep,
-            Map<URI, Integer> volumeMap, Collection<Map<URI, Integer>> values) {
-        return null;
-    }
-
-    @Override
     public void exportGroupCreate(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, Map<URI, Integer> volumeMap, String token)
             throws Exception {
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);

@@ -48,6 +48,7 @@ public class VolumeAttachRequest {
         public String initiator;
         /** to be filled in for FC attach */
         public String[] wwpns;
+        public String[] wwnns;
         public String host;
     }
 }

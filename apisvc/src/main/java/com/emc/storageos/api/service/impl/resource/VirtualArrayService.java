@@ -1249,7 +1249,7 @@ public class VirtualArrayService extends TaggedResource {
     protected VirtualArrayBulkRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        if (isSystemAdmin()) {
+        if (isSystemOrRestrictedSystemAdmin()) {
             return queryBulkResourceReps(ids);
         }
 

@@ -15,22 +15,31 @@ import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO_L
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterInfo;
 import static com.emc.storageos.coordinator.client.model.Constants.DBSVC_NAME;
 
+import java.io.IOException;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.common.DbConfigConstants;
+import com.emc.storageos.services.util.PlatformUtils;
 
+import org.apache.curator.utils.EnsurePath;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.client.ZooKeeperSaslClient;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +60,9 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.storageos.model.property.PropertyMetadata;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
@@ -248,22 +259,13 @@ public class CoordinatorClientExt {
             return;
         }
 
-        final CoordinatorClassInfo coordinatorInfo = info.getCoordinatorClassInfo();
-        String id = coordinatorInfo.id;
-        String kind = coordinatorInfo.kind;
-
         if (getTargetInfoLock()) {
             try {
                 // check we are in stable state if checkState = true specified
                 if (checkClusterUpgradable && !isClusterUpgradable()) {
                     throw APIException.serviceUnavailable.clusterStateNotStable();
                 }
-                ConfigurationImpl cfg = new ConfigurationImpl();
-                cfg.setId(id);
-                cfg.setKind(kind);
-                cfg.setConfig(TARGET_INFO, info.encodeAsString());
-                _coordinator.persistServiceConfiguration(cfg);
-                _log.info("Target info set: {}", info);
+                _coordinator.setTargetInfo(info);
             } catch (Exception e) {
                 throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target state. " + e.getMessage());
             } finally {
@@ -296,7 +298,6 @@ public class CoordinatorClientExt {
                 cfg.setKind(kind);
                 cfg.setConfig(TARGET_INFO, info.encodeAsString());
                 _coordinator.persistServiceConfiguration(cfg);
-                _log.info("Target info set: {}", info);
             } catch (Exception e) {
                 throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target state. " + e.getMessage());
             } finally {
@@ -407,6 +408,90 @@ public class CoordinatorClientExt {
     }
 
     /**
+     * Get all target properties - include global(shared by primary/standby), or site specific properties
+     * 
+     * @return
+     * @throws Exception
+     */
+    public PropertyInfoExt getTargetProperties() throws Exception {
+        PropertyInfoExt targetPropInfo = _coordinator.getTargetInfo(PropertyInfoExt.class);
+        PropertyInfoExt siteScopePropInfo = _coordinator.getTargetInfo(PropertyInfoExt.class, _coordinator.getSiteId(), PropertyInfoExt.TARGET_PROPERTY);
+        if (targetPropInfo != null && siteScopePropInfo != null) {
+            PropertyInfoExt combinedProps = new PropertyInfoExt();
+            for (Entry<String, String> entry : targetPropInfo.getAllProperties().entrySet()) {
+                combinedProps.addProperty(entry.getKey(), entry.getValue());
+            }
+            for (Entry<String, String> entry : siteScopePropInfo.getAllProperties().entrySet()) {
+                combinedProps.addProperty(entry.getKey(), entry.getValue());
+            }
+            return combinedProps;
+        }
+        else if (targetPropInfo != null) {
+            return targetPropInfo;
+        }
+        else if (siteScopePropInfo != null) {
+            return siteScopePropInfo;
+        }
+        else {
+            return null;
+        }
+    }
+    
+    /**
+     * Update system properties to zookeeper
+     * 
+     * @param currentProps
+     * @throws CoordinatorClientException
+     */
+    public void setTargetProperties(Map<String, String> currentProps) throws CoordinatorClientException{
+        Map<String, PropertyMetadata> propsMetadata = PropertiesMetadata.getGlobalMetadata();
+        // split properties as global, or site specific
+        HashMap<String, String> globalProps = new HashMap<String, String>();
+        HashMap<String, String> siteProps = new HashMap<String, String>();
+        for (Map.Entry<String, String> prop : currentProps.entrySet()) {
+            String key = prop.getKey();
+            PropertyMetadata metadata = propsMetadata.get(key);
+            if (metadata.getSiteSpecific()) {
+                siteProps.put(key, prop.getValue());
+            } else {
+                globalProps.put(key, prop.getValue());
+            }
+        }
+        // update properties to zk
+        if (getTargetInfoLock()) {
+            try {
+                // check we are in stable state if checkState = true specified
+                if (!isClusterUpgradable()) {
+                    throw APIException.serviceUnavailable.clusterStateNotStable();
+                }
+                ConfigurationImpl globalCfg = new ConfigurationImpl();
+                globalCfg.setId(PropertyInfoExt.TARGET_PROPERTY_ID);
+                globalCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+                PropertyInfoExt globalPropInfo = new PropertyInfoExt(globalProps);
+                globalCfg.setConfig(TARGET_INFO, globalPropInfo.encodeAsString());
+                _coordinator.persistServiceConfiguration(globalCfg);
+                _log.info("target properties changed successfully. target properties {}", globalPropInfo.toString());
+
+                if (siteProps.size() > 0) {
+                    PropertyInfoExt siteScopeInfo = new PropertyInfoExt(siteProps);
+                    ConfigurationImpl siteCfg = new ConfigurationImpl();
+                    siteCfg.setId(_coordinator.getSiteId());
+                    siteCfg.setKind(PropertyInfoExt.TARGET_PROPERTY);
+                    siteCfg.setConfig(TARGET_INFO, siteScopeInfo.encodeAsString());
+                    _coordinator.persistServiceConfiguration( siteCfg);
+                    _log.info("site scope target properties changed successfully. target properties {}", siteScopeInfo.toString());
+                }
+            } catch (Exception e) {
+                throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target info. " + e.getMessage());
+            } finally {
+                releaseTargetVersionLock();
+            }
+        } else {
+            throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set target state. Unable to obtain target lock");
+        }
+    }
+
+    /**
      * Get all Node Infos.
      * 
      * @param clazz
@@ -473,7 +558,7 @@ public class CoordinatorClientExt {
     public PropertyInfoExt getConfigFromCoordinator(String kind, String id) {
         Configuration config = _coordinator.queryConfiguration(kind, id);
         if (config != null) {
-            String str = config.getConfig(PropertyInfoExt.TARGET_INFO);
+            String str = config.getConfig(TARGET_INFO);
             return new PropertyInfoExt(new PropertyInfoExt().decodeFromString(str).getAllProperties());
         }
 
@@ -542,7 +627,7 @@ public class CoordinatorClientExt {
      */
     public URI getNodeEndpoint(String nodeId) {
         try {
-            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),(String)null,null);
+            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(),(String)null,null);
             for (Service svc : svcs) {
                 if (svc.getNodeId().equals(nodeId)) {
                     return svc.getEndpoint();

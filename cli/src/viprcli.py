@@ -63,8 +63,9 @@ import sanfabrics
 import loginfailedip
 import keystore
 import truststore
-
-
+import vnasserver
+import computeimageserver
+import bucket
 import warnings
 
 
@@ -171,6 +172,9 @@ computevpool.computevpool_parser(module_parsers, common_parser)
 loginfailedip.loginfailedip_parser(module_parsers, common_parser)
 keystore.keystore_parser(module_parsers, common_parser)
 truststore.truststore_parser(module_parsers, common_parser)
+vnasserver.vnasserver_parser(module_parsers, common_parser)
+computeimageserver.computeimageserver_parser(module_parsers, common_parser)
+bucket.bucket_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
 
 

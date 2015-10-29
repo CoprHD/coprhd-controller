@@ -27,6 +27,8 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.placement.PortAllocatorTestContext;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocatorTest;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.vplexcontroller.VPlexBackendManager;
 
@@ -132,7 +134,8 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
             Map<URI, List<StoragePort>> portGroup = pgIterator.next();
             maskCounter++;
             _log.info("Generating ExportMask: " + maskName);
-            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap);
+            StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones("vnxblock", null);
+            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
             VPlexBackendManager mgr = new VPlexBackendManager(null, null, null, null, null, URI.create("project"), URI.create("tenant"),
                     null);
             ExportMask exportMask = mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);

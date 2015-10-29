@@ -1,0 +1,123 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# vnas cli functions
+#----------------------------------------------------------------------
+
+
+def vnas_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.vnas_query(args.name)
+    vnas = bourne.vnas_show(uri)
+    bourne.pretty_print_json(vnas)
+
+def vnas_query(args):
+    bourne.connect(args.ip)
+    print bourne.vnas_query(args.name)
+
+def vnas_list(args):
+    bourne.connect(args.ip)
+    uris = bourne.vnas_list()
+    print uris 
+    for uri in uris:
+        vnas = bourne.vnas_show(uri["id"])
+        bourne.pretty_print_json(vnas)
+
+def vnas_assign(args):
+    bourne.connect(args.ip)
+    uri = bourne.vnas_query(args.label)
+    s = bourne.assign_vnas(uri, args.project)
+    print 'Assign vnas successful'
+	
+def vnas_unassign(args):
+    bourne.connect(args.ip)
+    uri = bourne.vnas_query(args.label)
+    s = bourne.unassign_vnas(uri, args.project)
+    print 'Unassign vnas successful'	
+    
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# vnas <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne Virtual NAS cli usage.')
+parser.add_argument('cmd', help = 'cmd = ( show | list | assign-vnas | unassign-vnas)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+
+# vnas show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of virtual nas')
+
+# vnas query label
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'full pathname of virtual nas')
+
+# vnas list 
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# vnas bulkget
+bulkget = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+
+# assign-vnas name project
+assign_vnas = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+assign_vnas.add_argument('label',		help = 'label of vnas to be assgined')
+assign_vnas.add_argument('project',	help = 'Name of project for which vnas to be added')
+
+# unassign-vnas name project
+unassign_vnas = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+unassign_vnas.add_argument('label',		help = 'label of vnas to be unassgined')
+unassign_vnas.add_argument('project',	help = 'Name of project')
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    
+    if (cmd == "show"):
+        args = show.parse_args()
+        vnas_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        vnas_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        vnas_list(args)
+    elif(cmd == "assign-vnas"):
+        args = assign_vnas.parse_args()
+        vnas_assign(args)
+    elif(cmd == "unassign-vnas"):
+        args = unassign_vnas.parse_args()
+        vnas_unassign(args)	  
+    else:
+        parser.print_help()
+
+except:
+    raise

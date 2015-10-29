@@ -24,7 +24,8 @@ public class UnmanagedFileSystemVirtualPoolFilter extends DefaultResourceFilter<
             return false;
         }
 
-        Set<URI> vpools = getVpoolsForUnmanaged(item.getFileSystemInformation(), item.getFileSystemCharacteristics());
+        Set<URI> vpools = getVpoolsForUnmanaged(item.getFileSystemCharacteristics(),
+                item.getSupportedVPoolUris());
         return vpools.contains(virtualPoolId);
     }
 }

@@ -131,4 +131,6 @@ public interface FatalCoordinatorExceptions {
     @DeclareServiceCode(ServiceCode.COORDINATOR_NOTCONNECTABLE_ERROR)
     public NotConnectableException notConnectableError(final String parameter);
 
+    @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
+    public FatalCoordinatorException unableToCreateInstanceOfTargetInfo(final String className, final Throwable cause);
 }

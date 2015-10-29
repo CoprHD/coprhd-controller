@@ -23,9 +23,17 @@ public class ReloadAuthsvcPropertyResource {
     @Autowired
     protected InvalidLoginManager _invalidLoginManager;
 
+    @Autowired
+    protected AuthenticationManager _authManager;
+
     @POST
     public Response reload() {
         _invalidLoginManager.loadParameterFromZK();
+
+        // for ldap_connection_timeout change:
+        //  * need to reload AuthManager, which refresh all cached LdapContextSource
+        _authManager.reload();
+
         return Response.ok().build();
     }
 }

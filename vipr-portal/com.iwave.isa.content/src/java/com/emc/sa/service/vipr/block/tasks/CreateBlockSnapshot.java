@@ -18,16 +18,18 @@ public class CreateBlockSnapshot extends WaitForTasks<BlockSnapshotRestRep> {
     private URI volumeId;
     private String name;
     private String type;
+    private Boolean readOnly;
 
-    public CreateBlockSnapshot(String volumeId, String type, String name) {
-        this(uri(volumeId), type, name);
+    public CreateBlockSnapshot(String volumeId, String type, String name, Boolean readOnly) {
+        this(uri(volumeId), type, name, readOnly);
     }
 
-    public CreateBlockSnapshot(URI volumeId, String type, String name) {
+    public CreateBlockSnapshot(URI volumeId, String type, String name, Boolean readOnly) {
         this.volumeId = volumeId;
         this.type = (type == null) ? "" : type;
         this.name = name;
-        provideDetailArgs(volumeId, this.type, name);
+        this.readOnly = readOnly;
+        provideDetailArgs(volumeId, this.type, name, readOnly);
     }
 
     @Override
@@ -35,6 +37,9 @@ public class CreateBlockSnapshot extends WaitForTasks<BlockSnapshotRestRep> {
         VolumeSnapshotParam snapshot = new VolumeSnapshotParam();
         if (StringUtils.isNotBlank(type) && !type.equals(BlockProvider.LOCAL_ARRAY_SNAPSHOT_TYPE_VALUE)) {
             snapshot.setType(type);
+        }
+        if (readOnly != null) {
+            snapshot.setReadOnly(readOnly);
         }
         snapshot.setName(name);
         return getClient().blockSnapshots().createForVolume(volumeId, snapshot);

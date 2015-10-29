@@ -120,6 +120,15 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
             case DELETE_PAIR:
                 executorStrategy = new DetachStorageSyncsStrategy(helper);
                 break;
+            case RESET_TO_ADAPTIVE:
+            	executorStrategy = new ChangeModeToAdaptiveStrategy(helper);
+                break;
+            case RESET_TO_ASYNC:
+            	executorStrategy = new ChangeModeToAsyncStrategy(helper);
+                break;
+            case RESET_TO_SYNC:
+            	executorStrategy = new ChangeModeToSyncStrategy(helper);
+                break;
         }
         ctx.setExecutor(executorStrategy);
 

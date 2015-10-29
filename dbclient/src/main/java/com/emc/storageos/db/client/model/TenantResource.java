@@ -8,6 +8,9 @@ import java.net.URI;
 
 public interface TenantResource {
 
+    String NO_TENANT_SELECTOR = "No-Filter";
+    String TENANT_SELECTOR_FOR_UNASSIGNED = "Not-Assigned";
+
     /**
      * The tenant organization owner of this resource.
      * 

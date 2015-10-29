@@ -11,6 +11,7 @@ import java.util.Arrays;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 @XmlRootElement
@@ -32,6 +33,7 @@ public class PropertyMetadata {
     private String[] notifiers = new String[0];
     private String value;
     private Boolean controlNodeOnly = false;    // Control node only property flag
+    private Boolean siteSpecific = false; // Site specific attribute
 
     public PropertyMetadata() {
     }
@@ -206,12 +208,23 @@ public class PropertyMetadata {
         return controlNodeOnly;
     }
 
+    @XmlElement(name = "siteSpecific")
+    @JsonProperty("siteSpecific")
+    public Boolean getSiteSpecific() {
+        return siteSpecific;
+    }
+
+    public void setSiteSpecific(Boolean siteSpecific) {
+        this.siteSpecific = siteSpecific;
+    }
+
     /**
      * Get default value
      * 
      * 
      * @return default value from metadata. Null when property is non-usermutable.
      */
+    @JsonIgnore
     public String getDefaultValue() {
         if (userMutable == null || userMutable == false) {
             return null;
@@ -235,6 +248,7 @@ public class PropertyMetadata {
      * 
      * @return default value string. Null when no default values needed.
      */
+    @JsonIgnore
     public String getDefaultValueMetaData() {
         // return default value if exist
         if (value != null) {

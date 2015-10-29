@@ -29,6 +29,7 @@ import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.LoggingUtils;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
 
 import org.apache.cassandra.config.Schema;
 import org.junit.AfterClass;

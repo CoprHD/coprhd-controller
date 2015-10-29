@@ -9,7 +9,6 @@ import java.util.List;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonRootName;
 
-import com.google.common.base.Joiner;
 import com.google.gson.annotations.SerializedName;
 
 @JsonRootName(value = "xtremio_volume")
@@ -38,6 +37,10 @@ public class XtremIOVolume {
     @SerializedName("ancestor-vol-id")
     @JsonProperty(value = "ancestor-vol-id")
     private List<String> ancestoVolInfo;
+
+    @SerializedName("snapshot-type")
+    @JsonProperty(value = "snapshot-type")
+    private String snapshotType;
 
     public List<String> getVolInfo() {
         return volInfo;
@@ -87,9 +90,17 @@ public class XtremIOVolume {
         this.ancestoVolInfo = ancestoVolInfo;
     }
 
+    public String getSnapshotType() {
+        return snapshotType;
+    }
+
+    public void setSnapshotType(String snapshotType) {
+        this.snapshotType = snapshotType;
+    }
+
+    @Override
     public String toString() {
-        return "Raw response: [vol-id: " + Joiner.on("; ").join(volInfo) +
-                "][naa-name: " + wwn +
-                "][vol-size: " + allocatedCapacity + "]";
+        return "XtremIOVolume [volInfo=" + volInfo + ", wwn=" + wwn + ", allocatedCapacity=" + allocatedCapacity + ", lunMaps=" + lunMaps
+                + ", snaps=" + snaps + ", ancestoVolInfo=" + ancestoVolInfo + ", snapshotType=" + snapshotType + "]";
     }
 }

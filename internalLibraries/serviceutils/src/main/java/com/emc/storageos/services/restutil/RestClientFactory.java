@@ -5,11 +5,17 @@
 
 package com.emc.storageos.services.restutil;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
-import com.sun.jersey.client.apache.ApacheHttpClient;
-import com.sun.jersey.client.apache.ApacheHttpClientHandler;
-import com.sun.jersey.client.urlconnection.HTTPSProperties;
+import java.io.IOException;
+import java.net.URI;
+import java.security.GeneralSecurityException;
+import java.security.cert.X509Certificate;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.HttpMethodRetryHandler;
@@ -17,20 +23,15 @@ import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.httpclient.protocol.Protocol;
-import com.sun.jersey.api.client.config.ClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.io.IOException;
-import java.net.URI;
-import java.security.GeneralSecurityException;
-
-import java.security.cert.X509Certificate;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
+import com.sun.jersey.client.apache.ApacheHttpClient;
+import com.sun.jersey.client.apache.ApacheHttpClientHandler;
+import com.sun.jersey.client.urlconnection.HTTPSProperties;
 
 abstract public class RestClientFactory {
     private Logger _log = LoggerFactory.getLogger(RestClientFactory.class);
@@ -215,5 +216,13 @@ abstract public class RestClientFactory {
 
     abstract protected RestClientItf createNewRestClient(URI endpoint, String username, String password,
             com.sun.jersey.api.client.Client client);
+
+    protected Client getBaseClient(URI endpoint, String username, String password, boolean authFilter) {
+        Client jerseyClient = new ApacheHttpClient(_clientHandler);
+        if (authFilter) {
+            jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
+        }
+        return jerseyClient;
+    }
 
 }

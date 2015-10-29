@@ -3,7 +3,7 @@ Description=StorageOS boot-ovfenv service
 
 Wants=localfs.service
 After=localfs.service
-Before=atop.service auditd.service rsyslog.service network.service SuSEfirewall2_init.service SuSEfirewall2.service
+Before=atop.service rsyslog.service network.service SuSEfirewall2_init.service SuSEfirewall2.service
 
 [Service]
 Type=oneshot

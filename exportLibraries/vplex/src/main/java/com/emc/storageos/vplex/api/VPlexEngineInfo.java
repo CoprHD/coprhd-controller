@@ -12,7 +12,7 @@ import java.util.List;
  */
 public class VPlexEngineInfo extends VPlexResourceInfo {
 
-    List<VPlexDirectorInfo> directorInfoList = new ArrayList<VPlexDirectorInfo>();
+    private List<VPlexDirectorInfo> directorInfoList = new ArrayList<VPlexDirectorInfo>();
 
     /**
      * Getter for the director info for the engine.

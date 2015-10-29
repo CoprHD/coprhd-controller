@@ -1,0 +1,35 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.object.buckets'] /}
+
+  <script type="text/javascript">
+    var route = #{jsAction @bucketsJson(':id')/};
+   
+    function reloadBuckets() {
+      var table = $('#buckets table'); 
+      var xhr = table.data('previousXHR');
+      if (xhr) {
+          xhr.abort();
+      }
+      var projectId = $('#project option:selected').val();
+      table.dataTable().fnReloadAjax(route({id: projectId}));
+    }
+    
+    $(document).ready(function() {
+      $('#project').on('change', reloadBuckets);
+    });
+  </script>
+
+#{Resources.projectsControl projects:projects /}
+
+#{DataTable.header titleKey:'nav.object.buckets' /}  
+#{DataTable.table id:'buckets',
+                  dataTable:dataTable,
+                  source:@bucketsJson(session.activeProjectId), 
+                  cssClass:'editableRows',
+                  selectable:true}
+  #{DataTable.buttonBar}
+     #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm', data:['enabled':'selected']/}
+    #{doBody/}
+  #{/DataTable.buttonBar}
+ #{DataTable.formAction @delete(), id:'deleteForm', table:'buckets', confirm:messages.get('resources.buckets.deleteConfirm')/}                  
+#{/DataTable.table}

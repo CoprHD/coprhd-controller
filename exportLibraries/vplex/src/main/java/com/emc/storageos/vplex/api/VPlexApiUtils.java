@@ -17,6 +17,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -102,14 +103,11 @@ public class VPlexApiUtils {
         List<T> children = new ArrayList<T>();
         try {
             JSONObject jsonObj = new JSONObject(response);
-            JSONObject respObj = jsonObj
-                    .getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
-            JSONArray contextArray = respObj
-                    .getJSONArray(VPlexApiConstants.CONTEXT_JSON_KEY);
+            JSONObject respObj = jsonObj.getJSONObject(VPlexApiConstants.RESPONSE_JSON_KEY);
+            JSONArray contextArray = respObj.getJSONArray(VPlexApiConstants.CONTEXT_JSON_KEY);
             for (int i = 0; i < contextArray.length(); i++) {
                 JSONObject contextObj = contextArray.getJSONObject(i);
-                JSONArray childArray = contextObj
-                        .getJSONArray(VPlexApiConstants.CHILDREN_JSON_KEY);
+                JSONArray childArray = contextObj.getJSONArray(VPlexApiConstants.CHILDREN_JSON_KEY);
                 for (int j = 0; j < childArray.length(); j++) {
                     JSONObject childObj = childArray.getJSONObject(j);
                     T child = new Gson().fromJson(childObj.toString(), clazz);
@@ -157,6 +155,7 @@ public class VPlexApiUtils {
                 resources.add(resource);
             }
         } catch (Exception e) {
+        	s_logger.error(e.getLocalizedMessage(), e);
             throw VPlexApiException.exceptions.failedToDeserializeJsonResponse(e.getLocalizedMessage());
         }
 
@@ -344,4 +343,19 @@ public class VPlexApiUtils {
             s_logger.warn("Exception while trying to sleep", e);
         }
     }
+    
+    /**
+     * ITLs fetch is required if the backend
+     * array has populated the ITLs in the VolumeInfo
+     * 
+     * Note : Currently Cinder is using ITLs for volume lookup
+     * 
+     * @param volInfo
+     * @return
+     */
+    public static boolean isITLBasedSearch(VolumeInfo volumeInfo) {
+
+        return !volumeInfo.getITLs().isEmpty();
+    }
+    
 }

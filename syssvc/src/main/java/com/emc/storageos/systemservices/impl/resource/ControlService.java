@@ -19,6 +19,7 @@ import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,7 @@ import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
+import com.emc.storageos.systemservices.impl.property.VdcSiteManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
@@ -73,6 +75,9 @@ public class ControlService {
     private PropertyManager propertyManager;
     private final static String FORCE = "1";
 
+    @Autowired
+    private VdcSiteManager vdcManager;
+    
     @Context
     protected SecurityContext sc;
 
@@ -300,7 +305,7 @@ public class ControlService {
     @Produces({ MediaType.APPLICATION_JSON })
     public Response receivePoweroffAgreement(@QueryParam("sender") String svcId) {
         _log.info("Receiving poweroff agreement");
-        propertyManager.getPoweroffAgreementsKeeper().add(svcId);
+        vdcManager.getPoweroffAgreementsKeeper().add(svcId);
         return Response.ok().build();
     }
 
@@ -341,7 +346,7 @@ public class ControlService {
         // set target poweroff state to START or FORCESTART
         try {
             _coordinator.setTargetInfo(poweroffState, false);
-            propertyManager.wakeupOtherNodes();
+            vdcManager.wakeupOtherNodes();
             _alertsLog.warn("power off start");
         } catch (ClientHandlerException e) {
             if (!FORCE.equals(forceSet)) {
@@ -353,12 +358,15 @@ public class ControlService {
         } catch (Exception e) {
             throw APIException.internalServerErrors.setObjectToError("target poweroff state", "coordinator", e);
         }
-
-        auditControl(OperationTypeEnum.POWER_OFF_CLUSTER, AuditLogManager.AUDITLOG_SUCCESS, null);
+        
+        // ignore audit log for internal calls
+        if (sc != null && sc.getUserPrincipal() != null) {
+            auditControl(OperationTypeEnum.POWER_OFF_CLUSTER, AuditLogManager.AUDITLOG_SUCCESS, null);
+        }
         try {
             return Response.status(Response.Status.ACCEPTED).build();
         } finally {
-            propertyManager.wakeup();
+            vdcManager.wakeup();
         }
     }
 
@@ -372,6 +380,17 @@ public class ControlService {
         _log.info("Poweroff node");
         recoveryManager.poweroff();
         return Response.status(Response.Status.ACCEPTED).build(); // Return the accepted status code
+    }
+
+    /**
+     * Internal calls to power off current cluster. Use trusted secret key
+     */
+    @POST
+    @Path("internal/cluster/poweroff")
+    @Produces({ MediaType.APPLICATION_JSON })
+    public Response internalPowerOffCluster(@QueryParam("force") String forceSet) throws Exception {
+        _log.info("Poweroff cluster");
+        return powerOffCluster(forceSet);
     }
 
     /**

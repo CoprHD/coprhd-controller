@@ -24,6 +24,7 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
 /**
@@ -52,6 +53,7 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
         _dbClient = dbClient;
     }
 
+    @Override
     protected Controller lookupDeviceController(DiscoveredSystemObject storageSystem) {
         // dummy impl that returns the first one
         return _deviceImpl.iterator().next();
@@ -78,11 +80,12 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     }
 
     @Override
-    public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList, Boolean createInactive, String opId)
-            throws InternalException {
-        execFS("createSnapshot", protectionDevice, storageDevice, snapshotList, createInactive, opId);
+    public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
+            String opId) throws InternalException {
+        execFS("createSnapshot", protectionDevice, storageDevice, snapshotList, createInactive, readOnly, opId);
     }
 
+    @Override
     public void discover(AsyncTask[] tasks) throws ControllerException {
         try {
             ControllerServiceImpl.scheduleDiscoverJobs(tasks, Lock.DISCOVER_COLLECTION_LOCK, ControllerServiceImpl.DISCOVERY);
@@ -92,13 +95,6 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
                     e.getMessage());
             throw ClientControllerException.fatals.unableToScheduleDiscoverJobs(tasks, e);
         }
-    }
-
-    @Override
-    public void restoreVolume(URI protectionDevice, URI storageDevice,
-            URI snapshotId, String opId) throws InternalException {
-        execFS("restoreVolume", protectionDevice, storageDevice, snapshotId, opId);
-
     }
 
     @Override

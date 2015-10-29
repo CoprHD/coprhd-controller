@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
+
 package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
-
-import com.emc.storageos.db.client.model.VirtualPool;
 
 /**
  * Derived Recommendation that adds information about the VPlex storage system
@@ -14,83 +13,38 @@ import com.emc.storageos.db.client.model.VirtualPool;
  * recommendation.
  */
 @SuppressWarnings("serial")
-public class VPlexRecommendation extends RPProtectionRecommendation {
-
+public class VPlexRecommendation extends Recommendation {
+    
     // The VPlex storage system.
-    private URI _vplexStorageSystem;
-
-    // The virtual array for the recommendation.
-    private URI _varray;
-
-    // The vpool used to get the recommendation
-    private VirtualPool _vpool;
-
-    @Override
-    public String toString() {
-        StringBuffer ret = new StringBuffer();
-        if (super.getSourceInternalSiteName() != null) {
-            ret.append(super.toString());
-        }
-
-        ret.append("VPlexRecommendation [_vplexStorageSystem=" + _vplexStorageSystem
-                + ", _varray=" + _varray
-                + ", _vpool=" + _vpool
-                + "]");
-
-        return ret.toString();
-    }
-
+    private URI vplexStorageSystem;
+    
     /**
      * Getter for the VPlex storage system for the recommendation.
      * 
      * @return The VPlex storage system for the recommendation.
      */
-    public URI getVPlexStorageSystem() {
-        return _vplexStorageSystem;
-    }
-
+       
+     public URI getVPlexStorageSystem() {     
+        return this.vplexStorageSystem;
+    } 
+    
     /**
      * Setter for the VPlex storage system for the recommendation.
      * 
      * @param vplexStorageSystem The VPlex storage system for the recommendation.
      */
-    public void setVPlexStorageSystem(URI vplexStorageSystem) {
-        _vplexStorageSystem = vplexStorageSystem;
+   
+     public void setVPlexStorageSystem(URI vplexStorageSystem) {     
+        this.vplexStorageSystem = vplexStorageSystem;
     }
-
-    /**
-     * Getter for the varray for this recommendation.
-     * 
-     * @return The varray for this recommendation.
-     */
-    public URI getVirtualArray() {
-        return _varray;
-    }
-
-    /**
-     * Setter for the varray for this recommendation.
-     * 
-     * @param varray The varray for this recommendation.
-     */
-    public void setVirtualArray(URI varray) {
-        _varray = varray;
-    }
-
-    /**
-     * Getter for the VirtualPool for this recommendation.
-     * 
-     * @return The VirtualPool for this recommendation.
-     */
-    public VirtualPool getVirtualPool() {
-        return _vpool;
-    }
-
-    /**
-     * Setter for the VirtualPool for this recommendation.
-     * 
-     * @param vpool The VirtualPool for this recommendation.
-     */
-    public void setVirtualPool(VirtualPool vpool) {
-        _vpool = vpool;
-    }
+          
+     @Override
+ 	public String toString() {
+     	StringBuffer ret = new StringBuffer(); 
+     	ret.append(String.format("%s %n", super.toString()));
+     	ret.append(String.format("Vplex Recommendation : %n"));
+     	ret.append(String.format("Vplex Storage System : %s %n", this.getVPlexStorageSystem().toString()));
+     
+ 		return ret.toString();
+ 	}
 }

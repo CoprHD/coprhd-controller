@@ -12,9 +12,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.PropertyConfigurator;
+
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -25,6 +27,8 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.placement.PortAllocatorTestContext;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocatorTest;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.vplexcontroller.VPlexBackendManager;
 
@@ -168,7 +172,9 @@ public class VPlexHDSMaskingOrchestratorTest extends StoragePortsAllocatorTest {
                 igIterator = initiatorGroups.iterator();
             }
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
-            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap);
+            
+            StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones("hds", null);
+            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
             VPlexBackendManager mgr = new VPlexBackendManager(null, null, null, null, null, URI.create("project"), URI.create("tenant"),
                     null);
             ExportMask exportMask = mgr.generateExportMask(arrayURI, maskName, portGroup, initiatorGroup, zoningMap);

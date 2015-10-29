@@ -161,9 +161,9 @@ public class VPlexResourceInfo {
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append("name: " + name);
-        str.append(", type: " + type);
-        str.append(", contextPath: " + contextPath);
+        str.append("name: ").append(name);
+        str.append(", type: ").append(type);
+        str.append(", contextPath: ").append(contextPath);
         return str.toString();
     }
 }

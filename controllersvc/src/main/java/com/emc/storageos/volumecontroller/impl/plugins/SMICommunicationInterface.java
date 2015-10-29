@@ -336,7 +336,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             List<StoragePort> discoveredPorts = new ArrayList<StoragePort>();
             _keyMap.put(Constants.DISCOVERED_PORTS, discoveredPorts);
-
+            _keyMap.put(Constants.SLO_NAMES, new HashSet<String>());
             if (Type.ibmxiv.name().equals(accessProfile.getSystemType())) {
                 initIBMDiscoveryKeyMap(accessProfile);
             }

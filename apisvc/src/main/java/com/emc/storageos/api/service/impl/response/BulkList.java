@@ -6,12 +6,14 @@ package com.emc.storageos.api.service.impl.response;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Set;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Iterator;
 import java.util.ListIterator;
 
 import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.base.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +24,7 @@ import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Iterator based list of resources
@@ -445,7 +448,8 @@ public class BulkList<T> implements List<T> {
         @Override
         public boolean isAccessible(TenantOrg resource) {
             return _permissionsHelper.userHasGivenRole(
-                    _user, resource.getId(), Role.TENANT_ADMIN, Role.SECURITY_ADMIN);
+                    _user, resource.getId(), Role.TENANT_ADMIN, Role.SECURITY_ADMIN,
+                    Role.SYSTEM_ADMIN);
         }
     }
 
@@ -459,6 +463,9 @@ public class BulkList<T> implements List<T> {
 
         @Override
         public boolean isAccessible(Host resource) {
+            if (NullColumnValueGetter.isNullURI(resource.getTenant())) {
+                return false;
+            }
             return isTenantResourceAccessible(resource.getTenant());
         }
     }
@@ -500,6 +507,9 @@ public class BulkList<T> implements List<T> {
 
         @Override
         public boolean isAccessible(Cluster resource) {
+            if (NullColumnValueGetter.isNullURI(resource.getTenant())) {
+                return false;
+            }
             return isTenantResourceAccessible(resource.getTenant());
         }
     }
@@ -514,7 +524,32 @@ public class BulkList<T> implements List<T> {
 
         @Override
         public boolean isAccessible(Vcenter resource) {
-            return isTenantResourceAccessible(resource.getTenant());
+            if (_permissionsHelper.userHasGivenRole(_user, null,
+                    Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN)) {
+                return true;
+            }
+
+            Set<URI> tenantIds = _permissionsHelper.getUsageURIsFromAcls(resource.getAcls());
+            if (CollectionUtils.isEmpty(tenantIds)) {
+                return false;
+            }
+
+            Iterator<URI> uriIterator = tenantIds.iterator();
+            while (uriIterator.hasNext()) {
+                if (isTenantResourceAccessible(uriIterator.next())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        protected boolean isTenantResourceAccessible(URI tenantId) {
+            if (tenantId.toString().equals(_user.getTenantId())) {
+                return true;
+            }
+
+            return isTenantAccessible(tenantId);
         }
     }
 
@@ -528,6 +563,14 @@ public class BulkList<T> implements List<T> {
 
         @Override
         public boolean isAccessible(VcenterDataCenter resource) {
+            if (_permissionsHelper.userHasGivenRole(_user, null,
+                    Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN)) {
+                return true;
+            }
+
+            if (NullColumnValueGetter.isNullURI(resource.getTenant())) {
+                return false;
+            }
             return isTenantResourceAccessible(resource.getTenant());
         }
     }

@@ -6,6 +6,7 @@ package com.emc.storageos.model.block;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +30,7 @@ public class VolumeIngest {
     private URI varray;
     private URI project;
     private List<URI> unManagedVolumes;
+    private String vplexIngestionMethod;
 
     public VolumeIngest() {
     }
@@ -99,6 +101,20 @@ public class VolumeIngest {
 
     public void setUnManagedVolumes(List<URI> unManagedVolumes) {
         this.unManagedVolumes = unManagedVolumes;
+    }
+
+    /**
+     * The ingestion method for VPLEX volumes.
+     * 
+     * @valid "Full" or "VirtualVolumesOnly"
+     */
+    @XmlElement(required = false)
+    public String getVplexIngestionMethod() {
+        return vplexIngestionMethod;
+    }
+
+    public void setVplexIngestionMethod(String type) {
+        this.vplexIngestionMethod = type;
     }
 
 }

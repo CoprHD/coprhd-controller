@@ -20,8 +20,8 @@ public class FileRecommendation extends Recommendation {
 
     public FileRecommendation(Recommendation recommendation) {
         setDeviceType(recommendation.getDeviceType());
-        setSourceDevice(recommendation.getSourceDevice());
-        setSourcePool(recommendation.getSourcePool());
+        setSourceStorageSystem(recommendation.getSourceStorageSystem());
+        setSourceStoragePool(recommendation.getSourceStoragePool());
         setResourceCount(recommendation.getResourceCount());
     }
 

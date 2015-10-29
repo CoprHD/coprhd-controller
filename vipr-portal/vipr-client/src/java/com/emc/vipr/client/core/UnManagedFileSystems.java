@@ -20,8 +20,8 @@ import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
-import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
+import com.emc.vipr.client.impl.RestClient;
 
 /**
  * Unmanaged Filesystems resources.
@@ -29,6 +29,10 @@ import com.emc.vipr.client.core.util.ResourceUtils;
  * Base URL: <tt>/vdc/unmanaged/filesystems</tt>
  */
 public class UnManagedFileSystems extends AbstractCoreBulkResources<UnManagedFileSystemRestRep> {
+
+    private static final String EXPORTED = "EXPORTED";
+    private static final String UNEXPORTED = "UNEXPORTED";
+
     public UnManagedFileSystems(ViPRCoreClient parent, RestClient client) {
         super(parent, client, UnManagedFileSystemRestRep.class, PathConstants.UNMANAGED_FILESYSTEMS_URL);
     }
@@ -65,6 +69,37 @@ public class UnManagedFileSystems extends AbstractCoreBulkResources<UnManagedFil
     }
 
     /**
+     * Lists the unmanaged file systems for the given storage system and virtual pool
+     * <p>
+     * API Call: <tt>GET /vdc/storage-systems/{storageSystemId}/unmanaged/{virtualPool}/filesystems</tt>
+     * 
+     * @param storageSystemId the ID of the storage system
+     * @param vpool the ID of the virtual pool
+     * @return list of unexported unmanaged filesystems
+     */
+    public List<NamedRelatedResourceRep> listByStorageSystemVirtualPool(URI storageSystemId, URI vpool) {
+        return listByStorageSystemVirtualPool(storageSystemId, vpool, false);
+    }
+
+    /**
+     * Lists the unmanaged file systems for the given storage system and virtual pool
+     * <p>
+     * API Call: <tt>GET /vdc/storage-systems/{storageSystemId}/unmanaged/{virtualPool}/filesystems</tt>
+     * 
+     * @param storageSystemId the ID of the storage system
+     * @param vpool the ID of the virtual pool
+     * @param exported if true, return exported filesystems. if false, return unexported filesystems
+     * @return list of unmanaged filesystems
+     */
+    public List<NamedRelatedResourceRep> listByStorageSystemVirtualPool(URI storageSystemId, URI vpool, boolean exported) {
+        String exportType = exported ? EXPORTED : UNEXPORTED;
+        URI path = client.uriBuilder(PathConstants.UNMANAGED_FILESYSTEM_BY_STORAGE_SYSTEM_VIRTUAL_POOL_URL)
+                .queryParam("exportType", exportType).build(storageSystemId, vpool);
+        UnManagedFileSystemList response = client.getURI(UnManagedFileSystemList.class, path);
+        return ResourceUtils.defaultList(response.getNamedUnManagedFileSystem());
+    }
+
+    /**
      * Gets the list of unmanaged file systems for the given storage system by ID. This is a convenience method for:
      * <tt>getByRefs(listByStorageSystem(storageSystemId))</tt>
      * 
@@ -74,6 +109,25 @@ public class UnManagedFileSystems extends AbstractCoreBulkResources<UnManagedFil
      */
     public List<UnManagedFileSystemRestRep> getByStorageSystem(URI storageSystemId) {
         return getByStorageSystem(storageSystemId, null);
+    }
+
+    public List<UnManagedFileSystemRestRep> getByStorageSystemVirtualPool(URI storageSystemId, URI vpool) {
+        return getByStorageSystemVirtualPool(storageSystemId, vpool, false);
+    }
+
+    public List<UnManagedFileSystemRestRep> getByStorageSystemVirtualPool(URI storageSystemId, URI vpool, boolean exported) {
+        return getByStorageSystemVirtualPool(storageSystemId, vpool, exported, null);
+    }
+
+    public List<UnManagedFileSystemRestRep> getByStorageSystemVirtualPool(URI storageSystemId, URI vpool, boolean exported,
+            ResourceFilter<UnManagedFileSystemRestRep> filter) {
+        List<NamedRelatedResourceRep> refs = listByStorageSystemVirtualPool(storageSystemId, vpool, exported);
+        return getByRefs(refs, filter);
+    }
+
+    public List<UnManagedFileSystemRestRep> getByStorageSystemVirtualPool(URI storageSystemId, URI vpool,
+            ResourceFilter<UnManagedFileSystemRestRep> filter) {
+        return getByStorageSystemVirtualPool(storageSystemId, vpool, false, filter);
     }
 
     /**

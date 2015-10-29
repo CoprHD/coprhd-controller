@@ -13,13 +13,13 @@ import com.google.gson.annotations.SerializedName;
 public class XtremIOInitiatorsInfo {
     @SerializedName("initiators")
     @JsonProperty(value = "initiators")
-    private XtremIOInitiatorInfo[] initiators;
+    private XtremIOObjectInfo[] initiators;
 
-    public XtremIOInitiatorInfo[] getInitiators() {
+    public XtremIOObjectInfo[] getInitiators() {
         return initiators != null ? initiators.clone() : initiators;
     }
 
-    public void setInitiators(XtremIOInitiatorInfo[] initiators) {
+    public void setInitiators(XtremIOObjectInfo[] initiators) {
         if (initiators != null) {
             this.initiators = initiators.clone();
         }

@@ -4,19 +4,21 @@
  */
 package com.emc.storageos.srdfcontroller;
 
+import java.net.URI;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.Set;
 
 /**
  * South bound API implementation - a singleton instance
@@ -53,6 +55,7 @@ public class SRDFControllerImpl extends AbstractDiscoveredSystemController imple
         this.dbClient = dbClient;
     }
 
+    @Override
     protected Controller lookupDeviceController(DiscoveredSystemObject storageSystem) {
         return deviceImpl.iterator().next();
     }
@@ -80,8 +83,8 @@ public class SRDFControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void performProtectionOperation(URI system, URI id, String op, String task) throws InternalException {
-        execFS("performProtectionOperation", system, id, op, task);
+    public void performProtectionOperation(URI system, Copy copy, String op, String task) throws InternalException {
+        execFS("performProtectionOperation", system, copy, op, task);
 
     }
 

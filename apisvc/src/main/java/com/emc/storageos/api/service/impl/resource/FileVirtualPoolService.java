@@ -461,7 +461,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
     protected FileVirtualPoolBulkRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        if (isSystemAdmin()) {
+        if (isSystemOrRestrictedSystemAdmin()) {
             return queryBulkResourceReps(ids);
         }
 

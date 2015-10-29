@@ -61,10 +61,13 @@ class Snapshot(object):
         = URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE + "/deactivate"
     URI_CONSISTENCY_GROUPS_SNAPSHOT_RESTORE \
         = URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE + "/restore"
+    URI_CONSISTENCY_GROUPS_SNAPSHOT_RESYNC \
+        = URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE + "/resynchronize"
 
     URI_BLOCK_SNAPSHOTS_TAG = URI_BLOCK_SNAPSHOTS + '/tags'
     URI_FILE_SNAPSHOTS_TAG = URI_FILE_SNAPSHOTS + '/tags'
     URI_CONSISTENCY_GROUP_TAG = URI_CONSISTENCY_GROUP + '/{0}/tags'
+    URI_SNAPSHOT_RESYNC = '/{0}/snapshots/{1}/resynchronize'
 
     SHARES = 'filesystems'
     VOLUMES = 'volumes'
@@ -76,6 +79,7 @@ class Snapshot(object):
     OBJECT = 'object'
     
     TYPE_REPLIC_LIST = ["NATIVE", "RP", "SRDF"]
+    BOOLEAN_TYPE = ["true" ,"false"]
 
     isTimeout = False
     timeout = 300
@@ -127,7 +131,7 @@ class Snapshot(object):
         )
 
     def snapshot_create(self, otype, typename, ouri,
-                        snaplabel, inactive, rptype, sync):
+                        snaplabel, inactive, rptype, sync ,readonly=False):
         '''new snapshot is created, for a given shares or volumes
             parameters:
                 otype      : either file or block or object
@@ -159,6 +163,7 @@ class Snapshot(object):
                 typename)
 
         body = None
+        
         if(otype == Snapshot.BLOCK):
             parms = {
                 'name': snaplabel,
@@ -168,14 +173,19 @@ class Snapshot(object):
             }
             if(rptype):
                 parms['type'] = rptype
+            if(readonly == "true"):
+                parms['read_only'] = readonly
             body = json.dumps(parms)
 
         else:
             parms = {
                 'name': snaplabel
             }
+            if(readonly == "true"):
+                parms['read_only'] = readonly
             body = json.dumps(parms)
-
+        
+        
         # REST api call
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -409,6 +419,59 @@ class Snapshot(object):
             return self.block_until_complete(otype, suri, o["id"])
         else:
             return o
+        
+    
+    
+    def snapshot_resync(self, storageresType,
+                         storageresTypename, resourceUri, name, sync):
+        snapshotUri = self.snapshot_query(
+            storageresType,
+            storageresTypename,
+            resourceUri,
+            name)
+        return (
+            self.snapshot_resync_uri(
+                storageresType,
+                storageresTypename,
+                resourceUri,
+                snapshotUri,
+                sync)
+        )
+
+    def snapshot_resync_uri(self, otype, typename, resourceUri, suri, sync):
+        ''' Makes REST API call to resync Snapshot under a shares or volumes
+            parameters:
+                otype    : either file or block or
+                object type should be provided
+                typename : either filesystem or volumes should be provided
+                suri     : uri of a snapshot
+                resourceUri: base resource uri
+
+            returns:
+                
+        '''
+        if(resourceUri.find("BlockConsistencyGroup") > 0):
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port,
+                "POST",
+                Snapshot.URI_CONSISTENCY_GROUPS_SNAPSHOT_RESYNC.format(
+                    resourceUri,
+                    suri), None)
+        else:
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port,
+                "POST",
+                Snapshot.URI_SNAPSHOT_RESYNC.format(otype, suri), None)
+        o = common.json_decode(s)
+
+        if(sync):
+            return self.block_until_complete(otype, suri, o["id"])
+        else:
+            return o
+    
+    
+    
+        
 
     def snapshot_activate_uri(self, otype, typename, resourceUri, suri, sync):
 
@@ -925,7 +988,7 @@ class Snapshot(object):
                     remove)
             )
 
-        elif(resourceUri.find("Volume") > 0):
+        elif(resourceUri.find("Volume") > 0 or resourceUri.find("BlockConsistencyGroup") > 0):
             return (
                 tag.tag_resource(
                     self.__ipAddr,
@@ -936,17 +999,7 @@ class Snapshot(object):
                     remove)
             )
 
-        elif(resourceUri.find("BlockConsistencyGroup") > 0):
-            return (
-                tag.tag_resource(
-                    self.__ipAddr,
-                    self.__port,
-                    Snapshot.URI_CONSISTENCY_GROUP_TAG,
-                    suri,
-                    add,
-                    remove)
-            )
-
+        
 
 # Snapshot Create routines
 
@@ -987,6 +1040,10 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='type',
                                choices=Snapshot.TYPE_REPLIC_LIST,
                                metavar='<type>')
+    create_parser.add_argument('-readonly', '-ro',
+                               help='This option creates a snapshot in Read Only mode ' ,
+                               dest='readonly',
+                               choices=Snapshot.BOOLEAN_TYPE)
 
     create_parser.add_argument('-synchronous', '-sync',
                                dest='synchronous',
@@ -1039,7 +1096,8 @@ def snapshot_create(args):
             args.name,
             args.inactive,
             args.type,
-            args.synchronous)
+            args.synchronous,
+            args.readonly)
         return
 
     except SOSError as e:
@@ -2148,7 +2206,7 @@ def restore_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of Snapshot',
                                 required=True)
-    mandatory_args.add_argument('-tenant', '-tn',
+    restore_parser.add_argument('-tenant', '-tn',
                                 metavar='<tenantname>',
                                 dest='tenant',
                                 help='Name of tenant',
@@ -2213,6 +2271,89 @@ def snapshot_restore(args):
                 "snapshot",
                 e.err_text,
                 e.err_code)
+            
+
+#SNAPSHOT RESYNC PARSER
+
+def resync_parser(subcommand_parsers, common_parser):
+    resync_parser = subcommand_parsers.add_parser('resync',
+                                                   description='ViPR' +
+                                                   ' Snapshot resync' +
+                                                   ' CLI usage.',
+                                                   parents=[common_parser],
+                                                   conflict_handler='resolve',
+                                                   help='resynchronizes a snapshot')
+
+    mandatory_args = resync_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<snapshotname>',
+                                dest='name',
+                                help='Name of Snapshot',
+                                required=True)
+    resync_parser.add_argument('-tenant', '-tn',
+                                metavar='<tenantname>',
+                                dest='tenant',
+                                help='Name of tenant',
+                                required=False)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    group = resync_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-volume', '-vol',
+                       metavar='<volumename>',
+                       dest='volume',
+                       help='Name of a volume')
+    group.add_argument('-consistencygroup', '-cg',
+                       metavar='<consistencygroup>',
+                       dest='consistencygroup',
+                       help='Name of a consistencygroup')
+
+    resync_parser.add_argument('-synchronous', '-sync',
+                                dest='sync',
+                                help='Synchronous snapshot restore',
+                                action='store_true')
+
+    mandatory_args.set_defaults(func=snapshot_resync)
+
+
+def snapshot_resync(args):
+    obj = Snapshot(args.ip, args.port)
+    try:
+        (storageresType, storageresTypename) = obj.get_storageAttributes(
+            args.filesystem, args.volume, args.consistencygroup)
+        resourceUri = obj.storageResource_query(
+            storageresType,
+            args.filesystem,
+            args.volume,
+            args.consistencygroup,
+            args.project,
+            args.tenant)
+        obj.snapshot_resync(
+            storageresType,
+            storageresTypename,
+            resourceUri,
+            args.name,
+            args.sync)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot " +
+                args.name +
+                ": Resyncronization Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "resync",
+                "snapshot",
+                e.err_text,
+                e.err_code)           
+
+
 
 # Snapshot tasks routines
 
@@ -2487,6 +2628,10 @@ def snapshot_parser(parent_subparser, common_parser):
 
     # restore command parser
     restore_parser(subcommand_parsers, common_parser)
+    
+    #resyn command parser
+    resync_parser(subcommand_parsers, common_parser)
+
 
     # tasks command parser
     tasks_parser(subcommand_parsers, common_parser)

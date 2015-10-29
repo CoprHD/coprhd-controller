@@ -457,7 +457,9 @@ public class DbServiceImpl implements DbService {
             encryption = InternodeEncryption.none;
             setDisableDbEncryptionFlag();
         }
-        DatabaseDescriptor.getServerEncryptionOptions().internode_encryption = encryption;
+        // TODO rethink db encryption after ipsec is finished. Keep all db communication as
+        // unencrypted for now
+        //DatabaseDescriptor.getServerEncryptionOptions().internode_encryption = encryption;
     }
 
     private boolean setDisableDbEncryptionFlag() {
@@ -574,8 +576,10 @@ public class DbServiceImpl implements DbService {
                 _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
             }
 
-            // Start dbsvc background tasks
-            startBackgroundTasks();
+            if (!_schemaUtil.isOnStandby()) {
+                // Start dbsvc background tasks
+                startBackgroundTasks();
+            }
             _log.info("DB service started");
         } else {
             _log.error("DB migration failed. Skipping starting background tasks.");

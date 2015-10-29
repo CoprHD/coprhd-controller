@@ -1,0 +1,89 @@
+#{extends 'main.html' /} 
+#{set navSelected: ['nav.config', 'nav.disasterRecovery'] /} 
+
+#{DataTable.header titleKey:'disasterRecovery.title'/}
+
+#{DataTable.crudTable id:'disasterRecovery', 
+					dataTable:dataTable,
+					expandable: true,
+					deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
+#{/DataTable.crudTable}
+
+<script id="inlineActions.html" type="text/ng-template">
+    <div class="btn-group-site">
+		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+			<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
+			<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
+			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
+			<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}">{{'disasterRecovery.FailoverButton' | t}}</a>
+		#{/deadbolt.restrict}
+    </div>
+</script>
+
+<script type="text/javascript">
+var standbypauseUrl = #{jsAction @pause(':uuid') /}
+var standbyresumeUrl = #{jsAction @resume(':uuid') /}
+var standbytestUrl = #{jsAction @test(':uuid') /}
+var standbyfailoverUrl = #{jsAction @failover(':uuid') /}
+
+angular.module('tags').directive({
+	actions: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineActions.html",
+         link: function(scope, elem, attrs) {
+        	 scope.pauseUrl = standbypauseUrl({'uuid': scope.row.id});
+        	 scope.resumeUrl = standbyresumeUrl({'uuid': scope.row.id});
+        	 scope.testUrl = standbytestUrl({'uuid': scope.row.id});
+			scope.failoverUrl = standbyfailoverUrl({'uuid': scope.row.id});
+			scope.isPauseSite = false;
+			scope.isResumeSite = false;
+			scope.isTestSite = false;
+			scope.isFailover = false;
+
+        	 if(scope.row.status.toUpperCase() == "STANDBY_SYNCED"){
+				scope.isPauseSite = true;
+				scope.isTestSite = true;
+				scope.isFailover = true;
+             }
+        	 
+        	 if(scope.row.status.toUpperCase() == "STANDBY_PAUSED"){
+				scope.isResumeSite = true;
+             }
+        	 
+        	 if(scope.row.status.toUpperCase() == "PRIMARY"){
+				scope.isResumeSite = false;
+				scope.isPauseSite = false;
+				scope.isTestSite = false;
+				scope.isFailover = false;
+             }
+         }
+     }
+ },
+ url: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineLink.html"
+     }
+ }
+});
+
+function renderButtonBar(o,val) {
+    return "<actions></actions>";
+    
+}
+</script>
+
+<script type="text/javascript">
+function watchLoadStatus(datatable, itemsJson) {
+    var fields = ['status','VirtualIP','name'];
+    var fieldToWatch = 'status';
+    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING'];
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
+}
+$(document).ready(function() {
+    var dataTable = table.disasterRecovery.dataTable.getDataTable()
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchLoadStatus(dataTable, itemsJson);
+});
+</script>

@@ -447,12 +447,12 @@ public class VPlexPortInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("PortInfo ( ");
         str.append(super.toString());
-        str.append(", portWwn: " + portWwn);
-        str.append(", nodeWwn: " + nodeWwn);
-        str.append(", role: " + role);
-        str.append(", protocols: " + (protocols == null ? "null" : protocols.toString()));
-        str.append(", currentSpeed: " + currentSpeed);
-        str.append(", operationalStatus: " + operationalStatus);
+        str.append(", portWwn: ").append(portWwn);
+        str.append(", nodeWwn: ").append(nodeWwn);
+        str.append(", role: ").append(role);
+        str.append(", protocols: ").append((protocols == null ? "null" : protocols.toString()));
+        str.append(", currentSpeed: ").append(currentSpeed);
+        str.append(", operationalStatus: ").append(operationalStatus);
         str.append(" )");
         return str.toString();
     }

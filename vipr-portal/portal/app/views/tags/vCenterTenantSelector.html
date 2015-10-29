@@ -1,0 +1,22 @@
+%{
+tenants = _caller.tenants;
+currentTenantId = _caller.currentTenantId;
+}%
+#{if tenants?.size() > 1}
+<script type="text/javascript">
+        $(document).ready(function() {
+            $('#tenantId').on('change', switchTenants);
+        });
+
+        function switchTenants() {
+            $("#selectTenantForm").submit();
+        }
+    </script>
+#{form @tenant.TenantSelector.selectVcenterTenant(), id:'selectTenantForm', action:'post', class:'form form-inline'}
+<input type="hidden" name="url" value="${request.url}"/>
+<div class="well well-sm">
+    #{Form.selectTenant tenants:tenants, selectedTenant:currentTenantId/}
+    #{doBody /}
+</div>
+#{/form}
+#{/if}

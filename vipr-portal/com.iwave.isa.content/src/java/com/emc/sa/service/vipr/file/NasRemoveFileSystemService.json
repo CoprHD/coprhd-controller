@@ -11,6 +11,13 @@
     fileSystems:{
       type:"assetType.vipr.fileUnmountedFilesystem",
       select:"many"
+    },
+
+    deletionType:{
+      type:"assetType.vipr.fileDeletionType",
+      lockable:true,
+      initialValue:"FULL",
+      select:"one"
     }
   }
 }

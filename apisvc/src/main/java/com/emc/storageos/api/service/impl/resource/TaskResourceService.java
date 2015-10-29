@@ -21,18 +21,20 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorService;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.util.TaskUtils;
-import com.google.common.base.Joiner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.security.authorization.InheritCheckPermission;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.google.common.base.Joiner;
 
 /**
  * Base class for all resources with
@@ -41,6 +43,9 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  */
 public abstract class TaskResourceService extends TaggedResource {
     private static Logger _log = LoggerFactory.getLogger(TaggedResource.class);
+
+    @Autowired
+    protected AsyncTaskExecutorService _asyncTaskService;
 
     /**
      * Get all recent tasks for a specific resource
@@ -82,8 +87,7 @@ public abstract class TaskResourceService extends TaggedResource {
         Task task = null;
         if (URIUtil.isValid(requestId)) {
             task = _dbClient.queryObject(Task.class, requestId);
-        }
-        else {
+        } else {
             task = TaskUtils.findTaskForRequestId(_dbClient, id, requestId.toString());
         }
 
@@ -126,7 +130,7 @@ public abstract class TaskResourceService extends TaggedResource {
      * @param tenants - in] List or Tenant URIs
      * @param dataObjects - [in] List of DataObjects to check
      */
-    protected void deleteCheckForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects) {
+    protected void checkForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects) {
         Set<URI> objectURIsThatHavePendingTasks = getObjectURIsThatHavePendingTasks(tenants);
 
         // Search through the list of Volumes to see if any are in the pending list
@@ -150,11 +154,9 @@ public abstract class TaskResourceService extends TaggedResource {
         // a pending task against them. Need to signal an error
         if (!pendingObjectLabels.isEmpty()) {
             String pendingListStr = Joiner.on(',').join(pendingObjectLabels);
-            _log.warn(String.format(
-                    "Attempted to run delete operation against these DataObjects while there are tasks pending against them: %s",
+            _log.warn(String.format("Attempted to execute operation against these resources while there are tasks pending against them: %s",
                     pendingListStr));
-            throw APIException.badRequests.
-                    cannotDeleteObjectWhilePendingTask(pendingListStr);
+            throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(pendingListStr);
         }
     }
 }

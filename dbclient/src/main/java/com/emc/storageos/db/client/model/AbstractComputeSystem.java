@@ -12,7 +12,7 @@ import java.net.URI;
  * @author elalih
  * 
  */
-public abstract class AbstractComputeSystem extends DiscoveredSystemObject implements TenantResource {
+public abstract class AbstractComputeSystem extends AbstractDiscoveredTenantResource {
     private URI _tenant;
 
     /*

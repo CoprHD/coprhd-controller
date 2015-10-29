@@ -31,6 +31,7 @@ public class PropertyInfoRestRep extends PropertyInfo {
         super(properties);
     }
 
+    @JsonIgnore
     public Map<String, String> getAllProperties() {
         return super.getAllProperties();
     }

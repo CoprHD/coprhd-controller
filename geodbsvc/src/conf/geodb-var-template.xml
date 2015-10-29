@@ -29,6 +29,8 @@
                 </foreach>
             </list>
         </property>
+        <property name="onStandby" value="${site_is_standby}"/>
+        <property name="standbyId" value="${site_myid}"/>
     </bean>
     
 </beans>

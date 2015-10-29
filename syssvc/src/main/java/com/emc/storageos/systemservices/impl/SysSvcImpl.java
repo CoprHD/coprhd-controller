@@ -7,6 +7,7 @@ package com.emc.storageos.systemservices.impl;
 
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
+import com.emc.storageos.systemservices.impl.property.VdcSiteManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,6 +20,7 @@ import com.emc.storageos.systemservices.impl.upgrade.RemoteRepository;
 import com.emc.storageos.systemservices.impl.upgrade.UpgradeManager;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.systemservices.SysSvc;
 import com.emc.storageos.systemservices.impl.audit.SystemAudit;
 import com.emc.storageos.db.client.DbClient;
@@ -32,6 +34,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private Thread _upgradeManagerThread = null;
     private Thread _secretsManagerThread = null;
     private Thread _propertyManagerThread = null;
+    private Thread _vdcManagerThread = null;
     private Thread _ipreconfigManagerThread = null;
     private int _timeout;
 
@@ -40,6 +43,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
 
     @Autowired
     private PropertyManager _propertyMgr;
+
+    @Autowired
+    private VdcSiteManager _vdcMgr;
 
     @Autowired
     private IpReconfigManager _ipreconfigMgr;
@@ -99,6 +105,12 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _propertyManagerThread.start();
     }
 
+    private void startVdcManager() {
+        _vdcManagerThread = new Thread(_vdcMgr);
+        _vdcManagerThread.setName("VdcManager");
+        _vdcManagerThread.start();
+    }
+
     private void startNewVersionCheck() {
         if (_coordinator.isControlNode()) {
             RemoteRepository.setCoordinator(_coordinator);
@@ -141,12 +153,18 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             if (!_coordinator.isControlNode()) {
                 _clusterPoller.start();
             }
+
             startNewVersionCheck();
             startUpgradeManager();
             startSecretsManager();
             startPropertyManager();
+            startVdcManager();
             startIpReconfigManager();
-            _recoveryMgr.init();
+            
+            DrUtil drUtil = new DrUtil(_coordinator.getCoordinatorClient());
+            if (drUtil.isPrimary()) {
+                _recoveryMgr.init();
+            }
             startSystemAudit(_dbClient);
             _svcBeacon.start();
         } else {
@@ -159,6 +177,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _upgradeMgr.stop();
         _secretsMgr.stop();
         _propertyMgr.stop();
+        _vdcMgr.stop();
         stopNewVersionCheck();
         _server.stop();
     }

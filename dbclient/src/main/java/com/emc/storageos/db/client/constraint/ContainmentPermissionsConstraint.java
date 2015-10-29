@@ -10,6 +10,7 @@ import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObjectWithACLs;
+import com.emc.storageos.db.client.model.DiscoveredComputeSystemWithAcls;
 import com.emc.storageos.db.client.model.TenantOrg;
 
 /**
@@ -47,6 +48,13 @@ public interface ContainmentPermissionsConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(type);
             ColumnField field = doType.getColumnField(columeField);
             return new ContainmentPermissionsConstraintImpl(key, field, type);
+        }
+
+        public static ContainmentPermissionsConstraint
+                getDiscoveredObjsWithPermissionsConstraint(String key, Class<? extends DiscoveredComputeSystemWithAcls> clazz) {
+            DataObjectType doType = TypeMap.getDoType(clazz);
+            ColumnField field = doType.getColumnField("acls");
+            return new ContainmentPermissionsConstraintImpl(key, field, clazz);
         }
     }
 }

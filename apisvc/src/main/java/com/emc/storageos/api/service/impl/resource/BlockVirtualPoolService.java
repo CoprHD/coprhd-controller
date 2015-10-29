@@ -83,6 +83,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -188,9 +189,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         // update the implicit pools matching with this VirtualPool.
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
-
+        Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, _dbClient);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
         }
 
         _dbClient.createObject(vpool);
@@ -496,7 +497,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
 
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, _dbClient);
+            Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
         }
 
         // Validate Mirror Vpool
@@ -1245,7 +1247,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     protected BlockVirtualPoolBulkRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        if (isSystemAdmin()) {
+        if (isSystemOrRestrictedSystemAdmin()) {
             return queryBulkResourceReps(ids);
         }
 

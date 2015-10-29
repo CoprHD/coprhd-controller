@@ -8,8 +8,11 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.*;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueTaskConsumer;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -17,6 +20,7 @@ import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.ClusterInfo;
+
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -36,7 +40,7 @@ import static com.emc.storageos.coordinator.client.model.Constants.*;
 /**
  * Dummy coordinator client for use with dbsvc unit tests
  */
-public class StubCoordinatorClientImpl implements CoordinatorClient {
+public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     private final Service _dbinfo;
     private DbVersionInfo dbVersionInfo;
     private CoordinatorClientInetAddressMap inetAddessLookupMap;
@@ -96,6 +100,11 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     public <T> DistributedQueue<T>
             getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer, int maxThreads)
                     throws CoordinatorException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <T> DistributedLockQueueManager getLockQueue(DistributedLockQueueTaskConsumer<T> consumer) throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
@@ -282,6 +291,11 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
+        return null;
+    }
+
+    @Override
     public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception {
         throw new UnsupportedOperationException();
@@ -304,13 +318,18 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
     @Override
+    public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
-            throws Exception {
+            throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
@@ -386,6 +405,21 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DistributedAroundHook getDistributedOwnerLockAroundHook() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public String getDbConfigPath(String serviceName) {
         return DB_CONFIG;
     }
@@ -396,4 +430,20 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
         String targetVersion = getTargetDbSchemaVersion();
         return !(currentVersion.equals(targetVersion));
     }
+    
+    @Override
+    public String getSiteId() {
+    	return "testsiteid";
+    }
+
+    @Override
+    public void addSite(String siteId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setPrimarySite(String siteId) {
+        throw new UnsupportedOperationException();
+    }
+    
 }

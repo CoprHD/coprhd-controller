@@ -12,6 +12,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -22,7 +23,8 @@ public class UnexportedVolumeIngestOrchestrator extends BlockIngestExportOrchest
     @Override
     public <T extends BlockObject> void ingestExportMasks(UnManagedVolume unManagedVolume, List<UnManagedExportMask> unManagedMasks,
             VolumeExportIngestParam param, ExportGroup exportGroup, T volume, StorageSystem system,
-            boolean exportGroupCreated, MutableInt masksIngestedCount) throws IngestionException {
+            boolean exportGroupCreated, MutableInt masksIngestedCount, 
+            List<Initiator> deviceInitiators, List<String> errorMessages ) throws IngestionException {
         return;
     }
 

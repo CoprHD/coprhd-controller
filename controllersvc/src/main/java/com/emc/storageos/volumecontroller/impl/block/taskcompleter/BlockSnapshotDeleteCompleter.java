@@ -62,37 +62,27 @@ public class BlockSnapshotDeleteCompleter extends BlockSnapshotTaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, getId());
-            Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
-            if (snapshot.getConsistencyGroup() != null) {
-                for (URI uri : getIds()) {
-                    BlockSnapshot it = dbClient.queryObject(BlockSnapshot.class, uri);
-                    switch (status) {
-                        case error:
-                            dbClient.error(BlockSnapshot.class, uri, getOpId(), coded);
-                            break;
-                        default:
-                            dbClient.ready(BlockSnapshot.class, uri, getOpId());
-                    }
+            List<BlockSnapshot> blockSnapshots = dbClient.queryObject(BlockSnapshot.class, getIds());
 
-                    Volume parentVolume = dbClient.queryObject(Volume.class, it.getParent().getURI());
+            for (BlockSnapshot snapshot : blockSnapshots) {
+                Volume parent = dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
 
-                    recordBlockSnapshotOperation(dbClient, OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, status,
-                            eventMessage(status, parentVolume, it), it);
-                    _log.info("Done SnapshotDelete {}, with Status: {}", getOpId(), status.name());
-                }
-            } else {
                 switch (status) {
                     case error:
-                        dbClient.error(BlockSnapshot.class, getId(), getOpId(), coded);
+                        setErrorOnDataObject(dbClient, BlockSnapshot.class, snapshot.getId(), coded);
+                        setErrorOnDataObject(dbClient, Volume.class, parent.getId(), coded);
                         break;
-                    default:
-                        dbClient.ready(BlockSnapshot.class, getId(), getOpId());
+                    case ready:
+                        setReadyOnDataObject(dbClient, BlockSnapshot.class, snapshot);
+                        setReadyOnDataObject(dbClient, Volume.class, parent.getId());
                 }
 
                 recordBlockSnapshotOperation(dbClient, OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, status,
-                        eventMessage(status, volume, snapshot), snapshot);
+                        eventMessage(status, parent, snapshot), snapshot);
+                _log.info("Done SnapshotDelete {}, with Status: {}", getOpId(), status.name());
             }
+
+            super.complete(dbClient, status, coded);
         } catch (Exception e) {
             _log.error("Failed updating status. SnapshotDelete {}, for task " + getOpId(), getId(), e);
         }

@@ -1,0 +1,28 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.file.vnasservers'] /}
+
+<script type="text/javascript">
+  var route = #{jsAction @virtualNasServersJson(':id')/};
+ 
+  function reloadVirtualNasServers() {
+    var table = $('#vNasServers table'); 
+    var xhr = table.data('previousXHR');
+    if (xhr) {
+        xhr.abort();
+    }
+    var id = $('#project option:selected').val();
+    table.dataTable().fnReloadAjax(route({id: id}));
+  }
+
+  $(document).ready(function() {
+    $('#project').on('change', reloadVirtualNasServers);
+  });
+</script>
+
+#{Resources.projectsControl projects:projects /}
+
+#{DataTable.header titleKey:'nav.file.vnasservers' /}
+#{DataTable.table id:'vNasServers', 
+                  dataTable:dataTable,
+                  source:@virtualNasServersJson(session.activeProjectId)}
+#{/DataTable.table}     

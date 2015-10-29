@@ -20,6 +20,7 @@ import com.emc.storageos.coordinator.client.service.DataManagerFullException;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.CuratorListener;
 import org.apache.curator.framework.recipes.cache.ChildData;
@@ -110,6 +111,18 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
                 _zkClient.delete().guaranteed().forPath(path + "/" + child);
             }
             _zkClient.delete().guaranteed().forPath(path);
+        }
+    }
+
+    @Override
+    public void removeNode(String path, boolean recursive) throws Exception {
+        if (recursive) {
+            Stat stat = checkExists(path);
+            if (stat != null) {
+                _zkClient.delete().deletingChildrenIfNeeded().forPath(path);
+            }
+        } else {
+            removeNode(path);
         }
     }
 

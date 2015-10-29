@@ -41,6 +41,7 @@ class Cluster(object):
 
     URI_CLUSTER_LIST_UM_VOLUMES = URI_CLUSTER + "/unmanaged-volumes"
     URI_CLUSTER_LIST_UM_EXPORT_MASKS = URI_CLUSTER + "/unmanaged-export-masks"
+    BOOL_TYPE_LIST = ['true', 'false']
 
     def __init__(self, ipAddr, port):
         '''
@@ -61,7 +62,7 @@ class Cluster(object):
             result of the action.
         '''
 
-    def cluster_create(self, label, tenant, datacenter, vcenter):
+    def cluster_create(self, label, tenant, datacenter, vcenter, autoexportsenabled):
         tenant_obj = Tenant(self.__ipAddr, self.__port)
         vdatacenterobj = VcenterDatacenter(self.__ipAddr, self.__port)
 
@@ -71,6 +72,10 @@ class Cluster(object):
             tenant_uri = tenant_obj.tenant_query(tenant)
 
         parms = {'name': label}
+        
+        if(autoexportsenabled is not None):
+            parms['auto_export_enabled'] = autoexportsenabled
+        
 
         # datacenter
         if(datacenter):
@@ -78,6 +83,7 @@ class Cluster(object):
             parms['vcenter_data_center'] = \
                 vdatacenterobj.vcenterdatacenter_query(
                     datacenter, vcenter, tenant)
+                
 
         body = json.dumps(parms)
 
@@ -230,7 +236,7 @@ class Cluster(object):
 
         return
 
-    def cluster_update(self, name, tenant, datacenter, vcenter, label):
+    def cluster_update(self, name, tenant, datacenter, vcenter, label, autoexportsenabled):
         '''
         update cluster with datacenter, label
         Parameters:
@@ -246,7 +252,10 @@ class Cluster(object):
         # new name
         if(label):
             parms['name'] = label
-
+        
+        if(autoexportsenabled is not None):
+            parms['auto_export_enabled'] = autoexportsenabled
+        
         # datacenter
         if(datacenter):
             vdatacenterobj = VcenterDatacenter(self.__ipAddr, self.__port)
@@ -404,7 +413,12 @@ def create_parser(subcommand_parsers, common_parser):
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>')
-
+    create_parser.add_argument('-autoExportsEnabled' , '-autoEx' ,
+                               help="Enables the Auto exports" ,
+                               dest='autoexportsenabled' ,
+                               default = 'true' ,
+                               choices = Cluster.BOOL_TYPE_LIST)
+                               
     create_parser.set_defaults(func=cluster_create)
 
 
@@ -416,7 +430,7 @@ def cluster_create(args):
                 print ("Both vCenter and Data Center details are required")
                 return
         obj.cluster_create(args.name, args.tenant,
-                           args.datacenter, args.vcenter)
+                           args.datacenter, args.vcenter,args.autoexportsenabled )
     except SOSError as e:
         common.format_err_msg_and_raise("create", "cluster",
                                         e.err_text, e.err_code)
@@ -598,6 +612,10 @@ def update_parser(subcommand_parsers, common_parser):
                                help='new name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>')
+    update_parser.add_argument('-autoExportsEnabled' , '-autoEx' ,
+                               help="Enables the Auto exports" ,
+                               dest='autoexportsenabled' ,
+                               choices = Cluster.BOOL_TYPE_LIST)
 
     update_parser.set_defaults(func=cluster_update)
 
@@ -606,11 +624,13 @@ def cluster_update(args):
     obj = Cluster(args.ip, args.port)
     try:
         if(args.label is None and args.tenant is None and
-           args.datacenter is None and args.vcenter is None):
+           args.datacenter is None and args.vcenter is None and
+           args.autoexportsenabled is None):
             raise SOSError(
                 SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
                 " " + sys.argv[2] + ": error:" + "At least one of the"
                 " arguments :-tenant -label -vcenter -datacenter"
+                " -autoExportsEnabled "
                 " should be provided to update the cluster")
 
         if(args.datacenter or args.vcenter):
@@ -621,7 +641,7 @@ def cluster_update(args):
                                "vcenter and datacenter needs to be specified")
 
         obj.cluster_update(args.name, args.tenant, args.datacenter,
-                           args.vcenter, args.label)
+                           args.vcenter, args.label ,args.autoexportsenabled)
     except SOSError as e:
         common.format_err_msg_and_raise("update", "cluster",
                                         e.err_text, e.err_code)

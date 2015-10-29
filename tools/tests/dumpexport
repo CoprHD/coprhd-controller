@@ -1,0 +1,162 @@
+#!/bin/sh
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+# Use: dumpex export_group_name
+# This command will dump from Cassandra the Export Group, each Export Mask contained in
+# the Export Group, and each Initiator contained in each Export Mask.
+# It is useful for determining what masks were created and what initiators they contain.
+
+awk -f - <<'MYEND' $*
+
+# Parse the entries from a file fn and put in indicated array table.
+# The keys are a concatenation of URI and property name,
+# the contents are the value of the property.
+function parseEntries(fn, table) {
+    uri = 0;
+    while (getline <fn > 0) {
+        if (match($1, "id:")) {
+            uri = $2;
+	    table[uri,"id"] = uri;
+        } else if ($0 ~ "^$") {
+	    uri=0;
+	} else if (uri != 0) {
+	    key=$1;
+	    content = $0;
+	    sub(".* = ", "", content)
+	    table[uri, key] = content;
+        }
+    }
+}
+
+# Print all the properties of one object given by it's URI
+# that is located in the indicated associative table.
+function getportnetworkid(table, uri, portnetworkid) {
+    for (id in table) {
+        key=id;
+        sub("(vdc.|global)$", "", key);
+        if (key ~ uri) {
+	    key=id;
+	    sub("urn:.*\\:(vdc.|global)","",key);
+	    sub("[^a-zA-Z0-9_]*", "", key);
+            # Exclude the mongo large OpStatusMap and creationTime entries
+            if (! ((key ~ "status" && table[id] ~ "OpStatusMap.*") || key ~ "creationTime")) {
+                if(key ~ "portNetworkId") {
+                    portnetworkid[id]=table[id];
+                }
+            }
+	}
+    }
+    print " ";
+}
+
+function getfczone(table) {
+    empty=1;
+    for (id in table) {
+        empty=0;
+    }
+    print empty > "/tmp/_fczoneref";
+}
+
+#
+# Extract the properties of a give object given its
+# URI and associative table and make a simplier
+# properties / value map that is put in obj.
+function getobj(table, uri, obj) {
+    for (id in table) {
+        key=id;
+        sub("(vdc.|global)$", "", key);
+        if (key ~ uri) {
+	    key=id;
+	    sub("urn:.*\\:(vdc.|global)","",key);
+	    sub("[^a-zA-Z0-9_]*", "", key);
+	    obj[key] = table[id];
+	}
+    }
+}
+
+BEGIN	{
+    if (ARGC < 2) {
+        print "usage: dumpex export_group_name";
+        exit 1;
+    }
+    groupName = ARGV[1];
+    portszoned = ARGV[2];
+    operation = ARGV[3];
+    split(portszoned, portszonedlist, ",");
+    system("/opt/storageos/bin/dbutils list ExportGroup >/tmp/_eg");
+    system("/opt/storageos/bin/dbutils list ExportMask >/tmp/_em");
+    system("/opt/storageos/bin/dbutils list StoragePort >/tmp/_port");
+    system("/opt/storageos/bin/dbutils list FCZoneReference >/tmp/_fczonerefs");
+    groups["0"] = "0";
+    parseEntries("/tmp/_eg", groups);
+    parseEntries("/tmp/_em", masks);
+    parseEntries("/tmp/_port", ports);
+    parseEntries("/tmp/_fczonerefs", fczones);
+    // Find the Export Group requested
+    groupuri=0;
+    if (operation ~ "checkfczone") {
+        getfczone(fczones);
+    }
+    for (id in groups) {
+	key=id;
+	sub("urn:.*\\:(vdc.|global)","",key);
+	if (key ~ "label") {
+	    label=groups[id];
+	    if (label ~ groupName) {
+	        groupuri=id;
+	        sub("label$", "", groupuri);
+                getobj(groups, groupuri,egrp);
+		exportMasks=egrp["exportMasks"];
+		sub(".*\\[", "", exportMasks);
+		sub("\\].*", "", exportMasks);
+		split(exportMasks, masklist, ", ");
+		for (maskid in masklist) {
+                    getobj(masks, masklist[maskid], mask);
+                    storageports=mask["storagePorts"];
+                    sub(".*\\[", "", storageports);
+                    sub("\\].*", "", storageports);
+                    split(storageports, storageportlist, ", ");
+                    for (portid in storageportlist) {
+                        getportnetworkid(ports, storageportlist[portid], portnetworkid);
+                    }
+		}
+                if (operation ~ "portselection") {
+                    for (id in portnetworkid) {
+                        for(portid in portszonedlist) {
+                            if(portnetworkid[id] ~ portszonedlist[portid]) {
+                                found="true";
+                                break;
+                            } 
+                            else {
+                                found="false";
+                            }
+                        }
+                        if (found ~ "false") {
+                            break;
+                        }
+                    }
+                    if (found ~ "true") {
+                        print "1" > "/tmp/_prezone";
+                        if (length(portnetworkid) == length(portszonedlist)) {
+                            print "1" > "/tmp/_portsused";
+                        }
+                        else {
+                            print "0" > "/tmp/_portsused";
+                        }
+                    }
+                    else {
+                        print "0" > "/tmp/_prezone";
+                    }
+                }
+	    }
+	}
+    }
+    system("rm /tmp/_eg");
+    system("rm /tmp/_em");
+    system("rm /tmp/_port");
+    system("rm /tmp/_fczonerefs");
+}
+MYEND

@@ -22,6 +22,10 @@ public class XtremIOVolumeCreate {
     @SerializedName("parent-folder-id")
     @JsonProperty(value = "parent-folder-id")
     private String parentFolderId;
+    
+    @SerializedName("cluster-id")
+    @JsonProperty(value = "cluster-id")
+    private String clusterName;
 
     public String getName() {
         return name;
@@ -47,7 +51,17 @@ public class XtremIOVolumeCreate {
         this.parentFolderId = parentFolderId;
     }
 
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    @Override
     public String toString() {
-        return "Name: " + name + ". Size: " + size + ", Parent Folder Id: " + parentFolderId;
+        return "XtremIOVolumeCreate [name=" + name + ", size=" + size + ", parentFolderId=" + parentFolderId + ", clusterName="
+                + clusterName + "]";
     }
 }

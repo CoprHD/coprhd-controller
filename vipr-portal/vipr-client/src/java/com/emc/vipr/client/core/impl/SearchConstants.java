@@ -15,4 +15,5 @@ public class SearchConstants {
     public static final String CLUSTER_PARAM = "cluster";
     public static final String HOST_PARAM = "host";
     public static final String TENANT_PARAM = "tenant";
+    public static final String DISCOVER_VCENTER = "discover_vcenter";
 }

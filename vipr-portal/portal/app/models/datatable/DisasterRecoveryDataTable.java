@@ -20,8 +20,9 @@ public class DisasterRecoveryDataTable extends DataTable {
         sortAllExcept("actions");
     }
 
-    public static class StandByInfo {
+    public static class StandByInfo extends DiscoveredSystemInfo {
         public String name;
+        public String description;
         public String VirtualIP;
         public String status;
         public String siteId;
@@ -35,6 +36,7 @@ public class DisasterRecoveryDataTable extends DataTable {
             this.VirtualIP = standByInfo.getVip();
             this.status = standByInfo.getState();
             this.id = standByInfo.getUuid();
+            this.description = standByInfo.getDescription();
         }
     }
 }

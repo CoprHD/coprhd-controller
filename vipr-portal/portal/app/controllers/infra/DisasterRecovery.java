@@ -5,6 +5,7 @@
 
 package controllers.infra;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -17,7 +18,6 @@ import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
-import play.mvc.Controller;
 import play.mvc.With;
 import util.DisasterRecoveryUtils;
 import util.MessagesUtils;
@@ -32,10 +32,11 @@ import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
+import controllers.util.ViprResourceController;
 
 @With(Common.class)
-@Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
-public class DisasterRecovery extends Controller {
+@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+public class DisasterRecovery extends ViprResourceController {
     protected static final String SAVED_SUCCESS = "disasterRecovery.save.success";
     protected static final String PAUSED_SUCCESS = "disasterRecovery.pause.success";
     protected static final String PAUSED_ERROR = "disasterRecovery.pause.error";
@@ -120,6 +121,7 @@ public class DisasterRecovery extends Controller {
             standbySite.setVip(disasterRecovery.VirtualIP);
             standbySite.setUsername(disasterRecovery.userName);
             standbySite.setPassword(disasterRecovery.userPassword);
+            standbySite.setDescription(disasterRecovery.description);
 
             SiteRestRep result = DisasterRecoveryUtils.addStandby(standbySite);
             flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
@@ -139,6 +141,27 @@ public class DisasterRecovery extends Controller {
             SiteRestRep result = DisasterRecoveryUtils.deleteStandby(uuid);
             flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
             list();
+        }
+    }
+
+    public static void itemsJson(@As(",") String[] ids) {
+        List<String> uuids = Arrays.asList(ids);
+        itemsJson(uuids);
+    }
+
+    private static void itemsJson(List<String> uuids) {
+        List<SiteRestRep> standbySites = new ArrayList<SiteRestRep>();
+        for (String uuid : uuids) {
+            SiteRestRep standbySite = DisasterRecoveryUtils.getSite(uuid);
+            standbySites.add(standbySite);
+        }
+        performItemsJson(standbySites, new JsonItemOperation());
+    }
+
+    protected static class JsonItemOperation implements ResourceValueOperation<StandByInfo, SiteRestRep> {
+        @Override
+        public StandByInfo performOperation(SiteRestRep provider) throws Exception {
+            return new StandByInfo(provider);
         }
     }
 
@@ -177,6 +200,7 @@ public class DisasterRecovery extends Controller {
             this.name = siteaddParam.getName();
             this.userName = siteaddParam.getUsername();
             this.VirtualIP = siteaddParam.getVip();
+            this.description = siteaddParam.getDescription();
         }
 
         public boolean isNew() {

@@ -1071,11 +1071,18 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         NASServer nasServer = null;
         if (nasServerMap != null && !nasServerMap.isEmpty()) {
             for (Entry<String, NASServer> entry : nasServerMap.entrySet()) {
-                if (fsPath.startsWith(entry.getKey())) {
-                    nasServer = (NASServer)entry.getValue();
-                }
+            	if(!SYSTEM_ACCESS_ZONE_NAME.equals(entry.getValue().getNasName())) {
+	                if (fsPath.startsWith(entry.getKey())) {
+	                    nasServer = entry.getValue();
+	                    break;
+	                }
+            	}
+            }
+            if(nasServer == null) {
+            	nasServer = nasServerMap.get(IFS_ROOT + "/");
             }
         }
+        
         return nasServer;
     }
 
@@ -1667,7 +1674,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             String fsname,
             String zoneName,
             IsilonApi isilonApi) {
-        _log.info("getUnmanagedCifsShareACL for UnManagedFileSystem file path{} - start", fsname);
+        _log.info("getUnmanagedCifsShareACL for UnManagedFileSystem file path: {} - start", fsname);
 
         // HashSet<String> smbShares = allShares.get(fsPath);
         if (null != smbShares && !smbShares.isEmpty()) {

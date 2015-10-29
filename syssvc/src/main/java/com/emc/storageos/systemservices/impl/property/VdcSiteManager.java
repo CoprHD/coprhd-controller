@@ -697,18 +697,10 @@ public class VdcSiteManager extends AbstractManager {
             }
         }
 
-        // here we simply check if the site state is STANDBY_SYNCING
-        // we leave the majority of the checks to DbRebuildRunnable since it need to validate all the criteria
-        // before updating the site state anyways
+        // restart db services to initiate the rebuild
         if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
-            String dcName = VdcUtil.getLocalVdc().getShortId();
-            try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME)) {
-                dbOps.rebuildLocalNode(dcName);
-            }
-
-            try (DbManagerOps geodbOps = new DbManagerOps(Constants.GEODBSVC_NAME)) {
-                geodbOps.rebuildLocalNode(dcName);
-            }
+            localRepository.restart("dbsvc");
+            localRepository.restart("geodbsvc");
         }
     }
 

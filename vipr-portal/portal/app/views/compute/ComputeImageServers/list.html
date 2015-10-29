@@ -1,0 +1,11 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.computeImageServers'] /}
+
+#{DataTable.header titleKey:'ComputeImageServers.list.title' /}
+
+#{DataTable.crudTable id:'computeImageServers',
+                      dataTable:dataTable,
+                      expandable: true,
+                      deleteConfirm:messages.get('ComputeImageServers.deleteConfirm')}
+#{/DataTable.crudTable}
+#{DataTable.expandHtml @itemDetails(':id'), table:'computeImageServers' /}

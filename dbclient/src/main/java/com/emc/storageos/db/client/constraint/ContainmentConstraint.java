@@ -149,6 +149,24 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("virtualPool");
             return new ContainmentConstraintImpl(vpool, FileShare.class, field);
         }
+        
+        public static ContainmentConstraint getVirtualArrayBucketsConstraint(URI varray) {
+            DataObjectType doType = TypeMap.getDoType(Bucket.class);
+            ColumnField field = doType.getColumnField("varray");
+            return new ContainmentConstraintImpl(varray, Bucket.class, field);
+        }
+        
+        public static ContainmentConstraint getStoragePoolBucketConstraint(URI pool) {
+            DataObjectType doType = TypeMap.getDoType(Bucket.class);
+            ColumnField field = doType.getColumnField("pool");
+            return new ContainmentConstraintImpl(pool, Bucket.class, field);
+        }
+        
+        public static ContainmentConstraint getVirtualPoolBucketConstraint(URI vpool) {
+            DataObjectType doType = TypeMap.getDoType(Bucket.class);
+            ColumnField field = doType.getColumnField("virtualPool");
+            return new ContainmentConstraintImpl(vpool, Bucket.class, field);
+        }
 
         public static ContainmentConstraint getFileshareSnapshotConstraint(URI fs) {
             DataObjectType doType = TypeMap.getDoType(Snapshot.class);

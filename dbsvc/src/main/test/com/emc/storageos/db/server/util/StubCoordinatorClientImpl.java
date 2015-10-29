@@ -430,6 +430,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
         String targetVersion = getTargetDbSchemaVersion();
         return !(currentVersion.equals(targetVersion));
     }
+<<<<<<< HEAD
     
     @Override
     public String getSiteId() {
@@ -451,4 +452,11 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
         throw new UnsupportedOperationException();
     }
     
+=======
+
+    @Override
+    public void removeRuntimeState(String key) throws CoordinatorException {
+        return;
+    }
+>>>>>>> master
 }

@@ -30,11 +30,11 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.api.mapper.TaskMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.BlockMapper;
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.mapper.functions.MapBlockConsistencyGroup;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
@@ -63,6 +63,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -156,7 +157,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     /**
      * Get the specific BlockServiceApiImpl based on the storage system type.
-     * 
+     *
      * @param system The storage system instance
      * @return BloackServiceApiImpl for the storage system type.
      */
@@ -427,7 +428,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Snapshots of RecoverPoint consistency groups is not supported.
         if (consistencyGroup.checkForType(Types.RP)) {
-            throw APIException.badRequests.cannotCreateSnapshotOfRPCG();
+            throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
         }
 
         // Maintain pre-2.2 functionality for VPLEX CGs created prior to
@@ -437,8 +438,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             // No snapshots for VPLEX consistency groups.
             StorageSystem cgStorageController = _dbClient.queryObject(
                     StorageSystem.class, cgStorageControllerURI);
-            if ((DiscoveredDataObject.Type.vplex.name().equals(cgStorageController
-                    .getSystemType())) && (!consistencyGroup.checkForType(Types.LOCAL))) {
+            if (DiscoveredDataObject.Type.vplex.name().equals(cgStorageController
+                    .getSystemType()) && (!consistencyGroup.checkForType(Types.LOCAL)
+                    || BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty())) {
+                _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
                 throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
             }
         }
@@ -456,8 +459,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
         if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
             snapshotType = BlockSnapshot.TechnologyType.RP.toString();
-        } else if ((!volumeList.isEmpty()) && (volumeList.get(0).checkForSRDF())) {
-            snapshotType = BlockSnapshot.TechnologyType.SRDF.toString();
         }
 
         // Determine the snapshot volume for RP.
@@ -619,6 +620,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
+        // check for backend CG
+        if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
+            _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
+            throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
+        }
         final StorageSystem device = _dbClient.queryObject(StorageSystem.class,
                 snapshot.getStorageController());
         final BlockController controller = getController(BlockController.class,
@@ -686,6 +692,18 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI snapshotId) {
 
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
+
+        // Snapshots of RecoverPoint consistency groups is not supported.
+        if (consistencyGroup.checkForType(Types.RP)) {
+            throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
+        }
+
+        // check for backend CG
+        if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
+            _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
+            throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
+        }
+
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
 
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
@@ -759,6 +777,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
 
+        // check for backend CG
+        if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
+            _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
+            throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
+        }
+
         // Get the parent volume.
         final Volume snapshotParentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
 
@@ -809,6 +833,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
+
+        // check for backend CG
+        if (BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty()) {
+            _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
+            throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
+        }
 
         // Get the storage system for the consistency group.
         StorageSystem storage = _permissionsHelper.getObjectById(consistencyGroup.getStorageController(), StorageSystem.class);
@@ -1585,8 +1615,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param operationTypeEnum
      */
     protected void addConsistencyGroupTask(BlockConsistencyGroup group, TaskList taskList,
-                                                                    String taskId,
-                                                                    ResourceOperationTypeEnum operationTypeEnum) {
+            String taskId,
+            ResourceOperationTypeEnum operationTypeEnum) {
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
                 operationTypeEnum);
         taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));

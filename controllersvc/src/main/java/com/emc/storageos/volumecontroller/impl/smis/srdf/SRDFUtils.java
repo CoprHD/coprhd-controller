@@ -265,7 +265,7 @@ public class SRDFUtils implements SmisConstants {
     /**
      * return the targetSystem of the targetvolume.
      * 
-     * @param targetURIs
+     * @param systemURI
      * @return
      */
     public StorageSystem getStorageSystem(URI systemURI) {
@@ -688,16 +688,23 @@ public class SRDFUtils implements SmisConstants {
         String grpName1 = RDF_GROUP_PREFIX
                 + project.getLabel().replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER);
         if (grpName1.length() > RDF_GROUP_NAME_MAX_LENGTH) {
-            names.add(grpName1.substring(0, RDF_GROUP_NAME_MAX_LENGTH - 1));
+            names.add(grpName1.substring(0, RDF_GROUP_NAME_MAX_LENGTH));
         } else {
             names.add(grpName1);
         }
         String grpName2 = project.getLabel().replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER);
         if (grpName2.length() > RDF_GROUP_NAME_MAX_LENGTH) {
-            names.add(grpName2.substring(0, RDF_GROUP_NAME_MAX_LENGTH - 1));
+            names.add(grpName2.substring(0, RDF_GROUP_NAME_MAX_LENGTH));
         } else {
             names.add(grpName2);
         }
+        String grpName3 = project.getLabel();
+        if (grpName3.length() > RDF_GROUP_NAME_MAX_LENGTH) {
+            grpName3 = grpName3.substring(0, RDF_GROUP_NAME_MAX_LENGTH);
+        }
+        names.add(grpName3
+                .trim()
+                .replace(REPLACE_RDF_STR_BEFORE, REPLACE_RDF_STR_AFTER));
         return names;
     }
 

@@ -477,6 +477,7 @@ POST   /catalog/images/saveJson                catalog.CatalogImages.saveJson
 
 GET    /maintenance                            Maintenance.maintenance
 GET    /maintenance/clusterState               Maintenance.clusterState
+GET    /maintenance/fail                       Maintenance.fail
 
 GET    /secure/nocookies                       security.Security.noCookies
 

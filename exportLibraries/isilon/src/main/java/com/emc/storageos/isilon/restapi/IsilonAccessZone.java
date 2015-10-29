@@ -11,24 +11,28 @@ import java.util.ArrayList;
  */
 public class IsilonAccessZone {
     
-    //authenticate provider
+    /**List of authentication providers used on this zone*/
     private ArrayList<String> auth_providers;
     
-    //nas id
+    /** Use all authentication providers available */
+    private boolean all_auth_providers;
+    
+    //zone id
     private String id;
 
+    //access zone name
     private String name;
-    
-
+ 
     //root directory path
     private String path;
-
     
-    //nas type
+    //nas type (build in Zone)
     private boolean system;
     
     //zone id
     private Integer zone_id;
+    
+    private String system_provider;
 
     public ArrayList<String> getAuth_providers() {
         return auth_providers;
@@ -73,9 +77,25 @@ public class IsilonAccessZone {
     public void setZone_id(Integer zone_id) {
         this.zone_id = zone_id;
     }
+    
+    public boolean isAll_auth_providers() {
+        return all_auth_providers;
+    }
+
+    public void setAll_auth_providers(boolean all_auth_providers) {
+        this.all_auth_providers = all_auth_providers;
+    }
 
     public void setAuth_providers(ArrayList<String> auth_providers) {
         this.auth_providers = auth_providers;
+    }
+    
+    public String getSystem_provider() {
+        return system_provider;
+    }
+
+    public void setSystem_provider(String system_provider) {
+        this.system_provider = system_provider;
     }
 
     @Override

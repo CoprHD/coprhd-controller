@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -116,6 +117,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final Long MAX_STORAGE_OBJECTS = 40000L; 
     private static final String SYSTEM_ACCESS_ZONE_NAME = "System";
     private static final Long GB_IN_BYTES = 1073741824L;
+    private static final String ONEFS_V8 = "8.0.0.0";
+    private static final String ONEFS_V7_2 = "8.0.0.0";
     
 
     private IsilonApiFactory _factory;
@@ -586,8 +589,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         _log.info("discoverNetworkPools for storage system {} - start", storageSystemId);
         List<IsilonNetworkPool> isilonNetworkPoolsTemp = null;
         try {
-            if(storageSystem.getFirmwareVersion().charAt(0) >= '8' 
-                    && storageSystem.getFirmwareVersion().charAt(2) >= '0') {
+            if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageSystem.getFirmwareVersion()) > 0) {
                 _log.info("Isilon release version {} and storagesystem label {}", 
                                 storageSystem.getFirmwareVersion(), storageSystem.getLabel());
                 IsilonApi isilonApi = getIsilonDevice(storageSystem);
@@ -671,8 +673,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
            //by default all version support CIFS and version above 7.2 NFS also
             StringSet protocols = new StringSet();
             protocols.add(CIFS);
-            if (storageSystem.getFirmwareVersion().charAt(0) >= '7' && 
-                    storageSystem.getFirmwareVersion().charAt(2) >= '2') {
+            if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, storageSystem.getFirmwareVersion()) > 0) {
                 protocols.add(NFS);
             } 
             
@@ -784,17 +785,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                      for (VirtualNAS vNas: newvNASList) {
                          //set the parent uri or system access zone uri to vNAS
                         vNas.setParentNasUri(physicalNAS.getId());
-                        //set the authenticate provider for vNAS
-                        cifsServersMap = vNas.getCifsServersMap();
-                        if (cifsServersMap == null) {
-                            cifsServersMap = new CifsServerMap();
-                        }
-                        if (vNas.getCifsServersMap().isEmpty()) {
-                            if (physicalNAS.getCifsServersMap() != null && !physicalNAS.getCifsServersMap().isEmpty()) {
-                                cifsServersMap.putAll(physicalNAS.getCifsServersMap());
-                                vNas.setCifsServersMap(cifsServersMap);
-                            }
-                        }
                     }
                 }
                 _log.info("New Virtual NAS servers size {}", newvNASList.size());
@@ -1147,11 +1137,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             
 
             // Get All FileShare
-            HashMap<String, HashSet<String>> allSMBShares = discoverAllSMBShares(storageSystem);
+            HashMap<String, HashSet<String>> allSMBShares = discoverAllSMBShares(storageSystem, isilonAccessZones);
             List<UnManagedCifsShareACL> unManagedCifsShareACLList = new ArrayList<UnManagedCifsShareACL>();
             List<UnManagedCifsShareACL> oldunManagedCifsShareACLList = new ArrayList<UnManagedCifsShareACL>();
 
-            HashMap<String, HashSet<Integer>> expMap = discoverAllExports(storageSystem);
+            HashMap<String, HashSet<Integer>> expMap = discoverAllExports(storageSystem, isilonAccessZones);
 
             UnManagedExportVerificationUtility validationUtility = new UnManagedExportVerificationUtility(
                     _dbClient);
@@ -1399,7 +1389,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @return
      */
 
-    private HashMap<String, HashSet<String>> discoverAllSMBShares(StorageSystem storageSystem) {
+    private HashMap<String, HashSet<String>> discoverAllSMBShares(final StorageSystem storageSystem, 
+                                                            final List<IsilonAccessZone> isilonAccessZones) {
         // Discover All FileShares
         String resumeToken = null;
         HashMap<String, HashSet<String>> allShares = new HashMap<String, HashSet<String>>();
@@ -1408,32 +1399,36 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         try {
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-            do {
-                IsilonApi.IsilonList<IsilonSMBShare> isilonShares =
-                        isilonApi.listShares(resumeToken);
-
-                List<IsilonSMBShare> isilonSMBShareList = isilonShares.getList();
-                HashSet<String> sharesHashSet = null;
-                for (IsilonSMBShare share : isilonSMBShareList) {
-                    // get the filesystem path and shareid
-                    String path = share.getPath();
-                    String shareId = share.getId();
-                    sharesHashSet = allShares.get(path);
-                    if (null == sharesHashSet) {
-                        sharesHashSet = new HashSet<String>();
-                        sharesHashSet.add(shareId);
-                        allShares.put(path, sharesHashSet);
-                    } else {
-                        // if shares already exist for path then add
-                        sharesHashSet.add(shareId);
-                        allShares.put(path, sharesHashSet);
+            for (IsilonAccessZone isilonAccessZone: isilonAccessZones) {
+                do {
+                    IsilonApi.IsilonList<IsilonSMBShare> isilonShares =
+                            isilonApi.listShares(resumeToken, isilonAccessZone.getName());
+    
+                    List<IsilonSMBShare> isilonSMBShareList = isilonShares.getList();
+                    HashSet<String> sharesHashSet = null;
+                    for (IsilonSMBShare share : isilonSMBShareList) {
+                        // get the filesystem path and shareid
+                        String path = share.getPath();
+                        String shareId = share.getId();
+                        sharesHashSet = allShares.get(path);
+                        if (null == sharesHashSet) {
+                            sharesHashSet = new HashSet<String>();
+                            sharesHashSet.add(shareId);
+                            allShares.put(path, sharesHashSet);
+                        } else {
+                            // if shares already exist for path then add
+                            sharesHashSet.add(shareId);
+                            allShares.put(path, sharesHashSet);
+                        }
+    
+                        _log.info("Discovered SMB Share name {} and path {}", shareId, path);
                     }
-
-                    _log.info("Discovered SMB Share name {} and path {}", shareId, path);
-                }
-
-                resumeToken = isilonShares.getToken();
-            } while (resumeToken != null);
+    
+                    resumeToken = isilonShares.getToken();
+                } while (resumeToken != null);
+                _log.info("discoverd AllShares for access zone {} ", isilonAccessZone.getName());
+                resumeToken = null;
+            }
 
             return allShares;
         } catch (IsilonException ie) {
@@ -1585,7 +1580,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return qualified;
     }
 
-    private HashMap<String, HashSet<Integer>> discoverAllExports(StorageSystem storageSystem)
+    private HashMap<String, HashSet<Integer>> discoverAllExports(StorageSystem storageSystem, final List<IsilonAccessZone> isilonAccessZones)
             throws IsilonCollectionException {
 
         // Discover All FileSystem
@@ -1599,27 +1594,31 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             _log.info("discoverAllExports for storage system {} - start", storageSystemId);
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-
-            do {
-                IsilonApi.IsilonList<IsilonExport> isilonExports = isilonApi.listExports(resumeToken);
-
-                List<IsilonExport> exports = isilonExports.getList();
-
-                for (IsilonExport exp : exports) {
-                    _log.info("Discovered fS export {}", exp.toString());
-                    HashSet<Integer> exportIds = new HashSet<Integer>();
-                    for (String path : exp.getPaths()) {
-                        exportIds = allExports.get(path);
-                        if (exportIds == null) {
-                            exportIds = new HashSet<Integer>();
+            
+            for (IsilonAccessZone isilonAccessZone: isilonAccessZones) {
+                do {
+                    IsilonApi.IsilonList<IsilonExport> isilonExports = isilonApi.listExports(resumeToken, 
+                                                                                isilonAccessZone.getName());
+                    List<IsilonExport> exports = isilonExports.getList();
+    
+                    for (IsilonExport exp : exports) {
+                        _log.info("Discovered fS export {}", exp.toString());
+                        HashSet<Integer> exportIds = new HashSet<Integer>();
+                        for (String path : exp.getPaths()) {
+                            exportIds = allExports.get(path);
+                            if (exportIds == null) {
+                                exportIds = new HashSet<Integer>();
+                            }
+                            exportIds.add(exp.getId());
+                            allExports.put(path, exportIds);
+                            _log.debug("Discovered fS put export Path {} Export id {}", path, exportIds.size() + ":" + exportIds);
                         }
-                        exportIds.add(exp.getId());
-                        allExports.put(path, exportIds);
-                        _log.debug("Discovered fS put export Path {} Export id {}", path, exportIds.size() + ":" + exportIds);
                     }
-                }
-                resumeToken = isilonExports.getToken();
-            } while (resumeToken != null);
+                    resumeToken = isilonExports.getToken();
+                } while (resumeToken != null);
+                _log.info("discoverd All NFS Exports for access zone {} ", isilonAccessZone.getName());
+                resumeToken = null;
+            }
 
             return allExports;
 
@@ -2489,8 +2488,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         
         Long MaxNfsExports = 0L;
         Long MaxCifsShares = 30000L;
-        if(system.getFirmwareVersion().charAt(0) >= '7' && system.getFirmwareVersion().charAt(2) >= '2') {
-            MaxNfsExports = MAX_NFS_EXPORTS_V7_2;
+        
+        if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, system.getFirmwareVersion()) > 0) {
+           MaxNfsExports = MAX_NFS_EXPORTS_V7_2;
             MaxCifsShares = MAX_CIFS_SHARES;
         }
         
@@ -2595,9 +2595,18 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if(authArrayList != null && !authArrayList.isEmpty()) {
             for(String authProvider: authArrayList) {
                 NasCifsServer nasCifsServer = new NasCifsServer();
-                nasCifsServer.setName(authProvider);
-                cifsServersMap.put(authProvider, nasCifsServer);
+                String[] providerArray = authProvider.split(":");
+                nasCifsServer.setName(providerArray[0]);
+                nasCifsServer.setDomain(providerArray[1]);
+                cifsServersMap.put(providerArray[0], nasCifsServer);
             }
+        }
+        if (isiAccessZone.isAll_auth_providers() == true) {
+            NasCifsServer nasCifsServer = new NasCifsServer();
+            String[] providerArray = isiAccessZone.getSystem_provider().split(":");
+            nasCifsServer.setName(providerArray[0]);
+            nasCifsServer.setDomain(providerArray[1]);
+            cifsServersMap.put(providerArray[0], nasCifsServer);
         }
         return cifsServersMap;
     }

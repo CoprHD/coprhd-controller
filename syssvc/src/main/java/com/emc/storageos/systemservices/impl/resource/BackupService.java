@@ -111,10 +111,12 @@ public class BackupService {
     private BackupSets toBackupSets(List<BackupSetInfo> backupList) {
         BackupSets backupSets = new BackupSets();
         for (BackupSetInfo backupInfo : backupList) {
+            BackupUploadStatus uploadStatus = getBackupUploadStatus(backupInfo.getName());
             backupSets.getBackupSets().add(new BackupSets.BackupSet(
                     backupInfo.getName(),
                     backupInfo.getSize(),
-                    backupInfo.getCreateTime()));
+                    backupInfo.getCreateTime(),
+                    uploadStatus));
         }
         return backupSets;
     }

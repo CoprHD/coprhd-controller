@@ -3723,6 +3723,7 @@ public class BlockService extends TaskResourceService {
      * @brief List data of volume resources
      * @return list of representations.
      */
+    @Override
     @POST
     @Path("/bulk")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -3814,11 +3815,11 @@ public class BlockService extends TaskResourceService {
                 notSuppReasonBuff.setLength(0);
                 // Check to see if this is a RP protected VPLEX volume and
                 // if the request is trying to remove RP protection.
-                if (volume.checkForRp() 
+                if (volume.checkForRp()
                         && VirtualPool.vPoolSpecifiesProtection(currentVpool)
                         && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
                     notSuppReasonBuff.setLength(0);
-                    if (!VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool, 
+                    if (!VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
                             _dbClient, notSuppReasonBuff)) {
                         throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                                 notSuppReasonBuff.toString());
@@ -3860,7 +3861,7 @@ public class BlockService extends TaskResourceService {
                     } else if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, volume)) {
                         // We will not allow virtual pool change for a VPLEX volume that was
                         // created using the target volume of a block snapshot.
-                        throw APIException.badRequests.vpoolChangeNotAllowedVolumeIsExposedIsExposedSnapshot(volume.getId().toString());
+                        throw APIException.badRequests.vpoolChangeNotAllowedVolumeIsExposedSnapshot(volume.getId().toString());
                     } else if (vplexVpoolChangeOperation == VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION) {
                         // Determine if source side will be migrated.
                         boolean migrateSourceVolume = VirtualPoolChangeAnalyzer
@@ -3981,13 +3982,13 @@ public class BlockService extends TaskResourceService {
                     throw APIException.badRequests.volumeForRPVpoolChangeHasFullCopies(volume.getLabel());
                 }
             } else if (VirtualPool.vPoolSpecifiesProtection(currentVpool)
-                        && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+                    && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
                 notSuppReasonBuff.setLength(0);
-                if (!VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool, 
-                        _dbClient, notSuppReasonBuff)) {                    
+                if (!VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
+                        _dbClient, notSuppReasonBuff)) {
                     throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
                             notSuppReasonBuff.toString());
-                }                
+                }
             } else if (VirtualPool.vPoolSpecifiesSRDF(newVpool)) {
                 // VMAX import to SRDF cases (currently one)
                 notSuppReasonBuff.setLength(0);
@@ -4088,7 +4089,7 @@ public class BlockService extends TaskResourceService {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
         String systemType = storageSystem.getSystemType();
 
-        if (protectionSystemURI != null 
+        if (protectionSystemURI != null
                 || VirtualPool.vPoolSpecifiesProtection(vpool)
                 || (volume.checkForRp() && !VirtualPool.vPoolSpecifiesProtection(vpool))) {
             // Assume RP for now if the volume is associated with an

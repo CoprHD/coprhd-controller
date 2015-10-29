@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
@@ -72,6 +73,9 @@ public class FileDeviceInputOutput {
     private List<ShareACL> shareAclsToModify = new ArrayList<>();
     private List<ShareACL> shareAclsToDelete = new ArrayList<>();
     private List<ShareACL> existingShareAcls = new ArrayList<>();
+    
+  //New additions for vNAS
+    private VirtualNAS vNAS;
 
     // New additions for NFS ACL work
     private String fileSystemPath;
@@ -958,5 +962,13 @@ public class FileDeviceInputOutput {
     public void setExistingShareAcls(List<ShareACL> existingShareAcls) {
         this.existingShareAcls = existingShareAcls;
     }
+    
+    public VirtualNAS getvNAS() {
+		return vNAS;
+	}
+
+	public void setvNAS(VirtualNAS vNAS) {
+		this.vNAS = vNAS;
+	}
 
 }

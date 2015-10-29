@@ -165,238 +165,237 @@ public class FileSystems extends ResourceController {
 		render(nfsAcls);
 	}
 
-	public static void listNfsAcl(String fileSystemId, String fsMountPath,
-			String subDir) {
-		renderArgs.put("dataTable", new NfsACLDataTable());
-		renderArgs.put("subDir", subDir);
-		renderArgs.put("fileSystemId", uri(fileSystemId));
-		renderArgs.put("fsMountPath", fsMountPath);
-		renderArgs.put("fileSystemSubDirAndPath", fileSystemId + "~~~" + subDir
-				+ "~~~" + fsMountPath);
-		renderArgs.put("permissionOptions", StringOption.options(new String[] {
-				"read", "write", "execute" }));
-		ViPRCoreClient client = BourneUtil.getViprClient();
-		NfsACLForm nfsACL = new NfsACLForm();
-		FileShareRestRep restRep = client.fileSystems().get(uri(fileSystemId));
-		renderArgs.put("fileSystemName", restRep.getName());
+    public static void listNfsAcl(String fileSystemId, String fsMountPath,
+            String subDir) {
+        renderArgs.put("dataTable", new NfsACLDataTable());
+        renderArgs.put("subDir", subDir);
+        renderArgs.put("fileSystemId", uri(fileSystemId));
+        renderArgs.put("fsMountPath", fsMountPath);
+        renderArgs.put("fileSystemSubDirAndPath", fileSystemId + "~~~" + subDir
+                + "~~~" + fsMountPath);
+        renderArgs.put("permissionOptions", StringOption.options(new String[] {
+                "read", "write", "execute" }));
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        NfsACLForm nfsACL = new NfsACLForm();
+        FileShareRestRep restRep = client.fileSystems().get(uri(fileSystemId));
+        renderArgs.put("fileSystemName", restRep.getName());
 
-		render(nfsACL);
-	}
+        render(nfsACL);
+    }
 
-	public static void listNfsAclJson(String fileSystemSubDirAndPath) {
-		renderArgs.put("dataTable", new NfsACLDataTable());
-		String fileSystemId = null;
-		String subDir = null;
-		String fsMountPath = null;
-		if (StringUtils.isNotBlank(fileSystemSubDirAndPath)) {
-			String[] parts = fileSystemSubDirAndPath.split("~~~");
-			if (parts.length == 3) {
-				fileSystemId = parts[0];
-				subDir = parts[1];
-				fsMountPath = parts[2];
-			}
-		}
-		renderArgs.put("subDir", subDir);
-		renderArgs.put("fsMountPath", fsMountPath);
-		renderArgs.put("fileSystemId", uri(fileSystemId));
-		renderArgs.put("fileSystemName", uri(fileSystemId));
-		ViPRCoreClient client = BourneUtil.getViprClient();
-		List<NfsACL> nfsAcls = client.fileSystems().getNfsACLs(
-				uri(fileSystemId), subDir);
-		NfsACL nfsAcl = new NfsACL();
-		List<NfsACLDataTable.NfsAclInfo> nfsAccessControlList = Lists
-				.newArrayList();
-		if (nfsAcls.size() > 0) {
-			nfsAcl = nfsAcls.get(0);
-			List<NfsACE> acl = nfsAcl.getNfsAces();
-			for (NfsACE ace : acl) {
-				String name = ace.getUser();
-				String type = ace.getType();
-				String permissions = ace.getPermissions();
-				String domain = ace.getDomain();
-				String permissionType = ace.getPermissionType();
-				nfsAccessControlList.add(new NfsACLDataTable.NfsAclInfo(name,
-						type, permissions, fileSystemId, subDir, domain,
-						fsMountPath,permissionType));
-			}
-		}
-		renderJSON(DataTablesSupport.createJSON(nfsAccessControlList, params));
-	}
+    public static void listNfsAclJson(String fileSystemSubDirAndPath) {
+        renderArgs.put("dataTable", new NfsACLDataTable());
+        String fileSystemId = null;
+        String subDir = null;
+        String fsMountPath = null;
+        if (StringUtils.isNotBlank(fileSystemSubDirAndPath)) {
+            String[] parts = fileSystemSubDirAndPath.split("~~~");
+            if (parts.length == 3) {
+                fileSystemId = parts[0];
+                subDir = parts[1];
+                fsMountPath = parts[2];
+            }
+        }
+        renderArgs.put("subDir", subDir);
+        renderArgs.put("fsMountPath", fsMountPath);
+        renderArgs.put("fileSystemId", uri(fileSystemId));
+        renderArgs.put("fileSystemName", uri(fileSystemId));
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        List<NfsACL> nfsAcls = client.fileSystems().getNfsACLs(
+                uri(fileSystemId), subDir);
+        NfsACL nfsAcl = new NfsACL();
+        List<NfsACLDataTable.NfsAclInfo> nfsAccessControlList = Lists
+                .newArrayList();
+        if (nfsAcls.size() > 0) {
+            nfsAcl = nfsAcls.get(0);
+            List<NfsACE> acl = nfsAcl.getNfsAces();
+            for (NfsACE ace : acl) {
+                String name = ace.getUser();
+                String type = ace.getType();
+                String permissions = ace.getPermissions();
+                String domain = ace.getDomain();
+                String permissionType = ace.getPermissionType();
+                nfsAccessControlList.add(new NfsACLDataTable.NfsAclInfo(name,
+                        type, permissions, fileSystemId, subDir, domain,
+                        fsMountPath, permissionType));
+            }
+        }
+        renderJSON(DataTablesSupport.createJSON(nfsAccessControlList, params));
+    }
 
-	public static void editNfsAce(@Required String id) {
-		String type = NfsACLForm.extractTypeFromId(id);
-		String name = NfsACLForm.extractNameFromId(id);
-		String domain = NfsACLForm.extractDomainFromId(id);
-		String fileSystem = NfsACLForm.extractFileSystemFromId(id);
-		String subDir = NfsACLForm.extractSubDirFromId(id);
-		String permissions = NfsACLForm.extractPermissionsFromId(id);
-		String permissionType = NfsACLForm.extractPermissionTypeFromId(id);
-		String fsMountPath = NfsACLForm.extractMounPathFromId(id);
-		if ("null".equals(domain)) {
-			domain = "";
-		}
+    public static void editNfsAce(@Required String id) {
+        String type = NfsACLForm.extractTypeFromId(id);
+        String name = NfsACLForm.extractNameFromId(id);
+        String domain = NfsACLForm.extractDomainFromId(id);
+        String fileSystem = NfsACLForm.extractFileSystemFromId(id);
+        String subDir = NfsACLForm.extractSubDirFromId(id);
+        String permissions = NfsACLForm.extractPermissionsFromId(id);
+        String permissionType = NfsACLForm.extractPermissionTypeFromId(id);
+        String fsMountPath = NfsACLForm.extractMounPathFromId(id);
+        if ("null".equals(domain)) {
+            domain = "";
+        }
 
-		NfsACLForm nfsACL = new NfsACLForm();
-		nfsACL.type = type.toUpperCase();
-		nfsACL.name = name;
-		nfsACL.domain = domain;
-		String[] strPerm = permissions.replaceAll("/", ",").split(",");
-		nfsACL.permissions = new HashSet<String>(Arrays.asList(strPerm));
-		nfsACL.permissionType = permissionType;
-		renderArgs.put("permissionOptions", StringOption.options(new String[] {
-				"read", "write", "execute" }));
-		renderArgs.put("permissionTypeOptions", StringOption.options(new String[] {
-				"allow", "deny"}));
-		renderArgs.put("fileSystemId", uri(fileSystem));
-		ViPRCoreClient client = BourneUtil.getViprClient();
-		FileShareRestRep restRep = client.fileSystems().get(uri(fileSystem));
-		renderArgs.put("fileSystemName", restRep.getName());
-		renderArgs.put("subDir", subDir);
-		renderArgs.put("fsMountPath", fsMountPath);
-		renderArgs.put("TYPE", type.toUpperCase());
-		render(nfsACL);
-	}
+        NfsACLForm nfsACL = new NfsACLForm();
+        nfsACL.type = type.toUpperCase();
+        nfsACL.name = name;
+        nfsACL.domain = domain;
+        String[] strPerm = permissions.replaceAll("/", ",").split(",");
+        nfsACL.permissions = new HashSet<String>(Arrays.asList(strPerm));
+        nfsACL.permissionType = permissionType;
+        renderArgs.put("permissionOptions", StringOption.options(new String[] {
+                "read", "write", "execute" }));
+        renderArgs.put("permissionTypeOptions", StringOption.options(new String[] {
+                "allow", "deny" }));
+        renderArgs.put("fileSystemId", uri(fileSystem));
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        FileShareRestRep restRep = client.fileSystems().get(uri(fileSystem));
+        renderArgs.put("fileSystemName", restRep.getName());
+        renderArgs.put("subDir", subDir);
+        renderArgs.put("fsMountPath", fsMountPath);
+        renderArgs.put("TYPE", type.toUpperCase());
+        render(nfsACL);
+    }
 
-	@FlashException(referrer = { "fileSystem" })
-	public static void saveNfsAce(NfsACLForm nfsACL) {
+    @FlashException(referrer = { "fileSystem" })
+    public static void saveNfsAce(NfsACLForm nfsACL) {
 
-		String name = params.get("name");
-		String type = params.get("type");
-		String domain = params.get("domain");
-		String subDir = params.get("subDir");
-		String fsMountPath = params.get("fsMountPath");
-		String fileSystemId = params.get("fileSystemId");
-		Set<String> permissions = nfsACL.permissions;
-		String permissionType = nfsACL.permissionType;
-		String strPer ="";
-		for(String permission:permissions){
-			strPer = strPer + permission.toLowerCase() + ",";
-		}
-		strPer = strPer.substring(0, strPer.length()-1);
-		List<NfsACE> aces = Lists.newArrayList();
-		NfsACE nfsAce = new NfsACE();
+        String name = params.get("name");
+        String type = params.get("type");
+        String domain = params.get("domain");
+        String subDir = params.get("subDir");
+        String fsMountPath = params.get("fsMountPath");
+        String fileSystemId = params.get("fileSystemId");
+        Set<String> permissions = nfsACL.permissions;
+        String permissionType = nfsACL.permissionType;
+        String strPer = "";
+        for (String permission : permissions) {
+            strPer = strPer + permission.toLowerCase() + ",";
+        }
+        strPer = strPer.substring(0, strPer.length() - 1);
+        List<NfsACE> aces = Lists.newArrayList();
+        NfsACE nfsAce = new NfsACE();
 
-		nfsAce.setType(type.toLowerCase());
-		nfsAce.setUser(name);
-		nfsAce.setPermissions(strPer);
-		nfsAce.setPermissionType(permissionType);
-		if (domain != null && !"".equals(domain) && !"null".equals(domain)) {
-			nfsAce.setDomain(domain);
-		}
-		aces.add(nfsAce);
+        nfsAce.setType(type.toLowerCase());
+        nfsAce.setUser(name);
+        nfsAce.setPermissions(strPer);
+        nfsAce.setPermissionType(permissionType);
+        if (domain != null && !"".equals(domain) && !"null".equals(domain)) {
+            nfsAce.setDomain(domain);
+        }
+        aces.add(nfsAce);
 
-		FileNfsACLUpdateParams input = new FileNfsACLUpdateParams();
-		input.setAcesToModify(aces);
-		if(subDir != null && !"null".equals(subDir)){
-			input.setSubDir(subDir);
-		}
-		
+        FileNfsACLUpdateParams input = new FileNfsACLUpdateParams();
+        input.setAcesToModify(aces);
+        if (subDir != null && !"null".equals(subDir)) {
+            input.setSubDir(subDir);
+        }
 
-		ViPRCoreClient client = BourneUtil.getViprClient();
-		client.fileSystems().updateNfsACL(uri(fileSystemId), input);
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        client.fileSystems().updateNfsACL(uri(fileSystemId), input);
 
-		listNfsAcl(fileSystemId, fsMountPath, subDir);
-	}
+        listNfsAcl(fileSystemId, fsMountPath, subDir);
+    }
 
-	@FlashException(referrer = { "fileSystem" })
-	public static void removeNfsAcl(@As(",") String[] ids) {
+    @FlashException(referrer = { "fileSystem" })
+    public static void removeNfsAcl(@As(",") String[] ids) {
 
-		List<NfsACE> aces = Lists.newArrayList();
-		String fileSystem = null;
-		String subDir = null;
-		String fsMountPath = null;
-		if (ids != null && ids.length > 0) {
-			for (String id : ids) {
-				String type = NfsACLForm.extractTypeFromId(id);
-				String name = NfsACLForm.extractNameFromId(id);
-				String domain = NfsACLForm.extractDomainFromId(id);
-				String permissions = NfsACLForm.extractPermissionsFromId(id);
-				fileSystem = NfsACLForm.extractFileSystemFromId(id);
-				subDir = NfsACLForm.extractSubDirFromId(id);
-				fsMountPath = NfsACLForm.extractMounPathFromId(id);
-				NfsACE ace = new NfsACE();
-				ace.setUser(name);
-				ace.setType(type);
-				ace.setPermissions(permissions.replaceAll("/", ","));
-				ace.setPermissionType("allow");
-				if (domain != null && !"".equals(domain)
-						&& !"null".equals(domain)) {
-					ace.setDomain(domain);
-				}
-				aces.add(ace);
-			}
+        List<NfsACE> aces = Lists.newArrayList();
+        String fileSystem = null;
+        String subDir = null;
+        String fsMountPath = null;
+        if (ids != null && ids.length > 0) {
+            for (String id : ids) {
+                String type = NfsACLForm.extractTypeFromId(id);
+                String name = NfsACLForm.extractNameFromId(id);
+                String domain = NfsACLForm.extractDomainFromId(id);
+                String permissions = NfsACLForm.extractPermissionsFromId(id);
+                fileSystem = NfsACLForm.extractFileSystemFromId(id);
+                subDir = NfsACLForm.extractSubDirFromId(id);
+                fsMountPath = NfsACLForm.extractMounPathFromId(id);
+                NfsACE ace = new NfsACE();
+                ace.setUser(name);
+                ace.setType(type);
+                ace.setPermissions(permissions.replaceAll("/", ","));
+                ace.setPermissionType("allow");
+                if (domain != null && !"".equals(domain)
+                        && !"null".equals(domain)) {
+                    ace.setDomain(domain);
+                }
+                aces.add(ace);
+            }
 
-			FileNfsACLUpdateParams input = new FileNfsACLUpdateParams();
-			input.setAcesToDelete(aces);
-			ViPRCoreClient client = BourneUtil.getViprClient();
-			client.fileSystems().updateNfsACL(uri(fileSystem), input);
-		}
-		flash.success(MessagesUtils.get(DELETED));
-		listNfsAcl(fileSystem, fsMountPath, subDir);
+            FileNfsACLUpdateParams input = new FileNfsACLUpdateParams();
+            input.setAcesToDelete(aces);
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.fileSystems().updateNfsACL(uri(fileSystem), input);
+        }
+        flash.success(MessagesUtils.get(DELETED));
+        listNfsAcl(fileSystem, fsMountPath, subDir);
 
-	}
+    }
 
-	public static void addNfsAcl(String fileSystemSubDirAndPath,
-			ShareACLForm shareACL, String formAccessControlList) {
-		String fileSystem = null;
-		String subDir = null;
-		String fsMountPath = null;
-		if (StringUtils.isNotBlank(fileSystemSubDirAndPath)) {
-			String[] parts = fileSystemSubDirAndPath.split("~~~");
-			if (parts.length == 3) {
-				fileSystem = parts[0];
-				subDir = parts[1];
-				fsMountPath = parts[2];
-			}
-		}
+    public static void addNfsAcl(String fileSystemSubDirAndPath,
+            ShareACLForm shareACL, String formAccessControlList) {
+        String fileSystem = null;
+        String subDir = null;
+        String fsMountPath = null;
+        if (StringUtils.isNotBlank(fileSystemSubDirAndPath)) {
+            String[] parts = fileSystemSubDirAndPath.split("~~~");
+            if (parts.length == 3) {
+                fileSystem = parts[0];
+                subDir = parts[1];
+                fsMountPath = parts[2];
+            }
+        }
 
-		if (formAccessControlList == null || "".equals(formAccessControlList)) {
-			flash.error(MessagesUtils
-					.get("resources.filesystem.share.acl.invalid.settings"),
-					null);
-			listNfsAcl(fileSystem, fsMountPath, subDir);
-		}
-		NfsACLUpdateParams input = createNfsAclParams(formAccessControlList);
-		ViPRCoreClient client = BourneUtil.getViprClient();
-		try {
-			client.fileSystems().updateNfsACL(uri(fileSystem), input);
-		} catch (Exception e) {
-			flash.error(e.getMessage(), null);
-			listNfsAcl(fileSystem, fsMountPath, subDir);
-		}
-		flash.success(MessagesUtils.get(ADDED));
-		listNfsAcl(fileSystem, fsMountPath, subDir);
-	}
+        if (formAccessControlList == null || "".equals(formAccessControlList)) {
+            flash.error(MessagesUtils
+                    .get("resources.filesystem.share.acl.invalid.settings"),
+                    null);
+            listNfsAcl(fileSystem, fsMountPath, subDir);
+        }
+        NfsACLUpdateParams input = createNfsAclParams(formAccessControlList);
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        try {
+            client.fileSystems().updateNfsACL(uri(fileSystem), input);
+        } catch (Exception e) {
+            flash.error(e.getMessage(), null);
+            listNfsAcl(fileSystem, fsMountPath, subDir);
+        }
+        flash.success(MessagesUtils.get(ADDED));
+        listNfsAcl(fileSystem, fsMountPath, subDir);
+    }
 
-	private static NfsACLUpdateParams createNfsAclParams(String formData) {
-		String[] uiAcls = formData.split(",");
-		List<NfsACE> aces = Lists.newArrayList();
-		for (String uiAce : uiAcls) {
-			String[] uiData = uiAce.split("~~~");
-			String uiType = uiData[0];
-			String uiName = uiData[1];
-			String uiDomain = uiData[2];
-			String uiPermissions = uiData[3];
-			String uiPermissiontype = uiData[4];
-			NfsACE nfsAce = new NfsACE();
-			nfsAce.setUser(uiName);
-			if (uiDomain != null && !"".equals(uiDomain) && !"null".equals(uiDomain)) {
-				nfsAce.setDomain(uiDomain);
-			}
-			if (uiType != null && !"".equals(uiType) && !"null".equals(uiType)) {
-				nfsAce.setType(uiType);
-			}
-			if (uiPermissions != null && !"".equals(uiPermissions) && !"null".equals(uiPermissions)) {
-				nfsAce.setPermissions(uiPermissions.replaceAll("/", ","));
-			}
-			nfsAce.setPermissionType(uiPermissiontype);
-			
-			aces.add(nfsAce);
-		}
-		FileNfsACLUpdateParams input = new FileNfsACLUpdateParams();
-		input.setAcesToAdd(aces);
-		return input;
-	}
+    private static NfsACLUpdateParams createNfsAclParams(String formData) {
+        String[] uiAcls = formData.split(",");
+        List<NfsACE> aces = Lists.newArrayList();
+        for (String uiAce : uiAcls) {
+            String[] uiData = uiAce.split("~~~");
+            String uiType = uiData[0];
+            String uiName = uiData[1];
+            String uiDomain = uiData[2];
+            String uiPermissions = uiData[3];
+            String uiPermissiontype = uiData[4];
+            NfsACE nfsAce = new NfsACE();
+            nfsAce.setUser(uiName);
+            if (uiDomain != null && !"".equals(uiDomain) && !"null".equals(uiDomain)) {
+                nfsAce.setDomain(uiDomain);
+            }
+            if (uiType != null && !"".equals(uiType) && !"null".equals(uiType)) {
+                nfsAce.setType(uiType);
+            }
+            if (uiPermissions != null && !"".equals(uiPermissions) && !"null".equals(uiPermissions)) {
+                nfsAce.setPermissions(uiPermissions.replaceAll("/", ","));
+            }
+            nfsAce.setPermissionType(uiPermissiontype);
+
+            aces.add(nfsAce);
+        }
+        FileNfsACLUpdateParams input = new FileNfsACLUpdateParams();
+        input.setAcesToAdd(aces);
+        return input;
+    }
 
     public static void fileSystemExportsJson(String id, String path, String sec) {
         ExportRuleInfo info = FileUtils.getFSExportRulesInfo(uri(id), path, sec);

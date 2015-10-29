@@ -412,52 +412,50 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         return defaultList(response.getShareACLs());
     }
     
-	/**
-	 * Gets the all NFS ACLs for the given file system by ID.
-	 * <p>
-	 * API Call:
-	 * <tt>GET /file/filesystems/{id}/acl?allDir=true</tt>
-	 * 
-	 * @param id
-	 *            the ID of the file system.
-	 * 
-	 * @return the list of NFS ACLs for the given file system.
-	 */
-	public List<NfsACL> getAllNfsACLs(URI id) {
-		Properties queryParam = new Properties();
-		queryParam.setProperty("allDirs", "true");
-		NfsACLs response = client.get(NfsACLs.class, getNfsACLsUrl(),
-				queryParam, id);
-		return defaultList(response.getNfsACLs());
-	}
+    /**
+     * Gets the all NFS ACLs for the given file system by ID.
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{id}/acl?allDir=true</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * 
+     * @return the list of NFS ACLs for the given file system.
+     */
+    public List<NfsACL> getAllNfsACLs(URI id) {
+        Properties queryParam = new Properties();
+        queryParam.setProperty("allDirs", "true");
+        NfsACLs response = client.get(NfsACLs.class, getNfsACLsUrl(),
+                queryParam, id);
+        return defaultList(response.getNfsACLs());
+    }
 
-	/**
-	 * Gets the NFS ACLs for the given file system by ID.
-	 * <p>
-	 * API Call:
-	 * <tt>GET /file/filesystems/{id}/acl?subDir=<subDirId></tt>
-	 * 
-	 * @param id
-	 *            the ID of the file system.
-	 * @param subDir
-	 *            the subDir to get list of ACLS associated.
-	 * @return the list of NFS ACLs for the given file system.
-	 */
-	public List<NfsACL> getNfsACLs(URI id, String subDir) {
-		Properties queryParam = new Properties();
-		
-		NfsACLs response;
-		if (subDir != null && !"null".equals(subDir)) {
-			queryParam.setProperty("subDir", subDir);
-			response = client.get(NfsACLs.class, getNfsACLsUrl(), queryParam,
-					id);
-		} else {
-			response = client.get(NfsACLs.class, getNfsACLsUrl(), id);
-		}
-		return defaultList(response.getNfsACLs());
-	}
-	
-	/**
+    /**
+     * Gets the NFS ACLs for the given file system by ID.
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{id}/acl?subDir=<subDirId></tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param subDir
+     *            the subDir to get list of ACLS associated.
+     * @return the list of NFS ACLs for the given file system.
+     */
+    public List<NfsACL> getNfsACLs(URI id, String subDir) {
+        Properties queryParam = new Properties();
+
+        NfsACLs response;
+        if (subDir != null && !"null".equals(subDir)) {
+            queryParam.setProperty("subDir", subDir);
+            response = client.get(NfsACLs.class, getNfsACLsUrl(), queryParam,
+                    id);
+        } else {
+            response = client.get(NfsACLs.class, getNfsACLsUrl(), id);
+        }
+        return defaultList(response.getNfsACLs());
+    }
+
+    /**
      * Update file system NFSv4 ACL
      * 
      * API Call: <tt>PUT /file/filesystems/{id}/acl</tt>

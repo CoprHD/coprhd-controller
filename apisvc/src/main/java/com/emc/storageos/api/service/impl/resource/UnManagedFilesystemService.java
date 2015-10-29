@@ -900,7 +900,7 @@ public class UnManagedFilesystemService extends TaggedResource {
         shareACL.setPermissions(permissionText);
         
         shareACL.setFileSystemId(fileshare.getId());
-        shareACL.setId(URIUtil.createId(CifsShareACL.class));
+        shareACL.setId(URIUtil.createId(NFSShareACL.class));
 
         // Add new acl into ACL list
         shareACLList.add(shareACL);

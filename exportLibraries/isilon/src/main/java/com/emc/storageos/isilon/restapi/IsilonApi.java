@@ -671,6 +671,19 @@ public class IsilonApi {
     public IsilonExport getExport(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_NFS_EXPORTS), id, "exports", IsilonExport.class);
     }
+    
+    /**
+     * Get export for given access zone
+     * 
+     * @param id identifier of the export to get
+     * @return IsilonExport object
+     * @throws IsilonException
+     */
+    public IsilonExport getExport(String id, String zoneName) throws IsilonException {
+        StringBuffer buffer = new StringBuffer(id);
+        buffer.append("?zone=").append(zoneName);
+        return get(_baseUrl.resolve(URI_NFS_EXPORTS), buffer.toString(), "exports", IsilonExport.class);
+    }
 
     /**
      * Delete export
@@ -973,6 +986,20 @@ public class IsilonApi {
      */
     public IsilonSMBShare getShare(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_SMB_SHARES), id, "shares", IsilonSMBShare.class);
+    }
+    
+    /**
+     * Get SMB share properties on access zone
+     * 
+     * @param id Identifier of the SMB share to get
+     * @return IsilonSMBShare object
+     * @throws IsilonException
+     */
+    public IsilonSMBShare getShare(String id, String zoneName) throws IsilonException {
+        
+        StringBuffer buffer = new StringBuffer(id);
+        buffer.append("?zone=").append(zoneName);
+        return get(_baseUrl.resolve(URI_SMB_SHARES), buffer.toString(), "shares", IsilonSMBShare.class);
     }
 
     /**

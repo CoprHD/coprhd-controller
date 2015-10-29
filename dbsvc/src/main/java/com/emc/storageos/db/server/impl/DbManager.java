@@ -335,12 +335,5 @@ public class DbManager implements DbManagerMBean {
                 StorageService.instance.removeNode(guid);
             }
         }
-   }
-
-    @Override
-    public void rebuildLocalNode(String sourceDc) {
-        log.info("Rebuild local node from source data center {}", sourceDc);
-        Thread dbRebuildThread = new Thread(dbRebuildRunnable);
-        dbRebuildThread.start();
     }
 }

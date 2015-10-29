@@ -204,6 +204,8 @@ public class DbChecker {
             totalCorruptCount += corruptRowCount;
         }
 
+        DbCheckerFileWriter.close();
+
         String msg = String.format("\nFinish to check INDEX CFs: totally checked %d indices against %d data CFs "+
                    "and %d corrupted rows found.", idxCfs.size(), objCfs.size(), totalCorruptCount);
 
@@ -242,6 +244,8 @@ public class DbChecker {
 
             corruptRowCount += dbClient.checkCFIndices(doType, toConsole);
         }
+
+        DbCheckerFileWriter.close();
 
         String msg = String.format(
                 "\nFinish to check DataObject CFs: totally checked %d data CFs, "

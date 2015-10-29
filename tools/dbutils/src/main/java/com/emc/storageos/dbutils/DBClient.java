@@ -1117,7 +1117,7 @@ public class DBClient {
         }
     }
 
-    public void checkDB(boolean generateCleanupFile) {
+    public void checkDB() {
         try {
             DbChecker checker = new DbChecker(_dbClient);
             checker.checkDataObjects(true);

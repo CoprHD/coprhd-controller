@@ -2255,8 +2255,7 @@ public class DbClientImpl implements DbClient {
             // Not support this index type yet.
         } else {
             String msg = String.format("Unsupported index type %s.", dbIndex.getClass());
-            log.warn(msg);
-            System.out.println(msg);
+            _log.warn(msg);
         }
 
         return indexKey;

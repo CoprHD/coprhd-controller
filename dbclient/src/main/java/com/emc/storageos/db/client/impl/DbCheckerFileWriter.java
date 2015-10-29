@@ -8,6 +8,10 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,15 +23,17 @@ public class DbCheckerFileWriter {
     static final String WRITER_STORAGEOS = "StorageOS";
     static final String WRITER_GEOSTORAGEOS = "GeoStorageOS";
     static final String WRITER_REBUILD_INDEX = "rebuildIndex";
-    static final String CLEANUP_FILE_STORAGEOS = "cleanup-StorageOS.cql";
-    static final String CLEANUP_FILE_GEOSTORAGEOS = "cleanup-GeoStorageOS.cql";
-    static final String CLEANUP_FILE_REBUILD_INDEX = "cleanup-rebuildIndex.file";
+    private final static String FILE_PATH = "/tmp/";
+    static final String CLEANUP_FILE_GEOSTORAGEOS = FILE_PATH + "cleanup-GeoStorageOS.cql";
+    static final String CLEANUP_FILE_REBUILD_INDEX = FILE_PATH + "cleanup-rebuildIndex.file";
+    static final String CLEANUP_FILE_STORAGEOS = FILE_PATH + "cleanup-StorageOS.cql";
     private static final String USAGE_STORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k StorageOS -f cleanup-StorageOS.cql";
     private static final String USAGE_GEOSTORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k GeoStorageOS -f cleanup-GeoStorageOS.cql localhost 9260";
     private static final String USAGE_REBUILDINDEX = "# please run /opt/storageos/bin/dbutils rebuild_index ./cleanup-rebuildIndex.file";
     private static final Logger log = LoggerFactory.getLogger(DbCheckerFileWriter.class);
 
-    private DbCheckerFileWriter(){}
+    private DbCheckerFileWriter() {
+    }
 
     static void writeTo(String name, String lineStr) {
         try {
@@ -40,13 +46,13 @@ public class DbCheckerFileWriter {
     }
 
     private static BufferedWriter getWriter(String name) throws IOException {
-        if(WRITER_STORAGEOS.equals(name)) {
+        if (WRITER_STORAGEOS.equals(name)) {
             storageFileWriter = getAndInit(storageFileWriter, CLEANUP_FILE_STORAGEOS, USAGE_STORAGEOS);
             return storageFileWriter;
-        } else if(WRITER_GEOSTORAGEOS.equals(name)) {
+        } else if (WRITER_GEOSTORAGEOS.equals(name)) {
             geoStorageFileWriter = getAndInit(geoStorageFileWriter, CLEANUP_FILE_GEOSTORAGEOS, USAGE_GEOSTORAGEOS);
             return geoStorageFileWriter;
-        } else if(WRITER_REBUILD_INDEX.equals(name)){
+        } else if (WRITER_REBUILD_INDEX.equals(name)) {
             rebuildIndexFileWriter = getAndInit(rebuildIndexFileWriter, CLEANUP_FILE_REBUILD_INDEX, USAGE_REBUILDINDEX);
             return rebuildIndexFileWriter;
         }
@@ -55,14 +61,16 @@ public class DbCheckerFileWriter {
 
     private static BufferedWriter getAndInit(BufferedWriter writer, String fileName, String usage)
             throws IOException {
-        if(writer == null) {
+        if (writer == null) {
             writer = init(fileName, usage);
         }
         return writer;
     }
 
     private static BufferedWriter init(String fileName, String usage) throws IOException {
-        BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
+        final Path filePath = FileSystems.getDefault().getPath(fileName);
+        cleanupFile(filePath);
+        BufferedWriter writer = Files.newBufferedWriter(filePath, Charset.defaultCharset());
         writeln(writer, usage);
         return writer;
     }
@@ -73,15 +81,19 @@ public class DbCheckerFileWriter {
         writer.flush();
     }
 
-    static void close() throws IOException {
-        if(storageFileWriter != null) {
-            storageFileWriter.close();
-        }
-        if(geoStorageFileWriter != null) {
-            geoStorageFileWriter.close();
-        }
-        if(rebuildIndexFileWriter != null) {
-            rebuildIndexFileWriter.close();
+    public static void close() {
+        try {
+            if (storageFileWriter != null) {
+                storageFileWriter.close();
+            }
+            if (geoStorageFileWriter != null) {
+                geoStorageFileWriter.close();
+            }
+            if (rebuildIndexFileWriter != null) {
+                rebuildIndexFileWriter.close();
+            }
+        } catch (IOException e) {
+            log.error("Exception happens when closing file, e=", e);
         }
     }
 
@@ -92,15 +104,23 @@ public class DbCheckerFileWriter {
         return cleaupStorageFile.exists() || cleaupGeoStorageFile.exists() || rebuildIndexFile.exists();
     }
 
+    private static void cleanupFile(Path filePath) {
+        try {
+            Files.delete(filePath);
+        } catch (Exception e) {
+            log.warn("Failed to delete file, e=" + e);
+        }
+    }
+
     public static String getGeneratedFileNames() {
         StringBuilder generatedFileNameBuilder = new StringBuilder("");
-        if(storageFileWriter != null) {
+        if (storageFileWriter != null) {
             generatedFileNameBuilder.append(CLEANUP_FILE_STORAGEOS);
         }
-        if(geoStorageFileWriter != null) {
+        if (geoStorageFileWriter != null) {
             generatedFileNameBuilder.append(" ").append(CLEANUP_FILE_GEOSTORAGEOS);
         }
-        if(rebuildIndexFileWriter != null) {
+        if (rebuildIndexFileWriter != null) {
             generatedFileNameBuilder.append(" ").append(CLEANUP_FILE_REBUILD_INDEX);
         }
         return generatedFileNameBuilder.toString();

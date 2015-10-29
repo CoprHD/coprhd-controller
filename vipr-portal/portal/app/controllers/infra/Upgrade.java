@@ -63,43 +63,44 @@ public class Upgrade extends Controller {
             downloadStatus = calculateDownloadStatus(downloadProgress);
         }
 
-        render(clusterInfo, clusterState, newVersions, repositoryVersions, isStable, isWorking, isDownloading, downloadStatus, isChecking, checkProgress, isDbCheckStatus);
+        render(clusterInfo, clusterState, newVersions, repositoryVersions, isStable, isWorking, isDownloading, downloadStatus, isChecking,
+                checkProgress, isDbCheckStatus);
     }
 
     /*
      * Method to navigate to Backup page from Upgrade page
      */
     public static void backup() {
-    	render();
+        render();
     }
 
     public static void checkDB() {
-    	try{
-    		getSysClient().upgrade().triggerDbCheck();
-    	} catch (Exception e) {
-    		Logger.error(e, "Checking Database Consistency");
+        try {
+            getSysClient().upgrade().triggerDbCheck();
+        } catch (Exception e) {
+            Logger.error(e, "Checking Database Consistency");
             flash.error(e.getMessage());
-    	}
-    	index();
+        }
+        index();
     }
-    
+
     public static void checkDbOk() {
-    	index();
+        index();
     }
-    
+
     public static void cancelCheckDbStatus() {
-    	try{
-    		getSysClient().upgrade().cancelDbCheck();
-    	} catch (Exception e) {
-    		Logger.error(e, "Cancelling Database Consistency");
+        try {
+            getSysClient().upgrade().cancelDbCheck();
+        } catch (Exception e) {
+            Logger.error(e, "Cancelling Database Consistency");
             flash.error(e.getMessage());
-    	}
-    	index();
+        }
+        index();
     }
 
     public static void checkDbProgress() {
-    	DbConsistencyStatusRestRep dbState = getSysClient().upgrade().getDbCheckState();
-    	renderJSON(dbState);
+        DbConsistencyStatusRestRep dbState = getSysClient().upgrade().getDbCheckState();
+        renderJSON(dbState);
     }
 
     public static void installVersion(String version) {

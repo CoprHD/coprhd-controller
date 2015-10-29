@@ -20,6 +20,7 @@ public class DbConsistencyStatusRestRep{
     private Status status;
     private int progress;
     private String workingPoint;
+    private int inconsistencyCount;
 
     /**
      * The start time of db consistency check
@@ -82,7 +83,16 @@ public class DbConsistencyStatusRestRep{
     public void setWorkingPoint(String workingPoint) {
         this.workingPoint = workingPoint;
     }
+    
+    @XmlElement(name = "inconsistency_count")
+    public int getInconsistencyCount() {
+        return inconsistencyCount;
+    }
 
+    public void setInconsistencyCount(int inconsistencyCount) {
+        this.inconsistencyCount = inconsistencyCount;
+    }
+    
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
@@ -93,12 +103,12 @@ public class DbConsistencyStatusRestRep{
           .append(",workingPoint=").append(this.workingPoint);
         return sb.toString();
     }
+
     public enum Status {
         NOT_STARTED,
         IN_PROGRESS,
         SUCCESS,
         FAILED,
+        CANCEL,
     }
-    
-    
 }

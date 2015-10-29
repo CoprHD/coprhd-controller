@@ -1744,7 +1744,7 @@ public class DbClientImpl implements DbClient {
                         } catch (Exception ex) {
                             dirtyCount++;
                             logMessage(String.format(
-                                    "Fail to query object for '%s' with err %s ",
+                                    "Inconsistency: Fail to query object for '%s' with err %s ",
                                     uri, ex.getMessage()), true, toConsole);
                         }
                     } catch (Exception ex) {
@@ -1782,7 +1782,7 @@ public class DbClientImpl implements DbClient {
     * This class records the Index Data's ColumnFamily and
     * the related DbIndex type and it belongs to which Keyspace.
     */
-    static class IndexAndCf {
+    static class IndexAndCf implements Comparable{
         private ColumnFamily<String, IndexColumnName> cf;
         private Class<? extends DbIndex> indexType;
         private Keyspace keyspace;
@@ -1839,6 +1839,12 @@ public class DbClientImpl implements DbClient {
             result = 31 * result + (indexType != null ? indexType.hashCode() : 0);
             result = 31 * result + (keyspace != null ? keyspace.hashCode() : 0);
             return result;
+        }
+
+        @Override
+        public int compareTo(Object object) {
+            IndexAndCf other = (IndexAndCf) object;
+            return this.generateKey().compareTo(other.generateKey());
         }
     }
 
@@ -2000,7 +2006,7 @@ public class DbClientImpl implements DbClient {
                     for (IndexEntry idxEntry : idxEntries) {
                         corruptRowCount++;
                         corruptRowCountInIdx++;
-                        logMessage(String.format("Index(%s, type: %s, id: %s, column: %s) is existing "
+                        logMessage(String.format("Inconsistency: Index(%s, type: %s, id: %s, column: %s) is existing "
                                         + "but the related object record(%s, id: %s) is missing.",
                                 indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                 idxEntry.getIndexKey(), idxEntry.getColumnName(),

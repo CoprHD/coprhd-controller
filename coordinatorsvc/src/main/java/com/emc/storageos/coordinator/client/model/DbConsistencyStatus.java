@@ -25,7 +25,9 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
     private Date endTime;
     private int progress;
     private String workingPoint;
-
+    private DbConsistencyStatus previous;
+    private int inconsistencyCount;
+    private int checkedCount;
 
     public Status getStatus() {
         return status;
@@ -67,6 +69,22 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
         this.workingPoint = workingPoint;
     }
 
+    public int getInconsistencyCount() {
+        return inconsistencyCount;
+    }
+
+    public void setInconsistencyCount(int inconsistencyCount) {
+        this.inconsistencyCount = inconsistencyCount;
+    }
+    
+    public int getCheckedCount() {
+        return checkedCount;
+    }
+
+    public void setCheckedCount(int checkedCount) {
+        this.checkedCount = checkedCount;
+    }
+    
     @Override
     @JsonIgnore
     public String encodeAsString() {
@@ -102,5 +120,67 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
             throw CoordinatorException.fatals.failedToSerialize(e);
         }
     }
+    
+    @JsonIgnore
+    public boolean isFinished() {
+        return this.status==Status.SUCCESS || this.status==Status.FAILED;
+    }
+    
+    @JsonIgnore
+    public boolean isCancelled() {
+        return this.status == Status.CANCEL;
+    }
 
+    @JsonIgnore
+    public void moveToPrevious() {
+        previous = new DbConsistencyStatus();
+        previous.setStartTime(this.getStartTime());
+        previous.setEndTime(this.getEndTime());
+        previous.setStatus(this.getStatus());
+        previous.setProgress(this.getProgress());
+        previous.setWorkingPoint(this.getWorkingPoint());
+        previous.setInconsistencyCount(this.getInconsistencyCount());
+        previous.setCheckedCount(this.getCheckedCount());
+        init();
+    }
+    
+    @JsonIgnore
+    public void init() {
+        this.startTime = new Date();
+        this.status = Status.IN_PROGRESS;
+        this.progress = 0;
+        this.inconsistencyCount = 0;
+        this.checkedCount = 0;
+    }
+    
+    @JsonIgnore
+    public void movePreviousBack() {
+        if (this.previous == null) {
+            return;
+        }
+        this.startTime = this.previous.getStartTime();
+        this.endTime = this.previous.getEndTime();
+        this.status = this.previous.getStatus();
+        this.progress = this.previous.getProgress();
+        this.workingPoint = this.previous.getWorkingPoint();
+        this.inconsistencyCount = this.previous.getInconsistencyCount();
+        this.checkedCount = this.previous.getCheckedCount();
+        this.previous = null;
+    }
+    
+    @JsonIgnore
+    public void updateCFProgress(int total, String workingPoint, int inconsistencyCount) {
+        this.checkedCount++;
+        this.progress = (int)(this.checkedCount/total/2);
+        this.workingPoint = workingPoint;
+        this.inconsistencyCount = inconsistencyCount;
+    }
+    
+    @JsonIgnore
+    public void updateIndexProgress(int total, String workingPoint, int inconsistencyCount) {
+        this.checkedCount++;
+        this.progress = (int)(this.checkedCount/total);
+        this.workingPoint = workingPoint;
+        this.inconsistencyCount += inconsistencyCount;
+    }
 }

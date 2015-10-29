@@ -876,7 +876,7 @@ public class DisasterRecoveryService {
                 // Set error message to ZK
                 SiteError error = new SiteError(APIException.internalServerErrors.switchoverFailedTimeout(primaryId, standbyId, SWITCHOVER_TIMEOUT_MINUTES));
                 coordinator.setTargetInfo(standbyId, error);
-                log.error(String.format("Switchover timeout error happend: %s, Current status:\n%s: %s\n%s: %s\n, both sites will be marked as STANDBY_ERROR",
+                log.error(String.format("Switchover timeout error happend: %s, Current status:\n\nOld Primary(%s): %s\nOld Standby(%s): %s\nBoth sites will be marked as STANDBY_ERROR\n",
                         error.getErrorMessage(), primaryId, primary.getState(), standbyId, standby.getState()));
                 // Set both sites to STANDBY_ERROR
                 primary.setState(SiteState.STANDBY_ERROR);

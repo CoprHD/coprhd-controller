@@ -9,6 +9,7 @@ import static com.emc.vipr.client.system.impl.PathConstants.*;
 
 import javax.ws.rs.core.UriBuilder;
 
+import com.emc.storageos.model.db.DbConsistencyStatusRestRep;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.DownloadProgress;
@@ -177,4 +178,29 @@ public class Upgrade {
         return getClusterInfo(false).getCurrentState();
     }
 
+    /*
+     * Method to trigger Db Consistency Check
+     * API Call: POST /control/db/consistency
+     */
+    
+    public DbConsistencyStatusRestRep triggerDbCheck() {
+    	UriBuilder builder = client.uriBuilder(CHECKDB_GET_URL);
+    	return client.postURI(DbConsistencyStatusRestRep.class, builder.build());
+    }
+    
+    /*
+     * GET /control/db/consistency
+     */
+    public DbConsistencyStatusRestRep getDbCheckState() {
+    	return client.get(DbConsistencyStatusRestRep.class, CHECKDB_GET_URL); 
+    }
+    
+    /*
+     * Method to cancel database consistency check
+     * API call POST:/control/db/consistency/cancel
+     */
+    public DbConsistencyStatusRestRep cancelDbCheck() {
+    	UriBuilder builder = client.uriBuilder(CHECKDB_CANCEL_URL);
+    	return client.postURI(DbConsistencyStatusRestRep.class, builder.build());
+    }
 }

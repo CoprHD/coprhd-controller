@@ -11,7 +11,6 @@
     </div>
 #{/if}
 
-
 #{if isDownloading}
 <div id="downloadProgress">
     <form class="form" method="GET" action="@{cancelDownload()}" onsubmit="return confirmCancel()">
@@ -20,6 +19,7 @@
         </button>
     </form>
 <br/>
+
 #{Form.subheader titleKey:"upgrade.downloadProgress", descriptionKey:"upgrade.downloadProgress.description"/}
     <table class="download-progress-table">
         #{list items:downloadStatus.entrySet(), as:'nodeEntry'}
@@ -52,45 +52,101 @@
     </table>
 </div>
 #{/if}
+
+#{elseif isChecking}
+<div id="checkDbProgress">    
+#{Form.subheader titleKey:"upgrade.checkDbProgress", descriptionKey:"upgrade.checkDbProgress.description"/}
+	<table class="database-check-progress-table">
+		<tr><td width="300">
+                    %{
+                        style = "success"
+                        if (isDbCheckStatus.equals("FAILED")) {
+                        	style="danger"
+                        }
+                      }%
+                      #{progressBar name:"Status", percentage:checkProgress, style:style/}</td>
+         <td style="padding-right: 10px">
+         <span id="checkDbStatus">
+			#{if isDbCheckStatus.equals("FAILED")}&{'upgrade.checkDb.failed'}#{/if}
+		</span>
+		</td>
+		</tr>
+	</table>
+<br/>
+<form class="form">
+        <button id="okButton" type="submit" class="btn btn-primary btn-sm btn-success" action="@{checkDbOk()}" style="margin-bottom: 0px">
+            #{icon 'ok-sign'/} &{'upgrade.checkDbConfirm'}
+        </button>
+        <button id="cancelDbButton" type="submit" class="btn btn-primary btn-sm btn-danger" action="@{cancelCheckDbStatus()}" style="margin-bottom: 0px">
+        	#{icon 'danger'/} &{'upgrade.checkDbCancel'}
+        </button>
+</form>		
+<script>$('#okButton').attr('disabled',true);</script>
+</div>
+#{/elseif}
+
 #{elseif isStable}
-<form class="form form-horizontal" method="GET" action="@{downloadImage()}" onsubmit="downloadImage(); return true" id="downloadImage" style="margin:0px">
+<!-- <form class="form form-horizontal" method="GET" action="@{downloadImage()}" onsubmit="downloadImage(); return true" id="downloadImage" style="margin:0px"> -->
 #{if isStable}
   #{if repositoryVersions?.size() >= 4}
         <div class="alert alert-warning">&{'upgrade.tooMany'}</div>
-  #{/if}
-  #{elseif newVersions.size() > 0}
-    <div class="control-group">
-      <label class="control-label">&{'upgrade.downloadNew'}:</label>
-      <div class="controls">
+  #{/if}  
+  #{if newVersions.size() > 0}
+  <legend>&{'upgrade.steps'}</legend>
+  	<form id=backup action="@{backup()}" onsubmit="return true">
+  	<div class="text"><b>&{'upgrade.backupDB'}</b>
+		<button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.backup'}</button>
+  	</div>
+  	</form>
+  	<br/>
+  	<form id=checkDB action="@{checkDB()}" onsubmit="return true">
+  	<div class="text"><b>&{'upgrade.checkDB'}</b>
+		<button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.check'}</button>
+  	</div>
+  	</form>
+  	<br/>
+  	<form class="form form-horizontal" method="GET" action="@{downloadImage()}" onsubmit="downloadImage(); return true" id="downloadImage" style="margin:0px"> 
+    <div class="text"><b>&{'upgrade.downloadNew'}</b>
+<!--       go to step1, step 2, step 3, step 4  -->
+      <span class="text">
         <select id="downloadImageVersion" name="version" style="margin-bottom: 0px">
           #{list items:newVersions, as:'version'}
             <option value="${version}">${version}</option>
           #{/list}
-        </select>
-        <button type="submit" class="btn btn-primary btn-sm"  style="margin-bottom: 0px">
+        </select>       
+        <button type="submit" class="btn btn-primary btn-sm" style="margin-bottom: 0px">
           #{icon 'download'/} &{'upgrade.downloadImage'}
         </button>
-      </div>
+        
+      </span>
     </div>
-  #{/elseif}
+    </form> 
+    <br/>   
+    <div class="text"><b>&{'upgrade.installRemove'}</b></div>
+  #{/if}
   #{else}
     <div class="alert alert-info">&{'upgrade.noVersions'}</div>
+    <legend>&{'upgrade.installedImages'}</legend>
   #{/else}
   <br/>
 #{/if}
-<legend>&{'upgrade.installedImages'}</legend>
+
+
+<!-- <legend>&{'upgrade.installedImages'}</legend> -->
 <table class="table table-striped">
   #{list items:repositoryVersions, as:'repositoryVersion'}
     <tr>
        <td width="200em">${repositoryVersion}</td>
     <td>
-      #{if repositoryVersion.equals(clusterInfo.targetState.current)}
+      #{if repositoryVersion.equals(clusterInfo.targetState.current)}      	
         &nbsp;Current Version
+        
       #{/if}
       *{ Safer to only allow operations if we're actually in a STABLE state }*
         #{if isStable}
 
             #{if !repositoryVersion.equals(clusterInfo.targetState.current)}
+            
               <button name="install" type="button" class="btn btn-info btn-sm" onclick="installImage('${repositoryVersion}');">#{icon 'off'/} &{'upgrade.install'}</button>
               <button name="remove" type="button" class="btn btn-danger btn-sm" onclick="removeImage('${repositoryVersion}');">#{icon 'trash'/} &{'upgrade.remove'}</button>
             #{/if}
@@ -103,11 +159,10 @@
   #{/list}
 </table>
 
-</form>
 #{/elseif}
 <script>
     startStatusChecks("${clusterState}");
-
+	
     function confirmCancel() {
         if (confirm("&{'upgrade.cancelDownloadConfirm'}")) {
             $("#downloadProgress").hide();
@@ -121,6 +176,12 @@
     #{if isDownloading}
         startDownloadStatusUpdates();
     #{/if}
+    
+    #{else}
+    	#{if isChecking}
+    	checkDbStatusUpdates();
+	#{/if}
+	#{/else}
 
     function startDownloadStatusUpdates(currentStatus) {
         window.setInterval(function() {
@@ -168,5 +229,32 @@
     function goToIndex(){
     	window.location.href ="@{index()}";
     }
+	
+	function checkDbStatusUpdates() {
+		window.setInterval(function() {
+			checkDbProgressUpdate()
+        }, 6000); // Check every 6 seconds
+    }
+	
+	var checkDbProgress = #{jsAction @checkDbProgress()/}
+	function checkDbProgressUpdate() {
+		$.ajax({
+            method: "get",
+            url: checkDbProgress(),
+            dataType: "json",
 
+            success: function(result) {
+            	updateProgressBar("Status",result.progress);
+            	if(result.progress == 100 || result.status == "FAILED") {
+        			$('#okButton').attr('disabled',false);
+        		}
+            	if(result.status.toString() == "FAILED") {
+            		$("checkDbStatus").text('&{'upgrade.checkDb.failed'}');
+            		updateProgressBarStyle("Status", "danger")
+            	}
+            },
+            error: function() {
+            }
+		});
+	}
 </script>

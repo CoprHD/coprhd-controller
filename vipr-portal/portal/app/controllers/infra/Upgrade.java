@@ -4,6 +4,7 @@
  */
 package controllers.infra;
 
+import com.emc.storageos.model.db.DbConsistencyStatusRestRep;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.DownloadProgress;
 import com.emc.vipr.model.sys.NodeProgress;
@@ -33,6 +34,8 @@ public class Upgrade extends Controller {
 
     private static String DOWNLOADING_CLUSTER_STATE = "DOWNLOADING";
 
+    private static String NOT_STARTED = "NOT_STARTED";
+
     public static void index() {
         render();
     }
@@ -49,13 +52,54 @@ public class Upgrade extends Controller {
         boolean isWorking = !isStable && !clusterState.equalsIgnoreCase(ClusterInfo.ClusterState.UNKNOWN.toString());
         boolean isDownloading = clusterState.equals(DOWNLOADING_CLUSTER_STATE);
 
+        DbConsistencyStatusRestRep checkDbState = getSysClient().upgrade().getDbCheckState();
+        String isDbCheckStatus = checkDbState.getStatus().toString();
+        int checkProgress = checkDbState.getProgress();
+        boolean isChecking = !isDbCheckStatus.equals(NOT_STARTED);
+
         Map<String, DownloadStatus> downloadStatus = Maps.newHashMap();
         if (isDownloading) {
             DownloadProgress downloadProgress = getSysClient().upgrade().getDownloadProgress();
             downloadStatus = calculateDownloadStatus(downloadProgress);
         }
 
-        render(clusterInfo, clusterState, newVersions, repositoryVersions, isStable, isWorking, isDownloading, downloadStatus);
+        render(clusterInfo, clusterState, newVersions, repositoryVersions, isStable, isWorking, isDownloading, downloadStatus, isChecking, checkProgress, isDbCheckStatus);
+    }
+
+    /*
+     * Method to navigate to Backup page from Upgrade page
+     */
+    public static void backup() {
+    	render();
+    }
+
+    public static void checkDB() {
+    	try{
+    		getSysClient().upgrade().triggerDbCheck();
+    	} catch (Exception e) {
+    		Logger.error(e, "Checking Database Consistency");
+            flash.error(e.getMessage());
+    	}
+    	index();
+    }
+    
+    public static void checkDbOk() {
+    	index();
+    }
+    
+    public static void cancelCheckDbStatus() {
+    	try{
+    		getSysClient().upgrade().cancelDbCheck();
+    	} catch (Exception e) {
+    		Logger.error(e, "Cancelling Database Consistency");
+            flash.error(e.getMessage());
+    	}
+    	index();
+    }
+
+    public static void checkDbProgress() {
+    	DbConsistencyStatusRestRep dbState = getSysClient().upgrade().getDbCheckState();
+    	renderJSON(dbState);
     }
 
     public static void installVersion(String version) {

@@ -61,7 +61,9 @@
     #{expandPanel titleKey:'resources.filesystem.shares', url: @fileSystemShares(fileSystem.id) /}
     #{expandPanel titleKey:'resources.filesystem.snapshots', url: @fileSystemSnapshots(fileSystem.id) /}
     #{expandPanel titleKey:'resources.filesystem.quotaDirectory', url: @fileSystemQuotaDirectories(fileSystem.id) /}
+    #{if fileSystem.protocols.contains('NFSv4')}
     #{expandPanel titleKey:'resources.filesystem.nfsAccessControl', url: @fileSystemNfsACLs(fileSystem.id) /}
+    #{/if}
 
     <br/>
     

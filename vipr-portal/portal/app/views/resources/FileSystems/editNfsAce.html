@@ -21,7 +21,7 @@
       <input type="hidden" name="fileSystemId" value="${fileSystemId}"/>
     #{/field}
     #{field 'shareName'}
-      <input type="hidden" name="subDir" value="subDir"/>
+      <input type="hidden" name="subDir" value="${subDir}"/>
     #{/field}
     #{field 'type'}
       <input type="hidden" name="type" value="${nfsACL.type}"/>
@@ -66,6 +66,9 @@
         }%
         #{Form.inputTextControlGroup field:field /}
     #{/field}
+    #{field 'nfsACL.permissionType'}
+    #{Form.selectOneControlGroup field:field, options:permissionTypeOptions, select:nfsACL.permissionType, cssClass:'span3' /}
+  #{/field}
    #{field 'nfsACL.permissions'}
     #{Form.selectManyControlGroup field:field, options:permissionOptions, select:nfsACL.permissions, cssClass:'span3' /}
   #{/field}

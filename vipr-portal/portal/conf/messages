@@ -3085,6 +3085,8 @@ resources.filesystem.acl.fullcontrol=FullControl
 resources.filesystem.nfsacl.read=Read
 resources.filesystem.nfsacl.write=Write
 resources.filesystem.nfsacl.execute=Execute
+resources.filesystem.nfsacl.allow=Allow
+resources.filesystem.nfsacl.deny=Deny
 resources.filesystem.share.add.subdir=Add Share
 resources.filesystem.share.acl.deleted=Task initiated to delete selected ACEs.
 resources.filesystem.share.acl.deleteConfirm=Are you sure you want delete these access control setting(s)?
@@ -3912,6 +3914,7 @@ nfsACL.permissions=Permissions
 nfsACL.name=Name
 nfsACL.type=Type
 nfsACL.domain=Domain
+nfsACL.permissionType=Permissions Type
 
 nfsAccessControlList.permissions=Permissions
 nfsAccessControlList.name=Name

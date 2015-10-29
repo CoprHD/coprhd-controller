@@ -419,14 +419,17 @@ angular.module("portalApp").controller({
     },
     NfsAclCtrl: function($scope, $http, $window, translate) {
     	
-    	$scope.add = {type:'User', name:'', domain:'', permission:'Read'};
+    	$scope.add = {type:'user', name:'', domain:'', permission:'read', permissionType:'allow'};
     	
-    	$scope.typeOpt = [{id:'User', name:translate('resources.filesystem.acl.user')},
-    	                 {id:'Group', name:translate('resources.filesystem.acl.group')}];
+    	$scope.typeOpt = [{id:'user', name:translate('resources.filesystem.acl.user')},
+    	                 {id:'group', name:translate('resources.filesystem.acl.group')}];
+    	
+    	$scope.permissionTypeOpt =[{id:'allow', name:translate('resources.filesystem.nfsacl.allow')},
+    	      	                 {id:'deny', name:translate('resources.filesystem.nfsacl.deny')}];
 
-    	$scope.permOpt = [{id:'Read', name:translate('resources.filesystem.nfsacl.read')}, 
-    	                  {id:'Write', name:translate('resources.filesystem.nfsacl.write')}, 
-    	                  {id:'Execute', name:translate('resources.filesystem.nfsacl.execute')}];
+    	$scope.permOpt = [{id:'read', name:translate('resources.filesystem.nfsacl.read')}, 
+    	                  {id:'write', name:translate('resources.filesystem.nfsacl.write')}, 
+    	                  {id:'execute', name:translate('resources.filesystem.nfsacl.execute')}];
     	
     	var setData = function(data) {
     		$scope.acl = data;
@@ -451,7 +454,7 @@ angular.module("portalApp").controller({
     		var accessList = [];
     		angular.forEach($scope.acl.accesscontrols, function(obj) {
     			if (obj.name != '') {
-    				var val = obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission;
+    				var val = obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission+"~~~"+obj.permissionType;
     				val =val.split(",").join("/")
     				accessList.push(val);
     			}

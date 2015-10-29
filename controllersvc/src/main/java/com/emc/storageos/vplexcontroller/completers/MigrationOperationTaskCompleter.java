@@ -32,8 +32,6 @@ public class MigrationOperationTaskCompleter extends TaskCompleter {
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
-
-        URI migrationURI = getId();
         String opId = getOpId();
         s_logger.info(String.format(
                 "Migration operation for the task %s completed with status %s", 

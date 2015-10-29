@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
@@ -130,7 +131,6 @@ import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.volumecontroller.placement.ExportPathParams;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
@@ -1241,8 +1241,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         workflow.createStep(
                 VOLUME_FORGET_STEP,
                 String.format("Forget Volumes:%n%s",
-                        BlockDeviceController.getVolumesMsg(_dbClient, volumeURIs)),
-                waitFor,
+                        BlockDeviceController.getVolumesMsg(_dbClient, volumeURIs)), waitFor,
                 vplexSystemURI, DiscoveredDataObject.Type.vplex.name(), this.getClass(),
                 createForgetVolumesMethod(vplexSystemURI, volumeURIs), null, null);
     }
@@ -2074,8 +2073,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             _dbClient.createObject(exportMask);
 
-            ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                    blockObjectMap.keySet(), exportGroup.getNumPaths());
+            ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                    blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
 
             // Try to assign new ports by passing in existingMap
             Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
@@ -2127,10 +2126,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         exportMasksToUpdateOnDevice.add(viprExportMask);
         exportGroup.addExportMask(viprExportMask.getId());
         _dbClient.updateAndReindexObject(exportGroup);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                blockObjectMap.keySet(), exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
 
         // If allPortsFromMaskMatchForVarray passed in is false then assign storageports using the varray
@@ -2231,8 +2230,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
         _dbClient.updateAndReindexObject(sharedVplexExportMask);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                blockObjectMap.keySet(), exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
 
         // Try to assign new ports by passing in existingMap
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
@@ -3459,9 +3458,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
-                    volumeURIs, exportGroup.getNumPaths(), exportMask.getStorageDevice());
+                    volumeURIs, exportGroup.getNumPaths(), exportMask.getStorageDevice(), exportGroup.getId());
             if (exportGroup.getType() != null) {
-                pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+                pathParams.setExportGroupType(exportGroup.getType());
             }
 
             // Assign additional StoragePorts if needed.
@@ -7841,10 +7840,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, newInitiators);
         Collection<URI> volumeURIs = (Collections2.transform(exportMask.getVolumes().keySet(),
                 CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                volumeURIs, exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeURIs, exportGroup.getNumPaths(), vplex.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
         // Determine the Varray for the targets. Default to ExportGroup.virtualArray
         URI varrayURI = exportGroup.getVirtualArray();
@@ -9929,9 +9928,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, String opId) throws Exception {
         List<Initiator> initiators = _dbClient
                 .queryObject(Initiator.class, initiatorURIs);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(volumeMap.keySet(), 0);
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeMap.keySet(), 0, storage.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, varrayURI, opId);

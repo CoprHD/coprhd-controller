@@ -130,5 +130,9 @@ public interface FatalCoordinatorExceptions {
 
     @DeclareServiceCode(ServiceCode.COORDINATOR_NOTCONNECTABLE_ERROR)
     public NotConnectableException notConnectableError(final String parameter);
+    
+    @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
+    public FatalCoordinatorException unableToRemoveTheState(final String key,
+            final Throwable cause);
 
 }

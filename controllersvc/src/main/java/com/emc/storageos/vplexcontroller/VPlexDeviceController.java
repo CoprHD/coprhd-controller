@@ -35,6 +35,7 @@ import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationDeviceCo
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor.Type;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
@@ -54,6 +55,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
@@ -129,7 +131,6 @@ import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.volumecontroller.placement.ExportPathParams;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
@@ -148,6 +149,7 @@ import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
 import com.emc.storageos.vplex.api.clientdata.PortInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.emc.storageos.vplexcontroller.completers.CacheStatusTaskCompleter;
+import com.emc.storageos.vplexcontroller.completers.MigrationOperationTaskCompleter;
 import com.emc.storageos.vplexcontroller.completers.MigrationTaskCompleter;
 import com.emc.storageos.vplexcontroller.completers.MigrationWorkflowCompleter;
 import com.emc.storageos.vplexcontroller.job.VPlexCacheStatusJob;
@@ -200,6 +202,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String EXPORT_GROUP_REMOVE_VOLUMES = "exportGroupRemoveVolumes";
     private static final String VOLUME_FULLCOPY_GROUP_RELATION_WF = "volumeFullCopyGroupRelation";
     private static final String RESYNC_SNAPSHOT_WF_NAME = "ResyncSnapshot";
+    private static final String PAUSE_MIGRATION_WF_NAME = "PauseMigration";
+    private static final String RESUME_MIGRATION_WF_NAME = "ResumeMigration";
+    private static final String CANCEL_MIGRATION_WF_NAME = "CancelMigration";
+    private static final String DELETE_MIGRATION_WF_NAME = "DeleteMigration";
 
     // Workflow step identifiers
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
@@ -227,8 +233,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESYNC_FULL_COPY_STEP = "resyncFullCopy";
     private static final String DETACH_FULL_COPY_STEP = "detachFullCopy";
     private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
-    private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP="volumeFullcopyRelationStep";
+    private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP = "volumeFullcopyRelationStep";
     private static final String RESYNC_SNAPSHOT_STEP = "ResyncSnapshotStep";
+    private static final String PAUSE_MIGRATION_STEP = "PauseMigrationStep";
+    private static final String RESUME_MIGRATION_STEP = "ResumeMigrationStep";
+    private static final String CANCEL_MIGRATION_STEP = "CancelMigrationStep";
+    private static final String DELETE_MIGRATION_STEP = "DeleteMigrationStep";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
@@ -274,6 +284,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String ROLLBACK_FULL_COPY_METHOD = "rollbackFullCopyVolume";
     private static final String VOLUME_FULLCOPY_RELATION_METHOD = "establishVolumeFullCopyGroupRelation";
     private static final String RESYNC_SNAPSHOT_METHOD_NAME = "resyncSnapshot";
+    private static final String PAUSE_MIGRATION_METHOD_NAME = "pauseMigrationStep";
+    private static final String RESUME_MIGRATION_METHOD_NAME = "resumeMigrationStep";
+    private static final String CANCEL_MIGRATION_METHOD_NAME = "cancelMigrationStep";
+    private static final String DELETE_MIGRATION_METHOD_NAME = "deleteMigrationStep";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -284,6 +298,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     // migration speed to transfer size map
     private static final Map<String, String> mgirationSpeedToTransferSizeMap;
+
     static {
         mgirationSpeedToTransferSizeMap = new HashMap<String, String>();
         mgirationSpeedToTransferSizeMap.put("Lowest", "128KB");
@@ -292,10 +307,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         mgirationSpeedToTransferSizeMap.put("High", "16MB");
         mgirationSpeedToTransferSizeMap.put("Highest", "32MB");
     }
+
     // Volume restore step data keys
     private static final String REATTACH_MIRROR = "reattachMirror";
     private static final String ADD_BACK_TO_CG = "addToCG";
     private static final String DETACHED_DEVICE = "detachedDevice";
+
+    private static CoordinatorClient coordinator;
 
     private static final Logger _log = LoggerFactory.getLogger(VPlexDeviceController.class);
     private WorkflowService _workflowService;
@@ -383,8 +401,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * A VPlexTaskCompleter.
-     * 
-     * 
+     *
+     *
      */
     static class VPlexTaskCompleter extends TaskCompleter {
 
@@ -569,8 +587,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (vplexSystem == null) {
                     StorageSystem array = getDataObject(StorageSystem.class, desc.getDeviceURI(), _dbClient);
                     arrayMap.put(desc.getDeviceURI(), array);
-                }
-                else {
+                } else {
                     Set<URI> connectedSystems = ConnectivityUtil
                             .getStorageSystemAssociationsByNetwork(_dbClient,
                                     vplexSystem.getId(), StoragePort.PortType.backend);
@@ -612,8 +629,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (vplexSystem == null) {
                     // If the vplexSystem hasn't been passed in, just add the volume the volumeMap.
                     volumeMap.put(desc.getVolumeURI(), volume);
-                }
-                else {
+                } else {
                     // The vplexSystem is present, so we want to only pass back the backing volumes
                     // associated to this VPlex.
                     // Check the storage controller of this Virtual Volume
@@ -970,7 +986,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (vplexVolumes.isEmpty()) {
                 return waitFor;
             }
-
+            
+            // Check to see if there are any volumes flagged to not be fully deleted.
+            // This will still remove the volume from its VPLEX CG and also clean up
+            // any Mirrors but will leave the Virtual Volume intact on the VPLEX.
+            List<VolumeDescriptor> doNotDeleteDescriptors = VolumeDescriptor.getDoNotDeleteDescriptors(vplexVolumes);
+            List<URI> doNotFullyDeleteVolumeList = VolumeDescriptor.getVolumeURIs(doNotDeleteDescriptors);
+            
             List<URI> allVplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexVolumes);
 
             // Segregate by device.
@@ -984,7 +1006,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 BlockDeviceController.getVolumesMsg(_dbClient, vplexVolumeURIs)),
                         waitFor, vplexURI,
                         DiscoveredDataObject.Type.vplex.name(), this.getClass(),
-                        deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs),
+                        deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs, doNotFullyDeleteVolumeList),
                         rollbackMethodNullMethod(), null);
             }
 
@@ -1000,8 +1022,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<URI> backendVolURIs = new ArrayList<URI>();
             for (URI vplexVolumeURI : allVplexVolumeURIs) {
                 Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
-                if ((vplexVolume == null) || (vplexVolume.getInactive()) ||
-                        (vplexVolume.isIngestedVolume(_dbClient))) {
+                if ((vplexVolume == null) 
+                        || (vplexVolume.getInactive()) 
+                        || (vplexVolume.isIngestedVolume(_dbClient))
+                        || doNotFullyDeleteVolumeList.contains(vplexVolumeURI)) {
                     continue;
                 }
                 for (String assocVolumeId : vplexVolume.getAssociatedVolumes()) {
@@ -1055,9 +1079,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
             }
 
-            boolean unexportStepsAdded =
-                    vplexAddUnexportVolumeWfSteps(workflow, VPLEX_STEP,
-                            backendVolURIs, exportGroupList);
+            boolean unexportStepsAdded = vplexAddUnexportVolumeWfSteps(workflow, VPLEX_STEP,
+                    backendVolURIs, exportGroupList);
 
             // If we unexported a volume, add a step to see if any ExportGroups now have
             // no volumes remaining. If not, mark them inactive.
@@ -1120,16 +1143,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // Filter to get only the VPlex volumes.
         List<VolumeDescriptor> vplexVolumes = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
-                new VolumeDescriptor.Type[] {});
+                new VolumeDescriptor.Type[] {});        
+        // Check to see if there are any volumes flagged to not be fully deleted.
+        // Any flagged volumes will be removed from the list of volumes to delete.
+        List<VolumeDescriptor> descriptorsToRemove = VolumeDescriptor.getDoNotDeleteDescriptors(vplexVolumes);
+        vplexVolumes.removeAll(descriptorsToRemove);
+        
         // If there are no VPlex volumes, just return
         if (vplexVolumes.isEmpty()) {
             return waitFor;
         }
+        
         URI vplexURI = vplexVolumes.get(0).getDeviceURI();
-
+        
         // Get the VPlex Volume URIs
         List<URI> allVplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexVolumes);
-
+                
         // Add a step to the Workflow to mark the Virtual Volumes inactive.
         // Rollback does the same thing.
         waitFor = workflow.createStep(null, "Mark virtual volumes inactive", waitFor,
@@ -1300,9 +1329,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
-    private Workflow.Method deleteVirtualVolumesMethod(URI vplexURI, List<URI> volumeURIs) {
+    private Workflow.Method deleteVirtualVolumesMethod(URI vplexURI, List<URI> volumeURIs, List<URI> doNotFullyDeleteVolumeList) {
         return new Workflow.Method(DELETE_VIRTUAL_VOLUMES_METHOD_NAME, vplexURI,
-                volumeURIs);
+                volumeURIs, doNotFullyDeleteVolumeList);
     }
 
     /**
@@ -1312,10 +1341,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * 
      * @param vplexURI
      * @param volumeURIs
+     * @param doNotFullyDeleteVolumeList
      * @param stepId
      * @throws WorkflowException
      */
-    public void deleteVirtualVolumes(URI vplexURI, List<URI> volumeURIs, String stepId) throws WorkflowException {
+    public void deleteVirtualVolumes(URI vplexURI, List<URI> volumeURIs, 
+            List<URI> doNotFullyDeleteVolumeList, String stepId) throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexURI, _dbClient);
@@ -1335,9 +1366,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     continue;
                 }
                 try {
-                    client.findVirtualVolume(volume.getDeviceLabel());
-                    _log.info(String.format("Deleting VPlex virutal volume %s (%s)",
-                            volume.getDeviceLabel(), volume.getNativeId()));
+                    client.findVirtualVolume(volume.getDeviceLabel());                    
                 } catch (VPlexApiException ex) {
                     if (ex.getServiceCode() == ServiceCode.VPLEX_CANT_FIND_REQUESTED_VOLUME) {
                         _log.info("VPlex virtual volume: " + volume.getNativeId()
@@ -1361,12 +1390,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             consistencyGroupManager.deleteConsistencyGroupVolume(vplexURI, volume, cg.getLabel());
                         }
 
-                        // We only retry a dismantle failure on volumes created
-                        // in ViPR as the retry code relies on the well-known ViPR
-                        // naming conventions and virtual volume structure to find
-                        // VPLEX artifacts related to the volume being deleted.
-                        boolean isIngested = volume.isIngestedVolume(_dbClient);
-                        client.deleteVirtualVolume(volume.getDeviceLabel(), !isIngested, !isIngested);
+                        // Check to see if there are any entries in the doNotFullyDeleteVolumeList.
+                        // If this volume ID is flagged (in that list) we can skip the call
+                        // to delete volume.
+                        if (doNotFullyDeleteVolumeList == null
+                                || doNotFullyDeleteVolumeList.isEmpty() 
+                                || !doNotFullyDeleteVolumeList.contains(volume.getId())) {
+                            // We only retry a dismantle failure on volumes created
+                            // in ViPR as the retry code relies on the well-known ViPR
+                            // naming conventions and virtual volume structure to find
+                            // VPLEX artifacts related to the volume being deleted.
+                            _log.info(String.format("Deleting VPlex virtual volume %s (%s)",
+                                    volume.getDeviceLabel(), volume.getNativeId()));
+                            boolean isIngested = volume.isIngestedVolume(_dbClient);
+                            client.deleteVirtualVolume(volume.getDeviceLabel(), !isIngested, !isIngested);
+                        }
 
                         // Record VPLEX volume deleted event.
                         recordBourneVolumeEvent(volume.getId(),
@@ -1994,10 +2032,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (Initiator init : inits) {
                 String port = init.getInitiatorPort();
                 String normalizedName = Initiator.normalizePort(port);
-                _log.info("   looking at initiator " + normalizedName + " host " + init.getHostName());
+                _log.info("   looking at initiator " + normalizedName + " host " + VPlexUtil.getInitiatorHostResourceName(init));
                 if (initiatorPorts.contains(normalizedName)) {
                     _log.info("      found a matching initiator for " + normalizedName
-                            + " host " + init.getHostName()
+                            + " host " + VPlexUtil.getInitiatorHostResourceName(init)
                             + " in storage view " + storageView.getName());
                     matchingInitiators.put(normalizedName, init);
                 }
@@ -2035,8 +2073,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             _dbClient.createObject(exportMask);
 
-            ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                    blockObjectMap.keySet(), exportGroup.getNumPaths());
+            ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                    blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
 
             // Try to assign new ports by passing in existingMap
             Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
@@ -2088,10 +2126,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         exportMasksToUpdateOnDevice.add(viprExportMask);
         exportGroup.addExportMask(viprExportMask.getId());
         _dbClient.updateAndReindexObject(exportGroup);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                blockObjectMap.keySet(), exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
 
         // If allPortsFromMaskMatchForVarray passed in is false then assign storageports using the varray
@@ -2192,8 +2230,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
         _dbClient.updateAndReindexObject(sharedVplexExportMask);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                blockObjectMap.keySet(), exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                blockObjectMap.keySet(), exportGroup.getNumPaths(), vplexSystem.getId(), exportGroup.getId());
 
         // Try to assign new ports by passing in existingMap
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
@@ -2360,8 +2398,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<URI> storagePortURIsToAdd = exportMasksToUpdateOnDeviceWithStoragePorts.get(exportMask.getId());
 
             // Create a Step to add storage ports to the Storage View
-            Workflow.Method addPortsToViewMethod =
-                    storageViewAddStoragePortsMethod(vplexSystem.getId(), export, exportMask.getId(), storagePortURIsToAdd);
+            Workflow.Method addPortsToViewMethod = storageViewAddStoragePortsMethod(vplexSystem.getId(), export, exportMask.getId(),
+                    storagePortURIsToAdd);
 
             Workflow.Method addToViewRollbackMethod = storageViewRemoveStoragePortsMethod(vplexSystem.getId(), export, exportMask.getId(),
                     storagePortURIsToAdd);
@@ -2550,8 +2588,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     + " on VPLEX " + vplexSystem.getLabel());
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupDelete", false, opId);
 
-            List<ExportMask> exportMasks =
-                    ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex);
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex);
             if (exportMasks.isEmpty()) {
                 throw VPlexApiException.exceptions.exportGroupDeleteFailedNull(vplex.toString());
             }
@@ -2617,9 +2654,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                     if (removeVolumes) {
                         _log.info("removing volumes: " + volumeURIList);
-                        Workflow.Method method =
-                                ExportWorkflowEntryPoints.exportRemoveVolumesMethod(vplexSystem.getId(), export,
-                                        volumeURIList);
+                        Workflow.Method method = ExportWorkflowEntryPoints.exportRemoveVolumesMethod(vplexSystem.getId(), export,
+                                volumeURIList);
 
                         storageViewStepId = workflow.createStep("removeVolumes",
                                 String.format("Removing volumes from export on storage array %s (%s)",
@@ -2632,9 +2668,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                     if (removeInitiators) {
                         _log.info("removing initiators: " + exportMask.getInitiators());
-                        Workflow.Method removeInitiatorMethod =
-                                ExportWorkflowEntryPoints.exportRemoveInitiatorsMethod(vplexSystem.getId(), export,
-                                        URIUtil.toURIList(exportMask.getInitiators()));
+                        Workflow.Method removeInitiatorMethod = ExportWorkflowEntryPoints.exportRemoveInitiatorsMethod(vplexSystem.getId(),
+                                export, URIUtil.toURIList(exportMask.getInitiators()));
 
                         storageViewStepId = workflow.createStep("storageViewRemoveInitiators",
                                 String.format("Updating VPLEX Storage View for ExportGroup %s Mask %s", export, exportMask.getMaskName()),
@@ -2768,8 +2803,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, Integer> volumeMap,
             String opId) throws ControllerException {
         String volListStr = Joiner.on(',').join(volumeMap.keySet());
-        ExportAddVolumeCompleter completer =
-                new ExportAddVolumeCompleter(exportURI, volumeMap, opId);
+        ExportAddVolumeCompleter completer = new ExportAddVolumeCompleter(exportURI, volumeMap, opId);
 
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupAddVolumes", true, opId);
@@ -2874,8 +2908,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, Integer> volumeMap,
             String opId) throws ControllerException {
         String volListStr = Joiner.on(',').join(volumeMap.keySet());
-        ExportMaskAddVolumeCompleter completer =
-                new ExportMaskAddVolumeCompleter(exportGroupURI, exportMaskURI, volumeMap, opId);
+        ExportMaskAddVolumeCompleter completer = new ExportMaskAddVolumeCompleter(exportGroupURI, exportMaskURI, volumeMap, opId);
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
@@ -2916,8 +2949,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             volListStr, exportMaskURI);
                     _log.error(message);
                     String opName = ResourceOperationTypeEnum.ADD_EXPORT_VOLUME.getName();
-                    ServiceError serviceError = VPlexApiException.errors.
-                            exportHasExistingVolumeWithRequestedHLU(entry.getKey().toString(), requestedHLU.toString(), opName);
+                    ServiceError serviceError = VPlexApiException.errors.exportHasExistingVolumeWithRequestedHLU(entry.getKey().toString(),
+                            requestedHLU.toString(), opName);
                     completer.error(_dbClient, serviceError);
 
                     duplicateHLU = true;
@@ -2991,19 +3024,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     @Override
     public void exportGroupRemoveVolumes(URI vplexURI, URI exportURI,
             List<URI> volumeURIs, String opId)
-            throws ControllerException {
+                    throws ControllerException {
         _log.info("entering export group remove volumes");
         String volListStr = Joiner.on(',').join(volumeURIs);
-        ExportRemoveVolumeCompleter completer =
-                new ExportRemoveVolumeCompleter(exportURI, volumeURIs,
-                        opId);
+        ExportRemoveVolumeCompleter completer = new ExportRemoveVolumeCompleter(exportURI, volumeURIs,
+                opId);
         boolean hasSteps = false;
         try {
             Workflow workflow = _workflowService.getNewWorkflow(this, EXPORT_GROUP_REMOVE_VOLUMES, false, opId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
-            List<ExportMask> exportMasks =
-                    ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex.getId());
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplex.getId());
             for (ExportMask exportMask : exportMasks) {
                 List<URI> volumeURIList = new ArrayList<URI>();
                 List<URI> remainingVolumesInMask = new ArrayList<URI>();
@@ -3066,8 +3097,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         hasSteps = true;
 
                         // Create a Step to remove storage ports from the Storage View
-                        Workflow.Method removePortsFromViewMethod =
-                                storageViewRemoveStoragePortsMethod(vplexURI, exportURI, exportMask.getId(), storagePortURIs);
+                        Workflow.Method removePortsFromViewMethod = storageViewRemoveStoragePortsMethod(vplexURI, exportURI,
+                                exportMask.getId(), storagePortURIs);
                         Workflow.Method rollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
                         storageViewStepId = workflow.createStep(REMOVE_STORAGE_PORTS_STEP,
                                 String.format("Updating VPLEX Storage View to remove StoragePorts for ExportGroup %s Mask %s", exportURI,
@@ -3123,9 +3154,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     List<URI> initiatorURIs = URIUtil.toURIList(exportMask.getInitiators());
 
                     // Create a step to remove initiators from the storage view
-                    Workflow.Method removeInitiatorMethod =
-                            storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
-                                    exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs));
+                    Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
+                            exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs));
                     Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
                     storageViewStepId = workflow.createStep("storageView", "Removing" + initiatorURIs.toString(),
                             null, vplexURI, vplex.getSystemType(), this.getClass(),
@@ -3159,15 +3189,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         } catch (VPlexApiException vae) {
 
-            String message =
-                    String.format("Failed to remove Volume %s from ExportGroup %s",
-                            volListStr, exportURI);
+            String message = String.format("Failed to remove Volume %s from ExportGroup %s",
+                    volListStr, exportURI);
             _log.error(message, vae);
             completer.error(_dbClient, vae);
         } catch (Exception ex) {
-            String message =
-                    String.format("Failed to remove Volume %s from ExportGroup %s",
-                            volListStr, exportURI);
+            String message = String.format("Failed to remove Volume %s from ExportGroup %s",
+                    volListStr, exportURI);
             _log.error(message, ex);
             String opName = ResourceOperationTypeEnum.DELETE_EXPORT_VOLUME.getName();
             ServiceError serviceError = VPlexApiException.errors.exportGroupRemoveVolumesFailed(
@@ -3271,12 +3299,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     @Override
     public void exportGroupAddInitiators(URI vplexURI, URI exportURI,
             List<URI> initiatorURIs, String opId)
-            throws ControllerException {
+                    throws ControllerException {
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
-            ExportAddInitiatorCompleter completer =
-                    new ExportAddInitiatorCompleter(exportURI, initiatorURIs, opId);
+            ExportAddInitiatorCompleter completer = new ExportAddInitiatorCompleter(exportURI, initiatorURIs, opId);
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportAddInitiator", true, opId);
             boolean isRecoverPointExport = ExportUtils.checkIfInitiatorsForRP(_dbClient,
                     exportGroup.getInitiators());
@@ -3418,7 +3445,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 volumeURIs = (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
             } else if (exportGroup.getVolumes() != null && !exportGroup.getVolumes().isEmpty()) {  // Hit this condition in CTRL-9944
-                                                                                                  // (unknown why)
+  // (unknown why)
                 _log.info(String.format("No volumes in ExportMask %s, using ExportGroup %s for ExportPathParam", exportMask.getId(),
                         exportGroup.getId()));
                 Map<URI, Integer> volumeMap = ExportUtils.getExportGroupVolumeMap(_dbClient, vplex, exportGroup);
@@ -3431,9 +3458,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
-                    volumeURIs, exportGroup.getNumPaths(), exportMask.getStorageDevice());
+                    volumeURIs, exportGroup.getNumPaths(), exportMask.getStorageDevice(), exportGroup.getId());
             if (exportGroup.getType() != null) {
-                pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+                pathParams.setExportGroupType(exportGroup.getType());
             }
 
             // Assign additional StoragePorts if needed.
@@ -3457,19 +3484,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     previousStepId, vplexURI, vplex.getSystemType(), this.getClass(), zoningMethod, zoningRollbackMethod, zoningStepId);
 
             // Create a Step to add the initiator to the Storage View
-            String message =
-                    String.format("initiators %s to StorageView %s", initListStr,
-                            exportGroup.getGeneratedName());
+            String message = String.format("initiators %s to StorageView %s", initListStr,
+                    exportGroup.getGeneratedName());
             ExportMask sharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, _dbClient, varrayURI, null, null);
             boolean shared = false;
             if (null != sharedExportMask && sharedExportMask.getId().equals(exportMask.getId())) {
                 shared = true;
             }
-            Workflow.Method addToViewMethod =
-                    storageViewAddInitiatorsMethod(vplexURI, exportURI, exportMask.getId(), hostInitiatorURIs, newTargetURIs, shared);
-            Workflow.Method addToViewRollbackMethod =
-                    storageViewRemoveInitiatorsMethod(vplexURI,
-                            exportURI, exportMask.getId(), hostInitiatorURIs, null);
+            Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplexURI, exportURI, exportMask.getId(), hostInitiatorURIs,
+                    newTargetURIs, shared);
+            Workflow.Method addToViewRollbackMethod = storageViewRemoveInitiatorsMethod(vplexURI,
+                    exportURI, exportMask.getId(), hostInitiatorURIs, null);
             lastStepId = workflow.createStep("storageView", "Add " + message,
                     zoningStepId, vplexURI, vplex.getSystemType(), this.getClass(), addToViewMethod, addToViewRollbackMethod, null);
         }
@@ -3491,10 +3516,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info(String.format(
                     "Adding initiators %s to ExportGroup %s (%s)",
                     initListStr, exportGroup.getLabel(), exportGroup.getId()));
-            List<Initiator> initiators =
-                    _dbClient.queryObject(Initiator.class, initiatorURIs);
-            List<ExportMask> exportMasks =
-                    ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
+            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
             Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
             ExportMask sharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, _dbClient, varrayURI, null, null);
             for (ExportMask exportMask : exportMasks) {
@@ -3579,8 +3602,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
-            List<ExportMask> exportMasks =
-                    ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
 
             for (ExportMask exportMask : exportMasks) {
                 // If a specific ExportMask is to be processed, ignore any others.
@@ -3707,8 +3729,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
-            List<ExportMask> exportMasks =
-                    ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
 
             for (ExportMask exportMask : exportMasks) {
                 // If a specific ExportMask is to be processed, ignore any others.
@@ -3876,8 +3897,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
-            ExportRemoveInitiatorCompleter completer =
-                    new ExportRemoveInitiatorCompleter(exportURI, initiatorURIs, opId);
+            ExportRemoveInitiatorCompleter completer = new ExportRemoveInitiatorCompleter(exportURI, initiatorURIs, opId);
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportRemoveInitiator", true, opId);
             boolean hasStep = false;    // true if Workflow has a Step
 
@@ -4067,8 +4087,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     + initiatorsAlreadyRemovedFromExportGroup + ")");
             _log.info("host initiators still in export group: " + initsStillInExportGroup.size()
                     + " (" + initsStillInExportGroup + ")");
-            boolean noMoreInits = hostInitiatorURIs.size() >=
-                    (initsStillInExportGroup.size() + initiatorsAlreadyRemovedFromExportGroup.size());
+            boolean noMoreInits = hostInitiatorURIs
+                    .size() >= (initsStillInExportGroup.size() + initiatorsAlreadyRemovedFromExportGroup.size());
             if (noMoreInits) {
 
                 _log.info("this means there will be no more initiators present in "
@@ -4210,9 +4230,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         String viewStep;
         // removeInitiatorMethod will make sure not to remove existing initiators
         // from the storage view on the vplex device.
-        Workflow.Method removeInitiatorMethod =
-                storageViewRemoveInitiatorsMethod(vplex.getId(), exportGroup.getId(),
-                        exportMask.getId(), hostInitiatorURIs, targetURIs);
+        Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplex.getId(), exportGroup.getId(),
+                exportMask.getId(), hostInitiatorURIs, targetURIs);
         Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
         viewStep = workflow.createStep("storageView", "Removing " + hostInitiatorURIs.toString(),
                 zoneStep, vplex.getId(), vplex.getSystemType(), this.getClass(),
@@ -4342,8 +4361,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<URI> initiatorURIs, String stepId) throws WorkflowException {
         try {
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
-            List<ExportMask> exportMasks =
-                    ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
             Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
             for (ExportMask exportMask : exportMasks) {
                 maskToInitiatorsMap.put(exportMask.getId(), initiatorURIs);
@@ -4390,7 +4408,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     public void storageViewRemoveInitiators(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
             List<URI> initiatorURIs, List<URI> targetURIs, String stepId)
-            throws WorkflowException {
+                    throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
@@ -4508,14 +4526,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Create a descriptor for the passed volume.
-     * 
+     *
      * @param storagePoolURI URI of the storage pool.
      * @param volumeURI URI of the volume.
      * @param storageSystemMap An OUT parameters specifying the list of storage
      *            systems on which volumes are created.
      * @param volumeMap An OUT parameter specifying the full list volumes to be
      *            created.
-     * 
+     *
      * @return The descriptor for the pool volume.
      * 
      * @throws IOException When an error occurs.
@@ -4567,7 +4585,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * front end ports of the passed storage systems to the backend ports of the
      * passed VPlex storage system for the purpose of exposing volumes on these
      * storage system to the VPlex.
-     * 
+     *
      * @param workflow The workflow to which the export steps are added.
      * @param vplexSystem A reference to the VPlex storage system.
      * @param storageSystemMap The list of storage systems to export.
@@ -4575,7 +4593,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param projectURI The project reference.
      * @param tenantURI The tenant reference.
      * @param dependantStepId The dependent step if, typically a volume creation step.
-     * 
+     *
      * @throws IOException When an error occurs.
      * @throws ControllerException
      */
@@ -4642,7 +4660,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
-     * 
+     *
      * @param exportGroup
      * @param volumeMap
      * @return
@@ -4693,8 +4711,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     private List<ExportGroup> getExportGroupsForVolume(BlockObject volume) throws Exception {
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint
-                .Factory.getBlockObjectExportGroupConstraint(volume.getId()), exportGroupURIs);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(volume.getId()), exportGroupURIs);
         List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
         for (URI egURI : exportGroupURIs) {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, egURI);
@@ -4708,9 +4725,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Gets the end for to communicate with the passed VPlex.
-     * 
+     *
      * @param vplex The VPlex storage system.
-     * 
+     *
      * @return The URI for the VPlex management server.
      * @throws URISyntaxException
      */
@@ -5005,7 +5022,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 waitForStep = workflow.createStep(
                         MIGRATION_COMMIT_STEP,
                         String.format("VPlex %s committing volume migration",
-                                vplexSystem.getId().toString()), waitForStep, vplexSystem.getId(),
+                                vplexSystem.getId().toString()),
+                        waitForStep, vplexSystem.getId(),
                         vplexSystem.getSystemType(), getClass(), vplexExecuteMethod,
                         vplexRollbackMethod, stepId);
                 _log.info("Created workflow step to commit migration");
@@ -5042,7 +5060,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * a migration job to monitor the progress of the migration. The workflow
      * step will complete when the migration completes, at which point the
      * migration is automatically committed.
-     * 
+     *
      * @param vplexURI The URI of the VPlex storage system.
      * @param virtualVolumeURI The URI of the virtual volume.
      * @param targetVolumeURI The URI of the migration target.
@@ -5168,7 +5186,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * migration is terminated prior to completing successfully. The function
      * tries to cancel the migration and cleanup the remnants of the migration
      * on the VPLEX.
-     * 
+     *
      * @param vplexURI The URI of the VPLex storage system.
      * @param migrationURI The URI of the migration.
      * @param migrateStepId The migration step id.
@@ -5353,7 +5371,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Rollback when a migration commit fails.
-     * 
+     *
      * @param migrationURIs The URIs for all migrations.
      * @param commitStepId The commit step id.
      * @param stepId The rollback step id.
@@ -5399,12 +5417,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * task. We do this in a sub workflow because we don't want any of the steps
      * required to delete the sources to initiate rollback in the main workflow
      * if it fails.
-     * 
+     *
      * We also update the class of service, if required, for the virtual
      * volume when the migration is the result of a CoS change. When this
      * step is executed we know that the migrations have been committed and
      * the new CoS now applies to the virtual volume.
-     * 
+     *
      * @param vplexURI The URI of the VPlex storage system.
      * @param virtualVolumeURI The URI of the virtual volume.
      * @param newVpoolURI The CoS to be assigned to the virtual volume
@@ -5442,9 +5460,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 // Creates steps to remove the migration source volumes from all
                 // export groups containing them and delete them.
-                boolean unexportStepsAdded =
-                        vplexAddUnexportVolumeWfSteps(subWorkflow,
-                                null, migrationSources, null);
+                boolean unexportStepsAdded = vplexAddUnexportVolumeWfSteps(subWorkflow,
+                        null, migrationSources, null);
 
                 // Only need to wait for unexport if there was a step for it added
                 // to the workflow.
@@ -5556,10 +5573,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         volumeURIs.add(vplexVolumeURI);
 
         // See if there are any volumes to be created.
-        List<VolumeDescriptor> blockDescriptors =
-                VolumeDescriptor.filterByType(volumeDescriptors,
-                        new VolumeDescriptor.Type[] { Type.BLOCK_DATA },
-                        new VolumeDescriptor.Type[] {});
+        List<VolumeDescriptor> blockDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { Type.BLOCK_DATA },
+                new VolumeDescriptor.Type[] {});
         URI createdVolumeURI = null;
         if (blockDescriptors.size() == 1) {
             createdVolumeURI = blockDescriptors.get(0).getVolumeURI();
@@ -5571,10 +5587,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
 
         // See if there is a Volume to be imported.
-        List<VolumeDescriptor> importDescriptors =
-                VolumeDescriptor.filterByType(volumeDescriptors,
-                        new VolumeDescriptor.Type[] { Type.VPLEX_IMPORT_VOLUME },
-                        new VolumeDescriptor.Type[] {});
+        List<VolumeDescriptor> importDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { Type.VPLEX_IMPORT_VOLUME },
+                new VolumeDescriptor.Type[] {});
         URI importedVolumeURI = null;
         if (!importDescriptors.isEmpty()) {
             importedVolumeURI = importDescriptors.get(0).getVolumeURI();
@@ -5644,7 +5659,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // If importing to a local/distributed virtual volume, then
                 // rollback the VPlex create virtual volumes operation.
                 // We will restore the original volume.
-                vplexRollbackMethod = deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs);
+                vplexRollbackMethod = deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs, null);
             } else {
                 // COP-16861: If rolling back an upgrade from local to distributed, then
                 // try to detach remote mirror and delete new artifacts created on VPLEX
@@ -5659,7 +5674,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             workflow.createStep(
                     VPLEX_STEP,
                     String.format("VPlex %s creating virtual volume",
-                            vplexSystem.getId().toString()), EXPORT_STEP, vplexURI,
+                            vplexSystem.getId().toString()),
+                    EXPORT_STEP, vplexURI,
                     vplexSystem.getSystemType(), this.getClass(), vplexExecuteMethod,
                     vplexRollbackMethod, stepId);
 
@@ -5685,8 +5701,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             TaskCompleter completer = new VPlexTaskCompleter(Volume.class,
                     volumeURIs, opId, null);
             ImportRollbackHandler importRollbackHandler = new ImportRollbackHandler();
-            Object[] importRollbackHandlerArgs = new Object[]
-            { importedVolumeURI, createdVolumeURI, vplexVolumeURI };
+            Object[] importRollbackHandlerArgs = new Object[] { importedVolumeURI, createdVolumeURI, vplexVolumeURI };
             workflow.executePlan(completer, successMessage,
                     null, null, importRollbackHandler, importRollbackHandlerArgs);
         } catch (Exception ex) {
@@ -5709,7 +5724,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     static public class ImportRollbackHandler implements Workflow.WorkflowRollbackHandler, Serializable {
         @Override
         // Nothing to do.
-                public
+        public
                 void initiatingRollback(Workflow workflow, Object[] args) {
         }
 
@@ -5897,9 +5912,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _dbClient.persistObject(vplexVolume);
                 }
             } else {
-                virtvinfo = new VPlexVirtualVolumeInfo();
-                virtvinfo.setName(vplexVolume.getDeviceLabel());
-                virtvinfo.setPath(vplexVolume.getNativeId());
+                virtvinfo = client.findVirtualVolumeAndUpdateInfo(vplexVolume.getDeviceLabel());
             }
 
             // If we desired a distributed virtual-volume (newVolume != null),
@@ -6102,8 +6115,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * This method will add unexport steps to the passed in workflow. It will create
      * the workflow under the specified group ID and if not null,
      * it will be run after the the 'waitFor' workflow completes.
-     * 
-     * 
+     *
+     *
      * @param subWorkflow [in] - Workflow to which the unexport steps will be added.
      * @param wfGroupId [in] - Workflow group ID
      * @param waitFor [in] - Workflow group ID to wait on before the unexport is run
@@ -6114,16 +6127,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            found to be associated with any of the volumes
      * @return boolean - true if there were any remove-volumes-from-export steps added
      *         to the workflow
-     * 
+     *
      */
     private boolean vplexAddUnexportVolumeWfSteps(Workflow subWorkflow,
             String waitFor, List<URI> uris, List<URI> exportGroupTracker)
-            throws Exception {
+                    throws Exception {
         boolean workflowStepsAdded = false;
         // Main processing containers. ExportGroup --> StorageSystem --> Volumes
         // Populate the container for the export workflow step generation
-        Map<URI, Map<URI, List<URI>>> exportStorageVolumeMap =
-                new HashMap<URI, Map<URI, List<URI>>>();
+        Map<URI, Map<URI, List<URI>>> exportStorageVolumeMap = new HashMap<URI, Map<URI, List<URI>>>();
         for (URI uri : uris) {
             _log.info("Volume URI is {}", uri);
             Volume volume = _dbClient.queryObject(Volume.class, uri);
@@ -6140,8 +6152,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     exportGroupTracker.add(sourceExportGroupURI);
                 }
 
-                Map<URI, List<URI>> storageToVolumes =
-                        exportStorageVolumeMap.get(sourceExportGroupURI);
+                Map<URI, List<URI>> storageToVolumes = exportStorageVolumeMap.get(sourceExportGroupURI);
                 if (storageToVolumes == null) {
                     storageToVolumes = new HashMap<URI, List<URI>>();
                     exportStorageVolumeMap.put(sourceExportGroupURI,
@@ -6252,8 +6263,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     && newSize > vplexVolume.getProvisionedCapacity()) {
                 expandVirtualVolume(vplexURI, vplexVolumeURI, newSize, systemNativeGuids, opId);
                 _log.info("Executed vplex virtual volume expansion.");
-            }
-            else {
+            } else {
                 _log.info("Vplex virtual volume expansion not required.");
             }
         } catch (Exception e) {
@@ -6342,9 +6352,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Make a call to the VPlex API client to expand the virtual
             // volume.
-            VPlexVirtualVolumeInfo vplexVolumeInfo = client
-                    .expandVirtualVolume(vplexVolumeName);
-            _log.info("Started VPlex volume expansion");
+
+            int expansionStatusRetryCount = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
+                    coordinator, VPlexApiConstants.EXPANSION_STATUS_RETRY_COUNT));
+            long expansionStatusSleepTime = Long.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
+                    coordinator, VPlexApiConstants.EXPANSION_STATUS_SLEEP_TIME_MS));
+            VPlexVirtualVolumeInfo vplexVolumeInfo = client.expandVirtualVolume(vplexVolumeName,
+                    expansionStatusRetryCount, expansionStatusSleepTime);
+            _log.info("Completed VPlex volume expansion");
 
             // Update the VPlex volume size in the database.
             vplexVolume.setCapacity(newSize);
@@ -6505,8 +6520,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         if (cg != null) {
             // Get a reference to the ConsistencyGroupManager and delete the consistency group
-            ConsistencyGroupManager consistencyGroupManager =
-                    getConsistencyGroupManager(cg);
+            ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(cg);
 
             if (consistencyGroupManager != null) {
                 consistencyGroupManager.deleteConsistencyGroup(workflow, vplexURI, cgURI, opId);
@@ -6577,8 +6591,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     .filterByType(volumeDescriptors,
                             new VolumeDescriptor.Type[] { Type.VPLEX_VIRT_VOLUME },
                             new VolumeDescriptor.Type[] {});
-            List<VolumeDescriptor> vplexSrcVolumeDescrs = getDescriptorsForFullyCopySrcVolumes
-                    (vplexVolumeDescriptors);
+            List<VolumeDescriptor> vplexSrcVolumeDescrs = getDescriptorsForFullyCopySrcVolumes(vplexVolumeDescriptors);
             vplexVolumeDescriptors.removeAll(vplexSrcVolumeDescrs);
             _log.info("Got volume descriptors for VPLEX volumes being copied.");
 
@@ -7266,8 +7279,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception e) {
             _log.error("Exception invalidating VPLEX volume cache " + e.getMessage(), e);
-            WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions.
-                    failedInvalidatingVolumeCache(vplexVolumeURI.toString(), e));
+            WorkflowStepCompleter.stepFailed(stepId,
+                    VPlexApiException.exceptions.failedInvalidatingVolumeCache(vplexVolumeURI.toString(), e));
         }
     }
 
@@ -7368,16 +7381,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Get the native volume info for the mirror volume.
             Volume mirrorVolume = getDataObject(Volume.class, mirrorVolumeURI, _dbClient);
-            StorageSystem mirrorVolumeSystem = getDataObject(StorageSystem.class,
-                    mirrorVolume.getStorageController(), _dbClient);
-            List<String> itls = VPlexControllerUtils.getVolumeITLs(mirrorVolume);
-            VolumeInfo mirrorInfo = new VolumeInfo(mirrorVolumeSystem.getNativeGuid(), mirrorVolumeSystem.getSystemType(),
-                    mirrorVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                    mirrorVolume.getNativeId(), mirrorVolume.getThinlyProvisioned().booleanValue(), itls);
-            _log.info("Prepared mirror volume info");
-
-            // Get the cluster id for this storage volume.
-            String clusterId = client.getClaimedStorageVolumeClusterName(mirrorInfo);
+            String clusterId = VPlexControllerUtils.getVPlexClusterName(_dbClient, mirrorVolume.getVirtualArray(), vplexURI);
 
             // Detach the mirror.
             String detachedDeviceName = client.detachMirrorFromDistributedVolume(
@@ -7778,11 +7782,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (volume.getStorageController().equals(array.getId())) {
                 if (varray == null) {
                     varray = volume.getVirtualArray();
-                }
-                else if (!varray.equals(volume.getVirtualArray())) {
-                    DeviceControllerException ex =
-                            DeviceControllerException.exceptions.multipleVarraysInVPLEXExportGroup(
-                                    array.getId().toString(), varray.toString(), volume.getVirtualArray().toString());
+                } else if (!varray.equals(volume.getVirtualArray())) {
+                    DeviceControllerException ex = DeviceControllerException.exceptions.multipleVarraysInVPLEXExportGroup(
+                            array.getId().toString(), varray.toString(), volume.getVirtualArray().toString());
                     _log.error("Multiple varrays connecting VPLEX to array", ex);
                     throw ex;
                 }
@@ -7835,15 +7837,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         // Allocate any new ports that are required for the initiators
         // and update the zoning map in the exportMask.
-        List<Initiator> initiators =
-                _dbClient.queryObject(Initiator.class, newInitiators);
-        Collection<URI> volumeURIs =
-                (Collections2.transform(exportMask.getVolumes().keySet(),
-                        CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                volumeURIs, exportGroup.getNumPaths());
+        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, newInitiators);
+        Collection<URI> volumeURIs = (Collections2.transform(exportMask.getVolumes().keySet(),
+                CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeURIs, exportGroup.getNumPaths(), vplex.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
         // Determine the Varray for the targets. Default to ExportGroup.virtualArray
         URI varrayURI = exportGroup.getVirtualArray();
@@ -7888,18 +7888,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     this.getClass(), zoningMethod, zoningRollbackMethod, zoningStepId);
 
             // Create a Step to add the initiator to the Storage View
-            String message =
-                    String.format("adding initiators %s to StorageView %s", storageViewInitiators.toString(),
-                            exportGroup.getGeneratedName());
+            String message = String.format("adding initiators %s to StorageView %s", storageViewInitiators.toString(),
+                    exportGroup.getGeneratedName());
             ExportMask sharedExportMask = VPlexUtil
                     .getSharedExportMaskInDb(exportGroup, vplex.getId(), _dbClient, varrayURI, null, null);
             boolean shared = false;
             if (null != sharedExportMask && sharedExportMask.getId().equals(exportMask.getId())) {
                 shared = true;
             }
-            Workflow.Method addToViewMethod =
-                    storageViewAddInitiatorsMethod(vplex.getId(), exportGroup.getId(), exportMask.getId(),
-                            storageViewInitiators, newTargets, shared);
+            Workflow.Method addToViewMethod = storageViewAddInitiatorsMethod(vplex.getId(), exportGroup.getId(), exportMask.getId(),
+                    storageViewInitiators, newTargets, shared);
             Workflow.Method addToViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
             String viewStepId = workflow.createStep("storageView", "Add " + message,
                     ZONING_STEP, vplex.getId(), vplex.getSystemType(), this.getClass(),
@@ -8287,8 +8285,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 sharedExportMaskURIs.add(haSharedExportMask.getId());
             }
         }
-        List<ExportMask> exportMasks =
-                ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
         for (ExportMask exportMask : exportMasks) {
             boolean shared = false;
             if (!sharedExportMaskURIs.isEmpty()) {
@@ -8746,9 +8743,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
 
                 if (!backendVolURIs.isEmpty()) {
-                    unexportStepsAdded =
-                            vplexAddUnexportVolumeWfSteps(workflow, VPLEX_STEP,
-                                    backendVolURIs, exportGroupList);
+                    unexportStepsAdded = vplexAddUnexportVolumeWfSteps(workflow, VPLEX_STEP,
+                            backendVolURIs, exportGroupList);
                 }
             }
 
@@ -9141,8 +9137,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Try to re-attach the mirror device back to the source device
             client.attachMirror(locality, sourceVplexVolume.getDeviceLabel(), vplexMirror.getDeviceLabel());
-            _log.info("Successfully re-attached mirror %s to the source volume %s during delete mirror rollback. "
-                    , vplexMirror.getDeviceLabel(), sourceVplexVolume.getDeviceLabel());
+            _log.info("Successfully re-attached mirror %s to the source volume %s during delete mirror rollback. ",
+                    vplexMirror.getDeviceLabel(), sourceVplexVolume.getDeviceLabel());
 
         } catch (Exception e) {
             // If exception occurs that means mirror is already detached and we couldn't reattach
@@ -9629,7 +9625,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Validate a VPLEX Storage Provider connection.
-     * 
+     *
      * @param ipAddress the Storage Provider's IP address
      * @param portNumber the Storage Provider's IP port
      * 
@@ -9641,8 +9637,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         try {
             // look up the provider by ip address and port
-            StringBuffer providerId =
-                    new StringBuffer(ipAddress).append(HYPHEN_OPERATOR).append(portNumber);
+            StringBuffer providerId = new StringBuffer(ipAddress).append(HYPHEN_OPERATOR).append(portNumber);
             URIQueryResultList providerUriList = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getStorageProviderByProviderIDConstraint(providerId.toString()),
@@ -9762,8 +9757,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 workflow, waitFor, vplex, Arrays.asList(virtualVolumeURI), false);
                         _log.info("Added steps for CG creation for vplex volume {}", virtualVolumeURI);
                     }
-                }
-                else {
+                } else {
                     _log.info("Adding VPLEX steps for RP+VPLEX/MetroPoint upgrade protection vpool change...");
                 }
 
@@ -9934,9 +9928,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, String opId) throws Exception {
         List<Initiator> initiators = _dbClient
                 .queryObject(Initiator.class, initiatorURIs);
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(volumeMap.keySet(), 0);
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeMap.keySet(), 0, storage.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, varrayURI, opId);
@@ -10140,7 +10135,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             throw VPlexApiException.exceptions.addStepsForChangeVirtualPoolFailed(ex);
         }
     }
-    
+
     @Override
     public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId)
             throws InternalException {
@@ -10156,7 +10151,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             URI nativeSystemURI = nativeFullCopyVolume.getStorageController();
             StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);
 
-            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD, 
+            Workflow.Method establishRelationMethod = new Workflow.Method(VOLUME_FULLCOPY_RELATION_METHOD,
                     nativeSystemURI, nativeSourceVolumeURI, nativeFullCopyVolume.getId());
             workflow.createStep(VOLUME_FULLCOPY_GROUP_RELATION_STEP,
                     "create group relation between Volume group and Full copy group", null,
@@ -10178,8 +10173,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     fullCopy.toString(), e);
             completer.error(_dbClient, sc);
         }
-            
-        
+
     }
 
     /**
@@ -10358,4 +10352,232 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         return RESYNC_SNAPSHOT_STEP;
     }
+
+    /**
+     * Inject coordinatorClient
+     * 
+     * @param coordinatorClient
+     */
+    public static void setCoordinator(CoordinatorClient coordinator) {
+        VPlexDeviceController.coordinator = coordinator;
+    }
+
+    public void pauseMigrationStep(URI vplexURI, URI migrationURI, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        try {
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            client.pauseMigrations(Arrays.asList(migration.getLabel()));
+            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.PAUSED.getStatusValue());
+            _dbClient.persistObject(migration);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error("Exception pausing migration: ", ex);
+            String opName = ResourceOperationTypeEnum.PAUSE_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
+
+    }
+
+    public void resumeMigrationStep(URI vplexURI, URI migrationURI, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        try {
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            URI volId = migration.getVolume();
+            client.resumeMigrations(Arrays.asList(migration.getLabel()));
+            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.IN_PROGRESS.getStatusValue());
+            _dbClient.persistObject(migration);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error("Exception resuming migration: ", ex);
+            String opName = ResourceOperationTypeEnum.RESUME_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+
+        }
+    }
+
+    public void cancelMigrationStep(URI vplexURI, URI migrationURI, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        try {
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            client.cancelMigrations(Arrays.asList(migration.getLabel()), true, true);
+            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue());
+            _dbClient.persistObject(migration);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error("Exception cancelling migration: ", ex);
+            String opName = ResourceOperationTypeEnum.CANCEL_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
+    }
+    
+    public void deleteMigrationStep(URI vplexURI, URI migrationURI, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        try {
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            client.removeMigrations(Arrays.asList(migration.getLabel()));
+            migration.setInactive(true);
+            _dbClient.persistObject(migration);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error("Exception deleting migration:", ex);
+            String opName = ResourceOperationTypeEnum.DELETE_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
+    }
+    
+    @Override
+    public void pauseMigration(URI vplexURI, URI migrationURI, String opId) {
+        MigrationOperationTaskCompleter completer = null;
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    PAUSE_MIGRATION_WF_NAME, false, opId);
+            _log.info("Created pause migration workflow with operation id {}", opId);
+
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            URI volId = migration.getVolume();
+            completer = new MigrationOperationTaskCompleter(volId, opId);
+            
+            Workflow.Method pauseMigrationMethod = new Workflow.Method(PAUSE_MIGRATION_METHOD_NAME,
+                    vplexURI, migrationURI);
+            workflow.createStep(PAUSE_MIGRATION_STEP, "Pause migration", null,
+                    vplexURI, vplex.getSystemType(), getClass(),
+                    pauseMigrationMethod, rollbackMethodNullMethod(), null);
+            String successMsg = String.format(
+                    "Migration %s paused successfully", migrationURI);
+            workflow.executePlan(completer, successMsg);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {            
+            String failMsg = String.format(
+                    "Pause the migration %s failed", migrationURI);
+            _log.error(failMsg, e);
+            String opName = ResourceOperationTypeEnum.PAUSE_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, e);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+        }
+
+    }
+    
+    @Override
+    public void resumeMigration(URI vplexURI, URI migrationURI, String opId) {
+        MigrationOperationTaskCompleter completer = null;
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    RESUME_MIGRATION_WF_NAME, false, opId);
+            _log.info("Created resume migration workflow with operation id {}", opId);
+
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            URI volId = migration.getVolume();
+            completer = new MigrationOperationTaskCompleter(volId, opId);
+            
+            Workflow.Method resumeMigrationMethod = new Workflow.Method(RESUME_MIGRATION_METHOD_NAME,
+                    vplexURI, migrationURI);
+            workflow.createStep(RESUME_MIGRATION_STEP, "Resume migration", null,
+                    vplexURI, vplex.getSystemType(), getClass(),
+                    resumeMigrationMethod, rollbackMethodNullMethod(), null);
+
+            String successMsg = String.format(
+                    "Migration %s resumed successfully", migrationURI);
+            workflow.executePlan(completer, successMsg);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {            
+            String failMsg = String.format(
+                    "Pause the migration %s failed", migrationURI);
+            _log.error(failMsg, e);
+            String opName = ResourceOperationTypeEnum.RESUME_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, e);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+        }
+    }
+    
+    @Override
+    public void cancelMigration(URI vplexURI, URI migrationURI, String opId) {
+        MigrationOperationTaskCompleter completer = null;
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    CANCEL_MIGRATION_WF_NAME, false, opId);
+            _log.info("Created cancel migration workflow with operation id {}", opId);
+
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            URI volId = migration.getVolume();
+            completer = new MigrationOperationTaskCompleter(volId, opId);
+            
+            Workflow.Method cancelMigrationMethod = new Workflow.Method(CANCEL_MIGRATION_METHOD_NAME,
+                    vplexURI, migrationURI);
+            workflow.createStep(CANCEL_MIGRATION_STEP, "Cancel migration", null,
+                    vplexURI, vplex.getSystemType(), getClass(),
+                    cancelMigrationMethod, rollbackMethodNullMethod(), null);
+            String successMsg = String.format(
+                    "Migration %s cancelled successfully", migrationURI);
+            workflow.executePlan(completer, successMsg);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {            
+            String failMsg = String.format(
+                    "Pause the migration %s failed", migrationURI);
+            _log.error(failMsg, e);
+            String opName = ResourceOperationTypeEnum.CANCEL_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, e);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+        }
+    }
+    
+    @Override
+    public void deleteMigration(URI vplexURI, URI migrationURI, String opId) {
+        MigrationOperationTaskCompleter completer = null;
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    DELETE_MIGRATION_WF_NAME, false, opId);
+            _log.info("Created delete migration workflow with operation id {}", opId);
+
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            URI volId = migration.getVolume();
+            completer = new MigrationOperationTaskCompleter(volId, opId);
+            
+            Workflow.Method deleteMigrationMethod = new Workflow.Method(DELETE_MIGRATION_METHOD_NAME,
+                    vplexURI, migrationURI);
+            workflow.createStep(DELETE_MIGRATION_STEP, "Delete migration", null,
+                    vplexURI, vplex.getSystemType(), getClass(),
+                    deleteMigrationMethod, rollbackMethodNullMethod(), null);
+
+            String successMsg = String.format(
+                    "Migration %s deleted successfully", migrationURI);
+            workflow.executePlan(completer, successMsg);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {            
+            String failMsg = String.format(
+                    "Pause the migration %s failed", migrationURI);
+            _log.error(failMsg, e);
+            String opName = ResourceOperationTypeEnum.DELETE_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, e);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+        }
+    }
+
 }

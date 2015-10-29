@@ -977,7 +977,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             Collection<RPExport> rpExports = generateStorageSystemExportMaps(params, volumeDescriptors);            
 
             Map<String, List<Initiator>> rpSiteInitiatorsMap = getRPSiteInitiators(rpSystem, rpExports);                        
-            acquireRPLocks(taskId, lockException, rpExports,
+            acquireRPLockKeysForExport(taskId, lockException, rpExports,
 					rpSiteInitiatorsMap);
 
             // For each RP Export, create a workflow to either add the volumes to an existing export group
@@ -1207,11 +1207,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 	 * @param rpSiteInitiatorsMap RP site initiators map
 	 * @return 
 	 */
-	private void acquireRPLocks(String taskId, boolean lockException,
+	private void acquireRPLockKeysForExport(String taskId, boolean lockException,
 						Collection<RPExport> rpExports,
-						Map<String, List<Initiator>> rpSiteInitiatorsMap) {
-		
+						Map<String, List<Initiator>> rpSiteInitiatorsMap) {		
 		_log.info("Start : Acquiring RP lock keys for export");
+		List<String> lockKeys = new ArrayList<String>();
+		
 		for(RPExport rpExport : rpExports) {			
 			List<Initiator> rpSiteInitiators = rpSiteInitiatorsMap.get(rpExport.getRpSite());
 			List<URI> rpSiteInitiatorURIs = new ArrayList<URI>();
@@ -1219,21 +1220,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 				rpSiteInitiatorURIs.add(rpSiteInitiator.getId());
 			}
 			
-		    List<String> lockKeys = ControllerLockingUtil
+		     lockKeys.addAll(ControllerLockingUtil
 		            .getStorageLockKeysByHostName(_dbClient,
-		            		rpSiteInitiatorURIs, rpExport.getStorageSystem());
-		    boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
+		            		rpSiteInitiatorURIs, rpExport.getStorageSystem()));		   
+	    }
+		
+		boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
 		            taskId, lockKeys, LockTimeoutValue.get(LockType.RP_EXPORT));
-		    if (!acquiredLocks) {
-		        lockException = true;
-		        throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-		                "ExportOrchestrationSteps: RP Export");
-		    }
-		    
-		    for(String lockKey : lockKeys) {
-		    	_log.info("Acquired lock : " + lockKey);
-		    }
+	    if (!acquiredLocks) {
+	        lockException = true;
+	        throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+	                "ExportOrchestrationSteps: RP Export");		    
 		}
+	    for(String lockKey : lockKeys) {
+	    	_log.info("Acquired lock : " + lockKey);
+	    }
 		_log.info("Done : Acquiring RP lock keys for export");		
 	}
 
@@ -1243,7 +1244,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 	 * @param rpExports RP Export objects
 	 * @return Map of RP site to its initiators
 	 */
-	private Map<String, List<Initiator>> getRPSiteInitiators(ProtectionSystem rpSystem, Collection<RPExport> rpExports) {
+	private Map<String, List<Initiator>> getRPSiteInitiators(ProtectionSystem rpSystem, Collection<RPExport> rpExports){
 		
 		Map<String, List<Initiator>> rpSiteInitiators = new HashMap<String, List<Initiator>>();
 		// Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)

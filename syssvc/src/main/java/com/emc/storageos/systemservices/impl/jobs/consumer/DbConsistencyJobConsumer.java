@@ -20,7 +20,6 @@ import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
 
 public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsistencyJob> {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyJobConsumer.class);
-    private static final String[] MODEL_PACKAGES = new String[] {"com.emc.storageos.db.client.model"}; 
     private CoordinatorClient coordinator;
     private DbChecker dbChecker;
     
@@ -41,7 +40,6 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         }
         
         try {
-            DbSchemaChecker.checkSourceSchema(MODEL_PACKAGES);
             dbChecker.checkDataObjects(false);
             dbChecker.checkIndexingCFs(false);
             status = markResult();

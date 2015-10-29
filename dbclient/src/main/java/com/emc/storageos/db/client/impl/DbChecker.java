@@ -19,30 +19,21 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.impl.DbClientImpl.IndexAndCf;
+import com.emc.storageos.db.common.DbSchemaChecker;
 import com.netflix.astyanax.model.ColumnFamily;
 
 public class DbChecker {
     private int cfCount;
     private DbClientImpl dbClient;
     private CoordinatorClient coordinator;
-
-    public DbClientImpl getDbClient() {
-        return dbClient;
-    }
-
-    public void setDbClient(DbClientImpl dbClient) {
-        this.dbClient = dbClient;
-    }
-
-    public CoordinatorClient getCoordinator() {
-        return coordinator;
-    }
-
-    public void setCoordinator(CoordinatorClient coordinator) {
-        this.coordinator = coordinator;
-    }
+    private static final String[] MODEL_PACKAGES = new String[] {"com.emc.storageos.db.client.model"}; 
 
     public DbChecker() {
+        try {
+            DbSchemaChecker.checkSourceSchema(MODEL_PACKAGES);
+        } catch (Exception e) {
+            throw new IllegalStateException("generate schema fail");
+        }
     }
 
     public DbChecker(DbClientImpl dbClient) {
@@ -61,7 +52,7 @@ public class DbChecker {
         Collection<DataObjectType> sortedTypes = getSortedTypes(allDoTypes);
         
         DbConsistencyStatus status = getStatusFromZk();
-        dbClient.logMessage(String.format("status {] in zk", status.toString()), false, false);
+        dbClient.logMessage(String.format("status {} in zk", status.toString()), false, false);
         Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, status.getWorkingPoint(), toConsole);
         dbClient.logMessage(String.format("total cf count %d", cfCount), false, false);
         int dirtyCount = 0;
@@ -246,5 +237,21 @@ public class DbChecker {
         }
 
         return objCfs;
+    }
+    
+    public DbClientImpl getDbClient() {
+        return dbClient;
+    }
+
+    public void setDbClient(DbClientImpl dbClient) {
+        this.dbClient = dbClient;
+    }
+
+    public CoordinatorClient getCoordinator() {
+        return coordinator;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
     }
 }

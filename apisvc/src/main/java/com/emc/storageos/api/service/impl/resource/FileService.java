@@ -2032,7 +2032,6 @@ public class FileService extends TaskResourceService {
             _log.info("No Acl rules found for filesystem  {}", fs.getId());
         }
         return acls;
-
     }
 
     /**
@@ -2061,7 +2060,6 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         // Check for VirtualPool whether it has NFS v4 enabled
-
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
             // Throw an error
@@ -2128,7 +2126,6 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         // Check for VirtualPool whether it has NFS v4 enabled
-
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
             // Throw an error
@@ -2141,11 +2138,21 @@ public class FileService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_NFS_ACL);
         op.setDescription("Delete ACL of file system ");
+        
+        try {
+        	controller.deleteNFSAcls(device.getId(), fs.getId(), subDir, task);
 
-        controller.deleteNFSAcls(device.getId(), fs.getId(), subDir, task);
+        	auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
+        			fs.getId().toString(), device.getId().toString(), subDir);
 
-        auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), device.getId().toString(), subDir);
+        } catch (BadRequestException e) {
+        	op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+        	_log.error("Error Processing File System ACL Delete {}, {}", e.getMessage(), e);
+        	throw e;
+        } catch (Exception e) {
+        	_log.error("Error Processing File System ACL Delete  {}, {}", e.getMessage(), e);
+        	throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
 
         return toTask(fs, task, op);
     }

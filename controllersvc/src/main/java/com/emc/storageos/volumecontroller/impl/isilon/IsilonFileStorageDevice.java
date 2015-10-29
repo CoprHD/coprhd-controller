@@ -37,6 +37,7 @@ import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL;
+import com.emc.storageos.isilon.restapi.IsilonNFSACL.Acl;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare.Permission;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
@@ -1778,69 +1779,59 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         _log.info("End processAclsForShare");
     }
 
+    /**
+     * getIsilonAclFromNfsACE function will convert the nfsACE object 
+     * to Isilon ACL object.
+     *  
+     * @param nfsACE - vipr ACE object.
+     * @return
+     */
+    private Acl getIsilonAclFromNfsACE(NfsACE nfsACE ) {
+    	
+    	IsilonNFSACL isilonAcl = new IsilonNFSACL();
+    	Acl acl = isilonAcl.new Acl();
+    	
+    	ArrayList<String> inheritFlags = new ArrayList<String>();
+
+        inheritFlags.add("object_inherit");
+        inheritFlags.add("inherit_only");
+        acl.setInherit_flags(inheritFlags);
+        acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
+        acl.setOp("add");
+        acl.setAccesstype(nfsACE.getPermissionType());
+        String user = nfsACE.getUser();
+        if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
+            user = nfsACE.getDomain() + "\\" + nfsACE.getUser();
+        }
+
+        IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
+        acl.setTrustee(trustee);
+    	
+    	return acl;
+    }
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
 
         IsilonNFSACL isilonAcl = new IsilonNFSACL();
-        ArrayList<IsilonNFSACL.Acl> aclCompleteList = new ArrayList<IsilonNFSACL.Acl>();
+        ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
         List<NfsACE> aceToAdd = args.getNfsAclsToAdd();
         for (NfsACE nfsACE : aceToAdd) {
-            IsilonNFSACL.Acl acl = isilonAcl.new Acl();
-            ArrayList<String> inheritFlags = new ArrayList<String>();
-
-            inheritFlags.add("object_inherit");
-            inheritFlags.add("inherit_only");
-            acl.setInherit_flags(inheritFlags);
-            acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
+            Acl acl = getIsilonAclFromNfsACE(nfsACE );
             acl.setOp("add");
-            acl.setAccesstype(nfsACE.getPermissionType());
-            String user = nfsACE.getUser();
-            if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
-                user = nfsACE.getDomain() + "\\" + nfsACE.getUser();
-            }
-
-            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
-            acl.setTrustee(trustee);
             aclCompleteList.add(acl);
         }
 
         List<NfsACE> aceToModify = args.getNfsAclsToModify();
         for (NfsACE nfsACE : aceToModify) {
-            IsilonNFSACL.Acl acl = isilonAcl.new Acl();
-            ArrayList<String> inheritFlags = new ArrayList<String>();
-            inheritFlags.add("object_inherit");
-            inheritFlags.add("inherit_only");
-            acl.setInherit_flags(inheritFlags);
-            acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
+        	Acl acl = getIsilonAclFromNfsACE(nfsACE );
             acl.setOp("replace");
-            acl.setAccesstype(nfsACE.getPermissionType());
-            String user = nfsACE.getUser();
-            if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
-                user = nfsACE.getDomain() + "\\" + nfsACE.getUser();
-            }
-
-            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
-            acl.setTrustee(trustee);
             aclCompleteList.add(acl);
         }
 
         List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
         for (NfsACE nfsACE : aceToDelete) {
-            IsilonNFSACL.Acl acl = isilonAcl.new Acl();
-            ArrayList<String> inheritFlags = new ArrayList<String>();
-            inheritFlags.add("object_inherit");
-            inheritFlags.add("inherit_only");
-            acl.setInherit_flags(inheritFlags);
-            acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
+        	Acl acl = getIsilonAclFromNfsACE(nfsACE );
             acl.setOp("delete");
-            acl.setAccesstype(nfsACE.getPermissionType());
-            String user = nfsACE.getUser();
-            if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
-                user = nfsACE.getDomain() + "\\" + nfsACE.getUser();
-            }
-
-            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
-            acl.setTrustee(trustee);
             aclCompleteList.add(acl);
         }
 
@@ -1869,15 +1860,14 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_READ)) {
                 accessRights.add(IsilonNFSACL.AccessRights.dir_gen_read.toString());
-
             }
+            
             if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_WRITE)) {
                 accessRights.add(IsilonNFSACL.AccessRights.std_write_dac.toString());
-
             }
+            
             if (per.equalsIgnoreCase(FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE)) {
                 accessRights.add(IsilonNFSACL.AccessRights.dir_gen_execute.toString());
-
             }
         }
         return accessRights;
@@ -1887,25 +1877,12 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     public BiosCommandResult deleteNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
     	
     	IsilonNFSACL isilonAcl = new IsilonNFSACL();
-        ArrayList<IsilonNFSACL.Acl> aclCompleteList = new ArrayList<IsilonNFSACL.Acl>();
+        ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
  
         List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
         for (NfsACE nfsACE : aceToDelete) {
-            IsilonNFSACL.Acl acl = isilonAcl.new Acl();
-            ArrayList<String> inheritFlags = new ArrayList<String>();
-            inheritFlags.add("object_inherit");
-            inheritFlags.add("inherit_only");
-            acl.setInherit_flags(inheritFlags);
-            acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
+        	Acl acl = getIsilonAclFromNfsACE(nfsACE );
             acl.setOp("delete");
-            acl.setAccesstype(nfsACE.getPermissionType());
-            String user = nfsACE.getUser();
-            if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
-                user = nfsACE.getDomain() + "\\" + nfsACE.getUser();
-            }
-
-            IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
-            acl.setTrustee(trustee);
             aclCompleteList.add(acl);
         }
 

@@ -92,7 +92,6 @@ public class NfsACLUtility {
         Set<String> userSetDB = new HashSet<String>();
         for (NFSShareACL dbAcl : dbACLList) {
             userSetDB.add(dbAcl.getUser());
-
         }
         
         if (addList != null && !addList.isEmpty()) {
@@ -143,8 +142,8 @@ public class NfsACLUtility {
                 	
                     throw APIException.badRequests.multipleDomainsFound("update", ace.getDomain(), ace.getUser().substring(0, index));
                 } else {
-                    // split takes regex so need 4 backslash
-                    String domainAndUser[] = ace.getUser().split("\\\\");
+                    // verify the username provided with domain and user
+                    String domainAndUser[] = ace.getUser().split("\\");
                     if (domainAndUser.length > 2) {
                         throw APIException.badRequests.multipleDomainsFound("update", domainAndUser[0], domainAndUser[1]);
                     }
@@ -189,7 +188,7 @@ public class NfsACLUtility {
 
         validateNfsAceSyntax(changeList);
         for (NfsACE ace : changeList) {
-
+        	
             if (!userSet.contains(ace.getUser())) {
                 throw APIException.badRequests.nfsACLNotFound("modify or delete",
                         ace.getUser());
@@ -230,24 +229,24 @@ public class NfsACLUtility {
                             NFSShareACL.class, containmentConstraint);
             if (allDirs) {
                 return nfsAclList;
-
             }
+            
             List<NFSShareACL> rootAclList = new ArrayList<NFSShareACL>();
             List<NFSShareACL> subDirAclList = new ArrayList<NFSShareACL>();
+            
             String absoluteSubdir = "";
             if (this.subDir != null && !this.subDir.isEmpty()) {
                 absoluteSubdir = this.fs.getPath() + "/" + subDir;
             }
             for (NFSShareACL nfsAcl : nfsAclList) {
+            	
                 if (nfsAcl.getFileSystemPath().equals(fs.getPath())) {
                     rootAclList.add(nfsAcl);
-
                 }
                 if (!absoluteSubdir.isEmpty()) {
                     if (nfsAcl.getFileSystemPath().equals(absoluteSubdir)) {
                         subDirAclList.add(nfsAcl);
                     }
-
                 }
             }
             if (!absoluteSubdir.isEmpty()) {

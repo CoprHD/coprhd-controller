@@ -2986,9 +2986,7 @@ public class FileDeviceController implements FileController {
 
             if (result.isCommandSuccess()) {
                 // Update Database
-
                 updateNFSACLsInDB(param, fs, args);
-
             }
 
             if (result.getCommandPending()) {
@@ -3055,7 +3053,6 @@ public class FileDeviceController implements FileController {
             }
 
             // Modify existing acls
-
             List<NfsACE> aceModify = param.getAcesToModify();
 
             if (aceModify != null && !aceModify.isEmpty()) {
@@ -3083,8 +3080,7 @@ public class FileDeviceController implements FileController {
                         dbNfsAcl.setInactive(true);
                         _log.info("Marking acl inactive in DB: {}", dbNfsAcl);
                         _dbClient.persistObject(dbNfsAcl);
-                    }
-                    
+                    }                  
                 }
             }
         }
@@ -3092,7 +3088,6 @@ public class FileDeviceController implements FileController {
         catch (Exception e) {
             _log.error("Error While executing CRUD Operations {}", e);
         }
-
     }
 
     @Override
@@ -3239,7 +3234,6 @@ public class FileDeviceController implements FileController {
 
                 }
             }
-
         }
         return nfsShareAcl;
     }
@@ -3257,48 +3251,32 @@ public class FileDeviceController implements FileController {
             NfsACE nfsAce = new NfsACE();
 
             String permission = nfsShareACL.getPermissions();
-
             if (permission != null && !permission.isEmpty()) {
-
                 nfsAce.setPermissions(permission);
-
             }
 
             String domain = nfsShareACL.getDomain();
-
             if (domain != null && !domain.isEmpty()) {
-
                 nfsAce.setDomain(domain);
-
             }
+                   
             String permissionType = nfsShareACL.getPermissionType();
-
+            nfsAce.setPermissionType(FileControllerConstants.NFS_FILE_PERMISSION_TYPE_ALLOW);
             if (permissionType != null && !permissionType.isEmpty()) {
-
                 nfsAce.setPermissionType(permissionType);
-
-            } else {
-
-                nfsAce.setPermissionType(FileControllerConstants.NFS_FILE_PERMISSION_TYPE_ALLOW);
-
-            }
+            } 
+            
             String type = nfsShareACL.getType();
-
             if (type != null && !type.isEmpty()) {
-
                 nfsAce.setType(type);
-
             }
+            
             String user = nfsShareACL.getUser();
-
             if (user != null && !user.isEmpty()) {
-
                 nfsAce.setUser(user);
-
             }
+            
             nfsAcls.add(nfsAce);
-
         }
-
     }
 }

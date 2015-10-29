@@ -15,8 +15,6 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -36,9 +34,7 @@ import com.emc.storageos.systemservices.impl.jobs.producer.DbConsistencyJobProdu
 @Path("/db/")
 public class DbConsistencyService {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyService.class);
-    @Autowired
     private CoordinatorClient coordinator;
-    @Autowired
     private DbConsistencyJobProducer jobProducer;
 
     @POST
@@ -114,5 +110,24 @@ public class DbConsistencyService {
     private boolean isDbConsistencyCheckInProgress() {
         DbConsistencyStatus state = getStatusFromZk();
         return state!=null && state.getStatus()==DbConsistencyStatusRestRep.Status.IN_PROGRESS;
+    }
+
+    public CoordinatorClient getCoordinator() {
+        return coordinator;
+    }
+
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
+    }
+
+
+    public DbConsistencyJobProducer getJobProducer() {
+        return jobProducer;
+    }
+
+
+    public void setJobProducer(DbConsistencyJobProducer jobProducer) {
+        this.jobProducer = jobProducer;
     }
 }

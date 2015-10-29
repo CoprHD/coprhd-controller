@@ -6,8 +6,6 @@ package com.emc.storageos.systemservices.impl.jobs.producer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
@@ -21,11 +19,9 @@ public class DbConsistencyJobProducer {
     public static final long DEFAULT_MAX_WAIT_STOP = 60 * 1000;
     private DistributedQueue<DbConsistencyJob> queue;
 
-    @Autowired
     private CoordinatorClient coordinator;
-    @Autowired
     private DbConsistencyJobConsumer consumer;
-    
+
     /**
      * Start db consistency job queue
      */
@@ -54,5 +50,21 @@ public class DbConsistencyJobProducer {
             log.error("fail to enqueue job", e);
             throw new RuntimeException(e);
         }
+    }
+    
+    public CoordinatorClient getCoordinator() {
+        return coordinator;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
+    }
+
+    public DbConsistencyJobConsumer getConsumer() {
+        return consumer;
+    }
+
+    public void setConsumer(DbConsistencyJobConsumer consumer) {
+        this.consumer = consumer;
     }
 }

@@ -15,9 +15,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -26,10 +23,24 @@ import com.netflix.astyanax.model.ColumnFamily;
 
 public class DbChecker {
     private int cfCount;
-    @Autowired
     private DbClientImpl dbClient;
-    @Autowired
     private CoordinatorClient coordinator;
+
+    public DbClientImpl getDbClient() {
+        return dbClient;
+    }
+
+    public void setDbClient(DbClientImpl dbClient) {
+        this.dbClient = dbClient;
+    }
+
+    public CoordinatorClient getCoordinator() {
+        return coordinator;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
+    }
 
     public DbChecker() {
     }

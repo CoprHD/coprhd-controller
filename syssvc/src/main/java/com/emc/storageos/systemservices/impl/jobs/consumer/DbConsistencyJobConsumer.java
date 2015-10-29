@@ -1,9 +1,11 @@
+/*
+ * Copyright (c) 2008-2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.systemservices.impl.jobs.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -15,9 +17,7 @@ import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
 
 public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsistencyJob> {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyJobConsumer.class);
-    @Autowired
     private CoordinatorClient coordinator;
-    @Autowired
     private DbChecker dbCheker;
     
     @Override
@@ -74,5 +74,21 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
     
     private boolean isFreshStart(DbConsistencyStatus status) {
         return status==null;
+    }
+    
+    public CoordinatorClient getCoordinator() {
+        return coordinator;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
+    }
+
+    public DbChecker getDbCheker() {
+        return dbCheker;
+    }
+
+    public void setDbCheker(DbChecker dbCheker) {
+        this.dbCheker = dbCheker;
     }
 }

@@ -34,7 +34,7 @@ public class ExtendBlockVolumeService extends WindowsService {
         super.precheck();
         boolean clusteredVolumeSuccess = false;
 
-        List<BlockObjectRestRep> volumes = BlockStorageUtils.getVolumes(uris(volumeIds));
+        List<BlockObjectRestRep> volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
         for (ExtendDriveHelper extendDriveHelper : extendDriveHelpers) {
             extendDriveHelper.setVolumes(volumes);
             extendDriveHelper.precheck();

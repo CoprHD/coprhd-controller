@@ -58,9 +58,6 @@ public class DbManager implements DbManagerMBean {
     @Autowired
     private SchemaUtil schemaUtil;
 
-    @Autowired
-    private DbRebuildRunnable dbRebuildRunnable;
-
     ScheduledFuture<?> scheduledRepairTrigger;
 
     // Max retry times after a db repair failure

@@ -18,11 +18,11 @@ import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
 public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsistencyJob> {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyJobConsumer.class);
     private CoordinatorClient coordinator;
-    private DbChecker dbCheker;
-    
+    private DbChecker dbChecker;
+
     @Override
     public void consumeItem(DbConsistencyJob job, DistributedQueueItemProcessedCallback callback) throws Exception {
-        DbConsistencyStatus status = dbCheker.getStatusFromZk();
+        DbConsistencyStatus status = dbChecker.getStatusFromZk();
         if (isFreshStart(status)) {
             log.info("it's first time to run db consistency check, init status in zk");
             createStatusInZk();
@@ -35,8 +35,8 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         }
         
         try {
-            dbCheker.checkDataObjects(false);
-            dbCheker.checkIndexingCFs(false);
+            dbChecker.checkDataObjects(false);
+            dbChecker.checkIndexingCFs(false);
             status = markResult();
             callback.itemProcessed();
         } catch(Exception e) {
@@ -44,18 +44,18 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
             status = markFailure();
         } finally {
             log.info("db consistency check done, persist final result {} in zk", status.getStatus());
-            this.dbCheker.persistStatus(status);
+            this.dbChecker.persistStatus(status);
         }
     }
 
     private DbConsistencyStatus markFailure() {
-        DbConsistencyStatus status = this.dbCheker.getStatusFromZk();
+        DbConsistencyStatus status = this.dbChecker.getStatusFromZk();
         status.setStatus(Status.FAILED);
         return status;
     }
     
     private DbConsistencyStatus markResult() {
-        DbConsistencyStatus status = dbCheker.getStatusFromZk();
+        DbConsistencyStatus status = dbChecker.getStatusFromZk();
         if (status.getInconsistencyCount() > 0) {
             log.info("there are {} inconsistency found, mark result as fail", status.getInconsistencyCount());
             status.setStatus(Status.FAILED);
@@ -84,11 +84,11 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         this.coordinator = coordinator;
     }
 
-    public DbChecker getDbCheker() {
-        return dbCheker;
+    public DbChecker getDbChecker() {
+        return dbChecker;
     }
 
-    public void setDbCheker(DbChecker dbCheker) {
-        this.dbCheker = dbCheker;
+    public void setDbChecker(DbChecker dbChecker) {
+        this.dbChecker = dbChecker;
     }
 }

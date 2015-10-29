@@ -27,6 +27,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -1939,8 +1941,8 @@ public class DbClientImpl implements DbClient {
      * @return number of the corrupted rows in this index CF
      * @throws ConnectionException
      */
-    int checkIndexingCF(IndexAndCf indexAndCf, Map<String, ColumnFamily<String, CompositeColumnName>> objCfs,
-                        boolean toConsole) throws ConnectionException {
+            int checkIndexingCF(IndexAndCf indexAndCf, Map<String, ColumnFamily<String, CompositeColumnName>> objCfs,
+                    boolean toConsole) throws ConnectionException {
         int indexRowCount = 0;
         int objCfCount = 0;
         int corruptRowCount = 0;
@@ -2007,10 +2009,19 @@ public class DbClientImpl implements DbClient {
                         corruptRowCount++;
                         corruptRowCountInIdx++;
                         logMessage(String.format("Inconsistency: Index(%s, type: %s, id: %s, column: %s) is existing "
-                                        + "but the related object record(%s, id: %s) is missing.",
+                                + "but the related object record(%s, id: %s) is missing.",
                                 indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                 idxEntry.getIndexKey(), idxEntry.getColumnName(),
                                 objCf.getName(), row.getKey()), true, toConsole);
+                        DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
+                                String.format(
+                                        "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;",
+                                        indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
+                                        idxEntry.getColumnName().getTwo(),
+                                        handleNullValue(idxEntry.getColumnName().getThree()),
+                                        handleNullValue(idxEntry.getColumnName().getFour()),
+                                        idxEntry.getColumnName().getTimeUUID()));
+
                     }
 
                 }
@@ -2031,6 +2042,104 @@ public class DbClientImpl implements DbClient {
 
         return corruptRowCount;
     }
+
+    private String handleNullValue(String columnValue) {
+        return columnValue == null ? "" : columnValue;
+    }
+
+    /**
+     * Scan all the data object records, to find out the object record is existing but the related index is missing.
+     *
+     * @param doType
+     * @param toConsole whether print out in the console
+     * @return the number of corrupted data
+     * @throws ConnectionException
+     */
+    int checkCFIndices(DataObjectType doType, boolean toConsole) throws ConnectionException {
+        int dirtyCount = 0;
+        Class objClass = doType.getDataObjectClass();
+        _log.info("Check Data Object CF {}", objClass);
+
+        List<ColumnField> indexedFields = new ArrayList<>();
+        for (ColumnField field : doType.getColumnFields()) {
+            if (field.getIndex() == null) {
+                continue;
+            }
+            indexedFields.add(field);
+        }
+
+        if (indexedFields.isEmpty()) {
+            return dirtyCount;
+        }
+
+        Keyspace keyspace = getKeyspace(objClass);
+
+        ColumnFamilyQuery<String, CompositeColumnName> query = keyspace.prepareQuery(doType.getCF());
+
+        OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows()
+                .withColumnRange(CompositeColumnNameSerializer.get().buildRange().greaterThanEquals(DataObject.INACTIVE_FIELD_NAME)
+                        .lessThanEquals(DataObject.INACTIVE_FIELD_NAME).reverse().limit(1))
+                .setRowLimit(DEFAULT_PAGE_SIZE).execute();
+
+        for (Row<String, CompositeColumnName> objRow : result.getResult()) {
+            Set<URI> ids = new HashSet<>();
+            for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                // If inactive is true, skip this record
+                if (column.getBooleanValue() != true) {
+                    ids.add(URI.create(objRow.getKey()));
+                }
+            }
+
+            for (ColumnField indexedField : indexedFields) {
+                Rows<String, CompositeColumnName> rows = queryRowsWithAColumn(keyspace, ids, doType.getCF(), indexedField);
+                for (Row<String, CompositeColumnName> row : rows) {
+                    for (Column<CompositeColumnName> column : row.getColumns()) {
+                        String indexKey = getIndexKey(indexedField, column);
+                        if (indexKey == null) {
+                            continue;
+                        }
+                        boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
+                                getIndexColumns(indexedField, column, row.getKey()));
+                        if (!isColumnInIndex) {
+                            dirtyCount++;
+                            logMessage(String.format(
+                                    "Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
+                                    indexedField.getDataObjectType().getSimpleName(), row.getKey(), indexedField.getName(),
+                                    indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
+                                    true, toConsole);
+                            DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
+                                    String.format("id:%s, cfName:%s", row.getKey(),
+                                            indexedField.getDataObjectType().getSimpleName()));
+                        }
+                    }
+                }
+            }
+        }
+
+        return dirtyCount;
+    }
+
+    private boolean isColumnInIndex(Keyspace ks, ColumnFamily<String, IndexColumnName> indexCf, String indexKey, String[] indexColumns)
+            throws ConnectionException {
+        CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange();
+        for (int i = 0; i < indexColumns.length; i++) {
+            if (i == (indexColumns.length - 1)) {
+                builder.greaterThanEquals(indexColumns[i]).lessThanEquals(indexColumns[i]).limit(1);
+                break;
+            }
+            builder.withPrefix(indexColumns[i]);
+        }
+
+        ColumnList<IndexColumnName> result = ks.prepareQuery(indexCf).getKey(indexKey)
+                .withColumnRange(builder)
+                .execute().getResult();
+        for (Column<IndexColumnName> indexColumn : result) {
+            return true;
+        }
+        return false;
+    }
+
+
 
     private void serializeTasks(DataObject dataObject, RowMutator mutator, List<URI> objectsToCleanup) {
         OpStatusMap statusMap = dataObject.getOpStatus();
@@ -2122,6 +2231,82 @@ public class DbClientImpl implements DbClient {
                 operation.addTask(dataObject.getId(), task);
             }
         }
+    }
+
+    public static String getIndexKey(ColumnField field, Column<CompositeColumnName> column) {
+        String indexKey = null;
+        DbIndex dbIndex = field.getIndex();
+        boolean indexByKey = field.isIndexByKey();
+        if (dbIndex instanceof AltIdDbIndex) {
+            indexKey = indexByKey ? column.getName().getTwo() : column.getStringValue();
+        } else if (dbIndex instanceof RelationDbIndex) {
+            indexKey = indexByKey ? column.getName().getTwo() : column.getStringValue();
+        } else if (dbIndex instanceof NamedRelationDbIndex) {
+            indexKey = NamedURI.fromString(column.getStringValue()).getURI().toString();
+        } else if (dbIndex instanceof DecommissionedDbIndex) {
+            indexKey = field.getDataObjectType().getSimpleName();
+        } else if (dbIndex instanceof PermissionsDbIndex) {
+            indexKey = column.getName().getTwo();
+        } else if (dbIndex instanceof PrefixDbIndex) {
+            indexKey = field.getPrefixIndexRowKey(column.getStringValue());
+        } else if (dbIndex instanceof ScopedLabelDbIndex) {
+            indexKey = field.getPrefixIndexRowKey(column.getStringValue());
+        } else if (dbIndex instanceof AggregateDbIndex) {
+            // Not support this index type yet.
+        } else {
+            String msg = String.format("Unsupported index type %s.", dbIndex.getClass());
+            log.warn(msg);
+            System.out.println(msg);
+        }
+
+        return indexKey;
+    }
+
+    public static String[] getIndexColumns(ColumnField field, Column<CompositeColumnName> column, String rowKey) {
+        String[] indexColumns = null;
+        DbIndex dbIndex = field.getIndex();
+
+        if (dbIndex instanceof AggregateDbIndex) {
+            // Not support this index type yet.
+            return indexColumns;
+        }
+
+        if (dbIndex instanceof NamedRelationDbIndex) {
+            indexColumns = new String[4];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            NamedURI namedURI = NamedURI.fromString(column.getStringValue());
+            String name = namedURI.getName();
+            indexColumns[1] = name.toLowerCase();
+            indexColumns[2] = name;
+            indexColumns[3] = rowKey;
+
+        } else if (dbIndex instanceof PrefixDbIndex) {
+            indexColumns = new String[4];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            indexColumns[1] = column.getStringValue().toLowerCase();
+            indexColumns[2] = column.getStringValue();
+            indexColumns[3] = rowKey;
+
+        } else if (dbIndex instanceof ScopedLabelDbIndex) {
+            indexColumns = new String[4];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            ScopedLabel label = ScopedLabel.fromString(column.getStringValue());
+            indexColumns[1] = label.getLabel().toLowerCase();
+            indexColumns[2] = label.getLabel();
+            indexColumns[3] = rowKey;
+
+        } else if (dbIndex instanceof DecommissionedDbIndex) {
+            indexColumns = new String[2];
+            Boolean val = column.getBooleanValue();
+            indexColumns[0] = val.toString();
+            indexColumns[1] = rowKey;
+        } else {
+            // For AltIdDbIndex, RelationDbIndex, PermissionsDbIndex
+            indexColumns = new String[2];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            indexColumns[1] = rowKey;
+        }
+        return indexColumns;
     }
 
     /**

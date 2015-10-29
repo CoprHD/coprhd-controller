@@ -59,11 +59,11 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         BiosCommandResult result = null;
         String bktNativeId = null, currentOwner=null;
         try {
-            _log.info("Initiated for Bucket createion. Name : {} Namespace : {}", args.getName(), args.getNamespace());
+            _log.info("Initiated for Bucket creation. Name : {} Namespace : {}", args.getName(), args.getNamespace());
             bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool());
             ecsApi.updateBucketRetention(args.getName(), args.getNamespace(), args.getRetentionPeriod());
             ecsApi.updateBucketQuota(args.getName(), args.getNamespace(), args.getNotSizeSQ(), args.getBlkSizeHQ());
-            currentOwner = ecsApi.getBucketOwner(args.getName());
+            currentOwner = ecsApi.getBucketOwner(args.getName(), args.getNamespace());
             
             //ECS throws error if we try to set new owner which is same as current owner
             //This would lead to confusion as if there is an error

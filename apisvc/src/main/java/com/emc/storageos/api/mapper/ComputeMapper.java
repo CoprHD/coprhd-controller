@@ -24,9 +24,9 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
 import com.emc.storageos.model.compute.ComputeImageServerRestRep;
@@ -102,26 +102,8 @@ public class ComputeMapper {
         return to;
     }
 
-    public static ComputeImageRestRep map(ComputeImage from) {
-        if (from == null) {
-            return null;
-        }
-        ComputeImageRestRep to = new ComputeImageRestRep();
-        mapDataObjectFields(from, to);
-        to.setImageName(from.getImageName());
-        to.setImageUrl(from.getImageUrl());
-        to.setImageType(from.getImageType());
-        to.setComputeImageStatus(from.getComputeImageStatus());
-        to.setLastImportStatusMessage(from.getLastImportStatusMessage());
-        List<NamedRelatedResourceRep> availableServersList = new ArrayList<NamedRelatedResourceRep>();
-        List<NamedRelatedResourceRep> failedServersList = new ArrayList<NamedRelatedResourceRep>();
-        to.setAvailableImageServers(availableServersList);
-        to.setFailedImageServers(failedServersList);
-
-        return to;
-    }
-
-    public static ComputeImageRestRep map(ComputeImage from, List<ComputeImageServer> availableServers,
+    public static ComputeImageRestRep map(ComputeImage from,
+            List<ComputeImageServer> availableServers,
             List<ComputeImageServer> failedServers) {
         if (from == null) {
             return null;
@@ -138,13 +120,13 @@ public class ComputeMapper {
         for (ComputeImageServer server : availableServers) {
             NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
             serverRep.setId(server.getId());
-            serverRep.setName(server.getImageServerIp());
+            serverRep.setName(server.getLabel());
             availableServersList.add(serverRep);
         }
         for (ComputeImageServer server : failedServers) {
             NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
             serverRep.setId(server.getId());
-            serverRep.setName(server.getImageServerIp());
+            serverRep.setName(server.getLabel());
             failedServersList.add(serverRep);
         }
 
@@ -155,8 +137,8 @@ public class ComputeMapper {
     }
 
     /**
-     * Utility mapper method to map fields of {@link ComputeImageServer} columnFamily to {@link ComputeImageServerRestRep} rest
-     * representation.
+     * Utility mapper method to map fields of {@link ComputeImageServer}
+     * columnFamily to {@link ComputeImageServerRestRep} rest representation.
      * 
      * @param dbclient
      *            {@link DbClient} instance

@@ -37,6 +37,7 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         try {
             dbChecker.checkDataObjects(false);
             dbChecker.checkIndexingCFs(false);
+            dbChecker.checkCFIndices(false);
             status = markResult();
             callback.itemProcessed();
         } catch(Exception e) {

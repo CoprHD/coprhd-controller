@@ -57,6 +57,9 @@ import com.emc.vipr.model.sys.recovery.RecoveryStatus;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
@@ -531,7 +534,17 @@ public class SystemHealth extends Controller {
     public static void getRecoveryStatus() {
         ViPRSystemClient client = BourneUtil.getSysClient();
         RecoveryStatus recoveryStatus = client.control().getRecoveryStatus();
-        renderJSON(recoveryStatus);
+        JsonElement jsonElement = new Gson().toJsonTree(recoveryStatus);
+        JsonObject jsonObj = jsonElement.getAsJsonObject();
+        if (recoveryStatus.getStartTime() != null) {
+        	DateTime startTime = new DateTime(recoveryStatus.getStartTime().getTime());
+        	jsonObj.addProperty("startTime", startTime.toString());
+        }
+        if (recoveryStatus.getEndTime() != null) {
+        	DateTime endTime = new DateTime(recoveryStatus.getEndTime().getTime());
+        	jsonObj.addProperty("endTime", endTime.toString());
+        }
+        renderJSON(jsonObj.toString());
     }
 
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })

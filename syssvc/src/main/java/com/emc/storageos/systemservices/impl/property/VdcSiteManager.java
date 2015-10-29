@@ -46,7 +46,6 @@ import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * Manage configuration properties for multivdc and disaster recovery. It listens on
@@ -60,7 +59,6 @@ public class VdcSiteManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
     private static final String VDC_IDS_KEY = "vdc_ids";
-    private static final int VDC_RPOP_BARRIER_TIMEOUT = 5;
 
     private DbClient dbClient;
     private IPsecConfig ipsecConfig;
@@ -425,7 +423,7 @@ public class VdcSiteManager extends AbstractManager {
         // the children # should be the node # in entire VDC. before linking together, it's # in a site.
         DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, getChildrenCountOnBarrier());
 
-        boolean allEntered = barrier.enter(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+        boolean allEntered = barrier.enter(5, TimeUnit.SECONDS);
         if (allEntered) {
             log.info("All nodes entered VdcPropBarrier");
             return barrier;
@@ -445,9 +443,9 @@ public class VdcSiteManager extends AbstractManager {
                 return coordinator.getNodeCount();
             case VDC:
                 // TODO: need a method to return the # of VDC
-                throw new NotImplementedException();
+                return 2*coordinator.getNodeCount();
             default:
-                throw new RuntimeException("Unknown Action Scope is set in SiteInfo: " + scope);
+                throw new RuntimeException("");
         }
     }
 
@@ -460,11 +458,11 @@ public class VdcSiteManager extends AbstractManager {
         // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
         log.info("Waiting for all nodes leaving VdcPropBarrier");
 
-        boolean allLeft = barrier.leave(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+        boolean allLeft = barrier.leave(5, TimeUnit.SECONDS);
         if (allLeft) {
             log.info("All nodes left VdcPropBarrier");
         } else {
-            log.warn("Only Part of nodes left VdcPropBarrier before timeout");
+            log.info("Only Part of nodes left VdcPropBarrier before timeout");
         }
     }
 

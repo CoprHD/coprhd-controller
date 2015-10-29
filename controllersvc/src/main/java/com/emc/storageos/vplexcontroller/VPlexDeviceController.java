@@ -10369,7 +10369,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
             client.pauseMigrations(Arrays.asList(migration.getLabel()));
-            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.PAUSED.name());
+            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.PAUSED.getStatusValue());
             _dbClient.persistObject(migration);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
@@ -10389,7 +10389,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
             URI volId = migration.getVolume();
             client.resumeMigrations(Arrays.asList(migration.getLabel()));
-            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.IN_PROGRESS.name());
+            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.IN_PROGRESS.getStatusValue());
             _dbClient.persistObject(migration);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
@@ -10408,7 +10408,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
             client.cancelMigrations(Arrays.asList(migration.getLabel()), true, true);
-            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.CANCELLED.name());
+            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue());
             _dbClient.persistObject(migration);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {

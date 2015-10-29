@@ -336,10 +336,10 @@ public class MigrationService extends TaskResourceService {
         if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
             throw APIException.badRequests.migrationHasntStarted(id.toString());
         }
-        if (status.equals(VPlexMigrationInfo.MigrationStatus.COMPLETE.getStatusValue()) ||
-               status.equals(VPlexMigrationInfo.MigrationStatus.ERROR.getStatusValue()) ||
-               status.equals(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue()) ||
-               status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue())) {
+        if (status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMPLETE.getStatusValue()) ||
+               status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.ERROR.getStatusValue()) ||
+               status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue()) ||
+               status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue())) {
             throw APIException.badRequests.migrationCantBePaused(migrationName, status);
         } 
         URI volId = migration.getVolume();
@@ -352,7 +352,7 @@ public class MigrationService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Volume.class,
                 volId, taskId, ResourceOperationTypeEnum.PAUSE_MIGRATION);
         TaskResourceRep task = toTask(vplexVol, taskId, op);
-        if (status.equals(VPlexMigrationInfo.MigrationStatus.PAUSED.getStatusValue())) {
+        if (status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.PAUSED.getStatusValue())) {
             // it has been paused.
             s_logger.info("Migration {} has been paused", id);
             op.ready();
@@ -407,7 +407,7 @@ public class MigrationService extends TaskResourceService {
         if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
             throw APIException.badRequests.migrationHasntStarted(id.toString());
         }
-        if (!status.equals(VPlexMigrationInfo.MigrationStatus.PAUSED.getStatusValue())) {
+        if (!status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.PAUSED.getStatusValue())) {
             throw APIException.badRequests.migrationCantBeResumed(migrationName, status);
         }
         URI volId = migration.getVolume();
@@ -472,7 +472,7 @@ public class MigrationService extends TaskResourceService {
         if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
             throw APIException.badRequests.migrationHasntStarted(id.toString());
         }
-        if (status.equals(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue())){
+        if (status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue())){
             throw APIException.badRequests.migrationCantBeCancelled(migrationName, status);
         }
 
@@ -482,8 +482,8 @@ public class MigrationService extends TaskResourceService {
                 volId, taskId, ResourceOperationTypeEnum.CANCEL_MIGRATION);
         TaskResourceRep task = toTask(vplexVol, taskId, op);
 
-        if (status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.name()) ||
-                status.equals(VPlexMigrationInfo.MigrationStatus.PARTIALLY_CANCELLED.name())) {
+        if (status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue()) ||
+                status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.PARTIALLY_CANCELLED.getStatusValue())) {
             // it has been cancelled
             s_logger.info("Migration {} has been cancelled", id);
             op.ready();
@@ -806,9 +806,9 @@ public class MigrationService extends TaskResourceService {
         if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
             throw APIException.badRequests.migrationHasntStarted(id.toString());
         }
-        if (!status.equals(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue()) &&
-                !status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue()) &&
-                !status.equals(VPlexMigrationInfo.MigrationStatus.ERROR.getStatusValue())) {
+        if (!status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue()) &&
+                !status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue()) &&
+                !status.equalsIgnoreCase(VPlexMigrationInfo.MigrationStatus.ERROR.getStatusValue())) {
             throw VPlexApiException.exceptions.cantRemoveMigrationInvalidState(migrationName);
         }
 

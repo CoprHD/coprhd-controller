@@ -27,9 +27,8 @@ public class DbChecker {
     private CoordinatorClient coordinator;
     private int cfCount;
 
-    public DbChecker(DbClientImpl dbClient, CoordinatorClient coordinator) {
+    public DbChecker(DbClientImpl dbClient) {
         this.dbClient = dbClient;
-        this.coordinator = coordinator;
         this.cfCount = TypeMap.getAllDoTypes().size();
     }
 

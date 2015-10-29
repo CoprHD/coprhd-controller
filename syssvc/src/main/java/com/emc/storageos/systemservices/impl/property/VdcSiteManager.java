@@ -719,6 +719,7 @@ public class VdcSiteManager extends AbstractManager {
     
     private void updatePlannedFailoverSiteState() throws Exception {
         String siteId = coordinator.getCoordinatorClient().getSiteId();
+        String svcId = coordinator.getMySvcId();
         
         Configuration config = coordinator.getCoordinatorClient().queryConfiguration(Site.CONFIG_KIND, siteId);
         Site site = new Site(config);  
@@ -727,9 +728,6 @@ public class VdcSiteManager extends AbstractManager {
         
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER)) {
             log.info("This is primary planned failover site");
-            
-            log.info("Restart related services in old primary after planned failover");
-            restartServicesForSwitchover();
             
             DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
                     site.getUuid(), Constants.SWITCHOVER_PRIMARY_NODECOUNT);
@@ -742,13 +740,22 @@ public class VdcSiteManager extends AbstractManager {
                 site.setState(SiteState.STANDBY_SYNCED);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
             }
+            
+            //rolling reboot new primary node to make sure there is ZK leader 
+            while (true) {
+                if (!getVdcLock(svcId)) {
+                    log.info("Retry to get vdc lock to restart node");
+                    retrySleep(); // retry until we get the lock
+                    continue;
+                }
+                
+                log.info("Reboot this node after planned failover");
+                localRepository.reboot();
+            }
         }
         
         if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
             log.info("This is standby planned failover site");
-            
-            log.info("Restart related services in new primary after planned failover");
-            restartServicesForSwitchover();
             
             DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
                     site.getUuid(), Constants.SWITCHOVER_STANDBY_NODECOUNT);
@@ -761,12 +768,9 @@ public class VdcSiteManager extends AbstractManager {
                 site.setState(SiteState.PRIMARY);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
             }
+            
+            log.info("Reboot this node after planned failover");
+            localRepository.reboot();
         }
-    }
-    
-    private void restartServicesForSwitchover(){
-        localRepository.restart("controllersvc");
-        //localRepository.restart("dbsvc");
-        localRepository.restart("vasasvc");
     }
 }

@@ -672,16 +672,29 @@ public class VdcSiteManager extends AbstractManager {
                 coordinatorClient.getSiteId());
         Site localSite = new Site(localSiteConfig);
 
-        if (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
-            int nodeCount = localSite.getNodeCount();
+        String svcId = coordinator.getMySvcId();
+        while (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+            if (!getVdcLock(svcId)) {
+                retrySleep(); // retry until we get the lock
+                localSiteConfig = coordinatorClient.queryConfiguration(Site.CONFIG_KIND,
+                        coordinatorClient.getSiteId());
+                localSite = new Site(localSiteConfig);
+                continue;
+            }
 
-            // add back the paused site from strategy options of dbsvc and geodbsvc
-            String dcId = String.format("%s-%s", localSite.getVdcShortId(), localSite.getStandbyShortId());
-            ((DbClientImpl)dbClient).getLocalContext().addDcToStrategyOptions(dcId, nodeCount);
-            ((DbClientImpl)dbClient).getGeoContext().addDcToStrategyOptions(dcId, nodeCount);
+            try {
+                int nodeCount = localSite.getNodeCount();
 
-            localSite.setState(SiteState.STANDBY_SYNCING);
-            coordinatorClient.persistServiceConfiguration(localSite.toConfiguration());
+                // add back the paused site from strategy options of dbsvc and geodbsvc
+                String dcId = String.format("%s-%s", localSite.getVdcShortId(), localSite.getStandbyShortId());
+                ((DbClientImpl) dbClient).getLocalContext().addDcToStrategyOptions(dcId, nodeCount);
+                ((DbClientImpl) dbClient).getGeoContext().addDcToStrategyOptions(dcId, nodeCount);
+
+                localSite.setState(SiteState.STANDBY_SYNCING);
+                coordinatorClient.persistServiceConfiguration(localSite.toConfiguration());
+            } finally {
+                coordinator.releasePersistentLock(svcId, vdcLockId);
+            }
         }
 
         // here we simply check if the site state is STANDBY_SYNCING

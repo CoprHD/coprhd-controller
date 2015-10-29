@@ -122,6 +122,38 @@ public class BackupService {
     }
 
     /**
+     * List the info of backupsets that have zk backup file and
+     * quorum db and geodb backup files
+     *
+     * @brief List current backup info
+     * @prereq none
+     * @return A list of backup info
+     */
+    @GET
+    @Path("backup/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public BackupSets.BackupSet queryBackup(@QueryParam("tag") String backupTag) {
+        List<BackupSetInfo> backupList;
+
+        log.info("Received query backup request, tag={}", backupTag);
+        try {
+            backupList = backupOps.listBackup();
+        } catch (BackupException e) {
+            log.error("Failed to list backup sets", e);
+            throw APIException.internalServerErrors.getObjectError("Backup info", e);
+        }
+        for (BackupSetInfo backupInfo : backupList) {
+            if (backupInfo.getName().equals(backupTag)) {
+                BackupUploadStatus uploadStatus = getBackupUploadStatus(backupInfo.getName());
+                return new BackupSets.BackupSet(backupInfo.getName(), backupInfo.getSize(),
+                        backupInfo.getCreateTime(), uploadStatus);
+            }
+        }
+        return new BackupSets.BackupSet();
+    }
+
+    /**
      * Create a near Point-In-Time copy of DB & ZK data files on all controller nodes.
      * 
      * @brief Create a backup set

@@ -6315,6 +6315,15 @@ dr_tests()
     echo "---VERIFY sites from standby $standby_site---"
     dr get $standby_site
     dr get $primary_site
+	
+	# verify switchover 
+	echo "---VERIFY switchover to $standby_site---"
+	BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr switchover $standby_site
+	
+	echo "---WAIT FOR SWITCHOVER $standby_site---"
+    dr waitforstate $standby_site PRIMARY 20 600 -n|| echo "standby removed"
 
     # delete standby
     echo "---DELETE STANDBY $standby_site---"

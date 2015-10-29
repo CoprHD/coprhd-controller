@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -118,7 +117,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private static final String SYSTEM_ACCESS_ZONE_NAME = "System";
     private static final Long GB_IN_BYTES = 1073741824L;
     private static final String ONEFS_V8 = "8.0.0.0";
-    private static final String ONEFS_V7_2 = "8.0.0.0";
+    private static final String ONEFS_V7_2 = "7.2.0.0";
     
 
     private IsilonApiFactory _factory;
@@ -589,7 +588,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         _log.info("discoverNetworkPools for storage system {} - start", storageSystemId);
         List<IsilonNetworkPool> isilonNetworkPoolsTemp = null;
         try {
-            if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageSystem.getFirmwareVersion()) > 0) {
+            if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageSystem.getFirmwareVersion()) < 0) {
                 _log.info("Isilon release version {} and storagesystem label {}", 
                                 storageSystem.getFirmwareVersion(), storageSystem.getLabel());
                 IsilonApi isilonApi = getIsilonDevice(storageSystem);
@@ -598,7 +597,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     isilonNetworkPoolList.addAll(isilonNetworkPoolsTemp);
                 }
             } else {
-                //TODO
                 IsilonSshApi sshDmApi = new IsilonSshApi();
                 sshDmApi.setConnParams(storageSystem.getIpAddress(), storageSystem.getUsername(),
                         storageSystem.getPassword());

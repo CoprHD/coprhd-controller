@@ -360,6 +360,7 @@ public class BackupService {
                 newZipEntry(zos, in, fileName);
                 collectFileCount++;
             }
+
             try {
                 String fileName = backupTag + BackupConstants.BACKUP_INFO_SUFFIX;
                 String fullFileName = backupTag + File.separator + fileName;

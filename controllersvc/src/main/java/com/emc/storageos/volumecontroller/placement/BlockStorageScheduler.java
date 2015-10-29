@@ -1051,6 +1051,15 @@ public class BlockStorageScheduler {
                 // Make sure the storage port is in the passed network.
                 if (sp.getNetwork().equals(networkURI) || (networkLite != null &&
                         networkLite.hasRoutedNetworks(sp.getNetwork()))) {
+                    //Check for Storage Port health and if it is not Discovered/Disabled/NotVisible
+                    //Ignore them
+                    // StoragePort needs to be in the REGISTERED and VISIBLE status
+                    if (!sp.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name()) ||
+                            sp.getDiscoveryStatus().equals(DiscoveryStatus.NOTVISIBLE)){
+                        _log.info("Storage port {} is not registered or not visible {} : {} skip it " +
+                                sp.getNativeGuid(), sp.getDiscoveryStatus(), sp.getRegistrationStatus());
+                        continue;
+                    }
                     // Now make sure the port has connectivity/assignment
                     // to the passed virtual array.
                     if (sp.getNetwork().equals(networkURI)) {

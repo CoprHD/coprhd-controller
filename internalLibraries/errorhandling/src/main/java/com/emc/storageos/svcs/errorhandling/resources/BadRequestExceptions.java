@@ -50,7 +50,7 @@ public interface BadRequestExceptions {
     public BadRequestException cannotCreateSnapshotOfVplexCG();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException cannotCreateSnapshotOfRPCG();
+    public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotCreateVolumeAsConsistencyGroupHasSnapshots(String label, URI id);
@@ -149,6 +149,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicateLabel(String entityName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException duplicateNamespace(String entityName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException endpointsCannotBeAdded(final String endpoints);
@@ -2058,6 +2061,10 @@ public interface BadRequestExceptions {
             final URI sourceVolumeUri, final URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(
+            final String volumeName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVarrayForVplexVolumeInAppConsistenctCG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2430,6 +2437,9 @@ public interface BadRequestExceptions {
     public BadRequestException vNasServersNotAssociatedToProject();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException oneOrMorevNasServersNotAssociatedToProject();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteOrUpdateImageServerWhileInUse();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2443,7 +2453,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToFindSuitableJournalRecommendation();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToFindJournalRecommendation(final String rpSiteName);
 
@@ -2464,12 +2474,15 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException fullCopyNotAllowedForIngestedCG(final String uri);
-    
+
     @DeclareServiceCode(ServiceCode.API_DELETION_IN_PROGRESS)
     public BadRequestException deletionInProgress(final String dataObjectType, final String dataObjectName);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException imageNotPresentOnComputeImageServer(final String computeImage, final String computeImageServer);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException noImageServerAssociatedToComputeSystem(final String computeSystem);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException clientIpNotExist();
@@ -2488,16 +2501,19 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotAddSRDFProtectionToPartialCG(String msg);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteImageServer();
-    
+
     @DeclareServiceCode(ServiceCode.API_PRECONDITION_FAILED)
     public BadRequestException cannotAddImageWithoutImageServer();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantUpdateCGWithMixedBlockObjects(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantUpdateCGWithReplicaFromMultipleSystems(final String cgName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotUpdateTFTPBOOTDirectory();
 }

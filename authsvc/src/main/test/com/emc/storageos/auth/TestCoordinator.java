@@ -481,6 +481,7 @@ public class TestCoordinator extends CoordinatorClientImpl {
         // TODO Auto-generated method stub.
         return false;
     }
+<<<<<<< HEAD
     
     @Override
     public String getSiteId() {
@@ -500,5 +501,11 @@ public class TestCoordinator extends CoordinatorClientImpl {
     @Override
     public void setPrimarySite(String siteId) {
         throw new UnsupportedOperationException();
+=======
+
+    @Override
+    public void removeRuntimeState(String key) throws CoordinatorException {
+        return;
+>>>>>>> master
     }
 }

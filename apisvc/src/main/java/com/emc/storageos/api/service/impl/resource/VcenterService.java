@@ -131,7 +131,7 @@ public class VcenterService extends TaskResourceService {
         validateVcenter(updateParam, vcenter, validateConnection);
 
         // check the user permissions for this tenant org
-        verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
+        verifyAuthorizedSystemAdminOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
 
         populateVcenterData(vcenter, updateParam);
 
@@ -198,7 +198,7 @@ public class VcenterService extends TaskResourceService {
      * @param vcenter the vcenter being updated in case of update operation.
      *            This parameter must be null for create operations.
      */
-    protected void validateVcenter(VcenterParam param, Vcenter vcenter, Boolean validateConnection) {
+    protected void validateVcenterCommon(VcenterParam param, Vcenter vcenter, Boolean validateConnection) {
         if (vcenter == null || (param.findIpAddress() != null && !param.findIpAddress().equals(vcenter.getIpAddress()))) {
             checkDuplicateAltId(Vcenter.class, "ipAddress", param.findIpAddress(), "vcenter");
         }
@@ -214,13 +214,6 @@ public class VcenterService extends TaskResourceService {
             if (StringUtils.isNotBlank(errorMessage)) {
                 throw APIException.badRequests.invalidVCenterConnection(errorMessage);
             }
-        }
-
-        updateCascadeTenancy(param, vcenter);
-
-        if (!isSystemAdmin() && vcenter != null &&
-                vcenter.getCascadeTenancy().booleanValue() != param.getCascadeTenancy().booleanValue()) {
-            throw APIException.forbidden.tenantAdminCannotModifyCascadeTenancy(getUserFromContext().getName(), vcenter.getLabel());
         }
     }
 
@@ -334,7 +327,7 @@ public class VcenterService extends TaskResourceService {
             Vcenter vcenter = queryObject(Vcenter.class, id, true);
 
             // check the user permissions for this tenant org
-            verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
+            verifyAuthorizedSystemAdminOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
 
             checkIfOtherTenantsUsingTheVcenter(vcenter);
 
@@ -464,24 +457,30 @@ public class VcenterService extends TaskResourceService {
     }
 
     /**
-     * Creates a new instance of vcenter.
+     * Creates a new instance of vCenter. Before creating the vCenter
+     * it validates the create param and if the validation is successful
+     * it creates the vCenter object.
      * 
-     * @param tenant the vcenter parent tenant organization
      * @param param the input parameter containing the vcenter attributes
      * @return an instance of {@link Vcenter}
      */
-    protected Vcenter createNewVcenter(TenantOrg tenant, VcenterParam param) {
+    protected Vcenter createNewSystemVcenter(VcenterParam param, Boolean validateConnection) {
+        validateSystemVcenter(param, null, validateConnection);
+
         Vcenter vcenter = new Vcenter();
         vcenter.setId(URIUtil.createId(Vcenter.class));
-        addVcenterAclIfTenantAdmin(tenant, vcenter);
+
+        //Always set the deprecated tenant field of a vCenter to null.
+        vcenter.setTenant(NullColumnValueGetter.getNullURI());
+
         populateVcenterData(vcenter, param);
         return vcenter;
     }
 
     /**
-     * Populate an instance of vcenter with the provided vcenter parameter
+     * Populate an instance of vCenter with the provided vcenter parameter
      * 
-     * @param vcenter the vcenter to be populated
+     * @param vcenter the vCenter to be populated
      * @param param the parameter that contains the attributes.
      */
     protected void populateVcenterData(Vcenter vcenter, VcenterParam param) {
@@ -617,10 +616,8 @@ public class VcenterService extends TaskResourceService {
     public TaskResourceRep createVcenter(VcenterCreateParam createParam,
                                          @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection,
                                          @QueryParam("discover_vcenter") @DefaultValue("true") final Boolean discoverVcenter) {
-        validateVcenter(createParam, null, validateConnection);
+        Vcenter vcenter = createVcenter(createParam, validateConnection);
 
-        // create and persist the vcenter
-        Vcenter vcenter = createNewVcenter(null, createParam);
         vcenter.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
         _dbClient.createObject(vcenter);
         auditOp(OperationTypeEnum.CREATE_VCENTER, true, null,
@@ -807,10 +804,6 @@ public class VcenterService extends TaskResourceService {
         //Always set the deprecated tenant field of a vCenter to null.
         vcenter.setTenant(NullColumnValueGetter.getNullURI());
 
-        if (isSystemAdmin()) {
-            return;
-        }
-
         URI tenantId;
         if (tenant != null) {
             tenantId = tenant.getId();
@@ -982,6 +975,22 @@ public class VcenterService extends TaskResourceService {
     /**
      * Checks if the user is authorized to view the vCenter.
      * Authorized if,
+     * The user has SysAdmin role.
+     * The user is a TenantAdmin of one of the that shares the vCenter.
+     *
+     * @param aclEntries the tenants list that shares the vCenter.
+     */
+    protected void verifyAuthorizedSystemAdminOrTenantOrgUser(List<ACLEntry> aclEntries) {
+        if (isSystemAdmin()) {
+            return;
+        }
+
+        verifyAuthorizedInTenantOrg(aclEntries);
+    }
+
+    /**
+     * Checks if the user is authorized to view the vCenter.
+     * Authorized if,
      * The user a TenantOrg user of one the tenant that shares the vCenter.
      * The user is a TenantAdmin of one of the tenant that shares the vCenter.
      *
@@ -1037,7 +1046,8 @@ public class VcenterService extends TaskResourceService {
      * @param vcenter to be deleted.
      */
     private void checkIfOtherTenantsUsingTheVcenter(Vcenter vcenter) {
-        if (!isSystemAdmin() && vcenter.getAcls().size() > 1) {
+        if (!isSystemAdmin() && !CollectionUtils.isEmpty(vcenter.getAcls()) &&
+                vcenter.getAcls().size() > 1) {
             throw APIException.forbidden.tenantAdminCannotDeleteVcenter(getUserFromContext().getName(), vcenter.getLabel());
         }
     }
@@ -1155,37 +1165,6 @@ public class VcenterService extends TaskResourceService {
     }
 
     /**
-     * Update the cascade tenancy to the vCenter create or update param.
-     * While creating the vCenter by default, the cascade tenancy of the vCenter
-     * is set to true if it is created by the TenantAdmin.
-     * If the SysAdmin creating the vCenter, if the cascade tenancy is not
-     * provided in the input payload then set the default cascade tenancy as
-     * false.
-     * While editing the vCenter, if the cascade tenancy is not provided
-     * use the existing one from the vCenter.
-     *
-     * @param param vCenter create or update param.
-     * @param vcenter vCenter to be updated, null while creation.
-     */
-    private void updateCascadeTenancy(VcenterParam param, Vcenter vcenter) {
-        if (vcenter == null) {
-            if (!isSystemAdmin()) {
-                param.setCascadeTenancy(Boolean.TRUE);
-            } else {
-                //Since this is SysAdmin creating the vCenter, if cascade tenancy option
-                //was not provided assume no cascade tenancy is required.
-                if (param.getCascadeTenancy() == null) {
-                    param.setCascadeTenancy(Boolean.FALSE);
-                }
-            }
-        }
-
-        if (vcenter != null && param.getCascadeTenancy() == null) {
-            param.setCascadeTenancy(vcenter.getCascadeTenancy());
-        }
-    }
-
-    /**
      * Gets the configured refresh interval for the compute discovery from the coordinator.
      *
      * @return the value of the compute discovery refresh interval. .
@@ -1205,7 +1184,7 @@ public class VcenterService extends TaskResourceService {
      * the vCenter acl. This is because, updating the vCenter acl completely depending
      * on the vCenter discovery job. If we try to run two vCenter discovery job with in
      * the configured refresh interval, the second job will not run at all. So, this will
-     * cause vCenter acls may not be updated to its datacenters, clusters and hosts.
+     * cause vCenter acls may not be updated to its DataCenters, Clusters and Hosts.
      *
      * @param vcenter vCenter to find its last discovery status.
      */
@@ -1218,5 +1197,140 @@ public class VcenterService extends TaskResourceService {
                 currentSystemTime - lastDiscoveryTime < tolerance * 1000) {
             throw APIException.badRequests.cannotEditVcenterOrUpdateACL(vcenter.getLabel(), tolerance);
         }
+    }
+
+    /**
+     * Validates the vCenter update parameter.
+     *
+     * @param param vCenter update parameter to validate.
+     * @param vcenter vCenter data object.
+     * @param validateConnection flag to validate the vCenter connection.
+     */
+    private void validateVcenter(VcenterUpdateParam param, Vcenter vcenter, Boolean validateConnection) {
+        if (isSystemAdmin()) {
+            validateSystemVcenter(param, vcenter, validateConnection);
+        } else {
+            validateTenantVcenter(param, vcenter, validateConnection);
+        }
+    }
+    /**
+     * Validates the create/update vCenter input data for System Admin.
+     *
+     * @param param the input parameter
+     * @param vcenter the vCenter being updated in case of update operation.
+     *            This parameter must be null for create operations.
+     */
+    protected void validateSystemVcenter(VcenterParam param, Vcenter vcenter, Boolean validateConnection) {
+        validateVcenterCommon(param, vcenter, validateConnection);
+
+        updateSystemVcenterCascadeTenancy(param, vcenter);
+    }
+
+    /**
+     * Validates the create/update vCenter input data for Tenant Admin.
+     *
+     * @param param the input parameter
+     * @param vcenter the vCenter being updated in case of update operation.
+     *            This parameter must be null for create operations.
+     */
+    protected void validateTenantVcenter(VcenterParam param, Vcenter vcenter, Boolean validateConnection) {
+        validateVcenterCommon(param, vcenter, validateConnection);
+
+        updateTenantVcenterCascadeTenancy(param, vcenter);
+
+        if (vcenter != null &&
+                vcenter.getCascadeTenancy().booleanValue() != param.getCascadeTenancy().booleanValue()) {
+            throw APIException.forbidden.tenantAdminCannotModifyCascadeTenancy(getUserFromContext().getName(), vcenter.getLabel());
+        }
+    }
+
+    /**
+     * Creates a new instance of vCenter that belongs to only one tenant.
+     * Before creating the vCenter, it validates the crate param to make sure
+     * all the input parameters are valid.
+     *
+     * @param tenant the vCenter parent tenant organization
+     * @param param the input parameter containing the vCenter attributes
+     * @return an instance of {@link Vcenter}
+     */
+    protected Vcenter createNewTenantVcenter(TenantOrg tenant, VcenterParam param, Boolean validateConnection) {
+
+        validateTenantVcenter(param, null, validateConnection);
+
+        Vcenter vcenter = new Vcenter();
+        vcenter.setId(URIUtil.createId(Vcenter.class));
+        addVcenterAclIfTenantAdmin(tenant, vcenter);
+        populateVcenterData(vcenter, param);
+        return vcenter;
+    }
+
+    /**
+     * Update the cascade tenancy to the vCenter create or update param.
+     * While creating the vCenter by default, the cascade tenancy of the vCenter
+     * is set to false.
+     * While editing the vCenter, if the cascade tenancy is not provided
+     * use the existing one from the vCenter.
+     *
+     * @param param vCenter create or update param.
+     * @param vcenter vCenter to be updated, null while creation.
+     */
+    private void updateSystemVcenterCascadeTenancy(VcenterParam param, Vcenter vcenter) {
+        if (vcenter == null ) {
+            //Since this is SysAdmin creating the vCenter, if cascade tenancy option
+            //was not provided assume no cascade tenancy is required.
+            if (param.getCascadeTenancy() == null) {
+                param.setCascadeTenancy(Boolean.FALSE);
+            }
+        }
+
+        if (vcenter != null && param.getCascadeTenancy() == null) {
+            param.setCascadeTenancy(vcenter.getCascadeTenancy());
+        }
+    }
+
+    /**
+     * Update the cascade tenancy to the vCenter create or update param.
+     * While creating the vCenter by default, the cascade tenancy of the vCenter
+     * is set to true.
+     * While editing the vCenter, if the cascade tenancy is not provided
+     * use the existing one from the vCenter.
+     *
+     * @param param vCenter create or update param.
+     * @param vcenter vCenter to be updated, null while creation.
+     */
+    private void updateTenantVcenterCascadeTenancy(VcenterParam param, Vcenter vcenter) {
+        if (vcenter == null ) {
+            //Since this is Tenant creating the vCenter, if cascade tenancy option
+            //was not provided set the cascade tenancy to true.
+            if (param.getCascadeTenancy() == null) {
+                param.setCascadeTenancy(Boolean.TRUE);
+            }
+        }
+
+        if (vcenter != null && param.getCascadeTenancy() == null) {
+            param.setCascadeTenancy(vcenter.getCascadeTenancy());
+        }
+    }
+
+    /**
+     * Creates the vCenter based on the User roles.
+     * If the User is a System Admin user, the system level vCenter is created.
+     * If the User is a Tenant Admin user, the tenant level vCenter is created.
+     *
+     * @param createParam param to create the vCenter.
+     * @param validateConnection flag to validate the vCenter connection before creating it.
+     *
+     * @return vCenter data object.
+     */
+    private Vcenter createVcenter(VcenterCreateParam createParam, Boolean validateConnection) {
+        Vcenter vcenter;
+        if (isSystemAdmin()) {
+            // validates the create param and validation is successful then creates and persist the vcenter
+            vcenter = createNewSystemVcenter(createParam, validateConnection);
+        } else {
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, URI.create(getUserFromContext().getTenantId()));
+            vcenter = createNewTenantVcenter(tenant, createParam, validateConnection);
+        }
+        return vcenter;
     }
 }

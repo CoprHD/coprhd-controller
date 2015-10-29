@@ -754,6 +754,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 }
                                 _log.info("FS {} is ignored because it has conflicting exports {}", fs.getPath(), invalidExports);
                                 unManagedFs.setInactive(true);
+                                // Persists the inactive state before picking next UMFS!!!
+                                _dbClient.persistObject(unManagedFs);
                                 continue;
                             }
                             List<UnManagedFileExportRule> validExportRules = getUnManagedFSExportRules(unManagedFs, expIdMap, storagePort,
@@ -791,10 +793,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                         newUnManagedExportRules.size());
                             }
                         }
-                        if (expIdMap.keySet().isEmpty() && noOfShares == 0) {
-                            // NO exports found
+                        
+                        if (unManagedFs.getHasExports() || unManagedFs.getHasShares()) {
+                        	_log.info("FS {} is having exports/shares", fs.getPath());
+                        	unManagedFs.putFileSystemCharacterstics(
+                                    UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString(), TRUE);
+                        } else {
+                             // NO exports found
                             _log.info("FS {} is ignored because it doesnt have exports and shares", fs.getPath());
-                            unManagedFs.setInactive(true);
                         }
 
                         if (alreadyExist) {
@@ -1272,6 +1278,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             if (null != pool) {
                 unManagedFileSystem.setStoragePoolUri(pool.getId());
             }
+            unManagedFileSystem.setHasExports(false);
+            unManagedFileSystem.setHasShares(false);
         }
 
         if (null == unManagedFileSystem.getExtensions()) {
@@ -1291,7 +1299,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(), TRUE);
+                        .toString(), FALSE);
 
         if (null != pool) {
             StringSet pools = new StringSet();

@@ -1314,8 +1314,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
 
 			unmanagedNFSAcl.setFileSystemPath(fs.getPath());
+			
+			String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
 
-			unmanagedNFSAcl.setUser(tempAcl.getTrustee().getName());
+			if (tempUname.length > 1) {
+				unmanagedNFSAcl.setDomain(tempUname[0]);
+				unmanagedNFSAcl.setUser(tempUname[1]);
+			} else {
+				unmanagedNFSAcl.setUser(tempUname[0]);
+			}
+			
 			unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
 			unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
 			unmanagedNFSAcl.setPermissions(StringUtils.join(
@@ -2053,7 +2061,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 accessRights.add("read");
             }
             if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.std_write_dac.toString())) {
-                accessRights.add("read");
+                accessRights.add("write");
             }
             if (per.equalsIgnoreCase(IsilonNFSACL.AccessRights.dir_gen_execute.toString())) {
                 accessRights.add("execute");

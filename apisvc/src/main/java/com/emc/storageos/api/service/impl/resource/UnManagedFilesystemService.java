@@ -492,7 +492,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                         List<UnManagedNFSShareACL> nfsACLs = queryDBNfsShares(unManagedFileSystem);
                         if (nfsACLs != null && !nfsACLs.isEmpty()) {
                             for (UnManagedNFSShareACL umNfsAcl : nfsACLs) {
-                                // Step 2 : Convert them to Cifs Share ACL
+                                // Step 2 : Convert them to nfs Share ACL
                                 // Step 3 : Keep them as a list to store in db, down the line at a shot
                                 umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
                                 createNFSACL(umNfsAcl, fsNfsShareAcls, filesystem);
@@ -862,12 +862,11 @@ public class UnManagedFilesystemService extends TaggedResource {
                 permissionText = FileControllerConstants.NFS_FILE_PERMISSION_READ;
                 
                 break;
-            case "change":
-                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_CHANGE;
+            case "write":
+                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_WRITE;
                 break;
-            case "full":
-            case "fullcontrol":
-                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_FULLCONTROL;
+            case "execute":
+                permissionText = FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE;
                 break;
         }
         shareACL.setPermissions(permissionText);

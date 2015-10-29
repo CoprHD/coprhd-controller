@@ -489,20 +489,6 @@ public class UnManagedFilesystemService extends TaggedResource {
                             }
                         }
                         
-                        List<UnManagedNFSShareACL> nfsACLs = queryDBNfsShares(unManagedFileSystem);
-                        if (nfsACLs != null && !nfsACLs.isEmpty()) {
-                            for (UnManagedNFSShareACL umNfsAcl : nfsACLs) {
-                                // Step 2 : Convert them to nfs Share ACL
-                                // Step 3 : Keep them as a list to store in db, down the line at a shot
-                                umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
-                                createNFSACL(umNfsAcl, fsNfsShareAcls, filesystem);
-                                // Step 4: Update the UnManaged Share ACL : Set Inactive as true
-                                umNfsAcl.setInactive(true);
-                                // Step 5 : Keep this list as updated.
-                                inActiveUnManagedShareNfs.add(umNfsAcl);
-                            }
-                        }
-                        
                         _logger.info("Number of Cifs ACL Found : {} for UnManaged Fs path : {}", cifsACLs.size(),
                                 unManagedFileSystem.getMountPath());
 
@@ -522,6 +508,24 @@ public class UnManagedFilesystemService extends TaggedResource {
                         
                         
                     }
+                }
+                
+                if(unManagedFileSystem.getHasNFSAcl()){
+                	
+                    List<UnManagedNFSShareACL> nfsACLs = queryDBNfsShares(unManagedFileSystem);
+                    if (nfsACLs != null && !nfsACLs.isEmpty()) {
+                        for (UnManagedNFSShareACL umNfsAcl : nfsACLs) {
+                            // Step 2 : Convert them to nfs Share ACL
+                            // Step 3 : Keep them as a list to store in db, down the line at a shot
+                            umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
+                            createNFSACL(umNfsAcl, fsNfsShareAcls, filesystem);
+                            // Step 4: Update the UnManaged Share ACL : Set Inactive as true
+                            umNfsAcl.setInactive(true);
+                            // Step 5 : Keep this list as updated.
+                            inActiveUnManagedShareNfs.add(umNfsAcl);
+                        }
+                    }
+                	
                 }
 
                 if (!unManagedFileSystem.getHasShares() && !unManagedFileSystem.getHasExports()) {
@@ -600,6 +604,24 @@ public class UnManagedFilesystemService extends TaggedResource {
             _dbClient.persistObject(inActiveUnManagedExportRules);
 
             _dbClient.persistObject(unManagedFileSystems);
+            
+            // Step 8.1 : Update NFS Acls in DB & Add new ACLs
+            i=0;
+            for(NFSShareACL nfsAcl: fsNfsShareAcls){
+                ++i;
+                _logger.info("{} --> Saving New NFS ACL to DB {}", i, nfsAcl);            	
+            }
+            if (fsNfsShareAcls != null && !fsNfsShareAcls.isEmpty()) {
+                _dbClient.createObject(fsNfsShareAcls);
+            }
+            
+            // Step 9.1 : Update the same in DB & clean ingested UnManagedNFSShareACLs
+            i = 0;
+            for (UnManagedNFSShareACL nfsAcl : inActiveUnManagedShareNfs) {
+                ++i;
+                _logger.info("{} Updating UnManagedACL DB as InActive TRUE {}", nfsAcl);
+            }
+            _dbClient.persistObject(inActiveUnManagedShareNfs);
 
             // record the events after they have been created
             for (FileShare filesystem : filesystems) {
@@ -849,7 +871,13 @@ public class UnManagedFilesystemService extends TaggedResource {
         NFSShareACL shareACL = new NFSShareACL();
         
         // user, permission, permission type
-        shareACL.setId(URIUtil.createId(CifsShareACL.class));
+        
+        shareACL.setFileSystemPath(origACL.getFileSystemPath());
+        shareACL.setDomain(origACL.getDomain());
+        shareACL.setUser(origACL.getUser());
+        shareACL.setType(origACL.getType());
+        shareACL.setPermissionType(origACL.getPermissionType());
+        
 
         String user = origACL.getUser();
         if (user != null) {
@@ -870,10 +898,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                 break;
         }
         shareACL.setPermissions(permissionText);
-        // share name
-        shareACL.setFileSystemPath(origACL.getFileSystemPath());
-        // file system id
+        
         shareACL.setFileSystemId(fileshare.getId());
+        shareACL.setId(URIUtil.createId(CifsShareACL.class));
 
         // Add new acl into ACL list
         shareACLList.add(shareACL);

@@ -1307,6 +1307,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 				"getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start",
 				fs.getName());
 		IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(fs.getPath());
+		
+		if(isilonNFSAcl!= null){
+			unManagedFileSystem.setHasNFSAcl(true);
+		}else{
+			unManagedFileSystem.setHasNFSAcl(false);
+		}
 
 		for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
 

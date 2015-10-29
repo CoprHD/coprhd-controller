@@ -41,6 +41,7 @@ public class Main {
         GEOBLACKLIST,
         CHECK_DB,
         REPAIR_DB,
+        REBUILD_INDEX,
     };
 
     private static final String TYPE_EVENTS = "events";
@@ -112,7 +113,7 @@ public class Main {
                 Command.RECOVER_VDC_CONFIG.name().toLowerCase(), RECOVER_DUMP, RECOVER_LOAD);
         System.out.printf("\t%s [%s] [%s] Geodb blacklist.%n",
                 Command.GEOBLACKLIST.name().toLowerCase(), "-reset|set", "<vdc short id>");
-        System.out.printf("\t%s Check correctness for URI and serialize in db%n",
+        System.out.printf("\t%s Check consistency for the whole data in database%n",
                 Command.CHECK_DB.name().toLowerCase());
         System.out.printf("\t%s -db|-geodb [-new] [-crossVdc]%n",
                 Command.REPAIR_DB.name().toLowerCase());
@@ -120,7 +121,10 @@ public class Main {
                 Command.REPAIR_DB.name().toLowerCase(), STORAGEOS_USER);
         System.out.printf("\t -bypassMigrationCheck%n");
         System.out
-                .printf("\t\tNote: it's used with other commands together only when migration fail, dbutils still work even migration fail if you pass this option");
+                .printf("\t\tNote: it's used with other commands together only when migration fail, dbutils still work even migration fail if you pass this option%n");
+        System.out.printf("\t%s <file_path>%n",
+                Command.REBUILD_INDEX.name().toLowerCase());
+        System.out.printf("\t\t Note: use the genereated file to rebuild the index%n");
     }
 
     /**
@@ -251,7 +255,11 @@ public class Main {
                     break;
                 case CHECK_DB:
                     _client.init();
-                    handler = new CheckDBHandler();
+                    handler = new CheckDBHandler(args);
+                    break;
+                case REBUILD_INDEX:
+                    _client.init();
+                    handler = new RebuildIndexHandler(args);
                     break;
                 default:
                     throw new IllegalArgumentException("Invalid command ");

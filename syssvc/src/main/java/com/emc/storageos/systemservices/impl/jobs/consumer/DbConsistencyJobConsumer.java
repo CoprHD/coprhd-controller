@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.consumer;
 
-import java.util.Date;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -22,7 +20,7 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyJobConsumer.class);
     private CoordinatorClient coordinator;
     private DbChecker dbChecker;
-    
+    private static final String[] MODEL_PACKAGES = new String[] {"com.emc.storageos.db.client.model"}; 
 
     @Override
     public void consumeItem(DbConsistencyJob job, DistributedQueueItemProcessedCallback callback) throws Exception {
@@ -40,8 +38,10 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         }
         
         try {
+            DbSchemaChecker.checkSourceSchema(MODEL_PACKAGES);
             dbChecker.checkDataObjects(false);
             dbChecker.checkIndexingCFs(false);
+            dbChecker.checkCFIndices(false);
             status = markResult();
         } catch(Exception e) {
             log.error("failed to check db consistency {}", e);

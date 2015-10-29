@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.cim.CIMArgument;
-import javax.cim.CIMDataType;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.UnsignedInteger16;

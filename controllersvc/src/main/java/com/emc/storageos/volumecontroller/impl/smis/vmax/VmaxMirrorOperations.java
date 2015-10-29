@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.cim.CIMArgument;
-import javax.cim.CIMDataType;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.UnsignedInteger32;

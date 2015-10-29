@@ -349,7 +349,6 @@ public class VdcSiteManager extends AbstractManager {
             case SiteInfo.RECONFIG_RESTART:
                 checkAndRemoveStandby();
                 reconfigRestartSvcs();
-                rebuildLocalDbIfNecessary();
                 cleanupSiteErrorIfNecessary();
                 break;
             default:
@@ -394,12 +393,9 @@ public class VdcSiteManager extends AbstractManager {
             localRepository.reconfigProperties("coordinator");
             localRepository.restart("coordinatorsvc");
 
-
             localRepository.reconfigProperties("db");
-            //localRepository.restart("dbsvc");
-
             localRepository.reconfigProperties("geodb");
-            //localRepository.restart("geodbsvc");
+            rebuildLocalDbIfNecessary();
 
             log.info("Step2: Updating the hash code for local vdc properties");
             vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));

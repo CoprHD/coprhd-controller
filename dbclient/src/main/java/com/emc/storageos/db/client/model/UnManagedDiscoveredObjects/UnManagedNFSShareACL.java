@@ -6,6 +6,7 @@ package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.FileACL;
 import com.emc.storageos.db.client.model.FileShare;
@@ -22,6 +23,7 @@ public class UnManagedNFSShareACL extends FileACL {
 
 		
     @Name("nativeGuid")
+    @AlternateId("fileShareNativeGuidTable")
     public String getNativeGuid() {
         return nativeGuid;
     }

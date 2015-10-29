@@ -94,13 +94,14 @@ public abstract class FileACL extends DataObject {
         setChanged("snapshotNfsACLIndex");
     }
 
-    @Name("permission_type")
+    @Name("permissionType")
     public String getPermissionType() {
         return permissionType;
     }
 
     public void setPermissionType(String permissionType) {
         this.permissionType = permissionType;
+        setChanged("permissionType");
     }
 
     @Override

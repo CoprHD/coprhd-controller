@@ -702,6 +702,34 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         unManagedFs = createUnManagedFileSystem(unManagedFs,
                                 fsUnManagedFsNativeGuid, storageSystem, storagePool, storagePort, fs);
 
+                        List<UnManagedNFSShareACL> tempUnManagedNfsShareACL = new ArrayList<UnManagedNFSShareACL>();
+                        UnManagedNFSShareACL existingNfsACL = null;
+                        
+                        getUnmanagedNfsShareACL(unManagedFs, tempUnManagedNfsShareACL, storagePort ,fs, isilonApi);
+                        
+                        for(UnManagedNFSShareACL unManagedNFSACL : tempUnManagedNfsShareACL){
+                        	 _log.info("Unmanaged File share acls : {}", unManagedNFSACL);
+                             String fsShareNativeId = unManagedNFSACL.getFileSystemNfsACLIndex();
+                             _log.info("UMFS Share ACL index {}", fsShareNativeId);
+                             String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
+                                     .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
+                             _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
+                             // set native guid, so each entry unique
+                             unManagedNFSACL.setNativeGuid(fsUnManagedFileShareNativeGuid);
+                             // Check whether the NFS share ACL was present in ViPR DB.
+                             existingNfsACL=checkUnManagedFsNfssACLExistsInDB(_dbClient, unManagedNFSACL.getNativeGuid());
+                             if (existingNfsACL == null) {
+                                 unManagedNfsShareACLList.add(unManagedNFSACL);
+                             } else {
+                                 unManagedNfsShareACLList.add(unManagedNFSACL);
+                                 // delete the existing acl
+                                 existingNfsACL.setInactive(true);
+                                 oldunManagedNfsShareACLList.add(existingNfsACL);
+                             }
+                        	
+                        }
+                        
+                        
                         // get umcifs & ACLs for given filesystem
                         UnManagedCifsShareACL existingACL = null;
                         List<UnManagedCifsShareACL> tempunManagedCifsShareACL = new ArrayList<UnManagedCifsShareACL>();
@@ -775,32 +803,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 continue;
                             }
                             
-                            List<UnManagedNFSShareACL> tempUnManagedNfsShareACL = new ArrayList<UnManagedNFSShareACL>();
-                            UnManagedNFSShareACL existingNfsACL = null;
-                            
-                            getUnmanagedNfsShareACL(unManagedFs, tempUnManagedNfsShareACL, storagePort ,fs, isilonApi);
-                            
-                            for(UnManagedNFSShareACL unManagedNFSACL : tempUnManagedNfsShareACL){
-                            	 _log.info("Unmanaged File share acls : {}", unManagedNFSACL);
-                                 String fsShareNativeId = unManagedNFSACL.getFileSystemNfsACLIndex();
-                                 _log.info("UMFS Share ACL index {}", fsShareNativeId);
-                                 String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
-                                         .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
-                                 _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
-                                 // set native guid, so each entry unique
-                                 unManagedNFSACL.setNativeGuid(fsUnManagedFileShareNativeGuid);
-                                 // Check whether the NFS share ACL was present in ViPR DB.
-                                 existingNfsACL=checkUnManagedFsNfssACLExistsInDB(_dbClient, unManagedNFSACL.getNativeGuid());
-                                 if (existingNfsACL == null) {
-                                     unManagedNfsShareACLList.add(unManagedNFSACL);
-                                 } else {
-                                     unManagedNfsShareACLList.add(unManagedNFSACL);
-                                     // delete the existing acl
-                                     existingNfsACL.setInactive(true);
-                                     oldunManagedNfsShareACLList.add(existingNfsACL);
-                                 }
-                            	
-                            }
                             
                             
                             List<UnManagedFileExportRule> validExportRules = getUnManagedFSExportRules(unManagedFs, expIdMap, storagePort,
@@ -1299,8 +1301,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private void getUnmanagedNfsShareACL(UnManagedFileSystem unManagedFileSystem,
             List<UnManagedNFSShareACL> unManagedNfsACLList,
             StoragePort storagePort,
-            FileShare fs,
- IsilonApi isilonApi) {
+            FileShare fs,  IsilonApi isilonApi) {
 
 		_log.info(
 				"getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start",
@@ -1310,19 +1311,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 		for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
 
 			UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
-			unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+
 
 			unmanagedNFSAcl.setFileSystemPath(fs.getPath());
-
-			unmanagedNFSAcl.setUser(isilonNFSAcl.getOwner().getName());
-			unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
-			unmanagedNFSAcl.setPermissions(StringUtils.join(
-			getIsilonAccessList(tempAcl.getAccessrights()), ","));
 
 			unmanagedNFSAcl.setUser(tempAcl.getTrustee().getName());
 			unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
 			unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
+			unmanagedNFSAcl.setPermissions(StringUtils.join(
+					getIsilonAccessList(tempAcl.getAccessrights()), ","));
 			
+			unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
+			unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
+
 			unManagedNfsACLList.add(unmanagedNFSAcl);
 
 		}

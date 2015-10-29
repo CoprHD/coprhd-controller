@@ -31,7 +31,7 @@ import com.emc.storageos.systemservices.impl.jobs.producer.DbConsistencyJobProdu
  * Db consistency service is used to trigger db consistency checker and
  * query db consistency status
  */
-@Path("/db/")
+@Path("/control/db/")
 public class DbConsistencyService {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyService.class);
     private CoordinatorClient coordinator;
@@ -52,7 +52,6 @@ public class DbConsistencyService {
         log.info("enqueue job into queue successfully");
         return Response.ok().build();
     }
-
 
     @GET
     @Path("consistency")

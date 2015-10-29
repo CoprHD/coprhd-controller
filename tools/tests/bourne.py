@@ -4493,7 +4493,7 @@ class Bourne:
     def storageport_query(self, name):
         #
         # name = { port_uri | concat(storagedevice, port) }
-        #
+        # 
         try:
             (sdname, port) = name.split('/', 1)
         except:
@@ -4635,7 +4635,7 @@ class Bourne:
             exportgroups.append(resource['id'])
         return exportgroups
 
-    def export_group_create(self, name, project, neighborhood, type, volspec, initList, hostList, clusterList):
+    def export_group_create(self, name, project, neighborhood, type, volspec, initList, hostList, clusterList, pathParam):
         projectURI = self.project_query(project).strip()
         nhuri = self.neighborhood_query(neighborhood).strip()
 
@@ -4644,6 +4644,11 @@ class Bourne:
             'project' : projectURI,
             'varray' : nhuri,
         }
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
 
         # Build volume parameter, if specified
         if (volspec):
@@ -4693,11 +4698,20 @@ class Bourne:
 
         o = self.api('POST', URI_EXPORTGROUP_LIST, parms)
         self.assert_is_dict(o)
-	s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        try:
+	    s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        except:
+            print o
         return (o, s)
 
-    def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList):
+    def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList, pathParam):
         parms = {}
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+
         # Build volume change input, if specified
         volChanges = {}
         if (addVolspec):
@@ -4791,7 +4805,10 @@ class Bourne:
     def export_group_delete(self, groupId):
         o = self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_EXPORTGROUP_INSTANCE.format(groupId)))
         self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+        except:
+            print o;
         return (o, s)
 
     def export_group_add_volume(self, groupId, volspec):

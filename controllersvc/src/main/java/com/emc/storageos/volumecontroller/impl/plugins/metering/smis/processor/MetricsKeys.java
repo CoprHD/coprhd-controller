@@ -49,11 +49,20 @@ public enum MetricsKeys {
     maxStorageObjects,
     /** Maximum storage capacity of storage objects */
     maxStorageCapacity,
-    /** Number of storage objects (FS + Check points) */
+   
+    /** Max Number of NFS exports on each access zone */
+    maxNFSExports,
+    /** Max Number of CIFS shares on each access zone */
+    maxCifsShares,
+    /** Number of storage objects (FS + Check points)*/
     storageObjects,
     /** Used Storage capacity of storage objects */
     usedStorageCapacity,
     /** Indicate load on datamover in compared with all dataMover combined. */
+    totalNfsExports,
+    /** Number of NFS exports on each access zone */
+    totalCifsShares,
+    /** Number of CIFS shares on each access zone */
     percentLoad,
 
     /** Indicates whether the storage server is overloaded or not */

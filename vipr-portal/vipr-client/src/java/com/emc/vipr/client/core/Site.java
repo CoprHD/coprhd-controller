@@ -45,8 +45,13 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     }
 
     public SiteRestRep pauseSite(String uuid) {
-        return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/pause/" + uuid);
+        return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/pause/");
     }
+
+    public SiteRestRep resumeSite(String uuid) {
+        return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/resume/");
+    }
+
 
     public ClientResponse syncSite(SiteConfigParam input) {
         return client.put(ClientResponse.class, input, PathConstants.SITE_URL);

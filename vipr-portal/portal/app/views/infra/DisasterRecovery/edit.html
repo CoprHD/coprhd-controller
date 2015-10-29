@@ -14,7 +14,7 @@
 
 <div class="container" >
   <form-header title-key="${titleKey}"
-               description-key="disasterRecovery.description"
+               description-key="disasterRecovery.add.title"
                image-val="/public/img/assets/Cluster.png"></form-header>
 
   #{alerts/}
@@ -27,7 +27,9 @@
       <control-group v-field="disasterRecovery.name" required>
         <input-text class="initialFocus"></input-text>
       </control-group>
-
+	  <control-group v-field="disasterRecovery.description" required>
+        <input-text class="initialFocus"></input-text>
+      </control-group>
       <control-group v-field="disasterRecovery.VirtualIP" required>
         <input-text></input-text>
       </control-group>

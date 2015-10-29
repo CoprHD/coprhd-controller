@@ -20,6 +20,7 @@ import org.apache.zookeeper.server.admin.AdminServer;
 import org.apache.zookeeper.server.quorum.QuorumPeerMain;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.ReaperLeaderSelectorListener;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.service.Coordinator;
@@ -142,6 +143,11 @@ public class CoordinatorImpl implements Coordinator {
                     }
 
                     _log.info("Connected to cluster");
+                    DrUtil drUtil = new DrUtil(_coordinatorClient);
+                    if (drUtil.isStandby()) {
+                        _log.info("Skip mutex reapter on standby site");
+                        return;
+                    }
 
                     /**
                      * Reaper empty dirs under /mutex in zookeeper

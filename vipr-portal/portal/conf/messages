@@ -832,7 +832,6 @@ datetime.units.d=Days
 datetime.units.s=Seconds
 datetime.dayOfMonth.L=Last
 
-
 disasterRecovery.title=Disaster Recovery
 disasterRecovery.name=Site Name
 disasterRecovery.VirtualIP=Site Virtual IP
@@ -842,14 +841,15 @@ disasterRecovery.actions=Actions
 disasterRecovery.userName=User Name
 disasterRecovery.userPassword=Password
 disasterRecovery.confirmPassword=Confirm Password
+disasterRecovery.description=Description
 disasterRecovery.confirmPassword.not.match=User Password and Confirm Password do not match.
 disasterRecovery.deleteConfirm=Are you sure you want to delete this standby cluster?
 
 disasterRecovery.testButton=Test
 disasterRecovery.pauseButton=Pause
 disasterRecovery.resumeButton=Resume
-
-disasterRecovery.save.success=Saved standby: '%s'
+disasterRecovery.FailoverButton=Failover
+disasterRecovery.save.success=Added standby: '%s'
 disasterRecovery.pause.success=Pause request initiated for site: '%s'
 disasterRecovery.resume.success=Resume request initiated for site: '%s'
 disasterRecovery.test.success=Test Mode request initiated for site: '%s'
@@ -857,7 +857,7 @@ disasterRecovery.save.error=Failed to save standby '%s'
 disasterRecovery.pause.error=Failed to pause standby '%s'
 disasterRecovery.resume.error=Failed to resume standby'%s'
 disasterRecovery.test.error=Failed to initiated test mode for site: '%s'
-disasterRecovery.delete.success=Deleted Successfully.
+disasterRecovery.delete.success=Standby removal initiated...
 disasterRecovery.delete.error='%s' of '%s' selected Standby deleted: '%s'.  Please check server log for more details.
 disasterRecovery.unknown=Unknown Standby with ID '%s'
 
@@ -865,14 +865,13 @@ disasterRecovery.standby.testLink=Test Mode
 disasterRecovery.standby.pauseLink=Pause Synchronization
 disasterRecovery.standby.resumeLink=Resume Synchronization
 
-
 disasterRecovery.standby.deleteConfirm=Are you sure you want to delete this standby cluster?
 disasterRecovery.standby.stopConfirm=Are you sure you want to pause standby synchronization?
 
 disasterRecovery.create.title=Add Standby
 disasterRecovery.list.title=Disaster Recoveries
 disasterRecovery.edit.title=Edit Standby
-disasterRecovery.description=Enter the information needed to discover standby cluster.
+disasterRecovery.add.title=Enter the information needed to discover standby cluster.
 
 # About
 system.about.introspection.title=Discovery
@@ -3400,7 +3399,7 @@ button.copy=Copy To Clipboard
 button.actions=Actions
 button.associate=Associate Project
 button.dissociate=Dissociate Project
-
+button.failover=Failover
 selectOne.chooseOption=-- Please Choose --
 
 common.yes=Yes

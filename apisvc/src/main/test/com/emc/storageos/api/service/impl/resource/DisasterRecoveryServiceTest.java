@@ -9,6 +9,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -30,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
@@ -38,7 +40,9 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
@@ -52,8 +56,10 @@ import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -71,13 +77,14 @@ public class DisasterRecoveryServiceTest {
     private Site standbySite2;
     private Site standbySite3;
     private Site standbyConfig;
-    private SiteParam primarySiteParam;
+    private Site primarySite;
     private List<URI> uriList;
     private List<Site> standbySites;
     private SiteConfigRestRep standby;
     private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
     private VirtualDataCenter localVDC;
+    private DrUtil drUtil;
     
     @Before
     public void setUp() throws Exception {
@@ -111,38 +118,49 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
         standbySite1.setState(SiteState.PRIMARY);
         standbySite1.setVdc(localVDC.getId());
+        standbySite1.setNodeCount(1);
         
 
         standbySite2 = new Site();
         standbySite2.setUuid("site-uuid-2");
         standbySite2.setState(SiteState.STANDBY_SYNCED);
         standbySite2.setVdc(localVDC.getId());
+        standbySite2.setNodeCount(1);
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
         standbySite3.setVdc(new URI("fake-vdc-id"));
         standbySite3.setState(SiteState.PRIMARY);
         standbySite3.setVdc(localVDC.getId());
+        standbySite3.setNodeCount(1);
 
-        primarySiteParam = new SiteParam();
-        /*primarySiteParam.setUuid("primary-site-uuid");
-        primarySiteParam.setVip("127.0.0.1");
-        primarySiteParam.setSecretKey("secret-key");
-        primarySiteParam.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
-        primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());*/
+        primarySite = new Site();
+        primarySite.setUuid("primary-site-uuid");
+        primarySite.setVip("127.0.0.1");
+        primarySite.setSecretKey("secret-key");
+        primarySite.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
+        primarySite.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
+        primarySite.setVdc(localVDC.getId());
+        primarySite.setState(SiteState.PRIMARY);
+        primarySite.setNodeCount(3);
         
         localVDC.setApiEndpoint("127.0.0.2");
         localVDC.setHostIPv4AddressesMap(new StringMap(standbySite1.getHostIPv4AddressMap()));
         localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
         localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
         localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
+        localVDC.setHostCount(3);
         
         // mock DBClient
         dbClientMock = mock(DbClientImpl.class);
         
         // mock coordinator client
         coordinator = mock(CoordinatorClient.class);
-        
+        drUtil = new DrUtil(coordinator);
+
+        // mock AuditLogManager
+        AuditLogManager auditMgr = mock(AuditLogManager.class);
+
         natCheckParam = new DRNatCheckParam();
 
         localVDC.setApiEndpoint("127.0.0.2");
@@ -158,19 +176,25 @@ public class DisasterRecoveryServiceTest {
         drService.setCoordinator(coordinator);
         drService.setSiteMapper(new SiteMapper());
         drService.setSysUtils(new SysUtils());
-
-        drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         
+        drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
+
         standbyConfig = new Site();
         standbyConfig.setUuid("standby-site-uuid-1");
         standbyConfig.setVip(localVDC.getApiEndpoint());
         standbyConfig.setHostIPv4AddressMap(localVDC.getHostIPv4AddressesMap());
         standbyConfig.setHostIPv6AddressMap(localVDC.getHostIPv6AddressesMap());
+        standbyConfig.setNodeCount(3);
         
         doReturn(standbyConfig.getUuid()).when(coordinator).getSiteId();
-        doReturn("primary-site-id").when(coordinator).getPrimarySiteId();
+        Configuration config = new ConfigurationImpl();
+        config.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, primarySite.getUuid());
+        doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
+        doReturn(primarySite.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, primarySite.getUuid());
         doReturn(localVDC).when(drService).queryLocalVDC();
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
+        // Don't need to record audit log in UT
+        doNothing().when(drService).auditDisasterRecoveryOps(any(OperationTypeEnum.class), anyString(), anyString(), any());
         doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
     }
 
@@ -196,6 +220,7 @@ public class DisasterRecoveryServiceTest {
         List<Configuration> allConfigs = new ArrayList<Configuration>();
         allConfigs.add(standbySite1.toConfiguration());
         allConfigs.add(standbySite2.toConfiguration());
+        allConfigs.add(primarySite.toConfiguration());
         doReturn(allConfigs).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
         doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
@@ -233,14 +258,16 @@ public class DisasterRecoveryServiceTest {
         List<Configuration> allConfigs = new ArrayList<Configuration>();
         allConfigs.add(standbySite1.toConfiguration());
         allConfigs.add(standbySite2.toConfiguration());
+        allConfigs.add(primarySite.toConfiguration());
         doReturn(allConfigs).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
         doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
-        
+        doReturn(primarySite.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, primarySite.getUuid());
+
         SiteList responseList = drService.getSites();
 
         assertNotNull(responseList.getSites());
-        assertEquals(2, responseList.getSites().size());
+        assertEquals(3, responseList.getSites().size());
 
         compareSiteResponse(responseList.getSites().get(0), standbySite1);
         compareSiteResponse(responseList.getSites().get(1), standbySite2);
@@ -327,7 +354,7 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testPrecheckForStandbyAttach() throws Exception {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
-        doReturn("primary-site-id").when(coordinator).getSiteId();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         drService.precheckForStandbyAttach(standby);
     }
 
@@ -395,7 +422,9 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testPrecheckForStandbyAttach_NotPrimarySite() throws Exception {
         try {
-            doReturn("654321").when(coordinator).getPrimarySiteId();
+            Configuration config = new ConfigurationImpl();
+            config.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, "654321");
+            doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
             doReturn("123456").when(coordinator).getSiteId();
             drService.precheckForStandbyAttach(standby);
             fail();
@@ -407,15 +436,15 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testPrecheckForStandbyAttach_PrimarySite_EmptyPrimaryID() throws Exception {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
-        doReturn(null).when(coordinator).getPrimarySiteId();
+        Configuration config = new ConfigurationImpl();
+        doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
         drService.precheckForStandbyAttach(standby);
     }
     
     @Test
     public void testPrecheckForStandbyAttach_PrimarySite_IsPrimary() throws Exception {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
-        doReturn("123456").when(coordinator).getPrimarySiteId();
-        doReturn("123456").when(coordinator).getSiteId();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         drService.precheckForStandbyAttach(standby);
     }
     
@@ -455,6 +484,7 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testGetSiteError() {
+        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
         SiteErrorResponse siteError = drService.getSiteError("site-uuid-1");
         
         assertEquals(0, siteError.getCreationTime());

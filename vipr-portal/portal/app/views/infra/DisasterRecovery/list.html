@@ -3,20 +3,20 @@
 
 #{DataTable.header titleKey:'disasterRecovery.title'/}
 
-<div class="row">
-	<div class="col-sm-12">
 #{DataTable.crudTable id:'disasterRecovery', 
 					dataTable:dataTable,
+					expandable: true,
 					deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
 #{/DataTable.crudTable}
-	</div>
-</div>
 
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-site">
-        <a class="btn btn-default btn-xs" ng-disabled="isPauseSite" role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
-        <a class="btn btn-default btn-xs" ng-disabled="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
-        <a class="btn btn-default btn-xs" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
+		#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+			<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}">{{'disasterRecovery.pauseButton' | t}}</a>
+			<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
+			<a class="btn btn-default btn-xs" ng-show="isTestSite" role="button" href="{{testUrl}}">{{'disasterRecovery.testButton' | t}}</a>
+			<a class="btn btn-default btn-xs" ng-show="isFailover" role="button" href="{{failoverUrl}}">{{'disasterRecovery.FailoverButton' | t}}</a>
+		#{/deadbolt.restrict}
     </div>
 </script>
 
@@ -24,6 +24,7 @@
 var standbypauseUrl = #{jsAction @pause(':uuid') /}
 var standbyresumeUrl = #{jsAction @resume(':uuid') /}
 var standbytestUrl = #{jsAction @test(':uuid') /}
+var standbyfailoverUrl = #{jsAction @failover(':uuid') /}
 
 angular.module('tags').directive({
 	actions: function() {
@@ -34,20 +35,27 @@ angular.module('tags').directive({
         	 scope.pauseUrl = standbypauseUrl({'uuid': scope.row.id});
         	 scope.resumeUrl = standbyresumeUrl({'uuid': scope.row.id});
         	 scope.testUrl = standbytestUrl({'uuid': scope.row.id});
-        	 scope.isPauseSite = true;
-        	 scope.isResumeSite = true;
-        	 
+			scope.failoverUrl = standbyfailoverUrl({'uuid': scope.row.id});
+			scope.isPauseSite = false;
+			scope.isResumeSite = false;
+			scope.isTestSite = false;
+			scope.isFailover = false;
+
         	 if(scope.row.status.toUpperCase() == "STANDBY_SYNCED"){
-        		 scope.isPauseSite = false;
+				scope.isPauseSite = true;
+				scope.isTestSite = true;
+				scope.isFailover = true;
              }
         	 
         	 if(scope.row.status.toUpperCase() == "STANDBY_PAUSED"){
-        		 scope.isResumeSite = false;
+				scope.isResumeSite = true;
              }
         	 
         	 if(scope.row.status.toUpperCase() == "PRIMARY"){
-        		 scope.isResumeSite = true;
-        		 scope.isPauseSite = true;
+				scope.isResumeSite = false;
+				scope.isPauseSite = false;
+				scope.isTestSite = false;
+				scope.isFailover = false;
              }
          }
      }
@@ -64,4 +72,18 @@ function renderButtonBar(o,val) {
     return "<actions></actions>";
     
 }
+</script>
+
+<script type="text/javascript">
+function watchLoadStatus(datatable, itemsJson) {
+    var fields = ['status','VirtualIP','name'];
+    var fieldToWatch = 'status';
+    var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING'];
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
+}
+$(document).ready(function() {
+    var dataTable = table.disasterRecovery.dataTable.getDataTable()
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchLoadStatus(dataTable, itemsJson);
+});
 </script>

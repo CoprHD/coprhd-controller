@@ -303,6 +303,11 @@ _genconfig_system_init() {
 
     # data versioning support
     _genconfig_data_versioning
+   
+    # generae dr flag to disable sasvc, controllersvc and vasasvc
+    for svc in controller sa vasa ; do
+        _genconfig_dr_flag ${svc}
+    done
 }
 
 _genconfig_exec_scripts() {
@@ -370,6 +375,18 @@ _genconfig_setup_versioning_dir() {
     rm -fR ${curdir}
     ln -s ${tgtdir} ${curdir}
     chown -h storageos:storageos ${curdir}
+}
+
+_genconfig_dr_flag() {
+    local drflag="/var/run/storageos/${1}_disabled"
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
+        touch ${drflag}
+        chown storageos:storageos ${drflag}
+    else
+        if [ -e ${drflag} ]; then
+            rm -f ${drflag}
+        fi
+    fi
 }
 
 _genconfig_exec_boot_scripts() {

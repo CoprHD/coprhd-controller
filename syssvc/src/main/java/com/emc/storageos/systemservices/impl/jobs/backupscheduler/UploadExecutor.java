@@ -41,15 +41,21 @@ public class UploadExecutor {
         this.cli = cli;
     }
 
+    public void setUploader(Uploader uploader) {
+        this.uploader = uploader;
+    }
+
     public void runOnce() throws Exception {
         runOnce(null);
     }
 
     public void runOnce(String backupTag) throws Exception {
-        this.uploader = Uploader.create(cfg, cli);
         if (this.uploader == null) {
-            log.info("Upload URL is empty, upload disabled");
-            return;
+            setUploader(Uploader.create(cfg, cli));
+            if (this.uploader == null) {
+                log.info("Upload URL is empty, upload disabled");
+                return;
+            }
         }
 
         try (AutoCloseable lock = this.cfg.lock()) {

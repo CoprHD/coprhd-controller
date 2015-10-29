@@ -222,6 +222,11 @@ _gen_prop2() {
             local var2="_GENCONFIG_network_${node_index}_ipaddr"
             eval export ${var}=${!var2}
         fi
+        var="_GENCONFIG_vdc_vdc1_network_${node_index}_ipaddr6"
+        if [ -z "${!var}" ]; then
+            local var2="_GENCONFIG_network_${node_index}_ipaddr6"
+            eval export ${var}=${!var2}
+        fi
     done
 
     local OLD_IFS="${IFS}"; IFS="${IFS},"

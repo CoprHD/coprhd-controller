@@ -1186,13 +1186,13 @@ public class ExportUtils {
                     || !sp.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name())
                     || StoragePort.OperationalStatus.NOT_OK.equals(StoragePort.OperationalStatus.valueOf(sp.getOperationalStatus()))
                     || StoragePort.PortType.valueOf(sp.getPortType()) != StoragePort.PortType.frontend) {
-                _log.debug(
+                _log.info(
                         "Storage port {} is not selected because it is inactive, is not compatible, is not visible, has no network assignment, "
                                 +
                                 "is not registered, has a status other than OK, or is not a frontend port", sp.getLabel());
                 notRegisteredOrOk.add(sp.qualifiedPortName());
             } else if (sp.getTaggedVirtualArrays() == null || !sp.getTaggedVirtualArrays().contains(varrayURI.toString())) {
-                _log.debug("Storage port {} not selected because it is not connected " +
+                _log.info("Storage port {} not selected because it is not connected " +
                         "or assigned to requested virtual array {}", sp.getNativeGuid(), varrayURI);
                 notInVarray.add(sp.qualifiedPortName());
             } else {

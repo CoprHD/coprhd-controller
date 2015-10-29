@@ -1158,6 +1158,7 @@ chmod 0400 /opt/storageos/conf/storageos.crt
 vipr_fix_add_strongswan() {
     echo "*** Fixing Adding strongswan parameter" >&2
     echo "net.ipv4.xfrm4_gc_thresh=32768" >> /etc/sysctl.conf
+    echo "net.ipv6.xfrm6_gc_thresh=32768" >> /etc/sysctl.conf
 }
 
 #======================================

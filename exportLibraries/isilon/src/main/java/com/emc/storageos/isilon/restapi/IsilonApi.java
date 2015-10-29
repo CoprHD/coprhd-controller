@@ -1099,9 +1099,9 @@ public class IsilonApi {
      * @return
      * @throws IsilonException
      */
-    public List<IsilonAccessZone> getAccessZones()throws IsilonException {
+    public List<IsilonAccessZone> getAccessZones(String resumeToken)throws IsilonException {
         IsilonList<IsilonAccessZone> accessZoneIsilonList = list(_baseUrl.resolve(URI_ACCESS_ZONES),
-                "zones", IsilonAccessZone.class, null);
+                "zones", IsilonAccessZone.class, resumeToken);
         return accessZoneIsilonList.getList();
 
     }
@@ -1111,9 +1111,9 @@ public class IsilonApi {
      * @return
      * @throws IsilonException
      */
-    public List<IsilonNetworkPool> getNetworkPools()throws IsilonException {
+    public List<IsilonNetworkPool> getNetworkPools(String resumeToken)throws IsilonException {
         IsilonList<IsilonNetworkPool> accessZoneIsilonList = list(_baseUrl.resolve(URI_NETWORK_POOLS),
-                "pools", IsilonNetworkPool.class, null);
+                "pools", IsilonNetworkPool.class, resumeToken);
         return accessZoneIsilonList.getList();
     }
 

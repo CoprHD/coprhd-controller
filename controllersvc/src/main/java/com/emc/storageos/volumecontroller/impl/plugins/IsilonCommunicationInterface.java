@@ -281,7 +281,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             VirtualNAS virtualNAS = null;
             ////step-1 process the dbmetrics for user define access zones
-            List<IsilonAccessZone> accessZoneList = isilonApi.getAccessZones();
+            List<IsilonAccessZone> accessZoneList = isilonApi.getAccessZones(null);
             for (IsilonAccessZone isAccessZone: accessZoneList) {
                 accessZoneId = isAccessZone.getZone_id().toString();
                 //get the total fs count and capacity for AZ
@@ -592,7 +592,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _log.info("Isilon release version {} and storagesystem label {}", 
                                 storageSystem.getFirmwareVersion(), storageSystem.getLabel());
                 IsilonApi isilonApi = getIsilonDevice(storageSystem);
-                isilonNetworkPoolsTemp = isilonApi.getNetworkPools();
+                isilonNetworkPoolsTemp = isilonApi.getNetworkPools(null);
                 if(isilonNetworkPoolsTemp != null) {
                     isilonNetworkPoolList.addAll(isilonNetworkPoolsTemp);
                 }
@@ -647,7 +647,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             
             //make restapi call to get access zones
-            accessZoneListTemp = isilonApi.getAccessZones();
+            accessZoneListTemp = isilonApi.getAccessZones(null);
             if (accessZoneListTemp == null || accessZoneListTemp.isEmpty()) {
                 //No ports defined throw an exception and fail the discovery
                 IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. No Zones defined");
@@ -1136,7 +1136,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             int totalIsilonFSDiscovered = 0;
             
             //get the associated storage port for vnas Server
-            List<IsilonAccessZone> isilonAccessZones = isilonApi.getAccessZones();
+            List<IsilonAccessZone> isilonAccessZones = isilonApi.getAccessZones(null);
             setDiscPathForAccess(isilonAccessZones);
             Map<String, NASServer> nasServers = getNASServer(storageSystem, isilonAccessZones);
             

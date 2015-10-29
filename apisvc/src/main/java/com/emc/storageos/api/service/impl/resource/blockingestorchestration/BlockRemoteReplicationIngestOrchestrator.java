@@ -91,7 +91,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
 
             if (null == blockObject) {
                 _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {}", unManagedVolume.getNativeGuid());
-                throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(unManagedVolume.getNativeGuid());
+                throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(unManagedVolume.getNativeGuid(), "none.");
             }
         } else {
             // blockObject already ingested, now just update internalflags &

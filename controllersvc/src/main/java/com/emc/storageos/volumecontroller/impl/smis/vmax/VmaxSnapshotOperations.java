@@ -445,8 +445,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         _log.info("START deleteGroupSnapshots");
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(snapshot));
-            List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-            BlockSnapshot snapshotObj = snapshots.get(0);
+            BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             // Check if the consistency group exists
             String consistencyGroupName = _helper.getConsistencyGroupName(snapshotObj, storage);
             StorageSystem newStorage = findProviderFactory.withGroup(storage, consistencyGroupName).find();

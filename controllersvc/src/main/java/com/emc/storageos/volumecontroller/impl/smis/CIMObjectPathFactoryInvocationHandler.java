@@ -88,7 +88,7 @@ public class CIMObjectPathFactoryInvocationHandler implements InvocationHandler 
 
     private Object delegate(Method method, Object[] args, CIMObjectPathFactory factory)
             throws InvocationTargetException, IllegalAccessException {
-        log.info(String.format(MSG, method.getName(), factory.getClass().getSimpleName()));
+        log.debug(String.format(MSG, method.getName(), factory.getClass().getSimpleName()));
         return method.invoke(factory, args);
     }
 

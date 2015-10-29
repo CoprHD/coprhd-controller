@@ -98,6 +98,9 @@ public class FileStorageUtils {
             } else {
                 shareAcl.setUser(fileSystemACL.aclName);
             }
+            if (!StringUtils.isEmpty(fileSystemACL.aclDomain)) {
+                shareAcl.setDomain(fileSystemACL.aclDomain);
+            }
             shareAcl.setPermission(fileSystemACL.aclPermission);
             aclList.add(shareAcl);
         }
@@ -514,6 +517,9 @@ public class FileStorageUtils {
 
         @Param
         public String aclName;
+        
+        @Param
+        public String aclDomain;
 
         @Param
         public String aclPermission;

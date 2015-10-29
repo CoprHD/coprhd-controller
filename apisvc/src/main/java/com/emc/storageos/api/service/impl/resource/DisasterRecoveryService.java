@@ -376,17 +376,18 @@ public class DisasterRecoveryService {
         log.info("Begin to remove standby site from local vdc by uuid: {}", siteIdStr);
         List<Site> toBeRemovedSites = new ArrayList<>();
         for (String siteId : siteIdList) {
+            Site site;
             try {
-                Site site = drUtil.getSite(siteId);
-                if (site.getState().equals(SiteState.PRIMARY)) {
-                    log.error("Unable to remove this site {}. It is primary", siteId);
-                    throw APIException.badRequests.operationNotAllowedOnPrimarySite();
-                }
-                toBeRemovedSites.add(site);
+                site = drUtil.getSite(siteId);
             } catch (Exception ex) {
                 log.error("Can't load site {} from ZK", siteId);
                 throw APIException.badRequests.siteIdNotFound();
             }
+            if (site.getState().equals(SiteState.PRIMARY)) {
+                log.error("Unable to remove this site {}. It is primary", siteId);
+                throw APIException.badRequests.operationNotAllowedOnPrimarySite();
+            }
+            toBeRemovedSites.add(site);
         }
         
         if (drUtil.isStandby()) {

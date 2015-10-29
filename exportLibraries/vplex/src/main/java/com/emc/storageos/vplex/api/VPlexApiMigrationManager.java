@@ -300,7 +300,7 @@ public class VPlexApiMigrationManager {
      * @throws VPlexApiException When an error occurs committing the migrations.
      */
     List<VPlexMigrationInfo> commitMigrations(List<String> migrationNames,
-                    boolean cleanup, boolean remove, boolean rename) throws VPlexApiException {
+            boolean cleanup, boolean remove, boolean rename) throws VPlexApiException {
 
         s_logger.info("Committing migrations {}", migrationNames);
 
@@ -442,7 +442,7 @@ public class VPlexApiMigrationManager {
      * @throws VPlexApiException When an error occurs canceling the migrations.
      */
     void cancelMigrations(List<String> migrationNames, boolean cleanup, boolean remove)
-                    throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Canceling migrations {}", migrationNames);
 
         // Find the requested migrations. An exception will be thrown if

@@ -202,6 +202,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String EXPORT_GROUP_REMOVE_VOLUMES = "exportGroupRemoveVolumes";
     private static final String VOLUME_FULLCOPY_GROUP_RELATION_WF = "volumeFullCopyGroupRelation";
     private static final String RESYNC_SNAPSHOT_WF_NAME = "ResyncSnapshot";
+    private static final String PAUSE_MIGRATION_WF_NAME = "PauseMigration";
+    private static final String RESUME_MIGRATION_WF_NAME = "ResumeMigration";
+    private static final String CANCEL_MIGRATION_WF_NAME = "CancelMigration";
+    private static final String DELETE_MIGRATION_WF_NAME = "DeleteMigration";
 
     // Workflow step identifiers
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
@@ -231,6 +235,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String REMOVE_STORAGE_PORTS_STEP = "removeStoragePortsStep";
     private static final String VOLUME_FULLCOPY_GROUP_RELATION_STEP = "volumeFullcopyRelationStep";
     private static final String RESYNC_SNAPSHOT_STEP = "ResyncSnapshotStep";
+    private static final String PAUSE_MIGRATION_STEP = "PauseMigrationStep";
+    private static final String RESUME_MIGRATION_STEP = "ResumeMigrationStep";
+    private static final String CANCEL_MIGRATION_STEP = "CancelMigrationStep";
+    private static final String DELETE_MIGRATION_STEP = "DeleteMigrationStep";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
@@ -276,6 +284,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String ROLLBACK_FULL_COPY_METHOD = "rollbackFullCopyVolume";
     private static final String VOLUME_FULLCOPY_RELATION_METHOD = "establishVolumeFullCopyGroupRelation";
     private static final String RESYNC_SNAPSHOT_METHOD_NAME = "resyncSnapshot";
+    private static final String PAUSE_MIGRATION_METHOD_NAME = "pauseMigrationStep";
+    private static final String RESUME_MIGRATION_METHOD_NAME = "resumeMigrationStep";
+    private static final String CANCEL_MIGRATION_METHOD_NAME = "cancelMigrationStep";
+    private static final String DELETE_MIGRATION_METHOD_NAME = "deleteMigrationStep";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -10350,68 +10362,185 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         VPlexDeviceController.coordinator = coordinator;
     }
 
-    @Override
-    public void pauseMigration(URI vplexURI, URI migrationURI, String opId) {
-        MigrationOperationTaskCompleter completer = null;
+    public void pauseMigrationStep(URI vplexURI, URI migrationURI, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
-            URI volId = migration.getVolume();
-            completer = new MigrationOperationTaskCompleter(volId, opId);
             client.pauseMigrations(Arrays.asList(migration.getLabel()));
             migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.PAUSED.name());
             _dbClient.persistObject(migration);
-            completer.ready(_dbClient);
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error("Exception pausing migration: ", ex);
             String opName = ResourceOperationTypeEnum.PAUSE_MIGRATION.getName();
             ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
-            completer.error(_dbClient, serviceError);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
 
     }
 
-    @Override
-    public void resumeMigration(URI vplexURI, URI migrationURI, String opId) {
-        MigrationOperationTaskCompleter completer = null;
+    public void resumeMigrationStep(URI vplexURI, URI migrationURI, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
             URI volId = migration.getVolume();
-            completer = new MigrationOperationTaskCompleter(volId, opId);
             client.resumeMigrations(Arrays.asList(migration.getLabel()));
             migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.IN_PROGRESS.name());
             _dbClient.persistObject(migration);
-            completer.ready(_dbClient);
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
             _log.error("Exception resuming migration: ", ex);
             String opName = ResourceOperationTypeEnum.RESUME_MIGRATION.getName();
             ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
-            completer.error(_dbClient, serviceError);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
 
         }
     }
 
-    @Override
-    public void cancelMigration(URI vplexURI, URI migrationURI, String opId) {
-        MigrationOperationTaskCompleter completer = null;
+    public void cancelMigrationStep(URI vplexURI, URI migrationURI, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
-            URI volId = migration.getVolume();
-            completer = new MigrationOperationTaskCompleter(volId, opId);
             client.cancelMigrations(Arrays.asList(migration.getLabel()), true, true);
             migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.CANCELLED.name());
             _dbClient.persistObject(migration);
-            completer.ready(_dbClient);
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (Exception ex) {
-            _log.error("Exception canceling migration: ", ex);
+            _log.error("Exception cancelling migration: ", ex);
             String opName = ResourceOperationTypeEnum.CANCEL_MIGRATION.getName();
             ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
-            completer.error(_dbClient, serviceError);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
+    }
+    
+    public void deleteMigrationStep(URI vplexURI, URI migrationURI, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        try {
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            client.removeMigrations(Arrays.asList(migration.getLabel()));
+            migration.setInactive(true);
+            _dbClient.persistObject(migration);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception ex) {
+            _log.error("Exception deleting migration:", ex);
+            String opName = ResourceOperationTypeEnum.DELETE_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
+    }
+    
+    @Override
+    public void pauseMigration(URI vplexURI, URI migrationURI, String opId) {
+        MigrationOperationTaskCompleter completer = null;
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    PAUSE_MIGRATION_WF_NAME, false, opId);
+            _log.info("Created pause migration workflow with operation id {}", opId);
+
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            URI volId = migration.getVolume();
+            completer = new MigrationOperationTaskCompleter(volId, opId);
+            
+            Workflow.Method pauseMigrationMethod = new Workflow.Method(PAUSE_MIGRATION_METHOD_NAME,
+                    vplexURI, migrationURI);
+            workflow.createStep(PAUSE_MIGRATION_STEP, "Pause migration", null,
+                    vplexURI, vplex.getSystemType(), getClass(),
+                    pauseMigrationMethod, rollbackMethodNullMethod(), null);
+            String successMsg = String.format(
+                    "Migration %s paused successfully", migrationURI);
+            workflow.executePlan(completer, successMsg);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {            
+            String failMsg = String.format(
+                    "Pause the migration %s failed", migrationURI);
+            _log.error(failMsg, e);
+            String opName = ResourceOperationTypeEnum.PAUSE_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, e);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+        }
+
+    }
+    
+    @Override
+    public void resumeMigration(URI vplexURI, URI migrationURI, String opId) {
+        MigrationOperationTaskCompleter completer = null;
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    RESUME_MIGRATION_WF_NAME, false, opId);
+            _log.info("Created resume migration workflow with operation id {}", opId);
+
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            URI volId = migration.getVolume();
+            completer = new MigrationOperationTaskCompleter(volId, opId);
+            
+            Workflow.Method resumeMigrationMethod = new Workflow.Method(RESUME_MIGRATION_METHOD_NAME,
+                    vplexURI, migrationURI);
+            workflow.createStep(RESUME_MIGRATION_STEP, "Resume migration", null,
+                    vplexURI, vplex.getSystemType(), getClass(),
+                    resumeMigrationMethod, rollbackMethodNullMethod(), null);
+
+            String successMsg = String.format(
+                    "Migration %s resumed successfully", migrationURI);
+            workflow.executePlan(completer, successMsg);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {            
+            String failMsg = String.format(
+                    "Pause the migration %s failed", migrationURI);
+            _log.error(failMsg, e);
+            String opName = ResourceOperationTypeEnum.RESUME_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, e);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
+        }
+    }
+    
+    @Override
+    public void cancelMigration(URI vplexURI, URI migrationURI, String opId) {
+        MigrationOperationTaskCompleter completer = null;
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    CANCEL_MIGRATION_WF_NAME, false, opId);
+            _log.info("Created cancel migration workflow with operation id {}", opId);
+
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            URI volId = migration.getVolume();
+            completer = new MigrationOperationTaskCompleter(volId, opId);
+            
+            Workflow.Method cancelMigrationMethod = new Workflow.Method(CANCEL_MIGRATION_METHOD_NAME,
+                    vplexURI, migrationURI);
+            workflow.createStep(CANCEL_MIGRATION_STEP, "Cancel migration", null,
+                    vplexURI, vplex.getSystemType(), getClass(),
+                    cancelMigrationMethod, rollbackMethodNullMethod(), null);
+            String successMsg = String.format(
+                    "Migration %s cancelled successfully", migrationURI);
+            workflow.executePlan(completer, successMsg);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {            
+            String failMsg = String.format(
+                    "Pause the migration %s failed", migrationURI);
+            _log.error(failMsg, e);
+            String opName = ResourceOperationTypeEnum.CANCEL_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, e);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
         }
     }
     
@@ -10419,20 +10548,35 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void deleteMigration(URI vplexURI, URI migrationURI, String opId) {
         MigrationOperationTaskCompleter completer = null;
         try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    DELETE_MIGRATION_WF_NAME, false, opId);
+            _log.info("Created delete migration workflow with operation id {}", opId);
+
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
             URI volId = migration.getVolume();
             completer = new MigrationOperationTaskCompleter(volId, opId);
-            client.removeMigrations(Arrays.asList(migration.getLabel()));
-            migration.setInactive(true);
-            _dbClient.persistObject(migration);
-            completer.ready(_dbClient);
-        } catch (Exception ex) {
-            _log.error("Exception deleting migration:", ex);
+            
+            Workflow.Method deleteMigrationMethod = new Workflow.Method(DELETE_MIGRATION_METHOD_NAME,
+                    vplexURI, migrationURI);
+            workflow.createStep(DELETE_MIGRATION_STEP, "Delete migration", null,
+                    vplexURI, vplex.getSystemType(), getClass(),
+                    deleteMigrationMethod, rollbackMethodNullMethod(), null);
+
+            String successMsg = String.format(
+                    "Migration %s deleted successfully", migrationURI);
+            workflow.executePlan(completer, successMsg);
+            _log.info("Workflow plan executing");
+        } catch (Exception e) {            
+            String failMsg = String.format(
+                    "Pause the migration %s failed", migrationURI);
+            _log.error(failMsg, e);
             String opName = ResourceOperationTypeEnum.DELETE_MIGRATION.getName();
-            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
-            completer.error(_dbClient, serviceError);
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, e);
+            if (completer != null) {
+                completer.error(_dbClient, serviceError);
+            }
         }
     }
 

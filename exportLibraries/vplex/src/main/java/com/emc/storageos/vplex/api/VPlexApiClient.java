@@ -288,7 +288,8 @@ public class VPlexApiClient {
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterId = clusterInfo.getName();
             // for each cluster get the virtual volume information.
-            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList = _discoveryMgr.getVirtualVolumesForCluster(clusterId);
+            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList = 
+                    _discoveryMgr.getVirtualVolumesForCluster(clusterId);
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : clusterVirtualVolumeInfoList) {
                 virtualVolumeInfo.addCluster(clusterId);
                 String virtualVolumeName = virtualVolumeInfo.getName();
@@ -1286,7 +1287,7 @@ public class VPlexApiClient {
      * 
      * @return The API client discovery manager.
      */
-            VPlexApiDiscoveryManager getDiscoveryManager() {
+    VPlexApiDiscoveryManager getDiscoveryManager() {
         return _discoveryMgr;
     }
 
@@ -1414,7 +1415,7 @@ public class VPlexApiClient {
      * @param resourceURI The resource URI.
      * @return The client response.
      */
-   ClientResponse put(URI resourceURI) {
+    ClientResponse put(URI resourceURI) {
         return put(resourceURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_0);
     }
 
@@ -1427,7 +1428,7 @@ public class VPlexApiClient {
      * 
      * @return The client response.
      */
-            ClientResponse put(URI resourceURI, String jsonFormat) {
+    ClientResponse put(URI resourceURI, String jsonFormat) {
         ClientResponse response = _client.put(resourceURI, _vplexSessionId, jsonFormat);
         updateVPLEXSessionId(response);
         return response;

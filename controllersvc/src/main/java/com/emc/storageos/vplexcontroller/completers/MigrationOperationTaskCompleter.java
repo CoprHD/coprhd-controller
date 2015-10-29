@@ -16,6 +16,9 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
+/**
+ * Completer for migration operations.
+ */
 public class MigrationOperationTaskCompleter extends TaskCompleter {
     /**
      * 
@@ -33,7 +36,7 @@ public class MigrationOperationTaskCompleter extends TaskCompleter {
         URI migrationURI = getId();
         String opId = getOpId();
         s_logger.info(String.format(
-                "Migration %s for task %s completed with status %s", migrationURI,
+                "Migration operation for the task %s completed with status %s", 
                 opId, status.name()));
 
         // Update the task status.

@@ -312,7 +312,7 @@ public class MigrationService extends TaskResourceService {
      * Pause a migration that is in progress.
      * 
      * 
-     * @prereq none
+     * @prereq The migration is in progress
      * 
      * @param id the URN of a ViPR migration.
      * 
@@ -336,24 +336,30 @@ public class MigrationService extends TaskResourceService {
         if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
             throw APIException.badRequests.migrationHasntStarted(id.toString());
         }
-        if (status != null && !status.isEmpty() &&
-                (status.equals(VPlexMigrationInfo.MigrationStatus.COMPLETE.getStatusValue()) ||
-                        status.equals(VPlexMigrationInfo.MigrationStatus.ERROR.getStatusValue()) ||
-                        status.equals(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue()))
-                ||
-                status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue())) {
+        if (status.equals(VPlexMigrationInfo.MigrationStatus.COMPLETE.getStatusValue()) ||
+               status.equals(VPlexMigrationInfo.MigrationStatus.ERROR.getStatusValue()) ||
+               status.equals(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue()) ||
+               status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue())) {
             throw APIException.badRequests.migrationCantBePaused(migrationName, status);
-        }
+        } 
         URI volId = migration.getVolume();
         Volume vplexVol = _dbClient.queryObject(Volume.class, volId);
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
-        // Create a task for the virtual volume being migrated and set the
+        // Create a task for the volume and set the
         // initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(Volume.class,
                 volId, taskId, ResourceOperationTypeEnum.PAUSE_MIGRATION);
         TaskResourceRep task = toTask(vplexVol, taskId, op);
+        if (status.equals(VPlexMigrationInfo.MigrationStatus.PAUSED.getStatusValue())) {
+            // it has been paused.
+            s_logger.info("Migration {} has been paused", id);
+            op.ready();
+            vplexVol.getOpStatus().createTaskStatus(taskId, op);
+            _dbClient.persistObject(vplexVol);
+            return task;        
+        }
 
         try {
             VPlexController controller = _vplexBlockServiceApi.getController();
@@ -361,8 +367,8 @@ public class MigrationService extends TaskResourceService {
             controller.pauseMigration(vplexVol.getStorageController(), id, taskId);
 
         } catch (InternalException e) {
-            s_logger.error("Controller Error", e);
-            String errMsg = String.format("Controller Error: %s", e.getMessage());
+            s_logger.error("Error", e);
+            String errMsg = String.format("Error: %s", e.getMessage());
             task.setState(Operation.Status.error.name());
             task.setMessage(errMsg);
             op.error(e);
@@ -377,7 +383,7 @@ public class MigrationService extends TaskResourceService {
      * Resume a migration that was previously paused.
      * 
      * 
-     * @prereq none
+     * @prereq The migration is paused
      * 
      * @param id the URN of a ViPR migration.
      * 
@@ -401,8 +407,7 @@ public class MigrationService extends TaskResourceService {
         if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
             throw APIException.badRequests.migrationHasntStarted(id.toString());
         }
-        if (status != null && !status.isEmpty() &&
-                !status.equals(VPlexMigrationInfo.MigrationStatus.PAUSED.getStatusValue())) {
+        if (!status.equals(VPlexMigrationInfo.MigrationStatus.PAUSED.getStatusValue())) {
             throw APIException.badRequests.migrationCantBeResumed(migrationName, status);
         }
         URI volId = migration.getVolume();
@@ -422,8 +427,8 @@ public class MigrationService extends TaskResourceService {
             controller.resumeMigration(vplexVol.getStorageController(), id, taskId);
 
         } catch (InternalException e) {
-            s_logger.error("Controller Error", e);
-            String errMsg = String.format("Controller Error: %s", e.getMessage());
+            s_logger.error("Error", e);
+            String errMsg = String.format("Error: %s", e.getMessage());
             task.setState(Operation.Status.error.name());
             task.setMessage(errMsg);
             op.error(e);
@@ -435,24 +440,6 @@ public class MigrationService extends TaskResourceService {
         return task;
     }
 
-    /**
-     * Commit a migration that has successfully completed. Not yet implemented.
-     * 
-     * 
-     * @prereq none
-     * 
-     * @param id the URN of a ViPR migration.
-     * 
-     * @brief Commit a completed migration.
-     * @return A TaskResourceRep
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/commit")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep commitMigration(@PathParam("id") URI id) {
-        throw APIException.methodNotAllowed.notSupported();
-    }
 
     /**
      * Cancel a migration that has yet to be committed. 
@@ -495,9 +482,8 @@ public class MigrationService extends TaskResourceService {
                 volId, taskId, ResourceOperationTypeEnum.CANCEL_MIGRATION);
         TaskResourceRep task = toTask(vplexVol, taskId, op);
 
-        if (status != null && !status.isEmpty() &&
-                (status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.name()) ||
-                        status.equals(VPlexMigrationInfo.MigrationStatus.PARTIALLY_CANCELLED.name()))) {
+        if (status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.name()) ||
+                status.equals(VPlexMigrationInfo.MigrationStatus.PARTIALLY_CANCELLED.name())) {
             // it has been cancelled
             s_logger.info("Migration {} has been cancelled", id);
             op.ready();
@@ -848,8 +834,8 @@ public class MigrationService extends TaskResourceService {
             controller.deleteMigration(vplexVol.getStorageController(), id, taskId);
 
         } catch (InternalException e) {
-            s_logger.error("Controller Error", e);
-            String errMsg = String.format("Controller Error: %s", e.getMessage());
+            s_logger.error("Error", e);
+            String errMsg = String.format("Error: %s", e.getMessage());
             task.setState(Operation.Status.error.name());
             task.setMessage(errMsg);
             op.error(e);

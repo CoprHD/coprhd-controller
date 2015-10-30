@@ -39,9 +39,9 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         
         try {
             DbSchemaChecker.checkSourceSchema(MODEL_PACKAGES);
-            dbChecker.checkObjectId(false);
-            dbChecker.checkIndexObjects(false);
-            dbChecker.checkObjectIndices(false);
+            dbChecker.checkObjectId();
+            dbChecker.checkIndexObjects();
+            dbChecker.checkObjectIndices();
             status = markResult();
         } catch(Exception e) {
             log.error("failed to check db consistency {}", e);

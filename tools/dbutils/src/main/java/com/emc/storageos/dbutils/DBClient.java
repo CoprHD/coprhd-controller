@@ -6,6 +6,7 @@ package com.emc.storageos.dbutils;
 
 import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
+import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -1119,7 +1120,8 @@ public class DBClient {
 
     public void checkDB() {
         try {
-            DbConsistencyChecker checker = new DbConsistencyChecker(_dbClient, true);
+            DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper(_dbClient);
+            DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
             checker.checkObjectId();
             checker.checkIndexObjects();
             checker.checkObjectIndices();

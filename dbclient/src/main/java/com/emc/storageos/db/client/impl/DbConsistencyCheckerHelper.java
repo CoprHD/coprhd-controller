@@ -38,6 +38,13 @@ public class DbConsistencyCheckerHelper {
 
     private DbClientImpl dbClient;
 
+    public DbConsistencyCheckerHelper() {
+    }
+
+    public DbConsistencyCheckerHelper(DbClientImpl dbClient) {
+        this.dbClient = dbClient;
+    }
+
     /**
      * Find out all rows in DataObject CFs that can't be deserialized,
      * such as such as object id cannot be converted to URI.

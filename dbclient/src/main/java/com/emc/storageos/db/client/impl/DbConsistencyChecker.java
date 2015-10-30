@@ -28,7 +28,8 @@ public class DbConsistencyChecker {
         this.totalCount = getTotalCount();
     }
 
-    public DbConsistencyChecker(boolean toConsole) {
+    public DbConsistencyChecker(DbConsistencyCheckerHelper helper, boolean toConsole) {
+        this.helper = helper;
         this.toConsole = toConsole;
     }
     

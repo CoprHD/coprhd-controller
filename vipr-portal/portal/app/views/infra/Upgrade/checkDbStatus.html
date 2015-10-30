@@ -28,10 +28,10 @@
 	</table>
 <br/>
 <form class="form">
-        <button id="okButton" type="submit" class="btn btn-primary btn-sm btn-success" onclick="window.location = '@{Upgrade.checkDbStatusOK()}'" style="margin-bottom: 0px">
+        <button id="okButton" type="submit" class="btn btn-primary btn-sm btn-success" onclick="window.location = '@{infra.Upgrade.checkDbStatusOK()}';" style="margin-bottom: 0px">
             #{icon 'ok-sign'/} &{'upgrade.checkDbConfirm'}
         </button>
-        <button id="cancelDbButton" type="submit" class="btn btn-primary btn-sm btn-danger" onclick="window.location = '@{Upgrade.cancelCheckDbStatus()}'" style="margin-bottom: 0px">
+        <button id="cancelDbButton" type="submit" class="btn btn-primary btn-sm btn-danger" onclick="window.location = '@{infra.Upgrade.cancelCheckDbStatus()}';" style="margin-bottom: 0px">
         	#{icon 'danger'/} &{'upgrade.checkDbCancel'}
         </button>
 </form>		

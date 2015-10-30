@@ -25,8 +25,10 @@ import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
 import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
+import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -137,11 +139,14 @@ public class DisasterRecovery extends ViprResourceController {
                 flash.error(MessagesUtils.get(UNKNOWN, uuid));
                 list();
             }
-
-            SiteRestRep result = DisasterRecoveryUtils.deleteStandby(uuid);
-            flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
-            list();
+            
         }
+
+        SiteIdListParam param = new SiteIdListParam();
+        param.getIds().addAll(uuids);
+        DisasterRecoveryUtils.deleteStandby(param);
+        flash.success(MessagesUtils.get(DELETED_SUCCESS));
+        list();
     }
 
     public static void itemsJson(@As(",") String[] ids) {

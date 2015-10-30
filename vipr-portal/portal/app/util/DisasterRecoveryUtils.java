@@ -10,9 +10,11 @@ import static util.BourneUtil.getViprClient;
 import java.util.List;
 
 import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
+import com.sun.jersey.api.client.ClientResponse;
 
 public class DisasterRecoveryUtils {
 
@@ -30,8 +32,8 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().createSite(standbySite);
     }
 
-    public static SiteRestRep deleteStandby(String uuid) {
-        return getViprClient().site().deleteSite(uuid);
+    public static ClientResponse deleteStandby(SiteIdListParam ids) {
+        return getViprClient().site().deleteSite(ids);
     }
 
     public static SiteRestRep pauseStandby(String uuid) {

@@ -151,6 +151,7 @@ public class ZipUtil {
             } else {
                 FileUtils.copyInputStreamToFile(is, file);
             }
+            file.setLastModified(zipEntry.getTime());
         } finally {
             IOUtils.closeQuietly(is);
         }

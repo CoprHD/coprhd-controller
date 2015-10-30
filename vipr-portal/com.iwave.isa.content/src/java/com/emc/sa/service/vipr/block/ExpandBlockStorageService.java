@@ -22,7 +22,7 @@ public class ExpandBlockStorageService extends ViPRService {
 
     @Override
     public void precheck() {
-        BlockStorageUtils.getVolumes(uris(volumeIds));
+        BlockStorageUtils.getBlockResources(uris(volumeIds));
     }
 
     @Override

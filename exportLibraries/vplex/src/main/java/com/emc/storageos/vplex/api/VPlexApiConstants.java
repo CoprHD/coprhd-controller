@@ -174,6 +174,7 @@ public class VPlexApiConstants {
     // Constants related to claimed storage volumes.
     public static final String VOLUME_NAME_PREFIX = "V";
     public static final int MAX_VOL_NAME_LENGTH = 27;
+    public static final int MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR = 47;
     public static final String DOT_OPERATOR = ".";
     public static final String UNDERSCORE_OPERATOR = "_";
     public static final String PLUS_OPERATOR = "+";
@@ -255,8 +256,8 @@ public class VPlexApiConstants {
     public static final int STORAGE_VIEW_CREATE_MAX_RETRIES = 1;
 
     // Controls how long we wait for a volume expansion to complete.
-    public static final int EXPANSION_STATUS_RETRY_COUNT = 12;
-    public static final long EXPANSION_STATUS_SLEEP_TIME_MS = 5000;
+    public static final String EXPANSION_STATUS_RETRY_COUNT = "controller_vplex_volume_expansion_status_check_retry_count";
+    public static final String EXPANSION_STATUS_SLEEP_TIME_MS = "controller_vplex_volume_expansion_status_check_retry_max_wait";
 
     // When waiting on a rebuild operation to complete these parameters
     // control how long we wait.

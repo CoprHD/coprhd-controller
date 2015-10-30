@@ -8,7 +8,6 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -60,7 +59,6 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -216,7 +214,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                     // If the volume is a VPLEX volume created on a block snapshot,
                     // we don't support creation of a full copy.
                     if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, fcSourceVolume)) {
-                        throw APIException.badRequests.fullCopyNotAllowedForVPLEXVolumeBuiltOnSnapshot(fcSourceVolume.getId().toString());
+                        throw APIException.badRequests.fullCopyNotAllowedVolumeIsExposedSnapshot(fcSourceVolume.getId().toString());
                     }
 
                     StorageSystem system = _dbClient.queryObject(StorageSystem.class, fcSourceObj.getStorageController());
@@ -932,7 +930,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         BlockFullCopyUtils.validateActiveFullCopyCount(fcSourceObj, count, _dbClient);
     }
-    
+
     /**
      * {@inheritDoc}
      */

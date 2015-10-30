@@ -383,8 +383,10 @@ public class DbServiceImpl implements DbService {
         Long lastActiveTimestamp = dbOfflineEventInfo.geLastActiveTimestamp(localNodeId);
         long zkTimeStamp = (lastActiveTimestamp == null) ? TimeUtils.getCurrentTime() : lastActiveTimestamp;
 
-        File localDbDir = new File(dbDir);
-        boolean isDirEmpty = localDbDir.list().length == 0;
+        File localDbDir = getDBDataFileLocations();
+        _log.info("localDbDir={}", localDbDir.getAbsolutePath());
+        boolean isDirEmpty = (!localDbDir.exists()) || (localDbDir.list().length == 0);
+        _log.info("isDirEmpty={}, lastModifyTime={}", isDirEmpty, getLastModified(localDbDir).getTime());
         long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : getLastModified(localDbDir).getTime();
 
         _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
@@ -406,6 +408,16 @@ public class DbServiceImpl implements DbService {
             alertLog.error(errMsg);
             throw new IllegalStateException(errMsg);
         }
+    }
+
+    private File getDBDataFileLocations() {
+        String[] dataFileLocations = DatabaseDescriptor.getAllDataFileLocations();
+        _log.info("dataFileLocations={}", dataFileLocations);
+        String keySpaceName = _dbClient.getLocalContext().getKeyspaceName();
+        if (isGeoDbsvc()) {
+            keySpaceName = _dbClient.getGeoContext().getKeyspaceName();
+        }
+        return new File(dataFileLocations[0], keySpaceName);
     }
 
     /**

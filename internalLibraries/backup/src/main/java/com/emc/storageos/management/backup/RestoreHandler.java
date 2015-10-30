@@ -120,11 +120,19 @@ public class RestoreHandler {
         // Check reinit flag for multi vdc env
         checkReinit(backupName, geoRestoreFromScratch);
         final File tmpDir = new File(viprDataDir.getParentFile(), backupName);
-        log.debug("Temporary backup folder: {}", tmpDir.getAbsolutePath());
+        long lastModified = backupArchive.lastModified();
+        log.info("1 lastModified of backupArchive={}, viprDataDir={}", lastModified, viprDataDir.lastModified());
+        tmpDir.setLastModified(lastModified);
+        log.info("Vipr Data Dir:{}, Temporary backup folder: {}",
+                viprDataDir.getAbsolutePath(), tmpDir.getAbsolutePath());
         try {
-            ZipUtil.unpack(backupArchive, viprDataDir.getParentFile());
+            ZipUtil.unpack(backupArchive, viprDataDir.getParentFile(), lastModified);
             tmpDir.renameTo(viprDataDir);
+            log.info("2 lastModified of backupArchive={}, viprDataDir={}", lastModified, viprDataDir.lastModified());
+            viprDataDir.setLastModified(lastModified);
+            log.info("3 lastModified of backupArchive={}, viprDataDir={}", lastModified, viprDataDir.lastModified());
             chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+            log.info("4 lastModified of backupArchive={}, viprDataDir={}", lastModified, viprDataDir.lastModified());
         } finally {
             if (tmpDir.exists()) {
                 FileUtils.deleteQuietly(tmpDir);

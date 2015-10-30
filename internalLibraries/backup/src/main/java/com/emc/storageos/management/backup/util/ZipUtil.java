@@ -119,13 +119,15 @@ public class ZipUtil {
      * @param targetDir
      *            output directory (created automatically if not found).
      */
-    public static void unpack(File sourceZip, final File targetDir) throws IOException {
+    public static void unpack(File sourceZip, final File targetDir, Long lastModifyFile) throws IOException {
         ZipFile zipFile = null;
         try {
             zipFile = new ZipFile(sourceZip);
             Enumeration<? extends ZipEntry> entriesEnum = zipFile.entries();
             while (entriesEnum.hasMoreElements()) {
-                unpackEntry(zipFile, entriesEnum.nextElement(), targetDir);
+                ZipEntry zipEntry = entriesEnum.nextElement();
+                zipEntry.setTime(lastModifyFile);
+                unpackEntry(zipFile, zipEntry, targetDir, lastModifyFile);
             }
         } finally {
             try {
@@ -139,19 +141,23 @@ public class ZipUtil {
         }
     }
 
-    private static void unpackEntry(ZipFile zipFile, ZipEntry zipEntry, File targetDir)
+    private static void unpackEntry(ZipFile zipFile, ZipEntry zipEntry, File targetDir, long lastModifyFile)
             throws IOException {
         InputStream is = null;
         try {
-            log.debug("Unpacking file: {}", zipEntry.getName());
+            log.info("Unpacking file: {}, time={}", zipEntry.getName(), zipEntry.getTime());
             is = zipFile.getInputStream(zipEntry);
             File file = new File(targetDir, zipEntry.getName());
+            file.setLastModified(zipEntry.getTime());
             if (zipEntry.isDirectory()) {
                 file.mkdirs();
+                log.info("file({}) last modified={}", file.getAbsolutePath(), file.lastModified());
             } else {
                 FileUtils.copyInputStreamToFile(is, file);
+                log.info("file({}) last modified={}", file.getAbsolutePath(), file.lastModified());
             }
-            file.setLastModified(zipEntry.getTime());
+            file.setLastModified(lastModifyFile);
+            log.info("Zip entry time={}, file last modified={}", zipEntry.getTime(), file.lastModified());
         } finally {
             IOUtils.closeQuietly(is);
         }

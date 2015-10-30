@@ -233,8 +233,9 @@ public class FileUtils {
         for (File file : directory.listFiles()) {
             if (file.isDirectory()) {
                 fileList.addAll(Arrays.asList(listAllFiles(file)));
+            } else {
+                fileList.add(file);
             }
-            fileList.add(file);
         }
         return fileList.toArray(new File[0]);
     }

@@ -82,7 +82,7 @@ public class ZipUtilTest {
         if (!tmpFolder.exists()) {
             Assert.assertTrue(tmpFolder.mkdir());
         }
-        ZipUtil.unpack(targetZip, tmpFolder);
+        ZipUtil.unpack(targetZip, tmpFolder, tmpFolder.lastModified());
         File[] folders = tmpFolder.listFiles();
 
         for (File folder : FileUtil.toSafeArray(folders)) {

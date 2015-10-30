@@ -107,9 +107,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             // If the volume is regular volume and in CG
             if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {                
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
-                if (cgObj != null && cgObj.created(storage.getId())) {     
+                if (cgObj != null 
+                        && cgObj.created(storage.getId())
+                        && !vol.checkForRp()) {     
                     // Only set this flag to true if the CG reference is valid
                     // and it is already created on the storage system.
+                    // Also, exclude RP volumes.
                     isCG = true;
                 } 
             }

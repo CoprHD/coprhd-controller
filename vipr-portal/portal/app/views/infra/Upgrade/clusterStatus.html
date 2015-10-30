@@ -74,7 +74,6 @@
   	<br/>
   	<form class="form form-horizontal" method="GET" action="@{downloadImage()}" onsubmit="downloadImage(); return true" id="downloadImage" style="margin:0px"> 
     <div class="text"><b>&{'upgrade.downloadNew'}</b>
-<!--       go to step1, step 2, step 3, step 4  -->
       <span class="text">
         <select id="downloadImageVersion" name="version" style="margin-bottom: 0px">
           #{list items:newVersions, as:'version'}

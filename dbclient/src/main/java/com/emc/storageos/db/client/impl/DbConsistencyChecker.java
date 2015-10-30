@@ -25,17 +25,16 @@ public class DbConsistencyChecker {
     private int totalCount;
     
     public DbConsistencyChecker() {
-        this.totalCount = getTotalCount();
     }
 
     public DbConsistencyChecker(DbClientImpl dbClient) {
         this.dbClient = dbClient;
     }
     
-    private int getTotalCount() {
+    public void init() {
         int cfCount = TypeMap.getAllDoTypes().size();
         int indexCount = getAllIndices().values().size();
-        return indexCount + cfCount*2;
+        this.totalCount = indexCount + cfCount*2;
     }
 
     /**

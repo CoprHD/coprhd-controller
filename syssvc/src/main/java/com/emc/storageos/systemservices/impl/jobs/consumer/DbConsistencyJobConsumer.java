@@ -39,6 +39,8 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         
         try {
             DbSchemaChecker.checkSourceSchema(MODEL_PACKAGES);
+            //init should be done after checkSourceSchema
+            dbChecker.init();
             dbChecker.checkObjectId(false);
             dbChecker.checkIndexObjects(false);
             dbChecker.checkObjectIndices(false);

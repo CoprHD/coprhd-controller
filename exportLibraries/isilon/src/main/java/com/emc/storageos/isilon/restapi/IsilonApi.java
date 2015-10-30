@@ -55,10 +55,10 @@ public class IsilonApi {
             .create("/platform/1/cluster/smartconnect_zones");
     // private static final URI URI_EVENTS = URI.create("/platform/1/events/");
     private static final URI URI_EVENTS = URI.create("/platform/2/event/events/");
-    
+
     private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
     private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
-    
+
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
     /**
@@ -639,7 +639,7 @@ public class IsilonApi {
     public IsilonList<IsilonExport> listExports(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_NFS_EXPORTS), "exports", IsilonExport.class, resumeToken);
     }
-    
+
     /**
      * List all exports for given access zone
      * 
@@ -648,7 +648,7 @@ public class IsilonApi {
      */
     public IsilonList<IsilonExport> listExports(String resumeToken, String zoneName) throws IsilonException {
         URI uri = URI_NFS_EXPORTS;
-        if(zoneName != null) {
+        if (zoneName != null) {
             StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
             URLBuffer.append("?zone=").append(zoneName);
             uri = URI.create(URLBuffer.toString());
@@ -656,7 +656,7 @@ public class IsilonApi {
         } else {
             uri = _baseUrl.resolve(uri);
         }
-        
+
         return list(uri, "exports", IsilonExport.class, resumeToken);
     }
 
@@ -671,7 +671,7 @@ public class IsilonApi {
 
         return create(_baseUrl.resolve(URI_NFS_EXPORTS), "Export", exp);
     }
-    
+
     /**
      * Create export on access zone
      * 
@@ -680,10 +680,10 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public String createExport(IsilonExport exp, String zoneName) throws IsilonException {
-    	
-    	StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_NFS_EXPORTS).toString());
-    	URLBuffer.append("?zone=").append(zoneName);
-    	URI uri = URI.create(URLBuffer.toString());
+
+        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_NFS_EXPORTS).toString());
+        URLBuffer.append("?zone=").append(zoneName);
+        URI uri = URI.create(URLBuffer.toString());
         return create(uri, "Export", exp);
     }
 
@@ -708,7 +708,7 @@ public class IsilonApi {
     public IsilonExport getExport(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_NFS_EXPORTS), id, "exports", IsilonExport.class);
     }
-    
+
     /**
      * Get export for given access zone
      * 
@@ -743,9 +743,10 @@ public class IsilonApi {
     public IsilonList<IsilonSmartQuota> listQuotas(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_QUOTAS), "quotas", IsilonSmartQuota.class, resumeToken);
     }
-    
+
     /**
      * List all smartquotas for given accesszone
+     * 
      * @param resumeToken
      * @param pathBaseDir
      * @return
@@ -753,7 +754,7 @@ public class IsilonApi {
      */
     public IsilonList<IsilonSmartQuota> listQuotas(String resumeToken, String pathBaseDir) throws IsilonException {
         URI uri = URI_QUOTAS;
-        if(pathBaseDir != null) {
+        if (pathBaseDir != null) {
             StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
             URLBuffer.append("?path=").append(pathBaseDir).append("&recurse_path_children=true");
             uri = URI.create(URLBuffer.toString());
@@ -863,9 +864,10 @@ public class IsilonApi {
     public IsilonList<IsilonSnapshot> listSnapshots(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_SNAPSHOTS), "snapshots", IsilonSnapshot.class, resumeToken);
     }
-    
+
     /**
      * List all snapshot for given access zone
+     * 
      * @param resumeToken
      * @param pathBaseDir
      * @return
@@ -940,7 +942,7 @@ public class IsilonApi {
     public IsilonList<IsilonSMBShare> listShares(String resumeToken) throws IsilonException {
         return list(_baseUrl.resolve(URI_SMB_SHARES), "shares", IsilonSMBShare.class, resumeToken);
     }
-    
+
     /**
      * List all SMB Shares
      * 
@@ -949,7 +951,7 @@ public class IsilonApi {
      */
     public IsilonList<IsilonSMBShare> listShares(String resumeToken, String zoneName) throws IsilonException {
         URI uri = URI_SMB_SHARES;
-        if(zoneName != null) {
+        if (zoneName != null) {
             StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
             URLBuffer.append("?zone=").append(zoneName);
             uri = URI.create(URLBuffer.toString());
@@ -957,7 +959,7 @@ public class IsilonApi {
         } else {
             uri = _baseUrl.resolve(uri);
         }
-        
+
         return list(_baseUrl.resolve(uri), "shares", IsilonSMBShare.class, resumeToken);
     }
 
@@ -987,7 +989,7 @@ public class IsilonApi {
     public String createShare(IsilonSMBShare smbFileShare) throws IsilonException {
         return create(_baseUrl.resolve(URI_SMB_SHARES), "share", smbFileShare);
     }
-    
+
     /**
      * Create Isilon SMB share on access zone.
      * 
@@ -996,10 +998,10 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public String createShare(IsilonSMBShare smbFileShare, String zoneName) throws IsilonException {
-    	
-    	StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_SMB_SHARES).toString());
-    	URLBuffer.append("?zone=").append(zoneName);
-    	URI uri = URI.create(URLBuffer.toString());
+
+        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_SMB_SHARES).toString());
+        URLBuffer.append("?zone=").append(zoneName);
+        URI uri = URI.create(URLBuffer.toString());
         return create(uri, "share", smbFileShare);
     }
 
@@ -1024,7 +1026,7 @@ public class IsilonApi {
     public IsilonSMBShare getShare(String id) throws IsilonException {
         return get(_baseUrl.resolve(URI_SMB_SHARES), id, "shares", IsilonSMBShare.class);
     }
-    
+
     /**
      * Get SMB share properties on access zone
      * 
@@ -1033,7 +1035,7 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonSMBShare getShare(String id, String zoneName) throws IsilonException {
-        
+
         StringBuffer buffer = new StringBuffer(id);
         buffer.append("?zone=").append(zoneName);
         return get(_baseUrl.resolve(URI_SMB_SHARES), buffer.toString(), "shares", IsilonSMBShare.class);
@@ -1153,25 +1155,27 @@ public class IsilonApi {
             }
         }
     }
-    
+
     /**
      * get the list of access zone
+     * 
      * @return
      * @throws IsilonException
      */
-    public List<IsilonAccessZone> getAccessZones(String resumeToken)throws IsilonException {
+    public List<IsilonAccessZone> getAccessZones(String resumeToken) throws IsilonException {
         IsilonList<IsilonAccessZone> accessZoneIsilonList = list(_baseUrl.resolve(URI_ACCESS_ZONES),
                 "zones", IsilonAccessZone.class, resumeToken);
         return accessZoneIsilonList.getList();
 
     }
-    
+
     /**
      * get the list of network pools
+     * 
      * @return
      * @throws IsilonException
      */
-    public List<IsilonNetworkPool> getNetworkPools(String resumeToken)throws IsilonException {
+    public List<IsilonNetworkPool> getNetworkPools(String resumeToken) throws IsilonException {
         IsilonList<IsilonNetworkPool> accessZoneIsilonList = list(_baseUrl.resolve(URI_NETWORK_POOLS),
                 "pools", IsilonNetworkPool.class, resumeToken);
         return accessZoneIsilonList.getList();
@@ -1424,25 +1428,23 @@ public class IsilonApi {
     /**
      * Checks to see if the NFSv4 service is enabled on the isilon device
      * 
-     * @param fspath
-     *            directory path to check
      * @return boolean true if exists, false otherwise
      */
     public boolean nfsv4Enabled() throws IsilonException {
         ClientResponse resp = null;
         boolean isNfsv4Enabled = false;
         try {
-            sLogger.debug("IsilonApi check nfsV4 support retrive global status - start");
+            sLogger.info("IsilonApi check nfsV4 support retrieve global status - start");
 
             resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS));
-            sLogger.debug("IsilonApi check nfsV4 support retrive global status - complete");
+            sLogger.info("IsilonApi check nfsV4 support retrieve global status - complete");
 
             JSONObject jsonResp = resp.getEntity(JSONObject.class);
 
             isNfsv4Enabled = Boolean.parseBoolean(jsonResp.getJSONObject(
                     "settings").getString("nfsv4_enabled"));
 
-            sLogger.debug("IsilonApi  nfsv4 is enable/disable is set to {}",
+            sLogger.info("IsilonApi  nfsv4 enable/disable is set to {}",
                     isNfsv4Enabled);
 
         } catch (Exception e) {

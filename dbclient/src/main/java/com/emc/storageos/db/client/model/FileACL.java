@@ -16,10 +16,9 @@ public abstract class FileACL extends DataObject {
     protected String user;
     protected String type;
     protected String domain;
-
     protected String fileSystemPath;
 
-    // Permissions for user or group: read(r), write (rw) or execute comma separated.
+    // Permissions for user or group: read(r), write (w) or execute(x) comma separated.
     protected String permissions;
 
     // permissionType can be allow or deny

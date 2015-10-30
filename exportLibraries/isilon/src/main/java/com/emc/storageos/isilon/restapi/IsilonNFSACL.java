@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.isilon.restapi;
 
 import java.util.ArrayList;
@@ -93,11 +97,6 @@ public class IsilonNFSACL {
 
         public void setOp(String op) {
             this.op = op;
-        }
-
-        public void Acl()
-        {
-
         }
 
         @Override

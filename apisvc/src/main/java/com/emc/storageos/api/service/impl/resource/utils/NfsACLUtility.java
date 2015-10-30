@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource.utils;
@@ -87,13 +87,13 @@ public class NfsACLUtility {
         List<NfsACE> addList = param.getAcesToAdd();
         List<NfsACE> modifyList = param.getAcesToModify();
         List<NfsACE> deleteList = param.getAcesToDelete();
-        
+
         List<NFSShareACL> dbACLList = queryDBSFileNfsACLs(false);
         Set<String> userSetDB = new HashSet<String>();
         for (NFSShareACL dbAcl : dbACLList) {
             userSetDB.add(dbAcl.getUser());
         }
-        
+
         if (addList != null && !addList.isEmpty()) {
             verifyNfsACLsAddList(addList, userSetDB);
         }
@@ -115,7 +115,7 @@ public class NfsACLUtility {
         for (NfsACE ace : nfsAces) {
             // PermissionType is optional , if provided check it is proper
             if (ace.getPermissionType() != null && !ace.getPermissionType().isEmpty()) {
-            	
+
                 if (!isValidEnum(ace.getPermissionType(), NfsPermissionType.class)) {
                     throw APIException.badRequests.invalidPermissionType(ace.getPermissionType());
                 }
@@ -128,18 +128,18 @@ public class NfsACLUtility {
                     throw APIException.badRequests.invalidUserType(ace.getType());
                 }
             }
-            
+
             for (String permission : ace.getPermissionSet()) {
                 if (!isValidEnum(permission, NfsPermission.class)) {
                     throw APIException.badRequests.invalidNFSPermission(permission);
                 }
             }
-            
+
             // check if two times domain is provided
             int index = ace.getUser().indexOf("\\");
             if (index >= 0) {
                 if (ace.getDomain() != null && !ace.getDomain().isEmpty()) {
-                	
+
                     throw APIException.badRequests.multipleDomainsFound("update", ace.getDomain(), ace.getUser().substring(0, index));
                 } else {
                     // verify the username provided with domain and user
@@ -188,7 +188,7 @@ public class NfsACLUtility {
 
         validateNfsAceSyntax(changeList);
         for (NfsACE ace : changeList) {
-        	
+
             if (!userSet.contains(ace.getUser())) {
                 throw APIException.badRequests.nfsACLNotFound("modify or delete",
                         ace.getUser());
@@ -230,16 +230,16 @@ public class NfsACLUtility {
             if (allDirs) {
                 return nfsAclList;
             }
-            
+
             List<NFSShareACL> rootAclList = new ArrayList<NFSShareACL>();
             List<NFSShareACL> subDirAclList = new ArrayList<NFSShareACL>();
-            
+
             String absoluteSubdir = "";
             if (this.subDir != null && !this.subDir.isEmpty()) {
                 absoluteSubdir = this.fs.getPath() + "/" + subDir;
             }
             for (NFSShareACL nfsAcl : nfsAclList) {
-            	
+
                 if (nfsAcl.getFileSystemPath().equals(fs.getPath())) {
                     rootAclList.add(nfsAcl);
                 }
@@ -250,11 +250,11 @@ public class NfsACLUtility {
                 }
             }
             if (!absoluteSubdir.isEmpty()) {
-            	 _log.info( "Found {} Nfs ACLs for subdir {} ", subDirAclList.size(), 
-            			 this.subDir);
+                _log.info("Found {} Nfs ACLs for subdir {} ", subDirAclList.size(),
+                        this.subDir);
                 return subDirAclList;
             }
-            _log.info( "Found {} Nfs ACLs ", rootAclList.size());
+            _log.info("Found {} Nfs ACLs ", rootAclList.size());
             return rootAclList;
 
         } catch (Exception e) {
@@ -274,9 +274,9 @@ public class NfsACLUtility {
         NfsACLs acls = new NfsACLs();
         List<NfsACL> nfsAclList = new ArrayList<NfsACL>();
         Map<String, List<NfsACE>> nfsAclMap = new HashMap<String, List<NfsACE>>();
-        
+
         _log.info("Subdir value {} and allDirs={}", this.subDir, allDirs);
-        
+
         // Query All ACl Specific to a File System.
         List<NFSShareACL> nfsAcls = queryDBSFileNfsACLs(allDirs);
         _log.info("Number of existing ACL found : {} ", nfsAcls.size());
@@ -294,22 +294,22 @@ public class NfsACLUtility {
             nfsAceList.add(ace);
             nfsAclMap.put(fsPath, nfsAceList);
         }
-        
+
         // Convert all ACE to ACLs!!
         for (Map.Entry<String, List<NfsACE>> pathAcls : nfsAclMap.entrySet()) {
-        	
-        	String mountPath = pathAcls.getKey();
-        	NfsACL nfsAcl = new NfsACL(mountPath, pathAcls.getValue());
-        	
-        	if (mountPath.length() > fs.getPath().length()) {
+
+            String mountPath = pathAcls.getKey();
+            NfsACL nfsAcl = new NfsACL(mountPath, pathAcls.getValue());
+
+            if (mountPath.length() > fs.getPath().length()) {
                 nfsAcl.setSubDir(mountPath.substring(fs.getPath().length() + 1));
             }
 
-            nfsAclList.add(nfsAcl);       	
+            nfsAclList.add(nfsAcl);
         }
-        
-        if( !nfsAclList.isEmpty()) {
-        	acls.setNfsACLs(nfsAclList);
+
+        if (!nfsAclList.isEmpty()) {
+            acls.setNfsACLs(nfsAclList);
         }
         return acls;
     }
@@ -324,16 +324,16 @@ public class NfsACLUtility {
 
         dest.setDomain(orig.getDomain());
         dest.setPermissions(orig.getPermissions());
-        
+
         dest.setPermissionType(FileControllerConstants.NFS_FILE_PERMISSION_TYPE_ALLOW);
         if (orig.getPermissionType() != null && !orig.getPermissionType().isEmpty()) {
             dest.setPermissionType(orig.getPermissionType());
         }
-        
+
         dest.setType(REQUEST_PARAM_USER);
         if (orig.getType() != null && !orig.getType().isEmpty()) {
             dest.setType(orig.getType());
-        } 
+        }
         dest.setUser(orig.getUser());
     }
 }

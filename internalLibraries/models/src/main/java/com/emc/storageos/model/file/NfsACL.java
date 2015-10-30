@@ -72,4 +72,8 @@ public class NfsACL implements Serializable {
 
     }
 
+    public NfsACL() {
+        // TODO Auto-generated constructor stub
+    }
+
 }

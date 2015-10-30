@@ -72,7 +72,7 @@ public class IngestExportStrategy {
                 if (unManagedVolume.getUnmanagedExportMasks().size() != originalSize) {
                     // delete this volume only if the masks are ingested.
                     if (VolumeIngestionUtil.canDeleteUnManagedVolume(unManagedVolume)) {
-                        _logger.info("Marking UnManaged Volume  {} inactive as it doesn't have any associated unmanaged export masks ",
+                        _logger.info("Marking UnManaged Volume {} inactive as it doesn't have any associated unmanaged export masks ",
                                 unManagedVolume.getNativeGuid());
                         unManagedVolume.setInactive(true);
                         unManagedVolumesToBeDeleted.add(unManagedVolume);

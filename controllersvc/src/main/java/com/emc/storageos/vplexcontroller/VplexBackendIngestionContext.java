@@ -613,7 +613,8 @@ public class VplexBackendIngestionContext {
                                 set, associatedVolumeSource);
                         associatedVolumeSource.putVolumeInfo(
                                 SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_TARGET_VOLUME.toString(), set);
-                        _logger.info("setting VPLEX_BACKEND_CLUSTER_ID: " + mirrorMapEntry.getKey());
+                        _logger.info("setting VPLEX_BACKEND_CLUSTER_ID on mirrored volumes: " 
+                                + mirrorMapEntry.getKey());
                         StringSet clusterIds = new StringSet();
                         clusterIds.add(mirrorMapEntry.getKey());
                         associatedVolumeSource.putVolumeInfo(

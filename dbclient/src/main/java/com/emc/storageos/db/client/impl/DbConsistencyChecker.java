@@ -24,7 +24,6 @@ import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
 
 public class DbConsistencyChecker {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyChecker.class);
-    private DbClientImpl dbClient;
     private CoordinatorClient coordinator;
     private DbConsistencyCheckerHelper helper;
     private int totalCount;
@@ -144,6 +143,9 @@ public class DbConsistencyChecker {
     }
     
     public DbConsistencyStatus getStatusFromZk() {
+        if (toConsole) {
+            return new DbConsistencyStatus();
+        }
         return this.coordinator.queryRuntimeState(Constants.DB_CONSISTENCY_STATUS, DbConsistencyStatus.class);
     }
 

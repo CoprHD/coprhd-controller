@@ -253,6 +253,7 @@ public class DbsvcTestBase {
         _dbsvc.setJmxServerWrapper(jmx);
         _dbsvc.setDbClient(_dbClient);
         _dbsvc.setBeacon(beacon);
+        _dbsvc.setDbDir(".");
         _dbsvc.setMigrationHandler(handler);
         _dbsvc.setDisableScheduledDbRepair(true);
         _dbsvc.start();

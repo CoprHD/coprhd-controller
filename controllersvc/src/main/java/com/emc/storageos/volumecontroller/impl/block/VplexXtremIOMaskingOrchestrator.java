@@ -48,6 +48,10 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     private static final Logger _log = LoggerFactory.getLogger(VplexXtremIOMaskingOrchestrator.class);
     private boolean simulation = false;
     private static final int XTREMIO_NUM_PORT_GROUP = 1;
+    private static final int MAXIMUM_NUMBER_OF_STORAGE_PORTS_PER_SET = 4;
+    private static final int REQUIRED_MINIMUM_NUMBER_OF_STORAGE_PORTS_PER_SET = 2;
+    private static final int DEFAULT_NUMBER_OF_PATHS_PER_VPLEX_DIRECTOR = 4;
+    private static final int MINIMUM_NUMBER_OF_PATHS_PER_VPLEX_DIRECTOR = 2;
     private int vplexDirectorCount;
     private int xtremIOXbricksCount;
     BlockDeviceController _blockController = null;
@@ -183,9 +187,9 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         Set<String> portsSelected = new HashSet<String>(usedPorts);
 
         do {
-            int PreviousSize = usedPortsSet.size();
+            int previousSize = usedPortsSet.size();
             Iterator<URI> networkItr = orderedNetworks.iterator();
-            while (networkItr.hasNext() && usedPortsSet.size() < 4) {
+            while (networkItr.hasNext() && usedPortsSet.size() < MAXIMUM_NUMBER_OF_STORAGE_PORTS_PER_SET) {
                 URI networkURI = networkItr.next();
                 _log.debug(String.format("network: %s, xBricksToSelectedSCs: %s, networkToSelectedXbricks: %s",
                         networkURI, xBricksToSelectedSCs.entrySet(), networkToSelectedXbricks.get(networkURI)));
@@ -203,15 +207,16 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             }
 
             // If No ports have been selected in this round, then clear the X-bricks map
-            if (PreviousSize == usedPortsSet.size()) {
+            if (previousSize == usedPortsSet.size()) {
                 xBricksToSelectedSCs.clear();
                 networkToSelectedXbricks.clear();
             }
             _log.debug("Ports selected so far : {}", usedPortsSet);
-        } while (usedPortsSet.size() < 4 && !isAllPortsLooped(orderedNetworks, allocatablePorts, portsSelected));
+        } while (usedPortsSet.size() < MAXIMUM_NUMBER_OF_STORAGE_PORTS_PER_SET
+                && !isAllPortsLooped(orderedNetworks, allocatablePorts, portsSelected));
         _log.info("Set Done: Ports selected in this set: {}", usedPortsSet);
 
-        if (usedPortsSet.size() < 2) {
+        if (usedPortsSet.size() < REQUIRED_MINIMUM_NUMBER_OF_STORAGE_PORTS_PER_SET) {
             return null;  // requirement not met
         }
         // if usedPortsSet.size() >= 2, satisfies minimum requirement, min 2 paths
@@ -254,7 +259,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                 String xBrick = splitArray[0];
                 String sc = splitArray[1];
                 // select port from unique X-brick/SC
-                if (!xBricksToSelectedSCs.keySet().contains(xBrick)) {
+                if (!xBricksToSelectedSCs.containsKey(xBrick)) {
                     port = sPort;
                     addSCToXbrick(xBricksToSelectedSCs, xBrick, sc);
                     networkToSelectedXbricks.get(networkURI).add(xBrick);
@@ -319,26 +324,16 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         List<URI> orderedNetworks = new ArrayList<URI>();
 
         Map<Integer, Set<URI>> numPortsToNetworkSet = new HashMap<Integer, Set<URI>>();
-        int maxNumPorts = 0;
         for (URI networkURI : allocatablePorts.keySet()) {
             int numPorts = allocatablePorts.get(networkURI).size();
             if (numPortsToNetworkSet.get(numPorts) == null) {
                 numPortsToNetworkSet.put(numPorts, new HashSet<URI>());
             }
             numPortsToNetworkSet.get(numPorts).add(networkURI);
-            if (maxNumPorts < numPorts) {
-                maxNumPorts = numPorts;
-            }
         }
 
-        for (int numPorts = 1; numPorts <= maxNumPorts; numPorts++) {
-            Set<URI> networkURIs = numPortsToNetworkSet.get(numPorts);
-            if (networkURIs == null) {
-                continue;
-            }
-            for (URI networkURI : networkURIs) {
-                orderedNetworks.add(networkURI);
-            }
+        for (Set<URI> networkURIs : numPortsToNetworkSet.values()) {
+            orderedNetworks.addAll(networkURIs);
         }
         return orderedNetworks;
     }
@@ -380,9 +375,9 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         // select number of paths per VPLEX director
         // if X-bricks count is less than director count, choose only 2 initiators from each director
         // leaving other initiators for future scale of X-bricks
-        int pathsPerDirector = 4;   // default 4 initiators in director
+        int pathsPerDirector = DEFAULT_NUMBER_OF_PATHS_PER_VPLEX_DIRECTOR;   // default 4 initiators in director
         if (xtremIOXbricksCount < vplexDirectorCount) {
-            pathsPerDirector = 2;
+            pathsPerDirector = MINIMUM_NUMBER_OF_PATHS_PER_VPLEX_DIRECTOR;
         }
         _log.info(String.format("VPLEX Directors: %s, X-bricks: %s, Number of paths per VPLEX Director: %s", vplexDirectorCount,
                 xtremIOXbricksCount, pathsPerDirector));

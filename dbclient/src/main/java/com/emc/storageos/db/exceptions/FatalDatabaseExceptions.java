@@ -119,4 +119,7 @@ public interface FatalDatabaseExceptions {
 
     @DeclareServiceCode(ServiceCode.DBSVC_GEO_UPDATE_ERROR)
     public FatalDatabaseException disallowedGeoUpdate(String clazzName, String fieldName, String geoVersion, String expectVersion);
+    
+    @DeclareServiceCode(ServiceCode.DBSVC_ERROR)
+    public FatalDatabaseException failedToChangeStrategyOption(String errMsg);
 }

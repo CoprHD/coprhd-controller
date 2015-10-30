@@ -193,6 +193,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(primarySite.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, primarySite.getUuid());
         doReturn(localVDC).when(drService).queryLocalVDC();
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         // Don't need to record audit log in UT
         doNothing().when(drService).auditDisasterRecoveryOps(any(OperationTypeEnum.class), anyString(), anyString(), any());
         doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
@@ -305,7 +306,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
         doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
 
-        SiteRestRep response = drService.removeStandby(standbySite2.getUuid());
+        drService.remove(standbySite2.getUuid());
     }
 
     @Test

@@ -2,11 +2,11 @@
  * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  */
+
 package com.emc.storageos.db.client.impl;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
@@ -24,12 +24,13 @@ public class DbCheckerFileWriter {
     static final String WRITER_GEOSTORAGEOS = "GeoStorageOS";
     static final String WRITER_REBUILD_INDEX = "rebuildIndex";
     private final static String FILE_PATH = "/tmp/";
+    static final String CLEANUP_FILE_STORAGEOS = FILE_PATH + "cleanup-StorageOS.cql";
     static final String CLEANUP_FILE_GEOSTORAGEOS = FILE_PATH + "cleanup-GeoStorageOS.cql";
     static final String CLEANUP_FILE_REBUILD_INDEX = FILE_PATH + "cleanup-rebuildIndex.file";
-    static final String CLEANUP_FILE_STORAGEOS = FILE_PATH + "cleanup-StorageOS.cql";
-    private static final String USAGE_STORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k StorageOS -f cleanup-StorageOS.cql";
-    private static final String USAGE_GEOSTORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k GeoStorageOS -f cleanup-GeoStorageOS.cql localhost 9260";
-    private static final String USAGE_REBUILDINDEX = "# please run /opt/storageos/bin/dbutils rebuild_index ./cleanup-rebuildIndex.file";
+    private static final String USAGE_STORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k StorageOS -f " + CLEANUP_FILE_STORAGEOS;
+    private static final String USAGE_GEOSTORAGEOS = "-- please run /opt/storageos/bin/cqlsh -k GeoStorageOS -f "
+            + CLEANUP_FILE_GEOSTORAGEOS + "localhost 9260";
+    private static final String USAGE_REBUILDINDEX = "# please run /opt/storageos/bin/dbutils rebuild_index " + CLEANUP_FILE_REBUILD_INDEX;
     private static final Logger log = LoggerFactory.getLogger(DbCheckerFileWriter.class);
 
     private DbCheckerFileWriter() {

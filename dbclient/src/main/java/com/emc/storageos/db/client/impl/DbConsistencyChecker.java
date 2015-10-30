@@ -144,6 +144,9 @@ public class DbConsistencyChecker {
     }
     
     public DbConsistencyStatus getStatusFromZk() {
+        if (toConsole) {
+            return new DbConsistencyStatus();
+        }
         return this.coordinator.queryRuntimeState(Constants.DB_CONSISTENCY_STATUS, DbConsistencyStatus.class);
     }
 

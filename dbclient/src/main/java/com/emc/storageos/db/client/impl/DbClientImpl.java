@@ -21,14 +21,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import com.emc.storageos.db.client.model.ScopedLabel;
-import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -94,7 +91,6 @@ import com.netflix.astyanax.query.ColumnCountQuery;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.TimeUUIDUtils;
-import com.netflix.astyanax.util.RangeBuilder;
 
 /**
  * Default database client implementation
@@ -1812,7 +1808,6 @@ public class DbClientImpl implements DbClient {
             }
         }
     }
-
 
     /**
      * Even if we have NTP, there could probably be time difference among nodes in cluster,

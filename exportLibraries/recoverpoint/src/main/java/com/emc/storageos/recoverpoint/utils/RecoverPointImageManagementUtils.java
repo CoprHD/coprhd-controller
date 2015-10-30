@@ -18,13 +18,11 @@ import com.emc.fapiclient.ws.ConsistencyGroupCopySettings;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySnapshots;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyState;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyUID;
-import com.emc.fapiclient.ws.ConsistencyGroupLinkSettings;
 import com.emc.fapiclient.ws.ConsistencyGroupLinkState;
 import com.emc.fapiclient.ws.ConsistencyGroupSettings;
 import com.emc.fapiclient.ws.ConsistencyGroupState;
 import com.emc.fapiclient.ws.ConsistencyGroupUID;
 import com.emc.fapiclient.ws.ExecutionState;
-import com.emc.fapiclient.ws.FullConsistencyGroupPolicy;
 import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIImpl;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
@@ -1219,9 +1217,14 @@ public class RecoverPointImageManagementUtils {
      */
     public static PipeState getPipeActiveState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID) {
     	PipeState pipeState = PipeState.ACTIVE;
+    	// DO NOT CHECK-IN!  WJEIV
+    	// If you see this as part of a pull request, point it out!
+    	// (siimulator is returning >0 snapshot value)
+    	/*
     	if (isSnapShotTechnologyEnabled(impl, cgUID)) {
             pipeState = PipeState.SNAP_IDLE;
         }
+        */
     	return pipeState;
     }
 }

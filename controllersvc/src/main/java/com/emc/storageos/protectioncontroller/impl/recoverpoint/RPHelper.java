@@ -1643,7 +1643,7 @@ public class RPHelper {
      * @return a journal name unique within the site
      */
     public String createJournalVolumeName(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
-        String journalPrefix = new StringBuilder(varray.getLabel()).append(VOL_DELIMITER).append(consistencyGroup.getLabel())
+        String journalPrefix = new StringBuilder(consistencyGroup.getLabel()).append(VOL_DELIMITER).append(varray.getLabel())
                 .append(VOL_DELIMITER)
                 .append(JOURNAL).toString();
         List<Volume> existingJournals = getJournalVolumesForSite(varray, consistencyGroup);
@@ -1736,4 +1736,31 @@ public class RPHelper {
         }
         return initiators;
     }    
+
+    /**
+     * Fetch the RP Protected target virtual pool uris.
+     * 
+     * @return set of vpools that are RP target virtual pools
+     */
+    public static Set<URI> fetchRPTargetVirtualPools(DbClient dbClient) {
+        Set<URI> rpProtectedTargetVPools = new HashSet<URI>();
+        try {
+            List<URI> vpoolProtectionSettingsURIs = dbClient.queryByType(VpoolProtectionVarraySettings.class,
+                    true);
+            Iterator<VpoolProtectionVarraySettings> vPoolProtectionSettingsItr = dbClient
+                    .queryIterativeObjects(VpoolProtectionVarraySettings.class, vpoolProtectionSettingsURIs,
+                            true);
+            while (vPoolProtectionSettingsItr.hasNext()) {
+                VpoolProtectionVarraySettings rSetting = vPoolProtectionSettingsItr.next();
+                if (null != rSetting && !NullColumnValueGetter.isNullURI(rSetting.getVirtualPool())) {
+                    rpProtectedTargetVPools.add(rSetting.getVirtualPool());
+                }
+
+            }
+        } catch (Exception ex) {
+            _log.error("Exception occurred while fetching RP enabled virtualpools", ex);
+        }
+        return rpProtectedTargetVPools;
+    }
+
 }

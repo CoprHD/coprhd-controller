@@ -57,12 +57,17 @@ public class DiscoveryUtils {
     /**
      * get Matched Virtual Pools For Pool.
      * This is called to calculate supported vpools during unmanaged objects discovery
-     *
-     * @param poolUri
+     * 
+     * @param dbClient db client
+     * @param poolUri storage pool
+     * @param isThinlyProvisionedUnManagedObject is this thin provisioned?
+     * @param srdfProtectedVPoolUris srdf protected vpools
+     * @param rpProtectedVPoolUris RP protected vpools
+     * @param volumeType type of volume
      * @return
      */
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
-            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, String volumeType) {
+            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, Set<URI> rpProtectedVPoolUris, String volumeType) {
         StringSet vpoolUriSet = new StringSet();
         // We should match all virtual pools as below:
         // 1) Virtual pools which have useMatchedPools set to true and have the storage pool in their matched pools

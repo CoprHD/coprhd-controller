@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller.impl.recoverpoint;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -18,6 +19,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet.SupportedCGInformation;
@@ -158,7 +160,10 @@ public class RPUnManagedObjectDiscoverer {
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PROTECTIONSYSTEM.toString(),
                             rpProtectionSystemId);                    
 
-                    dbClient.updateAndReindexObject(unManagedVolume);
+                    // Filter out RP and SRDF source vpools since this is a journal volume
+                    filterProtectedVpools(dbClient, unManagedVolume, false);
+                    
+                    dbClient.updateObject(unManagedVolume);
                 }
             }
             
@@ -218,7 +223,15 @@ public class RPUnManagedObjectDiscoverer {
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_PROTECTIONSYSTEM.toString(),
                             rpProtectionSystemId);                    
 
-                    dbClient.updateAndReindexObject(unManagedVolume);
+                    if (volume.isProduction()) {
+                        // Filter in RP source vpools, filter out everything else
+                        filterProtectedVpools(dbClient, unManagedVolume, true);
+                    } else {
+                        // Filter out RP and SRDF source vpools since this is a target volume
+                        filterProtectedVpools(dbClient, unManagedVolume, false);
+                    }
+                    
+                    dbClient.updateObject(unManagedVolume);
                 }                    
 
                 // Now that we've processed all of the sources and targets, we can mark all of the target devices in the source devices.
@@ -259,7 +272,7 @@ public class RPUnManagedObjectDiscoverer {
                                 rpUnManagedSourceVolumeId);                        
 
                         // Update the target unmanaged volume with the source managed volume ID
-                        dbClient.updateAndReindexObject(targetUnManagedVolume);
+                        dbClient.updateObject(targetUnManagedVolume);
 
                         // Store the unmanaged target ID in the source volume
                         rpTargetVolumeIds.add(targetUnManagedVolume.getId().toString());
@@ -269,7 +282,7 @@ public class RPUnManagedObjectDiscoverer {
                     unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_UNMANAGED_TARGET_VOLUMES.toString(),
                             rpTargetVolumeIds);
                     
-                    dbClient.updateAndReindexObject(unManagedVolume);
+                    dbClient.updateObject(unManagedVolume);
                 }
 
             }
@@ -277,7 +290,47 @@ public class RPUnManagedObjectDiscoverer {
             if (newCG) {
                 dbClient.createObject(unManagedProtectionSet);
             } else {
-                dbClient.updateAndReindexObject(unManagedProtectionSet);
+                dbClient.updateObject(unManagedProtectionSet);
+            }
+        }
+    }
+
+    /**
+     * Filter vpools from the qualified list.
+     * rpSource true: Filter out anything other than RP source vpools
+     * rpSource false: Filter out RP and SRDF source vpools
+     * 
+     * @param dbClient dbclient
+     * @param unManagedVolume unmanaged volume
+     * @param rpSource is this volume an RP source?
+     */
+    private void filterProtectedVpools(DbClient dbClient, UnManagedVolume unManagedVolume, boolean rpSource) {
+        
+        if (unManagedVolume.getSupportedVpoolUris() != null) {
+            Iterator<VirtualPool> vpoolItr = dbClient.queryIterativeObjects(VirtualPool.class, URIUtil.toURIList(unManagedVolume.getSupportedVpoolUris()));
+            while (vpoolItr.hasNext()) {
+                boolean remove = false;
+                VirtualPool vpool = vpoolItr.next();
+                
+                // If this is an SRDF source vpool, we can filter out since we're dealing with an RP volume
+                if (vpool.getProtectionRemoteCopySettings() != null) {
+                    remove = true;
+                }
+                
+                // If this is an RP source vpool, but this isn't an RP Source, filter it out.
+                if (vpool.getProtectionVarraySettings() != null && !rpSource) {
+                    remove = true;
+                }
+                
+                // Now check the opposite condition.
+                if (vpool.getProtectionVarraySettings() == null && rpSource) {
+                    remove = true;
+                }
+                
+                if (remove) {
+                    log.info("Removing virtual pool " + vpool.getLabel() + " from supported vpools for unmanaged volume: " + unManagedVolume.getLabel());
+                    unManagedVolume.getSupportedVpoolUris().remove(vpool.getId().toString());
+                }
             }
         }
     }

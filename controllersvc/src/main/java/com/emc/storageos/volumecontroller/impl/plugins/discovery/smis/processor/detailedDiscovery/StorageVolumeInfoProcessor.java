@@ -274,7 +274,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 // IF YOU SEE THIS IN A PULL REQUEST, PLEASE POINT IT OUT!!
                 String label = getCIMPropertyValue(volumeViewInstance, "ElementName") != null ? 
                         getCIMPropertyValue(volumeViewInstance, "ElementName") : getCIMPropertyValue(volumeViewInstance, "SVElementName");
-                if (label == null || !label.startsWith("rpingest")) {
+                if (label == null || !label.contains("rpingest")) {
                     continue;
                 }
                 _logger.error("WARNING: Unmanaged Volumes Not Starting with \"rpingest\" are being filtered out!");
@@ -993,7 +993,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 }
                 StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool
                         .getId(), unManagedVolumeCharacteristics
-                        .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()), srdfEnabledTargetVPools, volumeType);
+                        .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()), srdfEnabledTargetVPools, null, volumeType);
                 _logger.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
 
                 if (null == matchedVPools || matchedVPools.isEmpty()) {

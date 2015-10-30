@@ -114,11 +114,7 @@ public class Backup extends Controller {
     @FlashException(value = "list")
     public static void upload(String id) {
             BackupUtils.uploadBackup(id);
-            BackupUploadStatus status = BackupUtils.getUploadStatus(id);
-            renderArgs.put("backupTag", id);
-            renderArgs.put("uploadStatus", status);
             list();
-            
     }
     
     public static void getUploadStatus(String id) {

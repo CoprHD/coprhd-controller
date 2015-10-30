@@ -242,6 +242,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_CONFIG_STANDBY_FAILED)
     public InternalServerErrorException configStandbyFailed(String errMsg);
     
+    @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_PRECHECK_FAILED)
+    public InternalServerErrorException removeStandbyPrecheckFailed(String siteId, String errMsg);
+    
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
     public InternalServerErrorException removeStandbyFailed(final String siteId, String errMsg);
     

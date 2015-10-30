@@ -1268,10 +1268,7 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
                                     metavar='<subdirectory>',
                                     help='Subdirectory Name ')  
                   
-    
     nfs_acl_parser.set_defaults(func=nfs_acl)
-
-
 
 
 def nfs_acl(args):
@@ -1289,14 +1286,9 @@ def nfs_acl(args):
                            args.user, 
                            args.permissions,
                            args.domain)
-
-
     except SOSError as e:
-                
         common.format_err_msg_and_raise("nfs-acl", "filesystem",
                                         e.err_text, e.err_code)
-
-
 
 # Fileshare Delete routines
 
@@ -1327,7 +1319,6 @@ def acl_delete_parser(subcommand_parsers, common_parser):
                                dest='share',
                                required=True)
     
- 
     acl_delete_parser.set_defaults(func=fileshare_acl_delete)
 
 
@@ -1370,9 +1361,6 @@ def nfs_acl_delete_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of project',
                                 required=True)
-    
-    
- 
     nfs_acl_delete_parser.set_defaults(func=nfs_acl_delete)
 
 

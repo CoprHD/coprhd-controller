@@ -241,7 +241,7 @@ public class Site {
             }
             
             String addrs = config.getConfig(KEY_NODESADDR);
-            if (addrs != null) {
+            if (!StringUtil.isBlank(addrs)) {
                 int i = 1;
                 for (String addr : addrs.split(",")) {
                     hostIPv4AddressMap.put(String.format("node%d", i++), addr);
@@ -249,7 +249,7 @@ public class Site {
             }
             
             String addr6s = config.getConfig(KEY_NODESADDR6);
-            if (addr6s != null) {
+            if (!StringUtil.isBlank(addr6s)) {
                 int i = 1;
                 for (String addr : addr6s.split(",")) {
                     hostIPv6AddressMap.put(String.format("node%d", i++), addr);

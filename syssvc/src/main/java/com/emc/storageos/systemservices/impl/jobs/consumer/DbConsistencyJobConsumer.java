@@ -6,7 +6,6 @@ package com.emc.storageos.systemservices.impl.jobs.consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueueItemProcessedCallback;
@@ -28,7 +27,7 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         log.info("start db consistency check, current status:{}", status);
         if (isFreshStart(status)) {
             log.info("it's first time to run db consistency check, init status in zk");
-            createStatusInZk();
+            status = createStatusInZk();
         } else if (status.isFinished()) {
             log.info("there is finished state, move it to previous");
             status.moveToPrevious();
@@ -38,7 +37,10 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         }
         
         try {
+            dbChecker.persistStatus(status);
             DbSchemaChecker.checkSourceSchema(MODEL_PACKAGES);
+            //init should be done after checkSourceSchema
+            dbChecker.init();
             dbChecker.checkObjectId();
             dbChecker.checkIndexObjects();
             dbChecker.checkObjectIndices();
@@ -72,10 +74,10 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         return status;
     }
 
-    private void createStatusInZk() {
+    private DbConsistencyStatus createStatusInZk() {
         DbConsistencyStatus status = new DbConsistencyStatus();
         status.init();
-        this.coordinator.persistRuntimeState(Constants.DB_CONSISTENCY_STATUS, status);
+        return status;
     }
     
     private boolean isFreshStart(DbConsistencyStatus status) {

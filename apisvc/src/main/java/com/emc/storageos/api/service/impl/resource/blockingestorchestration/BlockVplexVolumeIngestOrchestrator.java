@@ -226,14 +226,15 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             if (unManagedBackendVolumes.isEmpty()) {
                 String reason = "failed to find any VPLEX backend volume for UnManagedVolume "
                         + unManagedVirtualVolume.getLabel() + " with supporting device "
-                        + supportingDevice;
+                        + supportingDevice + ".  Has the backend array been discovered for unmanaged volumes?";
                 _logger.error(reason);
                 throw IngestionException.exceptions.validationException(reason);
             } else {
                 String reason = "failed to find all VPLEX backend volume for UnManagedVolume "
                         + unManagedVirtualVolume.getLabel() + " with supporting device "
                         + supportingDevice + ". Did find these backend volumes, though: "
-                        + Joiner.on(", ").join(unManagedBackendVolumes);
+                        + Joiner.on(", ").join(unManagedBackendVolumes) 
+                        + ".  Have all backend arrays been discovered for unmanaged volumes?";;
                 _logger.error(reason);
                 throw IngestionException.exceptions.validationException(reason);
             }

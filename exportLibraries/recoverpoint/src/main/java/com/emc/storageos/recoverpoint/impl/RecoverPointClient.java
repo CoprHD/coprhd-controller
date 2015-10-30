@@ -79,6 +79,7 @@ import com.emc.fapiclient.ws.RpoPolicy;
 import com.emc.fapiclient.ws.SnapshotGranularity;
 import com.emc.fapiclient.ws.SnapshotShippingMode;
 import com.emc.fapiclient.ws.SnapshotShippingPolicy;
+import com.emc.fapiclient.ws.StorageAccessState;
 import com.emc.fapiclient.ws.SyncReplicationThreshold;
 import com.emc.fapiclient.ws.SystemStatistics;
 import com.emc.fapiclient.ws.UserVolumeSettings;
@@ -1432,7 +1433,7 @@ public class RecoverPointClient {
                 try {
                     String cgCopyName = functionalAPI.getGroupCopyName(copy.getCGGroupCopyUID());
                     String cgName = functionalAPI.getGroupName(copy.getCGGroupCopyUID().getGroupUID());
-                    if (!imageManager.verifyCopyCapableOfEnableImageAccess(functionalAPI, copy.getCGGroupCopyUID(), false)) {
+                    if (!imageManager.verifyCopyCapableOfEnableImageAccess(functionalAPI, copy.getCGGroupCopyUID(), request.getBookmark(), false)) {
                         logger.info("Copy " + cgCopyName + " of group " + cgName + " is in a mode that disallows enabling the CG copy.");
                         throw RecoverPointException.exceptions.notAllowedToEnableImageAccessToCG(
                                 cgName, cgCopyName);
@@ -1446,29 +1447,20 @@ public class RecoverPointClient {
                 }
             }
         }
-
-        try {
-            for (RPConsistencyGroup rpcg : cgSetToEnable) {
-                Set<RPCopy> copies = rpcg.getCopies();
-                for (RPCopy copy : copies) {
-                    boolean waitForLinkState = true;
-                    imageManager.enableCGCopy(functionalAPI, copy.getCGGroupCopyUID(), waitForLinkState, ImageAccessMode.LOGGED_ACCESS,
-                            request.getBookmark(), request.getAPITTime());
-                }
-            }
-        } catch (RecoverPointException e) {
-            logger.error("Caught RecoverPointException exception while enabling CG copies.  Return copies to previous state");
-            for (RPConsistencyGroup rpcg : cgSetToEnable) {
-                Set<RPCopy> copies = rpcg.getCopies();
-                for (RPCopy copy : copies) {
-                    imageManager.disableCGCopy(functionalAPI, copy.getCGGroupCopyUID());
-                }
-            }
-            throw e;
-        }
+      
+	    for (RPConsistencyGroup rpcg : cgSetToEnable) {
+	        Set<RPCopy> copies = rpcg.getCopies();
+	        for (RPCopy copy : copies) {
+	            boolean waitForLinkState = true;
+	            imageManager.enableCGCopy(functionalAPI, copy.getCGGroupCopyUID(), waitForLinkState, ImageAccessMode.LOGGED_ACCESS,
+	                    request.getBookmark(), request.getAPITTime());
+	        }
+	    }
+    
         response.setReturnCode(RecoverPointReturnCode.SUCCESS);
         return response;
     }
+    
 
     /**
      * Disables copy images for one or more consistency group copies
@@ -1590,6 +1582,7 @@ public class RecoverPointClient {
                 }
             }
         }
+        
         try {
             for (RPConsistencyGroup rpcg : cgSetToEnable) {
                 Set<RPCopy> copies = rpcg.getCopies();

@@ -337,10 +337,9 @@ public class VdcSiteManager extends AbstractManager {
         }
 
         log.info("Step3: Setting vdc properties not rebooting for single VDC change");
-
+        checkAndRemoveStandby();
         switch (action) {
             case SiteInfo.RECONFIG_RESTART:
-                checkAndRemoveStandby();
                 reconfigRestartSvcs();
                 cleanupSiteErrorIfNecessary();
                 break;
@@ -620,12 +619,14 @@ public class VdcSiteManager extends AbstractManager {
         
         List<Site> toBeRemovedSites = listRemovingStandby();
         while (hasRemovingStandby(toBeRemovedSites)) {
-            if (!getVdcLock(svcId)) {
+            if (!coordinator.getPersistentLock(svcId, vdcLockId)) {
                 retrySleep(); // retry until we get the lock
+                toBeRemovedSites = listRemovingStandby();
                 continue;
             }
-            
+            log.info("Get vdc lock {}", vdcLockId); 
             try {
+                    
                 for (Site site : toBeRemovedSites) {
                     try {
                         removeDbNodes(site);
@@ -645,6 +646,7 @@ public class VdcSiteManager extends AbstractManager {
                 toBeRemovedSites = listRemovingStandby();
             }  finally {
                 coordinator.releasePersistentLock(svcId, vdcLockId);
+                log.info("Release vdc lock {}", vdcLockId);   
             }
         }
     }
@@ -741,9 +743,10 @@ public class VdcSiteManager extends AbstractManager {
         if (site.getState().equals(SiteState.STANDBY_REMOVING)) {
             log.info("Cleanup site error");
             SiteError siteError = coordinator.getCoordinatorClient().getTargetInfo(siteId, SiteError.class);
-            siteError.cleanup();
-            
-            coordinator.getCoordinatorClient().setTargetInfo(siteId, siteError);
+            if (siteError != null) {
+                siteError.cleanup();
+                coordinator.getCoordinatorClient().setTargetInfo(siteId, siteError);
+            }
         }
     }
 }

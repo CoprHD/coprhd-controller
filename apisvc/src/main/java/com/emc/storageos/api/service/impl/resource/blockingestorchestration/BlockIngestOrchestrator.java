@@ -190,8 +190,8 @@ public abstract class BlockIngestOrchestrator {
      */
     protected void checkHostIOLimits(VirtualPool vpool, UnManagedVolume unManagedVolume, boolean isExportedVolumeIngest) {
 
-        // Skip validation for unExportedVolumes
-        if (!isExportedVolumeIngest) {
+        // Skip validation for unExportedVolumes and VPLEX virtual volumes
+        if (!isExportedVolumeIngest || VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
             return;
         }
 

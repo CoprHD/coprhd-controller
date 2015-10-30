@@ -3270,13 +3270,13 @@ class Bourne:
         print "DR DELETE STANDBY RESP = ",resp
         self.assert_is_dict(resp)
         return resp
-	
-	def dr_switchover(self,uri):
+
+    def dr_switchover(self,uri):
         resp = self.api('POST', URI_DR_SWITCHOVER.format(uri))
         print "DR SWITCHOVER RESP = ",resp
         self.assert_is_dict(resp)
         return resp
-	
+
     #
     #VDC APIs
     #

@@ -6326,7 +6326,7 @@ dr_tests()
     # verify switchover status
     echo "---WAIT FOR SWITCHOVER FROM $primary_site TO $standby_site DONE---"
     dr waitforstate $standby_site PRIMARY 10 600 && echo "standby has been switched into primary"
-    dr waitforstate $primary_site STANDBY_SYNCED 10 600 && echo "primary has been switched into standby"
+    # dr waitforstate $primary_site STANDBY_SYNCED 10 600 && echo "primary has been switched into standby"
 
     # by now, primary site and standby site has been switched, need to switch variables accordingly
     local switch_tmp

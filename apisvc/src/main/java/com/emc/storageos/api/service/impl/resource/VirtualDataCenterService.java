@@ -31,8 +31,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.security.helpers.SecurityUtil;
+import com.emc.storageos.security.ipsec.IPsecConfig;
+import com.emc.storageos.security.ipsec.IPsecKeyGenerator;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.BooleanUtils;
@@ -105,6 +108,12 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     @Autowired
     private Service service;
+
+    @Autowired
+    IPsecConfig ipsecConfig;
+
+    @Autowired
+    IPsecKeyGenerator ipsecKeyGenerator;
 
     private Map<String, StorageOSUser> _localUsers;
 
@@ -631,6 +640,43 @@ public class VirtualDataCenterService extends TaskResourceService {
                 SecurityUtil.clearSensitiveData(rsaPrivateKey);
             }
         }
+    }
+
+    /**
+     * Rotate the VIPR IPsec Pre-shared key.
+     * @return the new version of the key which is used for checking status if needed
+     */
+    @Path("/ipseckey")
+    @PUT
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    public String rotateIPsecKey() {
+
+        String psk = ipsecKeyGenerator.generate();
+        ipsecConfig.setDefaultPskFile(psk);
+        String version = updateTargetSiteInfo();
+
+        // TODO: audit log
+
+        _log.info("IPsec Key gets rotated successfully to the version {}", version);
+        return version;
+    }
+
+    private String updateTargetSiteInfo() {
+        SiteInfo siteInfo;
+        String siteId = coordinator.getSiteId();
+
+        SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
+        if (currentSiteInfo != null) {
+            siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.RECONFIG_IPSEC, currentSiteInfo.getTargetDataRevision(), SiteInfo.ActionScope.VDC);
+        } else {
+            siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.RECONFIG_IPSEC, SiteInfo.ActionScope.VDC);
+        }
+        coordinator.setTargetInfo(siteId, siteInfo);
+
+        _log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
+        return Long.toString(siteInfo.getVdcConfigVersion());
     }
 
     /***

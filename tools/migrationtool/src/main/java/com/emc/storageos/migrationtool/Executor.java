@@ -23,7 +23,7 @@ public abstract class Executor {
 
     DbClientImpl _dbClient = null;
 
-    public abstract boolean execute();
+    public abstract boolean execute(String providerID);
 
     public DbClientImpl getDbClient() {
         return _dbClient;

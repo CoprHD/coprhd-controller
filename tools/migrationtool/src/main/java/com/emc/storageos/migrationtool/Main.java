@@ -37,7 +37,11 @@ public class Main {
         RGNAMEUPDATER {
             @Override
             int validArgs(String[] args) {
-                return 0;
+                if (args != null && args.length == 2) {
+                    return 0;
+                } else {
+                    return 1;
+                }
             }
         };
 
@@ -99,9 +103,12 @@ public class Main {
                     break;
 
                 case RGNAMEUPDATER:
+                    cmd.validArgs(args);
                     executor = (ReplicationGroupUpdater) ctx.getBean("rgNameUpdater"); // NOSONAR ("squid:S2444")
+                    // to start dbclient
                     executor.start();
-                    result = executor.execute();
+                    String providerID = args[0] + ":" + args[1];
+                    result = executor.execute(providerID);
                 default:
                     throw new IllegalArgumentException("Invalid command");
             }

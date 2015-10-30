@@ -67,12 +67,4 @@ public interface DbManagerMBean {
      */
     @ManagedOperation(description = "Remove all ndoes in a data center")
     void removeDataCenter(String dcName);
-
-    /**
-     * Rebuild the local node from specified source dc.
-     *
-     * @param sourceDc the name of the dc from which the local node is rebuilt
-     */
-    @ManagedOperation(description = "Rebuild the local node from cluster")
-    void rebuildLocalNode(String sourceDc);
 }

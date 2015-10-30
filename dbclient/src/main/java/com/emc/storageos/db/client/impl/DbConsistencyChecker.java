@@ -13,6 +13,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -20,9 +24,13 @@ import com.emc.storageos.db.client.impl.DbClientImpl.IndexAndCf;
 import com.netflix.astyanax.model.ColumnFamily;
 
 public class DbConsistencyChecker {
+    private static final Logger log = LoggerFactory.getLogger(DbConsistencyChecker.class);
     private DbClientImpl dbClient;
     private CoordinatorClient coordinator;
     private int totalCount;
+    private static final String OBJECT_URI = "objectUri_";
+    private static final String OBJECT_INDICES = "objectIndices_";
+    private static final String INDEX_OBJECTS = "indexObjects_";
     
     public DbConsistencyChecker() {
     }
@@ -46,11 +54,10 @@ public class DbConsistencyChecker {
     public int checkObjectId(boolean toConsole) {
         Collection<DataObjectType> allDoTypes = TypeMap.getAllDoTypes();
         Collection<DataObjectType> sortedTypes = getSortedTypes(allDoTypes);
-        
         DbConsistencyStatus status = getStatusFromZk();
-        dbClient.logMessage(String.format("status {} in zk", status.toString()), false, false);
+        dbClient.logMessage(String.format("status %s in zk", status.toString()), false, false);
         Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, status.getWorkingPoint(), toConsole);
-
+        
         int totalDirtyCount = 0;
         int dirtyCount = 0;
         for (DataObjectType doType : filteredTypes) {
@@ -60,7 +67,7 @@ public class DbConsistencyChecker {
                 return totalDirtyCount;
             }
             if (!toConsole) {
-                status.update(this.totalCount, doType.getCF().getName(), dirtyCount);
+                status.update(this.totalCount, OBJECT_URI+doType.getCF().getName(), dirtyCount);
                 persistStatus(status);
             }
             
@@ -163,7 +170,6 @@ public class DbConsistencyChecker {
         Collection<IndexAndCf> idxCfs = getAllIndices().values();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
         DbConsistencyStatus status = getStatusFromZk();
-        dbClient.logMessage(String.format("db consistency status %s", status), false, toConsole);
         Collection<IndexAndCf> sortedIdxCfs = sortIndexCfs(idxCfs);
         Collection<IndexAndCf> filteredIdCfs = filterOutIndexAndCfs(sortedIdxCfs, status.getWorkingPoint(), toConsole);
         int corruptRowCount = 0;
@@ -177,7 +183,7 @@ public class DbConsistencyChecker {
             }
             
             if (!toConsole) {
-                status.update(this.totalCount, indexAndCf.generateKey(), corruptRowCount);
+                status.update(this.totalCount, INDEX_OBJECTS+indexAndCf.generateKey(), corruptRowCount);
                 persistStatus(status);
             }
             corruptRowCount = dbClient.checkIndexingCF(indexAndCf, objCfs, toConsole);
@@ -219,7 +225,7 @@ public class DbConsistencyChecker {
                 return totalCorruptedCount;
             }
             if (!toConsole) {
-                status.update(this.totalCount, doType.getCF().getName(), corruptedCount);
+                status.update(this.totalCount, OBJECT_INDICES+doType.getCF().getName(), corruptedCount);
                 persistStatus(status);
             }
 

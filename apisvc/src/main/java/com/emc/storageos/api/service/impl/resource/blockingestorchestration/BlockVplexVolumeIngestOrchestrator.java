@@ -297,22 +297,24 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     if (context.isDistributed() && mirrorCount == 2) {
                         // there are two mirrors and as long as the cluster ids
                         // are different (one on each leg), then we can ingest it
-                        UnManagedVolume[] mirrors = (UnManagedVolume[]) 
-                                context.getUnmanagedVplexMirrors().keySet().toArray();
-                        if (mirrors.length == 2) {
+                        List<UnManagedVolume> mirrors = new ArrayList<UnManagedVolume>();
+                        for (UnManagedVolume mirror : context.getUnmanagedVplexMirrors().keySet()) {
+                            mirrors.add(mirror);
+                        }
+                        if (mirrors.size() == 2) {
                             String backendClusterId0 = VplexBackendIngestionContext.extractValueFromStringSet(
                                     SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(), 
-                                    mirrors[0].getVolumeInformation());
+                                    mirrors.get(0).getVolumeInformation());
                             String backendClusterId1 = VplexBackendIngestionContext.extractValueFromStringSet(
                                     SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(), 
-                                    mirrors[1].getVolumeInformation());
+                                    mirrors.get(1).getVolumeInformation());
                             if (backendClusterId0.equals(backendClusterId1)) {
                                 StringBuilder reason = new StringBuilder("the volume's mirrors must be on separate ");
                                 reason.append(" vplex clusters. mirrors found: ");
                                 reason.append(backendClusterId0).append(": ")
-                                    .append(mirrors[0].getLabel()).append("; ")
+                                    .append(mirrors.get(0).getLabel()).append("; ")
                                     .append(backendClusterId1).append(": ")
-                                    .append(mirrors[1].getLabel()).append(".");
+                                    .append(mirrors.get(1).getLabel()).append(".");
                                 String message = reason.toString();
                                 _logger.error(message);
                                 throw IngestionException.exceptions.validationException(message);
@@ -331,9 +333,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                                         .append(" and target virtual pool is set to ")
                                         .append(haVpool.getMaxNativeContinuousCopies()).append(". ");
                                     reason.append("Mirrors found - ").append(backendClusterId0).append(": ")
-                                        .append(mirrors[0].getLabel()).append("; ")
+                                        .append(mirrors.get(0).getLabel()).append("; ")
                                         .append(backendClusterId1).append(": ")
-                                        .append(mirrors[1].getLabel()).append(".");
+                                        .append(mirrors.get(1).getLabel()).append(".");
                                     String message = reason.toString();
                                     _logger.error(message);
                                     throw IngestionException.exceptions.validationException(message);
@@ -856,14 +858,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             StringSet unmanagedVolumeClusters = unManagedVolume.getVolumeInformation().get(
                     SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString());
-            // Add a ViPR CG mapping for each of the VPlex clusters the VPlex CG
-            // belongs to.
+            // Add a ViPR CG mapping for just one of the VPlex clusters the VPlex CG
+            // belongs to... in the case of local this will be just one, and in the case
+            // of distributed, either cluster name is okay to use - COP-17846
             if (unmanagedVolumeClusters != null && !unmanagedVolumeClusters.isEmpty()) {
-                Iterator<String> unmanagedVolumeClustersItr = unmanagedVolumeClusters.iterator();
-                while (unmanagedVolumeClustersItr.hasNext()) {
-                    cg.addSystemConsistencyGroup(system.getId().toString(),
-                            BlockConsistencyGroupUtils.buildClusterCgName(unmanagedVolumeClustersItr.next(), cgName));
-                }
+                String clusterName = unmanagedVolumeClusters.iterator().next();
+                cg.addSystemConsistencyGroup(system.getId().toString(),
+                        BlockConsistencyGroupUtils.buildClusterCgName(clusterName, cgName));
 
                 _dbClient.updateAndReindexObject(cg);
             }

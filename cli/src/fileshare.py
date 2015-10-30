@@ -611,9 +611,10 @@ class Fileshare(object):
     
     def nfs_acl_delete(self, name, subdir):
         '''
-        Deletes a fileshare based on fileshare name
+        Delete filesystem acls or filesystem subdir
         Parameters:
             name: name of fileshare
+            subdir:name of subdirectory
         
         '''
         uri_nfs_qp = Fileshare.URI_NFS_ACL
@@ -710,16 +711,12 @@ class Fileshare(object):
             
         request = dict()
         
-        if(subdir is not None):
-            request['subDir']= subdir 
         if("add" == operation):
             request = {'add': [nfs_acl_param] }
         if("delete" == operation):
             request = {'delete' : [nfs_acl_param]}
         if("update" == operation):
             request = {'modify' : [nfs_acl_param]}
-            
-        
         if(subdir):
             request['subDir']= subdir 
         body = json.dumps(request)
@@ -1231,11 +1228,12 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
                                 metavar='<acloperation>',
                                 help='nfs acl operation',
                                 required=True)
-    nfs_acl_parser.add_argument('-permissions', '-perms',
+    mandatory_args.add_argument('-permissions', '-perms',
                                     dest='permissions',
-                                    choices=["Read", "Write", "Execute","Read,write" ,"Read,Execute"],
+                                    choices=["Read", "Write", "Execute","Read,write" ,"Read,Execute","Read,Write,Execute"],
                                     metavar='<permissions>',
-                                    help='Provide permissions for Acl')
+                                    help='Provide permissions for Acl',
+                                    required=True)
     nfs_acl_parser.add_argument('-permissiontype', '-permtype',
                                     dest='permissiontype',
                                     choices=["allow", "deny"],
@@ -1250,10 +1248,11 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of project',
                                 required=True)
-    nfs_acl_parser.add_argument('-user', '-u',
+    mandatory_args.add_argument('-user', '-u',
                                     dest='user',
                                     metavar='<user>',
-                                    help='User')
+                                    help='User',
+                                    required=True)
     nfs_acl_parser.add_argument('-domain','-dom',
                                     dest='domain',
                                     metavar='<domain>',
@@ -1280,11 +1279,6 @@ def nfs_acl(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        if(not args.user and not args.permission):
-            raise SOSError(SOSError.CMD_LINE_ERR, "Anonymous user should be provided to add/update/delete acl rule")
-         
-        
-        
         
         res = obj.nfs_acl(args.tenant, args.project, 
                            args.name, 
@@ -1389,8 +1383,6 @@ def nfs_acl_delete(args):
     try:
         res = obj.nfs_acl_delete(
             args.tenant + "/" + args.project + "/" + args.name, args.subdir)
-        if ( res is None ):
-            print " No NFSv4 ACLs for the Filesystem/Subdirectory"
     except SOSError as e:
         common.format_err_msg_and_raise("delete-nfs-acl", "filesystem",
                                         e.err_text, e.err_code)
@@ -1483,7 +1475,6 @@ def nfs_acl_list_parser(subcommand_parsers, common_parser):
                                     action = 'store_true',
                                     help='Enable All Directories')        
     
- 
     nfs_acl_list_parser.set_defaults(func=nfs_acl_list)
 
 
@@ -1496,19 +1487,16 @@ def nfs_acl_list(args):
         res = obj.nfs_acl_list(
             args.tenant + "/" + args.project + "/" + args.name ,args.alldir, args.subdir)
         
-        if ( res['nfs_acl'] == [] ):
+        if ( len(res['nfs_acl']) == 0 ):
             print " No NFSv4 ACLs for the Filesystem/Subdirectory"
         else:
             from common import TableGenerator
-            TableGenerator(res['nfs_acl'][0]['ace'], ['domain','permission_type','permissions','user','type']).printTable() 
+            TableGenerator(res['nfs_acl'][0]['ace'], ['domain','user','permissions','permission_type','type']).printTable() 
         
     except SOSError as e:
         common.format_err_msg_and_raise("list-nfs-acl", "filesystem",
                                         e.err_text, e.err_code)
        
-
-
-
 # Fileshare Export routines
 
 

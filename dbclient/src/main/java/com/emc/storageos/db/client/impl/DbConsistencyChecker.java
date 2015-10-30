@@ -28,10 +28,6 @@ public class DbConsistencyChecker {
     private DbConsistencyCheckerHelper helper;
     private int totalCount;
     private boolean toConsole;
-
-    private static final String OBJECT_URI = "objectUri_";
-    private static final String OBJECT_INDICES = "objectIndices_";
-    private static final String INDEX_OBJECTS = "indexObjects_";
     
     public DbConsistencyChecker() {
     }
@@ -59,7 +55,7 @@ public class DbConsistencyChecker {
         Collection<DataObjectType> sortedTypes = getSortedTypes(allDoTypes);
         DbConsistencyStatus status = getStatusFromZk();
         helper.logMessage(String.format("status %s in zk", status.toString()), false, false);
-        Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, OBJECT_URI, status.getWorkingPoint(), toConsole);
+        Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, CheckType.OBJECT_ID.name(), status.getCheckType(), status.getWorkingPoint(), toConsole);
         
         int totalDirtyCount = 0;
         int dirtyCount = 0;
@@ -70,7 +66,7 @@ public class DbConsistencyChecker {
                 return totalDirtyCount;
             }
             if (!toConsole) {
-                status.update(this.totalCount, OBJECT_URI+doType.getCF().getName(), dirtyCount);
+                status.update(this.totalCount, doType.getCF().getName(), dirtyCount);
                 persistStatus(status);
             }
             
@@ -99,7 +95,8 @@ public class DbConsistencyChecker {
         this.coordinator.persistRuntimeState(Constants.DB_CONSISTENCY_STATUS, status);
     }
 
-    private Collection<DataObjectType> filterOutTypes(Collection<DataObjectType> types, String prefex, String workingPoint, boolean toConsole) {
+    private Collection<DataObjectType> filterOutTypes(Collection<DataObjectType> types, String currentCheckType, 
+            String previousCheckType, String workingPoint, boolean toConsole) {
         if (toConsole) {
             return types;
         }
@@ -108,10 +105,14 @@ public class DbConsistencyChecker {
             return types;
         }
         
+        if (!currentCheckType.equals(previousCheckType)) {
+            return types;
+        }
+        
         boolean found = false;
         List<DataObjectType> filteredTypes = new ArrayList<DataObjectType> ();
         for(DataObjectType type : types) {
-            if (workingPoint.equals(prefex+type.getCF().getName())) {
+            if (workingPoint.equals(type.getCF().getName())) {
                 found = true;
             }
             if (found) {
@@ -121,7 +122,8 @@ public class DbConsistencyChecker {
         return filteredTypes;
     }
     
-    private Collection<IndexAndCf> filterOutIndexAndCfs(Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs, String prefex, String workingPoint, boolean toConsole) {
+    private Collection<IndexAndCf> filterOutIndexAndCfs(Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs, String currentCheckType, 
+            String previousCheckType, String workingPoint, boolean toConsole) {
         if (toConsole) {
             return idxCfs;
         }
@@ -130,10 +132,13 @@ public class DbConsistencyChecker {
             return idxCfs;
         }
         
+        if (!currentCheckType.equals(previousCheckType)) {
+            return idxCfs;
+        }
         boolean found = false;
         List<IndexAndCf> filteredIdxAndCfs = new ArrayList<IndexAndCf> ();
         for(IndexAndCf idxCf : idxCfs) {
-            if (workingPoint.equals(prefex+idxCf.generateKey())) {
+            if (workingPoint.equals(idxCf.generateKey())) {
                 found = true;
             }
             if (found) {
@@ -177,7 +182,7 @@ public class DbConsistencyChecker {
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = helper.getDataObjectCFs();
         DbConsistencyStatus status = getStatusFromZk();
         Collection<IndexAndCf> sortedIdxCfs = sortIndexCfs(idxCfs);
-        Collection<IndexAndCf> filteredIdCfs = filterOutIndexAndCfs(sortedIdxCfs, INDEX_OBJECTS, status.getWorkingPoint(), toConsole);
+        Collection<IndexAndCf> filteredIdCfs = filterOutIndexAndCfs(sortedIdxCfs, CheckType.INDEX_OBJECTS.name(), status.getCheckType(), status.getWorkingPoint(), toConsole);
         int corruptRowCount = 0;
         int totalCorruptCount = 0;
         
@@ -189,7 +194,7 @@ public class DbConsistencyChecker {
             }
             
             if (!toConsole) {
-                status.update(this.totalCount, INDEX_OBJECTS+indexAndCf.generateKey(), corruptRowCount);
+                status.update(this.totalCount, indexAndCf.generateKey(), corruptRowCount);
                 persistStatus(status);
             }
             corruptRowCount = helper.checkIndexingCF(indexAndCf, objCfs, toConsole);
@@ -221,7 +226,7 @@ public class DbConsistencyChecker {
         Collection<DataObjectType> sortedTypes = getSortedTypes(allDoTypes);
         
         DbConsistencyStatus status = getStatusFromZk();
-        Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, OBJECT_INDICES, status.getWorkingPoint(), toConsole);
+        Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, CheckType.OBJECT_INDICES.name(), status.getCheckType(), status.getWorkingPoint(), toConsole);
         int totalCorruptedCount = 0;
         int corruptedCount = 0;
         int cfCount = allDoTypes.size();
@@ -232,7 +237,7 @@ public class DbConsistencyChecker {
                 return totalCorruptedCount;
             }
             if (!toConsole) {
-                status.update(this.totalCount, OBJECT_INDICES+doType.getCF().getName(), corruptedCount);
+                status.update(this.totalCount, doType.getCF().getName(), corruptedCount);
                 persistStatus(status);
             }
 
@@ -252,6 +257,10 @@ public class DbConsistencyChecker {
         return totalCorruptedCount;
     }
 
+    enum CheckType {
+        OBJECT_ID, INDEX_OBJECTS, OBJECT_INDICES
+    }
+    
     @SuppressWarnings("unchecked")
     private Collection<IndexAndCf> sortIndexCfs(Collection<IndexAndCf> idxCfs) {
         List<IndexAndCf> list = new ArrayList<IndexAndCf>(idxCfs);

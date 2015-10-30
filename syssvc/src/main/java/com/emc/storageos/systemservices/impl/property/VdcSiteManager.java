@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +77,8 @@ public class VdcSiteManager extends AbstractManager {
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
     
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
+    
+    private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
     
     private SiteInfo targetSiteInfo;
 
@@ -578,8 +581,8 @@ public class VdcSiteManager extends AbstractManager {
      * 
      * @return
      */
-    private boolean hasRemovingStandby(List<Site> toBeRemovedSites) {
-        return !toBeRemovedSites.isEmpty();
+    private boolean hasRemovingStandby() {
+        return !listRemovingStandby().isEmpty();
     }
     
     private List<Site> listRemovingStandby() {
@@ -617,14 +620,12 @@ public class VdcSiteManager extends AbstractManager {
     private void checkAndRemoveOnPrimary() throws Exception {
         String svcId = coordinator.getMySvcId();
         
-        List<Site> toBeRemovedSites = listRemovingStandby();
-        while (hasRemovingStandby(toBeRemovedSites)) {
-            if (!coordinator.getPersistentLock(svcId, vdcLockId)) {
-                retrySleep(); // retry until we get the lock
-                toBeRemovedSites = listRemovingStandby();
-                continue;
-            }
-            log.info("Get vdc lock {}", vdcLockId); 
+        InterProcessLock lock = coordinator.getCoordinatorClient().getLock(LOCK_REMOVE_STANDBY);
+        while (hasRemovingStandby()) {
+            log.info("Accquiring lock {}", LOCK_REMOVE_STANDBY); 
+            lock.acquire();
+            log.info("Accquired lock {}", LOCK_REMOVE_STANDBY); 
+            List<Site> toBeRemovedSites = listRemovingStandby();
             try {
                     
                 for (Site site : toBeRemovedSites) {
@@ -643,10 +644,9 @@ public class VdcSiteManager extends AbstractManager {
                         throw e;
                     }
                 }
-                toBeRemovedSites = listRemovingStandby();
             }  finally {
-                coordinator.releasePersistentLock(svcId, vdcLockId);
-                log.info("Release vdc lock {}", vdcLockId);   
+                lock.release();
+                log.info("Release lock {}", LOCK_REMOVE_STANDBY);   
             }
         }
     }
@@ -658,10 +658,9 @@ public class VdcSiteManager extends AbstractManager {
             return;
         } else {
             log.info("Waiting for completion of site removal from primary site");
-            while (hasRemovingStandby(toBeRemovedSites)) {
+            while (hasRemovingStandby()) {
                 log.info("Waiting for completion of site removal from primary site");
                 retrySleep();
-                toBeRemovedSites = listRemovingStandby();
             }
         }
     }

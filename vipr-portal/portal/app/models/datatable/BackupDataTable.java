@@ -54,6 +54,9 @@ public class BackupDataTable extends DataTable {
 			size = backup.getSize();
 			status = backup.getUploadStatus().getStatus().name();
 			progress = backup.getUploadStatus().getProgress();
+			if(status.equals(Status.FAILED.toString())){
+				progress = 100;
+			}
 			if (status.equals(Status.NOT_STARTED.toString())
 					|| status.equals(Status.FAILED.toString())) {
 				upload = backup.getName() + "_enable";

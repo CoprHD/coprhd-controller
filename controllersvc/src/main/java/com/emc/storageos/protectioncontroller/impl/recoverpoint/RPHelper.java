@@ -46,6 +46,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -1589,8 +1590,13 @@ public class RPHelper {
                         }
                     }
                     
-                    // Remove the reference
-                    volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
+                    List<Volume> allSourceVolumesInCG = getCgSourceVolumes(volume.getConsistencyGroup(), dbClient);
+                    if (!allSourceVolumesInCG.isEmpty()) {
+                        for (Volume vol : allSourceVolumesInCG) {
+                            // Remove the secondary journal reference
+                            vol.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
+                        }
+                    }                                        
                 }
             }
 

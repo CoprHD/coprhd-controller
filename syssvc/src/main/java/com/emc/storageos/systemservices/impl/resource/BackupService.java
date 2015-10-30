@@ -47,7 +47,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
-import static com.emc.vipr.model.sys.backup.BackupUploadStatus.ErrorCode;
 
 /**
  * Defines the API for making requests to the backup service.
@@ -59,7 +58,6 @@ public class BackupService {
     private BackupScheduler backupScheduler;
     private NamedThreadPoolExecutor backupUploader;
     private NamedThreadPoolExecutor backupDownloader;
-    private static int progress = 0;
 
     /**
      * Sets backup client
@@ -70,6 +68,11 @@ public class BackupService {
         this.backupOps = backupOps;
     }
 
+    /**
+     * Sets backup scheduler client
+     *
+     * @param backupScheduler the backup scheduler client instance
+     */
     public void setBackupScheduler(BackupScheduler backupScheduler) {
         this.backupScheduler = backupScheduler;
     }
@@ -108,12 +111,46 @@ public class BackupService {
     private BackupSets toBackupSets(List<BackupSetInfo> backupList) {
         BackupSets backupSets = new BackupSets();
         for (BackupSetInfo backupInfo : backupList) {
+            BackupUploadStatus uploadStatus = getBackupUploadStatus(backupInfo.getName());
             backupSets.getBackupSets().add(new BackupSets.BackupSet(
                     backupInfo.getName(),
                     backupInfo.getSize(),
-                    backupInfo.getCreateTime()));
+                    backupInfo.getCreateTime(),
+                    uploadStatus));
         }
         return backupSets;
+    }
+
+    /**
+     * List the info of backupsets that have zk backup file and
+     * quorum db and geodb backup files
+     *
+     * @brief List current backup info
+     * @prereq none
+     * @return A list of backup info
+     */
+    @GET
+    @Path("backup/")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public BackupSets.BackupSet queryBackup(@QueryParam("tag") String backupTag) {
+        List<BackupSetInfo> backupList;
+
+        log.info("Received query backup request, tag={}", backupTag);
+        try {
+            backupList = backupOps.listBackup();
+        } catch (BackupException e) {
+            log.error("Failed to list backup sets", e);
+            throw APIException.internalServerErrors.getObjectError("Backup info", e);
+        }
+        for (BackupSetInfo backupInfo : backupList) {
+            if (backupInfo.getName().equals(backupTag)) {
+                BackupUploadStatus uploadStatus = getBackupUploadStatus(backupInfo.getName());
+                return new BackupSets.BackupSet(backupInfo.getName(), backupInfo.getSize(),
+                        backupInfo.getCreateTime(), uploadStatus);
+            }
+        }
+        return new BackupSets.BackupSet();
     }
 
     /**
@@ -187,7 +224,7 @@ public class BackupService {
                 public void run() {
                     try {
                         log.info("Upload backup({}) begin", backupTag);
-                        backupScheduler.runUpload(backupTag);
+                        backupScheduler.getUploadExecutor().runOnce(backupTag);
                         log.info("Upload backup({}) finish", backupTag);
                     } catch (Exception e) {
                         log.error("Upload backup({}) failed", backupTag, e);
@@ -208,30 +245,13 @@ public class BackupService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public BackupUploadStatus getBackupUploadStatus(@QueryParam("tag") String backupTag) {
         log.info("Received get upload status request, backup tag={}", backupTag);
-        BackupUploadStatus status = new BackupUploadStatus();
-
-        if (backupTag == null) {
-            status.setStatus(Status.DONE);
-            status.setProgress(100);
-        } else if (backupTag.contains("Fail")){
-            status.setStatus(Status.FAILED);
-            status.setProgress(0);
-            status.setErrorCode(ErrorCode.UPLOAD_FAILURE);
-        } else if (backupTag.contains("Success")) {
-            status.setStatus(Status.DONE);
-            status.setProgress(100);
-        } else {
-            progress += 10;
-            status.setProgress(progress);
-            if (progress < 100) {
-                status.setStatus(Status.IN_PROGRESS);
-            } else {
-                status.setStatus(Status.DONE);
-                progress = 0;
-            }
+        try {
+            BackupUploadStatus uploadStatus = backupScheduler.getUploadExecutor().getUploadStatus(backupTag);
+            return uploadStatus;
+        } catch (Exception e) {
+            log.error("Failed to get upload status", e);
+            throw APIException.internalServerErrors.getObjectError("Upload status", e);
         }
-
-        return status;
     }
 
     /**
@@ -357,6 +377,8 @@ public class BackupService {
 
         URI postUri = SysClientFactory.URI_NODE_BACKUPS_DOWNLOAD;
         boolean propertiesFileFound = false;
+        int collectFileCount = 0;
+        int totalFileCount = files.size() * 2;
         for (final NodeInfo node : nodes) {
             String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
                     node.getIpAddress(), node.getPort());
@@ -364,9 +386,13 @@ public class BackupService {
             SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
                     URI.create(baseNodeURL));
             for (String fileName : getFileNameList(files.subsetOf(null, null, node.getId()))) {
+                int progress = collectFileCount / totalFileCount * 100;
+                backupScheduler.getUploadExecutor().setUploadStatus(null, Status.IN_PROGRESS, progress, null);
+
                 String fullFileName = backupTag + File.separator + fileName;
                 InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
                 newZipEntry(zos, in, fileName);
+                collectFileCount++;
             }
 
             try {

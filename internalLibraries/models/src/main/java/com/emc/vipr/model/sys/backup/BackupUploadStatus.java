@@ -4,6 +4,9 @@
  */
 package com.emc.vipr.model.sys.backup;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,18 +18,35 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "backup_upload_status")
 public class BackupUploadStatus {
+    private static final Logger log = LoggerFactory.getLogger(BackupUploadStatus.class);
+    private static final String KEY_BACKUP_NAME = "backupName";
+    private static final String KEY_STATUS = "status";
+    private static final String KEY_PROGRESS = "progress";
+    private static final String KEY_ERROR_CODE = "errorCode";
 
-    private Status status = Status.NOT_STARTED;
-    private int progress;
+    private String backupName;
+    private Status status;
+    private Integer progress;
     private ErrorCode errorCode;
 
     public BackupUploadStatus() {
     }
 
-    public BackupUploadStatus(Status status, int progress, ErrorCode errorCode) {
-        this.status = status;
-        this.progress = progress;
-        this.errorCode = errorCode;
+    public BackupUploadStatus(String backupName, Status status, Integer progress, ErrorCode errorCode) {
+         update(backupName, status, progress, errorCode);
+    }
+
+    public BackupUploadStatus(Map<String, String> configs) {
+        update(configs);
+    }
+
+    @XmlElement(name = "backup_name")
+    public String getBackupName() {
+        return this.backupName;
+    }
+
+    public void setBackupName(String backupName) {
+        this.backupName = backupName;
     }
 
     @XmlElement(name = "status")
@@ -39,7 +59,7 @@ public class BackupUploadStatus {
     }
 
     @XmlElement(name = "progress")
-    public int getProgress() {
+    public Integer getProgress() {
         return this.progress;
     }
 
@@ -54,6 +74,67 @@ public class BackupUploadStatus {
 
     public void setErrorCode(ErrorCode errorCode) {
         this.errorCode = errorCode;
+    }
+
+    public Map<String, String> getAllItems() {
+        Map<String, String> uploadStatus = new HashMap<String, String>();
+        if (this.backupName != null) {
+            uploadStatus.put(KEY_BACKUP_NAME, this.backupName);
+        }
+        if (this.getStatus() != null) {
+            uploadStatus.put(KEY_STATUS, this.getStatus().toString());
+        }
+        if (this.progress != null) {
+            uploadStatus.put(KEY_PROGRESS, String.valueOf(this.getProgress()));
+        }
+        if (this.errorCode != null) {
+            uploadStatus.put(KEY_ERROR_CODE, this.getErrorCode().toString());
+        }
+        return uploadStatus;
+    }
+
+    private void update(Map<String, String> configs) {
+        String backupName = configs.get(KEY_BACKUP_NAME);
+        Status status = (configs.get(KEY_STATUS) != null) ? Status.valueOf(configs.get(KEY_STATUS)) : null;
+        Integer progress = (configs.get(KEY_PROGRESS) != null) ? Integer.parseInt(configs.get(KEY_PROGRESS)) : null;
+        ErrorCode errCode = (configs.get(KEY_ERROR_CODE) != null) ? ErrorCode.valueOf(configs.get(KEY_ERROR_CODE)) : null;
+        update(backupName, status, progress, errCode);
+    }
+
+    public void update(String backupName, Status status, Integer progress, ErrorCode errorCode) {
+        log.info("Backup upload status before updating: {}", this);
+        this.backupName = (backupName != null) ? backupName: this.backupName;
+        this.progress = (progress != null) ? progress : this.progress;
+        this.errorCode = (errorCode != null) ? errorCode : this.errorCode;
+        this.status = (status != null) ? status : this.status;
+        updatePostCheck();
+        log.info("Backup upload status after updating: {}", this);
+    }
+
+    private void updatePostCheck() {
+        log.info("Backup upload status before the check: {}", this);
+        if (this.status == null) {
+            return;
+        }
+        switch (this.status) {
+            case NOT_STARTED:
+                this.progress = null;
+                this.errorCode = null;
+                break;
+            case DONE:
+                if (this.progress != 100) {
+                    log.warn("Upload progress should be 100 percents, while it's " + this.progress);
+                    this.progress = 100;
+                }
+                this.errorCode = null;
+                break;
+        }
+        if (this.backupName == null) {
+            log.warn("Backup name should not be null");
+            this.status = null;
+            this.progress = null;
+            this.errorCode = null;
+        }
     }
 
     /**
@@ -81,7 +162,9 @@ public class BackupUploadStatus {
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append("Status:");
+        sb.append("BackupName:");
+        sb.append(getBackupName());
+        sb.append(", Status:");
         sb.append(getStatus());
         sb.append(", Progress:");
         sb.append(getProgress());

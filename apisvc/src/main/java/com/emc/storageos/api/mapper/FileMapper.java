@@ -53,6 +53,7 @@ public class FileMapper {
         to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDevice()));
         to.setPool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getPool(), from.getStorageDevice()));
         to.setStoragePort(toRelatedResource(ResourceTypeEnum.STORAGE_PORT, from.getStoragePort(), from.getStorageDevice()));
+        to.setVirtualNAS(toRelatedResource(ResourceTypeEnum.VIRTUAL_NAS, from.getVirtualNAS()));
         to.setThinlyProvisioned(from.getThinlyProvisioned());
         return to;
     }

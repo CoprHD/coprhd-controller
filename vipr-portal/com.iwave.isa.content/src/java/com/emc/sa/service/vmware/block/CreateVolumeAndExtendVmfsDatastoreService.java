@@ -13,7 +13,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
-import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
+import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.vmware.vim25.mo.Datastore;
@@ -21,7 +21,7 @@ import com.vmware.vim25.mo.Datastore;
 @Service("VMware-CreateVolumeAndExtendVmfsDatastore")
 public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService {
     @Bindable
-    protected CreateBlockVolumeHelper createBlockVolumeHelper = new CreateBlockVolumeHelper();
+    protected CreateBlockVolumeForHostHelper createBlockVolumeHelper = new CreateBlockVolumeForHostHelper();
     @Param(DATASTORE_NAME)
     protected String datastoreName;
     @Param(value = MULTIPATH_POLICY, required = false)

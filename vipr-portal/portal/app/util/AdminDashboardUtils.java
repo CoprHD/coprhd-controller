@@ -51,6 +51,7 @@ public class AdminDashboardUtils {
     private static String DATA_PROTECTION_SYSTEM_COUNT_KEY = "DATA_PROTECTION_SYSTEM_COUNT_KEY";
     private static String COMPUTE_SYSTEM_COUNT_KEY = "COMPUTE_SYSTEM_COUNT_KEY";
     private static String COMPUTE_IMAGE_COUNT_KEY = "COMPUTE_IMAGE_COUNT_KEY";
+    private static String COMPUTE_IMAGE_SERVER_COUNT_KEY = "COMPUTE_IMAGE_SERVER_COUNT_KEY";
     private static String HOST_COUNT_KEY = "HOST_COUNT_KEY";
     private static String VCENTER_COUNT_KEY = "VCENTER_COUNT_KEY";
     private static String CLUSTER_COUNT_KEY = "CLUSTER_COUNT_KEY";
@@ -129,6 +130,10 @@ public class AdminDashboardUtils {
 
     public static Promise<Integer> computeImageCount() {
         return new BulkResourceCount(COMPUTE_IMAGE_COUNT_KEY, getViprClient().computeImages()).asPromise();
+    }
+
+    public static Promise<Integer> computeImageServerCount() {
+        return new BulkResourceCount(COMPUTE_IMAGE_SERVER_COUNT_KEY, getViprClient().computeImageServers()).asPromise();
     }
 
     public static Promise<Integer> hostCount() {

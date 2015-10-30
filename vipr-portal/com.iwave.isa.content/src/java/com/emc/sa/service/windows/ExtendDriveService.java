@@ -26,7 +26,7 @@ public class ExtendDriveService extends WindowsService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        List<BlockObjectRestRep> volumes = BlockStorageUtils.getVolumes(uris(volumeIds));
+        List<BlockObjectRestRep> volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
         for (ExtendDriveHelper extendDriveHelper : extendDriveHelpers) {
             extendDriveHelper.setVolumes(volumes);
             extendDriveHelper.precheck();

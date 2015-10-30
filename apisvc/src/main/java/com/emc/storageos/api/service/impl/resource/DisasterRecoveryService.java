@@ -863,9 +863,6 @@ public class DisasterRecoveryService {
             }
         }
 
-        /**
-         * Internal method to check switchover status
-         */
         private void checkSwitchoverStatus() {
             if (primaryId == null || standbyId == null) {
                 return; // This instance is not initiated to check switchover status, don't do anything

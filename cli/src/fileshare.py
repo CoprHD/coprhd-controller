@@ -688,15 +688,11 @@ class Fileshare(object):
     
     
     #Main routine for NFSv4 ACL
-    def nfs_acl(self, tenant, project, fsname, alldir, subdir, permissiontype, type, operation, user=None, permission=None, domain=None, group=None):
+    def nfs_acl(self, tenant, project, fsname, subdir, permissiontype, type, operation, user=None, permission=None, domain=None, group=None):
         path = tenant + "/" + project + "/"
         fs_name = path + fsname
         
-        uri_nfs_qp = Fileshare.URI_NFS_ACL
-        if(alldir == True):
-            uri_nfs_qp = Fileshare.URI_NFS_ACL + '?' + "allDir=true"
-        if(subdir is not None):
-            uri_nfs_qp = Fileshare.URI_NFS_ACL + '?' + "subDir=" + subdir
+        
         fs_uri = self.fileshare_query(fs_name)        
         
         
@@ -711,20 +707,27 @@ class Fileshare(object):
             nfs_acl_param['domain'] = domain
         if(type):
             nfs_acl_param['type'] = type
-
+            
+        request = dict()
+        
+        if(subdir is not None):
+            request['subDir']= subdir 
         if("add" == operation):
-            request = {'add': [nfs_acl_param]}
-        elif("delete" == operation):
+            request = {'add': [nfs_acl_param] }
+        if("delete" == operation):
             request = {'delete' : [nfs_acl_param]}
-        else:
+        if("update" == operation):
             request = {'modify' : [nfs_acl_param]}
-    
+            
+        
+        if(subdir):
+            request['subDir']= subdir 
         body = json.dumps(request)
         
         (s, h) = common.service_json_request(
                     self.__ipAddr, self.__port, 
                     "PUT", 
-                    uri_nfs_qp.format(fs_uri) , body)
+                    Fileshare.URI_NFS_ACL.format(fs_uri) , body)
         o = common.json_decode(s)
         return o
 
@@ -1265,10 +1268,7 @@ def nfs_acl_parser(subcommand_parsers, common_parser):
                                     dest='subdir',
                                     metavar='<subdirectory>',
                                     help='Subdirectory Name ')  
-    nfs_acl_parser.add_argument('-alldirectories', '-alldir',
-                                    dest='alldir',
-                                    action = 'store_true',
-                                    help='Enable All Directories')                      
+                  
     
     nfs_acl_parser.set_defaults(func=nfs_acl)
 
@@ -1283,13 +1283,11 @@ def nfs_acl(args):
         if(not args.user and not args.permission):
             raise SOSError(SOSError.CMD_LINE_ERR, "Anonymous user should be provided to add/update/delete acl rule")
          
-        if(args.alldir and args.subdir):
-            raise SOSError(SOSError.CMD_LINE_ERR, "Specify either Subdir name or All Directories")   
+        
         
         
         res = obj.nfs_acl(args.tenant, args.project, 
                            args.name, 
-                           args.alldir,
                            args.subdir,
                            args.permissiontype, 
                            args.type,

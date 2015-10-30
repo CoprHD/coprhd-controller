@@ -1616,17 +1616,19 @@ public class RPHelper {
     public static Volume rollbackVolume(URI volumeURI, DbClient dbClient) {
         Volume volume = dbClient.queryObject(Volume.class, volumeURI);
         if (volume != null && !volume.getInactive()) {
-            _log.info(String.format("Rollback volume [%s]...", volume.getLabel()));
+            _log.info(String.format("Rollback volume [%s]...", volume.getLabel()));            
             if (volume.getProvisionedCapacity() == null
                     || volume.getProvisionedCapacity() == 0) {
                 // Only set the volume to inactive if it has never
                 // been provisioned. Otherwise let regular rollback
                 // steps take care of cleaning it up.
-                dbClient.markForDeletion(volume);
-                volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                dbClient.markForDeletion(volume);                
+            } else {
+                // Normal rollback should clean up the volume, change the label
+                // to allow re-orders.
+                volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());            
+                dbClient.updateObject(volume);
             }
-            volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());            
-            dbClient.updateObject(volume);
 
             // Rollback any VPLEX backing volumes too
             if (volume.getAssociatedVolumes() != null
@@ -1634,16 +1636,19 @@ public class RPHelper {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {
-                        _log.info(String.format("Rollback volume [%s]...", associatedVolume.getLabel()));
+                        _log.info(String.format("Rollback volume [%s]...", associatedVolume.getLabel()));                        
                         if (associatedVolume.getProvisionedCapacity() == null
                                 || associatedVolume.getProvisionedCapacity() == 0) {
                             // Only set the volume to inactive if it has never
                             // been provisioned. Otherwise let regular rollback
                             // steps take care of cleaning it up.
                             dbClient.markForDeletion(associatedVolume);
+                        } else {
+                            // Normal rollback should clean up the volume, change the label
+                            // to allow re-orders.
+                            associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
+                            dbClient.updateObject(associatedVolume);
                         }
-                        associatedVolume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());
-                        dbClient.updateObject(associatedVolume);
                     }
                 }
             }

@@ -111,7 +111,7 @@ waitforsync.add_argument('-n', action='store_true',  help = 'wait for state to N
 
 # switchover dr
 drswitchover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-drswitchover.add_argument('uuid', help = 'uuid of standby site')
+drswitchover.add_argument('uuid', help = 'uuid of standby site to be switched to')
 
 #----------------------------------------------------------------------
 # Main script

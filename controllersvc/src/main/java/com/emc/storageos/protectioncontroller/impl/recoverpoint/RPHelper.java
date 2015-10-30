@@ -1573,28 +1573,24 @@ public class RPHelper {
                 volume.setProtectionSet(NullColumnValueGetter.getNullNamedURI());
             } else {
                 _log.info(String.format("Rollback changes for existing protected RP volume [%s]...", volume.getLabel()));
-
-                _log.info("Rollback the secondary journal");
-                // Rollback the secondary journal volume if it was created
-                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
+                                
                 if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
+                    _log.info("Rollback the secondary journal");
+                    // Rollback the secondary journal volume if it was created
                     rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
-                }
-                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
-
-                // Clean up the Protection Set
-                if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
-                    ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                    if (protectionSet != null) {
-                        // Remove volume ID from the Protection Set
-                        protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
-                        dbClient.updateObject(protectionSet);
+                                
+                    // Clean up the Protection Set
+                    if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
+                        ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                        if (protectionSet != null) {
+                            // Remove volume ID from the Protection Set
+                            protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
+                            dbClient.updateObject(protectionSet);
+                        }
                     }
-                }
-
-                // remove consistency group from volume
-                if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                    
+                    // Remove the reference
+                    volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
                 }
             }
 
@@ -1625,7 +1621,7 @@ public class RPHelper {
                 dbClient.markForDeletion(volume);                
             } else {
                 // Normal rollback should clean up the volume, change the label
-                // to allow re-orders.
+                // to allow re-orders.                
                 volume.setLabel(volume.getLabel() + "-ROLLBACK-" + Math.random());            
                 dbClient.updateObject(volume);
             }

@@ -633,15 +633,20 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             List<BlockObject> updatedBlockObjects = new ArrayList<BlockObject>();
             for (URI uri : blockObjects) {
                 BlockObject blockObject = BlockObject.fetch(dbClient, uri);
-                if (blockObject != null) {
-                    // Do not add RP+VPlex journal or target backing volumes to consistency groups.
-                    // This causes issues with local array snapshots of RP+VPlex volumes.
-                    if (!RPHelper.isAssociatedToRpVplexType((Volume)blockObject, dbClient,
-                                    PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
-                        client.addVolumeToConsistencyGroup(blockObject.getLabel(), consistencyGroup.getLabel(), clusterName);
-                        blockObject.setConsistencyGroup(consistencyGroupId);
-                        updatedBlockObjects.add(blockObject);
+                if (blockObject != null) {                    
+                    if (blockObject.getClass().isInstance(Volume.class)) {
+                        Volume volume = (Volume)blockObject;
+                        if (volume.checkForRp() 
+                                || RPHelper.isAssociatedToRpVplexType(volume, dbClient,
+                                        PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
+                            // Do not add RP+VPlex journal or target backing volumes to consistency groups.
+                            // This causes issues with local array snapshots of RP+VPlex volumes.
+                            continue;
+                        }
                     }
+                    client.addVolumeToConsistencyGroup(blockObject.getLabel(), consistencyGroup.getLabel(), clusterName);
+                    blockObject.setConsistencyGroup(consistencyGroupId);
+                    updatedBlockObjects.add(blockObject);                    
                 }
             }
             dbClient.updateAndReindexObject(updatedBlockObjects);

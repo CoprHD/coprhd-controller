@@ -206,11 +206,13 @@ public class DisasterRecoveryService {
             }
             configParam.setStandbySites(standbySites);
             viprCoreClient.site().syncSite(configParam);
-            auditDisasterRecoveryOps(OperationTypeEnum.ADD_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, param.toString());
+            auditDisasterRecoveryOps(OperationTypeEnum.ADD_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null,
+                    param.getVip(), param.getName());
             return siteMapper.map(standbySite);
         } catch (Exception e) {
             log.error("Internal error for updating coordinator on standby", e);
-            auditDisasterRecoveryOps(OperationTypeEnum.ADD_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, param.toString());
+            auditDisasterRecoveryOps(OperationTypeEnum.ADD_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null,
+                    param.getVip(), param.getName());
             InternalServerErrorException addStandbyFailedException = APIException.internalServerErrors.addStandbyFailed(e.getMessage());
             setSiteError(siteId, addStandbyFailedException);
             throw addStandbyFailedException;

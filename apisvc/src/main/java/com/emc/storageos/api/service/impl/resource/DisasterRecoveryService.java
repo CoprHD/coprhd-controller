@@ -521,9 +521,12 @@ public class DisasterRecoveryService {
             // update the local(primary) site last
             updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
 
+            auditDisasterRecoveryOps(OperationTypeEnum.RESUME_STANDBY, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
+
             return siteMapper.map(standby);
         } catch (Exception e) {
             log.error("Error resuming site {}", uuid, e);
+            auditDisasterRecoveryOps(OperationTypeEnum.RESUME_STANDBY, AuditLogManager.AUDITLOG_FAILURE, null, uuid);
             InternalServerErrorException resumeStandbyFailedException =
                     APIException.internalServerErrors.resumeStandbyFailed(uuid, e.getMessage());
             setSiteError(uuid, resumeStandbyFailedException);

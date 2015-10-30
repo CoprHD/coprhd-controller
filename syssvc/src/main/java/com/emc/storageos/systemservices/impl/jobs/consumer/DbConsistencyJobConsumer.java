@@ -11,7 +11,7 @@ import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueueItemProcessedCallback;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
-import com.emc.storageos.db.client.impl.DbChecker;
+import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.common.DbSchemaChecker;
 import com.emc.storageos.model.db.DbConsistencyStatusRestRep.Status;
 import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
@@ -19,7 +19,7 @@ import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
 public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsistencyJob> {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyJobConsumer.class);
     private CoordinatorClient coordinator;
-    private DbChecker dbChecker;
+    private DbConsistencyChecker dbChecker;
     private static final String[] MODEL_PACKAGES = new String[] {"com.emc.storageos.db.client.model"}; 
 
     @Override
@@ -39,9 +39,9 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         
         try {
             DbSchemaChecker.checkSourceSchema(MODEL_PACKAGES);
-            dbChecker.checkDataObjects(false);
-            dbChecker.checkIndexingCFs(false);
-            dbChecker.checkCFIndices(false);
+            dbChecker.checkObjectId(false);
+            dbChecker.checkIndexObjects(false);
+            dbChecker.checkObjectIndices(false);
             status = markResult();
         } catch(Exception e) {
             log.error("failed to check db consistency {}", e);
@@ -90,11 +90,11 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         this.coordinator = coordinator;
     }
 
-    public DbChecker getDbChecker() {
+    public DbConsistencyChecker getDbChecker() {
         return dbChecker;
     }
 
-    public void setDbChecker(DbChecker dbChecker) {
+    public void setDbChecker(DbConsistencyChecker dbChecker) {
         this.dbChecker = dbChecker;
     }
 }

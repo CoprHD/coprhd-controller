@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.dbutils;
 
-import com.emc.storageos.db.client.impl.DbChecker;
+import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -1119,10 +1119,10 @@ public class DBClient {
 
     public void checkDB() {
         try {
-            DbChecker checker = new DbChecker(_dbClient);
-            checker.checkDataObjects(true);
-            checker.checkIndexingCFs(true);
-            checker.checkCFIndices(true);
+            DbConsistencyChecker checker = new DbConsistencyChecker(_dbClient);
+            checker.checkObjectId(true);
+            checker.checkIndexObjects(true);
+            checker.checkObjectIndices(true);
 
             String msg = "\nAll the checks have been done.";
             String fileMsg = String.format(

@@ -19,17 +19,23 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.impl.DbClientImpl.IndexAndCf;
 import com.netflix.astyanax.model.ColumnFamily;
 
-public class DbChecker {
+public class DbConsistencyChecker {
     private DbClientImpl dbClient;
     private CoordinatorClient coordinator;
-    private int cfCount;
-    private int indexCfCount;
+    private int totalCount;
     
-    public DbChecker() {
+    public DbConsistencyChecker() {
+        this.totalCount = getTotalCount();
     }
 
-    public DbChecker(DbClientImpl dbClient) {
+    public DbConsistencyChecker(DbClientImpl dbClient) {
         this.dbClient = dbClient;
+    }
+    
+    private int getTotalCount() {
+        int cfCount = TypeMap.getAllDoTypes().size();
+        int indexCount = getAllIndices().values().size();
+        return indexCount + cfCount*2;
     }
 
     /**
@@ -38,8 +44,7 @@ public class DbChecker {
      *
      * @return number of the corrupted rows in data CFs
      */
-    public int checkDataObjects(boolean toConsole) {
-        this.cfCount = TypeMap.getAllDoTypes().size();
+    public int checkObjectId(boolean toConsole) {
         Collection<DataObjectType> allDoTypes = TypeMap.getAllDoTypes();
         Collection<DataObjectType> sortedTypes = getSortedTypes(allDoTypes);
         
@@ -47,25 +52,27 @@ public class DbChecker {
         dbClient.logMessage(String.format("status {} in zk", status.toString()), false, false);
         Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, status.getWorkingPoint(), toConsole);
 
-        int dirtyURICount = 0;
+        int totalDirtyCount = 0;
+        int dirtyCount = 0;
         for (DataObjectType doType : filteredTypes) {
             dbClient.logMessage(String.format("processing %s cf", doType.getCF().getName()), false, false);
             if ( !toConsole && isCancelled() ) {
                 cancel(status);
-                return dirtyURICount;
+                return totalDirtyCount;
             }
             if (!toConsole) {
-                status.updateCFProgress(cfCount, doType.getCF().getName(), dirtyURICount);
+                status.update(this.totalCount, doType.getCF().getName(), dirtyCount);
                 persistStatus(status);
             }
             
-            dirtyURICount += dbClient.checkDataObject(doType, toConsole);
+            dirtyCount = dbClient.checkDataObject(doType, toConsole);
+            totalDirtyCount += dirtyCount;
         }
 
-        String msg = String.format("\nTotally check %d cfs, %d rows are dirty.\n", cfCount, dirtyURICount);
+        String msg = String.format("\nTotally check %d cfs, %d rows are dirty.\n", filteredTypes.size(), totalDirtyCount);
         dbClient.logMessage(msg, false, toConsole);
 
-        return dirtyURICount;
+        return totalDirtyCount;
     }
 
     private void cancel(DbConsistencyStatus status) {
@@ -151,11 +158,10 @@ public class DbChecker {
      * @return the number of the corrupted rows in the index CFs
      * @throws ConnectionException
      */
-    public int checkIndexingCFs(boolean toConsole) throws ConnectionException {
+    public int checkIndexObjects(boolean toConsole) throws ConnectionException {
         dbClient.logMessage("\nStart to check INDEX data that the related object records are missing.\n", false, toConsole);
 
         Collection<IndexAndCf> idxCfs = getAllIndices().values();
-        this.indexCfCount = idxCfs.size();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
         DbConsistencyStatus status = getStatusFromZk();
         dbClient.logMessage(String.format("db consistency status %s", status), false, toConsole);
@@ -172,7 +178,7 @@ public class DbChecker {
             }
             
             if (!toConsole) {
-                status.updateIndexProgress(this.cfCount+idxCfs.size(), indexAndCf.generateKey(), corruptRowCount);
+                status.update(this.totalCount, indexAndCf.generateKey(), corruptRowCount);
                 persistStatus(status);
             }
             corruptRowCount = dbClient.checkIndexingCF(indexAndCf, objCfs, toConsole);
@@ -197,7 +203,7 @@ public class DbChecker {
      * @return True, when no corrupted data found
      * @throws ConnectionException
      */
-    public int checkCFIndices(boolean toConsole) throws ConnectionException {
+    public int checkObjectIndices(boolean toConsole) throws ConnectionException {
         dbClient.logMessage("\nStart to check Data Object records that the related index is missing.\n", false, toConsole);
 
         Collection<DataObjectType> allDoTypes = TypeMap.getAllDoTypes();
@@ -205,19 +211,21 @@ public class DbChecker {
         int cfCount = allDoTypes.size();
         DbConsistencyStatus status = getStatusFromZk();
         Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, status.getWorkingPoint(), toConsole);
-        int corruptRowCount = 0;
+        int totalCorruptedCount = 0;
+        int corruptedCount = 0;
 
         for (DataObjectType doType : filteredTypes) {
             if (!toConsole && isCancelled()) {
                 cancel(status);
-                return corruptRowCount;
+                return totalCorruptedCount;
             }
             if (!toConsole) {
-                status.updateCfIndexProgress(this.cfCount+cfCount+this.indexCfCount, doType.getCF().getName(), corruptRowCount);
+                status.update(this.totalCount, doType.getCF().getName(), corruptedCount);
                 persistStatus(status);
             }
 
-            corruptRowCount += dbClient.checkCFIndices(doType, toConsole);
+            corruptedCount = dbClient.checkCFIndices(doType, toConsole);
+            totalCorruptedCount += corruptedCount;
         }
 
         DbCheckerFileWriter.close();
@@ -225,11 +233,11 @@ public class DbChecker {
         String msg = String.format(
                 "\nFinish to check DataObject CFs: totally checked %d data CFs, "
                         + "%d corrupted rows found.",
-                cfCount, corruptRowCount);
+                cfCount, totalCorruptedCount);
 
         dbClient.logMessage(msg, false, toConsole);
 
-        return corruptRowCount;
+        return totalCorruptedCount;
     }
 
     @SuppressWarnings("unchecked")

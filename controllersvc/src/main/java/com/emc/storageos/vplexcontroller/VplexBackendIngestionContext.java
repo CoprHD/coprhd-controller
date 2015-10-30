@@ -613,12 +613,21 @@ public class VplexBackendIngestionContext {
                                 set, associatedVolumeSource);
                         associatedVolumeSource.putVolumeInfo(
                                 SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_TARGET_VOLUME.toString(), set);
-                        
+                        _logger.info("setting VPLEX_BACKEND_CLUSTER_ID: " + mirrorMapEntry.getKey());
+                        StringSet clusterIds = new StringSet();
+                        clusterIds.add(mirrorMapEntry.getKey());
+                        associatedVolumeSource.putVolumeInfo(
+                                SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.name(), 
+                                clusterIds);
+
                         // 4. update the target volume with the source volume information
                         set = new StringSet();
                         set.add(associatedVolumeSource.getNativeGuid());
                         associatedVolumeMirror.putVolumeInfo(
                                 SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_SOURCE_VOLUME.toString(), set);
+                        associatedVolumeMirror.putVolumeInfo(
+                                SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.name(), 
+                                clusterIds);
                         
                         // 5. need to go ahead and persist any changes to backend volume info
                         _dbClient.persistObject(associatedVolumeSource);

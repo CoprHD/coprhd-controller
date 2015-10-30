@@ -294,15 +294,63 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             _logger.info("{} native mirror(s) are present, validating vpool", mirrorCount);
             if (VirtualPool.vPoolSpecifiesMirrors(vpool, _dbClient)) {
                 if (mirrorCount > vpool.getMaxNativeContinuousCopies()) {
-                    StringBuilder reason = new StringBuilder("volume has more continuous copies (");
-                    reason.append(mirrorCount).append(" than vpool allows. mirrors found: ");
-                    reason.append(Joiner.on(", ").join(context.getUnmanagedVplexMirrors().keySet()));
-                    String message = reason.toString();
-                    _logger.error(message);
-                    throw IngestionException.exceptions.validationException(message);
+                    if (context.isDistributed() && mirrorCount == 2) {
+                        // there are two mirrors and as long as the cluster ids
+                        // are different (one on each leg), then we can ingest it
+                        UnManagedVolume[] mirrors = (UnManagedVolume[]) 
+                                context.getUnmanagedVplexMirrors().keySet().toArray();
+                        if (mirrors.length == 2) {
+                            String backendClusterId0 = VplexBackendIngestionContext.extractValueFromStringSet(
+                                    SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(), 
+                                    mirrors[0].getVolumeInformation());
+                            String backendClusterId1 = VplexBackendIngestionContext.extractValueFromStringSet(
+                                    SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(), 
+                                    mirrors[1].getVolumeInformation());
+                            if (backendClusterId0.equals(backendClusterId1)) {
+                                StringBuilder reason = new StringBuilder("the volume's mirrors must be on separate ");
+                                reason.append(" vplex clusters. mirrors found: ");
+                                reason.append(backendClusterId0).append(": ")
+                                    .append(mirrors[0].getLabel()).append("; ")
+                                    .append(backendClusterId1).append(": ")
+                                    .append(mirrors[1].getLabel()).append(".");
+                                String message = reason.toString();
+                                _logger.error(message);
+                                throw IngestionException.exceptions.validationException(message);
+                            } else {
+                                VirtualPool haVpool = VirtualPool.getHAVPool(vpool, _dbClient);
+                                if (vpool.getMaxNativeContinuousCopies() == 1
+                                        && haVpool.getMaxNativeContinuousCopies() == 1) {
+                                    _logger.info("volume is distributed, has a mirror on each leg, both source and "
+                                            + "high availaiblity vpools have continuous copies value of 1, "
+                                            + "volume is ok for ingestion");
+                                } else {
+                                    StringBuilder reason = new StringBuilder("the virtual pools' continuous copy ");
+                                    reason.append("settings are incorrect for ingesting a dual distributed mirror. ");
+                                    reason.append("Source virtual pool is set to ")
+                                        .append(vpool.getMaxNativeContinuousCopies())
+                                        .append(" and target virtual pool is set to ")
+                                        .append(haVpool.getMaxNativeContinuousCopies()).append(". ");
+                                    reason.append("Mirrors found - ").append(backendClusterId0).append(": ")
+                                        .append(mirrors[0].getLabel()).append("; ")
+                                        .append(backendClusterId1).append(": ")
+                                        .append(mirrors[1].getLabel()).append(".");
+                                    String message = reason.toString();
+                                    _logger.error(message);
+                                    throw IngestionException.exceptions.validationException(message);
+                                }
+                            }
+                        }
+                    } else {
+                        StringBuilder reason = new StringBuilder("volume has more continuous copies (");
+                        reason.append(mirrorCount).append(" than vpool allows. Mirrors found: ");
+                        reason.append(Joiner.on(", ").join(context.getUnmanagedVplexMirrors().keySet()));
+                        String message = reason.toString();
+                        _logger.error(message);
+                        throw IngestionException.exceptions.validationException(message);
+                    }
                 }
             } else {
-                String reason = "vpool does not allow continuous copies, but volume has " + mirrorCount + " mirror(s)";
+                String reason = "virtual pool does not allow continuous copies, but volume has " + mirrorCount + " mirror(s)";
                 _logger.error(reason);
                 throw IngestionException.exceptions.validationException(reason);
             }
@@ -415,8 +463,17 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     _logger.info("using high availability varray " + haVarray.getLabel());
                     varrayForThisVolume = haVarray;
                     if (null != haVpool) {
-                        _logger.info("using high availability vpool " + haVpool.getLabel());
-                        vpoolForThisVolume = haVpool;
+                        if (context.getUnmanagedVplexMirrors().keySet().contains(associatedVolume)
+                                && haVpool.getMirrorVirtualPool() != null) {
+                            _logger.info("this associated volume is a mirror and separate mirror vpool is defined");
+                            VirtualPool mirrorVpool = _dbClient.queryObject(
+                                    VirtualPool.class, URI.create(haVpool.getMirrorVirtualPool()));
+                            _logger.info("using mirror vpool " + haVpool.getLabel());
+                            vpoolForThisVolume = mirrorVpool;
+                        } else {
+                            _logger.info("using high availability vpool " + haVpool.getLabel());
+                            vpoolForThisVolume = haVpool;
+                        }
                     }
                 }
                 

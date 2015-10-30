@@ -21,8 +21,11 @@ public class BackupDataTable extends DataTable {
 		addColumn("creationtime").setCssClass("time").setRenderFunction(
 				"render.localDate");
 		addColumn("size");
-		addColumn("upload").setRenderFunction("render.uploadBtn");
-		sortAllExcept("upload");
+		addColumn("uploadstatus").setSearchable(false).setRenderFunction(
+				"render.uploadProgress");
+		addColumn("upload").setSearchable(false).setRenderFunction(
+				"render.uploadBtn");
+		sortAllExcept("upload", "uploadstatus");
 		setDefaultSort("name", "asc");
 		setRowCallback("createRowLink");
 	}
@@ -39,22 +42,21 @@ public class BackupDataTable extends DataTable {
 		public String name;
 		public long creationtime;
 		public long size;
-		public static String id;
+		public String id;
 		public String upload;
+		public String status;
+		public int progress;
 
 		public Backup(BackupSet backup) {
 			id = backup.getName();
 			name = backup.getName();
 			creationtime = backup.getCreateTime();
 			size = backup.getSize();
-			BackupUploadStatus uploadStat = BackupUtils.getUploadStatus(backup
-					.getName());
-			if (uploadStat.getStatus().name()
-					.equals(Status.NOT_STARTED.toString())
-					|| uploadStat.getStatus().name()
-							.equals(Status.FAILED.toString())) {
-				upload = backup.getName() + "_" + uploadStat.getStatus().name()
-						+ "_enable";
+			status = backup.getUploadStatus().getStatus().name();
+			progress = backup.getUploadStatus().getProgress();
+			if (status.equals(Status.NOT_STARTED.toString())
+					|| status.equals(Status.FAILED.toString())) {
+				upload = backup.getName() + "_enable";
 			} else {
 				upload = backup.getName() + "_disable";
 			}

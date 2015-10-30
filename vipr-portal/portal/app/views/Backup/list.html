@@ -11,8 +11,9 @@
 <script>
 render.uploadBtn = function(o, val) {
 	var odata = o.aData;
-	var url = #{jsAction @upload(':id')/};
-	var href = url(odata);
+	var name= odata.name;
+	var url = #{jsAction @upload()/};
+	var href = url(odata)+"/"+name;
 	if (val.indexOf("_enable")>0){
 		return "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
 	}else{
@@ -20,10 +21,38 @@ render.uploadBtn = function(o, val) {
 	}
 }
 
-render.uploadBtnDisable = function(o, val) {
-	var odata = o.aData;
-	var url = #{jsAction @upload(':id')/};
-	var href = url(odata);
-	return "<a id='" + val+"BtnId" + "' href='" + href + "' " +"  disabled class=\"btn btn-default btn-xs\">" + "Upload" + "</a>";
+function renderUploadStatusBar(progress, status) {
+	  var stateClass = "progress-bar-info";
+	  if (status) {
+	    if (status.toUpperCase() != "FAILED") {
+	      stateClass = "progress-bar-success";
+	    }
+	    else {
+	      stateClass = "progress-bar-danger";
+	    }
+	  }
+	  
+	  var s = "";
+	  s += '<div class="progress">';
+	  s += '<div class="progress-bar ' + stateClass + '" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: ' + progress + '%;">';
+	  s += '<span>' + progress + '</span>';
+	  s += '</div>';
+	  s += '</div>';
+	  return s;      
+	}
+	
+render.uploadProgress = function(o, val) {
+	  var s = "";
+	  s += renderUploadStatusBar(o.aData.progress, o.aData.status);
+	  return s;
 }
+
+    table.backup.dataTable.afterCreate(function(table) {
+        var dataTable = table.getDataTable();
+        var itemsJson = #{jsAction @itemsJson(':ids')/};
+        watchUploadState(dataTable, itemsJson, ['progress','uploadstatus','upload']);
+    });
+
+
+
 </script>

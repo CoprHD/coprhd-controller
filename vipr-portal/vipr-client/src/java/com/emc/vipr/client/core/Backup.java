@@ -13,6 +13,7 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.sys.backup.BackupSets;
+import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 
 public class Backup {
@@ -26,6 +27,12 @@ public class Backup {
 		return client.get(BackupSets.class, BACKUP_URL, "");
 	}
 
+	public BackupSet getBackup(String name) {
+		UriBuilder builder = client.uriBuilder(BACKUP_URL+"backup");
+		addQueryParam(builder, "tag", name);
+		return client.getURI(BackupSet.class, builder.build());
+	} 
+	
 	public void createBackup(String name, boolean force) {
 		UriBuilder builder = client.uriBuilder(BACKUP_CREATE_URL);
 		addQueryParam(builder, "tag", name);

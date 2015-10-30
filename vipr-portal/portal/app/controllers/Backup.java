@@ -23,7 +23,9 @@ import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.vipr.client.exceptions.ViPRException;
+import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
+import com.google.common.collect.Lists;
 
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
@@ -51,6 +53,21 @@ public class Backup extends Controller {
         renderJSON(DataTablesSupport.createJSON(backups, params));
     }
 
+    public static void itemsJson(@As(",") String[] ids) {
+    	  List<BackupDataTable.Backup> results = Lists.newArrayList();
+          if (ids != null && ids.length > 0) {
+              for (String id : ids) {
+                  if (StringUtils.isNotBlank(id)) {
+                	  BackupSet backup = BackupUtils.getBackup(id);
+                      if (backup != null) {
+                          results.add(new BackupDataTable.Backup(backup));
+                      }
+                  }
+              }
+          }
+          renderJSON(results);
+    }
+    
     public static void create() {
         render();
     }
@@ -94,8 +111,12 @@ public class Backup extends Controller {
         list();
     }
 
+    @FlashException(value = "list")
     public static void upload(String id) {
             BackupUtils.uploadBackup(id);
+            BackupUploadStatus status = BackupUtils.getUploadStatus(id);
+            renderArgs.put("backupTag", id);
+            renderArgs.put("uploadStatus", status);
             list();
             
     }

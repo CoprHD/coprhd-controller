@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.consumer;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
@@ -20,6 +22,7 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
     private CoordinatorClient coordinator;
     private DbConsistencyChecker dbChecker;
     private static final String[] MODEL_PACKAGES = new String[] {"com.emc.storageos.db.client.model"}; 
+    private static final AtomicBoolean schemaInitialized =  new AtomicBoolean(false);
 
     @Override
     public void consumeItem(DbConsistencyJob job, DistributedQueueItemProcessedCallback callback) throws Exception {
@@ -38,8 +41,7 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         
         try {
             dbChecker.persistStatus(status);
-            DbSchemaChecker.checkSourceSchema(MODEL_PACKAGES);
-            //init should be done after checkSourceSchema
+            initSchemaIfNot();
             dbChecker.init();
             dbChecker.checkObjectId();
             dbChecker.checkIndexObjects();
@@ -52,6 +54,14 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
             log.info("db consistency check done, persist final result {} in zk", status.getStatus());
             this.dbChecker.persistStatus(status);
             callback.itemProcessed();
+        }
+    }
+
+    private void initSchemaIfNot() throws Exception {
+        if (!schemaInitialized.get()) {
+            log.info("init Data Object Type");
+            DbSchemaChecker.checkSourceSchema(MODEL_PACKAGES);
+            schemaInitialized.getAndSet(true);
         }
     }
 

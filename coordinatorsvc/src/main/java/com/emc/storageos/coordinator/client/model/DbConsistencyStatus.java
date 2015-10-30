@@ -177,6 +177,8 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
         this.progress = (int)(this.checkedCount*100/total);
         this.workingPoint = workingPoint;
         this.inconsistencyCount = inconsistencyCount;
+        log.info(String.format("update, total=%d workingPoint=%s inconsistencyCount=%d progress=%d checkedCount=%d", 
+                total, workingPoint, inconsistencyCount, progress, checkedCount));
     }
     
     @JsonIgnore

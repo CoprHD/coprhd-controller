@@ -24,7 +24,6 @@ import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
 
 public class DbConsistencyChecker {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyChecker.class);
-    private DbClientImpl dbClient;
     private CoordinatorClient coordinator;
     private DbConsistencyCheckerHelper helper;
     private int totalCount;
@@ -46,6 +45,7 @@ public class DbConsistencyChecker {
         int cfCount = TypeMap.getAllDoTypes().size();
         int indexCount = helper.getAllIndices().values().size();
         this.totalCount = indexCount + cfCount*2;
+        log.info(String.format("cfCount=%d indexCount=%d totalCount=%d", cfCount, indexCount, this.totalCount));
     }
 
     /**
@@ -59,7 +59,7 @@ public class DbConsistencyChecker {
         Collection<DataObjectType> sortedTypes = getSortedTypes(allDoTypes);
         DbConsistencyStatus status = getStatusFromZk();
         helper.logMessage(String.format("status %s in zk", status.toString()), false, false);
-        Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, status.getWorkingPoint(), toConsole);
+        Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, OBJECT_URI, status.getWorkingPoint(), toConsole);
         
         int totalDirtyCount = 0;
         int dirtyCount = 0;
@@ -99,7 +99,7 @@ public class DbConsistencyChecker {
         this.coordinator.persistRuntimeState(Constants.DB_CONSISTENCY_STATUS, status);
     }
 
-    private Collection<DataObjectType> filterOutTypes(Collection<DataObjectType> types, String workingPoint, boolean toConsole) {
+    private Collection<DataObjectType> filterOutTypes(Collection<DataObjectType> types, String prefex, String workingPoint, boolean toConsole) {
         if (toConsole) {
             return types;
         }
@@ -111,7 +111,7 @@ public class DbConsistencyChecker {
         boolean found = false;
         List<DataObjectType> filteredTypes = new ArrayList<DataObjectType> ();
         for(DataObjectType type : types) {
-            if (workingPoint.equals(type.getCF().getName())) {
+            if (workingPoint.equals(prefex+type.getCF().getName())) {
                 found = true;
             }
             if (found) {
@@ -121,7 +121,7 @@ public class DbConsistencyChecker {
         return filteredTypes;
     }
     
-    private Collection<IndexAndCf> filterOutIndexAndCfs(Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs, String workingPoint, boolean toConsole) {
+    private Collection<IndexAndCf> filterOutIndexAndCfs(Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs, String prefex, String workingPoint, boolean toConsole) {
         if (toConsole) {
             return idxCfs;
         }
@@ -133,7 +133,7 @@ public class DbConsistencyChecker {
         boolean found = false;
         List<IndexAndCf> filteredIdxAndCfs = new ArrayList<IndexAndCf> ();
         for(IndexAndCf idxCf : idxCfs) {
-            if (workingPoint.equals(idxCf.generateKey())) {
+            if (workingPoint.equals(prefex+idxCf.generateKey())) {
                 found = true;
             }
             if (found) {
@@ -174,7 +174,7 @@ public class DbConsistencyChecker {
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = helper.getDataObjectCFs();
         DbConsistencyStatus status = getStatusFromZk();
         Collection<IndexAndCf> sortedIdxCfs = sortIndexCfs(idxCfs);
-        Collection<IndexAndCf> filteredIdCfs = filterOutIndexAndCfs(sortedIdxCfs, status.getWorkingPoint(), toConsole);
+        Collection<IndexAndCf> filteredIdCfs = filterOutIndexAndCfs(sortedIdxCfs, INDEX_OBJECTS, status.getWorkingPoint(), toConsole);
         int corruptRowCount = 0;
         int totalCorruptCount = 0;
         
@@ -216,11 +216,12 @@ public class DbConsistencyChecker {
 
         Collection<DataObjectType> allDoTypes = TypeMap.getAllDoTypes();
         Collection<DataObjectType> sortedTypes = getSortedTypes(allDoTypes);
-        int cfCount = allDoTypes.size();
+        
         DbConsistencyStatus status = getStatusFromZk();
-        Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, status.getWorkingPoint(), toConsole);
+        Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, OBJECT_INDICES, status.getWorkingPoint(), toConsole);
         int totalCorruptedCount = 0;
         int corruptedCount = 0;
+        int cfCount = allDoTypes.size();
 
         for (DataObjectType doType : filteredTypes) {
             if (!toConsole && isCancelled()) {

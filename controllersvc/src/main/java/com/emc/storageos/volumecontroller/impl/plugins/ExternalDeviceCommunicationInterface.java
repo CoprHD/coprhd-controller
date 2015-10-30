@@ -1,12 +1,22 @@
 package com.emc.storageos.volumecontroller.impl.plugins;
 
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.isilon.restapi.IsilonApi;
+import com.emc.storageos.isilon.restapi.IsilonException;
+import com.emc.storageos.isilon.restapi.IsilonStoragePool;
+import com.emc.storageos.plugins.metering.isilon.IsilonCollectionException;
 import com.emc.storageos.storagedriver.model.StoragePool;
+import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +36,8 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceCollectionException;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
 
 public class ExternalDeviceCommunicationInterface extends
         ExtendedCommunicationInterfaceImpl {
@@ -160,7 +172,7 @@ public class ExternalDeviceCommunicationInterface extends
             throw e;
         } finally {
             if (internalStorageSystem != null) {
-                _dbClient.persistObject(internalStorageSystem);
+                _dbClient.updateObject(internalStorageSystem);
             }
             _log.info("Discovery of storage system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
         }
@@ -169,12 +181,106 @@ public class ExternalDeviceCommunicationInterface extends
     private void discoverStoragePools(DiscoveryDriver driver, AccessProfile accessProfile)
             throws BaseCollectionException {
         List<StoragePool> storagePools = new ArrayList<StoragePool>();
+        // Discover storage pools
+        Map<String, List<com.emc.storageos.db.client.model.StoragePool>> internalPools =
+                new HashMap<String, List<com.emc.storageos.db.client.model.StoragePool>>();
 
+        List<com.emc.storageos.db.client.model.StoragePool> newPools = new ArrayList<com.emc.storageos.db.client.model.StoragePool>();
+        List<com.emc.storageos.db.client.model.StoragePool> existingPools = new ArrayList<com.emc.storageos.db.client.model.StoragePool>();
+
+        com.emc.storageos.db.client.model.StorageSystem internalStorageSystem =
+                _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
+        URI internalStorageSystemId = internalStorageSystem.getId();
+
+        StorageSystem storageSystem = initStorageSystem(internalStorageSystem);
+        try {
+            _log.info("discoverPools for storage system {} - start", internalStorageSystemId);
+
+            DriverTask task = driver.discoverStoragePools(storageSystem, storagePools);
+            // Support only sync discovery at this moment.
+            // TODO support async
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                // discovery completed
+                for (StoragePool storagePool : storagePools) {
+                    com.emc.storageos.db.client.model.StoragePool pool = new com.emc.storageos.db.client.model.StoragePool();
+                    // Check if this storage pool was already discovered
+                    String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                            internalStorageSystem, storagePool.getNativeId(),
+                            NativeGUIDGenerator.POOL);
+
+                    List<com.emc.storageos.db.client.model.StoragePool> pools =
+                            queryActiveResourcesByAltId(_dbClient, com.emc.storageos.db.client.model.StoragePool.class, "nativeGuid", poolNativeGuid);
+                    if (pools.isEmpty()) {
+                        _log.info("Pool {} is new", storagePool.getNativeId());
+                        pool = new com.emc.storageos.db.client.model.StoragePool();
+                        pool.setId(URIUtil.createId(com.emc.storageos.db.client.model.StoragePool.class));
+                        pool.setStorageDevice(accessProfile.getSystemId());
+                        pool.setNativeId(storagePool.getNativeId());
+                        pool.setNativeGuid(poolNativeGuid);
+                        pool.setPoolName(storagePool.getPoolName());
+                        pool.addProtocols(storagePool.getProtocols());
+                        pool.setPoolServiceType(storagePool.getPoolServiceType());
+                        pool.setCompatibilityStatus(internalStorageSystem.getCompatibilityStatus());
+                        pool.setMaximumThickVolumeSize(storagePool.getMaximumThickVolumeSize());
+                        pool.setMinimumThickVolumeSize(storagePool.getMinimumThickVolumeSize());
+                        pool.setMaximumThinVolumeSize(storagePool.getMaximumThinVolumeSize());
+                        pool.setMinimumThinVolumeSize(storagePool.getMinimumThinVolumeSize());
+                        pool.addProtocols(storagePool.getProtocols());
+                        pool.setSupportedResourceTypes(storagePool.getSupportedResourceType());
+                        pool.setInactive(false);
+                        pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
+                        newPools.add(pool);
+                    } else if (pools.size() == 1) {
+                        _log.info("Pool {} was previously discovered", storagePool.getNativeId());
+                        pool = pools.get(0);
+                        existingPools.add(pool);
+                    } else {
+                        _log.warn(String.format("There are %d StoragePools with nativeGuid = %s", pools.size(),
+                                poolNativeGuid));
+                        continue;
+                    }
+
+                    // applicable to new and existing storage pools
+                    pool.setSubscribedCapacity(storagePool.getSubscribedCapacity());
+                    pool.setFreeCapacity(storagePool.getFreeCapacity());
+                    pool.setTotalCapacity(storagePool.getTotalCapacity());
+                    pool.setOperationalStatus(storagePool.getOperationalStatus());
+                    pool.addDriveTypes(storagePool.getSupportedDriveTypes());
+                    pool.addSupportedRaidLevels(storagePool.getSupportedRaidLevels());
+
+                }
+                _dbClient.createObject(newPools);
+                _dbClient.updateObject(existingPools);
+            } else {
+                // driver task is not ready
+                String errorMsg = String.format("Failed to discover storage pools for system %s of type %s",
+                        accessProfile.getSystemId(), accessProfile.getSystemType());
+                throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                        null, errorMsg, null, null);
+            }
+            String message = String.format("Storage pools of storage array %s with native id %s were discovered successfully.",
+                    internalStorageSystem.getId(), internalStorageSystem.getNativeGuid());
+            _log.info(message);
+        } catch (Exception e) {
+                String message = String.format("Failed to discover storage pools of storage array %s with native id %s : %s .",
+                        internalStorageSystem.getId(), internalStorageSystem.getNativeGuid(), e.getMessage());
+            _log.info(message);
+            throw e;
+        } finally {
+            _log.info("Discovery of storage pools of storage system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
+        }
 
     }
 
     private void discoverStoragePorts(DiscoveryDriver driver, AccessProfile accessProfile)
             throws BaseCollectionException {
 
+    }
+
+    private StorageSystem initStorageSystem(com.emc.storageos.db.client.model.StorageSystem internalStorageSystem) {
+        StorageSystem storageSystem = new StorageSystem();
+        storageSystem.setNativeId(internalStorageSystem.getNativeId());
+
+        return storageSystem;
     }
 }

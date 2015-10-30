@@ -3,7 +3,9 @@ package com.emc.storageos.storagedriver.model;
 
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class StoragePool extends StorageObject {
 
@@ -14,7 +16,7 @@ public class StoragePool extends StorageObject {
     // storage system where this pool is located
     private String storageSystemId;
     // storage protocols supported by pool
-    private List<String> protocols;
+    private Set<String> protocols;
     // Total storage capacity held by the pool (KBytes)
     private Long totalCapacity;
     // Total free capacity available for allocating volumes from the pool (KBytes)
@@ -31,13 +33,13 @@ public class StoragePool extends StorageObject {
     }
 
     // Supported Raid Levels in Pool
-    private List<RaidLevels> supportedRaidLevels;
+    private Set<RaidLevels> supportedRaidLevels;
 
     public static enum RaidLevels {
         RAID0, RAID1, RAID2, RAID3, RAID4, RAID5, RAID6, RAID10
     }
 
-    private List<SupportedDriveTypes> supportedDriveTypes;
+    private Set<SupportedDriveTypes> supportedDriveTypes;
 
     public static enum SupportedDriveTypes {
         FC("FC"),
@@ -129,11 +131,11 @@ public class StoragePool extends StorageObject {
         this.storageSystemId = storageSystemId;
     }
 
-    public List<String> getProtocols() {
+    public Set<String> getProtocols() {
         return protocols;
     }
 
-    public void setProtocols(List<String> protocols) {
+    public void setProtocols(Set<String> protocols) {
         this.protocols = protocols;
     }
 
@@ -165,23 +167,35 @@ public class StoragePool extends StorageObject {
         return operationalStatus;
     }
 
-    public void setOperationalStatus(String operationalStatus) {
-        this.operationalStatus = operationalStatus;
+    public void setOperationalStatus(PoolOperationalStatus operationalStatus) {
+        this.operationalStatus = operationalStatus.name();
     }
 
-    public List<RaidLevels> getSupportedRaidLevels() {
-        return supportedRaidLevels;
+    public Set<String> getSupportedRaidLevels() {
+        Set<String> raidLevels = new HashSet();
+        if (supportedRaidLevels != null) {
+            for (RaidLevels raid : supportedRaidLevels) {
+                raidLevels.add(raid.name());
+            }
+        }
+        return raidLevels;
     }
 
-    public void setSupportedRaidLevels(List<RaidLevels> supportedRaidLevels) {
+    public void setSupportedRaidLevels(Set<RaidLevels> supportedRaidLevels) {
         this.supportedRaidLevels = supportedRaidLevels;
     }
 
-    public List<SupportedDriveTypes> getSupportedDriveTypes() {
-        return supportedDriveTypes;
+    public Set<String> getSupportedDriveTypes() {
+        Set<String> driveTypes = new HashSet();
+        if (supportedDriveTypes != null) {
+            for (SupportedDriveTypes drive : supportedDriveTypes) {
+                driveTypes.add(drive.name());
+            }
+        }
+        return driveTypes;
     }
 
-    public void setSupportedDriveTypes(List<SupportedDriveTypes> supportedDriveTypes) {
+    public void setSupportedDriveTypes(Set<SupportedDriveTypes> supportedDriveTypes) {
         this.supportedDriveTypes = supportedDriveTypes;
     }
 
@@ -217,8 +231,8 @@ public class StoragePool extends StorageObject {
         this.minimumThickVolumeSize = minimumThickVolumeSize;
     }
 
-    public SupportedResourceType getSupportedResourceType() {
-        return supportedResourceType;
+    public String getSupportedResourceType() {
+        return supportedResourceType.name();
     }
 
     public void setSupportedResourceType(SupportedResourceType supportedResourceType) {
@@ -229,8 +243,8 @@ public class StoragePool extends StorageObject {
         return poolServiceType;
     }
 
-    public void setPoolServiceType(String poolServiceType) {
-        this.poolServiceType = poolServiceType;
+    public void setPoolServiceType(PoolServiceType poolServiceType) {
+        this.poolServiceType = poolServiceType.name();
     }
 
     public List<CapabilityInstance> getCapabilities() {

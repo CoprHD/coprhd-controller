@@ -14,7 +14,8 @@ public abstract class Uploader {
     private BackupScheduler cli;
     protected SchedulerConfig cfg;
 
-    public static Uploader create(SchedulerConfig cfg, BackupScheduler cli) {
+    public static Uploader create(SchedulerConfig cfg, BackupScheduler cli) throws Exception {
+        cfg.reload();
         if (cfg.uploadUrl == null) {
             return null;
         }

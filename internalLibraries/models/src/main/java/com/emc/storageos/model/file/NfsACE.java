@@ -23,9 +23,9 @@ public class NfsACE implements Serializable {
 
     private String domain;
     private String user;
-    private String type;
+    private String type = NfsUserType.user.name();
     private String permissions;
-    private String permissionType;
+    private String permissionType = NfsPermissionType.ALLOW.name();
 
     public enum NfsPermissionType {
         ALLOW, DENY

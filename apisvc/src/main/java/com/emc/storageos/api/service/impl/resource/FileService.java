@@ -2032,7 +2032,7 @@ public class FileService extends TaskResourceService {
         NfsACLs acls = util.getNfsAclFromDB(allDirs);
 
         if (acls.getNfsACLs() != null && !acls.getNfsACLs().isEmpty()) {
-            _log.info("Number of Acl rules returning {}", acls.getNfsACLs().size());
+            _log.info("Found {} Acl rules for filesystem {}", acls.getNfsACLs().size(), fs.getId() );
         } else {
             _log.info("No Acl rules found for filesystem  {}", fs.getId());
         }

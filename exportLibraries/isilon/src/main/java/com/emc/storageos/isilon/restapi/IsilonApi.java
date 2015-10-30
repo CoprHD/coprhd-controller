@@ -1434,10 +1434,10 @@ public class IsilonApi {
         ClientResponse resp = null;
         boolean isNfsv4Enabled = false;
         try {
-            sLogger.info("IsilonApi check nfsV4 support retrieve global status - start");
+            sLogger.debug("IsilonApi check nfsV4 support retrieve global status - start");
 
             resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS));
-            sLogger.info("IsilonApi check nfsV4 support retrieve global status - complete");
+            sLogger.debug("IsilonApi check nfsV4 support retrieve global status - complete");
 
             JSONObject jsonResp = resp.getEntity(JSONObject.class);
 

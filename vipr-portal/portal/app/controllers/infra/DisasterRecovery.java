@@ -73,7 +73,12 @@ public class DisasterRecovery extends ViprResourceController {
     }
 
     public static void resume(String id) {
-
+        SiteRestRep result = DisasterRecoveryUtils.getSite(id);
+        if (result != null) {
+            SiteRestRep siteresume = DisasterRecoveryUtils.resumeStandby(id);
+            flash.success(MessagesUtils.get(RESUMED_SUCCESS, siteresume.getName()));
+        }
+        list();
     }
 
     public static void test(String id) {

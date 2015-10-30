@@ -463,20 +463,21 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     _logger.info("using high availability varray " + haVarray.getLabel());
                     varrayForThisVolume = haVarray;
                     if (null != haVpool) {
-                        if (context.getUnmanagedVplexMirrors().keySet().contains(associatedVolume)
-                                && haVpool.getMirrorVirtualPool() != null) {
-                            _logger.info("this associated volume is a mirror and separate mirror vpool is defined");
-                            VirtualPool mirrorVpool = _dbClient.queryObject(
-                                    VirtualPool.class, URI.create(haVpool.getMirrorVirtualPool()));
-                            _logger.info("using mirror vpool " + haVpool.getLabel());
-                            vpoolForThisVolume = mirrorVpool;
-                        } else {
-                            _logger.info("using high availability vpool " + haVpool.getLabel());
-                            vpoolForThisVolume = haVpool;
-                        }
+                        _logger.info("using high availability vpool " + haVpool.getLabel());
+                        vpoolForThisVolume = haVpool;
                     }
                 }
-                
+
+                // finally, double check for a separate mirror / continuous copies vpool
+                if (context.getUnmanagedVplexMirrors().keySet().contains(associatedVolume)
+                        && vpoolForThisVolume.getMirrorVirtualPool() != null) {
+                    _logger.info("this associated volume is a mirror and separate mirror vpool is defined");
+                    VirtualPool mirrorVpool = _dbClient.queryObject(
+                            VirtualPool.class, URI.create(vpoolForThisVolume.getMirrorVirtualPool()));
+                    _logger.info("using mirror vpool " + mirrorVpool.getLabel());
+                    vpoolForThisVolume = mirrorVpool;
+                }
+
                 validateBackendVolumeVpool(associatedVolume, vpoolForThisVolume);
                 
                 @SuppressWarnings("unchecked")

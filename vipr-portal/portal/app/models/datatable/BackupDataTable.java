@@ -53,7 +53,11 @@ public class BackupDataTable extends DataTable {
 			creationtime = backup.getCreateTime();
 			size = backup.getSize();
 			status = backup.getUploadStatus().getStatus().name();
-			progress = backup.getUploadStatus().getProgress();
+			if(backup.getUploadStatus().getProgress()!=null){
+				progress = backup.getUploadStatus().getProgress();
+			}else{
+				progress = 0;
+			}
 			if(status.equals(Status.FAILED.toString())){
 				progress = 100;
 			}

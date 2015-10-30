@@ -81,6 +81,7 @@ public class LocalRepository {
     private static final String _SYSTOOL_RESTART = "--restart";
     private static final String _SYSTOOL_RELOAD = "--reload";
     private static final String _SYSTOOL_IS_APPLIANCE = "--is-appliance";
+    private static final String _SYSTOOL_IPSEC = "--ipsec";
 
     // inject value from spring config.
     private String cmdZkutils;
@@ -492,6 +493,51 @@ public class LocalRepository {
         }
         return SiteInfo.DEFAULT_TARGET_VERSION;
     }
+
+    /**
+     * check ipsec connections between local machine and other nodes in vipr
+     *
+     * @return ips don't have ipsec connection with local machine
+     * @throws LocalRepositoryException
+     */
+    public String[] checkIpsecConnection() throws LocalRepositoryException {
+        final String prefix = "checkIpsecConnection(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_IPSEC, IPSEC_CHECK_CONNECTION };
+        String[] ips = exec(prefix, cmd);
+
+        _log.debug(prefix + "ips without ipsec connection: ", Strings.repr(ips));
+        return ips;
+    }
+
+    /**
+     * get ipsec properties from specified remote node
+     *
+     * @param remoteIp
+     * @return map of ipsec related properties: VDC_CONFIG_VERSION and IPSEC_KEY
+     */
+    public Map<String, String> getIpsecPropertiesFromRemoteNode(String remoteIp) throws LocalRepositoryException {
+        final String prefix = "getIpsecPropertiesFromRemoteNode(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_IPSEC, IPSEC_GET_PROPS, remoteIp };
+        String[] props = exec(prefix, cmd);
+
+        _log.debug(prefix + "properties={}", Strings.repr(props));
+        return PropertyInfoUtil.splitKeyValue(props);
+    }
+
+
+    public void syncIpsecKeyToLocal(String ipsecKey) throws LocalRepositoryException {
+        final String prefix = "syncIpsecKeyToLocal(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_IPSEC, IPSEC_SYNC_KEY, ipsecKey };
+        exec(prefix, cmd);
+        _log.info(prefix + "Success!");
+    }
+
 
     /**
      * Common method checking exec execution failure

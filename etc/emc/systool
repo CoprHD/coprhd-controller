@@ -23,6 +23,7 @@ _usage() {
     echo "   or: $0 --set-default name" >&2
     echo "   or: $0 --get-image name"   >&2
     echo "   or: $0 --install file"     >&2
+    echo "   or: $0 --ipsec [check-connection] [get-props] [sync-key]" >&2
     echo "   or: $0 --remove name"      >&2
     echo "   or: $0 --getprops"         >&2
     echo "   or: $0 --get-controller-ovfprops" >&2
@@ -450,6 +451,17 @@ _restart() {
     /usr/bin/systemctl restart storageos-${1%*svc} || _fatal2 67 "Unexpected restart ${1} failure. Error code $?"
 }
 
+_ipsec() {
+    case ${1} in
+        check)
+            exec /etc/ipsectool check ;;
+        sync)
+            exec /etc/ipsectool sync ;;
+        *)
+            _fatal2 2 "Unsupported ipsec command ${1}" ;;
+    esac
+}
+
 _reload() {
     case ${1} in
         ntp)     
@@ -795,6 +807,7 @@ case ${#} in
             --set-default)            _x _set_default          "${2}" ;;
             --install)                _x _install              "${2}" ;;
             --install-baremetal)      _x _install_baremetal    "${2}" ;;
+            --ipsec)                  _x _ipsec                "${2}" ;;
             --get-image)              _s _get_image            "${2}" ;;
             --remove)                 _x _remove               "${2}" ;;
             --setoverrides)           _x _set_override_props   "${2}" ;;
@@ -803,8 +816,12 @@ case ${#} in
             --setsslprops)            _x _set_ssl_props        "${2}" ;;
             --set-data-revision)      _x _set_data_revision    "${2}" ;;
             --restart)                _x _restart              "${2}" ;;
-            --reconfig-props)          _x _reconfig_props       "${2}" ;;
+            --reconfig-props)         _x _reconfig_props       "${2}" ;;
             --reload)                 _x _reload               "${2}" ;;
+            *)                        _usage
+        esac;;
+    3)  case ${1} in
+            --ipsec)                  _x _ipsec         "${2}" "${3}" ;;
             *)                        _usage
         esac;;
     4)  case ${1} in 

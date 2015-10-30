@@ -24,7 +24,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.security.authorization.CheckPermission;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -41,7 +40,6 @@ import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
@@ -61,9 +59,11 @@ import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
+import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -92,6 +92,7 @@ public class DisasterRecoveryService {
     private SysUtils sysUtils;
     private CoordinatorClient coordinator;
     private DbClient dbClient;
+    private IPsecConfig ipsecConfig;
     private DrUtil drUtil;
     
     @Autowired
@@ -196,9 +197,10 @@ public class DisasterRecoveryService {
             primarySite.setSecretKey(vdc.getSecretKey());
             primarySite.setUuid(coordinator.getSiteId());
             primarySite.setVip(vdc.getApiEndpoint());
+            primarySite.setIpsecKey(ipsecConfig.getPreSharedKey());
             primarySite.setNodeCount(vdc.getHostCount());
             primarySite.setState(String.valueOf(SiteState.PRIMARY));
-            
+
             configParam.setPrimarySite(primarySite);
             
             List<SiteParam> standbySites = new ArrayList<SiteParam>();
@@ -253,7 +255,9 @@ public class DisasterRecoveryService {
                 hostCount = primary.getHostIPv6AddressMap().size();
             }
             vdc.setHostCount(hostCount);
-            
+
+            ipsecConfig.setPreSharedKey(primary.getIpsecKey());
+
             coordinator.addSite(primary.getUuid());
             coordinator.setPrimarySite(primary.getUuid());
             Site primarySite = new Site();
@@ -816,5 +820,9 @@ public class DisasterRecoveryService {
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
         this.drUtil = new DrUtil(coordinator);
+    }
+
+    public void setIpsecConfig(IPsecConfig ipsecConfig) {
+        this.ipsecConfig = ipsecConfig;
     }
 }

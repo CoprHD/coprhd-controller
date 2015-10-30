@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,11 +34,10 @@ import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
-import com.emc.storageos.db.common.VdcUtil;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -44,7 +45,6 @@ import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
-
 /**
  * Manage configuration properties for multivdc and disaster recovery. It listens on
  * SiteInfo znode changes. Once getting notified, it fetch vdc config from local db
@@ -57,8 +57,10 @@ public class VdcSiteManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
     private static final String VDC_IDS_KEY = "vdc_ids";
+    private static final int VDC_RPOP_BARRIER_TIMEOUT = 5;
 
     private DbClient dbClient;
+    private IPsecConfig ipsecConfig;
 
     // local and target info properties
     private PropertyInfoExt localVdcPropInfo;
@@ -96,6 +98,10 @@ public class VdcSiteManager extends AbstractManager {
 
     public void setService(Service svc) {
         this.service = svc;
+    }
+
+    public void setIpsecConfig(IPsecConfig ipsecConfig) {
+        this.ipsecConfig = ipsecConfig;
     }
 
     @Override
@@ -259,7 +265,10 @@ public class VdcSiteManager extends AbstractManager {
 
         // Initialize vdc prop info
         localVdcPropInfo = localRepository.getVdcPropertyInfo();
-        targetVdcPropInfo = loadVdcConfigFromDatabase();
+        // ipsec key is a vdc property as well and saved in ZK.
+        // targetVdcPropInfo = loadVdcConfigFromDatabase();
+        targetVdcPropInfo = loadVdcConfig();
+
         if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null) {
             localVdcPropInfo = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
             localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
@@ -289,6 +298,17 @@ public class VdcSiteManager extends AbstractManager {
             }
         }
 
+    }
+
+    /**
+     * Load the vdc configurations
+     * @return
+     * @throws Exception
+     */
+    private PropertyInfoExt loadVdcConfig() throws Exception {
+        targetVdcPropInfo = loadVdcConfigFromDatabase();
+        targetVdcPropInfo.addProperty("ipsec_key", ipsecConfig.getPreSharedKey());
+        return targetVdcPropInfo;
     }
 
     /**
@@ -355,11 +375,112 @@ public class VdcSiteManager extends AbstractManager {
                 reconfigRestartSvcs();
                 cleanupSiteErrorIfNecessary();
                 break;
+            case SiteInfo.RECONFIG_IPSEC: // for ipsec key rotation
+                reconfigIPsec();
             default:
                 PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
                 vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
                         String.valueOf(targetSiteInfo.getVdcConfigVersion()));
                 localRepository.setVdcPropertyInfo(vdcProperty);
+        }
+    }
+
+    /**
+     * Reconfig IPsec when vdc properties (key, IPs or both) get changed.
+     * @throws Exception
+     */
+    private void reconfigIPsec() throws Exception {
+        updateVdcPropertiesAndWaitForAll();
+        reconfigAndRestartIPsec();
+        finishUpdateVdcProperties();
+    }
+
+    /**
+     * regenerate ipsec configuration files and restart service
+     */
+    private void reconfigAndRestartIPsec() {
+        localRepository.reconfigProperties("ipsec");
+        localRepository.reload("ipsec");
+    }
+
+    /**
+     * update vdc properties from zk to disk and wait for all nodes are done via barrier
+     */
+    private void updateVdcPropertiesAndWaitForAll() throws Exception {
+        DistributedDoubleBarrier barrier = enterBarrier();
+
+        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+        // set the vdc_config_version to an invalid value so that it always gets retried on failure.
+        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
+        localRepository.setVdcPropertyInfo(vdcProperty);
+
+        leaveBarrier(barrier);
+    }
+
+    /**
+     * Finish vdc properties update by saving a real vdc config version.
+     */
+    private void finishUpdateVdcProperties() {
+        log.info("Setting the real config version for local vdc properties");
+        PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+        vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+        localRepository.setVdcPropertyInfo(vdcProperty);
+    }
+
+    /**
+     * Waiting for all nodes entering the VdcPropBarrier.
+     * @return
+     * @throws Exception
+     */
+    private DistributedDoubleBarrier enterBarrier() throws Exception {
+        log.info("Waiting for all nodes entering VdcPropBarrier");
+
+        // key rotation is always done on primary site. when adding standby this is done on both site.
+        String barrierPath = String.format("%s/%s/VdcPropBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
+
+        // the children # should be the node # in entire VDC. before linking together, it's # in a site.
+        DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, getChildrenCountOnBarrier());
+
+        boolean allEntered = barrier.enter(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+        if (allEntered) {
+            log.info("All nodes entered VdcPropBarrier");
+            return barrier;
+        } else {
+            throw new Exception("Only Part of nodes entered within 5 seconds, Skip updating");
+        }
+    }
+
+    /**
+     * Get the number of nodes should involve the barrier. It's all nodes of a site when adding standby while nodes of a VDC when rotating key.
+     * @return
+     */
+    private int getChildrenCountOnBarrier() {
+        SiteInfo.ActionScope scope = targetSiteInfo.getActionScope();
+        switch (scope) {
+            case SITE:
+                return coordinator.getNodeCount();
+            case VDC:
+                // TODO: need a method to return the # of VDC
+                throw new NotImplementedException();
+            default:
+                throw new RuntimeException("Unknown Action Scope is set in SiteInfo: " + scope);
+        }
+    }
+
+    /**
+     * Waiting for all nodes leaving the VdcPropBarrier.
+     * @param barrier
+     * @throws Exception
+     */
+    private void leaveBarrier(DistributedDoubleBarrier barrier) throws Exception {
+        // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
+        log.info("Waiting for all nodes leaving VdcPropBarrier");
+
+        boolean allLeft = barrier.leave(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+        if (allLeft) {
+            log.info("All nodes left VdcPropBarrier");
+        } else {
+            log.warn("Only Part of nodes left VdcPropBarrier before timeout");
         }
     }
 
@@ -378,35 +499,21 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private void reconfigRestartSvcs() throws Exception {
-        try {
-            PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-            // set the vdc_config_version to an invalid value so that it always gets retried on failure.
-            vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
-            localRepository.setVdcPropertyInfo(vdcProperty);
 
-            localRepository.reconfigProperties("firewall");
-            localRepository.reload("firewall");
+        updateVdcPropertiesAndWaitForAll();
 
+        reconfigAndRestartIPsec();
 
-            localRepository.reconfigProperties("ipsec");
-            localRepository.reload("ipsec");
+        localRepository.reconfigProperties("firewall");
+        localRepository.reload("firewall");
 
-            // Reconfigure ZK
-            // TODO: think again how to make use of the dynamic zookeeper configuration
-            // The previous approach disconnects all the clients, no different than a service restart.
-            localRepository.reconfigProperties("coordinator");
-            localRepository.restart("coordinatorsvc");
+        // Reconfigure ZK
+        // TODO: think again how to make use of the dynamic zookeeper configuration
+        // The previous approach disconnects all the clients, no different than a service restart.
+        localRepository.reconfigProperties("coordinator");
+        localRepository.restart("coordinatorsvc");
 
-            localRepository.reconfigProperties("db");
-            localRepository.reconfigProperties("geodb");
-
-            log.info("Step2: Updating the hash code for local vdc properties");
-            vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
-            localRepository.setVdcPropertyInfo(vdcProperty);
-        } catch (Exception e) {
-            populateStandbySiteErrorIfNecessary(e);
-            throw e;
-        }
+        finishUpdateVdcProperties();
     }
 
     private List<String> getJoiningZKNodes() {

@@ -40,7 +40,6 @@ public class DbConsistencyService {
     @POST
     @Path("consistency")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response checkDbConsistency() {
         log.info("receive db consistency check request");
         if (isDbConsistencyCheckInProgress()) {

@@ -4,37 +4,37 @@
  */
 
 package com.emc.storageos.db.client.impl;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.impl.DbClientImpl.IndexAndCf;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
 
 public class DbConsistencyChecker {
-    private DbClientImpl dbClient;
     private CoordinatorClient coordinator;
+    private DbConsistencyCheckerHelper helper;
     private int totalCount;
-    
+    private boolean toConsole;
+
     public DbConsistencyChecker() {
         this.totalCount = getTotalCount();
     }
 
-    public DbConsistencyChecker(DbClientImpl dbClient) {
-        this.dbClient = dbClient;
+    public DbConsistencyChecker(boolean toConsole) {
+        this.toConsole = toConsole;
     }
     
     private int getTotalCount() {
         int cfCount = TypeMap.getAllDoTypes().size();
-        int indexCount = getAllIndices().values().size();
+        int indexCount = helper.getAllIndices().values().size();
         return indexCount + cfCount*2;
     }
 
@@ -44,18 +44,18 @@ public class DbConsistencyChecker {
      *
      * @return number of the corrupted rows in data CFs
      */
-    public int checkObjectId(boolean toConsole) {
+    public int checkObjectId() {
         Collection<DataObjectType> allDoTypes = TypeMap.getAllDoTypes();
         Collection<DataObjectType> sortedTypes = getSortedTypes(allDoTypes);
         
         DbConsistencyStatus status = getStatusFromZk();
-        dbClient.logMessage(String.format("status {} in zk", status.toString()), false, false);
+        helper.logMessage(String.format("status {} in zk", status.toString()), false, false);
         Collection<DataObjectType> filteredTypes = filterOutTypes(sortedTypes, status.getWorkingPoint(), toConsole);
 
         int totalDirtyCount = 0;
         int dirtyCount = 0;
         for (DataObjectType doType : filteredTypes) {
-            dbClient.logMessage(String.format("processing %s cf", doType.getCF().getName()), false, false);
+            helper.logMessage(String.format("processing %s cf", doType.getCF().getName()), false, false);
             if ( !toConsole && isCancelled() ) {
                 cancel(status);
                 return totalDirtyCount;
@@ -65,18 +65,18 @@ public class DbConsistencyChecker {
                 persistStatus(status);
             }
             
-            dirtyCount = dbClient.checkDataObject(doType, toConsole);
+            dirtyCount = helper.checkDataObject(doType, toConsole);
             totalDirtyCount += dirtyCount;
         }
 
         String msg = String.format("\nTotally check %d cfs, %d rows are dirty.\n", filteredTypes.size(), totalDirtyCount);
-        dbClient.logMessage(msg, false, toConsole);
+        helper.logMessage(msg, false, toConsole);
 
         return totalDirtyCount;
     }
 
     private void cancel(DbConsistencyStatus status) {
-        dbClient.logMessage("db consistench check is canceled", true, false);
+        helper.logMessage("db consistench check is canceled", true, false);
         status.movePreviousBack();
         persistStatus(status);
     }
@@ -112,7 +112,7 @@ public class DbConsistencyChecker {
         return filteredTypes;
     }
     
-    private Collection<IndexAndCf> filterOutIndexAndCfs(Collection<IndexAndCf> idxCfs, String workingPoint, boolean toConsole) {
+    private Collection<IndexAndCf> filterOutIndexAndCfs(Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs, String workingPoint, boolean toConsole) {
         if (toConsole) {
             return idxCfs;
         }
@@ -158,20 +158,20 @@ public class DbConsistencyChecker {
      * @return the number of the corrupted rows in the index CFs
      * @throws ConnectionException
      */
-    public int checkIndexObjects(boolean toConsole) throws ConnectionException {
-        dbClient.logMessage("\nStart to check INDEX data that the related object records are missing.\n", false, toConsole);
+    public int checkIndexObjects() throws ConnectionException {
+        helper.logMessage("\nStart to check INDEX data that the related object records are missing.\n", false, toConsole);
 
-        Collection<IndexAndCf> idxCfs = getAllIndices().values();
-        Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
+        Collection<IndexAndCf> idxCfs = helper.getAllIndices().values();
+        Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = helper.getDataObjectCFs();
         DbConsistencyStatus status = getStatusFromZk();
-        dbClient.logMessage(String.format("db consistency status %s", status), false, toConsole);
+        helper.logMessage(String.format("db consistency status %s", status), false, toConsole);
         Collection<IndexAndCf> sortedIdxCfs = sortIndexCfs(idxCfs);
         Collection<IndexAndCf> filteredIdCfs = filterOutIndexAndCfs(sortedIdxCfs, status.getWorkingPoint(), toConsole);
         int corruptRowCount = 0;
         int totalCorruptCount = 0;
         
-        for (DbClientImpl.IndexAndCf indexAndCf : filteredIdCfs) {
-            dbClient.logMessage(String.format("indexAndCf ", indexAndCf.generateKey()), false, toConsole);
+        for (IndexAndCf indexAndCf : filteredIdCfs) {
+            helper.logMessage(String.format("indexAndCf ", indexAndCf.generateKey()), false, toConsole);
             if ( !toConsole && isCancelled() ) {
                 cancel(status);
                 return totalCorruptCount;
@@ -181,7 +181,7 @@ public class DbConsistencyChecker {
                 status.update(this.totalCount, indexAndCf.generateKey(), corruptRowCount);
                 persistStatus(status);
             }
-            corruptRowCount = dbClient.checkIndexingCF(indexAndCf, objCfs, toConsole);
+            corruptRowCount = helper.checkIndexingCF(indexAndCf, objCfs, toConsole);
             totalCorruptCount += corruptRowCount;
         }
 
@@ -190,7 +190,7 @@ public class DbConsistencyChecker {
         String msg = String.format("\nFinish to check INDEX CFs: totally checked %d indices against %d data CFs "+
                    "and %d corrupted rows found.", idxCfs.size(), objCfs.size(), totalCorruptCount);
 
-        dbClient.logMessage(msg, false, toConsole);
+        helper.logMessage(msg, false, toConsole);
 
         return totalCorruptCount;
     }
@@ -203,8 +203,8 @@ public class DbConsistencyChecker {
      * @return True, when no corrupted data found
      * @throws ConnectionException
      */
-    public int checkObjectIndices(boolean toConsole) throws ConnectionException {
-        dbClient.logMessage("\nStart to check Data Object records that the related index is missing.\n", false, toConsole);
+    public int checkObjectIndices() throws ConnectionException {
+        helper.logMessage("\nStart to check Data Object records that the related index is missing.\n", false, toConsole);
 
         Collection<DataObjectType> allDoTypes = TypeMap.getAllDoTypes();
         Collection<DataObjectType> sortedTypes = getSortedTypes(allDoTypes);
@@ -224,7 +224,7 @@ public class DbConsistencyChecker {
                 persistStatus(status);
             }
 
-            corruptedCount = dbClient.checkCFIndices(doType, toConsole);
+            corruptedCount = helper.checkCFIndices(doType, toConsole);
             totalCorruptedCount += corruptedCount;
         }
 
@@ -235,7 +235,7 @@ public class DbConsistencyChecker {
                         + "%d corrupted rows found.",
                 cfCount, totalCorruptedCount);
 
-        dbClient.logMessage(msg, false, toConsole);
+        helper.logMessage(msg, false, toConsole);
 
         return totalCorruptedCount;
     }
@@ -247,51 +247,6 @@ public class DbConsistencyChecker {
         return Collections.unmodifiableCollection(list);
     }
 
-    private Map<String, DbClientImpl.IndexAndCf> getAllIndices() {
-        // Map<Index_CF_Name, <DbIndex, ColumnFamily, Map<Class_Name, object-CF_Name>>>
-        Map<String, IndexAndCf> idxCfs = new TreeMap<>();
-        for (DataObjectType objType : TypeMap.getAllDoTypes()) {
-            Keyspace keyspace = dbClient.getKeyspace(objType.getDataObjectClass());
-            for (ColumnField field : objType.getColumnFields()) {
-                DbIndex index = field.getIndex();
-                if (index == null) {
-                    continue;
-                }
-
-                IndexAndCf indexAndCf = new IndexAndCf(index.getClass(), field.getIndexCF(), keyspace);
-                String key = indexAndCf.generateKey();
-                IndexAndCf idxAndCf = idxCfs.get(key);
-                if (idxAndCf == null) {
-                    idxAndCf = new IndexAndCf(index.getClass(), field.getIndexCF(), keyspace);
-                    idxCfs.put(key, idxAndCf);
-                }
-            }
-        }
-
-        return idxCfs;
-    }
-
-    private Map<String, ColumnFamily<String, CompositeColumnName>> getDataObjectCFs() {
-        Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = new TreeMap<>();
-        for (DataObjectType objType : TypeMap.getAllDoTypes()) {
-            String simpleClassName = objType.getDataObjectClass().getSimpleName();
-            ColumnFamily<String, CompositeColumnName> objCf = objCfs.get(simpleClassName);
-            if (objCf == null) {
-                objCfs.put(simpleClassName, objType.getCF());
-            }
-        }
-
-        return objCfs;
-    }
-    
-    public DbClientImpl getDbClient() {
-        return dbClient;
-    }
-
-    public void setDbClient(DbClientImpl dbClient) {
-        this.dbClient = dbClient;
-    }
-
     public CoordinatorClient getCoordinator() {
         return coordinator;
     }
@@ -299,4 +254,21 @@ public class DbConsistencyChecker {
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
+
+    public boolean isToConsole() {
+        return toConsole;
+    }
+
+    public void setToConsole(boolean toConsole) {
+        this.toConsole = toConsole;
+    }
+
+    public DbConsistencyCheckerHelper getHelper() {
+        return helper;
+    }
+
+    public void setHelper(DbConsistencyCheckerHelper helper) {
+        this.helper = helper;
+    }
+
 }

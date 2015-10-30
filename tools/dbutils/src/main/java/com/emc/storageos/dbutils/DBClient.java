@@ -1119,10 +1119,10 @@ public class DBClient {
 
     public void checkDB() {
         try {
-            DbConsistencyChecker checker = new DbConsistencyChecker(_dbClient);
-            checker.checkObjectId(true);
-            checker.checkIndexObjects(true);
-            checker.checkObjectIndices(true);
+            DbConsistencyChecker checker = new DbConsistencyChecker(_dbClient, true);
+            checker.checkObjectId();
+            checker.checkIndexObjects();
+            checker.checkObjectIndices();
 
             String msg = "\nAll the checks have been done.";
             String fileMsg = String.format(

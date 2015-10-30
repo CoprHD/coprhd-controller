@@ -400,8 +400,12 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="dbChecker" ref="dbChecker" />
     </bean>
+    <bean id="dbCheckerHelper" class="com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
     <bean id="dbChecker" class="com.emc.storageos.db.client.impl.DbConsistencyChecker">
         <property name="coordinator" ref="coordinator" />
-        <property name="dbClient" ref="dbclient" />
+        <property name="toConsole" value="false" />
+        <property name="helper" ref="dbCheckerHelper"/>
     </bean>
 </beans>

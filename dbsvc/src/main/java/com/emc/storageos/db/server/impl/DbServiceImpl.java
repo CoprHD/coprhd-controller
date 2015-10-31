@@ -386,7 +386,7 @@ public class DbServiceImpl implements DbService {
         File localDbDir = getDBDataFileLocations();
         _log.info("localDbDir={}", localDbDir.getAbsolutePath());
         boolean isDirEmpty = (!localDbDir.exists()) || (localDbDir.list().length == 0);
-        _log.info("isDirEmpty={}, lastModifyTime={}", isDirEmpty, getLastModified(localDbDir).getTime());
+        _log.info("isDirEmpty={}", isDirEmpty);
         long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : getLastModified(localDbDir).getTime();
 
         _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);

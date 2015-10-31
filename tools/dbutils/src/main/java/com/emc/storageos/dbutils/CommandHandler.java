@@ -675,7 +675,7 @@ public abstract class CommandHandler {
         private String rebuildIndexFileName;
         static final String KEY_ID = "id";
         static final String KEY_CFNAME = "cfName";
-        static final String KEY_COMMENT_CHAR = "#";
+        static final String KEY_COMMENT_CHAR = DbCheckerFileWriter.COMMENT_CHAR;
 
         public RebuildIndexHandler(String[] args) {
             if (args.length == 2) {

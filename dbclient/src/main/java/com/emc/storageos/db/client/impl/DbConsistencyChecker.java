@@ -188,7 +188,6 @@ public class DbConsistencyChecker {
         int totalCorruptCount = 0;
 
         for (IndexAndCf indexAndCf : resumeIdxCfs) {
-            helper.logMessage(String.format("indexAndCf ", indexAndCf.generateKey()), false, toConsole);
             if (!toConsole) {
                 if (isCancelled()) {
                     cancel(status);

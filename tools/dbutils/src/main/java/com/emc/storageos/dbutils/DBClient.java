@@ -1124,12 +1124,14 @@ public class DBClient {
             DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
             int corruptedCount = checker.check();
 
-            String msg = "\nAll the checks have been done.";
+            String msg = "\nAll the checks have been done, ";
             if (corruptedCount != 0) {
                 String fileMsg = String.format(
-                        "\nClean up cql files [%s] are created in current folder. please read into them for detail cleanup operations.",
+                        "consistent data found.\nClean up files [%s] are created. please read into them for futher operations.",
                         DbCheckerFileWriter.getGeneratedFileNames());
                 msg += fileMsg;
+            } else {
+                msg += ", no inconsistent data found.";
             }
             System.out.println(msg);
             log.info(msg);

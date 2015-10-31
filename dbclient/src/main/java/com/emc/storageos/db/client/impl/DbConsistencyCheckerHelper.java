@@ -170,12 +170,7 @@ public class DbConsistencyCheckerHelper {
      * @throws ConnectionException
      */
     protected int checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole) throws ConnectionException {
-        int indexRowCount = 0;
-        int objCfCount = 0;
         int corruptRowCount = 0;
-        int objRowCount = 0;
-
-        int corruptRowCountInIdx = 0;
 
         String indexCFName = indexAndCf.cf.getName();
         Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
@@ -191,7 +186,6 @@ public class DbConsistencyCheckerHelper {
                 .withColumnRange(new RangeBuilder().setLimit(0).build()).execute();
 
         for (Row<String, IndexColumnName> row : result.getResult()) {
-            indexRowCount++;
             RowQuery<String, IndexColumnName> rowQuery = query.getRow(row.getKey())
                     .autoPaginate(true)
                     .withColumnRange(new RangeBuilder().setLimit(100).build());
@@ -221,22 +215,18 @@ public class DbConsistencyCheckerHelper {
             }
         }
 
-        objCfCount += objsToCheck.size();
         // Detect whether the DataObject CFs have the records
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
             Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
-            logMessage(String.format("objCf %s", objCf), false, toConsole);
             OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace
                     .prepareQuery(objCf).getRowSlice(objKeysIdxEntryMap.keySet())
                     .withColumnRange(new RangeBuilder().setLimit(1).build())
                     .execute();
             for (Row<String, CompositeColumnName> row : objResult.getResult()) {
-                objRowCount++;
                 if (row.getColumns().isEmpty()) { // Only support all the columns have been removed now
                     List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
                     for (IndexEntry idxEntry : idxEntries) {
                         corruptRowCount++;
-                        corruptRowCountInIdx++;
                         logMessage(String.format("Inconsistency: Index(%s, type: %s, id: %s, column: %s) is existing "
                                 + "but the related object record(%s, id: %s) is missing.",
                                 indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
@@ -256,19 +246,6 @@ public class DbConsistencyCheckerHelper {
                 }
             }
         }
-
-        if (corruptRowCountInIdx != 0) {
-            logMessage(String.format(
-                    "\n%d corrupted index records found in Index %s of Index type %s.\n",
-                    corruptRowCountInIdx, indexAndCf.cf.getName(),
-                    indexAndCf.indexType.getSimpleName()), true, toConsole);
-        }
-
-        // report checking result about this index CF
-        logMessage(String.format(
-                "\nFinish to check INDEX %s of %d rows and %d rows of %d object CFs, "
-                        + "%s corrupted data found.",
-                indexCFName, indexRowCount, objRowCount, objCfCount, corruptRowCount), false, toConsole);
 
         return corruptRowCount;
     }

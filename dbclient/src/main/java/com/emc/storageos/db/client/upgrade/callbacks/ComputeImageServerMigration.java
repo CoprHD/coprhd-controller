@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -54,7 +55,7 @@ public class ComputeImageServerMigration extends BaseCustomMigrationCallback {
             encryptionProvider1.start();
             this.encryptionProvider = encryptionProvider1;
 
-            if (p.getProperty("image_server_address") != null) {
+            if (!StringUtils.isBlank(p.getProperty("image_server_address"))) {
 
                 ComputeImageServer imageServer = new ComputeImageServer();
                 imageServer.setId(URIUtil.createId(ComputeImageServer.class));

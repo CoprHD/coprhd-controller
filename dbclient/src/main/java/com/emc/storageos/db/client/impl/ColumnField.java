@@ -899,7 +899,6 @@ public class ColumnField {
             }
         }
     }
-    
     /**
      * Get whether this field has IndexByKey annotation
      * @return true if has, false otherwise.

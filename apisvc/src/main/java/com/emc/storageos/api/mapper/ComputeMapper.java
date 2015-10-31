@@ -121,7 +121,8 @@ public class ComputeMapper {
         return to;
     }
 
-    public static ComputeImageRestRep map(ComputeImage from, List<ComputeImageServer> availableServers,
+    public static ComputeImageRestRep map(ComputeImage from,
+            List<ComputeImageServer> availableServers,
             List<ComputeImageServer> failedServers) {
         if (from == null) {
             return null;
@@ -138,13 +139,13 @@ public class ComputeMapper {
         for (ComputeImageServer server : availableServers) {
             NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
             serverRep.setId(server.getId());
-            serverRep.setName(server.getImageServerIp());
+            serverRep.setName(server.getLabel());
             availableServersList.add(serverRep);
         }
         for (ComputeImageServer server : failedServers) {
             NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
             serverRep.setId(server.getId());
-            serverRep.setName(server.getImageServerIp());
+            serverRep.setName(server.getLabel());
             failedServersList.add(serverRep);
         }
 

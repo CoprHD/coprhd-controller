@@ -2488,6 +2488,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // We also need to update the volume/lun id map in the export mask
             // to those assigned by the VPLEX.
             _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
+            _log.info("updatedBlockObjectMap: " + updatedBlockObjectMap.toString());
             exportMask.addVolumes(updatedBlockObjectMap);
             // Update user created volumes
             // TODO: Update user created volumes needs to move to the completer eventually
@@ -2618,7 +2619,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         if (!volumeURIList.isEmpty()) {
                             removeVolumes = true;
                         }
-                    } else if (existingVolumes && existingInitiators) {
+                    } else if (existingVolumes || existingInitiators) {
                         // It won't make sense to leave the storage view with only exiting volumes
                         // or only existing initiators, so only if there are both existing volumes
                         // and initiators in that case we will delete ViPR created volumes and
@@ -2640,7 +2641,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             }
                         }
 
-                        removeInitiators = true;
+                        if (!existingVolumes) {
+                            removeInitiators = true;
+                        }
 
                     } else {
                         _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
@@ -2748,10 +2751,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 boolean existingInitiators = exportMask.getExistingInitiators() != null &&
                         !exportMask.getExistingInitiators().isEmpty();
 
-                if (existingVolumes && existingInitiators) {
+                if (existingVolumes || existingInitiators) {
                     _log.info("ExportMask {} still has non-ViPR-created existing volumes or initiators, "
                             + "so ViPR will not remove it from the VPLEX device", exportMask.getMaskName());
-                    _log.warn("We should not have called this method if there are existing volumes and existing initiators.");
                 } else if (exportMask.getInactive()) {
                     _log.warn("ExportMask {} is already inactive, so there's "
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
@@ -3134,7 +3136,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         exportGroup.removeExportMask(exportMask.getId());
                         _dbClient.updateAndReindexObject(exportGroup);
                     }
-                } else if (remainingVolumesInMask.isEmpty() && existingInitiators && existingVolumes) {
+                } else if (remainingVolumesInMask.isEmpty() && (existingInitiators || existingVolumes)) {
                     // If all the volumes are getting removed and there are existing
                     // initiators and existing volumes then remove all the initiators
                     // as well. Remove initiators method will make sure
@@ -3146,26 +3148,29 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // Remove volumes from the storage view.
                     removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
 
-                    // create workflow and steps to remove zones and inititaors
-                    String completerStepId = workflow.createStepId();
-                    ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
-                            exportURI, exportMask.getId(), URIUtil.toURIList(exportMask.getInitiators()), completerStepId);
+                    if (!existingVolumes) {
+                        // create workflow and steps to remove zones and inititaors
+                        String completerStepId = workflow.createStepId();
+                        ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
+                                exportURI, exportMask.getId(), URIUtil.toURIList(exportMask.getInitiators()), completerStepId);
 
-                    List<URI> initiatorURIs = URIUtil.toURIList(exportMask.getInitiators());
+                        List<URI> initiatorURIs = URIUtil.toURIList(exportMask.getInitiators());
 
-                    // Create a step to remove initiators from the storage view
-                    Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
-                            exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs));
-                    Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-                    storageViewStepId = workflow.createStep("storageView", "Removing" + initiatorURIs.toString(),
-                            null, vplexURI, vplex.getSystemType(), this.getClass(),
-                            removeInitiatorMethod, removeInitiatorRollbackMethod, null);
+                        // Create a step to remove initiators from the storage view
+                        Workflow.Method removeInitiatorMethod =
+                                storageViewRemoveInitiatorsMethod(vplexURI, exportURI,
+                                        exportMask.getId(), initiatorURIs, getTargetURIs(exportMask, initiatorURIs));
+                        Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+                        storageViewStepId = workflow.createStep("storageView", "Removing" + initiatorURIs.toString(),
+                                null, vplexURI, vplex.getSystemType(), this.getClass(),
+                                removeInitiatorMethod, removeInitiatorRollbackMethod, null);
 
-                    // Create a step to fire the completer removing initiators.
-                    Workflow.Method fireCompleter = fireTaskCompleterMethod(maskCompleter);
-                    workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter", storageViewStepId, vplexURI,
-                            vplex.getSystemType(),
-                            this.getClass(), fireCompleter, null, completerStepId);
+                        // Create a step to fire the completer removing initiators.
+                        Workflow.Method fireCompleter = fireTaskCompleterMethod(maskCompleter);
+                        workflow.createStep("fireCompleter", "Fire ExportMaskRemoveInitiatorCompleter", storageViewStepId, vplexURI,
+                                vplex.getSystemType(),
+                                this.getClass(), fireCompleter, null, completerStepId);
+                    }
 
                 } else {
                     _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
@@ -4044,11 +4049,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         boolean doFireCompleter = true;
         boolean otherExportGroupsPresent = !otherExportGroups.isEmpty();
+        boolean existingVolumes = exportMask.getExistingVolumes() != null
+                && !exportMask.getExistingVolumes().isEmpty();
         boolean existingInitiators = exportMask.getExistingInitiators() != null
                 && !exportMask.getExistingInitiators().isEmpty();
         boolean removeAllInits = (hostInitiatorURIs.size() >= exportMask.getInitiators().size());
 
-        if (removeAllInits && !existingInitiators && !otherExportGroupsPresent) {
+        if (removeAllInits && !existingInitiators && !otherExportGroupsPresent && !existingVolumes) {
             _log.info("all initiators are being removed and no "
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
             _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
@@ -4469,7 +4476,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 initiatorPortInfo.add(portInfo);
             }
 
-            if (!initiatorPortInfo.isEmpty()) {
+            if (!initiatorPortInfo.isEmpty() && !existingVolumes) {
                 String lockName = null;
                 boolean lockAcquired = false;
                 try {

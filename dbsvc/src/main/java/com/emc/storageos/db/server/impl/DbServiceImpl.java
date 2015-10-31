@@ -518,6 +518,9 @@ public class DbServiceImpl implements DbService {
     }
 
     protected void setDbInitializedFlag() {
+        if (isGeoDbsvc())
+            return;
+
         File dbInitializedFlag = new File(DB_INITIALIZED_FLAG_FILE);
         try {
             if (!dbInitializedFlag.exists()) {

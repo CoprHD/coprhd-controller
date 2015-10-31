@@ -25,6 +25,7 @@ public class DbConsistencyChecker {
     private CoordinatorClient coordinator;
     private DbConsistencyCheckerHelper helper;
     private int totalCount;
+    // Print out the result to console directly and don't save the status in ZK, used such as triggered by dbutils
     private boolean toConsole;
 
     public DbConsistencyChecker() {
@@ -37,9 +38,7 @@ public class DbConsistencyChecker {
 
     public void check() throws ConnectionException {
         init();
-        DbConsistencyStatus status = getStatusFromZk();
-        helper.logMessage(String.format("status %s in zk", status.toString()), false, false);
-        CheckType checkType = getCheckType(status.getCheckType());
+        CheckType checkType = getCheckTypeFromZK();
         switch (checkType) {
             case OBJECT_ID:
                 checkObjectId();
@@ -72,11 +71,15 @@ public class DbConsistencyChecker {
     }
 
     private void setNextCheckType() {
-        DbConsistencyStatus status = getStatusFromZk();
-        CheckType checkType = getCheckType(status.getCheckType());
+        if (toConsole) {
+            return;
+        }
+
+        CheckType checkType = getCheckTypeFromZK();
         CheckType[] types = CheckType.values();
         if (checkType.ordinal() < types.length - 1) {
             CheckType nextType = types[checkType.ordinal() + 1];
+            DbConsistencyStatus status = getStatusFromZk();
             status.update(nextType.name(), null);
             persistStatus(status);
         }
@@ -93,7 +96,7 @@ public class DbConsistencyChecker {
             sortedCfs = sortDataObjectCfs(allDoTypes);
         }
 
-        if (workingPoint == null) {
+        if (toConsole || workingPoint == null) {
             return sortedCfs;
         }
         boolean found = false;
@@ -131,19 +134,19 @@ public class DbConsistencyChecker {
 
         int totalDirtyCount = 0;
         int dirtyCount = 0;
-        for (DataObjectType doType : resumeDataCfs) {
-            helper.logMessage(String.format("processing %s cf", doType.getCF().getName()), false, false);
-            if (!toConsole && isCancelled()) {
-                cancel(status);
-                return totalDirtyCount;
-            }
+        for (DataObjectType dataCf : resumeDataCfs) {
+            helper.logMessage(String.format("processing %s cf", dataCf.getCF().getName()), false, false);
             if (!toConsole) {
-                //todo need to think inconsistencyCount argument is correct or not
-                status.update(this.totalCount, CheckType.OBJECT_ID.name(), doType.getCF().getName(), dirtyCount);
+                if (isCancelled()) {
+                    cancel(status);
+                    return totalDirtyCount;
+                }
+                // TODO need to think inconsistencyCount argument is correct or not
+                status.update(this.totalCount, checkType.name(), dataCf.getCF().getName(), dirtyCount);
                 persistStatus(status);
             }
 
-            dirtyCount = helper.checkDataObject(doType, toConsole);
+            dirtyCount = helper.checkDataObject(dataCf, toConsole);
             totalDirtyCount += dirtyCount;
         }
 
@@ -170,17 +173,17 @@ public class DbConsistencyChecker {
 
         int totalCorruptedCount = 0;
         int corruptedCount = 0;
-        for (DataObjectType doType : resumeDataCfs) {
-            if (!toConsole && isCancelled()) {
-                cancel(status);
-                return totalCorruptedCount;
-            }
+        for (DataObjectType dataCf : resumeDataCfs) {
             if (!toConsole) {
-                status.update(this.totalCount, CheckType.OBJECT_INDICES.name(), doType.getCF().getName(), corruptedCount);
+                if (isCancelled()) {
+                    cancel(status);
+                    return totalCorruptedCount;
+                }
+                status.update(this.totalCount, checkType.name(), dataCf.getCF().getName(), corruptedCount);
                 persistStatus(status);
             }
 
-            corruptedCount = helper.checkCFIndices(doType, toConsole);
+            corruptedCount = helper.checkCFIndices(dataCf, toConsole);
             totalCorruptedCount += corruptedCount;
         }
 
@@ -216,13 +219,12 @@ public class DbConsistencyChecker {
 
         for (IndexAndCf indexAndCf : resumeIdxCfs) {
             helper.logMessage(String.format("indexAndCf ", indexAndCf.generateKey()), false, toConsole);
-            if (!toConsole && isCancelled()) {
-                cancel(status);
-                return totalCorruptCount;
-            }
-
             if (!toConsole) {
-                status.update(this.totalCount, CheckType.INDEX_OBJECTS.name(), indexAndCf.generateKey(), corruptRowCount);
+                if (isCancelled()) {
+                    cancel(status);
+                    return totalCorruptCount;
+                }
+                status.update(this.totalCount, checkType.name(), indexAndCf.generateKey(), corruptRowCount);
                 persistStatus(status);
             }
             corruptRowCount = helper.checkIndexingCF(indexAndCf, toConsole);
@@ -270,18 +272,24 @@ public class DbConsistencyChecker {
     }
 
     private enum CheckType {
-        // This enum order determines the order of checking
+        // This enums' order determines the order of checking
         OBJECT_ID,
         OBJECT_INDICES,
         INDEX_OBJECTS,
     }
 
-    private CheckType getCheckType(String type) {
+    private CheckType getCheckTypeFromZK() {
+        CheckType defaultType = CheckType.OBJECT_ID;
+        if (toConsole) {
+            return defaultType;
+        }
+        DbConsistencyStatus status = getStatusFromZk();
+        helper.logMessage(String.format("status %s in zk", status.toString()), false, false);
         CheckType checkType;
         try {
-            checkType = CheckType.valueOf(type);
+            checkType = CheckType.valueOf(status.getCheckType());
         } catch (Exception e) {
-            checkType = CheckType.OBJECT_ID;
+            checkType = defaultType;
         }
         return checkType;
     }

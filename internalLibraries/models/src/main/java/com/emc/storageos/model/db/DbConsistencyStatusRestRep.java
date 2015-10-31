@@ -22,8 +22,6 @@ public class DbConsistencyStatusRestRep{
     private String workingPoint;
     private int inconsistencyCount;
 
-    public DbConsistencyStatusRestRep() {
-    }
     /**
      * The start time of db consistency check
      */

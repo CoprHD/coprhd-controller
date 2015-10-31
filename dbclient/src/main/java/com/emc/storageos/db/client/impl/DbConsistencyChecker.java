@@ -99,6 +99,8 @@ public class DbConsistencyChecker {
      */
     private int checkObjectId() {
         CheckType checkType = CheckType.OBJECT_ID;
+        helper.logMessage("\nStart to check Data Object records id that is illegal.\n", false, toConsole);
+
         DbConsistencyStatus status = getStatusFromZk();
         Collection<DataObjectType> resumeDataCfs = resumeFromWorkingPoint(checkType, status.getWorkingPoint());
 
@@ -120,7 +122,8 @@ public class DbConsistencyChecker {
             totalDirtyCount += dirtyCount;
         }
 
-        String msg = String.format("\nTotally check %d cfs, %d rows are dirty.\n", resumeDataCfs.size(), totalDirtyCount);
+        String msg = String.format("\nFinish to check DataObject records id: totally checked %d data CFs, "
+                + "%d corrupted rows found.\n", resumeDataCfs.size(), totalDirtyCount);
         helper.logMessage(msg, false, toConsole);
 
         return totalDirtyCount;
@@ -159,10 +162,8 @@ public class DbConsistencyChecker {
 
         DbCheckerFileWriter.close();
 
-        String msg = String.format(
-                "\nFinish to check DataObject CFs: totally checked %d data CFs, "
-                        + "%d corrupted rows found.",
-                resumeDataCfs.size(), totalCorruptedCount);
+        String msg = String.format("\nFinish to check DataObject records index: totally checked %d data CFs, "
+                + "%d corrupted rows found.\n", resumeDataCfs.size(), totalCorruptedCount);
 
         helper.logMessage(msg, false, toConsole);
 
@@ -202,8 +203,8 @@ public class DbConsistencyChecker {
 
         DbCheckerFileWriter.close();
 
-        String msg = String.format("\nFinish to check INDEX CFs: totally checked %d indices " +
-                "and %d corrupted rows found.", resumeIdxCfs.size(), totalCorruptCount);
+        String msg = String.format("\nFinish to check INDEX records: totally checked %d indices " +
+                "and %d corrupted rows found.\n", resumeIdxCfs.size(), totalCorruptCount);
 
         helper.logMessage(msg, false, toConsole);
 

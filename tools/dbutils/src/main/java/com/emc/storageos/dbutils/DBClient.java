@@ -1122,14 +1122,17 @@ public class DBClient {
         try {
             DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper(_dbClient);
             DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
-            checker.check();
+            int corruptedCount = checker.check();
 
             String msg = "\nAll the checks have been done.";
-            String fileMsg = String.format(
-                    "\nClean up cql files [%s] are created in current folder. please read into them for detail cleanup operations.",
-                    DbCheckerFileWriter.getGeneratedFileNames());
-            System.out.println(msg + fileMsg);
-            log.info(msg + fileMsg);
+            if (corruptedCount != 0) {
+                String fileMsg = String.format(
+                        "\nClean up cql files [%s] are created in current folder. please read into them for detail cleanup operations.",
+                        DbCheckerFileWriter.getGeneratedFileNames());
+                msg += fileMsg;
+            }
+            System.out.println(msg);
+            log.info(msg);
         } catch (ConnectionException e) {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "

@@ -36,20 +36,22 @@ public class DbConsistencyChecker {
         this.toConsole = toConsole;
     }
 
-    public void check() throws ConnectionException {
+    public int check() throws ConnectionException {
         init();
+        int corruptedCount = 0;
         CheckType checkType = getCheckTypeFromZK();
         switch (checkType) {
             case OBJECT_ID:
-                checkObjectId();
+                corruptedCount += checkObjectId();
                 setNextCheckType();
             case OBJECT_INDICES:
-                checkObjectIndices();
+                corruptedCount += checkObjectIndices();
                 setNextCheckType();
             case INDEX_OBJECTS:
-                checkIndexObjects();
+                corruptedCount += checkIndexObjects();
         }
 
+        return corruptedCount;
     }
 
     public void persistStatus(DbConsistencyStatus status) {
@@ -64,6 +66,10 @@ public class DbConsistencyChecker {
     }
 
     private void init() {
+        if (toConsole) {
+            return;
+        }
+
         int cfCount = TypeMap.getAllDoTypes().size();
         int indexCount = helper.getAllIndices().values().size();
         this.totalCount = indexCount + cfCount * 2;
@@ -83,42 +89,6 @@ public class DbConsistencyChecker {
             status.update(nextType.name(), null);
             persistStatus(status);
         }
-    }
-
-    private Collection resumeFromWorkingPoint(CheckType checkType, String workingPoint) {
-        Collection sortedCfs;
-        if (checkType == CheckType.INDEX_OBJECTS) {
-            Collection<IndexAndCf> idxCfs = helper.getAllIndices().values();
-            sortedCfs = sortIndexCfs(idxCfs);
-        } else {
-            // Currently, other cases are related to DataObjectType
-            Collection<DataObjectType> allDoTypes = TypeMap.getAllDoTypes();
-            sortedCfs = sortDataObjectCfs(allDoTypes);
-        }
-
-        if (toConsole || workingPoint == null) {
-            return sortedCfs;
-        }
-        boolean found = false;
-        List resumeCfs = new ArrayList<>();
-        for (Object cfEntry : sortedCfs) {
-            String cfWorkingPoint;
-            if (checkType == CheckType.INDEX_OBJECTS) {
-                IndexAndCf idxCf = (IndexAndCf) cfEntry;
-                cfWorkingPoint = idxCf.generateKey();
-            } else {
-                DataObjectType dataCf = (DataObjectType) cfEntry;
-                cfWorkingPoint = dataCf.getCF().getName();
-            }
-
-            if (workingPoint.equals(cfWorkingPoint)) {
-                found = true;
-            }
-            if (found) {
-                resumeCfs.add(cfEntry);
-            }
-        }
-        return found ? resumeCfs : sortedCfs;
     }
 
     /**
@@ -239,6 +209,42 @@ public class DbConsistencyChecker {
         helper.logMessage(msg, false, toConsole);
 
         return totalCorruptCount;
+    }
+
+    private Collection resumeFromWorkingPoint(CheckType checkType, String workingPoint) {
+        Collection sortedCfs;
+        if (checkType == CheckType.INDEX_OBJECTS) {
+            Collection<IndexAndCf> idxCfs = helper.getAllIndices().values();
+            sortedCfs = sortIndexCfs(idxCfs);
+        } else {
+            // Currently, other cases are related to DataObjectType
+            Collection<DataObjectType> allDoTypes = TypeMap.getAllDoTypes();
+            sortedCfs = sortDataObjectCfs(allDoTypes);
+        }
+
+        if (toConsole || workingPoint == null) {
+            return sortedCfs;
+        }
+        boolean found = false;
+        List resumeCfs = new ArrayList<>();
+        for (Object cfEntry : sortedCfs) {
+            String cfWorkingPoint;
+            if (checkType == CheckType.INDEX_OBJECTS) {
+                IndexAndCf idxCf = (IndexAndCf) cfEntry;
+                cfWorkingPoint = idxCf.generateKey();
+            } else {
+                DataObjectType dataCf = (DataObjectType) cfEntry;
+                cfWorkingPoint = dataCf.getCF().getName();
+            }
+
+            if (workingPoint.equals(cfWorkingPoint)) {
+                found = true;
+            }
+            if (found) {
+                resumeCfs.add(cfEntry);
+            }
+        }
+        return found ? resumeCfs : sortedCfs;
     }
 
     private Collection<DataObjectType> sortDataObjectCfs(Collection<DataObjectType> allDoTypes) {

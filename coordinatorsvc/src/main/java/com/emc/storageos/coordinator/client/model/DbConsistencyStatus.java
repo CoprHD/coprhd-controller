@@ -181,13 +181,22 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
     }
     
     @JsonIgnore
-    public void update(int total, String workingPoint, int inconsistencyCount) {
+    public void update(int total, String checkType, String workingPoint, int inconsistencyCount) {
         this.checkedCount++;
-        this.progress = (int)(this.checkedCount*100/total);
+        this.progress = this.checkedCount * 100 / total;
+        this.checkType = checkType;
         this.workingPoint = workingPoint;
         this.inconsistencyCount = inconsistencyCount;
-        log.info(String.format("update, total=%d workingPoint=%s inconsistencyCount=%d progress=%d checkedCount=%d", 
-                total, workingPoint, inconsistencyCount, progress, checkedCount));
+        log.info(String.format("update, total=%d checkType=%s workingPoint=%s inconsistencyCount=%d progress=%d checkedCount=%d",
+                total, checkType, workingPoint, inconsistencyCount, progress, checkedCount));
+    }
+
+    @JsonIgnore
+    public void update(String checkType, String workingPoint) {
+        this.checkType = checkType;
+        this.workingPoint = workingPoint;
+        log.info(String.format("update, checkType=%s workingPoint=%s",
+                checkType, workingPoint));
     }
     
     @JsonIgnore

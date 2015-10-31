@@ -51,7 +51,7 @@ public class DbConsistencyCheckerHelper {
      *
      * @return number of corrupted rows
      */
-            int checkDataObject(DataObjectType doType, boolean toConsole) {
+    protected int checkDataObject(DataObjectType doType, boolean toConsole) {
         int dirtyCount = 0;
         _log.info("Check CF {}", doType.getDataObjectClass().getName());
 
@@ -91,14 +91,85 @@ public class DbConsistencyCheckerHelper {
     }
 
     /**
+     * Scan all the data object records, to find out the object record is existing but the related index is missing.
+     *
+     * @param doType
+     * @param toConsole whether print out in the console
+     * @return the number of corrupted data
+     * @throws ConnectionException
+     */
+    protected int checkCFIndices(DataObjectType doType, boolean toConsole) throws ConnectionException {
+        int dirtyCount = 0;
+        Class objClass = doType.getDataObjectClass();
+        _log.info("Check Data Object CF {}", objClass);
+
+        List<ColumnField> indexedFields = new ArrayList<>();
+        for (ColumnField field : doType.getColumnFields()) {
+            if (field.getIndex() == null) {
+                continue;
+            }
+            indexedFields.add(field);
+        }
+
+        if (indexedFields.isEmpty()) {
+            return dirtyCount;
+        }
+
+        Keyspace keyspace = dbClient.getKeyspace(objClass);
+
+        ColumnFamilyQuery<String, CompositeColumnName> query = keyspace.prepareQuery(doType.getCF());
+
+        OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows()
+                .withColumnRange(CompositeColumnNameSerializer.get().buildRange().greaterThanEquals(DataObject.INACTIVE_FIELD_NAME)
+                        .lessThanEquals(DataObject.INACTIVE_FIELD_NAME).reverse().limit(1))
+                .setRowLimit(dbClient.DEFAULT_PAGE_SIZE).execute();
+
+        for (Row<String, CompositeColumnName> objRow : result.getResult()) {
+            Set<URI> ids = new HashSet<>();
+            for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                // If inactive is true, skip this record
+                if (column.getBooleanValue() != true) {
+                    ids.add(URI.create(objRow.getKey()));
+                }
+            }
+
+            for (ColumnField indexedField : indexedFields) {
+                Rows<String, CompositeColumnName> rows = dbClient.queryRowsWithAColumn(keyspace, ids, doType.getCF(), indexedField);
+                for (Row<String, CompositeColumnName> row : rows) {
+                    for (Column<CompositeColumnName> column : row.getColumns()) {
+                        String indexKey = getIndexKey(indexedField, column);
+                        if (indexKey == null) {
+                            continue;
+                        }
+                        boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
+                                getIndexColumns(indexedField, column, row.getKey()));
+                        if (!isColumnInIndex) {
+                            dirtyCount++;
+                            logMessage(String.format(
+                                    "Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
+                                    indexedField.getDataObjectType().getSimpleName(), row.getKey(), indexedField.getName(),
+                                    indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
+                                    true, toConsole);
+                            DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
+                                    String.format("id:%s, cfName:%s", row.getKey(),
+                                            indexedField.getDataObjectType().getSimpleName()));
+                        }
+                    }
+                }
+            }
+        }
+
+        return dirtyCount;
+    }
+
+    /**
      * Scan all the indices and related data object records, to find out
      * the index record is existing but the related data object records is missing.
      *
      * @return number of the corrupted rows in this index CF
      * @throws ConnectionException
      */
-            int checkIndexingCF(IndexAndCf indexAndCf, Map<String, ColumnFamily<String, CompositeColumnName>> objCfs,
-                    boolean toConsole) throws ConnectionException {
+    protected int checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole) throws ConnectionException {
         int indexRowCount = 0;
         int objCfCount = 0;
         int corruptRowCount = 0;
@@ -107,6 +178,7 @@ public class DbConsistencyCheckerHelper {
         int corruptRowCountInIdx = 0;
 
         String indexCFName = indexAndCf.cf.getName();
+        Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
         _log.info("Start checking the index CF {}", indexCFName);
 
         Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck = new HashMap<>();
@@ -199,78 +271,6 @@ public class DbConsistencyCheckerHelper {
                 indexCFName, indexRowCount, objRowCount, objCfCount, corruptRowCount), false, toConsole);
 
         return corruptRowCount;
-    }
-
-    /**
-     * Scan all the data object records, to find out the object record is existing but the related index is missing.
-     *
-     * @param doType
-     * @param toConsole whether print out in the console
-     * @return the number of corrupted data
-     * @throws ConnectionException
-     */
-            int checkCFIndices(DataObjectType doType, boolean toConsole) throws ConnectionException {
-        int dirtyCount = 0;
-        Class objClass = doType.getDataObjectClass();
-        _log.info("Check Data Object CF {}", objClass);
-
-        List<ColumnField> indexedFields = new ArrayList<>();
-        for (ColumnField field : doType.getColumnFields()) {
-            if (field.getIndex() == null) {
-                continue;
-            }
-            indexedFields.add(field);
-        }
-
-        if (indexedFields.isEmpty()) {
-            return dirtyCount;
-        }
-
-        Keyspace keyspace = dbClient.getKeyspace(objClass);
-
-        ColumnFamilyQuery<String, CompositeColumnName> query = keyspace.prepareQuery(doType.getCF());
-
-        OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows()
-                .withColumnRange(CompositeColumnNameSerializer.get().buildRange().greaterThanEquals(DataObject.INACTIVE_FIELD_NAME)
-                        .lessThanEquals(DataObject.INACTIVE_FIELD_NAME).reverse().limit(1))
-                .setRowLimit(dbClient.DEFAULT_PAGE_SIZE).execute();
-
-        for (Row<String, CompositeColumnName> objRow : result.getResult()) {
-            Set<URI> ids = new HashSet<>();
-            for (Column<CompositeColumnName> column : objRow.getColumns()) {
-                // If inactive is true, skip this record
-                if (column.getBooleanValue() != true) {
-                    ids.add(URI.create(objRow.getKey()));
-                }
-            }
-
-            for (ColumnField indexedField : indexedFields) {
-                Rows<String, CompositeColumnName> rows = dbClient.queryRowsWithAColumn(keyspace, ids, doType.getCF(), indexedField);
-                for (Row<String, CompositeColumnName> row : rows) {
-                    for (Column<CompositeColumnName> column : row.getColumns()) {
-                        String indexKey = getIndexKey(indexedField, column);
-                        if (indexKey == null) {
-                            continue;
-                        }
-                        boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
-                                getIndexColumns(indexedField, column, row.getKey()));
-                        if (!isColumnInIndex) {
-                            dirtyCount++;
-                            logMessage(String.format(
-                                    "Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing.",
-                                    indexedField.getDataObjectType().getSimpleName(), row.getKey(), indexedField.getName(),
-                                    indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey),
-                                    true, toConsole);
-                            DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
-                                    String.format("id:%s, cfName:%s", row.getKey(),
-                                            indexedField.getDataObjectType().getSimpleName()));
-                        }
-                    }
-                }
-            }
-        }
-
-        return dirtyCount;
     }
 
     public Map<String, IndexAndCf> getAllIndices() {

@@ -60,7 +60,7 @@
   #{/if}
   #{if newVersions.size() > 0}
   <legend>&{'upgrade.steps'}</legend>
-  	<form id=backup action="@{backup()}" onsubmit="return true">
+  	<form id=backup action="@{Backup.create()}" onsubmit="return true">
   	<div class="text"><b>&{'upgrade.backupDB'}</b>
 		<button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.backup'}</button>
   	</div>

@@ -67,12 +67,6 @@ public class Upgrade extends Controller {
                 checkProgress, isDbCheckStatus);
     }
 
-    /*
-     * Method to navigate to Backup page from Upgrade page
-     */
-    public static void backup() {
-        render();
-    }
 
     /*
      * Method to trigger Database consistency check

@@ -77,7 +77,7 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
     public void setInconsistencyCount(int inconsistencyCount) {
         this.inconsistencyCount = inconsistencyCount;
     }
-    
+
     public int getCheckedCount() {
         return checkedCount;
     }
@@ -93,7 +93,7 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
     public void setCheckType(String checkType) {
         this.checkType = checkType;
     }
-    
+
     @Override
     @JsonIgnore
     public String encodeAsString() {
@@ -118,7 +118,7 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
     public CoordinatorClassInfo getCoordinatorClassInfo() {
         throw new UnsupportedOperationException("");
     }
-    
+
     @Override
     @JsonIgnore
     public String toString() {
@@ -129,12 +129,12 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
             throw CoordinatorException.fatals.failedToSerialize(e);
         }
     }
-    
+
     @JsonIgnore
     public boolean isFinished() {
-        return this.status==Status.SUCCESS || this.status==Status.FAILED;
+        return this.status == Status.SUCCESS || this.status == Status.FAILED;
     }
-    
+
     @JsonIgnore
     public boolean isCancelled() {
         return this.status == Status.CANCEL;
@@ -142,17 +142,18 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
 
     @JsonIgnore
     public void moveToPrevious() {
-        previous = new DbConsistencyStatus();
-        previous.setStartTime(this.getStartTime());
-        previous.setEndTime(this.getEndTime());
-        previous.setStatus(this.getStatus());
-        previous.setProgress(this.getProgress());
-        previous.setWorkingPoint(this.getWorkingPoint());
-        previous.setInconsistencyCount(this.getInconsistencyCount());
-        previous.setCheckedCount(this.getCheckedCount());
+        this.previous = new DbConsistencyStatus();
+        this.previous.setStartTime(this.getStartTime());
+        this.previous.setEndTime(this.getEndTime());
+        this.previous.setStatus(this.getStatus());
+        this.previous.setProgress(this.getProgress());
+        this.previous.setWorkingPoint(this.getWorkingPoint());
+        this.previous.setInconsistencyCount(this.getInconsistencyCount());
+        this.previous.setCheckedCount(this.getCheckedCount());
+        this.previous.setCheckType(this.getCheckType());
         init();
     }
-    
+
     @JsonIgnore
     public void init() {
         this.startTime = new Date();
@@ -162,9 +163,9 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
         this.progress = 0;
         this.inconsistencyCount = 0;
         this.checkedCount = 0;
-        this.previous = null;
+        this.checkType = null;
     }
-    
+
     @JsonIgnore
     public void movePreviousBack() {
         if (this.previous == null) {
@@ -177,16 +178,17 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
         this.workingPoint = this.previous.getWorkingPoint();
         this.inconsistencyCount = this.previous.getInconsistencyCount();
         this.checkedCount = this.previous.getCheckedCount();
+        this.checkType = this.previous.getCheckType();
         this.previous = null;
     }
-    
+
     @JsonIgnore
     public void update(int total, String checkType, String workingPoint, int inconsistencyCount) {
         this.checkedCount++;
         this.progress = this.checkedCount * 100 / total;
         this.checkType = checkType;
         this.workingPoint = workingPoint;
-        this.inconsistencyCount = inconsistencyCount;
+        this.inconsistencyCount += inconsistencyCount;
         log.info(String.format("update, total=%d checkType=%s workingPoint=%s inconsistencyCount=%d progress=%d checkedCount=%d",
                 total, checkType, workingPoint, inconsistencyCount, progress, checkedCount));
     }
@@ -198,7 +200,7 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
         log.info(String.format("update, checkType=%s workingPoint=%s",
                 checkType, workingPoint));
     }
-    
+
     @JsonIgnore
     public void markResult(Status status) {
         this.endTime = new Date();

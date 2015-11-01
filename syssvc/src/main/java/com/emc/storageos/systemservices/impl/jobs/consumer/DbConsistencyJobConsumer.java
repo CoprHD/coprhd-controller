@@ -21,8 +21,8 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyJobConsumer.class);
     private CoordinatorClient coordinator;
     private DbConsistencyChecker dbChecker;
-    private static final String[] MODEL_PACKAGES = new String[] {"com.emc.storageos.db.client.model"}; 
-    private static final AtomicBoolean schemaInitialized =  new AtomicBoolean(false);
+    private static final String[] MODEL_PACKAGES = new String[] { "com.emc.storageos.db.client.model" };
+    private static final AtomicBoolean schemaInitialized = new AtomicBoolean(false);
 
     @Override
     public void consumeItem(DbConsistencyJob job, DistributedQueueItemProcessedCallback callback) throws Exception {
@@ -38,13 +38,13 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
             log.info("it's in cancel state, return");
             return;
         }
-        
+
         try {
             dbChecker.persistStatus(status);
             initSchemaIfNot();
             dbChecker.check();
             status = markResult();
-        } catch(Exception e) {
+        } catch (Exception e) {
             log.error("failed to check db consistency {}", e);
             status = markFailure();
         } finally {
@@ -67,13 +67,12 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         status.markResult(Status.FAILED);
         return status;
     }
-    
+
     private DbConsistencyStatus markResult() {
         DbConsistencyStatus status = dbChecker.getStatusFromZk();
         if (status.getInconsistencyCount() > 0) {
             log.info("there are {} inconsistency found, mark result as fail", status.getInconsistencyCount());
             status.markResult(Status.FAILED);
-
         } else {
             log.info("no inconsistency record found, mark result as successful");
             status.markResult(Status.SUCCESS);
@@ -86,11 +85,11 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         status.init();
         return status;
     }
-    
+
     private boolean isFreshStart(DbConsistencyStatus status) {
-        return status==null;
+        return status == null;
     }
-    
+
     public CoordinatorClient getCoordinator() {
         return coordinator;
     }

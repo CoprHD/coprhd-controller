@@ -190,7 +190,7 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
         this.workingPoint = workingPoint;
         this.inconsistencyCount += inconsistencyCount;
         log.info(String.format("update, total=%d checkType=%s workingPoint=%s inconsistencyCount=%d progress=%d checkedCount=%d",
-                total, checkType, workingPoint, inconsistencyCount, progress, checkedCount));
+                total, checkType, workingPoint, this.inconsistencyCount, progress, checkedCount));
     }
 
     @JsonIgnore

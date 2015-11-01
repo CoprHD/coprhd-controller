@@ -7,7 +7,6 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -163,7 +162,7 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
     {
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                 exportGroup, storageURI);
-        if (exportMasks != null)
+        if (exportMasks != null && !exportMasks.isEmpty())
         {
             // Set up work flow steps.
             Workflow workflow = _workflowService.getNewWorkflow(

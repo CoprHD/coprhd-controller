@@ -118,6 +118,7 @@ public class BackupService {
                     backupInfo.getCreateTime(),
                     uploadStatus));
         }
+        log.info("Current upload status is: {}", uploadStatus);
         return backupSets;
     }
 
@@ -247,6 +248,7 @@ public class BackupService {
         log.info("Received get upload status request, backup tag={}", backupTag);
         try {
             BackupUploadStatus uploadStatus = backupScheduler.getUploadExecutor().getUploadStatus(backupTag);
+            log.info("Current upload status is: {}", uploadStatus);
             return uploadStatus;
         } catch (Exception e) {
             log.error("Failed to get upload status", e);

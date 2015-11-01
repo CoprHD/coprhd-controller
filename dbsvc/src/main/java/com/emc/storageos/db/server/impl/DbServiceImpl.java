@@ -391,7 +391,18 @@ public class DbServiceImpl implements DbService {
 
         _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
         long diffTime = Math.abs(zkTimeStamp - localTimeStamp);
-        if (diffTime >= MAX_SERVICE_OUTAGE_TIME) {
+        long limitTime = MAX_SERVICE_OUTAGE_TIME;
+        File limitFile = new File(dbDir, "limit");
+        if (limitFile.exists()) {
+            try {
+                String limitStr = readValueFromFile(limitFile, "limitInSec");
+                limitTime = Long.parseLong(limitStr) * TimeUtils.SECONDS;
+            } catch(Exception e) {
+                _log.warn("Failed to read value from {}", limitFile.getAbsolutePath());
+            }
+        }
+
+        if (diffTime >= limitTime) {
             String errMsg = String.format("We detect database files on local disk are more than %s days older " +
                     "than last time it was seen in the cluster. It may bring stale data into the database, " +
                     "so the service cannot continue to boot. It may be the result of a VM snapshot rollback. " +
@@ -401,7 +412,7 @@ public class DbServiceImpl implements DbService {
         }
 
         Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
-        if (offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
+        if (offlineTime != null && offlineTime >= limitTime) {
             String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
                     "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
                     "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);

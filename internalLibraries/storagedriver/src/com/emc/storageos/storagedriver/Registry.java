@@ -16,6 +16,16 @@ public interface Registry {
     public void setDriverAttributesForKey(String driverName, String key, Map<String, List<String>> attributes);
 
     /**
+     * Add driver attribute for a specified key to registry.
+     * If attribute already exist in registry, its value will be overwritten.
+     * @param driverName
+     * @param key
+     * @param attribute
+     * @param value
+     */
+    public void addDriverAttributeForKey(String driverName, String key, String attribute, List<String> value);
+
+    /**
      * Get all attributes for a given driver and a given key
      *
      * @param driverName

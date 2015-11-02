@@ -41,7 +41,7 @@ public class DbConsistencyChecker {
         init();
         int corruptedCount = 0;
         CheckType checkType = getCheckTypeFromZK();
-        log.info("db consistency check type:{}", checkType.name());
+        log.info("db consistency check type:{}", checkType);
         switch (checkType) {
             case OBJECT_ID:
                 corruptedCount += checkObjectId();
@@ -84,13 +84,13 @@ public class DbConsistencyChecker {
         }
 
         CheckType checkType = getCheckTypeFromZK();
-        CheckType[] types = CheckType.values();
-        if (checkType.ordinal() < types.length - 1) {
-            CheckType nextType = types[checkType.ordinal() + 1];
-            DbConsistencyStatus status = getStatusFromZk();
-            status.update(nextType.name(), null);
-            persistStatus(status);
+        
+        if(!checkType.hasNext()){
+            return;
         }
+        DbConsistencyStatus status = getStatusFromZk();
+        status.update(checkType.getNext().name(), null);
+        persistStatus(status);
     }
 
     /**
@@ -270,12 +270,24 @@ public class DbConsistencyChecker {
     }
 
     private enum CheckType {
-        // This enums' order determines the order of checking
-        OBJECT_ID,
-        OBJECT_INDICES,
-        INDEX_OBJECTS,
+        OBJECT_ID("OBJECT_INDICES"),
+        OBJECT_INDICES("INDEX_OBJECTS"),
+        INDEX_OBJECTS(null);
+        
+        private String next;
+        CheckType(String next) {
+            this.next = next;
+        }
+        
+        public CheckType getNext() {
+            return valueOf(next);
+        }
+        
+        public boolean hasNext() {
+            return this.next != null;
+        }
     }
-
+    
     private CheckType getCheckTypeFromZK() {
         CheckType defaultType = CheckType.OBJECT_ID;
         if (toConsole) {

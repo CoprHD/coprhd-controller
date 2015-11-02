@@ -345,11 +345,15 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             if (quotas != null && !quotas.getList().isEmpty()) {
                 for (IsilonSmartQuota quota : quotas.getList()) {
                     if (quota.getThresholds() != null && quota.getThresholds().getHard() != null) {
-                        provisioned = quota.getThresholds().getHard();
-                        provisioned = provisioned/GB_IN_BYTES;
-                        totalProvCap = totalProvCap + provisioned;
+                        provisioned = provisioned + quota.getThresholds().getHard();
                         totalFsCount ++;
                     }
+                }
+              //sum snap cap and add to fs capacity
+                if (provisioned > GB_IN_BYTES) {
+                    provisioned = (provisioned/GB_IN_BYTES);
+                    totalProvCap = totalProvCap + provisioned;
+                    provisioned = 0L;
                 }
                 resumeToken = quotas.getToken();
             }

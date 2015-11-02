@@ -865,17 +865,24 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupUri);
 
-            StringSet unmanagedVolumeClusters = unManagedVolume.getVolumeInformation().get(
-                    SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString());
-            // Add a ViPR CG mapping for just one of the VPlex clusters the VPlex CG
-            // belongs to... in the case of local this will be just one, and in the case
-            // of distributed, either cluster name is okay to use - COP-17846
-            if (unmanagedVolumeClusters != null && !unmanagedVolumeClusters.isEmpty()) {
-                String clusterName = unmanagedVolumeClusters.iterator().next();
-                cg.addSystemConsistencyGroup(system.getId().toString(),
-                        BlockConsistencyGroupUtils.buildClusterCgName(clusterName, cgName));
-
-                _dbClient.updateAndReindexObject(cg);
+            // Add a system consistency group mapping for the varray the cluster is connected to
+            try {
+                String vplexClusterName = VPlexControllerUtils.getVPlexClusterName(
+                        _dbClient, cg.getVirtualArray(), system.getId());
+                if (vplexClusterName != null) {
+                    cg.addSystemConsistencyGroup(system.getId().toString(),
+                            BlockConsistencyGroupUtils.buildClusterCgName(vplexClusterName, cgName));
+                    _dbClient.updateAndReindexObject(cg);
+                } else {
+                    throw new Exception(
+                            "could not determine VPLEX cluster name for virtual array " 
+                                    + cg.getVirtualArray());
+                }
+            } catch (Exception ex) {
+                String message = "could not determine VPLEX cluster placement for consistency group " 
+                            + cg.getLabel() + " configured on UnManagedVolume " + unManagedVolume.getLabel();
+                _logger.error(message, ex);
+                throw IngestionException.exceptions.generalVolumeException(unManagedVolume.getLabel(), message);
             }
 
             volume.setConsistencyGroup(consistencyGroupUri);

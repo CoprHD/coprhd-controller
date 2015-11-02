@@ -55,6 +55,8 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
  * Data revision change and simulatenous cluster poweroff are also managed here
  */
 public class VdcSiteManager extends AbstractManager {
+    private static final int SWITCH_OVER_FINISH_CHECK_INTERVAL_MS = 1000;
+
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
     private static final String VDC_IDS_KEY = "vdc_ids";
@@ -199,8 +201,8 @@ public class VdcSiteManager extends AbstractManager {
             log.info("Step3: If VDC configuration is changed update");
             if (vdcPropertiesChanged()) {
                 log.info("Step3: Current vdc properties are not same as target vdc properties. Updating.");
-                log.info("Current local vdc properties: " + localVdcPropInfo);
-                log.info("Target vdc properties: " + targetVdcPropInfo);
+                log.debug("Current local vdc properties: " + localVdcPropInfo);
+                log.debug("Target vdc properties: " + targetVdcPropInfo);
 
                 try {
                     updateVdcProperties(svcId);
@@ -779,7 +781,7 @@ public class VdcSiteManager extends AbstractManager {
                 log.info("Reboot this node after planned failover");
                 localRepository.reboot();
             } else {
-                Thread.sleep(1000*3);
+                Thread.sleep(SWITCH_OVER_FINISH_CHECK_INTERVAL_MS);
             }
         }
     }

@@ -234,9 +234,7 @@ public class VdcConfigUtil {
         vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
         
         Site currentSite = drUtil.getSite(currentSiteId);
-        vdcConfig.put(
-                SITE_IS_SWITCHING_OVER,
-                String.valueOf(currentSite.getState() == SiteState.PRIMARY_SWITCHING_OVER
+        vdcConfig.put(SITE_IS_SWITCHING_OVER, String.valueOf(currentSite.getState() == SiteState.PRIMARY_SWITCHING_OVER
                         || currentSite.getState() == SiteState.STANDBY_SWITCHING_OVER));
     }
 

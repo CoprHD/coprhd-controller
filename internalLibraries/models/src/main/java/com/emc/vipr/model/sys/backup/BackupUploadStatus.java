@@ -117,7 +117,7 @@ public class BackupUploadStatus {
             return;
         }
         switch (this.status) {
-            case INIT:
+            case NOT_STARTED:
                 this.progress = null;
                 this.errorCode = null;
                 break;
@@ -141,7 +141,7 @@ public class BackupUploadStatus {
      * The status of uploading backup set
      */
     public enum Status {
-        INIT,         // the initial state
+        NOT_STARTED,  // have not started yet
         IN_PROGRESS,  // in progress
         FAILED,       // failed
         DONE,         // success

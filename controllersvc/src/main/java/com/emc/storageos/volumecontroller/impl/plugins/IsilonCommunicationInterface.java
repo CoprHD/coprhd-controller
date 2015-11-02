@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -22,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.CifsServerMap;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -2710,11 +2712,12 @@ private PhysicalNAS findPhysicalNasByNativeId(StorageSystem system, String nativ
 	            system, nativeId,
 	            NativeGUIDGenerator.PORT);
 	    // Check if storage port was already discovered
-	    @SuppressWarnings("deprecation")
-	    List<URI> portURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-	            getStoragePortByNativeGuidConstraint(portNativeGuid));
+	    
+	    URIQueryResultList resultSetList = new URIQueryResultList();
+	    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+	            getStoragePortByNativeGuidConstraint(portNativeGuid), resultSetList);
 	    StoragePort port = null;
-	    for (URI portUri : portURIs) {
+	    for (URI portUri : resultSetList) {
 	        port = _dbClient.queryObject(StoragePort.class, portUri);
 	        if(port != null) {
 	            if (port.getStorageDevice().equals(system.getId()) && !port.getInactive()) {

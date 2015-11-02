@@ -654,13 +654,16 @@ public class VirtualDataCenterService extends TaskResourceService {
     public String rotateIPsecKey() {
 
         String psk = ipsecKeyGenerator.generate();
-        ipsecConfig.setDefaultPskFile(psk);
-        String version = updateTargetSiteInfo();
+        try {
+            ipsecConfig.setPreSharedKey(psk);
+            String version = updateTargetSiteInfo();
+            // TODO: audit log
 
-        // TODO: audit log
-
-        _log.info("IPsec Key gets rotated successfully to the version {}", version);
-        return version;
+            _log.info("IPsec Key gets rotated successfully to the version {}", version);
+            return version;
+        } catch (Exception e) {
+            throw SecurityException.fatals.failToRotateIPsecKey(e);
+        }
     }
 
     private String updateTargetSiteInfo() {

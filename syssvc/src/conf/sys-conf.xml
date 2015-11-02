@@ -120,6 +120,10 @@
                 </bean>
                 <ref bean="backupService" />
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
+                <bean class="com.emc.storageos.systemservices.impl.resource.DbConsistencyService">
+                    <property name="coordinator" ref="coordinator" />
+                    <property name="jobProducer" ref="dbConsistencyJobProducer" />
+                </bean>
             </set>
         </property>
     </bean>
@@ -388,5 +392,21 @@
 
     <bean id="apiNotifier" class="com.emc.storageos.systemservices.impl.property.APINotifier">
         <property name="coordinator" ref="coordinator"/>
+    </bean>
+    <bean id="dbConsistencyJobProducer" class="com.emc.storageos.systemservices.impl.jobs.producer.DbConsistencyJobProducer" init-method="startQueue" destroy-method="stopQueue">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="consumer" ref="dbConsistencyJobConsumer"/>
+    </bean>
+    <bean id="dbConsistencyJobConsumer" class="com.emc.storageos.systemservices.impl.jobs.consumer.DbConsistencyJobConsumer">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbChecker" ref="dbChecker" />
+    </bean>
+    <bean id="dbCheckerHelper" class="com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    <bean id="dbChecker" class="com.emc.storageos.db.client.impl.DbConsistencyChecker">
+        <property name="coordinator" ref="coordinator" />
+        <property name="toConsole" value="false" />
+        <property name="helper" ref="dbCheckerHelper"/>
     </bean>
 </beans>

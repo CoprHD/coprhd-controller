@@ -20,6 +20,10 @@ public class PathConstants {
     public static final String BACKUP_CREATE_URL = BACKUP_URL + "backup/";
     public static final String BACKUP_UPLOAD_URL = BACKUP_URL + "backup/upload";
 
+    public static final String CHECKDB_URL="/control/db";
+    public static final String CHECKDB_GET_URL = CHECKDB_URL + "/consistency";
+    public static final String CHECKDB_CANCEL_URL = CHECKDB_GET_URL + "/cancel";
+
     public static final String PASSWORD_URL = "/password";// NOSONAR ("Suppressing Sonar violation of variable")
     public static final String UPDATE_AUTH_KEY_URL = PASSWORD_URL + "/authorizedkey2";
     public static final String UPDATE_PASSWORD_URL = PASSWORD_URL + "/reset";

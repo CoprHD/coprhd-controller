@@ -3178,11 +3178,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         String internalSiteName = null;
         boolean isSource = false;
         boolean isTarget = false;
-        boolean isMPStandby = copyName.contains("Standby");
-        List<Volume> cgVolumes = RPHelper.getCgVolumes(consistencyGroup.getId(), _dbClient);
-        if (cgVolumes.isEmpty()) {
-            throw APIException.badRequests.noExistingVolumesInCG(consistencyGroup.getId().toString());
-        }
+        boolean isMPStandby = copyName.contains("Standby");        
 
         // get the list of source and target volumes; for metropoint, source volumes include both sides of the source metro volume                       
         List<Volume> sourceVolumes = RPHelper.getCgSourceVolumes(consistencyGroup.getId(), _dbClient);
@@ -3197,29 +3193,35 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             StringSet associatedVolumes = firstSrc.getAssociatedVolumes();
             if (associatedVolumes != null && !associatedVolumes.isEmpty()) {
                 for (String associatedVolumeStr : associatedVolumes) {
-                    URI associatedVolumeURI = URI.create(associatedVolumeStr);
-                    Volume associatedVolume = _dbClient.queryObject(Volume.class, associatedVolumeURI);
-                    internalSiteNames.add(associatedVolume.getInternalSiteName());
-                    if (associatedVolume.getRpCopyName().equals(copyName)) {
-                		isSource = !isMPStandby;
-                		internalSiteName = associatedVolume.getInternalSiteName();
-                	}
-                }
+                	URI associatedVolumeURI = URI.create(associatedVolumeStr);
+                	Volume associatedVolume = _dbClient.queryObject(Volume.class, associatedVolumeURI);
+                	internalSiteNames.add(associatedVolume.getInternalSiteName());
+                	if (NullColumnValueGetter.isNotNullValue(associatedVolume.getRpCopyName())) {
+                		if (associatedVolume.getRpCopyName().equals(copyName)) {
+                			isSource = !isMPStandby;
+                			internalSiteName = associatedVolume.getInternalSiteName();
+                		}
+                	}                    	
+                }               
             }
-        } else {
+        } else {        	
         	internalSiteNames.add(firstSrc.getInternalSiteName());
-        	if (firstSrc.getRpCopyName().equals(copyName)) {
-        		isSource = true;
-        		internalSiteName = firstSrc.getInternalSiteName();
-        	}
+        	if (NullColumnValueGetter.isNotNullValue(firstSrc.getRpCopyName())) {
+        		if (firstSrc.getRpCopyName().equals(copyName)) {
+        			isSource = true;
+        			internalSiteName = firstSrc.getInternalSiteName();
+        		}
+        	}        		        	        	
         }
    
         for(String targetURIString : firstSrc.getRpTargets()) {
         	Volume tgtVolume = _dbClient.queryObject(Volume.class, URI.create(targetURIString));        	
-        	if (tgtVolume.getRpCopyName().equals(copyName)) {
-        		isTarget = true;
-        		internalSiteName = tgtVolume.getInternalSiteName();
-        	}
+        	if (NullColumnValueGetter.isNotNullValue(tgtVolume.getRpCopyName())) {
+        		if (tgtVolume.getRpCopyName().equals(copyName)) {
+            		isTarget = true;            		
+            		internalSiteName = tgtVolume.getInternalSiteName();            	
+            	}
+        	}        	
         }
                 
         if (internalSiteName == null) {

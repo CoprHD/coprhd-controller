@@ -20,7 +20,7 @@ public class Server {
 	
 	Server(String host, int port, String username, String password, boolean useHTTPS)
 	{
-		server = createNaServer(host, port, username, password, useHTTPS, false, null);
+		server = createNaServer(host, port, username, password, useHTTPS, false, null, false);
 	}
 	
     public Server(String host, int port, String username, String password, boolean useHTTPS,

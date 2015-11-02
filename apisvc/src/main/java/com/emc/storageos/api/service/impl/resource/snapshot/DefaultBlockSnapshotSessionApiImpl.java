@@ -198,8 +198,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * @param tenantURI The URI of the tenant.
      */
     protected <T extends DataObject> void checkForPendingTasks(T object, URI tenantURI) {
-        BlockServiceUtils.checkForPendingTasks(Arrays.asList(tenantURI),
-                Arrays.asList(object), _dbClient);
+        BlockServiceUtils.checkForPendingTasks(tenantURI, Arrays.asList(object), _dbClient);
     }
 
     /**

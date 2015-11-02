@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
-import static com.emc.storageos.db.client.model.BlockMirror.SynchronizationState.FRACTURED;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.google.common.collect.Collections2.transform;
 
@@ -227,7 +226,7 @@ public class BlockServiceUtils {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
     }
-    
+
     /**
      * Check if the storage system type is openstack, vnxblock, vmax or ibmxiv.
      * Snapshot full copy is supported only on these storage systems.
@@ -239,10 +238,10 @@ public class BlockServiceUtils {
     public static boolean isSnapshotFullCopySupported(URI blockSnapURI, DbClient dbClient) {
         BlockSnapshot blockObj = dbClient.queryObject(BlockSnapshot.class, blockSnapURI);
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, blockObj.getStorageController());
-        return (storage != null && (storage.deviceIsType(Type.openstack) 
-                                    || storage.deviceIsType(Type.vnxblock)
-                                    || storage.deviceIsType(Type.ibmxiv)
-                                    || storage.deviceIsType(Type.vmax)));
+        return (storage != null && (storage.deviceIsType(Type.openstack)
+                || storage.deviceIsType(Type.vnxblock)
+                || storage.deviceIsType(Type.ibmxiv)
+                || storage.deviceIsType(Type.vmax)));
     }
 
     /**
@@ -377,15 +376,26 @@ public class BlockServiceUtils {
     }
 
     /**
-     * Given a list of Tenants and DataObject references, check if any of the DataObjects have pending
+     * Given a Tenant and DataObject references, check if any of the DataObjects have pending
      * Tasks against them. If so, generate an error that this cannot be deleted.
      * 
-     * @param tenants - in] List or Tenant URIs
+     * @param tenant - [in] Tenant URI
      * @param dataObjects - [in] List of DataObjects to check
      * @param dbClient - Reference to a database client
      */
-    public static void checkForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects, DbClient dbClient) {
-        Set<URI> objectURIsThatHavePendingTasks = getObjectURIsThatHavePendingTasks(tenants, dbClient);
+    public static void checkForPendingTasks(URI tenant, Collection<? extends DataObject> dataObjects, DbClient dbClient) {
+        // First, find tasks for the resources sent in.
+        Set<URI> objectURIsThatHavePendingTasks = new HashSet<URI>();
+
+        // Get a unique list of Task objects associated with the data objects
+        for (DataObject dataObject : dataObjects) {
+            List<Task> newTasks = TaskUtils.findResourceTasks(dbClient, dataObject.getId());
+            for (Task newTask : newTasks) {
+                if (newTask.isPending() && newTask.getTenant().equals(tenant)) {
+                    objectURIsThatHavePendingTasks.add(dataObject.getId());
+                }
+            }
+        }
 
         // Search through the list of Volumes to see if any are in the pending list
         List<String> pendingObjectLabels = new ArrayList<>();

@@ -115,7 +115,7 @@ public abstract class TaskResourceService extends TaggedResource {
      * @param tenant - [in] Tenant URI
      * @param dataObjects - [in] List of DataObjects to check
      */
-    private void checkForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects) {
-        BlockServiceUtils.checkForPendingTasks(tenants, dataObjects, _dbClient);
+    private void checkForPendingTasks(URI tenant, Collection<? extends DataObject> dataObjects) {
+        BlockServiceUtils.checkForPendingTasks(tenant, dataObjects, _dbClient);
     }
 }

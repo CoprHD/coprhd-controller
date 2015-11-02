@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.VPlexUtil;
 
 public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
 
@@ -54,6 +55,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
             case error:
                 _log.error("An error occurred during virtual pool change " + "- restore the old virtual pool to the volume(s): {}",
                         serviceCoded.getMessage());
+                    List<Volume> volumesToUpdate = new ArrayList<Volume>();
                 // We either are using a single old Vpool URI or a map of Volume URI to old Vpool URI
                 for (URI id : getIds()) {
                     URI oldVpoolURI = oldVpool;
@@ -69,13 +71,15 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                     volume.setVirtualPool(oldVpoolURI);
                     _log.info("Set volume's virtual pool back to {}", oldVpoolURI);
 
-                    dbClient.persistObject(volume);
+                        rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient);
+                        volumesToUpdate.add(volume);
 
                     if (volume.checkForRp()) {
                         VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
                         RPHelper.rollbackProtectionOnVolume(volume, oldVpool, dbClient);
                     }
                 }
+                    dbClient.updateObject(volumesToUpdate);
                 break;
             case ready:
                 // The new Vpool has already been stored in the volume in BlockDeviceExportController.
@@ -113,6 +117,36 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                 }
             }
             super.complete(dbClient, status, serviceCoded);
+        }
+    }
+
+    /**
+     * Roll back vPool on vplex backend volumes.
+     */
+    private void rollBackVpoolOnVplexBackendVolume(Volume volume, List<Volume> volumesToUpdate, DbClient dbClient) {
+        // Check if it is a VPlex volume, and get backend volumes
+        Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
+        if (backendSrc != null) {
+            _log.info("Rolling back virtual pool on VPLEX backend Source volume {}({})", backendSrc.getId(), backendSrc.getLabel());
+
+            backendSrc.setVirtualPool(oldVpool);
+            _log.info("Set volume's virtual pool back to {}", oldVpool);
+            volumesToUpdate.add(backendSrc);
+
+            // VPlex volume, check if it is distributed
+            Volume backendHa = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient, false);
+            if (backendHa != null) {
+                _log.info("Rolling back virtual pool on VPLEX backend Distributed volume {}({})", backendHa.getId(), backendHa.getLabel());
+
+                VirtualPool oldVpoolObj = dbClient.queryObject(VirtualPool.class, oldVpool);
+                VirtualPool oldHAVpool = VirtualPool.getHAVPool(oldVpoolObj, dbClient);
+                if (oldHAVpool == null) { // it may not be set
+                    oldHAVpool = oldVpoolObj;
+                }
+                backendHa.setVirtualPool(oldHAVpool.getId());
+                _log.info("Set volume's virtual pool back to {}", oldHAVpool.getId());
+                volumesToUpdate.add(backendHa);
+            }
         }
     }
 }

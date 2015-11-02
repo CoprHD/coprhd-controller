@@ -295,8 +295,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             if (VirtualPool.vPoolSpecifiesMirrors(vpool, _dbClient)) {
                 if (mirrorCount > vpool.getMaxNativeContinuousCopies()) {
                     if (context.isDistributed() && mirrorCount == 2) {
-                        // there are two mirrors and as long as the cluster ids
-                        // are different (one on each leg), then we can ingest it
+                        // there are two mirrors
+                        // we need to check that they are on different clusters
                         List<UnManagedVolume> mirrors = new ArrayList<UnManagedVolume>();
                         for (UnManagedVolume mirror : context.getUnmanagedVplexMirrors().keySet()) {
                             mirrors.add(mirror);
@@ -309,6 +309,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                                     SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(), 
                                     mirrors.get(1).getVolumeInformation());
                             if (backendClusterId0.equals(backendClusterId1)) {
+                                // the different clusters check failed
                                 StringBuilder reason = new StringBuilder("the volume's mirrors must be on separate ");
                                 reason.append(" vplex clusters. mirrors found: ");
                                 reason.append(backendClusterId0).append(": ")
@@ -319,7 +320,15 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                                 _logger.error(message);
                                 throw IngestionException.exceptions.validationException(message);
                             } else {
+                                // a high availability vpool is required
                                 VirtualPool haVpool = VirtualPool.getHAVPool(vpool, _dbClient);
+                                if (haVpool == null) {
+                                    String reason = "no high availability virtual pool is "
+                                            + "set on source virtual pool " + vpool.getLabel();
+                                    _logger.error(reason);
+                                    throw IngestionException.exceptions.validationException(reason);
+                                }
+                                // max continuous copies needs to be set to one on both source and ha vpools
                                 if (vpool.getMaxNativeContinuousCopies() == 1
                                         && haVpool.getMaxNativeContinuousCopies() == 1) {
                                     _logger.info("volume is distributed, has a mirror on each leg, both source and "

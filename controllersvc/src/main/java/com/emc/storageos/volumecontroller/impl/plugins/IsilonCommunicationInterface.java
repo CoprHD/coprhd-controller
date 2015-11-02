@@ -674,6 +674,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, storageSystem.getFirmwareVersion()) > 0) {
                 protocols.add(NFS);
             }
+            boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
+            if (isNfsV4Enabled) {
+                protocols.add(NFSv4);
+            }
 
             StoragePort storagePort = null;
             StringSet storagePorts = null;
@@ -743,6 +747,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         StringSet protocolSet = new StringSet();
                         protocolSet.add(CIFS);
                         protocolSet.add(NFS);
+                        if (isNfsV4Enabled) {
+                            protocolSet.add(NFSv4);
+                        }
                         physicalNAS.setProtocols(protocolSet);
                         // add system access zone
                         newPhysicalNASList.add(physicalNAS);

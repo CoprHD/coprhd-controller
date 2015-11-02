@@ -117,8 +117,8 @@ public class BackupService {
                     backupInfo.getSize(),
                     backupInfo.getCreateTime(),
                     uploadStatus));
+            log.info("Current upload status is: {}", uploadStatus);
         }
-        log.info("Current upload status is: {}", uploadStatus);
         return backupSets;
     }
 
@@ -147,8 +147,10 @@ public class BackupService {
         for (BackupSetInfo backupInfo : backupList) {
             if (backupInfo.getName().equals(backupTag)) {
                 BackupUploadStatus uploadStatus = getBackupUploadStatus(backupInfo.getName());
-                return new BackupSets.BackupSet(backupInfo.getName(), backupInfo.getSize(),
+                BackupSets.BackupSet backupSet = new BackupSets.BackupSet(backupInfo.getName(), backupInfo.getSize(),
                         backupInfo.getCreateTime(), uploadStatus);
+                log.info("BackupSet={}", backupSet.toString());
+                return backupSet;
             }
         }
         return new BackupSets.BackupSet();

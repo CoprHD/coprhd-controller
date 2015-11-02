@@ -461,7 +461,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
 
     private void ddCreateExports(DataDomainClient ddClient, String storagePoolId,
             FSExportMap exportMap, List<FileExport> createFileExports)
-                    throws DataDomainApiException {
+            throws DataDomainApiException {
         for (FileExport fileExport : createFileExports) {
             // Build export map for export create
             String exportName;
@@ -873,7 +873,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         try {
             _log.info("DataDomainFileStorageDevice doDeleteShare: {} - start");
             DataDomainClient ddClient = getDataDomainClient(storage);
@@ -986,7 +986,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doDeleteSnapshot(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
 
         String message = "Data Domain snapshots not supported yet, delete operation failed";
         _log.error(message);
@@ -1034,7 +1034,7 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
         // TODO To be implemented once Data Domain provides snapshot APIs
         String message = "Data Domain snapshots not supported yet, get list operation failed";
         _log.error(message);
@@ -1562,6 +1562,18 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
     public BiosCommandResult deleteShareACLs(StorageSystem storageObj,
             FileDeviceInputOutput args) {
 
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.datadomain.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.datadomain.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.datadomain.operationNotSupported());
     }

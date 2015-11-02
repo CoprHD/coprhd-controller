@@ -122,7 +122,8 @@ URI_FILE_QUOTA_DIR_DELETE       = URI_FILE_QUOTA_DIR + '/deactivate'
 URI_DR                     = URI_SERVICES_BASE  + '/site'
 URI_DR_GET                 = URI_DR   + '/{0}'
 URI_DR_DELETE              = URI_DR   + '/{0}'
-URI_DR_PAUSE               = URI_DR   + '/pause' + '/{0}'
+URI_DR_PAUSE               = URI_DR   + '/{0}' + '/pause'
+URI_DR_Resume              = URI_DR   + '/{0}' + '/resume'
 
 URI_VDC                     = URI_SERVICES_BASE  + '/vdc'
 URI_VDC_GET                 = URI_VDC    + '/{0}'
@@ -3273,6 +3274,12 @@ class Bourne:
 
     def dr_pause_standby(self,uuid):
         resp = self.api('POST', URI_DR_PAUSE.format(uuid))
+        print "DR PAUSE STANDBY RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
+    def dr_resume_standby(self,uuid):
+        resp = self.api('POST', URI_DR_RESUME.format(uuid))
         print "DR PAUSE STANDBY RESP = ",resp
         self.assert_is_dict(resp)
         return resp

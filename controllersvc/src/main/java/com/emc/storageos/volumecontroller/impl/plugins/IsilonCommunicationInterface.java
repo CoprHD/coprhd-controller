@@ -742,14 +742,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    }
                } else {
                    _log.info("Process the System access zone {} ", isilonAccessZone.toString());
+                   StringSet protocolSet = new StringSet();
+                   protocolSet.add(CIFS);
+                   protocolSet.add(NFS);
+                   
                    physicalNAS = findPhysicalNasByNativeId(storageSystem, isilonAccessZone.getZone_id().toString());
                    if (physicalNAS == null) {
                        physicalNAS = createPhysicalNas(storageSystem, isilonAccessZone);
-                      //set protocols
-                       StringSet protocolSet = new StringSet();
-                       protocolSet.add(CIFS);
-                       protocolSet.add(NFS);
-                       physicalNAS.setProtocols(protocolSet);
                        //add system access zone
                        newPhysicalNASList.add(physicalNAS);
                    } else {
@@ -761,6 +760,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                    if (!cifsServersMap.isEmpty()) {
                        physicalNAS.setCifsServersMap(cifsServersMap);
                    }
+                   //set the protocol
+                   physicalNAS.setProtocols(protocolSet);
                    
                    //set the smart connect
                    if (isilonNetworkPoolsSysAZ != null) {

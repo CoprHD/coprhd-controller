@@ -2217,4 +2217,4 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             return sortedMap;
         }
     }
-};
+}

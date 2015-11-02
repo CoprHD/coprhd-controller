@@ -49,6 +49,7 @@ public class VdcConfigUtil {
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
     public static final String VDC_VIP6_PTN = "vdc_%s_network_vip6";
     public static final String SITE_IS_STANDBY="site_is_standby";
+    public static final String SITE_IS_SWITCHING_OVER="site_is_switchingover";
     public static final String SITE_MYID="site_myid";
     public static final String SITE_IDS="site_ids";
 
@@ -188,6 +189,9 @@ public class VdcConfigUtil {
         List<String> shortIds = new ArrayList<>();
         for (Site site : siteList) {
             if (site.getUuid().equals(primarySiteId)) {
+                if (isLocalSite(site) && site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+                    vdcConfig.put(SITE_MYID, site.getStandbyShortId());
+                }
                 continue; // ignore primary site 
             }
 
@@ -226,9 +230,14 @@ public class VdcConfigUtil {
         Collections.sort(shortIds);
         vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
         
-        
         boolean isStandby = !currentSiteId.equals(primarySiteId);
         vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
+        
+        Site currentSite = drUtil.getSite(currentSiteId);
+        vdcConfig.put(
+                SITE_IS_SWITCHING_OVER,
+                String.valueOf(currentSite.getState() == SiteState.PRIMARY_SWITCHING_OVER
+                        || currentSite.getState() == SiteState.STANDBY_SWITCHING_OVER));
     }
 
     private boolean isLocalSite(Site site) {

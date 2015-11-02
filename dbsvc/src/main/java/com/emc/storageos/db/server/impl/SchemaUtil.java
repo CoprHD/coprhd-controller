@@ -18,6 +18,8 @@ import java.util.Properties;
 
 import javax.crypto.SecretKey;
 
+import jline.internal.Log;
+
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.codec.binary.Base64;
@@ -379,6 +381,11 @@ public class SchemaUtil {
         String dcId = String.format("%s-%s", _vdcShortId, _standbyId);
 
         if (strategyOptions.containsKey(dcId)) {
+            return false;
+        }
+        
+        if (_vdcShortId.equals(_standbyId)) {
+            Log.info("{} and {} are equals, ignore", _vdcShortId, _standbyId);
             return false;
         }
 

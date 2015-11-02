@@ -4,12 +4,12 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +28,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
@@ -69,6 +71,8 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
 
 /**
  * APIs implementation to standby sites lifecycle management such as add-standby, remove-standby, failover, pause
@@ -541,7 +545,9 @@ public class DisasterRecoveryService {
 
             // Set old primary site's state, short id and key
             Site oldPrimarySite = drUtil.getSite(oldPrimaryUUID);
-            oldPrimarySite.setStandbyShortId(generateShortId(existingSites));
+            if (StringUtils.isEmpty(oldPrimarySite.getStandbyShortId())) {
+                oldPrimarySite.setStandbyShortId(vdc.getShortId());
+            }
             oldPrimarySite.setState(SiteState.PRIMARY_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(oldPrimarySite.getUuid(), oldPrimarySite.toConfiguration());
             
@@ -556,6 +562,14 @@ public class DisasterRecoveryService {
             DistributedAtomicInteger daiOldPrimary = coordinator.getDistributedAtomicInteger(oldPrimaryUUID,
                     Constants.SWITCHOVER_PRIMARY_NODECOUNT);
             daiOldPrimary.forceSet(oldPrimaryHostCount);
+            
+            DistributedAtomicInteger daiTotal = coordinator.getDistributedAtomicInteger(uuid,
+                    Constants.SWITCHOVER_PRIMARY_TOTAL_NODECOUNT);
+            daiTotal.forceSet(vdc.getHostCount() + oldPrimaryHostCount);
+            
+            log.info("total node count: {}, new primary node count: {}, old primary node count: {}",
+                    new String[]{String.valueOf(vdc.getHostCount() + oldPrimaryHostCount), String.valueOf(vdc.getHostCount()),
+                    String.valueOf(oldPrimaryHostCount)});
             
             // trigger local property change to reconfig
             updateVdcTargetVersion(oldPrimaryUUID, SiteInfo.RECONFIG_RESTART);
@@ -684,9 +698,7 @@ public class DisasterRecoveryService {
 
         } catch (Exception e) {
             log.error(String.format("Failed to failover to site %s", standbyUuid), e);
-            InternalServerErrorException failoverException = APIException.internalServerErrors.plannedFailoverPrecheckFailed(standbyUuid, e.getMessage());
-            setSiteError(standbyUuid, failoverException);
-            throw failoverException;
+            throw APIException.internalServerErrors.plannedFailoverPrecheckFailed(standbyUuid, e.getMessage());
         }
     }
     

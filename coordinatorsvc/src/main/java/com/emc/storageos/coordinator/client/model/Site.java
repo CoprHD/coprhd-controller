@@ -271,6 +271,8 @@ public class Site {
         builder.append(name);
         builder.append(", vip=");
         builder.append(vip);
+        builder.append(", state=");
+        builder.append(state);
         builder.append(", description=");
         builder.append(description);
         builder.append(", hostIPv4AddressMap=");

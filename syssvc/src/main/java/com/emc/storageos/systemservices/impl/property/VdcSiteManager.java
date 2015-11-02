@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.atomic.AtomicValue;
 import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
@@ -33,7 +32,6 @@ import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
@@ -43,7 +41,6 @@ import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
@@ -202,8 +199,8 @@ public class VdcSiteManager extends AbstractManager {
             log.info("Step3: If VDC configuration is changed update");
             if (vdcPropertiesChanged()) {
                 log.info("Step3: Current vdc properties are not same as target vdc properties. Updating.");
-                log.debug("Current local vdc properties: " + localVdcPropInfo);
-                log.debug("Target vdc properties: " + targetVdcPropInfo);
+                log.info("Current local vdc properties: " + localVdcPropInfo);
+                log.info("Target vdc properties: " + targetVdcPropInfo);
 
                 try {
                     updateVdcProperties(svcId);
@@ -368,6 +365,9 @@ public class VdcSiteManager extends AbstractManager {
 
     private void reconfigRestartSvcs() throws Exception {
         try {
+            Site site = drUtil.getSite(drUtil.getCoordinator().getSiteId());
+            log.info("Site: {}", site.toString());
+            
             PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
             // set the vdc_config_version to an invalid value so that it always gets retried on failure.
             vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
@@ -384,8 +384,11 @@ public class VdcSiteManager extends AbstractManager {
             // TODO: think again how to make use of the dynamic zookeeper configuration
             // The previous approach disconnects all the clients, no different than a service restart.
             localRepository.reconfigProperties("coordinator");
-            localRepository.restart("coordinatorsvc");
-
+            
+            if (!site.getState().equals(SiteState.STANDBY_SWITCHING_OVER) && !site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER)) {
+                log.info("not for switchover, restart coordinatorsvc");
+                localRepository.restart("coordinatorsvc");
+            }
 
             localRepository.reconfigProperties("db");
             //localRepository.restart("dbsvc");
@@ -741,17 +744,7 @@ public class VdcSiteManager extends AbstractManager {
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
             }
             
-            //rolling reboot new primary node to make sure there is ZK leader 
-            while (true) {
-                if (!getVdcLock(svcId)) {
-                    log.info("Retry to get vdc lock to restart node");
-                    retrySleep(); // retry until we get the lock
-                    continue;
-                }
-                
-                log.info("Reboot this node after planned failover");
-                localRepository.reboot();
-            }
+            rebootWhenSwitchoverFinish();
         }
         
         if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
@@ -769,8 +762,25 @@ public class VdcSiteManager extends AbstractManager {
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
             }
             
-            log.info("Reboot this node after planned failover");
-            localRepository.reboot();
+            rebootWhenSwitchoverFinish();
+        }
+    }
+
+    private void rebootWhenSwitchoverFinish() throws Exception, InterruptedException {
+        DistributedAtomicInteger daiTotal = coordinator.getCoordinatorClient().getDistributedAtomicInteger(drUtil.getPrimarySiteId(),
+                Constants.SWITCHOVER_PRIMARY_TOTAL_NODECOUNT);
+        AtomicValue<Integer> totalNodeCountLeft = daiTotal.decrement();
+        
+        log.info("{} total node left to do failover", totalNodeCountLeft.postValue());
+        while (true) {
+            log.info("Current value is {}", daiTotal.get().postValue());
+            
+            if (daiTotal.get().postValue() <= 0) {
+                log.info("Reboot this node after planned failover");
+                localRepository.reboot();
+            } else {
+                Thread.sleep(1000*3);
+            }
         }
     }
 }

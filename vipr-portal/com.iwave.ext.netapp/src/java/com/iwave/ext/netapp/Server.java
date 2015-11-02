@@ -23,14 +23,16 @@ public class Server {
 		server = createNaServer(host, port, username, password, useHTTPS, false, null);
 	}
 	
-    public Server(String host, int port, String username, String password, boolean useHTTPS, String vFilerName)
+    public Server(String host, int port, String username, String password, boolean useHTTPS,
+    		String vFilerName, boolean isCluster)
     {
-        server = createNaServer(host, port, username, password, useHTTPS, false, vFilerName);
+        server = createNaServer(host, port, username, password, useHTTPS, false, vFilerName, isCluster);
     }
     
-    public Server(String host, int port, String username, String password, boolean useHTTPS, boolean isVserver, String vServerName)
+    public Server(String host, int port, String username, String password, boolean useHTTPS,
+    		boolean isVserver, String vServerName, boolean isCluster)
     {
-        server = createNaServer(host, port, username, password, useHTTPS, isVserver, vServerName);
+        server = createNaServer(host, port, username, password, useHTTPS, isVserver, vServerName, isCluster);
     }
     
 	public NaServer getNaServer()
@@ -38,11 +40,18 @@ public class Server {
 		return server;
 	}
 	
-	private NaServer createNaServer(String addr, int port, String username, String password, boolean useHTTPS, boolean isVserver, String vServerName) 
+	private NaServer createNaServer(String addr, int port, String username, String password,
+			boolean useHTTPS, boolean isVserver, String vServerName, boolean isCluster ) 
 	{
 		NaServer server = null;
 		try {
-			server = new NaServer(addr, 1, 20);
+			
+			if (isCluster) {
+				server = new NaServer(addr, 1, 20);
+			} else {
+				server = new NaServer(addr, 1, 17);
+			}
+			
 			server.setServerType(NaServer.SERVER_TYPE_FILER);
 			server.setStyle(NaServer.STYLE_LOGIN_PASSWORD);
 			if( useHTTPS ) {

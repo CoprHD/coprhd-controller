@@ -345,7 +345,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     _logger.info("ingest umfs {} is mounted to vNAS Uri {} invalid for project", path, nasUri);
                     continue;
                 }
-
+                
                 // Check to see if UMFS's storagepool's Tagged neighborhood has the "passed in" neighborhood.
                 // if not don't ingest
                 if (null != pool) {
@@ -387,6 +387,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.setMountPath(mountPath);
                 filesystem.setVirtualPool(param.getVpool());
                 filesystem.setVirtualArray(param.getVarray());
+                if(nasUri != null) {
+                	filesystem.setVirtualNAS(URI.create(nasUri));
+                }
 
                 URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
                 StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);

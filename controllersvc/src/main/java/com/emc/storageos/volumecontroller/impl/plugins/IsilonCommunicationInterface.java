@@ -671,7 +671,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
            //by default all version support CIFS and version above 7.2 NFS also
             StringSet protocols = new StringSet();
             protocols.add(CIFS);
-            if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, storageSystem.getFirmwareVersion()) > 0) {
+            if (VersionChecker.verifyVersionDetails(ONEFS_V7_2, storageSystem.getFirmwareVersion()) >= 0) {
                 protocols.add(NFS);
             } 
             

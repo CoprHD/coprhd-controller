@@ -45,11 +45,17 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
                 _syncAspectMap);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected int processInstances(Iterator<CIMInstance> instances) {
         return processInstances(instances, null);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected int processInstances(Iterator<CIMInstance> instances, WBEMClient client) {
         int count = 0;

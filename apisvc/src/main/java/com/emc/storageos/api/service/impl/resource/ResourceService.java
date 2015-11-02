@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.AbstractTenantResource;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredComputeSystemWithAcls;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
@@ -47,6 +48,7 @@ import com.emc.storageos.db.common.DbDependencyPurger;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.tenant.TenantOrgList;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -194,6 +196,29 @@ public abstract class ResourceService {
      */
     protected void checkForDuplicateName(String name, Class<? extends DataObject> type) {
         checkForDuplicateName(name, type, null, null, _dbClient);
+    }
+
+    /**
+     * Check if a tenant with the same namespace exists
+     * @param namespace     namespace of the tenant
+     */
+    public void checkForDuplicateNamespace(String namespace) {
+        TenantOrgList list = new TenantOrgList();
+        //Verify with root tenant if current is not root
+        TenantOrg rootTenant = _permissionsHelper.getRootTenant();
+        if (rootTenant.getNamespace() != null && rootTenant.getNamespace().equalsIgnoreCase(namespace)) {
+            throw APIException.badRequests.duplicateNamespace(namespace);
+        }
+
+        NamedElementQueryResultList subtenants = new NamedElementQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getTenantOrgSubTenantConstraint(rootTenant.getId()), subtenants);
+        for (NamedElementQueryResultList.NamedElement el : subtenants) {
+            TenantOrg currTenant = _dbClient.queryObject(TenantOrg.class, el.getId());
+            if (currTenant.getNamespace() != null && currTenant.getNamespace().equalsIgnoreCase(namespace)) {
+                    throw APIException.badRequests.duplicateNamespace(namespace);
+            }
+        }
     }
 
     /**

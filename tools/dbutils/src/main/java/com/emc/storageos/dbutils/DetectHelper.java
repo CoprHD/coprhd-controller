@@ -13,6 +13,10 @@ package com.emc.storageos.dbutils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeColumnName;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.impl.AggregateDbIndex;
 import com.emc.storageos.db.client.impl.AltIdDbIndex;
 import com.emc.storageos.db.client.impl.DbIndex;
@@ -24,6 +28,7 @@ import com.emc.storageos.db.client.impl.PrefixDbIndex;
 import com.emc.storageos.db.client.impl.RelationDbIndex;
 import com.emc.storageos.db.client.impl.ScopedLabelDbIndex;
 import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 
 public class DetectHelper {
@@ -183,6 +188,82 @@ public class DetectHelper {
             result = 31 * result + (keyspace != null ? keyspace.hashCode() : 0);
             return result;
         }
+    }
+
+    public static String getIndexKey(ColumnField field, Column<CompositeColumnName> column) {
+        String indexKey = null;
+        DbIndex dbIndex = field.getIndex();
+        boolean indexByKey = field.isIndexByKey();
+        if (dbIndex instanceof AltIdDbIndex) {
+            indexKey = indexByKey ? column.getName().getTwo() : column.getStringValue();
+        } else if (dbIndex instanceof RelationDbIndex) {
+            indexKey = indexByKey ? column.getName().getTwo() : column.getStringValue();
+        } else if (dbIndex instanceof NamedRelationDbIndex) {
+            indexKey = NamedURI.fromString(column.getStringValue()).getURI().toString();
+        } else if (dbIndex instanceof DecommissionedDbIndex) {
+            indexKey = field.getDataObjectType().getSimpleName();
+        } else if (dbIndex instanceof PermissionsDbIndex) {
+            indexKey = column.getName().getTwo();
+        } else if (dbIndex instanceof PrefixDbIndex) {
+            indexKey = field.getPrefixIndexRowKey(column.getStringValue());
+        } else if (dbIndex instanceof ScopedLabelDbIndex) {
+            indexKey = field.getPrefixIndexRowKey(column.getStringValue());
+        } else if (dbIndex instanceof AggregateDbIndex) {
+            // Not support this index type yet.
+        } else {
+            String msg = String.format("Unsupported index type %s.", dbIndex.getClass());
+            log.warn(msg);
+            System.out.println(msg);
+        }
+
+        return indexKey;
+    }
+
+    public static String[] getIndexColumns(ColumnField field, Column<CompositeColumnName> column, String rowKey) {
+        String[] indexColumns = null;
+        DbIndex dbIndex = field.getIndex();
+
+        if (dbIndex instanceof AggregateDbIndex) {
+            // Not support this index type yet.
+            return indexColumns;
+        }
+
+        if (dbIndex instanceof NamedRelationDbIndex) {
+            indexColumns = new String[4];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            NamedURI namedURI = NamedURI.fromString(column.getStringValue());
+            String name = namedURI.getName();
+            indexColumns[1] = name.toLowerCase();
+            indexColumns[2] = name;
+            indexColumns[3] = rowKey;
+
+        } else if (dbIndex instanceof PrefixDbIndex) {
+            indexColumns = new String[4];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            indexColumns[1] = column.getStringValue().toLowerCase();
+            indexColumns[2] = column.getStringValue();
+            indexColumns[3] = rowKey;
+
+        } else if (dbIndex instanceof ScopedLabelDbIndex) {
+            indexColumns = new String[4];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            ScopedLabel label = ScopedLabel.fromString(column.getStringValue());
+            indexColumns[1] = label.getLabel().toLowerCase();
+            indexColumns[2] = label.getLabel();
+            indexColumns[3] = rowKey;
+
+        } else if (dbIndex instanceof DecommissionedDbIndex) {
+            indexColumns = new String[2];
+            Boolean val = column.getBooleanValue();
+            indexColumns[0] = val.toString();
+            indexColumns[1] = rowKey;
+        } else {
+            // For AltIdDbIndex, RelationDbIndex, PermissionsDbIndex
+            indexColumns = new String[2];
+            indexColumns[0] = field.getDataObjectType().getSimpleName();
+            indexColumns[1] = rowKey;
+        }
+        return indexColumns;
     }
 
 }

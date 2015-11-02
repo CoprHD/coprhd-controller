@@ -16,10 +16,7 @@ import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
@@ -205,5 +202,40 @@ public class FileUtils {
         });
 
         return Collections.unmodifiableList(Arrays.asList(files));
+    }
+
+    /**
+     * Get the latest modified date of files under a directory.
+     *
+     * @param directory the directory which file resides in
+     */
+    public static Date getLastModified(File directory) {
+        File[] files = listAllFiles(directory);
+        if (files.length == 0) {
+            return new Date(directory.lastModified());
+        }
+        Arrays.sort(files, new Comparator<File>() {
+            public int compare(File o1, File o2) {
+                return new Long(o2.lastModified()).compareTo(o1.lastModified()); //latest 1st
+            }
+        });
+        return new Date(files[0].lastModified());
+    }
+
+    /**
+     * Returns an array of abstract pathnames denoting the files in the
+     * directory denoted by this abstract pathname and it's sub directories
+     *
+     * @param directory the directory which file resides in
+     */
+    private static File[] listAllFiles(File directory) {
+        List<File> fileList = new ArrayList<File>();
+        for (File file : directory.listFiles()) {
+            if (file.isDirectory()) {
+                fileList.addAll(Arrays.asList(listAllFiles(file)));
+            }
+            fileList.add(file);
+        }
+        return fileList.toArray(new File[0]);
     }
 }

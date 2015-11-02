@@ -155,6 +155,30 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
+    public void pauseMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("pauseMigration", vplexURI, migrationURI, opId);
+        
+    }
+
+    @Override
+    public void resumeMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("resumeMigration", vplexURI, migrationURI, opId);
+        
+    }
+    
+    @Override
+    public void cancelMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("cancelMigration", vplexURI, migrationURI, opId);
+        
+    }
+    
+    @Override
+    public void deleteMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("deleteMigration", vplexURI, migrationURI, opId);
+        
+    }
+
+    @Override
     public void restoreSnapshotSession(URI vplexURI, URI snapSessionURI, String opId)
             throws InternalException {
         queueRequest("restoreSnapshotSession", vplexURI, snapSessionURI, opId);

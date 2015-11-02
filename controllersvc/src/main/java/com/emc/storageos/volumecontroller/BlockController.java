@@ -309,10 +309,12 @@ public interface BlockController extends BlockStorageManagementController {
      * 
      * @param storage URI of storage controller.
      * @param mirrorList List of URIs of block mirrors
+     * @param promotees List of URIs of promoted volumes
+     * @param isCG CG mirror or not
      * @param opId Operation ID
      * @throws InternalException When an exception occurs deactivating the mirror
      */
-    public void deactivateMirror(URI storage, List<URI> mirrorList, Boolean isCG, String opId) throws InternalException;
+    public void deactivateMirror(URI storage, List<URI> mirrorList, List<URI> promotees, Boolean isCG, String opId) throws InternalException;
 
     /**
      * Orchestrates the creation of full copy volumes

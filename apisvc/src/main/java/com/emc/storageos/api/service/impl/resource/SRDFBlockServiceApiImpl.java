@@ -1008,7 +1008,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      */
     @Override
     protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
-            List<URI> volumeURIs) {
+            List<URI> volumeURIs, String deletionType) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         for (URI volumeURI : volumeURIs) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);

@@ -30,6 +30,7 @@
     <import resource="classpath:geoclient-conf.xml"/>
     <import resource="classpath:dbcommon-var.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
+    <import resource="classpath:controller-configinfo.xml"/>
     
     <bean id="modelClient" class="com.emc.storageos.db.client.impl.ModelClientImpl">
         <property name="dbClient" ref="dbclient"/>
@@ -102,6 +103,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="scheduleUtils" ref="storagescheduler" />
         <property name="customConfigHandler" ref="customConfigHandler" />
+        <property name="configInfo" ref="configinfo" />
     </bean>
 
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">

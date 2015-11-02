@@ -104,7 +104,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         String snapshotType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
         client.createVolumeSnapshot(parentVolume.getLabel(), snapLabel, snapTagName, snapshotType, clusterName);
         // Get the snapset details
-        XtremIOConsistencyGroup snapset = client.getSnapshotSetDetails(snap.getSnapsetLabel(), xioClusterName);
+        XtremIOConsistencyGroup snapset = client.getSnapshotSetDetails(snapLabel, xioClusterName);
         List<Object> snapDetails = snapset.getVolList().get(0);
         XtremIOVolume xioSnap = client.getSnapShotDetails(snapDetails.get(1).toString(), xioClusterName);
         // tag the created the snap

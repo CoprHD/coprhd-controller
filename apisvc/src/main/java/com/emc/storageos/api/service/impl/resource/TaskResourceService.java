@@ -99,10 +99,23 @@ public abstract class TaskResourceService extends TaggedResource {
      * Given a list of Tenants and DataObject references, check if any of the DataObjects have pending
      * Tasks against them. If so, generate an error that this cannot be deleted.
      * 
-     * @param tenants - in] List or Tenant URIs
+     * @param tenants - [in] List of Tenant URIs
      * @param dataObjects - [in] List of DataObjects to check
      */
     protected void checkForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects) {
+        for (URI tenant : tenants) {
+            checkForPendingTasks(tenant, dataObjects);
+        }
+    }
+
+    /**
+     * Given a Tenant and DataObject references, check if any of the DataObjects have pending
+     * Tasks against them. If so, generate an error that this cannot be deleted.
+     * 
+     * @param tenant - [in] Tenant URI
+     * @param dataObjects - [in] List of DataObjects to check
+     */
+    private void checkForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects) {
         BlockServiceUtils.checkForPendingTasks(tenants, dataObjects, _dbClient);
     }
 }

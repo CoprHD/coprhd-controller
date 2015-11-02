@@ -226,4 +226,10 @@ public interface FileStorageDevice {
 
     public BiosCommandResult deleteShareACLs(StorageSystem storageObj,
             FileDeviceInputOutput args);
+
+    public BiosCommandResult updateNfsACLs(StorageSystem storage,
+            FileDeviceInputOutput args);
+
+    public BiosCommandResult deleteNfsACLs(StorageSystem storageObj,
+            FileDeviceInputOutput args);
 }

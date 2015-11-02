@@ -42,7 +42,7 @@ public class ShareACLDataTable extends DataTable {
             id = ShareACLForm.createId(this.name, this.type, this.fileSystem, this.shareName, this.domain, this.permission);
         }
     }
-
+    
     public static class SnapshotAclInfo {
 
         public String id;

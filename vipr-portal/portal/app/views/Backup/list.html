@@ -55,13 +55,23 @@ render.uploadProgressMessage = function(o, val) {
         'DONE':    Messages.get("renderFunctions.backupupload.status.done"),
         'CANCELLED':    Messages.get("renderFunctions.backupupload.status.cancel")
     };
+    
+    var errors = {
+           'FTP_NOT_CONFIGURED':     Messages.get("renderFunctions.backupupload.error.notconf"),
+           'BACKUP_NOT_EXIST':   Messages.get("renderFunctions.backupupload.error.notexist"),
+           'INVALID_BACKUP': Messages.get("renderFunctions.backupupload.error.invalid"),
+           'UPLOAD_FAILURE':    Messages.get("renderFunctions.backupupload.error.failure")
+        };
 
-    var message = o.aData.errorSummary;
+    var message = o.aData.status;
+    var errorMsg = o.aData.error;
     if (!message) {
         message = defaultValue(messages[o.aData.status], Messages.get("renderFunction.discovery.status.unknown"));
     }
-    
-    return '<span>' + message + '</span>';
+    if (errorMsg != null){
+    	return '<span>' + messages[o.aData.status] +' - '+errors[o.aData.error] + '</span>';
+    }
+    return '<span>' + messages[o.aData.status] + '</span>';
 }
 
 render.uploadProgress = function(o, val) {
@@ -70,7 +80,7 @@ render.uploadProgress = function(o, val) {
     table.backup.dataTable.afterCreate(function(table) {
         var dataTable = table.getDataTable();
         var itemsJson = #{jsAction @itemsJson(':ids')/};
-        watchUploadState(dataTable, itemsJson, ['uploadstatus','upload']);
+        watchUploadState(dataTable, itemsJson, ['uploadstatus','error','upload']);
     });
 
 

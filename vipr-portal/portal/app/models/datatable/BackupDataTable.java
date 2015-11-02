@@ -45,6 +45,7 @@ public class BackupDataTable extends DataTable {
 		public String id;
 		public String upload;
 		public String status;
+		public String error;
 		public Integer progress = 0;
 
 		public Backup(BackupSet backup) {
@@ -55,6 +56,9 @@ public class BackupDataTable extends DataTable {
 			status = backup.getUploadStatus().getStatus().name();
 			if(backup.getUploadStatus().getProgress()!=null){
 				progress = Math.max(backup.getUploadStatus().getProgress(), MINIMUM_PROGRESS);
+			}
+			if(backup.getUploadStatus().getErrorCode()!=null){
+				error = backup.getUploadStatus().getErrorCode().name();
 			}
 			if(status.equals(Status.FAILED.toString())){
 				progress = 100;

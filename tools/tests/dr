@@ -62,6 +62,9 @@ def wait_for_state(args):
             print("giving up wait_for_state. counter %s args.length %s" % (timeCounter, args.length))
             raise Exception("Timeout occurred while waiting for standby state to "+modifier+"be "+args.state)
 
+def dr_switch_over(args):
+    bourne.connect(args.ip)
+    bourne.dr_switchover(args.uuid)
 
 #----------------------------------------------------------------------
 # command-line parsing
@@ -106,6 +109,10 @@ waitforsync.add_argument('sleep', help = 'sleep of waiting time', type=float)
 waitforsync.add_argument('length', help = 'the whole waiting time', type=float)
 waitforsync.add_argument('-n', action='store_true',  help = 'wait for state to NOT equal')
 
+# switchover dr
+drswitchover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drswitchover.add_argument('uuid', help = 'uuid of standby site to be switched to')
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -132,5 +139,8 @@ elif (cmd == "delete"):
 elif (cmd == "waitforstate"):
     args = waitforsync.parse_args()
     wait_for_state(args)
+elif (cmd == "switchover"):
+    args = drswitchover.parse_args()
+    dr_switch_over(args)
 else:
     parser.print_help()

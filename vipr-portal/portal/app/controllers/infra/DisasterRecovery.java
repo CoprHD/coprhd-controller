@@ -28,8 +28,6 @@ import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.google.common.collect.Lists;
-import com.sun.jersey.api.client.ClientResponse;
-
 import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
@@ -37,7 +35,7 @@ import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
 
 @With(Common.class)
-@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_MONITOR") })
 public class DisasterRecovery extends ViprResourceController {
     protected static final String SAVED_SUCCESS = "disasterRecovery.save.success";
     protected static final String PAUSED_SUCCESS = "disasterRecovery.pause.success";
@@ -102,11 +100,13 @@ public class DisasterRecovery extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(disasterRecoveries, params));
     }
 
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void create() {
         DisasterRecoveryForm site = new DisasterRecoveryForm();
         edit(site);
     }
 
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void edit(String id) {
         render();
     }
@@ -116,6 +116,7 @@ public class DisasterRecovery extends ViprResourceController {
     }
 
     @FlashException(keep = true, referrer = { "create", "edit" })
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void save(DisasterRecoveryForm disasterRecovery) {
         if (disasterRecovery != null) {
             disasterRecovery.validate("disasterRecovery");
@@ -137,6 +138,7 @@ public class DisasterRecovery extends ViprResourceController {
     }
 
     @FlashException("list")
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void delete(@As(",") String[] ids) {
         List<String> uuids = Arrays.asList(ids);
         for (String uuid : uuids) {
@@ -144,7 +146,7 @@ public class DisasterRecovery extends ViprResourceController {
                 flash.error(MessagesUtils.get(UNKNOWN, uuid));
                 list();
             }
-            
+
         }
 
         SiteIdListParam param = new SiteIdListParam();

@@ -135,7 +135,7 @@ nav.computeImages=Compute Images
 nav.sites=Sites
 nav.userGroups=User Groups
 nav.object.buckets=Buckets
-nav.disasterRecovery = Disaster Recovery
+nav.disasterRecovery=Disaster Recovery
 # Override messages in the Secure plugin
 secure.title=
 secure.username=Username:
@@ -3864,6 +3864,16 @@ renderFunctions.recovery.error.sync=Database rebuild failed
 renderFunctions.recovery.error.internal=Internal error
 renderFunctions.recovery.error.helpMsg=Please contact EMC support
 renderFunctions.manage=Manage
+
+renderFunctions.disasterRecovery.status.primary=Primary
+renderFunctions.disasterRecovery.status.adding=Adding Standby
+renderFunctions.disasterRecovery.status.syncing=Syncing Standby
+renderFunctions.disasterRecovery.status.synced=In Synched
+renderFunctions.disasterRecovery.status.paused=Paused Sync
+renderFunctions.disasterRecovery.status.testing=Test Mode
+renderFunctions.disasterRecovery.status.removing=Deleting Standby
+renderFunctions.disasterRecovery.status.error=Error
+renderFunctions.disasterRecovery.status.unknown=Unknown
 
 templates.knob.label=%s of %s
 

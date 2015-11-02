@@ -9,12 +9,12 @@ import java.util.List;
 import util.BackupUtils;
 import util.datatable.DataTable;
 
-import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 import com.google.common.collect.Lists;
 
 public class BackupDataTable extends DataTable {
+	private static final int MINIMUM_PROGRESS = 10;
 
 	public BackupDataTable() {
 		addColumn("name");
@@ -45,7 +45,7 @@ public class BackupDataTable extends DataTable {
 		public String id;
 		public String upload;
 		public String status;
-		public int progress;
+		public Integer progress = 0;
 
 		public Backup(BackupSet backup) {
 			id = backup.getName();
@@ -54,9 +54,7 @@ public class BackupDataTable extends DataTable {
 			size = backup.getSize();
 			status = backup.getUploadStatus().getStatus().name();
 			if(backup.getUploadStatus().getProgress()!=null){
-				progress = backup.getUploadStatus().getProgress();
-			}else{
-				progress = 0;
+				progress = Math.max(backup.getUploadStatus().getProgress(), MINIMUM_PROGRESS);
 			}
 			if(status.equals(Status.FAILED.toString())){
 				progress = 100;

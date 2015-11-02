@@ -14,8 +14,12 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @XmlRootElement(name = "backupsets")
 public class BackupSets {
+    private static final Logger log = LoggerFactory.getLogger(BackupSets.class);
 
     private List<BackupSet> backupSets;
 

@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.security.ipsec.IPsecConfig;
-import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -33,7 +32,6 @@ import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.db.client.impl.DbClientImpl;
@@ -43,12 +41,10 @@ import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * Manage configuration properties for multivdc and disaster recovery. It listens on
@@ -429,7 +425,9 @@ public class VdcSiteManager extends AbstractManager {
         String barrierPath = String.format("%s/%s/VdcPropBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
 
         // the children # should be the node # in entire VDC. before linking together, it's # in a site.
-        DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, getChildrenCountOnBarrier());
+        int nChildrenOnBarrier = getChildrenCountOnBarrier();
+        DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, nChildrenOnBarrier);
+        log.info("Created VdcPropBarrier with the children number {}", nChildrenOnBarrier);
 
         boolean allEntered = barrier.enter(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
         if (allEntered) {
@@ -450,8 +448,7 @@ public class VdcSiteManager extends AbstractManager {
             case SITE:
                 return coordinator.getNodeCount();
             case VDC:
-                // TODO: need a method to return the # of VDC
-                throw new NotImplementedException();
+                return drUtil.getNodeCountWithinVdc();
             default:
                 throw new RuntimeException("Unknown Action Scope is set in SiteInfo: " + scope);
         }

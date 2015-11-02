@@ -18,6 +18,10 @@ import org.apache.commons.lang.RandomStringUtils;
 public class IPsecKeyGenerator {
     private static final int KEY_LENGHT = 64;
 
+    /**
+     * generate a 64-byte key for IPsec
+     * @return
+     */
     public String generate() {
         return RandomStringUtils.random(KEY_LENGHT, true, true);
     }

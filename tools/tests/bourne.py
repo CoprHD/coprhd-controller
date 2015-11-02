@@ -129,6 +129,7 @@ URI_VDC_DISCONNECT_POST     = URI_VDC    + '/{0}/disconnect'
 URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
+URI_VDC_IPSECKEY            = URI_VDC    + '/ipseckey'
 
 URI_VDCINFO                 =  '/object/vdcs' 
 URI_VDCINFO_GET             = URI_VDCINFO    + '/vdc' + '/{0}'
@@ -3268,6 +3269,14 @@ class Bourne:
         resp = self.api('DELETE', URI_DR_DELETE.format(uri))
         print "DR DELETE STANDBY RESP = ",resp
         self.assert_is_dict(resp)
+        return resp
+
+    #
+    # IPsec APIs
+    #
+
+    def ipsc_rotate_key(self):
+        resp = self.api('PUT', URI_VDC_IPSECKEY)
         return resp
 
     #

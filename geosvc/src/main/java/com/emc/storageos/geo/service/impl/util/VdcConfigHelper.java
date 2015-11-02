@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
@@ -109,9 +110,6 @@ public class VdcConfigHelper {
     private static final int WAKEUP_DELAY = 15; // seconds
 
     @Autowired
-    private CoordinatorClient coordinatorClient;
-
-    @Autowired
     private InternalDbClient dbClient;
 
     @Autowired
@@ -143,7 +141,7 @@ public class VdcConfigHelper {
     private void initKeyStore() {
         if (keystore == null) {
             try {
-                keystore = KeyStoreUtil.getViPRKeystore(coordinatorClient);
+                keystore = KeyStoreUtil.getViPRKeystore(coordinator);
             } catch (Exception e) {
                 log.error("Failed to load the VIPR keystore", e);
                 throw new IllegalStateException(e);
@@ -236,20 +234,19 @@ public class VdcConfigHelper {
         // trigger syssvc to update the vdc config to all the nodes in the current vdc
         // add a small deley so that sync process can finish
         wakeupExecutor.schedule(new Runnable() {
+            @Override
             public void run() {
-                for (Service syssvc : coordinator.locateAllServices(
-                        ((CoordinatorClientImpl) coordinator).getSysSvcName(),
-                        ((CoordinatorClientImpl) coordinator).getSysSvcVersion(), null, null)) {
-                    try {
-                        log.info("waking up node: {}", syssvc.getNodeId());
-                        SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
-                                syssvc.getEndpoint());
-                        sysClient.setCoordinatorClient(coordinator);
-                        sysClient.post(SysClientFactory.URI_WAKEUP_PROPERTY_MANAGER, null, null);
-                    } catch (Exception e) {
-                        log.error("Error waking up node: {} Cause:", syssvc.getNodeId(), e);
-                    }
+                String siteId = coordinator.getSiteId();
+                SiteInfo siteInfo;
+                SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
+                if (currentSiteInfo != null) {
+                    siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE,
+                            currentSiteInfo.getTargetDataRevision());
+                } else {
+                    siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.NONE);
                 }
+                coordinator.setTargetInfo(siteId, siteInfo);
+                log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
             }
         }, WAKEUP_DELAY, TimeUnit.SECONDS);
     }

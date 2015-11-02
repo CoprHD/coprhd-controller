@@ -3184,60 +3184,55 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             throw APIException.badRequests.noExistingVolumesInCG(consistencyGroup.getId().toString());
         }
 
-        // get the list of source and target volumes; for metropoint, source volumes include both sides of the source metro volume
-        List<Volume> sourceVolumes = new ArrayList<Volume>();
-        List<Volume> targetVolumes = new ArrayList<Volume>();
-        for (Volume cgVolume : cgVolumes) {
-            if (cgVolume.getPersonality() != null && cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
-                if (_rpHelper.isMetroPointVolume(cgVolume)) {
-                    StringSet associatedVolumes = cgVolume.getAssociatedVolumes();
-                    if (associatedVolumes != null && !associatedVolumes.isEmpty()) {
-                        for (String associatedVolumeStr : associatedVolumes) {
-                            URI associatedVolumeURI = URI.create(associatedVolumeStr);
-                            Volume associatedVolume = _dbClient.queryObject(Volume.class, associatedVolumeURI);
-                            sourceVolumes.add(associatedVolume);
-                        }
-                    }
-                } else {
-                    sourceVolumes.add(cgVolume);
-                }
-            } else if (cgVolume.getPersonality() != null && cgVolume.getPersonality().equals((Volume.PersonalityTypes.TARGET.name()))) {
-                targetVolumes.add(cgVolume);
-            }
+        // get the list of source and target volumes; for metropoint, source volumes include both sides of the source metro volume                       
+        List<Volume> sourceVolumes = RPHelper.getCgSourceVolumes(consistencyGroup.getId(), _dbClient);
+        if (sourceVolumes.isEmpty()) {
+            throw APIException.badRequests.noSourceVolumesInCG(consistencyGroup.getLabel());
         }
-
-        // get the internal site where we want to add the journal volume
-        for (Volume cgVolume : sourceVolumes) {
-            if (cgVolume.getRpCopyName().equals(copyName)) {
-                internalSiteName = cgVolume.getInternalSiteName();
-                isSource = !isMPStandby;
-                break;
-            }
-        }
-
-        if (internalSiteName == null) {
-            for (Volume cgVolume : targetVolumes) {
-                if (cgVolume.getRpCopyName().equals(copyName)) {
-                    internalSiteName = cgVolume.getInternalSiteName();
-                    isTarget = true;
-                    break;
+        
+        Volume firstSrc = sourceVolumes.get(0);
+        StringSet internalSiteNames = new StringSet();
+        
+        if (_rpHelper.isMetroPointVolume(firstSrc)) {
+            StringSet associatedVolumes = firstSrc.getAssociatedVolumes();
+            if (associatedVolumes != null && !associatedVolumes.isEmpty()) {
+                for (String associatedVolumeStr : associatedVolumes) {
+                    URI associatedVolumeURI = URI.create(associatedVolumeStr);
+                    Volume associatedVolume = _dbClient.queryObject(Volume.class, associatedVolumeURI);
+                    internalSiteNames.add(associatedVolume.getInternalSiteName());
+                    if (associatedVolume.getRpCopyName().equals(copyName)) {
+                		isSource = !isMPStandby;
+                		internalSiteName = associatedVolume.getInternalSiteName();
+                	}
                 }
             }
+        } else {
+        	internalSiteNames.add(firstSrc.getInternalSiteName());
+        	if (firstSrc.getRpCopyName().equals(copyName)) {
+        		isSource = true;
+        		internalSiteName = firstSrc.getInternalSiteName();
+        	}
         }
-
+   
+        for(String targetURIString : firstSrc.getRpTargets()) {
+        	Volume tgtVolume = _dbClient.queryObject(Volume.class, URI.create(targetURIString));        	
+        	if (tgtVolume.getRpCopyName().equals(copyName)) {
+        		isTarget = true;
+        		internalSiteName = tgtVolume.getInternalSiteName();
+        	}
+        }
+                
         if (internalSiteName == null) {
             throw APIException.badRequests.unableToFindTheSpecifiedCopy(copyName);
         }
-
-        // if we're adding volumes to a taraget, we need to know if it's local or remote
+        
+        // if we're adding volumes to a target, we need to know if it's local or remote
         int copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
-        if (isTarget) {
-            for (Volume cgVolume : sourceVolumes) {
-                if (internalSiteName.equals(cgVolume.getInternalSiteName())) {
-                    copyType = RecoverPointCGCopyType.LOCAL.getCopyNumber();
-                } else {
-                    copyType = RecoverPointCGCopyType.REMOTE.getCopyNumber();
-                }
+        if (isTarget) {                                
+            if (internalSiteNames.contains(internalSiteName)) {
+                copyType = RecoverPointCGCopyType.LOCAL.getCopyNumber();
+            } else {
+                copyType = RecoverPointCGCopyType.REMOTE.getCopyNumber();
             }
         }
 

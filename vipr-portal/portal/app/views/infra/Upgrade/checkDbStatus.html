@@ -35,7 +35,10 @@
         	#{icon 'danger'/} &{'upgrade.checkDbCancel'}
         </button>
 </form>		
-<script>$('#okButton').attr('disabled',true);</script>
+<script>
+$('#okButton').attr('disabled',true);
+$('#cancelDbButton').attr('disabled',false);
+</script>
 </div>
 </div>
 <script>
@@ -58,14 +61,15 @@ function checkDbProgressUpdate() {
 		
         success: function(result) {
         	updateProgressBar("Status",result.progress);
-        	if(result.progress == 100 || result.status == "FAILED") {
+			if(result.status == "FAILED" || result.status == "SUCCESS") {
     			$('#okButton').attr('disabled',false);
     			$('#cancelDbButton').attr('disabled',true);
     		}
         	if(result.status == "FAILED") {
-        		$("checkDbStatus").text('&{'upgrade.checkDb.failed'}');
+				$("#checkDbStatus").text('&{'upgrade.checkDb.failed'}');
         		updateProgressBarStyle("Status", "danger")
         	}
+			$("#checkDbStatus").text(result.status);
         },
         error: function() {
         }

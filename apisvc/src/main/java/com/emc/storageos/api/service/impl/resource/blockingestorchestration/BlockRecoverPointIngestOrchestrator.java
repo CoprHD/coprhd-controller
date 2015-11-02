@@ -812,11 +812,18 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // find the ingest export strategy and call into for this unmanaged export mask
         IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(unManagedVolume);
         List<UnManagedVolume> unManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
+        
+        List<Initiator> initiators = new ArrayList<Initiator>();
+        Iterator<Initiator> initiatorItr = _dbClient.queryIterativeObjects(Initiator.class, URIUtil.toURIList(em.getKnownInitiatorUris()));
+        while (initiatorItr.hasNext()) {
+            initiators.add(initiatorItr.next());
+        }
+        
         volume = ingestStrategy.ingestExportMasks(
                 unManagedVolume, exportIngestParam, exportGroup,
                 volume, unManagedVolumesToBeDeleted,
                 _dbClient.queryObject(StorageSystem.class, volume.getStorageController()), 
-                newExportGroupWasCreated, _dbClient.queryObject(Initiator.class, URIUtil.toURIList(em.getKnownInitiatorUris())));
+                newExportGroupWasCreated, initiators);
 
         if (null == volume) {
             // an exception should have been thrown by a lower layer in
@@ -824,6 +831,12 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             throw IngestionException.exceptions.generalVolumeException(
                     unManagedVolume.getLabel(), "check the logs for more details");
         }
+        
+        // Write out any updates to the unmanaged volume that occurred during export ingestion
+        _dbClient.updateObject(unManagedVolume);
+        
+        // Write out any updated to the managed volume that occurred during export ingestion
+        _dbClient.updateObject(volume);
     }
 
     /**

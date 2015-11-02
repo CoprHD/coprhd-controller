@@ -716,7 +716,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                        virtualNAS.setCifsServersMap(cifsServersMap);
                    }
                    //set protocol support
-                   virtualNAS.setProtocols(new StringSet());
+                   virtualNAS.setProtocols(protocols);
                    //set the smart connect
                    if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
                        storagePorts = virtualNAS.getStoragePorts();

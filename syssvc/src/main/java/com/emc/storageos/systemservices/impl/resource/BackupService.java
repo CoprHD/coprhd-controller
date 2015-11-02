@@ -56,8 +56,8 @@ public class BackupService {
     private static final Logger log = LoggerFactory.getLogger(BackupService.class);
     private BackupOps backupOps;
     private BackupScheduler backupScheduler;
-    private NamedThreadPoolExecutor backupUploader;
-    private NamedThreadPoolExecutor backupDownloader;
+    private NamedThreadPoolExecutor backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
+    private NamedThreadPoolExecutor backupUploader = new NamedThreadPoolExecutor("BackupUploader", 1);
 
     /**
      * Sets backup client
@@ -117,7 +117,6 @@ public class BackupService {
                     backupInfo.getSize(),
                     backupInfo.getCreateTime(),
                     uploadStatus));
-            log.info("Current upload status is: {}", uploadStatus);
         }
         return backupSets;
     }
@@ -221,7 +220,6 @@ public class BackupService {
     public Response uploadBackup(@QueryParam("tag") final String backupTag) {
         log.info("Received upload backup request, backup tag={}", backupTag);
         try {
-            backupUploader = new NamedThreadPoolExecutor("Backup Uploader", 1);
             Runnable upload = new Runnable() {
                 @Override
                 public void run() {
@@ -339,7 +337,6 @@ public class BackupService {
         final PipedOutputStream pipeOut = new PipedOutputStream();
         PipedInputStream pipeIn = new PipedInputStream(pipeOut);
 
-        this.backupDownloader = new NamedThreadPoolExecutor("BackupDownloader", 10);
         Runnable runnable = new Runnable() {
             public void run() {
                 try {

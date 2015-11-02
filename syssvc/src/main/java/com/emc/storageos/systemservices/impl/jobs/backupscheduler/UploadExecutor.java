@@ -225,9 +225,8 @@ public class UploadExecutor {
         BackupUploadStatus uploadStatus = this.cfg.queryBackupUploadStatus();
         if (backupTag.equals(uploadStatus.getBackupName())) {
             return uploadStatus;
-        } else {
-            return new BackupUploadStatus(backupTag, Status.NOT_STARTED, null, null);
         }
+        return new BackupUploadStatus(backupTag, Status.NOT_STARTED, null, null);
     }
 
     /**

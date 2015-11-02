@@ -279,6 +279,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             URI protectionSystemURI = rpProtectionRec.getProtectionDevice();
             URI changeVpoolVolumeURI = rpProtectionRec.getVpoolChangeVolume();
+            Volume changeVpoolVolume = (changeVpoolVolumeURI == null ? null : _dbClient.queryObject(Volume.class, changeVpoolVolumeURI));
             isChangeVpool = (changeVpoolVolumeURI != null);
             isChangeVpoolForProtectedVolume = rpProtectionRec.isVpoolChangeProtectionAlreadyExists();
 
@@ -389,9 +390,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         Volume sourceVolume = null;
                         ///////// SOURCE ///////////
                         if (!isChangeVpoolForProtectedVolume) {
-                            Volume changeVpoolVolume = null;
-                            if (isChangeVpool) {
-                                changeVpoolVolume = _dbClient.queryObject(Volume.class, changeVpoolVolumeURI);
+                            if (isChangeVpool) {                                
                                 _log.info(String.format("Change Vpool, use existing Source Volume [%s].", changeVpoolVolume.getLabel()));
                             } else {
                                 _log.info("Create RP Source Volume...");
@@ -425,20 +424,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 _log.error("Error trying to upgrade to MetroPoint. Standby journal is null.");
                                 throw APIException.badRequests.rpBlockApiImplPrepareVolumeException(newVolumeLabel);
                             }
-                            
-                            // Add the change vpool volume URI                        
-                            volumeURIs.add(changeVpoolVolumeURI);
-                            
-                            // There's no reason to continue past this point, we have a
-                            // the existing source volume reference and we have 
-                            // the new standby journal.
-                            //
-                            // NOTE: In the future, if we decide to expand change vpool protected
-                            // to include things like adding/removing targets we can continue
-                            // past this point.
-                            break;
+                                                        
+                            // Set the source volume to the change vpool volume.
+                            sourceVolume = changeVpoolVolume;                                                        
                         }
-
                         volumeURIs.add(sourceVolume.getId());
 
                         // NOTE: This is only needed for MetroPoint and Distributed RP+VPLEX(HA as RP source),
@@ -457,7 +446,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // This value will only be used if isSrcAndHaSwapped == true.
                         setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
                                 sourceVolume, metroPointEnabled, isSrcAndHaSwapped, originalVpool.getHaVarrayConnectedToRp());
-
+                        
+                        if (isChangeVpoolForProtectedVolume) {
+                            // There's no reason to continue past this point, we have a
+                            // the existing source volume reference and we have 
+                            // the new standby journal.
+                            //
+                            // NOTE: In the future, if we decide to expand change vpool protected
+                            // to include things like adding/removing targets we can continue
+                            // past this point.
+                            break;
+                        }
+                                                
                         ///////// TARGET(S) ///////////
                         List<URI> protectionTargets = new ArrayList<URI>();
 
@@ -473,7 +473,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             // Check to see if there is a change vpool of a already protected source, if so, we could potentially not need
                             // to provision this target.
                             if (isChangeVpoolForProtectedVolume) {
-                                Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, changeVpoolVolumeURI);
                                 Volume alreadyProvisionedTarget = RPHelper.findAlreadyProvisionedTargetVolume(changeVpoolVolume,
                                         targetRec.getVirtualArray(), _dbClient);
                                 if (alreadyProvisionedTarget != null) {
@@ -520,7 +519,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 // need
                                 // to provision this target. This would sit on the source recommendation, not the standby.
                                 if (isChangeVpoolForProtectedVolume) {
-                                    Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, changeVpoolVolumeURI);
                                     Volume alreadyProvisionedTarget = RPHelper.findAlreadyProvisionedTargetVolume(changeVpoolVolume,
                                             standyTargetVirtualArray.getId(), _dbClient);
                                     if (alreadyProvisionedTarget != null) {

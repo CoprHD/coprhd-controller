@@ -51,6 +51,7 @@ public class IsilonApi {
     private static final URI URI_STATS = URI.create("/platform/1/statistics/");
     private static final URI URI_STORAGE_POOLS = URI.create("/platform/1/diskpool/diskpools");
     private static final URI URI_ARRAY_GLOBAL_STATUS = URI.create("/platform/1/protocols/nfs/settings/global");
+    private static final URI URI_ARRAY_GLOBAL_STATUS_ONEFS8 = URI.create("/platform/3/protocols/nfs/settings/global");
     private static final URI URI_STORAGE_PORTS = URI
             .create("/platform/1/cluster/smartconnect_zones");
     // private static final URI URI_EVENTS = URI.create("/platform/1/events/");
@@ -1430,13 +1431,18 @@ public class IsilonApi {
      * 
      * @return boolean true if exists, false otherwise
      */
-    public boolean nfsv4Enabled() throws IsilonException {
+    public boolean nfsv4Enabled(String firmwareVersion) throws IsilonException {
         ClientResponse resp = null;
         boolean isNfsv4Enabled = false;
         try {
             sLogger.debug("IsilonApi check nfsV4 support retrieve global status - start");
 
-            resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS));
+            // Check if ISILON ONEFS version is 8.0 and more to get NFSV4 details
+            if (firmwareVersion.startsWith("8")) {
+                resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS_ONEFS8));
+            } else {
+                resp = _client.get(_baseUrl.resolve(URI_ARRAY_GLOBAL_STATUS));
+            }
             sLogger.debug("IsilonApi check nfsV4 support retrieve global status - complete");
 
             JSONObject jsonResp = resp.getEntity(JSONObject.class);

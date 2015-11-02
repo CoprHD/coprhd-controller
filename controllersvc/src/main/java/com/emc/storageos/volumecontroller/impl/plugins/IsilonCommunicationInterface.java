@@ -298,7 +298,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                        
                         //set AZ dbMetrics in db
                         virtualNAS.setMetrics(dbMetrics);
-                        _dbClient.persistObject(virtualNAS);
+                        _dbClient.updateObject(virtualNAS);
                     }
                 } else {
                     PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, accessZoneId);
@@ -314,7 +314,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     _log.info("process db metrics for access zone : {}", isAccessZone.getName());
                     populateDbMetricsAz(isAccessZone, isilonApi, dbMetrics);
                     physicalNAS.setMetrics(dbMetrics);
-                    _dbClient.persistObject(physicalNAS);
+                    _dbClient.updateObject(physicalNAS);
                 }
             }
         } catch (Exception e) {

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.systemservices.impl.jobs.consumer;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
@@ -34,16 +35,16 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
         } else if (status.isFinished()) {
             log.info("there is finished state, move it to previous");
             status.moveToPrevious();
-        } else if (status.isCancelled()) {
-            log.info("it's in cancel state, return");
-            return;
         }
-
+        
         try {
             dbChecker.persistStatus(status);
             initSchemaIfNot();
             dbChecker.check();
             status = markResult();
+        } catch (CancellationException ce) {
+            log.warn("cancellation:{}", ce.getMessage());
+            status = markCancel();
         } catch (Exception e) {
             log.error("failed to check db consistency {}", e);
             status = markFailure();
@@ -52,6 +53,12 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
             this.dbChecker.persistStatus(status);
             callback.itemProcessed();
         }
+    }
+
+    private DbConsistencyStatus markCancel() {
+        DbConsistencyStatus status = this.dbChecker.getStatusFromZk();
+        status.movePreviousBack();
+        return status;        
     }
 
     private void initSchemaIfNot() throws Exception {

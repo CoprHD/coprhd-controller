@@ -85,7 +85,14 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
     public void setCheckedCount(int checkedCount) {
         this.checkedCount = checkedCount;
     }
+    
+    public DbConsistencyStatus getPrevious() {
+        return previous;
+    }
 
+    public void setPrevious(DbConsistencyStatus previous) {
+        this.previous = previous;
+    }
     public String getCheckType() {
         return checkType;
     }

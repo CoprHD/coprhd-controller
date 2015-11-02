@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,7 @@ public class DbConsistencyChecker {
         init();
         int corruptedCount = 0;
         CheckType checkType = getCheckTypeFromZK();
+        log.info("db consistency check type:{}", checkType.name());
         switch (checkType) {
             case OBJECT_ID:
                 corruptedCount += checkObjectId();
@@ -106,12 +108,11 @@ public class DbConsistencyChecker {
 
         int totalIllegalCount = 0;
         for (DataObjectType dataCf : resumeDataCfs) {
-            if (!toConsole && isCancelled()) {
-                cancel(status);
-                return totalIllegalCount;
-            }
-
             int illegalCount = helper.checkDataObject(dataCf, toConsole);
+            status = getStatusFromZk();
+            if (!toConsole && isCancelled(status)) {
+                cancel(status);
+            }
             if (!toConsole) {
                 status.update(this.totalCount, checkType.name(), dataCf.getCF().getName(), illegalCount);
                 persistStatus(status);
@@ -143,12 +144,11 @@ public class DbConsistencyChecker {
 
         int totalCorruptedCount = 0;
         for (DataObjectType dataCf : resumeDataCfs) {
-            if (!toConsole && isCancelled()) {
-                cancel(status);
-                return totalCorruptedCount;
-            }
-
             int corruptedCount = helper.checkCFIndices(dataCf, toConsole);
+            status = getStatusFromZk();
+            if (!toConsole && isCancelled(status)) {
+                cancel(status);
+            }
             if (!toConsole) {
                 status.update(this.totalCount, checkType.name(), dataCf.getCF().getName(), corruptedCount);
                 persistStatus(status);
@@ -183,12 +183,11 @@ public class DbConsistencyChecker {
 
         int totalCorruptCount = 0;
         for (IndexAndCf indexAndCf : resumeIdxCfs) {
-            if (!toConsole && isCancelled()) {
-                cancel(status);
-                return totalCorruptCount;
-            }
-
             int corruptCount = helper.checkIndexingCF(indexAndCf, toConsole);
+            status = getStatusFromZk();
+            if (!toConsole && isCancelled(status)) {
+                cancel(status);
+            }
             if (!toConsole) {
                 status.update(this.totalCount, checkType.name(), indexAndCf.generateKey(), corruptCount);
                 persistStatus(status);
@@ -263,12 +262,10 @@ public class DbConsistencyChecker {
 
     private void cancel(DbConsistencyStatus status) {
         helper.logMessage("db consistency check is canceled", true, false);
-        status.movePreviousBack();
-        persistStatus(status);
+        throw new CancellationException("db consistency has been cancelled");
     }
 
-    private boolean isCancelled() {
-        DbConsistencyStatus status = getStatusFromZk();
+    private boolean isCancelled(DbConsistencyStatus status) {
         return status.isCancelled();
     }
 

@@ -66,6 +66,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
@@ -81,6 +82,8 @@ public class DisasterRecoveryService {
     /* Timeout in minutes for adding standby timeout. If adding state is long than this value, set site to error */
     public static final int STANDBY_ADD_TIMEOUT_MINUTES = 20;
 
+    /* Timeout in minutes for switchover, If switchover is not finished after this value, set site to error */
+    public static final int SWITCHOVER_TIMEOUT_MINUTES = 20;
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     
     private static final String SHORTID_FMT="standby%d";
@@ -517,12 +520,13 @@ public class DisasterRecoveryService {
         log.info("Begin to failover for standby UUID {}", uuid);
 
         precheckForSwitchover(uuid);
-        
+
+        String oldPrimaryUUID = drUtil.getPrimarySiteId();
         try {
             VirtualDataCenter vdc = queryLocalVDC();
             
             int oldPrimaryHostCount = vdc.getHostCount();
-            String oldPrimaryUUID = drUtil.getPrimarySiteId();
+
             List<Site> existingSites = drUtil.listStandbySites();
 
             // update VDC
@@ -564,11 +568,14 @@ public class DisasterRecoveryService {
             for (Site site : existingSites) {
                 updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
-        } catch (Exception e) {
-            log.error("Failed to do failover {}", e);
-        }
 
-        return Response.status(Response.Status.ACCEPTED).build();
+            siteErrorThreadExecutor.schedule(new SiteErrorUpdater(oldPrimaryUUID, uuid), SWITCHOVER_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+
+            return Response.status(Response.Status.ACCEPTED).build();
+        } catch (Exception e) {
+            log.error(String.format("Error happened when switchover from site %s to site %s", oldPrimaryUUID, uuid), e);
+            throw APIException.internalServerErrors.switchoverFailed(oldPrimaryUUID, uuid, e.getMessage());
+        }
     }
 
     private void updateVdcTargetVersion(String siteId, String action) throws Exception {
@@ -684,7 +691,7 @@ public class DisasterRecoveryService {
 
         } catch (Exception e) {
             log.error(String.format("Failed to failover to site %s", standbyUuid), e);
-            InternalServerErrorException failoverException = APIException.internalServerErrors.plannedFailoverPrecheckFailed(standbyUuid, e.getMessage());
+            InternalServerErrorException failoverException = APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, e.getMessage());
             setSiteError(standbyUuid, failoverException);
             throw failoverException;
         }
@@ -812,6 +819,13 @@ public class DisasterRecoveryService {
             this.siteId = siteId;
         }
 
+        private String primaryId;
+        private String standbyId;
+        public SiteErrorUpdater(String primaryId, String standbyId) {
+            this.primaryId = primaryId;
+            this.standbyId = standbyId;
+        }
+
         @Override
         public void run() {
             log.info("launch site error updater");
@@ -830,6 +844,7 @@ public class DisasterRecoveryService {
                     Site site = new Site(config);
                     setSiteError(site);
                 }
+                checkSwitchoverStatus();
             } catch (Exception e) {
                 log.error("Error occurs during update site errors {}", e);
             }
@@ -845,6 +860,26 @@ public class DisasterRecoveryService {
 
                 site.setState(SiteState.STANDBY_ERROR);
                 coordinator.persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+            }
+        }
+
+        private void checkSwitchoverStatus() {
+            if (primaryId == null || standbyId == null) {
+                return; // This instance is not initiated to check switchover status, don't do anything
+            }
+            Site primary = drUtil.getSite(primaryId);
+            Site standby = drUtil.getSite(standbyId);
+            if (primary.getState() == SiteState.PRIMARY_SWITCHING_OVER || standby.getState() == SiteState.STANDBY_SWITCHING_OVER) {
+                // Set error message to ZK
+                SiteError error = new SiteError(APIException.internalServerErrors.switchoverFailedTimeout(primaryId, standbyId, SWITCHOVER_TIMEOUT_MINUTES));
+                coordinator.setTargetInfo(standbyId, error);
+                log.error(String.format("Switchover timeout error happend: %s, Current status:\n\nOld Primary(%s): %s\nOld Standby(%s): %s\nBoth sites will be marked as STANDBY_ERROR\n",
+                        error.getErrorMessage(), primaryId, primary.getState(), standbyId, standby.getState()));
+                // Set both sites to STANDBY_ERROR
+                primary.setState(SiteState.STANDBY_ERROR);
+                coordinator.persistServiceConfiguration(primaryId, primary.toConfiguration());
+                standby.setState(SiteState.STANDBY_ERROR);
+                coordinator.persistServiceConfiguration(standbyId, standby.toConfiguration());
             }
         }
     }

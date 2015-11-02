@@ -424,30 +424,4 @@ public class BlockServiceUtils {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(pendingListStr);
         }
     }
-
-    /**
-     * Return a set of URIs referencing DataObject associated to the list of Tenants that have pending Tasks.
-     * 
-     * @param tenants - [in] List or Tenant URIs
-     * @return Set or URIs referencing DataObjects that have pending Tasks against them
-     * @param dbClient - Reference to a database client
-     */
-    public static Set<URI> getObjectURIsThatHavePendingTasks(Collection<URI> tenants, DbClient dbClient) {
-        // Generate a set of Resource URIs that have pending Tasks against them
-        Set<URI> urisHavingPendingTasks = new HashSet<>();
-        for (URI tenant : tenants) {
-            TaskUtils.ObjectQueryResult<Task> queryResult = TaskUtils.findTenantTasks(dbClient, tenant);
-            while (queryResult.hasNext()) {
-                Task task = queryResult.next();
-                if (task == null || task.getCompletedFlag() || task.getInactive()) {
-                    continue;
-                }
-                if (task.isPending()) {
-                    urisHavingPendingTasks.add(task.getResource().getURI());
-                }
-            }
-        }
-
-        return urisHavingPendingTasks;
-    }
 }

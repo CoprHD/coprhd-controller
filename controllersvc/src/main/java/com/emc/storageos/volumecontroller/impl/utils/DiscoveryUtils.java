@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +61,8 @@ public class DiscoveryUtils {
      * @return
      */
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
-            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, String volumeType) {
+            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, String volumeType,
+                                                          StringSet remoteCopyMode) {
         StringSet vpoolUriSet = new StringSet();
         // We should match all virtual pools as below:
         // 1) Virtual pools which have useMatchedPools set to true and have the storage pool in their matched pools
@@ -90,7 +92,10 @@ public class DiscoveryUtils {
                 boolean srdfSourceWithTargetVpool = Types.isSourceVolume(Types.valueOf(volumeType))
                         && srdfProtectedVPoolUris.contains(vPool.getId());
 
-                if (srdfVolNoMatchingVpool || regularVolWithSRDFVpool || srdfSourceWithTargetVpool) {
+                boolean srdfCopyModeMismatch = hasRemoteCopyModeMismatch(remoteCopyMode, vPool, dbClient);
+
+                if (srdfVolNoMatchingVpool || regularVolWithSRDFVpool || srdfSourceWithTargetVpool ||
+                        srdfCopyModeMismatch) {
                     _log.debug(
                             "Skipping vpool {} srdfVolNoMatchingVpool: {} regularVolWithSRDFVpool: {} srdfSourceWithTargetVpool:{}",
                             new Object[] { vPool.getLabel(), srdfVolNoMatchingVpool, regularVolWithSRDFVpool,
@@ -622,5 +627,30 @@ public class DiscoveryUtils {
         dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
         return dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
+    }
+
+    /**
+     * Given a StringSet of remote copy modes (from an UnManagedVolume), determine if it matches the remote copy mode
+     * of the given VirtualPool.
+     *
+     * @param remoteCopyMode
+     * @param vPool
+     * @param dbClient
+     * @return false, if a mismatch is found, true otherwise.
+     */
+    private static boolean hasRemoteCopyModeMismatch(StringSet remoteCopyMode, VirtualPool vPool, DbClient dbClient) {
+        if (remoteCopyMode != null) {
+            Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings =
+                    VirtualPool.getRemoteProtectionSettings(vPool, dbClient);
+
+            if (remoteProtectionSettings != null) {
+                for (VpoolRemoteCopyProtectionSettings settings : remoteProtectionSettings.values()) {
+                    if (!remoteCopyMode.contains(settings.getCopyMode())) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 }

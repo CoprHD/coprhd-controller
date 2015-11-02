@@ -219,6 +219,9 @@ public class UploadExecutor {
         if (!getIncompleteUploads().contains(backupTag)) {
             return new BackupUploadStatus(backupTag, Status.FAILED, 0, ErrorCode.BACKUP_NOT_EXIST);
         }
+        if (cfg.uploadUrl == null) {
+            return new BackupUploadStatus(backupTag, Status.FAILED, 0, ErrorCode.FTP_NOT_CONFIGURED);
+        }
         BackupUploadStatus uploadStatus = this.cfg.queryBackupUploadStatus();
         if (backupTag.equals(uploadStatus.getBackupName())) {
             return uploadStatus;

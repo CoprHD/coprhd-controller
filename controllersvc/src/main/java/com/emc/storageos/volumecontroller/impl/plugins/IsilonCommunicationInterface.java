@@ -588,7 +588,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         _log.info("discoverNetworkPools for storage system {} - start", storageSystemId);
         List<IsilonNetworkPool> isilonNetworkPoolsTemp = null;
         try {
-            if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageSystem.getFirmwareVersion()) < 0) {
+            if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageSystem.getFirmwareVersion()) >= 0) {
                 _log.info("Isilon release version {} and storagesystem label {}", 
                                 storageSystem.getFirmwareVersion(), storageSystem.getLabel());
                 IsilonApi isilonApi = getIsilonDevice(storageSystem);
@@ -791,12 +791,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             
             if (existingvNASList != null && !existingvNASList.isEmpty()) {
                 _log.info("Modified Virtaul NAS servers size {}", existingvNASList.size());
-                _dbClient.persistObject(existingvNASList);
+                _dbClient.updateObject(existingvNASList);
             }
             // Persist the NAS servers!!!
             if (existingPhysicalNASList != null && !existingPhysicalNASList.isEmpty()) {
                 _log.info("Modified Physical NAS servers size {}", existingPhysicalNASList.size());
-                _dbClient.persistObject(existingPhysicalNASList);
+                _dbClient.updateObject(existingPhysicalNASList);
             }
 
             if (newPhysicalNASList != null && !newPhysicalNASList.isEmpty()) {
@@ -2694,32 +2694,32 @@ private PhysicalNAS findPhysicalNasByNativeId(StorageSystem system, String nativ
     return physicalNas;
 }
 
-/**
- * Find the Storageport by Native ID for given Isilon Cluster
- * @param system
- * @param nativeId
- * @return
- */
-private StoragePort findStoragePortByNativeId(StorageSystem system, String nativeId) {
-    StoragePort storagePort = null;
-    String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-            system, nativeId,
-            NativeGUIDGenerator.PORT);
-    // Check if storage port was already discovered
-    @SuppressWarnings("deprecation")
-    List<URI> portURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-            getStoragePortByNativeGuidConstraint(portNativeGuid));
-    StoragePort port = null;
-    for (URI portUri : portURIs) {
-        port = _dbClient.queryObject(StoragePort.class, portUri);
-        if(port != null) {
-            if (port.getStorageDevice().equals(system.getId()) && !port.getInactive()) {
-                storagePort = port;
-                break;
-            }
-        }
-    }
-    return storagePort;
-}
+	/**
+	 * Find the Storageport by Native ID for given Isilon Cluster
+	 * @param system
+	 * @param nativeId
+	 * @return storagePort object 
+	 */
+	private StoragePort findStoragePortByNativeId(StorageSystem system, String nativeId) {
+	    StoragePort storagePort = null;
+	    String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+	            system, nativeId,
+	            NativeGUIDGenerator.PORT);
+	    // Check if storage port was already discovered
+	    @SuppressWarnings("deprecation")
+	    List<URI> portURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+	            getStoragePortByNativeGuidConstraint(portNativeGuid));
+	    StoragePort port = null;
+	    for (URI portUri : portURIs) {
+	        port = _dbClient.queryObject(StoragePort.class, portUri);
+	        if(port != null) {
+	            if (port.getStorageDevice().equals(system.getId()) && !port.getInactive()) {
+	                storagePort = port;
+	                break;
+	            }
+	        }
+	    }
+	    return storagePort;
+	}
 
 }

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
+import static com.emc.storageos.db.client.model.SynchronizationState.FRACTURED;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.google.common.collect.Collections2.transform;
 

@@ -228,8 +228,13 @@ render.discoveryStatusIcon = function(o, val) {
         label = 'label-warning';
         icon = 'glyphicon glyphicon-exclamation-sign';
     }
-    
-    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span>';
+	if (label == 'label-warning') {
+		return '<span class="label ' + label + '"><span class="'
+				+ '<a href="#" data-toggle="tooltip" data-placement="left" title="Import failed to at least one Compute Image Server"><span class="glyphicon glyphicon-warning-sign"></a>'
+				+ '</span></span>';
+	} else {
+		return '<span class="label ' + label + '"><span class="' + icon + '"></span></span>';		
+	}
 }
 
 render.discoveryStatusMessage = function(o, val) {

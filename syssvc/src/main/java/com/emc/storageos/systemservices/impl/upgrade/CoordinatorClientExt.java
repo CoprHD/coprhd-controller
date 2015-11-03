@@ -390,7 +390,7 @@ public class CoordinatorClientExt {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException {
         return _coordinator.getTargetInfo(clazz);
     }
 
@@ -403,7 +403,8 @@ public class CoordinatorClientExt {
      * @return
      * @throws Exception
      */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws Exception {
+    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
+            throws CoordinatorException {
         return _coordinator.getTargetInfo(clazz,id,kind);
     }
 

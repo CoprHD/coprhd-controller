@@ -9795,38 +9795,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             it.remove();
                             break;
                         }
-                    }
-
-                    // Lastly add the the RP+VPLEX Source Change Vpool Virtual Volume to the CG (which will create the CG if it's not
-                    // already)
+                    }                    
+                } else {
+                    _log.info("Adding VPLEX steps for add RecoverPoint protecion vpool change...");
                     for (URI virtualVolumeURI : changeVpoolVirtualVolumeURIs) {
                         Volume changeVpoolVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
-
-                        changeVpoolVolume.getConsistencyGroup();
-
                         // This is a good time to update the vpool on the existing Virtual Volume to the new vpool
                         changeVpoolVolume.setVirtualPool(newVpoolURI);
-                        _dbClient.persistObject(changeVpoolVolume);
-
-                        StorageSystem vplex = getDataObject(StorageSystem.class,
-                                changeVpoolVolume.getStorageController(), _dbClient);
-
-                        // Get a handle on the RP consistency group manager
-                        ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(DiscoveredDataObject.Type.rp.name());
-
-                        // Add step for create CG
-                        waitFor = consistencyGroupManager.addStepsForCreateConsistencyGroup(
-                                workflow, waitFor, vplex, Arrays.asList(virtualVolumeURI), false);
-                        _log.info("Added steps for CG creation for vplex volume {}", virtualVolumeURI);
+                        _dbClient.updateObject(changeVpoolVolume);
                     }
-                } else {
-                    _log.info("Adding VPLEX steps for RP+VPLEX/MetroPoint upgrade protection vpool change...");
                 }
 
                 // Let's now create the virtual volumes for the RP+VPLEX:
                 // Source Journal, Target(s), and Target Journal.
                 // Could also be passing in an existing VPLEX virtual volume we want to protect
-                // with RP. That volume will not be re-create, just added to the VPLEX CG.
+                // with RP. That volume will not be created, just added to the VPLEX CG.
                 waitFor = addStepsForCreateVolumes(workflow, waitFor, copyOfVolumeDescriptors, taskId);
             }
 

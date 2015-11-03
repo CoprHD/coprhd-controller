@@ -101,7 +101,7 @@ public class VdcConfigUtil {
     }
 
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
-        String primarySiteId = drUtil.getPrimarySiteId();
+        String primarySiteId = drUtil.getPrimarySiteId(vdcShortId);
         
         Collections.sort(sites, new Comparator<Site>() {
             @Override

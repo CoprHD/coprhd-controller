@@ -5,7 +5,6 @@
 
 package com.emc.storageos.coordinator.client.service;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -67,10 +66,20 @@ public class DrUtil {
      * @return
      */
     public String getPrimarySiteId() {
-        Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
+        return getPrimarySiteId(getLocalVdcShortId());
+    }
+
+    /**
+     * Get primary site in a specific vdc
+     *
+     * @param vdcShortId short id of the vdc
+     * @return uuid of the primary site
+     */
+    public String getPrimarySiteId(String vdcShortId) {
+        Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, vdcShortId);
         return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
     }
-    
+
     /**
      * Load site information from coordinator 
      * 
@@ -92,7 +101,7 @@ public class DrUtil {
      * @return list of standby sites
      */
     public List<Site> listStandbySites() {
-        List<Site> result = new ArrayList<Site>();
+        List<Site> result = new ArrayList<>();
         for(Site site : listSites()) {
             if (site.getState() != SiteState.PRIMARY) {
                 result.add(site);
@@ -120,8 +129,7 @@ public class DrUtil {
      * @return list of all sites
      */
     public List<Site> listSites() {
-        Site primarySite = getSite(getPrimarySiteId());
-        String vdcId = primarySite.getVdcShortId();
+        String vdcId = getLocalVdcShortId();
         List<Site> result = new ArrayList<>();
         for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
@@ -160,10 +168,9 @@ public class DrUtil {
         try {
             String syssvcName = ((CoordinatorClientImpl)coordinator).getSysSvcName();
             String syssvcVersion = ((CoordinatorClientImpl)coordinator).getSysSvcVersion();
-            List<Service> svcs = coordinator.locateAllServices(siteId, syssvcName, syssvcVersion,
-                    (String) null, null);
+            List<Service> svcs = coordinator.locateAllServices(siteId, syssvcName, syssvcVersion, null, null);
 
-            List<String> nodeList = new ArrayList<String>();
+            List<String> nodeList = new ArrayList<>();
             for(Service svc : svcs) {
                 nodeList.add(svc.getNodeId());
             }

@@ -235,9 +235,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public void setPrimarySite(String siteId) throws Exception {
+        Configuration localVdcConfig = queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
+                Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        String localVdcShortId = localVdcConfig.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
         ConfigurationImpl config = new ConfigurationImpl();
         config.setKind(Constants.CONFIG_DR_PRIMARY_KIND);
-        config.setId(Constants.CONFIG_DR_PRIMARY_ID);
+        config.setId(localVdcShortId);
         config.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, siteId);
         persistServiceConfiguration(config);
     }

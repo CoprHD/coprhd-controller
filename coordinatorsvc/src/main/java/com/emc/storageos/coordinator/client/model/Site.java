@@ -19,8 +19,7 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
  */
 public class Site {
     private static final Logger log = LoggerFactory.getLogger(Site.class);
-    
-    private static final String KEY_VDC = "vdc";
+
     private static final String KEY_NAME = "name";
     private static final String KEY_DESCRIPTION = "description";
     private static final String KEY_VIP = "vip";
@@ -178,7 +177,7 @@ public class Site {
     public Configuration toConfiguration() {
         ConfigurationImpl config = new ConfigurationImpl();
         config.setKind(CONFIG_KIND);
-        config.setId(uuid);
+        config.setId(String.format("%s/%s", vdcShortId, uuid));
         if (name != null) {
             config.setConfig(KEY_NAME, name);
         }
@@ -187,9 +186,6 @@ public class Site {
         }
         if (vip != null) {
             config.setConfig(KEY_VIP, vip);
-        }
-        if (vdcShortId != null) {
-            config.setConfig(KEY_VDC, vdcShortId);
         }
         if (secretKey != null) {
             config.setConfig(KEY_SECRETKEY, this.secretKey);
@@ -214,17 +210,14 @@ public class Site {
             throw new IllegalArgumentException("Unexpected configuration kind for Site");
         }
         try {
-            this.uuid = config.getId();
+            this.vdcShortId = config.getId().split("/")[0];
+            this.uuid = config.getId().split("/")[1];
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
-            String s = config.getConfig(KEY_VDC);
-            if (s != null) {
-                this.vdcShortId = s;
-            }
             this.vip = config.getConfig(KEY_VIP);
             this.secretKey = config.getConfig(KEY_SECRETKEY);
             this.standbyShortId = config.getConfig(KEY_STANDBY_SHORTID);
-            s = config.getConfig(KEY_CREATIONTIME);
+            String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
                 this.creationTime = Long.valueOf(s);
             }

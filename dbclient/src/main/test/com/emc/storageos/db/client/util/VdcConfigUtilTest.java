@@ -34,32 +34,21 @@ public class VdcConfigUtilTest {
     public void testGenProperties() {
         Map<String, String> vdcConfig = vdcConfigUtil.genVdcProperties();
 
-        Assert.assertEquals(vdcConfig.get(VdcConfigUtil.VDC_MYID), "vdc2");
-        Assert.assertEquals(vdcConfig.get(VdcConfigUtil.VDC_IDS), "vdc1,vdc2,vdc3");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_NODE_COUNT_PTN, "vdc1")),
-                "3");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_NODE_COUNT_PTN, "vdc2")),
-                "5");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_NODE_COUNT_PTN, "vdc3")),
-                "1");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc1", 1)),
-                "1.1.1.1");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc1", 2)),
-                "1.1.1.2");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc1", 3)),
-                "1.1.1.3");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 1)),
-                "2.1.1.1");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 2)),
-                "2.1.1.2");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 3)),
-                "2.1.1.3");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 4)),
-                "2.1.1.4");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 5)),
-                "2.1.1.5");
-        Assert.assertEquals(vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc3", 1)),
-                "3.1.1.1");
+        // the signature is assertEquals(String expected, String actual)
+        Assert.assertEquals("vdc2", vdcConfig.get(VdcConfigUtil.VDC_MYID));
+        Assert.assertEquals("vdc1,vdc2,vdc3", vdcConfig.get(VdcConfigUtil.VDC_IDS));
+        Assert.assertEquals("3", vdcConfig.get(String.format(VdcConfigUtil.VDC_NODE_COUNT_PTN, "vdc1")));
+        Assert.assertEquals("5", vdcConfig.get(String.format(VdcConfigUtil.VDC_NODE_COUNT_PTN, "vdc2")));
+        Assert.assertEquals("1", vdcConfig.get(String.format(VdcConfigUtil.VDC_NODE_COUNT_PTN, "vdc3")));
+        Assert.assertEquals("1.1.1.1", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc1", 1)));
+        Assert.assertEquals("1.1.1.2", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc1", 2)));
+        Assert.assertEquals("1.1.1.3", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc1", 3)));
+        Assert.assertEquals("2.1.1.1", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 1)));
+        Assert.assertEquals("2.1.1.2", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 2)));
+        Assert.assertEquals("2.1.1.3", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 3)));
+        Assert.assertEquals("2.1.1.4", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 4)));
+        Assert.assertEquals("2.1.1.5", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 5)));
+        Assert.assertEquals("3.1.1.1", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc3", 1)));
     }
 
     private static class VdcCoordinatorClient extends CoordinatorClientImpl {

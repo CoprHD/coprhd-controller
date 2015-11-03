@@ -161,6 +161,7 @@ public class Setup extends Controller {
      */
     private static void completeInitialSetup(Map<String, String> properties) {
         SetupUtils.markSetupComplete();
+        ConfigPropertyUtils.rotateIpsecKey(BourneUtil.getViprClient());
         ConfigPropertyUtils.saveProperties(BourneUtil.getSysClient(), properties);
         complete();
     }

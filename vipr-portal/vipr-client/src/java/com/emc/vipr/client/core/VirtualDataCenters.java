@@ -127,6 +127,17 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
     }
 
     /**
+     * rotate ipsec key
+     * <p>
+     * API Call: <tt>POST /vdc/ipseckey</tt>
+     *
+     * @return VdcConfigVersion
+     */
+    public String rotateIpsecKey() {
+        return client.put(String.class, PathConstants.VDC_IPSEC_KEY_URL);
+    }
+
+    /**
      * Gets the URL for disconnecting a vdc.
      * 
      * @return the disconnect URL.

@@ -695,12 +695,17 @@ public class DisasterRecoveryService {
                 throw new Exception("Primary site is not stable");
             }
 
-            if (coordinator.getControlNodesState(standbyUuid, drUtil.getSite(standbyUuid).getNodeCount()) != ClusterInfo.ClusterState.STABLE) {
-                throw new Exception("Standby site is not stable");
-            }
-
             if (standby.getState() != SiteState.STANDBY_SYNCED) {
                 throw new Exception("Standby site is not fully synced");
+            }
+            
+            List<Site> existingSites = drUtil.listStandbySites();
+            for (Site site : existingSites) {
+                ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
+                if (state != ClusterInfo.ClusterState.STABLE) {
+                    log.info("Site {} is not stable {}", site.getUuid(), state);
+                    throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getUuid(), String.format("Site %s is not stable", site.getName()));
+                }
             }
 
         } catch (Exception e) {

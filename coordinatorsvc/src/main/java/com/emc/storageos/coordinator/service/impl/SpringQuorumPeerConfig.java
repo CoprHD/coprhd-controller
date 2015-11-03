@@ -81,6 +81,7 @@ public class SpringQuorumPeerConfig extends QuorumPeerConfig {
 
             if (propertyName.startsWith("server.")) {
                 dynamicProperties.setProperty(propertyName, value);
+                log.info("{}:{}", propertyName, value);
                 continue;
             }
 

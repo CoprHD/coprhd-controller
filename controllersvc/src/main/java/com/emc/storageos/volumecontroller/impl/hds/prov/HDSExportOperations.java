@@ -1201,6 +1201,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                 // update the task status after processing all HSD's.
                 taskCompleter.ready(dbClient);
             } else {
+                log.info("No Host groups configured on exportMask {}", exportMaskURI);
                 // No HSD's found in exportMask.
                 taskCompleter.ready(dbClient);
             }

@@ -302,7 +302,7 @@ public class IngestStrategyFactory {
      * Retrieves the proper ingestion strategy for the given UnManagedVolume.
      * 
      * @param unManagedVolume unmanaged volume
-     * @param disregardProtection disregard RP properties when determining strategy
+     * @param disregardProtection disregard RP properties when determining strategy (required when RP orch. is ingesting backing vols)
      * @return ingestion strategy
      */
     public IngestStrategy buildIngestStrategy(UnManagedVolume unManagedVolume, boolean disregardProtection) {

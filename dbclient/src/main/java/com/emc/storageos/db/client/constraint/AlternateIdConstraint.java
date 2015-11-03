@@ -375,7 +375,7 @@ public interface AlternateIdConstraint extends Constraint {
         /**
          * Policy Names matching an Array will be returned.
          * Policy ID format : serialID-PolicyName
-         * 
+         *
          * @param policyID
          * @return
          */
@@ -387,7 +387,7 @@ public interface AlternateIdConstraint extends Constraint {
 
         /**
          * Policy Names matching across Arrays will be returned.
-         * 
+         *
          * @param policyName
          * @return
          */
@@ -528,7 +528,7 @@ public interface AlternateIdConstraint extends Constraint {
 
         /**
          * Deprecated - Needed only for 2.1 migration callback.
-         * 
+         *
          * @param cg
          * @return
          */
@@ -541,7 +541,7 @@ public interface AlternateIdConstraint extends Constraint {
 
         /**
          * Deprecated - Needed only for 2.1 migration callback.
-         * 
+         *
          * @param cg
          * @return
          */

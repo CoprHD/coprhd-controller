@@ -40,7 +40,6 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.Row;
 
-
 public class CustomQueryUtility {
 
     public static List<SMISProvider> getActiveSMISProvidersByProviderId(DbClient dbClient, String providerId) {
@@ -220,10 +219,10 @@ public class CustomQueryUtility {
             throws DatabaseException {
 
         class SelectActiveObjects implements DbAggregatorItf {
-            private List<URI> _activeObjects;
-            private DataObjectType _doType;
-            private String _field;
-            private ColumnField _columnField;
+            private final List<URI> _activeObjects;
+            private final DataObjectType _doType;
+            private final String _field;
+            private final ColumnField _columnField;
 
             public List<URI> getActive() {
                 return _activeObjects;

@@ -31,7 +31,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.security.helpers.SecurityUtil;
 import com.emc.storageos.security.ipsec.IPsecConfig;
@@ -115,6 +117,8 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Autowired
     IPsecKeyGenerator ipsecKeyGenerator;
 
+    DrUtil drUtil;
+
     private Map<String, StorageOSUser> _localUsers;
 
     public void setLocalUsers(Map<String, StorageOSUser> localUsers) {
@@ -151,6 +155,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Override
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
+        drUtil = new DrUtil(coordinator);
     }
 
     private CoordinatorConfigStoringHelper coordConfigStoringHelper;
@@ -667,19 +672,24 @@ public class VirtualDataCenterService extends TaskResourceService {
     }
 
     private String updateTargetSiteInfo() {
-        SiteInfo siteInfo;
-        String siteId = coordinator.getSiteId();
 
-        SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
-        if (currentSiteInfo != null) {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.RECONFIG_IPSEC, currentSiteInfo.getTargetDataRevision(), SiteInfo.ActionScope.VDC);
-        } else {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.RECONFIG_IPSEC, SiteInfo.ActionScope.VDC);
+        long vdcConfigVersion = System.currentTimeMillis();
+
+        for (Site site : drUtil.listSites()) {
+            SiteInfo siteInfo;
+            String siteId = site.getUuid();
+
+            SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
+            if (currentSiteInfo != null) {
+                siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.RECONFIG_IPSEC, currentSiteInfo.getTargetDataRevision(), SiteInfo.ActionScope.VDC);
+            } else {
+                siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.RECONFIG_IPSEC, SiteInfo.ActionScope.VDC);
+            }
+            coordinator.setTargetInfo(siteId, siteInfo);
+            _log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
         }
-        coordinator.setTargetInfo(siteId, siteInfo);
 
-        _log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
-        return Long.toString(siteInfo.getVdcConfigVersion());
+        return Long.toString(vdcConfigVersion);
     }
 
     /***

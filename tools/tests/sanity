@@ -2130,15 +2130,19 @@ rp_varray_setup()
     # Create Virtual Array
     run neighborhood create $RECOVERPOINT_VARRAY1
     run neighborhood allow $RECOVERPOINT_VARRAY1 $TENANT
+    run neighborhood allow $RECOVERPOINT_VARRAY1 `tenant root`
 
     run neighborhood create $RECOVERPOINT_VARRAY2
     run neighborhood allow $RECOVERPOINT_VARRAY2 $TENANT
+    run neighborhood allow $RECOVERPOINT_VARRAY2 `tenant root`
 
     run neighborhood create $RECOVERPOINT_VARRAY3
     run neighborhood allow $RECOVERPOINT_VARRAY3 $TENANT
+    run neighborhood allow $RECOVERPOINT_VARRAY3 `tenant root`
 
     run neighborhood create $RECOVERPOINT_VARRAY4
     run neighborhood allow $RECOVERPOINT_VARRAY4 $TENANT
+    run neighborhood allow $RECOVERPOINT_VARRAY4 `tenant root`
 }
 
 rp_network_setup()

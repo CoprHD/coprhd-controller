@@ -4922,7 +4922,7 @@ class Bourne:
         for system in systems:
             try:
                 protection_system = self.show_element(system['id'], URI_PROTECTION_SYSTEM)
-                if (protection_system['native_guid'] == native_guid):
+                if (protection_system['native_guid'] == native_guid or protection_system['name'] == native_guid):
                     o = self.api('POST', URI_DISCOVERED_PROTECTION_SYSTEM_NS.format(system['id'], namespace));
                     s=self.api_sync_2(o['resource']['id'],o['op_id'],self.protectionsystem_show_task, ignore_error)
                     return "discovery of namespace is completed"

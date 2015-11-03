@@ -156,8 +156,12 @@ public class NetworkScheduler {
         fabricInfo.setZoneName(zoneName);
     }
 
+    /**
+     * Validates if zone name length is within the allowed character limit on switches.
+     */
     private void validateZoneNameLength(String zoneName, boolean isIvrZone) {
         if(isIvrZone) {
+            // Checks for a different length for IVR zones as it should start with "LSAN" which is appended to zone name later
             if(zoneName.length() > ZONE_NAME_IVR_LENGTH) {
                 throw NetworkDeviceControllerException.exceptions.nameZoneLongerThanAllowed(zoneName, ZONE_NAME_IVR_LENGTH);
             }

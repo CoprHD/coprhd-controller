@@ -1553,7 +1553,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * {@inheritDoc}
      */
     @Override
-    public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes) {
+    public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG) {
         /*
          * For VMAX, volumes to be added can have replicas only if
          *    1. CG has no existing volumes, and
@@ -1561,7 +1561,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
          * For other arrays, or VMAX (CG has existing volumes, or non SMI-S 8.x), volumes to be added cannot have replicas
          */
         boolean isReplicaAllowed = false;
-        if (cgVolumes.isEmpty() && ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient)) {
+        if ((volsAlreadyInCG || cgVolumes.isEmpty()) && ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient)) {
             isReplicaAllowed = true;
         }
 

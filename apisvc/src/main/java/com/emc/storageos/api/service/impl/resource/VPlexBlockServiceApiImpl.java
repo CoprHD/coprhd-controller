@@ -3309,7 +3309,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes) {
+    public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG) {
         // Get all backend volumes
         List<Volume> backendVolumes = new ArrayList<Volume>();
         for (Volume volume : volumes) {
@@ -3317,7 +3317,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
 
         // Verify replica count
-        super.verifyReplicaCount(backendVolumes, cgVolumes);
+        super.verifyReplicaCount(backendVolumes, cgVolumes, volsAlreadyInCG);
     }
 
     private void checkIfClusterIsUnknown(String cluster, String varrayURI, String vplexStorageSystemURI) {

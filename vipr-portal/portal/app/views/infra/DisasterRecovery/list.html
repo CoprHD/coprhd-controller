@@ -87,3 +87,50 @@ $(document).ready(function() {
     watchLoadStatus(dataTable, itemsJson);
 });
 </script>
+
+<script type="text/javascript">
+
+function standbyStatusIcon(o, val) {
+    if (!o) {
+        return "";
+    }
+    var labels = {
+        'PRIMARY': 'label-success',
+        'STANDBY_ADDING': 'label-info',
+        'STANDBY_PAUSED': 'label-success',
+        'STANDBY_SYNCED': 'label-success',
+        'STANDBY_ERROR':  'label-danger',
+        'STANDBY_REMOVING': 'label-info',
+        'STANDBY_TESTING' : 'label-info',
+        'STANDBY_SYNCING' : 'label-info'
+    }
+    var icons = {
+        'PRIMARY':     'glyphicon glyphicon-ok',
+        'STANDBY_ADDING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_PAUSED': 'glyphicon glyphicon-ok',
+        'STANDBY_SYNCED': 'glyphicon glyphicon-ok',
+        'STANDBY_ERROR':  'glyphicon glyphicon-remove',
+        'STANDBY_REMOVING': 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_TESTING' : 'glyphicon glyphicon-refresh rotate',
+        'STANDBY_SYNCING' : 'glyphicon glyphicon-refresh rotate'
+    }
+
+	var messages = {
+		'PRIMARY': Messages.get("renderFunctions.disasterRecovery.status.primary"),
+		'STANDBY_ADDING': Messages.get("renderFunctions.disasterRecovery.status.adding"),
+		'STANDBY_SYNCING': Messages.get("renderFunctions.disasterRecovery.status.syncing"),
+		'STANDBY_SYNCED': Messages.get("renderFunctions.disasterRecovery.status.synced"),
+		'STANDBY_PAUSED': Messages.get("renderFunctions.disasterRecovery.status.paused"),
+		'STANDBY_REMOVING': Messages.get("renderFunctions.disasterRecovery.status.removing"),
+		'STANDBY_TESTING': Messages.get("renderFunctions.disasterRecovery.status.testing"),
+		'STANDBY_ERROR': Messages.get("renderFunctions.disasterRecovery.status.error")
+	};
+
+    var label = defaultValue(labels[o.aData.status], 'label-default');
+    var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
+
+    var message = defaultValue(messages[o.aData.status], Messages.get("renderFunctions.disasterRecovery.status.unknown"));
+
+    return '<span class="label ' + label + '"><span class="' + icon + '"></span></span>' + ' ' + message+'</span>';
+}
+</script>

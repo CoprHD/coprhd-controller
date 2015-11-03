@@ -237,7 +237,7 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException addStandbyFailed(String errMsg);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_TIMEOUT)
-    public InternalServerErrorException addStandbyFailedTimeout(int timeoutValue);
+    public InternalServerErrorException addStandbyFailedTimeout(final long timeoutValue);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_CONFIG_STANDBY_FAILED)
     public InternalServerErrorException configStandbyFailed(String errMsg);
@@ -253,6 +253,15 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_FAILED)
     public InternalServerErrorException pauseStandbyFailed(final String siteId, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
+    public InternalServerErrorException resumeStandbyFailed(final String siteId, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_TIMEOUT)
+    public InternalServerErrorException resumeStandbyFailedTimeout(final long timeoutValue);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_DATA_SYNC_TIMEOUT)
+    public InternalServerErrorException dataSyncFailedTimeout(final long timeoutValue);
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedErrorVolumePlacement(Exception ex);

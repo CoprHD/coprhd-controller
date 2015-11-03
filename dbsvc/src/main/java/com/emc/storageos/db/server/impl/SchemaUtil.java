@@ -105,6 +105,9 @@ public class SchemaUtil {
     private boolean onStandby = false;
     private String _standbyId;
 
+    @Autowired
+    private DbRebuildRunnable dbRebuildRunnable;
+
     public void setClientContext(DbClientContext clientContext) {
         this.clientContext = clientContext;
     }
@@ -848,7 +851,7 @@ public class SchemaUtil {
         Site site = new Site();
         site.setUuid(_coordinator.getSiteId());
         site.setName("Primary");
-        site.setVdc(vdc.getId());
+        site.setVdcShortId(vdc.getShortId());
         site.setHostIPv4AddressMap(ipv4Addresses);
         site.setHostIPv6AddressMap(ipv6Addresses);
         site.setState(SiteState.PRIMARY);
@@ -895,29 +898,21 @@ public class SchemaUtil {
      // No need to add bootstrap records on standby site
         if (isOnStandby()) {
             _log.info("Check bootstrap info on standby");
-            boolean rebuildData = false;
-            if (isGeoDbsvc()) {
-                rebuildData = !isRootTenantExist(dbClient);
-            } else {
-                rebuildData = !isVdcInfoExist(dbClient);
-            }
-            if (rebuildData) {
-                Site currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
-                
-                if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
-                    currentSite.setState(SiteState.STANDBY_SYNCING);
-                    _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-                }
-                
-                _log.info("Rebuild bootstrap data from primary site");
-                
-                //Potential issue here, we need to wait for all nodes finish rebuilding date and then set SYNCED
-                StorageService.instance.rebuild(_vdcShortId);
-                
-                currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
-                currentSite.setState(SiteState.STANDBY_SYNCED);
+            Site currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
+
+            if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+                currentSite.setState(SiteState.STANDBY_SYNCING);
                 _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-                _log.info("Update current standby site state to SYNCED");
+            }
+
+            if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+                Thread dbRebuildThread = new Thread(dbRebuildRunnable);
+                dbRebuildThread.start();
+                try {
+                    dbRebuildThread.join();
+                } catch (InterruptedException e) {
+                    _log.warn("db rebuild interrupted");
+                }
             }
             return;
         }

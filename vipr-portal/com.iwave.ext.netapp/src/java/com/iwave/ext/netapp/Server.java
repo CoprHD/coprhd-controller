@@ -27,13 +27,30 @@ public class Server {
     {
         server = createNaServer(host, port, username, password, useHTTPS, false, null, false);
     }
+    
+    Server(String host, int port, String username, String password, boolean useHTTPS, boolean isCluster)
+    {
+        server = createNaServer(host, port, username, password, useHTTPS, false, null, isCluster);
+    }
 
+    public Server(String host, int port, String username, String password, boolean useHTTPS, 
+    		String vFilerName)
+    {
+        server = createNaServer(host, port, username, password, useHTTPS, false, vFilerName, false);
+    }
+    
     public Server(String host, int port, String username, String password, boolean useHTTPS, 
     		String vFilerName, boolean isCluster)
     {
         server = createNaServer(host, port, username, password, useHTTPS, false, vFilerName, isCluster);
     }
 
+    public Server(String host, int port, String username, String password, boolean useHTTPS, 
+    		boolean isVserver, String vServerName)
+    {
+        server = createNaServer(host, port, username, password, useHTTPS, isVserver, vServerName, false);
+    }
+    
     public Server(String host, int port, String username, String password, boolean useHTTPS, 
     		boolean isVserver, String vServerName, boolean isCluster)
     {
@@ -50,7 +67,11 @@ public class Server {
     {
         NaServer server = null;
         try {
-        	
+        	// Each Data ONTAP version comes with its ontapi api version.
+        	// Data ONTAP 8.1.1 comes with ontapi v1.17. 8.1.2 P4 comes with 1.19.
+        	// When we send a request to NetApp with lower( less than 1.20) ontapi version,
+        	// It throws an exception "Version 1.20 was requested, but only 1.19 is supported".
+        	// Added this condition to support lower versions of ontapi for 7-mode.
         	if (isCluster) {
         		server = new NaServer(addr, 1, 20);
         	} else {

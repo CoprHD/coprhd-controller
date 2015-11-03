@@ -21,6 +21,7 @@ import static com.emc.sa.util.ResourceType.BLOCK_SNAPSHOT;
 import static com.emc.sa.util.ResourceType.VOLUME;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,7 +70,9 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
 import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshots;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
+import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetExportsForBlockObject;
 import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
@@ -172,14 +175,6 @@ public class BlockStorageUtils {
         return execute(new GetStorageSystem(storageSystemId));
     }
 
-    public static List<BlockObjectRestRep> getVolumes(List<URI> volumeIds) {
-        List<BlockObjectRestRep> volumes = Lists.newArrayList();
-        for (URI volumeId : volumeIds) {
-            volumes.add(getVolume(volumeId));
-        }
-        return volumes;
-    }
-
     public static BlockSnapshotRestRep getSnapshot(URI snapshotId) {
         return execute(new GetBlockSnapshot(snapshotId));
     }
@@ -196,11 +191,33 @@ public class BlockStorageUtils {
         return execute(new GetVirtualArray(id));
     }
 
+    private static List<VolumeRestRep> getVolumes(List<URI> volumeIds) {
+        return execute(new GetBlockVolumes(volumeIds));
+    }
+
+    private static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
+        return execute(new GetBlockSnapshots(uris));
+    }
+
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();
+        List<URI> blockVolumes = new ArrayList<URI>();
+        List<URI> blockSnapshots = new ArrayList<URI>();
         for (URI resourceId : resourceIds) {
-            blockResources.add(getBlockResource(resourceId));
+            ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
+            switch (volumeType) {
+                case VOLUME:
+                    blockVolumes.add(resourceId);
+                    break;
+                case BLOCK_SNAPSHOT:
+                    blockSnapshots.add(resourceId);
+                    break;
+                default:
+                    break;
+            }
         }
+        blockResources.addAll(getVolumes(blockVolumes));
+        blockResources.addAll(getBlockSnapshots(blockSnapshots));
         return blockResources;
     }
 
@@ -297,10 +314,10 @@ public class BlockStorageUtils {
     }
 
     public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host,
-            Map<URI, Integer> volumeHlus) {
+            Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         String exportName = host.getHostName();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
-                host.getHostName(), host.getId(), null, volumeHlus));
+                host.getHostName(), host.getId(), null, volumeHlus, minPaths, maxPaths, pathsPerInitiator));
         URI exportId = task.getResourceId();
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(exportId);
@@ -315,18 +332,20 @@ public class BlockStorageUtils {
     }
 
     public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster,
-            Map<URI, Integer> volumeHlus) {
+            Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         String exportName = cluster.getLabel();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
-                cluster.getLabel(), null, cluster.getId(), volumeHlus));
+                cluster.getLabel(), null, cluster.getId(), volumeHlus, minPaths, maxPaths, pathsPerInitiator));
         URI exportId = task.getResourceId();
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(exportId);
         return exportId;
     }
 
-    public static void addVolumesToExport(Collection<URI> volumeIds, Integer hlu, URI exportId, Map<URI, Integer> volumeHlus) {
-        Task<ExportGroupRestRep> task = execute(new AddVolumesToExport(exportId, volumeIds, hlu, volumeHlus));
+    public static void addVolumesToExport(Collection<URI> volumeIds, Integer hlu, URI exportId, Map<URI, Integer> volumeHlus,
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
+        Task<ExportGroupRestRep> task = execute(new AddVolumesToExport(exportId, volumeIds, hlu, volumeHlus, minPaths, maxPaths,
+                pathsPerInitiator));
         addRollback(new RemoveBlockResourcesFromExport(exportId, volumeIds));
         addAffectedResource(task);
     }

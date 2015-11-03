@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
@@ -79,7 +80,6 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.volumecontroller.placement.ExportPathParams;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -1114,6 +1114,8 @@ public class VolumeIngestionUtil {
 
         // remove unmanaged mask if created if the block object is not marked as internal
         if (!volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
+            _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}", 
+                    eligibleMask.getMaskName(), unManagedVolume.getLabel());
             unManagedVolume.getUnmanagedExportMasks().remove(eligibleMask.getId().toString());
             eligibleMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
         }
@@ -2283,6 +2285,8 @@ public class VolumeIngestionUtil {
      */
     public static void clearInternalFlags(BlockObject blockObject, List<DataObject> updatedObjects, DbClient dbClient) {
         // for each block object, get the corresponding unmanaged volume.
+        _logger.info("clearInternalFlags for blockObject " + blockObject.forDisplay());
+
         List<UnManagedExportMask> uemsToPersist = new ArrayList<UnManagedExportMask>();
         String unmanagedVolumeGUID = blockObject.getNativeGuid().replace(VOLUME, UNMANAGEDVOLUME);
         List<URI> unmanagedVolumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -2358,10 +2362,6 @@ public class VolumeIngestionUtil {
                         }
                     }
                     updatedObjects.addAll(exportGroups);
-
-                    unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
-                    unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
-                    uemsToPersist.add(unManagedExportMask);
                 }
             } else {
                 _logger.info("No unmanaged export masks found for the unmanaged volume {}", unManagedVolumes.get(0).getNativeGuid());
@@ -2369,7 +2369,7 @@ public class VolumeIngestionUtil {
             updatedObjects.addAll(uemsToPersist);
 
             if (canDeleteUnManagedVolume(unManagedVolume)) {
-                _logger.info("Set unmanaged volume inactive {}", unManagedVolume.getId());
+                _logger.info("Set unmanaged volume inactive: {}", unManagedVolume.forDisplay());
                 unManagedVolume.setInactive(true);
             }
             updatedObjects.add(unManagedVolume);

@@ -6,7 +6,9 @@
 package com.emc.sa.asset.providers;
 
 import static com.emc.sa.asset.providers.BlockProvider.getVolumeDetails;
-import static com.emc.sa.asset.providers.BlockProvider.listVolumes;
+import static com.emc.sa.asset.providers.BlockProvider.hasXIO3XVolumes;
+import static com.emc.sa.asset.providers.BlockProvider.isInConsistencyGroup;
+import static com.emc.sa.asset.providers.BlockProvider.listVolumesNonBulk;
 import static com.emc.sa.asset.providers.BlockProviderUtils.getVolumePersonality;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
@@ -31,7 +33,7 @@ import com.google.common.collect.Lists;
 public final class TestBlockProviderFilter {
 
     static void filter(ViPRCoreClient client, URI project) {
-        List<VolumeRestRep> volumes = listVolumes(client, project);
+        List<VolumeRestRep> volumes = listVolumesNonBulk(client, project);
         List<VolumeDetail> volumeDetails = getVolumeDetails(client, volumes);
         Map<URI, VolumeRestRep> volumeNames = ResourceUtils.mapById(volumes);
 
@@ -41,20 +43,22 @@ public final class TestBlockProviderFilter {
             boolean localSnapSupported = isLocalSnapshotSupported(detail.vpool);
             boolean isRPTargetVolume = isRPTargetVolume(detail.volume);
             boolean isRPSourceVolume = isRPSourceVolume(detail.volume);
-            boolean isInConsistencyGroup = BlockProvider.isInConsistencyGroup(detail.volume);
+            boolean isInConsistencyGroup = isInConsistencyGroup(detail.volume);
+            boolean isXio3XVolume = hasXIO3XVolumes(detail.volume);
 
-            if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume))) {
+            if (isRPSourceVolume || (localSnapSupported && (!isInConsistencyGroup || isRPTargetVolume || isXio3XVolume))) {
                 options.add(BlockProvider.createVolumeOption(client, null, detail.volume, volumeNames));
                 System.out.println("\t* " + detail.volume.getName());
             } else {
                 System.out.println("\t" + detail.volume.getName());
             }
 
-            String extra = String.format("[localSnapSupported: %s, isRPTargetVolume: %s, isRPSourceVolume: %s, isInConsistencyGroup: %s]",
+            String extra = String.format(
+                    "[localSnapSupported: %s, isRPTargetVolume: %s, isRPSourceVolume: %s, isInConsistencyGroup: %s, isXio3XVolume: %s]",
                     localSnapSupported,
-                    isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup);
+                    isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup, isXio3XVolume);
 
-            System.out.println(String.format("\t\t[ %s ] [ %s ]", getVolumePersonality(detail.volume), extra));
+            System.out.println(String.format("\t\tpersonality:[ %s ], filter:[ %s ]", getVolumePersonality(detail.volume), extra));
         }
     }
 

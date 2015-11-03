@@ -2,6 +2,9 @@ package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST;
+import static com.emc.sa.service.ServiceParams.MAX_PATHS;
+import static com.emc.sa.service.ServiceParams.MIN_PATHS;
+import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
 import java.net.URI;
@@ -22,11 +25,23 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
     
     @Param(value = HLU, required = false)
     protected Integer hlu;
+
+    @Param(value = MIN_PATHS, required = false)
+    protected Integer minPaths;
+
+    @Param(value = MAX_PATHS, required = false)
+    protected Integer maxPaths;
+
+    @Param(value = PATHS_PER_INITIATOR, required = false)
+    protected Integer pathsPerInitiator;
     
     private Host host;
     private Cluster cluster;
-    
+
     public void precheck() {
+
+        ExportBlockVolumeHelper.precheckExportPathParameters(minPaths, maxPaths, pathsPerInitiator);
+
         if (BlockStorageUtils.isHost(hostId)) {
             host = BlockStorageUtils.getHost(hostId);
         }
@@ -34,7 +49,7 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
             cluster = BlockStorageUtils.getCluster(hostId);
         }
     }
-    
+
     public List<BlockObjectRestRep> exportVolumes(List<URI> volumeIds) {
         // See if an existing export exists for the host ports
         ExportGroupRestRep export = null;
@@ -49,15 +64,17 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
             URI exportId = null;
             if (cluster != null) {
                 exportId = BlockStorageUtils.createClusterExport(project, virtualArray, volumeIds, hlu, cluster,
-                        new HashMap<URI, Integer>());
+                        new HashMap<URI, Integer>(), minPaths, maxPaths, pathsPerInitiator);
             } else {
-                exportId = BlockStorageUtils.createHostExport(project, virtualArray, volumeIds, hlu, host, new HashMap<URI, Integer>());
+                exportId = BlockStorageUtils.createHostExport(project, virtualArray, volumeIds, hlu, host, new HashMap<URI, Integer>(),
+                        minPaths, maxPaths, pathsPerInitiator);
             }
             logInfo("create.block.volume.create.export", exportId);
         }
         // Add the volume to the existing export
         else {
-            BlockStorageUtils.addVolumesToExport(volumeIds, hlu, export.getId(), new HashMap<URI, Integer>());
+            BlockStorageUtils.addVolumesToExport(volumeIds, hlu, export.getId(), new HashMap<URI, Integer>(), minPaths, maxPaths,
+                    pathsPerInitiator);
             logInfo("create.block.volume.update.export", export.getId());
         }
 
@@ -72,9 +89,10 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
         ExecutionUtils.clearRollback();
 
         // Get the volumes after exporting, volumes would not have WWNs until after export in VPLEX
-        List<BlockObjectRestRep> volumes = BlockStorageUtils.getVolumes(volumeIds);
+        List<BlockObjectRestRep> volumes = BlockStorageUtils.getBlockResources(volumeIds);
         return volumes;
     }
+
 
     public List<BlockObjectRestRep> createAndExportVolumes() {
         List<URI> volumeIds = createVolumes();

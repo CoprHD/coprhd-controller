@@ -3290,7 +3290,7 @@ class Bourne:
     #
 
     def ipsc_rotate_key(self):
-        resp = self.api('PUT', URI_VDC_IPSECKEY)
+        resp = self.api('POST', URI_VDC_IPSECKEY)
         return resp
 
     #

@@ -652,7 +652,7 @@ public class VirtualDataCenterService extends TaskResourceService {
      * @return the new version of the key which is used for checking status if needed
      */
     @Path("/ipseckey")
-    @PUT
+    @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
@@ -681,9 +681,9 @@ public class VirtualDataCenterService extends TaskResourceService {
 
             SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
             if (currentSiteInfo != null) {
-                siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.RECONFIG_IPSEC, currentSiteInfo.getTargetDataRevision(), SiteInfo.ActionScope.VDC);
+                siteInfo = new SiteInfo(vdcConfigVersion, SiteInfo.RECONFIG_IPSEC, currentSiteInfo.getTargetDataRevision(), SiteInfo.ActionScope.VDC);
             } else {
-                siteInfo = new SiteInfo(System.currentTimeMillis(), SiteInfo.RECONFIG_IPSEC, SiteInfo.ActionScope.VDC);
+                siteInfo = new SiteInfo(vdcConfigVersion, SiteInfo.RECONFIG_IPSEC, SiteInfo.ActionScope.VDC);
             }
             coordinator.setTargetInfo(siteId, siteInfo);
             _log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);

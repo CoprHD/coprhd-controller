@@ -24,7 +24,8 @@ public enum ZkPath {
     STATE("/state"),
     LOCKDATA("/lockdata"),
     KVSTORE("/kvstore"),
-    SITES("/sites");
+    SITES("/sites"),
+    BARRIER("/barrier");
 
     private final String _path;
 

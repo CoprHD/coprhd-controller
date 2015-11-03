@@ -134,7 +134,7 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
      * @return VdcConfigVersion
      */
     public String rotateIpsecKey() {
-        return client.put(String.class, PathConstants.VDC_IPSEC_KEY_URL);
+        return client.post(String.class, PathConstants.VDC_IPSEC_KEY_URL);
     }
 
     /**

@@ -437,7 +437,7 @@ public class VdcSiteManager extends AbstractManager {
         log.info("Waiting for all nodes entering VdcPropBarrier");
 
         // key rotation is always done on primary site. when adding standby this is done on both site.
-        String barrierPath = String.format("%s/%s/VdcPropBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
+        String barrierPath = String.format("%s/VdcPropBarrier", ZkPath.BARRIER);
 
         // the children # should be the node # in entire VDC. before linking together, it's # in a site.
         int nChildrenOnBarrier = getChildrenCountOnBarrier();

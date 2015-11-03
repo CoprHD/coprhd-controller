@@ -210,6 +210,8 @@ public class VdcConfigUtil {
             List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
             String standbyShortId = site.getStandbyShortId();
             
+            Collections.sort(standbyHosts);
+            
             for (String hostName : standbyHosts) {
                 standbyNodeCnt++;
                 String address = standbyIPv4Addrs.get(hostName);

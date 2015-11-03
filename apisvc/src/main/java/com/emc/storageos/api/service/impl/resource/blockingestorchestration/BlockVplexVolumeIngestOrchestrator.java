@@ -896,7 +896,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         }
                     } else {
                         throw new Exception(
-                                "unmanaged volume do not have VPLEX cluster(s) set "
+                                "no VPLEX cluster(s) set on unmanaged volume "
                                         + unManagedVolume.getLabel());
                     }
                 } else {

@@ -10,9 +10,9 @@ import os
 from bourne import Bourne
 import time
 
-def ipsec_key_rotate(args):
+def ipsec_key_rotate(vip):
     """ a test on ipsec key rotation """
-    bourne.connect(args.ip)
+    bourne.connect(vip)
     version = bourne.ipsc_rotate_key()
     print "Key rotation is submitted successfully at version %s" % version
 
@@ -43,6 +43,6 @@ else:
 bourne = Bourne()
 
 if (cmd == "keyrotate"):
-    ipsec_key_rotate(args)
+    ipsec_key_rotate(bourne_ip)
 else:
     parser.print_help()

@@ -17,7 +17,7 @@ import com.emc.storageos.model.DataObjectRestRep;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class SiteRestRep extends DataObjectRestRep {
     private String uuid;
-    private URI vdcId;
+    private String vdcShortId;
     private String name;
     private String description;
     private String vip;
@@ -33,12 +33,12 @@ public class SiteRestRep extends DataObjectRestRep {
     }
 
     @XmlElement(name = "vdc_id")
-    public URI getVdcId() {
-        return vdcId;
+    public String getVdcShortId() {
+        return vdcShortId;
     }
 
-    public void setVdcId(URI vdcId) {
-        this.vdcId = vdcId;
+    public void setVdcShortId(String vdcShortId) {
+        this.vdcShortId = vdcShortId;
     }
 
     @XmlElement(name = "name")
@@ -83,7 +83,7 @@ public class SiteRestRep extends DataObjectRestRep {
         builder.append("SiteRestRep [uuid=");
         builder.append(uuid);
         builder.append(", vdcId=");
-        builder.append(vdcId);
+        builder.append(vdcShortId);
         builder.append(", name=");
         builder.append(name);
         builder.append(", description=");

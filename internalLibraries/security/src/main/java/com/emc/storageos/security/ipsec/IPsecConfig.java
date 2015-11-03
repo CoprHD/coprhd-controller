@@ -45,7 +45,7 @@ public class IPsecConfig {
     public String getPreSharedKey() throws Exception {
         String preSharedKey = getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
         if (StringUtil.isBlank(preSharedKey)) {
-            log.info("no psk in zk, loading from file ...");
+            log.info("No pre shared key in zk, loading from file ...");
             preSharedKey = loadDefaultIpsecKeyFromFile();
         }
         return preSharedKey;

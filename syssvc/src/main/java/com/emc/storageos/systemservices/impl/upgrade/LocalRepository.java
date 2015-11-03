@@ -528,7 +528,12 @@ public class LocalRepository {
         return PropertyInfoUtil.splitKeyValue(props);
     }
 
-
+    /**
+     * write given ipsec key to local file system.
+     *
+     * @param ipsecKey
+     * @throws LocalRepositoryException
+     */
     public void syncIpsecKeyToLocal(String ipsecKey) throws LocalRepositoryException {
         final String prefix = "syncIpsecKeyToLocal(): ";
         _log.debug(prefix);

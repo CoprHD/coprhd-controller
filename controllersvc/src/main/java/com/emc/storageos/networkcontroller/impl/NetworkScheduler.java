@@ -76,6 +76,8 @@ public class NetworkScheduler {
 
     private DbClient _dbClient;
     private static final String LSAN = "LSAN_";
+    private static final int ZONE_NAME_LENGTH = 64;
+    private static final int ZONE_NAME_IVR_LENGTH = 59;
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -143,12 +145,27 @@ public class NetworkScheduler {
             dataSource.addProperty(CustomConfigConstants.ARRAY_SERIAL_NUMBER,
                     getVPlexClusterSerialNumber(port));
         }
+        String resolvedZoneName = customConfigHandler.resolve(
+                CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
+        validateZoneNameLength(resolvedZoneName, lsanZone);
         String zoneName = customConfigHandler.getComputedCustomConfigValue(
                 CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
         if (lsanZone && DiscoveredDataObject.Type.brocade.name().equals(systemType)) {
             zoneName = LSAN + zoneName;
         }
         fabricInfo.setZoneName(zoneName);
+    }
+
+    private void validateZoneNameLength(String zoneName, boolean isIvrZone) {
+        if(isIvrZone) {
+            if(zoneName.length() > ZONE_NAME_IVR_LENGTH) {
+                throw NetworkDeviceControllerException.exceptions.nameZoneLongerThanAllowed(zoneName, ZONE_NAME_IVR_LENGTH);
+            }
+        } else {
+            if(zoneName.length() > ZONE_NAME_LENGTH) {
+                throw NetworkDeviceControllerException.exceptions.nameZoneLongerThanAllowed(zoneName, ZONE_NAME_LENGTH);
+            }
+        }
     }
 
     /**

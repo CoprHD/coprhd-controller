@@ -130,6 +130,7 @@ public class NetworkSystemService extends TaskResourceService {
 
     private static final String BROCADE_ZONE_NAME_EXP = "[a-zA-Z0-9_]+";
     private static final String CISCO_ZONE_NAME_EXP = "[a-zA-Z0-9_\\-]+";
+    private static final int ZONE_NAME_LENGTH = 64;
 
     private static class NetworkJobExec implements AsyncTaskExecutorIntf {
 
@@ -829,13 +830,19 @@ public class NetworkSystemService extends TaskResourceService {
      */
     private boolean validateZoneName(String name, String deviceType) {
         boolean validZoneName = false;
-        if (deviceType.equalsIgnoreCase(Type.brocade.toString())) {
-            if (name.matches(BROCADE_ZONE_NAME_EXP)) {
-                validZoneName = true;
-            }
-        } else if (deviceType.equalsIgnoreCase(Type.mds.toString())) {
-            if (name.matches(CISCO_ZONE_NAME_EXP)) {
-                validZoneName = true;
+        if(name != null && name.length() > ZONE_NAME_LENGTH) {
+            _log.info("Zone name {} is not valid for device type {}", name, deviceType);
+            throw APIException.badRequests.nameZoneLongerThanAllowed(name, ZONE_NAME_LENGTH);
+        }
+        if(deviceType != null) {
+            if (deviceType.equalsIgnoreCase(Type.brocade.toString())) {
+                if (name.matches(BROCADE_ZONE_NAME_EXP)) {
+                    validZoneName = true;
+                }
+            } else if (deviceType.equalsIgnoreCase(Type.mds.toString())) {
+                if (name.matches(CISCO_ZONE_NAME_EXP)) {
+                    validZoneName = true;
+                }
             }
         }
 

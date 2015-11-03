@@ -417,6 +417,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                             standbyJournal.getId()));
                                     sourceVol.setSecondaryRpJournalVolume(standbyJournal.getId());
                                     _dbClient.persistObject(sourceVol);
+                                    // All RP+VPLEX Metro volumes in this CG need to have their backing volume
+                                    // references updated with the internal site names for exports.
+                                    setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
+                                            sourceVol, true, false, originalVpool.getHaVarrayConnectedToRp());                                    
                                 }
                             } else {
                                 // NOTE: Upgrade to MetroPoint is (currently) the only supported Change Virtual Pool Protected

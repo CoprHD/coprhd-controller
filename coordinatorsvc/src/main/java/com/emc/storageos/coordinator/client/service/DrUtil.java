@@ -102,6 +102,19 @@ public class DrUtil {
     }
 
     /**
+     * List all sites in all vdc
+     *
+     * @return list of all sites
+     */
+    public List<Site> listAllVdcSites() {
+        List<Site> result = new ArrayList<>();
+        for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
+            result.add(new Site(config));
+        }
+        return result;
+    }
+
+    /**
      * List all sites in current vdc
      * 
      * @return list of all sites

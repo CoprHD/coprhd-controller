@@ -89,7 +89,7 @@ public class VdcConfigUtil {
 
     private Map<String, List<Site>> getVdcSiteMap() {
         Map<String, List<Site>> vdcSiteMap = new HashMap<>();
-        List<Site> sites = drUtil.listSites();
+        List<Site> sites = drUtil.listAllVdcSites();
         for (Site site : sites) {
             String vdcId = site.getVdcShortId();
             if (!vdcSiteMap.containsKey(vdcId)) {

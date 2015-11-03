@@ -15,10 +15,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
@@ -91,6 +90,8 @@ public class VdcSiteManager extends AbstractManager {
     private String currentSiteId;
     
     private DrUtil drUtil;
+
+    private VdcConfigUtil vdcConfigUtil;
    
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
@@ -158,6 +159,7 @@ public class VdcSiteManager extends AbstractManager {
         final String svcId = coordinator.getMySvcId();
         currentSiteId = coordinator.getCoordinatorClient().getSiteId();
         drUtil = new DrUtil(coordinator.getCoordinatorClient());
+        vdcConfigUtil = new VdcConfigUtil(coordinator.getCoordinatorClient());
         
         addSiteInfoListener();
 
@@ -306,20 +308,9 @@ public class VdcSiteManager extends AbstractManager {
      * @throws Exception
      */
     private PropertyInfoExt loadVdcConfig() throws Exception {
-        targetVdcPropInfo = loadVdcConfigFromDatabase();
+        targetVdcPropInfo = new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
         targetVdcPropInfo.addProperty("ipsec_key", ipsecConfig.getPreSharedKey());
         return targetVdcPropInfo;
-    }
-
-    /**
-     * Load the vdc vonfiguration from the database
-     *
-     * @return
-     */
-    private PropertyInfoExt loadVdcConfigFromDatabase() {
-        VdcConfigUtil vdcConfigUtil = new VdcConfigUtil();
-        vdcConfigUtil.setCoordinator(coordinator.getCoordinatorClient());
-        return new PropertyInfoExt(vdcConfigUtil.genVdcProperties());
     }
 
     /**

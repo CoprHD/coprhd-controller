@@ -118,6 +118,10 @@ public interface Constants {
     public static final String CONFIG_DR_PRIMARY_KIND = "disasterRecoveryPrimary";
     public static final String CONFIG_DR_PRIMARY_ID = "global";
     public static final String CONFIG_DR_PRIMARY_SITEID = "siteId";
+
+    String CONFIG_GEO_LOCAL_VDC_KIND = "geoLocalVDC";
+    String CONFIG_GEO_LOCAL_VDC_ID = "global";
+    String CONFIG_GEO_LOCAL_VDC_SHORT_ID = "vdcShortId";
     
     public static final String SITE_STATE = "state";
     public static final String SITE_ID= "siteid";

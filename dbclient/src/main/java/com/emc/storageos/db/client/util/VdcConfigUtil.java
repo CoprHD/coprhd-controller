@@ -4,10 +4,6 @@
  */
 package com.emc.storageos.db.client.util;
 
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -18,15 +14,11 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
 
 /**
  * Utility class to generate Vdc property for syssvc.
@@ -51,12 +43,9 @@ public class VdcConfigUtil {
     public static final String SITE_MYID="site_myid";
     public static final String SITE_IDS="site_ids";
 
-    private CoordinatorClient coordinator;
     private DrUtil drUtil;
 
-    @Autowired
-    public void setCoordinator(CoordinatorClient coordinator) {
-        this.coordinator = coordinator;
+    public VdcConfigUtil(CoordinatorClient coordinator) {
         drUtil = new DrUtil(coordinator);
     }
 
@@ -70,19 +59,16 @@ public class VdcConfigUtil {
         Map<String, String> vdcConfig = new HashMap<>();
 
         Map<String, List<Site>> vdcSiteMap = getVdcSiteMap();
-        List<String> vdcShortIdList = new ArrayList<>(vdcSiteMap.keySet());
-        for (String vdcShortId : vdcShortIdList) {
-
-            // FIXME: need to determine if the vdc is local or not.
-            // THere's no way to know that without querying db, unless we persist such information in ZK too.
-            vdcConfig.put(VDC_MYID, vdcShortId);
-
-            genSiteProperties(vdcConfig, vdcShortId, vdcSiteMap.get(vdcShortId));
-        }
-
         if (vdcSiteMap.isEmpty()) {
             log.warn("No virtual data center defined in local db");
             return vdcConfig;
+        }
+
+        vdcConfig.put(VDC_MYID, drUtil.getLocalVdcShortId());
+
+        List<String> vdcShortIdList = new ArrayList<>(vdcSiteMap.keySet());
+        for (String vdcShortId : vdcShortIdList) {
+            genSiteProperties(vdcConfig, vdcShortId, vdcSiteMap.get(vdcShortId));
         }
         // sort the vdc short ids by their indices, note that vdc11 should be greater
         // than vdc2
@@ -115,7 +101,6 @@ public class VdcConfigUtil {
     }
 
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
-        DrUtil drUtil = new DrUtil(coordinator);
         String primarySiteId = drUtil.getPrimarySiteId();
         
         Collections.sort(sites, new Comparator<Site>() {

@@ -173,4 +173,13 @@ public class DrUtil {
     public boolean isLocalSite(Site site) {
         return site.getUuid().equals(coordinator.getSiteId());
     }
+
+    /**
+     * Get the short id of local VDC
+     */
+    public String getLocalVdcShortId() {
+        Configuration localVdc = coordinator.queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
+                Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        return localVdc.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
+    }
 }

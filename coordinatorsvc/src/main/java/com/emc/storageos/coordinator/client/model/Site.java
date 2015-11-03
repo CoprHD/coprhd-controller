@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.coordinator.client.model;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,8 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 
 /**
  * Representation for a ViPR site, both primary and standby
@@ -167,7 +164,7 @@ public class Site {
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
-        if (obj instanceof Site)
+        if (!(obj instanceof Site))
             return false;
         Site other = (Site) obj;
         if (uuid == null) {
@@ -192,7 +189,7 @@ public class Site {
             config.setConfig(KEY_VIP, vip);
         }
         if (vdcShortId != null) {
-            config.setConfig(KEY_VDC, vdcShortId.toString());
+            config.setConfig(KEY_VDC, vdcShortId);
         }
         if (secretKey != null) {
             config.setConfig(KEY_SECRETKEY, this.secretKey);

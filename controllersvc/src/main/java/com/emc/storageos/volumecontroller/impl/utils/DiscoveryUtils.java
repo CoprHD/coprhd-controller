@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyModes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -636,21 +636,17 @@ public class DiscoveryUtils {
      * @param remoteCopyMode
      * @param vPool
      * @param dbClient
-     * @return false, if a mismatch is found, true otherwise.
+     * @return true, if a mismatch is found, false otherwise.
      */
     private static boolean hasRemoteCopyModeMismatch(StringSet remoteCopyMode, VirtualPool vPool, DbClient dbClient) {
-        if (remoteCopyMode != null) {
-            Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings =
-                    VirtualPool.getRemoteProtectionSettings(vPool, dbClient);
-
-            if (remoteProtectionSettings != null) {
-                for (VpoolRemoteCopyProtectionSettings settings : remoteProtectionSettings.values()) {
-                    if (!remoteCopyMode.contains(settings.getCopyMode())) {
-                        return false;
-                    }
-                }
+        if (remoteCopyMode != null && !remoteCopyMode.isEmpty()) {
+            try {
+                CopyModes copyMode = CopyModes.valueOf(remoteCopyMode.iterator().next());
+                return vPool.supportsRemoteProtectionCopyMode(copyMode, dbClient);
+            } catch (IllegalArgumentException iae) {
+                //ignore
             }
         }
-        return true;
+        return false;
     }
 }

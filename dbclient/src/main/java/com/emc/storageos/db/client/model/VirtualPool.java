@@ -17,6 +17,7 @@ import javax.xml.bind.annotation.XmlEnumValue;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyModes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.valid.EnumType;
 
@@ -1331,5 +1332,23 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setMaxRetention(Integer maxRetention) {
         this.maxRetention = (null==maxRetention || maxRetention == 0) ? 0 : maxRetention;
         setChanged("maxRetention");
+    }
+
+    public boolean supportsRemoteProtectionCopyMode(CopyModes copyMode, DbClient dbClient) {
+        return supportsRemoteProtectionCopyMode(copyMode, getRemoteProtectionSettings(this, dbClient));
+    }
+
+    public boolean supportsRemoteProtectionCopyMode(CopyModes copyMode, Map<URI, VpoolRemoteCopyProtectionSettings> settingsMap) {
+
+        // Assumption is only one entry
+        if (settingsMap != null) {
+            for (Map.Entry<URI, VpoolRemoteCopyProtectionSettings> entry : settingsMap.entrySet()) {
+                VpoolRemoteCopyProtectionSettings settings = entry.getValue();
+                CopyModes settingsCopyMode = CopyModes.valueOf(settings.getCopyMode());
+                return settingsCopyMode != null && settingsCopyMode.equals(copyMode);
+            }
+        }
+
+        return false;
     }
 }

@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyModes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +64,8 @@ public class ImplicitUnManagedObjectsMatcher {
             DbClient dbClient) {
         List<UnManagedVolume> modifiedUnManagedVolumes = new ArrayList<UnManagedVolume>();
         Map<String, StringSet> poolMapping = new HashMap<String, StringSet>();
+        Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings =
+                VirtualPool.getRemoteProtectionSettings(virtualPool, dbClient);
 
         StringSet invalidPools = null;
         // if a virtual pool has assigned pools, use them for matching.
@@ -116,15 +120,17 @@ public class ImplicitUnManagedObjectsMatcher {
                     String unManagedVolumeProvisioningType = UnManagedVolume.SupportedProvisioningType
                             .getProvisioningType(unManagedVolume.getVolumeCharacterstics().get(
                                     SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
+                    CopyModes remoteCopyMode = getRemoteCopyMode(unManagedVolumeInfo);
 
                     // remove the vpool from supported Vpool List if present
-                    if (INVALID.equalsIgnoreCase(key) ||
-                            !unManagedVolumeProvisioningType.equalsIgnoreCase(virtualPool.getSupportedProvisioningType())) {
+                    if (INVALID.equalsIgnoreCase(key)
+                            || !unManagedVolumeProvisioningType.equalsIgnoreCase(virtualPool.getSupportedProvisioningType())
+                            || !virtualPool.supportsRemoteProtectionCopyMode(remoteCopyMode, remoteProtectionSettings)) {
                         if (removeVPoolFromUnManagedVolumeObjectVPools(virtualPool, unManagedVolume)) {
                             modifiedUnManagedVolumes.add(unManagedVolume);
                         }
                     } else if (addVPoolToUnManagedObjectSupportedVPools(virtualPool, unManagedVolumeInfo,
-                            unManagedVolume, system, srdfEnabledTargetVPools)) {
+                            unManagedVolume, system, srdfEnabledTargetVPools, remoteProtectionSettings)) {
                         modifiedUnManagedVolumes.add(unManagedVolume);
                     }
 
@@ -168,7 +174,7 @@ public class ImplicitUnManagedObjectsMatcher {
      */
     private static boolean addVPoolToUnManagedObjectSupportedVPools(VirtualPool virtualPool,
             StringSetMap unManagedObjectInfo, UnManagedDiscoveredObject unManagedObject, StorageSystem system,
-            Set<URI> srdfEnabledTargetVPools) {
+            Set<URI> srdfEnabledTargetVPools, Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettings) {
         // if virtual pool is already part of supported vpool
         // List, then continue;
         StringSet supportedVPoolsList = unManagedObject.getSupportedVpoolUris();
@@ -199,6 +205,7 @@ public class ImplicitUnManagedObjectsMatcher {
                     return false;
                 }
             }
+
             // Verify whether unmanaged volume SRDF properties with the Vpool
             boolean srdfSourceVpool = (null != virtualPool.getProtectionRemoteCopySettings() && !virtualPool
                     .getProtectionRemoteCopySettings().isEmpty());
@@ -207,6 +214,9 @@ public class ImplicitUnManagedObjectsMatcher {
             boolean isRegularVolume = (null == remoteVolType);
             boolean isSRDFSourceVolume = (null != remoteVolType && remoteVolType.contains(RemoteMirrorObject.Types.SOURCE.toString()));
             boolean isSRDFTargetVolume = (null != remoteVolType && remoteVolType.contains(RemoteMirrorObject.Types.TARGET.toString()));
+
+            CopyModes remoteCopyMode = getRemoteCopyMode(unManagedObjectInfo);
+            boolean isRemoteCopyModeMismatch = !virtualPool.supportsRemoteProtectionCopyMode(remoteCopyMode, remoteSettings);
 
             if (isRegularVolume && (srdfSourceVpool || srdfTargetVpool)) {
                 _log.debug("Found a regular volume with SRDF Protection Virtual Pool. No need to update.");
@@ -219,6 +229,10 @@ public class ImplicitUnManagedObjectsMatcher {
                 return false;
             } else if (isSRDFTargetVolume && srdfSourceVpool) {
                 _log.debug("Found a SRDFTarget volume & source srdf source vpool No need to update.");
+                return false;
+            } else if (isRemoteCopyModeMismatch) {
+                _log.debug(String.format("Found SRDF unmanaged volume %s with %s copy mode which %s does not support",
+                        unManagedObject.getId(), remoteCopyMode, virtualPool.getId()));
                 return false;
             }
         }
@@ -298,7 +312,7 @@ public class ImplicitUnManagedObjectsMatcher {
                             modifiedUnManagedFileSystems.add(unManagedFileSystem);
                         }
                     } else if (addVPoolToUnManagedObjectSupportedVPools(virtualPool, unManagedFileSystemInfo,
-                            unManagedFileSystem, null, null)) {
+                            unManagedFileSystem, null, null, null)) {
                         modifiedUnManagedFileSystems.add(unManagedFileSystem);
                     }
 
@@ -321,5 +335,17 @@ public class ImplicitUnManagedObjectsMatcher {
         } catch (DatabaseException e) {
             _log.error("Error inserting {} records into the database", type, e);
         }
+    }
+
+    private static CopyModes getRemoteCopyMode(StringSetMap unManagedVolumeInfo) {
+        StringSet modeSet = unManagedVolumeInfo.get(SupportedVolumeInformation.REMOTE_COPY_MODE.toString());
+        if (modeSet != null && !modeSet.isEmpty()) {
+            try {
+                return CopyModes.valueOf(modeSet.iterator().next());
+            } catch (IllegalArgumentException iae) {
+                //ignore
+            }
+        }
+        return CopyModes.NONE;
     }
 }

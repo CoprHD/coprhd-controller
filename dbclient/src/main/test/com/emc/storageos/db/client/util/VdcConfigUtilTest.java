@@ -108,7 +108,20 @@ public class VdcConfigUtilTest {
             ConfigurationImpl configuration = new ConfigurationImpl();
             switch(kind) {
                 case Constants.CONFIG_DR_PRIMARY_KIND:
-                    configuration.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, "22222222-2222-2222-2222-222222222222");
+                    switch(id) {
+                        case "vdc1":
+                            configuration.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID,
+                                    "11111111-1111-1111-1111-111111111111");
+                            break;
+                        case "vdc2":
+                            configuration.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, 
+                                    "22222222-2222-2222-2222-222222222222");
+                            break;
+                        case "vdc3":
+                            configuration.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID,
+                                    "33333333-3333-3333-3333-333333333333");
+                            break;
+                    }
                     break;
                 case Constants.CONFIG_GEO_LOCAL_VDC_KIND:
                     configuration.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, "vdc2");

@@ -177,9 +177,13 @@ public class VdcConfigUtil {
             }
         }
         Collections.sort(shortIds);
-        vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
 
-        vdcConfig.put(SITE_IS_STANDBY, String.valueOf(!drUtil.isPrimary()));
+        if (drUtil.getLocalVdcShortId().equals(vdcShortId)) {
+            // right now we assume that SITE_IDS and SITE_IS_STANDBY only makes sense for local VDC
+            // moving forward this may or may not be the case.
+            vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
+            vdcConfig.put(SITE_IS_STANDBY, String.valueOf(drUtil.isStandby()));
+        }
     }
 
     private List<String> getHostsFromIPAddrMap(Map<String, String> IPv4Addresses, Map<String, String> IPv6Addresses) {

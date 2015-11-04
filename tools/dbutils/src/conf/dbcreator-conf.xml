@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	 <import resource="classpath:dbcommon-var.xml"/>
+	 <import resource="classpath:dbversion-info.xml"/>
+	 
+	 <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
+        <property name="name" value="dbsvc"/>
+        <property name="id" value="db-standalone"/>
+        <property name="endpoint" value="thrift://localhost:9160"/>
+        <property name="version" ref="dbSchemaVersion"/>
+    </bean>
+
+    <bean id="dataObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
+        <property name="packages">
+            <array>
+                <value>com.emc.storageos.db.client.model</value>
+            </array>
+        </property>
+    </bean>
+    
+    <bean id="dbschemautil" class="com.emc.storageos.db.server.impl.SchemaUtil">
+        <property name="service" ref="serviceinfo"/>
+        <property name="dataObjectScanner" ref="dataObjectScanner"/>
+        <property name="vdcShortId" value="vdc1"/>
+        <property name="vdcEndpoint" value="localhost"/>
+        <property name="dbCommonInfo" ref="dbcommoninfo"/>
+    </bean>
+
+</beans>

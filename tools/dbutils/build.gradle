@@ -24,4 +24,11 @@ task copyScripts(type: Copy) {
     into "${buildDir}/bin"
     fileMode = 0755
 }
+
+task createSchema(type: JavaExec, dependsOn: compileTestJava) {
+    main = 'com.emc.storageos.dbutils.DbSchemaCreator'
+    jvmArgs '-Dlog4j.configuration=dbcreator-log4j.properties'
+    maxHeapSize "512m"
+    classpath = sourceSets.test.runtimeClasspath
+}
 project.tasks['scripts'].dependsOn(copyScripts)

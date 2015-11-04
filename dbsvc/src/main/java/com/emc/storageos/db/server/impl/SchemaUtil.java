@@ -846,7 +846,13 @@ public class SchemaUtil {
 
         vdc.setLocal(true);
         dbClient.createObject(vdc);
-        
+
+        // create VDC parent ZNode for site config in ZK
+        ConfigurationImpl vdcConfig = new ConfigurationImpl();
+        vdcConfig.setKind(Site.CONFIG_KIND);
+        vdcConfig.setId(vdc.getShortId());
+        _coordinator.persistServiceConfiguration(vdcConfig);
+
         // insert DR primary site info to ZK
         Site site = new Site();
         site.setUuid(_coordinator.getSiteId());

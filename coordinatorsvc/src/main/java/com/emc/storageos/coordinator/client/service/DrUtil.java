@@ -166,6 +166,11 @@ public class DrUtil {
         }
     }
     
+    /**
+     * Update SiteInfo's action and version for specified site id 
+     * @param siteId site UUID
+     * @param action action to take
+     */
     public void updateVdcTargetVersion(String siteId, String action) throws Exception {
         SiteInfo siteInfo;
         SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);

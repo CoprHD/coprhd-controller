@@ -389,6 +389,7 @@ public class VdcSiteManager extends AbstractManager {
             // The previous approach disconnects all the clients, no different than a service restart.
             localRepository.reconfigProperties("coordinator");
             
+            //new primary site from switchover will not restart until it notify all other sites to reconfig
             if (!site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
                 log.info("not for switchover, restart coordinatorsvc");
                 localRepository.restart("coordinatorsvc");
@@ -733,7 +734,7 @@ public class VdcSiteManager extends AbstractManager {
         log.info("site: {}", site.toString());
         
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER)) {
-            log.info("This is primary planned failover site");
+            log.info("This is planned failover primary site (old primrary)");
             
             DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
                     site.getUuid(), Constants.SWITCHOVER_PRIMARY_NODECOUNT);
@@ -752,7 +753,7 @@ public class VdcSiteManager extends AbstractManager {
         }
         
         if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-            log.info("This is standby planned failover site");
+            log.info("This is planned failover standby site (new primary)");
             
             DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
                     site.getUuid(), Constants.SWITCHOVER_STANDBY_NODECOUNT);

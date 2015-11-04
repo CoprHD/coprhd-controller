@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +44,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
@@ -68,12 +66,9 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.ClusterInfo;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.ddl.KeyspaceDefinition;
 
 /**
  * APIs implementation to standby sites lifecycle management such as add-standby, remove-standby, failover, pause
@@ -531,8 +526,6 @@ public class DisasterRecoveryService {
             
             int oldPrimaryHostCount = vdc.getHostCount();
 
-            List<Site> existingSites = drUtil.listStandbySites();
-
             // update VDC
             Site newPrimarySite = drUtil.getSite(uuid);
             vdc.setApiEndpoint(newPrimarySite.getVip());
@@ -567,13 +560,7 @@ public class DisasterRecoveryService {
                     Constants.SWITCHOVER_PRIMARY_NODECOUNT);
             daiOldPrimary.forceSet(oldPrimaryHostCount);
             
-            DistributedAtomicInteger daiTotal = coordinator.getDistributedAtomicInteger(uuid,
-                    Constants.SWITCHOVER_PRIMARY_TOTAL_NODECOUNT);
-            daiTotal.forceSet(vdc.getHostCount() + oldPrimaryHostCount);
-            
-            log.info("total node count: {}, new primary node count: {}, old primary node count: {}",
-                    new String[]{String.valueOf(vdc.getHostCount() + oldPrimaryHostCount), String.valueOf(vdc.getHostCount()),
-                    String.valueOf(oldPrimaryHostCount)});
+            log.info("new primary node count: {}, old primary node count: {}", vdc.getHostCount(), oldPrimaryHostCount);
             
             // trigger new primary to reconfig
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);
@@ -814,13 +801,13 @@ public class DisasterRecoveryService {
 
     class SiteErrorUpdater implements Runnable {
         private String siteId;
+        private String primaryId;
+        private String standbyId;
 
         public SiteErrorUpdater(String siteId) {
             this.siteId = siteId;
         }
 
-        private String primaryId;
-        private String standbyId;
         public SiteErrorUpdater(String primaryId, String standbyId) {
             this.primaryId = primaryId;
             this.standbyId = standbyId;

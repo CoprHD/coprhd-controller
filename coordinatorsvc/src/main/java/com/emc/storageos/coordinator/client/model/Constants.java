@@ -134,5 +134,4 @@ public interface Constants {
     
     public static final String SWITCHOVER_STANDBY_NODECOUNT = "standbySwitchingOverNodeLeftCounter";
     public static final String SWITCHOVER_PRIMARY_NODECOUNT = "primarySwitchingOverNodeLeftCounter";
-    public static final String SWITCHOVER_PRIMARY_TOTAL_NODECOUNT = "primarySwitchingOverNodeTotalLeftCounter";
 }

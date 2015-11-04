@@ -210,6 +210,7 @@ public class VdcConfigUtil {
             List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
             String standbyShortId = site.getStandbyShortId();
             
+            // sort the host names as vipr1, vipr2 ...
             Collections.sort(standbyHosts);
             
             for (String hostName : standbyHosts) {
@@ -235,6 +236,7 @@ public class VdcConfigUtil {
         boolean isStandby = !currentSiteId.equals(primarySiteId);
         vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
         
+        //set whether this site is doing switch over, this flag is used in etc/genconfig.d/geodb for generating DC name
         Site currentSite = drUtil.getSite(currentSiteId);
         vdcConfig.put(SITE_IS_SWITCHING_OVER, String.valueOf(currentSite.getState() == SiteState.PRIMARY_SWITCHING_OVER
                         || currentSite.getState() == SiteState.STANDBY_SWITCHING_OVER));

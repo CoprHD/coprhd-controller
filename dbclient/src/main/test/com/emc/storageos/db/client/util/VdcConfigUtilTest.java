@@ -49,6 +49,9 @@ public class VdcConfigUtilTest {
         Assert.assertEquals("2.1.1.4", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 4)));
         Assert.assertEquals("2.1.1.5", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc2", 5)));
         Assert.assertEquals("3.1.1.1", vdcConfig.get(String.format(VdcConfigUtil.VDC_IPADDR_PTN, "vdc3", 1)));
+        Assert.assertEquals("", vdcConfig.get(VdcConfigUtil.SITE_IDS));
+        Assert.assertEquals("false", vdcConfig.get(VdcConfigUtil.SITE_IS_STANDBY));
+        Assert.assertEquals("", vdcConfig.get(VdcConfigUtil.SITE_MYID));
     }
 
     private static class VdcCoordinatorClient extends CoordinatorClientImpl {

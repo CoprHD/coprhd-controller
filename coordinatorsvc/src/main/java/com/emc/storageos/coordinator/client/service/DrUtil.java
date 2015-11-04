@@ -200,6 +200,10 @@ public class DrUtil {
     public String getLocalVdcShortId() {
         Configuration localVdc = coordinator.queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
                 Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        if (localVdc == null) {
+            log.warn("local VDC not set in ZK. Assuming vdc1 for now");
+            return "vdc1";
+        }
         return localVdc.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
     }
 }

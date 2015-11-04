@@ -368,7 +368,7 @@ public class DisasterRecoveryService {
         for (String siteId : siteIdList) {
             Site site;
             try {
-                site = drUtil.getSite(siteId);
+                site = drUtil.getSiteFromLocalVdc(siteId);
             } catch (Exception ex) {
                 log.error("Can't load site {} from ZK", siteId);
                 throw APIException.badRequests.siteIdNotFound();

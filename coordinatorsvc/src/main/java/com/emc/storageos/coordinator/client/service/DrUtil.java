@@ -85,13 +85,14 @@ public class DrUtil {
     }
 
     /**
-     * Load site information from coordinator 
+     * Load site information from local vdc
      * 
      * @param siteId
      * @return
      */
-    public Site getSite(String siteId) {
-        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, siteId);
+    public Site getSiteFromLocalVdc(String siteId) {
+        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, getLocalVdcShortId());
+        Configuration config = coordinator.queryConfiguration(siteKind, siteId);
         if (config != null) {
             return new Site(config);
         }
@@ -121,8 +122,11 @@ public class DrUtil {
      */
     public List<Site> listAllVdcSites() {
         List<Site> result = new ArrayList<>();
-        for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
-            result.add(new Site(config));
+        for(Configuration vdcConfig : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
+            String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcConfig.getId());
+            for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
+                result.add(new Site(siteConfig));
+            }
         }
         return result;
     }
@@ -133,13 +137,10 @@ public class DrUtil {
      * @return list of all sites
      */
     public List<Site> listSites() {
-        String vdcId = getLocalVdcShortId();
         List<Site> result = new ArrayList<>();
-        for(Configuration config : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
-            if (site.getVdcShortId().equals(vdcId)) {
-                result.add(site);
-            }
+        String siteKind = String.format("%s/%s", Site.CONFIG_KIND, getLocalVdcShortId());
+        for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
+            result.add(new Site(siteConfig));
         }
         return result;
     }

@@ -176,8 +176,8 @@ public class Site {
 
     public Configuration toConfiguration() {
         ConfigurationImpl config = new ConfigurationImpl();
-        config.setKind(CONFIG_KIND);
-        config.setId(String.format("%s/%s", vdcShortId, uuid));
+        config.setKind(String.format("%s/%s", CONFIG_KIND, vdcShortId));
+        config.setId(uuid);
         if (name != null) {
             config.setConfig(KEY_NAME, name);
         }
@@ -206,12 +206,13 @@ public class Site {
     }
 
     private void fromConfiguration(Configuration config) {
-        if (!config.getKind().equals(CONFIG_KIND)) {
+        String kindStr = config.getKind();
+        if (!kindStr.split("/")[1].equals(CONFIG_KIND)) {
             throw new IllegalArgumentException("Unexpected configuration kind for Site");
         }
         try {
-            this.vdcShortId = config.getId().split("/")[0];
-            this.uuid = config.getId().split("/")[1];
+            this.vdcShortId = kindStr.split("/")[0];
+            this.uuid = config.getId();
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);

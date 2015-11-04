@@ -255,7 +255,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         for (StoragePort sPort : storagePorts) {
             // Do not choose a port that has already been chosen
             if (!usedPorts.contains(sPort.getPortName())) {
-                String[] splitArray = sPort.getPortGroup().split(Constants.HYPEN);
+                String[] splitArray = sPort.getPortGroup().split(Constants.HYPHEN);
                 String xBrick = splitArray[0];
                 String sc = splitArray[1];
                 // select port from unique X-brick/SC
@@ -271,7 +271,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             for (StoragePort sPort : storagePorts) {
                 // Do not choose a port that has already been chosen
                 if (!usedPorts.contains(sPort.getPortName())) {
-                    String[] splitArray = sPort.getPortGroup().split(Constants.HYPEN);
+                    String[] splitArray = sPort.getPortGroup().split(Constants.HYPHEN);
                     String xBrick = splitArray[0];
                     String sc = splitArray[1];
                     // select port from unique X-brick/SC for this network
@@ -349,7 +349,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         for (List<List<StoragePort>> portSet : useablePorts.values()) {
             for (List<StoragePort> ports : portSet) {
                 for (StoragePort port : ports) {
-                    xBricks.add(port.getPortGroup().split(Constants.HYPEN)[0]);
+                    xBricks.add(port.getPortGroup().split(Constants.HYPHEN)[0]);
                 }
             }
         }
@@ -387,7 +387,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             // split initiators across networks depending on number of paths per director
             int numberOfNetworksForDirector = initiatorGroup.get(director).keySet().size();
             int initiatorsPerNetworkForDirector = pathsPerDirector / numberOfNetworksForDirector;
-            _log.info("Number of Initators that must be chosen per network for a director: {}", initiatorsPerNetworkForDirector);
+            _log.info("Number of Initiators that must be chosen per network for a director: {}", initiatorsPerNetworkForDirector);
 
             for (URI networkURI : initiatorGroup.get(director).keySet()) {
                 int numberOfInitiatorsPerNetwork = 0;

@@ -325,7 +325,7 @@ public class StoragePortsAllocator {
         } else if (arrayType == StorageSystem.Type.xtremio) {
             // For XtremIO, X-bricks are being treated as Engines in ViPR.
             // X-brick has 2 Storage controllers: X1-SC1, X1-SC2
-            return haDomain.getAdapterName().split(Constants.HYPEN)[0];
+            return haDomain.getAdapterName().split(Constants.HYPHEN)[0];
         } else {// not a VMAX or Vplex or HDS or XtremIO, so it has no engines
             return null;
         }

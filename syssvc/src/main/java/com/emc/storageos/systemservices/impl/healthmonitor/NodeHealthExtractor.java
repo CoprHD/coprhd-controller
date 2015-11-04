@@ -96,8 +96,7 @@ public class NodeHealthExtractor implements StatConstants {
             // because we still see its process as GOOD
             Status status = Status.DEGRADED;
             for (Service svc : svcs) {
-                if (svc.getEndpoint(null).getHost().equals(nodeId) || svc.getEndpoint(endpointName).getHost().equals(nodeIP)) { // Found our
-                                                                                                                                // service
+                if (svc.getNodeId().equals(nodeId)){ // Found our service
                     status = Status.GOOD;
                 }
             }

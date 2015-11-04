@@ -221,12 +221,6 @@ public class HealthMonitorService extends BaseLogSvcResource {
             if (!nodesData.containsKey(nodeId)) {
                 String nodeName = _coordinatorClientExt.getPropertyInfo().getProperty("node_"+nodeId.replace("vipr","")+"_name");
                 nodehealthList.add(new NodeHealth(nodeId,nodeName,ip.toString(), Status.NODE_OR_SYSSVC_UNAVAILABLE.toString()));
-            } else {
-                for (NodeHealth health : nodehealthList) {
-                    if (health.getNodeId().equals(nodeId)) {
-                        health.setIp(ip.toString());
-                    }
-                }
             }
         }
         return healthRestRep;
@@ -339,8 +333,10 @@ public class HealthMonitorService extends BaseLogSvcResource {
      * @return IP address
      */
     private String getNodeIP(String nodeId) {
-        URI endpoint = _coordinatorClientExt.getNodeEndpoint(nodeId);
-        return endpoint != null ? endpoint.getHost() : null;
+        Map<String, DualInetAddress> ipLookupTable = _coordinatorClientExt.getCoordinatorClient().getInetAddessLookupMap()
+                .getControllerNodeIPLookupMap();
+        DualInetAddress ip = ipLookupTable.get(nodeId);
+        return ip.toString();
     }
 
     /**

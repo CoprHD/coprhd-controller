@@ -288,7 +288,7 @@ public class VPlexApiClient {
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterId = clusterInfo.getName();
             // for each cluster get the virtual volume information.
-            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList =
+            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList = 
                     _discoveryMgr.getVirtualVolumesForCluster(clusterId);
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : clusterVirtualVolumeInfoList) {
                 virtualVolumeInfo.addCluster(clusterId);
@@ -527,13 +527,17 @@ public class VPlexApiClient {
      * migrating the backend volume(s) to volume(s) with a larger capacity.
      * 
      * @param virtualVolumeName The name of the virtual volume.
+     * @param expansionStatusRetryCount Retry count to check virtual volume's expansion status
+     * @param expansionStatusSleepTime Sleep time in between expansion status check retries
      * 
      * @throws VPlexApiException When an exception occurs expanding the volume.
      */
-    public VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName)
+    public VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName,
+            int expansionStatusRetryCount, long expansionStatusSleepTime)
             throws VPlexApiException {
         s_logger.info("Request for virtual volume expansion on VPlex at {}", _baseURI);
-        return _virtualVolumeMgr.expandVirtualVolume(virtualVolumeName);
+        return _virtualVolumeMgr.expandVirtualVolume(virtualVolumeName, expansionStatusRetryCount,
+                expansionStatusSleepTime);
     }
 
     /**
@@ -1560,13 +1564,28 @@ public class VPlexApiClient {
      * @return a map of WWNs to VPlexStorageVolumeInfo objects
      * @throws VPlexApiException
      */
-    public Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(String deviceName, String virtualVolumeType,
+    public Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(
+            String deviceName, String virtualVolumeType,
             String clusterName, boolean hasMirror) throws VPlexApiException {
         s_logger.info("Request to find storage volume wwns for {} on VPLEX at {}",
                 deviceName, _baseURI);
 
         List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
                 .getStorageVolumesForDevice(deviceName, virtualVolumeType, clusterName, hasMirror);
+
+        if (!storageVolumes.isEmpty()) {
+            s_logger.info("storage volumes found:");
+            Iterator<VPlexStorageVolumeInfo> it = storageVolumes.iterator();
+            while (it.hasNext()) {
+                VPlexStorageVolumeInfo info = it.next();
+                s_logger.info(info.toString());
+                if (!VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
+                    s_logger.warn("Unexpected component type {} found for volume {}",
+                            info.getComponentType(), info.getName());
+                    it.remove();
+                }
+            }
+        }
 
         Map<String, VPlexStorageVolumeInfo> storageVolumeWwns = new HashMap<String, VPlexStorageVolumeInfo>();
         for (VPlexStorageVolumeInfo info : storageVolumes) {
@@ -1699,4 +1718,5 @@ public class VPlexApiClient {
     public String getDrillDownInfoForDevice(String deviceName) throws VPlexApiException {
         return _discoveryMgr.getDrillDownInfoForDevice(deviceName);
     }
+
 }

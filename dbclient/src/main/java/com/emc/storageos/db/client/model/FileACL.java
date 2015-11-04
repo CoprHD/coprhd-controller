@@ -4,15 +4,21 @@
  */
 package com.emc.storageos.db.client.model;
 
+/**
+ * FileACL will contain the details of ACL on File.
+ * It will hold information about the user, type, domain, fileSystemPath, permissionType etc. mapped to File ACL
+ * 
+ * @author sauraa
+ * 
+ */
 public abstract class FileACL extends DataObject {
 
     protected String user;
     protected String type;
     protected String domain;
-
     protected String fileSystemPath;
 
-    // Permissions for user or group: read(r), write (rw) or execute comma seperated.
+    // Permissions for user or group: read(r), write (w) or execute(x) comma separated.
     protected String permissions;
 
     // permissionType can be allow or deny

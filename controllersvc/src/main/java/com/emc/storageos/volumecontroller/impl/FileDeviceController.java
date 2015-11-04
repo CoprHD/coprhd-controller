@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -257,7 +258,7 @@ public class FileDeviceController implements FileController {
 
             Project proj = _dbClient.queryObject(Project.class, fsObj.getProject());
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, fsObj.getTenant());
-
+            setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
             args.setTenantOrg(tenant);
             args.setProject(proj);
 
@@ -483,6 +484,7 @@ public class FileDeviceController implements FileController {
         FileShare fs = null;
         Snapshot snapshotObj = null;
         StorageSystem storageObj = null;
+        
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
@@ -495,6 +497,7 @@ public class FileDeviceController implements FileController {
                 args.addFSFileObject(fs);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
                 args.addStoragePool(pool);
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
             } else {
                 snapshotObj = _dbClient.queryObject(Snapshot.class, uri);
                 fsObj = snapshotObj;
@@ -503,6 +506,7 @@ public class FileDeviceController implements FileController {
                 args.addSnapshotFileObject(snapshotObj);
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
                 args.addStoragePool(pool);
+                setVirtualNASinArgs(fs.getVirtualNAS(), args);
             }
 
             args.setFileOperation(isFile);
@@ -845,11 +849,14 @@ public class FileDeviceController implements FileController {
             SMBFileShare smbFileShare = smbShare.getSMBFileShare();
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             args.setOpId(opId);
+            
             if (URIUtil.isType(uri, FileShare.class)) {
                 fsObj = _dbClient.queryObject(FileShare.class, uri);
                 fileObject = fsObj;
                 args.addFSFileObject(fsObj);
                 args.setFileOperation(true);
+                setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
+                
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -876,6 +883,7 @@ public class FileDeviceController implements FileController {
                 fsObj = _dbClient.queryObject(FileShare.class, snapshotObj.getParent());
                 args.addFileShare(fsObj);
                 args.setFileOperation(false);
+                setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -914,7 +922,8 @@ public class FileDeviceController implements FileController {
         }
     }
 
-    @Override
+
+	@Override
     public void deleteShare(URI storage, URI uri, FileSMBShare smbShare, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         FileObject fileObject = null;
@@ -1609,7 +1618,7 @@ public class FileDeviceController implements FileController {
             if (fsExportMap != null && !fsExportMap.isEmpty()) {
                 // check the quota directory is exported
                 for (FileExport fileExport : fsExportMap.values()) {
-                    if (fileExport.getSubDirectory().equals(quotaName) &&
+                    if (quotaName.equals(fileExport.getSubDirectory()) &&
                             fileExport.getPath().endsWith(quotaName)) {
                         isExported = true;
                         _log.info("Delete the nfs sub directory export path {} and key {}",
@@ -2592,7 +2601,7 @@ public class FileDeviceController implements FileController {
      * Create the DB object from the NfsACE object
      * 
      * @param ace given NfsACE object
-     * @param dbShareAcl BD object need to be formed
+     * @param dbShareAcl DB object need to be formed
      * @param fs FileShare object
      * @param args FileDeviceInputOutput object
      */
@@ -2658,12 +2667,10 @@ public class FileDeviceController implements FileController {
 
         Iterator<URI> it = result.iterator();
         while (it.hasNext()) {
-            if (result.iterator().hasNext()) {
-                acl = _dbClient.queryObject(NFSShareACL.class, it.next());
-                if (acl != null && !acl.getInactive()) {
-                    _log.info("Existing ACE found in DB: {}", acl);
-                    return acl;
-                }
+            acl = _dbClient.queryObject(NFSShareACL.class, it.next());
+            if (acl != null && !acl.getInactive()) {
+                _log.info("Existing ACE found in DB: {}", acl);
+                return acl;
             }
         }
 
@@ -2988,9 +2995,7 @@ public class FileDeviceController implements FileController {
 
             if (result.isCommandSuccess()) {
                 // Update Database
-
                 updateNFSACLsInDB(param, fs, args);
-
             }
 
             if (result.getCommandPending()) {
@@ -3032,7 +3037,7 @@ public class FileDeviceController implements FileController {
     }
 
     /**
-     * Update the DB object ,this method need to be called after the success of
+     * Update the DB object, this method need to be called after the success of
      * back end command
      * 
      * @param param object of NfsACLUpdateParams
@@ -3057,7 +3062,6 @@ public class FileDeviceController implements FileController {
             }
 
             // Modify existing acls
-
             List<NfsACE> aceModify = param.getAcesToModify();
 
             if (aceModify != null && !aceModify.isEmpty()) {
@@ -3065,9 +3069,11 @@ public class FileDeviceController implements FileController {
                     NFSShareACL dbNfsAcl = new NFSShareACL();
                     copyToPersistNfsACL(ace, dbNfsAcl, fs, args);
                     NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args.getFileOperation());
-                    dbNfsAcl.setId(dbNfsAclTemp.getId());
-                    _log.info("Modifying acl in DB: {}", dbNfsAcl);
-                    _dbClient.persistObject(dbNfsAcl);
+                    if (dbNfsAclTemp != null ) {
+                    	dbNfsAcl.setId(dbNfsAclTemp.getId());
+                        _log.info("Modifying acl in DB: {}", dbNfsAcl);
+                        _dbClient.persistObject(dbNfsAcl);
+                    } 
                 }
             }
 
@@ -3078,10 +3084,12 @@ public class FileDeviceController implements FileController {
                     NFSShareACL dbNfsAcl = new NFSShareACL();
                     copyToPersistNfsACL(ace, dbNfsAcl, fs, args);
                     NFSShareACL dbNfsAclTemp = getExistingNfsAclFromDB(dbNfsAcl, args.getFileOperation());
-                    dbNfsAcl.setId(dbNfsAclTemp.getId());
-                    dbNfsAcl.setInactive(true);
-                    _log.info("Marking acl inactive in DB: {}", dbNfsAcl);
-                    _dbClient.persistObject(dbNfsAcl);
+                    if ( dbNfsAclTemp != null) {
+                    	dbNfsAcl.setId(dbNfsAclTemp.getId());
+                        dbNfsAcl.setInactive(true);
+                        _log.info("Marking acl inactive in DB: {}", dbNfsAcl);
+                        _dbClient.persistObject(dbNfsAcl);
+                    }                  
                 }
             }
         }
@@ -3089,7 +3097,6 @@ public class FileDeviceController implements FileController {
         catch (Exception e) {
             _log.error("Error While executing CRUD Operations {}", e);
         }
-
     }
 
     @Override
@@ -3108,7 +3115,7 @@ public class FileDeviceController implements FileController {
 
             args.setSubDirectory(subDir);
 
-            _log.info("Controller Recieved Nfs ACL DELETE Operation ");
+            _log.info("FileDeviceController::deleteNFSAcls Recieved Nfs ACL DELETE Operation ");
 
             // File
             if (URIUtil.isType(fsURI, FileShare.class)) {
@@ -3139,7 +3146,7 @@ public class FileDeviceController implements FileController {
             args.setOpId(opId);
 
             List<NfsACE> aceDeleteList = new ArrayList<NfsACE>();
-            List<NFSShareACL> dbNfsAclTemp = queryAllNfsACLInDB(fs, subDir);
+            List<NFSShareACL> dbNfsAclTemp = queryAllNfsACLInDB(fs, subDir, args);
             makeNfsAceFromDB(aceDeleteList, dbNfsAclTemp);
             args.setNfsAclsToDelete(aceDeleteList);
 
@@ -3149,13 +3156,12 @@ public class FileDeviceController implements FileController {
 
             if (result.isCommandSuccess()) {
                 // Update Database
-
-                for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
-                    nfsShareACL.setInactive(true);
-                    _dbClient.persistObject(nfsShareACL);
-
-                }
-
+            	if ( !dbNfsAclTemp.isEmpty()) {
+            		for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
+                        nfsShareACL.setInactive(true);
+                    }
+            		 _dbClient.persistObject(dbNfsAclTemp);
+            	}
             }
 
             if (result.getCommandPending()) {
@@ -3199,15 +3205,26 @@ public class FileDeviceController implements FileController {
     /**
      * To get all the ACLs associated with the a FileShare
      * 
-     * @param fs
-     * @return
+     * @param fs File Share
+     * @param subDir Sub directory
+     * @return List of NFS ACL present in DB.
      */
-    private List<NFSShareACL> queryAllNfsACLInDB(FileShare fs, String subDir) {
+    private List<NFSShareACL> queryAllNfsACLInDB(FileShare fs, String subDir, FileDeviceInputOutput args) {
         List<NFSShareACL> nfsShareAcl = null;
         _log.info("Querying all Nfs File System ACL Using FsId {}", fs.getId());
         try {
+        	
+        	ContainmentConstraint containmentConstraint = null;
 
-            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileNfsAclsConstraint(fs.getId());
+        	if ( args.getFileOperation() ) {
+        		containmentConstraint = ContainmentConstraint.Factory
+        				.getFileNfsAclsConstraint(fs.getId());
+        		
+        	} else {
+        		containmentConstraint = ContainmentConstraint.Factory
+        				.getSnapshotNfsAclsConstraint(args.getSnapshotId());
+        	}
+            
             nfsShareAcl = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, NFSShareACL.class,
                     containmentConstraint);
 
@@ -3226,7 +3243,6 @@ public class FileDeviceController implements FileController {
 
                 }
             }
-
         }
         return nfsShareAcl;
     }
@@ -3240,51 +3256,50 @@ public class FileDeviceController implements FileController {
     private void makeNfsAceFromDB(List<NfsACE> nfsAcls, List<NFSShareACL> dbNfsAclTemp) {
 
         for (NFSShareACL nfsShareACL : dbNfsAclTemp) {
+        	
             NfsACE nfsAce = new NfsACE();
 
             String permission = nfsShareACL.getPermissions();
-
             if (permission != null && !permission.isEmpty()) {
-
                 nfsAce.setPermissions(permission);
-
             }
 
             String domain = nfsShareACL.getDomain();
-
             if (domain != null && !domain.isEmpty()) {
-
                 nfsAce.setDomain(domain);
-
             }
+                   
             String permissionType = nfsShareACL.getPermissionType();
-
+            nfsAce.setPermissionType(FileControllerConstants.NFS_FILE_PERMISSION_TYPE_ALLOW);
             if (permissionType != null && !permissionType.isEmpty()) {
-
                 nfsAce.setPermissionType(permissionType);
-
-            } else {
-
-                nfsAce.setPermissionType("allow");
-
-            }
+            } 
+            
             String type = nfsShareACL.getType();
-
             if (type != null && !type.isEmpty()) {
-
                 nfsAce.setType(type);
-
             }
+            
             String user = nfsShareACL.getUser();
-
             if (user != null && !user.isEmpty()) {
-
                 nfsAce.setUser(user);
-
             }
+            
             nfsAcls.add(nfsAce);
-
         }
-
     }
+
+    /**
+     * Set is the vNAS entity in args only if vNASURI is not null
+     * @param vNASURI the URI of VirtualNAS
+     * @param args instance of FileDeviceInputOutput
+     */
+    private void setVirtualNASinArgs(URI vNASURI, FileDeviceInputOutput args) {
+    	
+        if(vNASURI != null) {
+            VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
+            args.setvNAS(vNAS);
+        }
+	}
+
 }

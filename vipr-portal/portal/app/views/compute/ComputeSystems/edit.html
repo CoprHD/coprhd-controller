@@ -173,6 +173,10 @@
       #{Form.inputPasswordControlGroup field:field, required:!editMode /}
     #{/field}    
 
+    #{field 'computeSystems.computeImageServer'}
+        #{Form.selectOneControlGroup field:field, options:availableComputeImageServersList, required:false /}
+    #{/field}
+
     #{if computeSystems?.id}
         #{field 'computeSystems.id'}
           <input type="hidden" name="${field.name}" value="${field.value}">
@@ -180,7 +184,7 @@
     
       #{/if} 
     </fieldset>
-
+    
     #{Form.saveCancel cancelHref:referrer/}
 #{/form}
 </div>

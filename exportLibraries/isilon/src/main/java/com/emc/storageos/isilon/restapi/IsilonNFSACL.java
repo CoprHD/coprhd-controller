@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.isilon.restapi;
 
 import java.util.ArrayList;
@@ -14,14 +18,14 @@ public class IsilonNFSACL {
     }
 
     public class Persona {
-        private String type;   // optional
-        private String id;     // optional
-        private String name;
+        private final String type;   // optional
+        private final String id;     // optional
+        private final String name;
 
-        public Persona(String account_type, String i, String n) {
+        public Persona(String account_type, String id, String name) {
             this.type = account_type;
-            id = i;
-            name = n;
+            this.id = id;
+            this.name = name;
         }
 
         public String getId() {
@@ -93,11 +97,6 @@ public class IsilonNFSACL {
 
         public void setOp(String op) {
             this.op = op;
-        }
-
-        public void Acl()
-        {
-
         }
 
         @Override

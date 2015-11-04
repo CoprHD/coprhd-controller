@@ -12,6 +12,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,9 +24,9 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
 import com.emc.storageos.model.compute.ComputeImageServerRestRep;
@@ -138,13 +139,13 @@ public class ComputeMapper {
         for (ComputeImageServer server : availableServers) {
             NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
             serverRep.setId(server.getId());
-            serverRep.setName(server.getImageServerIp());
+            serverRep.setName(server.getLabel());
             availableServersList.add(serverRep);
         }
         for (ComputeImageServer server : failedServers) {
             NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
             serverRep.setId(server.getId());
-            serverRep.setName(server.getImageServerIp());
+            serverRep.setName(server.getLabel());
             failedServersList.add(serverRep);
         }
 
@@ -155,8 +156,8 @@ public class ComputeMapper {
     }
 
     /**
-     * Utility mapper method to map fields of {@link ComputeImageServer}
-     * columnFamily to {@link ComputeImageServerRestRep} rest representation.
+     * Utility mapper method to map fields of {@link ComputeImageServer} columnFamily to {@link ComputeImageServerRestRep} rest
+     * representation.
      * 
      * @param dbclient
      *            {@link DbClient} instance
@@ -184,7 +185,8 @@ public class ComputeMapper {
         to.setTftpBootDir(from.getTftpBootDir());
         to.setComputeImageServerStatus(from.getComputeImageServerStatus());
         to.setImageServerUser(from.getImageServerUser());
-        to.setOsInstallTimeoutMs(from.getOsInstallTimeoutMs());
+        to.setOsInstallTimeout(new Long(TimeUnit.MILLISECONDS.toSeconds(from
+                .getOsInstallTimeoutMs())).intValue());
         to.setComputeImages(new ArrayList<NamedRelatedResourceRep>());
         to.setFailedImages(new ArrayList<NamedRelatedResourceRep>());
         if (from.getComputeImages() != null) {
@@ -199,8 +201,8 @@ public class ComputeMapper {
         }
         if (from.getFailedComputeImages() != null) {
             for (String failedImageID : from.getFailedComputeImages()) {
-                ComputeImage failedImage = dbclient.queryObject(ComputeImage.class,
-                        URIUtil.uri(failedImageID));
+                ComputeImage failedImage = dbclient.queryObject(
+                        ComputeImage.class, URIUtil.uri(failedImageID));
                 to.getFailedImages().add(
                         DbObjectMapper.toNamedRelatedResource(
                                 ResourceTypeEnum.COMPUTE_IMAGE,

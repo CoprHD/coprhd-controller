@@ -1,0 +1,82 @@
+%{
+  titleKey = 'acl.edit.title';
+  image = '/public/img/icon_roles.png';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.storage', 'nav.file.filesystems'] /}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @fileSystems()}&{'resources.filesystems'}#{/breadcrumb.item}
+  #{breadcrumb.item @resources.FileSystems.fileSystem(fileSystemId?:fileSystemId)}${fileSystemName}#{/breadcrumb.item}
+  #{breadcrumb.item @resources.FileSystems.listNfsAcl(fileSystemId,fsMountPath,subDir)}${fsMountPath}#{/breadcrumb.item}
+   #{breadcrumb.item active:true}${nfsACL.name} : ${TYPE}#{/breadcrumb.item}
+#{/breadcrumb.container}
+<div class="container">
+
+#{Form.header titleKey:titleKey, image: image/}
+
+#{alerts/}
+#{form @saveNfsAce(), id:'nfsACL', class:'form form-horizontal', autocomplete:"off"}
+   #{field 'fileSystemId'}
+      <input type="hidden" name="fileSystemId" value="${fileSystemId}"/>
+    #{/field}
+    #{field 'shareName'}
+      <input type="hidden" name="subDir" value="${subDir}"/>
+    #{/field}
+    #{field 'type'}
+      <input type="hidden" name="type" value="${nfsACL.type}"/>
+    #{/field}
+    #{field 'name'}
+      <input type="hidden" name="name" value="${nfsACL.name}"/>
+    #{/field}
+    #{field 'domain'}
+      <input type="hidden" name="domain" value="${nfsACL.domain}"/>
+    #{/field}
+    #{field 'fsMountPath'}
+      <input type="hidden" name="fsMountPath" value="${fsMountPath}"/>
+    #{/field}
+    #{field 'nfsACL.type'}
+     %{
+        field.cssClass = "bla";
+        field.cssClassLabel = 'inline'
+      }%
+      #{Form.controlGroup field:field, noLabel:noLabel}
+        %{
+          field.disabled = true
+        }%
+        <div class="span6" style="margin-left:0px;">
+          #{Form.radio field:field, value: "GROUP", label: messages.get("Tenants.edit.roleAssignments.group")/}
+          #{Form.radio field:field, value: "USER", label: messages.get("Tenants.edit.roleAssignments.user")/}
+        </div>
+      #{/Form.controlGroup}    
+    #{/field}
+
+    #{field 'nfsACL.name'}
+    %{
+        field.disabled = true
+        field.fieldKey = 'nfsACL.name'
+     }%
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'nfsACL.domain'}
+    %{
+        field.disabled = true
+        field.fieldKey = 'nfsACL.domain'
+        }%
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'nfsACL.permissionType'}
+    #{Form.selectOneControlGroup field:field, options:permissionTypeOptions, select:nfsACL.permissionType, cssClass:'span3' /}
+  #{/field}
+   #{field 'nfsACL.permissions'}
+    #{Form.selectManyControlGroup field:field, options:permissionOptions, select:nfsACL.permissions, cssClass:'span3' /}
+  #{/field}
+    
+
+ #{Form.saveCancelButtonBar size:'large', cancelHref:@listNfsAcl(fileSystemId,fsMountPath,subDir)/}
+
+    
+#{/form}
+
+</div>

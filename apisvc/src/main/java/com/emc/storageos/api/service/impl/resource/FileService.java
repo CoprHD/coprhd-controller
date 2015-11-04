@@ -585,10 +585,10 @@ public class FileService extends TaskResourceService {
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())
-        		&& !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+                && !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
             // Throw an error
             throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool doesn't support "
-                    + StorageProtocol.File.NFS.name()+" or "+StorageProtocol.File.NFSv4 +  " protocol");
+                    + StorageProtocol.File.NFS.name() + " or " + StorageProtocol.File.NFSv4 + " protocol");
         }
 
         // locate storage port for exporting file System
@@ -1423,6 +1423,11 @@ public class FileService extends TaskResourceService {
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
             fs.setThinlyProvisioned(Boolean.TRUE);
         }
+
+        if (placement.getvNAS() != null) {
+            fs.setVirtualNAS(placement.getvNAS());
+        }
+
         fs.setOpStatus(new OpStatusMap());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_FILE_SYSTEM);
@@ -1677,10 +1682,10 @@ public class FileService extends TaskResourceService {
         // Check for VirtualPool whether it has NFS enabled
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (!vpool.getProtocols().contains(StorageProtocol.File.NFS.name())
-        		&& !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
+                && !vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
             // Throw an error
             throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
-                    + StorageProtocol.File.NFS.name()+" or "+StorageProtocol.File.NFSv4 + " protocol");
+                    + StorageProtocol.File.NFS.name() + " or " + StorageProtocol.File.NFSv4 + " protocol");
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
@@ -1999,18 +2004,19 @@ public class FileService extends TaskResourceService {
     }
 
     /**
-     * GET the ACL for fileSystem
+     * GET all ACLs for a fileSystem
      * 
      * @param id the URN of a ViPR fileSystem
-     * @param allDirs all directory within a filesystem
-     * @param subDir sub-directory within a filesystem
-     * @return
+     * @param allDirs all directory within a fileSystem
+     * @param subDir sub-directory within a fileSystem
+     * @return list of ACLs for file system.
+     * @throws InternalException
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/acl")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public NfsACLs getFileSahreACLs(@PathParam("id") URI id,
+    public NfsACLs getFileShareACLs(@PathParam("id") URI id,
             @QueryParam("allDirs") boolean allDirs,
             @QueryParam("subDir") String subDir) {
 
@@ -2020,34 +2026,25 @@ public class FileService extends TaskResourceService {
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        // top level acls which contains many acl inside.
 
-        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
-        if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
-            // Throw an error
-            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
-                    + StorageProtocol.File.NFSv4.name() + " protocol");
-        }
-
+        // Get All ACLs of FS from data base and group them based on path!!
         NfsACLUtility util = new NfsACLUtility(_dbClient, fs, null, subDir);
         NfsACLs acls = util.getNfsAclFromDB(allDirs);
-        if (acls.getNfsACLs() != null)
-        {
-            _log.info("Number of Acl rules returning {}", acls.getNfsACLs().size());
-        } else {
 
+        if (acls.getNfsACLs() != null && !acls.getNfsACLs().isEmpty()) {
+            _log.info("Found {} Acl rules for filesystem {}", acls.getNfsACLs().size(), fs.getId() );
+        } else {
             _log.info("No Acl rules found for filesystem  {}", fs.getId());
         }
         return acls;
-
     }
 
     /**
      * 
-     * Upadte existing file system ACL
+     * Update existing file system ACL
      * 
      * @param id the URN of a ViPR fileSystem
-     * @param subDir sub-directory within a filesystem
+     * @param param FileNfsACLUpdateParams
      * @brief Update file system ACL
      * @return Task resource representation
      * @throws InternalException
@@ -2068,11 +2065,10 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         // Check for VirtualPool whether it has NFS v4 enabled
-
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
             // Throw an error
-            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
+            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool does not support "
                     + StorageProtocol.File.NFSv4.name() + " protocol");
         }
 
@@ -2099,8 +2095,6 @@ public class FileService extends TaskResourceService {
             auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_NFS_ACL, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), param);
 
-        } catch (InternalException e) {
-            _log.error("Error Processing File System  ACL Updates {}, {}", e.getMessage(), e);
         } catch (BadRequestException e) {
             op = _dbClient.error(FileShare.class, fs.getId(), task, e);
             _log.error("Error Processing File System ACL Updates {}, {}", e.getMessage(), e);
@@ -2114,11 +2108,11 @@ public class FileService extends TaskResourceService {
     }
 
     /**
-     * Delete the all existing ACL of a filesystem or subDirectory
+     * Delete all the existing ACLs of a fileSystem or subDirectory
      * 
      * @param id the URN of a ViPR fileSystem
-     * @param subDir sub-directory within a filesystem
-     * @return
+     * @param subDir sub-directory within a fileSystem
+     * @return Task resource representation
      */
     @DELETE
     @Path("/{id}/acl")
@@ -2137,11 +2131,10 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         // Check for VirtualPool whether it has NFS v4 enabled
-
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         if (!vpool.getProtocols().contains(StorageProtocol.File.NFSv4.name())) {
             // Throw an error
-            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool Doesnt support "
+            throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool does not support "
                     + StorageProtocol.File.NFSv4.name() + " protocol");
         }
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
@@ -2151,10 +2144,20 @@ public class FileService extends TaskResourceService {
                 task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_NFS_ACL);
         op.setDescription("Delete ACL of file system ");
 
-        controller.deleteNFSAcls(device.getId(), fs.getId(), subDir, task);
+        try {
+            controller.deleteNFSAcls(device.getId(), fs.getId(), subDir, task);
 
-        auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), device.getId().toString(), subDir);
+            auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
+                    fs.getId().toString(), device.getId().toString(), subDir);
+
+        } catch (BadRequestException e) {
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Error Processing File System ACL Delete {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Error Processing File System ACL Delete  {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
 
         return toTask(fs, task, op);
     }

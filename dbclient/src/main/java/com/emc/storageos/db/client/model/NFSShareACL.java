@@ -6,6 +6,14 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
+/**
+ * NFSShareACL will contain the details of NFS ACL on File Systems and Snapshots.
+ * It will hold information about the fileSystemId, snapshotId mapped to NFSShareACL
+ * 
+ * @author sauraa
+ * 
+ */
+
 @Cf("NFSShareACL")
 public class NFSShareACL extends FileACL {
 

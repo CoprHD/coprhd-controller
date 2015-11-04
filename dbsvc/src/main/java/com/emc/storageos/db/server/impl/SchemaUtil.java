@@ -37,6 +37,7 @@ import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -253,7 +254,9 @@ public class SchemaUtil {
                     } else {
                         // fresh install
                         _log.info("setting current version to {} in zk for fresh install", _service.getVersion());
-                        setCurrentVersion(_service.getVersion());
+                        if (_coordinator != null) {
+                            setCurrentVersion(_service.getVersion());
+                        }
 
                         // this must be a new cluster - no schema is present so we create keyspace first
                         kd = cluster.makeKeyspaceDefinition();
@@ -354,10 +357,12 @@ public class SchemaUtil {
             throws ConnectionException, InterruptedException {
         _log.info("keyspace exist already");
 
-        String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
-        if (currentDbSchemaVersion == null) {
-            _log.info("missing current version in zk, assuming upgrade from {}", SOURCE_VERSION);
-            setCurrentVersion(SOURCE_VERSION);
+        if (_coordinator != null) {
+            String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
+            if (currentDbSchemaVersion == null) {
+                _log.info("missing current version in zk, assuming upgrade from {}", SOURCE_VERSION);
+                setCurrentVersion(SOURCE_VERSION);
+            }
         }
 
         // Update keyspace strategy option
@@ -1093,7 +1098,13 @@ public class SchemaUtil {
     private AstyanaxContext<Cluster> connectCluster() {
         String host = _service.getEndpoint().getHost();
         _log.info("host: " + host);
-        CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
+        CoordinatorClientInetAddressMap nodeMap;
+        if (_coordinator == null) {
+            ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
+            nodeMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
+        } else {
+            nodeMap = _coordinator.getInetAddessLookupMap();
+        }
         _log.info("nodeMap: " + nodeMap);
         URI uri = nodeMap.expandURI(_service.getEndpoint());
         _log.info("uri: " + uri);
@@ -1103,7 +1114,7 @@ public class SchemaUtil {
                 .setSeeds(String.format("%1$s:%2$d", uri.getHost(),
                         uri.getPort()));
 
-        if (clientContext.isClientToNodeEncrypted()) {
+        if (clientContext != null && clientContext.isClientToNodeEncrypted()) {
             SSLConnectionContext sslContext = clientContext.getSSLConnectionContext();
             cfg.setSSLConnectionContext(sslContext);
         }

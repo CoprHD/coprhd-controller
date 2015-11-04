@@ -8,6 +8,8 @@ package com.emc.storageos.dbutils;
 import java.io.IOException;
 
 import org.apache.cassandra.service.CassandraDaemon;
+import org.apache.cassandra.service.StorageService;
+import org.apache.cassandra.service.StorageServiceMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -39,9 +41,30 @@ public class DbSchemaCreator {
         SchemaUtil schemaUtil = (SchemaUtil) ctx.getBean("dbschemautil");
         schemaUtil.scanAndSetupDb(false);
         
+        flushCassandra();
+        daemon.stop();
         log.info("Finished to create db schemas.");
-        
-        
+    }
+    
+    /**
+     * Shut down gossip/thrift and then drain
+     */
+    private static void flushCassandra() {
+        StorageServiceMBean svc = StorageService.instance;
+
+        if (svc.isInitialized()) {
+            svc.stopGossiping();
+        }
+
+        if (svc.isRPCServerRunning()) {
+            svc.stopRPCServer();
+        }
+
+        try {
+            svc.drain();
+        } catch (Exception e) {
+            log.error("Fail to drain:", e);
+        }
 
     }
     

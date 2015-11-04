@@ -408,14 +408,15 @@ public class VdcSiteManager extends AbstractManager {
      * update vdc properties from zk to disk and wait for all nodes are done via barrier
      */
     private void updateVdcPropertiesAndWaitForAll() throws Exception {
-        DistributedDoubleBarrier barrier = enterBarrier();
+        VdcPropertyBarrier vdcBarrier = new VdcPropertyBarrier(targetSiteInfo);
+        vdcBarrier.enter();
 
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
         // set the vdc_config_version to an invalid value so that it always gets retried on failure.
         vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
         localRepository.setVdcPropertyInfo(vdcProperty);
 
-        leaveBarrier(barrier);
+        vdcBarrier.leave();
     }
 
     /**
@@ -429,60 +430,80 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     /**
-     * Waiting for all nodes entering the VdcPropBarrier.
-     * @return
-     * @throws Exception
+     * Util class to make sure no one node applies configuration until all nodes get synced to local bootfs.
      */
-    private DistributedDoubleBarrier enterBarrier() throws Exception {
-        log.info("Waiting for all nodes entering VdcPropBarrier");
+    private class VdcPropertyBarrier {
 
-        // key rotation is always done on primary site. when adding standby this is done on both site.
-        String barrierPath = String.format("%s/VdcPropBarrier", ZkPath.BARRIER);
+        DistributedDoubleBarrier barrier;
 
-        // the children # should be the node # in entire VDC. before linking together, it's # in a site.
-        int nChildrenOnBarrier = getChildrenCountOnBarrier();
-        DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, nChildrenOnBarrier);
-        log.info("Created VdcPropBarrier with the children number {}", nChildrenOnBarrier);
-
-        boolean allEntered = barrier.enter(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
-        if (allEntered) {
-            log.info("All nodes entered VdcPropBarrier");
-            return barrier;
-        } else {
-            throw new Exception("Only Part of nodes entered within 5 seconds, Skip updating");
+        /**
+         * create or get a barrier
+         * @param siteInfo
+         */
+        public VdcPropertyBarrier(SiteInfo siteInfo) {
+            String barrierPath = getBarrierPath(siteInfo);
+            int nChildrenOnBarrier = getChildrenCountOnBarrier();
+            this.barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, nChildrenOnBarrier);
+            log.info("Created VdcPropBarrier with the children number {}", nChildrenOnBarrier);
         }
-    }
 
-    /**
-     * Get the number of nodes should involve the barrier. It's all nodes of a site when adding standby while nodes of a VDC when rotating key.
-     * @return
-     */
-    private int getChildrenCountOnBarrier() {
-        SiteInfo.ActionScope scope = targetSiteInfo.getActionScope();
-        switch (scope) {
-            case SITE:
-                return coordinator.getNodeCount();
-            case VDC:
-                return drUtil.getNodeCountWithinVdc();
-            default:
-                throw new RuntimeException("Unknown Action Scope is set in SiteInfo: " + scope);
+        /**
+         * Waiting for all nodes entering the VdcPropBarrier.
+         * @return
+         * @throws Exception
+         */
+        public void enter() throws Exception {
+            log.info("Waiting for all nodes entering VdcPropBarrier");
+
+            boolean allEntered = barrier.enter(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+            if (allEntered) {
+                log.info("All nodes entered VdcPropBarrier");
+            } else {
+                throw new Exception("Only Part of nodes entered within 5 seconds, Skip updating");
+            }
         }
-    }
 
-    /**
-     * Waiting for all nodes leaving the VdcPropBarrier.
-     * @param barrier
-     * @throws Exception
-     */
-    private void leaveBarrier(DistributedDoubleBarrier barrier) throws Exception {
-        // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
-        log.info("Waiting for all nodes leaving VdcPropBarrier");
+        /**
+         * Waiting for all nodes leaving the VdcPropBarrier.
+         * @throws Exception
+         */
+        public void leave() throws Exception {
+            // Even if part of nodes fail to leave this barrier within timeout, we still let it pass. The ipsec monitor will handle failure on other nodes.
+            log.info("Waiting for all nodes leaving VdcPropBarrier");
 
-        boolean allLeft = barrier.leave(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
-        if (allLeft) {
-            log.info("All nodes left VdcPropBarrier");
-        } else {
-            log.warn("Only Part of nodes left VdcPropBarrier before timeout");
+            boolean allLeft = barrier.leave(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+            if (allLeft) {
+                log.info("All nodes left VdcPropBarrier");
+            } else {
+                log.warn("Only Part of nodes left VdcPropBarrier before timeout");
+            }
+        }
+
+        private String getBarrierPath(SiteInfo siteInfo) {
+            switch (siteInfo.getActionScope()) {
+                case VDC:
+                    return String.format("%s/VdcPropBarrier", ZkPath.BARRIER);
+                case SITE:
+                    return String.format("%s/%s/VdcPropBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
+                default:
+                    throw new RuntimeException("Unknown Action Scope: " + siteInfo.getActionScope());
+            }
+        }
+
+        /**
+         * Get the number of nodes should involve the barrier. It's all nodes of a site when adding standby while nodes of a VDC when rotating key.
+         * @return
+         */
+        private int getChildrenCountOnBarrier() {
+            SiteInfo.ActionScope scope = targetSiteInfo.getActionScope();
+            switch (scope) {
+                case SITE:
+                    return coordinator.getNodeCount();
+                case VDC:
+                    return drUtil.getNodeCountWithinVdc();
+                default:
+                    throw new RuntimeException("Unknown Action Scope is set in SiteInfo: " + scope);
+            }
         }
     }
 

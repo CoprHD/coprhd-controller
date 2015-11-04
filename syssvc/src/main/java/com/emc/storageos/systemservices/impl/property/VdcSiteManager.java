@@ -797,6 +797,7 @@ public class VdcSiteManager extends AbstractManager {
                 Thread.sleep(SWITCH_OVER_NODECOUNTER_RETRY_INTERVAL_MS);
             } catch (Exception e) {
                 log.error("Fail to derement value {}", e);
+                Thread.sleep(SWITCH_OVER_NODECOUNTER_RETRY_INTERVAL_MS);
             } finally {
                 retry++;
             }

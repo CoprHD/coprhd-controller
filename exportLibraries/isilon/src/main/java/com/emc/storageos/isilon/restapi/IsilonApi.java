@@ -651,6 +651,7 @@ public class IsilonApi {
         URI uri = URI_NFS_EXPORTS;
         if (zoneName != null) {
             StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+            zoneName = zoneName.replace(" ", "%20");
             URLBuffer.append("?zone=").append(zoneName);
             uri = URI.create(URLBuffer.toString());
             sLogger.info("get list of nfs exports for accesszone {} and uri {} ", zoneName, uri.toString());
@@ -719,6 +720,7 @@ public class IsilonApi {
      */
     public IsilonExport getExport(String id, String zoneName) throws IsilonException {
         StringBuffer buffer = new StringBuffer(id);
+        zoneName = zoneName.replace(" ", "%20");
         buffer.append("?zone=").append(zoneName);
         return get(_baseUrl.resolve(URI_NFS_EXPORTS), buffer.toString(), "exports", IsilonExport.class);
     }
@@ -953,6 +955,7 @@ public class IsilonApi {
     public IsilonList<IsilonSMBShare> listShares(String resumeToken, String zoneName) throws IsilonException {
         URI uri = URI_SMB_SHARES;
         if (zoneName != null) {
+            zoneName = zoneName.replace(" ", "%20");
             StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
             URLBuffer.append("?zone=").append(zoneName);
             uri = URI.create(URLBuffer.toString());

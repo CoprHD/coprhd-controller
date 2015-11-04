@@ -459,6 +459,8 @@ public class VdcSiteManager extends AbstractManager {
             if (allEntered) {
                 log.info("All nodes entered VdcPropBarrier");
             } else {
+                // something wrong just leave itself.
+                barrier.leave();
                 throw new Exception("Only Part of nodes entered within 5 seconds, Skip updating");
             }
         }

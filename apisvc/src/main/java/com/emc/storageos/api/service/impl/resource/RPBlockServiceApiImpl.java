@@ -1117,7 +1117,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             VolumeDescriptor desc = null;
             // Vpool Change flow, mark the production volume as already existing, so it doesn't get created
             if (recommendation != null && (recommendation.getVpoolChangeVolume() != null) 
-                    && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                    && Volume.PersonalityTypes.SOURCE.toString().equals(volume.getPersonality())) {
                 if (recommendation.isVpoolChangeProtectionAlreadyExists()) {
                     volumeType = VolumeDescriptor.Type.RP_EXISTING_PROTECTED_SOURCE;
                 } else {

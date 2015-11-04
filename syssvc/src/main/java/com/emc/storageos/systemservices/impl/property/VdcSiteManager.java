@@ -200,6 +200,24 @@ public class VdcSiteManager extends AbstractManager {
                 log.error("Step2: Failed to poweroff. {}", e);
             }
             
+            log.info("Step2.1 Process post switchover");
+            try {
+                Site site = drUtil.getSite(currentSiteId);
+                if (drUtil.isPrimary() && site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+                    DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
+                            currentSiteId, Constants.SWITCHOVER_STANDBY_NODECOUNT);
+
+                    if (distributedAtomicInteger.get().postValue() <= 0) {
+                        log.info("Set this primary site state as PRIMARY after switchover");
+                        
+                        site.setState(SiteState.PRIMARY);
+                        coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Step2.1: Failed to process post switchover. {}", e);
+            }
+            
             log.info("Step3: If VDC configuration is changed update");
             if (vdcPropertiesChanged()) {
                 log.info("Step3: Current vdc properties are not same as target vdc properties. Updating.");
@@ -734,50 +752,65 @@ public class VdcSiteManager extends AbstractManager {
         log.info("site: {}", site.toString());
         
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER)) {
-            log.info("This is planned failover primary site (old primrary)");
-            
-            DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
-                    site.getUuid(), Constants.SWITCHOVER_PRIMARY_NODECOUNT);
-            AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
-            
-            log.info("{} node left to do failover in this old primary site", nodeCountLeft.postValue());
-            
-            if (nodeCountLeft.postValue() <= 0) {
-                log.info("All nodes have finished failover, set state to SYNCED");
-                site.setState(SiteState.STANDBY_SYNCED);
-                coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
-            }
-            
-            log.info("Reboot this node after planned failover");
-            localRepository.reboot();
+            proccessOldPrimarySiteSwitchover(site);
         }
         
         if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-            log.info("This is planned failover standby site (new primary)");
-            
-            DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
-                    site.getUuid(), Constants.SWITCHOVER_STANDBY_NODECOUNT);
-            AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
-            
-            log.info("{} node left to do failover in this new primary site", nodeCountLeft.postValue());
-            
-            if (nodeCountLeft.postValue() <= 0) {
-                log.info("All nodes have finished failover, set state to PRIMARY");
-                site.setState(SiteState.PRIMARY);
-                coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
-                
-                //trigger other site property change to reconfig
-                List<Site> existingSites = drUtil.listSites();
-                for (Site eachsite : existingSites) {
-                    if (!eachsite.getUuid().equals(site.getUuid())) {
-                        drUtil.updateVdcTargetVersion(eachsite.getUuid(), SiteInfo.RECONFIG_RESTART);
-                    }
+            proccessNewPrimarySiteSwitchover(site);
+        }
+    }
+
+    private void proccessNewPrimarySiteSwitchover(Site site) throws Exception {
+        log.info("This is planned failover standby site (new primary)");
+        
+        DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
+                site.getUuid(), Constants.SWITCHOVER_STANDBY_NODECOUNT);
+        AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
+        
+        log.info("{} node left to do failover in this new primary site", nodeCountLeft.postValue());
+        
+        if (nodeCountLeft.postValue() <= 0) {
+            //trigger other site property change to reconfig
+            List<Site> existingSites = drUtil.listSites();
+            for (Site eachsite : existingSites) {
+                if (!eachsite.getUuid().equals(site.getUuid())) {
+                    drUtil.updateVdcTargetVersion(eachsite.getUuid(), SiteInfo.RECONFIG_RESTART);
                 }
             }
             
-            log.info("Reboot this node after planned failover");
-            localRepository.reboot();
+            //restart coordinator and set PRIMARY state
+            localRepository.restart("coordinatorsvc");
+            
+            log.info("All nodes have finished failover, set state to PRIMARY");
+            site.setState(SiteState.PRIMARY);
+            try {
+                coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+            } catch (Exception e) {
+                log.warn("Fail to set switchover site as PRIMARY state {}", e);
+            }
         }
+        
+        log.info("Reboot this node after planned failover");
+        localRepository.reboot();
+    }
+
+    private void proccessOldPrimarySiteSwitchover(Site site) throws Exception {
+        log.info("This is planned failover primary site (old primrary)");
+        
+        DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
+                site.getUuid(), Constants.SWITCHOVER_PRIMARY_NODECOUNT);
+        AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
+        
+        log.info("{} node left to do failover in this old primary site", nodeCountLeft.postValue());
+        
+        if (nodeCountLeft.postValue() <= 0) {
+            log.info("All nodes have finished failover, set state to SYNCED");
+            site.setState(SiteState.STANDBY_SYNCED);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+        }
+        
+        log.info("Reboot this node after planned failover");
+        localRepository.reboot();
     }
     
     private AtomicValue<Integer> retryDecrement(DistributedAtomicInteger distributedAtomicInteger) throws Exception {

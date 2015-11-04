@@ -59,7 +59,7 @@ setUserBinPath() {
 #--------------------------------------
 adg_bootClock() {
     echo "*** Modifying /etc/adjtime" >&2
-	[ -f /etc/adjtime ] || touch /etc/adjtime ]
+	[ -f /etc/adjtime ] || touch /etc/adjtime 
     xcat /etc/adjtime \
 '0.0 0 0.0
 0
@@ -183,8 +183,9 @@ adg_zypperRepos() {
     #######################################################
     zypper addrepo http://lglob090.lss.emc.com/SLES12/SDK/ sles12_sdk
     zypper addrepo http://lglob090.lss.emc.com/SLES12/SLE/ sles12
-    zypper addrepo http://pld-imgapprd01.isus.emc.com:8081/artifactory/adg-icc icc
+    zypper addrepo http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/generic/linux icc
     zypper addrepo http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12 sles12_icc
+    zypper addrepo http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/common/sles/12 sles12_common
 }
 
 #======================================
@@ -1087,7 +1088,7 @@ vipr_svcuser() {
 #--------------------------------------
 fix_devkit_storageos_key() {
     echo "*** Modifying the /opt/storageos/conf/storageos.key" >&2
-	[ -f /opt/storageos/conf/storageos.key ] || touch /opt/storageos/conf/storageos.key ]
+	[ -f /opt/storageos/conf/storageos.key ] || touch /opt/storageos/conf/storageos.key 
     xcat /opt/storageos/conf/storageos.key \
 '
 -----BEGIN RSA PRIVATE KEY-----
@@ -1127,7 +1128,7 @@ chmod 0400 /opt/storageos/conf/storageos.key
 #--------------------------------------
 fix_devkit_storageos_cert() {
     echo "*** Modifying the /opt/storageos/conf/storageos.crt" >&2
-	[ -f /opt/storageos/conf/storageos.crt ] || touch /opt/storageos/conf/storageos.crt ]
+	[ -f /opt/storageos/conf/storageos.crt ] || touch /opt/storageos/conf/storageos.crt
     xcat /opt/storageos/conf/storageos.crt \
 '
 -----BEGIN CERTIFICATE-----
@@ -1159,7 +1160,7 @@ chmod 0400 /opt/storageos/conf/storageos.crt
 #--------------------------------------
 fix_devkit_readme() {
     echo "*** Modifying the /etc/devkit.README" >&2
-	[ -f /etc/devkit.README ] || touch /etc/devkit.README ]
+	[ -f /etc/devkit.README ] || touch /etc/devkit.README 
     xcat /etc/devkit.README \
 '
 Release notes for ViPR DevKit Version 2.4.0.0 (Sept 2015)

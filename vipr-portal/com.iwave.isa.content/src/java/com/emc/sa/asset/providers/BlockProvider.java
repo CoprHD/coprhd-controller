@@ -849,27 +849,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         return constructSnapshotOptions(client, project, snapshots);
     }
-    
-    private List<AssetOption> getExportedVolumeSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {
-        final ViPRCoreClient client = api(ctx);
-        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().findByProject(project,
-                new DefaultResourceFilter<BlockSnapshotRestRep>() {
-                    @Override
-                    public boolean accept(BlockSnapshotRestRep snapshot) {
-                        VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
-                        return (isRPSourceVolume(parentVolume) || !isInConsistencyGroup(snapshot) || hasXIO3XVolumes(parentVolume));
-                    }
-                });
-
-        List<BlockSnapshotRestRep> exportedSnapshots = new ArrayList<BlockSnapshotRestRep>();
-        for (BlockSnapshotRestRep ss : snapshots) {
-            if (!client.blockSnapshots().listExports(ss.getId()).isEmpty()) {
-                exportedSnapshots.add(ss);
-            }
-        }
-        
-        return constructSnapshotOptions(client, project, exportedSnapshots);
-    }
 
     @Asset("blockSnapshotOrConsistencyGroup")
     @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType" })

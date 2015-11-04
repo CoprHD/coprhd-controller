@@ -5310,18 +5310,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             WorkflowStepCompleter.stepExecuting(token);
             _log.info("Update CG step executing");
-
+            
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
-
-            for (VolumeDescriptor descriptor : existingProtectedSourceVolumeDescriptors) {
+            
+            if (!existingProtectedSourceVolumeDescriptors.isEmpty()) {                    
+                // Get the first descriptor, that's all we need. This operation will
+                // affect all the RSets in the CG by adding a new standby copy.
+                VolumeDescriptor descriptor = existingProtectedSourceVolumeDescriptors.get(0);
+                            
                 Volume sourceVolume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
-
+    
                 URI newVpoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
                 URI oldVPoolURI = (URI) descriptor.getParameters().get(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID);
-
+    
                 VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
                 VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVPoolURI);
-
+    
                 // Phase 1 - Only support upgrade from RP+VPLEX to MetroPoint.
                 // This includes:
                 // Adding a secondary journal and possibly adding MP targets to an existing RP+VPLEX CG
@@ -5331,7 +5335,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
                     upgradeRPVPlexToMetroPoint(sourceVolume, newVpool, oldVpool, rpSystem);
                 }
-
+    
                 // Update the ProtectionSet with any newly added protection set objects
                 // TODO support remove as well?
                 ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet());
@@ -5357,7 +5361,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Upgrades a RP+VPLEX CG to MetroPoint by adding a standby journal to the HA side.
      *
-     * Prerequiste: All RSets(volumes) in the CG must have had their HA sides already exported to RP in VPLEX.
+     * Prerequisite: All RSets(volumes) in the CG must have had their HA sides already exported to RP in VPLEX.
      *
      * @param sourceVolume A single source volume from the CG, we only need one.
      * @param rpSystem The rpSystem we're using

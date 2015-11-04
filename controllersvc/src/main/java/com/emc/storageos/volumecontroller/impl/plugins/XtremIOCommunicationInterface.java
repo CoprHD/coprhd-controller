@@ -375,6 +375,10 @@ public class XtremIOCommunicationInterface extends
                         port.setLabel(nativeGuid);
                         port.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.toString());
                         port.setOperationalStatus(getOperationalStatus(targetPort).toString());
+                        // Prior to release-2.4, we only had one default StorageHADomain for XIO array.
+                        // During re-discovery when new StorageHADomains are created, update that info on storage ports.
+                        port.setPortGroup(haDomain.getAdapterName());
+                        port.setStorageHADomain(haDomain.getId());
                         port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                         portMap.get(EXISTING).add(port);
                         _dbClient.persistObject(port);

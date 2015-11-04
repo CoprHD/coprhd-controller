@@ -77,6 +77,10 @@ public class DrUtil {
      */
     public String getPrimarySiteId(String vdcShortId) {
         Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, vdcShortId);
+        if (config == null) {
+            log.warn("primary site not set in ZK. Assuming local site for now");
+            return coordinator.getSiteId();
+        }
         return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
     }
 

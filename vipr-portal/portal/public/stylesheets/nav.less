@@ -1,24 +1,24 @@
-@root-menu-width: 60px;
-@root-menu-icon-color: #798790;
-@root-menu-font-size: 30px;
-@root-menu-background-color: #eaeaea;
+@root-menu-width: 130px;
+@root-menu-icon-color: #818181;
+@root-menu-font-size: 18px; 
+@root-menu-background-color: #2d2c2c;
 
 @root-menu-item-selected-color: #ffffff;
-@root-menu-item-selected-background-color: #555555;
+@root-menu-item-selected-background-color: #444444; 
 
 @menu-pin-color: #fff;
 @menu-title-color: #fff;
 
 @menu-item-active-color: #ffffff;
 @menu-item-active-background-color: @navbar-inverse-bg;
-@nav-arrow-size: 25px;
+@nav-arrow-size: 0px; 
 
 @sub-menu-width: 190px;
-@sub-menu-padding: 20px;
+@sub-menu-padding: 30px;
 @sub-menu-color: #fff;
-@sub-menu-background-color: rgba(85, 85, 85, 0.95);
+@sub-menu-background-color: rgba(68, 67, 67, 1); 
 @sub-menu-hover-color: #fff;
-@sub-menu-hover-background-color: #a5a5a5;
+@sub-menu-hover-background-color: #a5a5a5; 
 
 #mainMenu {
 	position: fixed;
@@ -36,7 +36,7 @@
   cursor: pointer;
   float: right;
   color: @menu-pin-color;
-  font-size: 12px;
+  font-size: 16px;
   opacity: 0.4;
 }
 .menuPin.menu-pinned {
@@ -51,22 +51,28 @@
   font-size: 14px;
   font-weight: bold;
   letter-spacing: 2px;
-  text-transform: uppercase;
+  text-transform: capitalize;
 }
-
+.rootNavMenuTitle {
+  margin-bottom: 10px;
+  text-align: center;
+  color: @menu-title-color;
+  font-size: 10px;
+  text-transform: capitalize;
+}
 .rootNav span {
 	font-size: @root-menu-font-size;
 	color: @root-menu-icon-color;
 }
 .rootNav img {
-	width: 30px;
+	width: 18px;
 }
 a.rootNav {
-	padding: 7px 15px;
+	padding: 7px 12px;
 	margin-top: 12px;
 	display: block;
-	opacity: 0.75;
-	filter: alpha(opacity=75);
+	opacity: 0.75; 
+	filter: alpha(opacity=75); 
 	position: relative;
 	outline: none;
 }
@@ -129,7 +135,7 @@ a.rootNav.selected span {
 	position: fixed;
 	display: block;
 	visibility: hidden;
-	opacity: 0;
+	opacity: 1;
 	top: @navbar-height;
 	left: -@sub-menu-width;
 	bottom: 0;
@@ -215,7 +221,7 @@ a.rootNav.selected span {
 #contentArea {
   padding-top: 15px;
   margin-left: @root-menu-width;
-  background-color: @body-bg;
+  background-color: f0f0f0; 
 }
 #contentArea.menu-pinned.menu-open {
   margin-left: @root-menu-width + @sub-menu-width;
@@ -238,7 +244,7 @@ a.rootNav.selected span {
 .mainContent {
   width: auto;
   padding: 0px 15px;
-  background-color: @body-bg;
+  background-color:@body-bg;
 }
 
 /* Adjust container sizing from bootstrap because of reduced viewport size. */

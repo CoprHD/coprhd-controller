@@ -6,7 +6,7 @@ CERT_OPTIONS_1=options
 # You can specialize this file for each language.
 # For example, for French create a messages.fr file
 #
-application.name=EMC ViPR
+application.name=ViPR Controller
 # Validation messages
 #   Most of these are exact copies from the play framework and are here to make
 #   it easier to find and change validation messages for the entire application.
@@ -80,7 +80,7 @@ nav.upgrade=Upgrade
 nav.config=Settings
 nav.import=Import
 nav.logs=Reports
-nav.systemHealthDashboard=Health
+nav.systemHealthDashboard=System Health
 nav.systemHealthLogs=Logs
 nav.systemNodeRecovery=Recovery
 nav.properties=General Configuration

@@ -698,6 +698,19 @@ public class IsilonApi {
     public void modifyExport(String id, IsilonExport exp) throws IsilonException {
         modify(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export", exp);
     }
+    
+    /**
+     * Modify export in access zone
+     * 
+     * @param id identifier of the export to modify
+     * @param exp IsilonExport object with the modified properties
+     * @throws IsilonException
+     */
+    public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
+    	StringBuffer buffer = new StringBuffer(id);
+        buffer.append("?zone=").append(zoneName);
+        modify(_baseUrl.resolve(URI_NFS_EXPORTS), buffer.toString(), "export", exp);
+    }
 
     /**
      * Get export
@@ -731,6 +744,18 @@ public class IsilonApi {
      */
     public void deleteExport(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_NFS_EXPORTS), id, "export");
+    }
+    
+    /**
+     * Delete export in access zone
+     * 
+     * @param id identifier for the export object to delete
+     * @throws IsilonException
+     */
+    public void deleteExport(String id, String zoneName) throws IsilonException {
+    	StringBuffer buffer = new StringBuffer(id);
+        buffer.append("?zone=").append(zoneName);
+        delete(_baseUrl.resolve(URI_NFS_EXPORTS), buffer.toString(), "export");
     }
 
     /* SmartQuotas */
@@ -1016,6 +1041,19 @@ public class IsilonApi {
     public void modifyShare(String id, IsilonSMBShare s) throws IsilonException {
         modify(_baseUrl.resolve(URI_SMB_SHARES), id, "share", s);
     }
+    
+    /**
+     * Modify SMB share in access zone
+     * 
+     * @param id Identifier for the SMB share to modify
+     * @param s IsilonSMBShare object with the modified values set
+     * @throws IsilonException
+     */
+    public void modifyShare(String id, String zoneName, IsilonSMBShare s) throws IsilonException {
+    	StringBuffer buffer = new StringBuffer(id);
+        buffer.append("?zone=").append(zoneName);
+        modify(_baseUrl.resolve(URI_SMB_SHARES), buffer.toString(), "share", s);
+    }
 
     /**
      * Get SMB share properties
@@ -1050,6 +1088,18 @@ public class IsilonApi {
      */
     public void deleteShare(String id) throws IsilonException {
         delete(_baseUrl.resolve(URI_SMB_SHARES), id, "share");
+    }
+    
+    /**
+     * Delete SMB share in access zone
+     * 
+     * @param id Identifier of the SMB share to delete
+     * @throws IsilonException
+     */
+    public void deleteShare(String id, String zoneName) throws IsilonException {
+    	StringBuffer buffer = new StringBuffer(id);
+        buffer.append("?zone=").append(zoneName);
+        delete(_baseUrl.resolve(URI_SMB_SHARES), buffer.toString(), "share");
     }
 
     /**

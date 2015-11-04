@@ -444,7 +444,7 @@ public class VdcSiteManager extends AbstractManager {
             String barrierPath = getBarrierPath(siteInfo);
             int nChildrenOnBarrier = getChildrenCountOnBarrier();
             this.barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, nChildrenOnBarrier);
-            log.info("Created VdcPropBarrier with the children number {}", nChildrenOnBarrier);
+            log.info("Created VdcPropBarrier on {} with the children number {}", barrierPath, nChildrenOnBarrier);
         }
 
         /**

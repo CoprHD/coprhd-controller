@@ -27,10 +27,10 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -49,7 +49,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SnapshotWorkf
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeUpdateCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.volumecontroller.placement.ExportPathParams;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -78,6 +77,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     public static final String VNX_SMIS_DEVICE = "vnxSmisDevice";
     public static final String DEFAULT_LABEL = "Default";
 
+    @Override
     public BlockStorageDevice getDevice() {
         BlockStorageDevice device = VNX_BLOCK_DEVICE.get();
         synchronized (VNX_BLOCK_DEVICE) {
@@ -121,10 +121,10 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs :
                 (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(
-                volumeURIs, exportGroup.getNumPaths());
+        ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
+                volumeURIs, exportGroup.getNumPaths(), storage.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
-            pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
+            pathParams.setExportGroupType(exportGroup.getType());
         }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
@@ -292,6 +292,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             Integer requestedHLU = volumeMap.get(boURI);
                             StringMap existingVolumesInMask = exportMask.getExistingVolumes();
                             if (existingVolumesInMask != null &&
+                                    !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
@@ -453,6 +454,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * @param token - Identifier for the operation
      * @throws Exception
      */
+    @Override
     public boolean determineExportGroupCreateSteps(Workflow workflow, String previousStep,
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token) throws Exception {
@@ -599,6 +601,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             Integer requestedHLU = volumeMap.get(boURI);
                             StringMap existingVolumesInMask = mask.getExistingVolumes();
                             if (existingVolumesInMask != null &&
+                                    !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString()) &&
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
@@ -750,6 +753,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      *         the passed in previousStep id is returned.
      * 
      */
+    @Override
     public String
             checkForSnapshotsToCopyToTarget(Workflow workflow, StorageSystem storageSystem,
                     String previousStep,

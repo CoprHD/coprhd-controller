@@ -10,6 +10,7 @@ import java.util.Map;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
+import javax.wbem.client.WBEMClient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.
  * Process synchronization aspects (EMC_SynchronizationAspectForSource instances).
  */
 public class SynchronizationAspectProcessor extends StorageProcessor {
-    private Logger _logger = LoggerFactory
+    private final Logger _logger = LoggerFactory
             .getLogger(SynchronizationAspectProcessor.class);
     private static String SOURCE_ELEMENT = "SourceElement";
     private static String SYNC_TYPE = "SyncType";
@@ -44,8 +45,19 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
                 _syncAspectMap);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected int processInstances(Iterator<CIMInstance> instances) {
+        return processInstances(instances, null);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected int processInstances(Iterator<CIMInstance> instances, WBEMClient client) {
         int count = 0;
         while (instances.hasNext()) {
             try {

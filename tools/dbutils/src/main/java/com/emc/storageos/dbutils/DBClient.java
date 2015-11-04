@@ -4,6 +4,10 @@
  */
 package com.emc.storageos.dbutils;
 
+import com.emc.storageos.db.client.impl.DbConsistencyChecker;
+import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
+import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -359,13 +363,8 @@ public class DBClient {
      */
     @SuppressWarnings("unchecked")
     public void query(String id, String cfName) throws Exception {
-        Class clazz = _cfMap.get(cfName); // fill in type from cfName
-        if (clazz == null) {
-            System.err.println("Unknown Column Family: " + cfName);
-            return;
-        }
-        if (!DataObject.class.isAssignableFrom(clazz)) {
-            System.err.println("TimeSeries data not supported with this command.");
+        Class clazz = getClassFromCFName(cfName);
+        if(clazz == null) {
             return;
         }
         queryAndPrintRecord(URI.create(id), clazz);
@@ -379,13 +378,8 @@ public class DBClient {
      */
     @SuppressWarnings("unchecked")
     public void listRecords(String cfName, Map<String, String> criterias) throws Exception {
-        final Class clazz = _cfMap.get(cfName); // fill in type from cfName
-        if (clazz == null) {
-            System.err.println("Unknown Column Family: " + cfName);
-            return;
-        }
-        if (!DataObject.class.isAssignableFrom(clazz)) {
-            System.err.println("TimeSeries data not supported with this command.");
+        final Class clazz = getClassFromCFName(cfName); // fill in type from cfName
+        if(clazz == null) {
             return;
         }
         List<URI> uris = null;
@@ -712,9 +706,9 @@ public class DBClient {
         this.activeOnly = activeOnly;
     }
 
-	public void setShowModificationTime(boolean showModificationTime) {
-		this.showModificationTime = showModificationTime;
-	}
+    public void setShowModificationTime(boolean showModificationTime) {
+        this.showModificationTime = showModificationTime;
+    }
 
     /**
      * Read the schema record from db and dump it into a specified file
@@ -1126,10 +1120,19 @@ public class DBClient {
 
     public void checkDB() {
         try {
-            _dbClient.checkDataObjects();
-            _dbClient.checkIndexingCFs();
+            DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper(_dbClient);
+            DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
+            int corruptedCount = checker.check();
 
-            String msg = "\nAll the checks have been done.";
+            String msg = "\nAll the checks have been done, ";
+            if (corruptedCount != 0) {
+                String fileMsg = String.format(
+                        "inconsistent data found.\nClean up files [%s] are created. please read into them for futher operations.",
+                        DbCheckerFileWriter.getGeneratedFileNames());
+                msg += fileMsg;
+            } else {
+                msg += "no inconsistent data found.";
+            }
             System.out.println(msg);
             log.info(msg);
         } catch (ConnectionException e) {
@@ -1205,5 +1208,35 @@ public class DBClient {
                         tracker);
             }
         }
+    }
+
+    public boolean rebuildIndex(String id, String cfName) {
+        boolean runResult = false;
+        try {
+            DataObject queryObject = queryObject(URI.create(id), getClassFromCFName(cfName) );
+            if(queryObject != null) {
+                BeanUtils.copyProperties(queryObject, queryObject);
+                _dbClient.updateObject(queryObject);
+                System.out.println(String.format("Successfully rebuild index for %s in cf %s", id, cfName));
+                runResult = true;
+            }
+        } catch (Exception e) {
+            System.err.println(String.format("Error when rebuilding index for %s in cf %s", id, cfName));
+            e.printStackTrace();
+        }
+        return runResult;
+    }
+
+    private Class<? extends DataObject>  getClassFromCFName(String cfName) {
+        Class<? extends DataObject> clazz = _cfMap.get(cfName); // fill in type from cfName
+        if (clazz == null) {
+            System.err.println("Unknown Column Family: " + cfName);
+            return null;
+        }
+        if (!DataObject.class.isAssignableFrom(clazz)) {
+            System.err.println("TimeSeries data not supported with this command.");
+            return null;
+        }
+        return clazz;
     }
 }

@@ -6,6 +6,8 @@ package com.emc.storageos.volumecontroller.impl.smis.job;
 
 import java.net.URI;
 import java.util.List;
+
+import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
@@ -34,7 +36,7 @@ public class SmisCreateCGCloneJob extends SmisReplicaCreationJobs {
     }
 
     public void updateStatus(JobContext jobContext) throws Exception {
-        CloseableIterator<CIMObjectPath> syncVolumeIter = null;
+        CloseableIterator<CIMInstance> syncVolumeIter = null;
         DbClient dbClient = jobContext.getDbClient();
         JobStatus jobStatus = getJobStatus();
         try {
@@ -56,7 +58,7 @@ public class SmisCreateCGCloneJob extends SmisReplicaCreationJobs {
                 // VMAX instanceID, e.g., 000196700567+EMC_SMI_RG1414546375042 (8.0.2 provider)
                 final String replicationGroupInstance = replicationGroupID.split(Constants.PATH_DELIMITER_REGEX)[storage.getUsingSmis80() ? 1
                         : 0];
-                syncVolumeIter = client.associatorNames(replicationGroupPath, null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
+                syncVolumeIter = client.associatorInstances(replicationGroupPath, null, SmisConstants.CIM_STORAGE_VOLUME, null, null, false, _volumeProps);
                 processCGClones(syncVolumeIter, client, dbClient, clones, replicationGroupInstance, isSyncActive);
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 _log.info("Failed to create clone");

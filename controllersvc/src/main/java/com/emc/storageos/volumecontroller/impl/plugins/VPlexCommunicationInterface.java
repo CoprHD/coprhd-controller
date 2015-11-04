@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -611,8 +612,23 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     }
 
                     Volume managedVolume = findVirtualVolumeManagedByVipr(info);
-                    if (null == managedVolume) {
-                        s_logger.info("Virtual Volume {} is not managed by ViPR", name);
+
+                    // check for volumes ingested with no public access flags set.
+                    // this would indicate the volume has been partially ingested (due to outstanding replicas)
+                    boolean isPartiallyIngested = false;
+                    if (null != managedVolume 
+                            && (managedVolume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)
+                            && managedVolume.checkInternalFlags(Flag.INTERNAL_OBJECT) 
+                            && managedVolume.checkInternalFlags(Flag.NO_METERING))) {
+                        isPartiallyIngested = true;
+                    }
+
+                    if (null == managedVolume || isPartiallyIngested) {
+                        if (isPartiallyIngested) {
+                            s_logger.info("Virtual Volume {} is partially ingested by ViPR", name);
+                        } else {
+                            s_logger.info("Virtual Volume {} is not managed by ViPR", name);
+                        }
 
                         UnManagedVolume unmanagedVolume = findUnmanagedVolumeKnownToVipr(info);
 
@@ -679,14 +695,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 s_logger.warn("No virtual volumes were found on VPLEX.");
             }
 
-            List<UnManagedVolume> allVols = new ArrayList<UnManagedVolume>();
-            allVols.addAll(newUnmanagedVolumes);
-            allVols.addAll(knownUnmanagedVolumes);
-            processBackendClones(allVols, backendVolumeGuidToVvolGuidMap);
-            
             persistUnManagedVolumes(newUnmanagedVolumes, knownUnmanagedVolumes, true);
             persistUnManagedExportMasks(null, unmanagedExportMasksToUpdate, true);
             cleanUpOrphanedVolumes(vplex.getId(), allUnmanagedVolumes);
+
+            // this has to happen at the very end so that the map is complete,
+            // and by supplying the vplex id, we'll re-fetch all the volumes
+            // now that everything has been persisted and orphans cleared out
+            processBackendClones(vplex.getId(), backendVolumeGuidToVvolGuidMap);
 
         } catch (Exception ex) {
             s_logger.error("An error occurred during VPLEX unmanaged volume discovery", ex);
@@ -729,32 +745,38 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      *  target bvol
      *      associatedSourceVolume: source bvol
      * 
-     * @param allUnmanagedVolumes all the volumes discovered
+     * @param vplexUri the VPLEX whose unmanaged volumes should be processed
      * @param backendVolumeGuidToVvolGuidMap a map of backend volume GUIDs
      *              to the GUID of the front volume containing it
      */
-    private void processBackendClones(List<UnManagedVolume> allUnmanagedVolumes, 
+    private void processBackendClones(URI vplexUri, 
             Map<String, String> backendVolumeGuidToVvolGuidMap) {
-        
+        URIQueryResultList results = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getStorageSystemUnManagedVolumeConstraint(vplexUri), results);
+
+        List<UnManagedVolume> changedVolumes = new ArrayList<UnManagedVolume>();
+        List<UnManagedVolume> allUnmanagedVolumes = _dbClient.queryObject(UnManagedVolume.class, results);
         for (UnManagedVolume unManagedVolume : allUnmanagedVolumes) {
             String isFullCopyStr = unManagedVolume.getVolumeCharacterstics()
                     .get(SupportedVolumeCharacterstics.IS_FULL_COPY.toString());
             boolean isFullCopy = (null != isFullCopyStr && Boolean.parseBoolean(isFullCopyStr));
             
             if (isFullCopy) {
-                String fullCopySource = VplexBackendIngestionContext
+                String backendFullCopySource = VplexBackendIngestionContext
                         .extractValueFromStringSet(
                                 SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.name(),
                                 unManagedVolume.getVolumeInformation());
                 
-                if (fullCopySource != null && !fullCopySource.isEmpty()) {
+                if (backendFullCopySource != null && !backendFullCopySource.isEmpty()) {
                     // we're going to swap the backend volume guid for the 
                     // front-end virtual volume guid
-                    fullCopySource = backendVolumeGuidToVvolGuidMap.get(fullCopySource);
-                    StringSet set = new StringSet();
-                    set.add(fullCopySource);
+                    String frontendFullCopySource = backendVolumeGuidToVvolGuidMap.get(backendFullCopySource);
+                    StringSet replacementSet = new StringSet();
+                    replacementSet.add(frontendFullCopySource);
                     unManagedVolume.putVolumeInfo(
-                            SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.name(), set);
+                            SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.name(), replacementSet);
+                    changedVolumes.add(unManagedVolume);
                 }
             }
             
@@ -763,27 +785,30 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             boolean hasReplicas = (null != hasReplicasStr && Boolean.parseBoolean(hasReplicasStr));
             
             if (hasReplicas) {
-                String fullCopyTarget = VplexBackendIngestionContext
-                        .extractValueFromStringSet(
-                                SupportedVolumeInformation.FULL_COPIES.name(),
-                                unManagedVolume.getVolumeInformation());
+                // HAS_REPLICAS was set during backend volume discovery a little earlier
+                StringSet backendfullCopyTargets = unManagedVolume.getVolumeInformation()
+                        .get(SupportedVolumeInformation.FULL_COPIES.name());
                 
-                if (fullCopyTarget != null && !fullCopyTarget.isEmpty()) {
-                    StringSet set = unManagedVolume.getVolumeInformation()
-                            .get(SupportedVolumeInformation.FULL_COPIES.name());
-                    if (set == null) {
-                        set = new StringSet();
+                if (backendfullCopyTargets != null && !backendfullCopyTargets.isEmpty()) {
+                    // we're going to swap the backend volume guids for the 
+                    // front-end virtual volume guids
+                    StringSet replacementSet = new StringSet();
+                    for (String backendfullCopyTarget : backendfullCopyTargets) {
+                        String frontendfullCopyTarget = backendVolumeGuidToVvolGuidMap.get(backendfullCopyTarget);
+                        replacementSet.add(frontendfullCopyTarget);
                     }
-                    // we're going to swap the backend volume guid for the 
-                    // front-end virtual volume guid
-                    set.remove(fullCopyTarget);
-                    fullCopyTarget = backendVolumeGuidToVvolGuidMap.get(fullCopyTarget);
-                    set.add(fullCopyTarget);
                     unManagedVolume.putVolumeInfo(
-                            SupportedVolumeInformation.FULL_COPIES.name(), set);
+                            SupportedVolumeInformation.FULL_COPIES.name(), replacementSet);
+                    changedVolumes.add(unManagedVolume);
                 }
             }
+            
+            // persist any changed volumes if batch limit has been reached
+            persistUnManagedVolumes(null, changedVolumes, false);
         }
+        
+        // flush any remaining changed volumes
+        persistUnManagedVolumes(null, changedVolumes, true);
     }
 
     /**
@@ -1037,7 +1062,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                     Boolean.TRUE.toString());
                         }
                     }
-                    
+
                     // check if this backend volume has a replica (and is source of clone)
                     // if so, write this volume's GUID to the parent vvol's FULL_COPIES
                     // so that we can swap it out for the backend parent vvol's GUID 
@@ -1046,25 +1071,63 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     boolean hasReplicas = (null != hasReplicasStr && Boolean.parseBoolean(hasReplicasStr));
                     
                     if (hasReplicas) {
-                        String fullCopyTargetBvol = VplexBackendIngestionContext
-                                .extractValueFromStringSet(
-                                        SupportedVolumeInformation.FULL_COPIES.name(),
-                                        bvol.getVolumeInformation());
+                        StringSet fullCopyTargetBvols = 
+                                bvol.getVolumeInformation().get(SupportedVolumeInformation.FULL_COPIES.name());
                         
-                        if (fullCopyTargetBvol != null && !fullCopyTargetBvol.isEmpty()) {
-                            StringSet set = volume.getVolumeInformation()
+                        if (fullCopyTargetBvols != null && !fullCopyTargetBvols.isEmpty()) {
+                            // if this backend volume has FULL_COPIES, add them
+                            // to the parent virtual volume's FULL_COPIES
+                            // and make HAS_REPLICAS is set.
+                            StringSet parentSet = volume.getVolumeInformation()
                                     .get(SupportedVolumeInformation.FULL_COPIES.name());
-                            if (set == null) {
-                                set = new StringSet();
+                            if (parentSet == null) {
+                                parentSet = new StringSet();
                             }
-                            set.add(fullCopyTargetBvol);
+                            for (String fullCopyTargetBvol : fullCopyTargetBvols) {
+                                parentSet.add(fullCopyTargetBvol);
+                            }
                             volume.putVolumeInfo(
-                                    SupportedVolumeInformation.FULL_COPIES.name(), set);
+                                    SupportedVolumeInformation.FULL_COPIES.name(), parentSet);
                             volume.putVolumeCharacterstics(
                                     SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), 
                                     Boolean.TRUE.toString());
-
                         }
+                    }
+
+                    // set replica state on parent if found in backend volume
+                    String replicaState = VplexBackendIngestionContext
+                            .extractValueFromStringSet(
+                                    SupportedVolumeInformation.REPLICA_STATE.name(), 
+                                    bvol.getVolumeInformation());
+                    if (replicaState != null && !replicaState.isEmpty()) {
+                        StringSet set = new StringSet();
+                        set.add(replicaState);
+                        volume.putVolumeInfo(
+                                SupportedVolumeInformation.REPLICA_STATE.name(), set);
+                    }
+
+                    // set sync active state on parent if found in backend volume
+                    String syncActive = VplexBackendIngestionContext
+                            .extractValueFromStringSet(
+                                    SupportedVolumeInformation.IS_SYNC_ACTIVE.name(), 
+                                    bvol.getVolumeInformation());
+                    if (syncActive != null && !syncActive.isEmpty()) {
+                        StringSet set = new StringSet();
+                        set.add(syncActive);
+                        volume.putVolumeInfo(
+                                SupportedVolumeInformation.IS_SYNC_ACTIVE.name(), set);
+                    }
+
+                    // set thin provisioning state on parent if found in backend volume
+                    String thinlyProvisioned = VplexBackendIngestionContext
+                            .extractValueFromStringSet(
+                                    SupportedVolumeInformation.IS_THINLY_PROVISIONED.name(), 
+                                    bvol.getVolumeInformation());
+                    if (thinlyProvisioned != null && !thinlyProvisioned.isEmpty()) {
+                        StringSet set = new StringSet();
+                        set.add(thinlyProvisioned);
+                        volume.putVolumeInfo(
+                                SupportedVolumeInformation.IS_THINLY_PROVISIONED.name(), set);
                     }
                 }
                 

@@ -23,6 +23,11 @@
     project:{
       type:"assetType.vipr.project",
       lockable: true
+    },
+    
+    type:{
+      type:"assetType.vipr.fileIngestExportType",
+      lockable: true
     }
   }
 }

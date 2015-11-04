@@ -92,6 +92,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             ExportMask mask) {
         // Use this ,if you really don't care about the details of existing
         // masks on Array.
+        super.refreshExportMask(storage, device, mask);
         return mask;
     }
 

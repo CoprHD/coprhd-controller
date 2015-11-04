@@ -909,57 +909,6 @@ public class ExportMaskUtils {
      * @return list of sorted export masks
      */
     static public List<ExportMask> sortMasksByEligibility(Map<ExportMask, ExportMaskPolicy> maskMap, ExportGroup exportGroup) {
-        class ExportMaskComparatorContainer {
-            public ExportMask mask;
-            public ExportMaskPolicy policy;
-            public ExportGroup exportGroup;
-
-            ExportMaskComparatorContainer(ExportMask inMask, ExportMaskPolicy inPolicy, ExportGroup egp) {
-                mask = inMask;
-                policy = inPolicy;
-                exportGroup = egp;
-            }
-        }
-        class ExportMaskComparator implements Comparator<ExportMaskComparatorContainer> {
-            public int compare(ExportMaskComparatorContainer e1, ExportMaskComparatorContainer e2) {
-                // CTRL-8982 , existing initiators are initiators which are not part of userAdded
-                // it could be null, I think we need to check the initiators instead of existingInitiators()
-                // Rule 1: Prefer masks that contain all initiators over partial or incomplete masks
-                Integer e1IniCount = e1.mask.getInitiators() != null ? e1.mask.getInitiators().size() : 0;
-                Integer e2IniCount = e2.mask.getInitiators() != null ? e2.mask.getInitiators().size() : 0;
-
-                // CTRL-9709 - If Cluster, then cluster MV should get more preference than Host MV
-                if (e1.exportGroup.forCluster()) {
-                    // Descending order
-                    if (e1IniCount < e2IniCount) {
-                        return 1;
-                    } else if (e1IniCount > e2IniCount) {
-                        return -1;
-                    }
-
-                } else {
-                    // if Host or initiator mode - ascending order
-                    if (e1IniCount > e2IniCount) {
-                        return 1;
-                    } else if (e1IniCount < e2IniCount) {
-                        return -1;
-                    }
-                }
-
-                // Rule 2: Prefer masks that have cascaded groups
-                if (e1.policy.isSimpleMask() && !e2.policy.isSimpleMask()) {
-                    return 1;
-                } else if (!e1.policy.isSimpleMask() && e2.policy.isSimpleMask()) {
-                    return -1;
-                }
-
-                // Rule 3: Prefer masks that are less utilized
-                Integer e1Count = e1.mask.returnTotalVolumeCount();
-                Integer e2Count = e2.mask.returnTotalVolumeCount();
-                _log.info("Volume count :" + e1.mask.getMaskName() + ":" + e1Count + "...." + e2.mask.getMaskName() + ":" + e2Count);
-                return e1Count.compareTo(e2Count);
-            }
-        }
         List<ExportMaskComparatorContainer> exportMaskContainerList = new ArrayList<ExportMaskComparatorContainer>();
         for (Map.Entry<ExportMask, ExportMaskPolicy> entry : maskMap.entrySet()) {
             exportMaskContainerList.add(new ExportMaskComparatorContainer(entry.getKey(), entry.getValue(), exportGroup));
@@ -967,7 +916,12 @@ public class ExportMaskUtils {
         Collections.sort(exportMaskContainerList, new ExportMaskComparator());
         List<ExportMask> sortedMasks = new ArrayList<ExportMask>();
         for (ExportMaskComparatorContainer container : exportMaskContainerList) {
-            _log.info("Sorted storage group by Eligibility: " + container.mask.getMaskName());
+            ExportMaskPolicy policy = container.policy;
+            ExportMask mask = container.mask;
+            _log.info(String.format(
+                    "Sorted ExportMasks by eligibility: %s { isSimple:%s, igType:%s, xpType:%s, localAutoTier:%s, autoTiers:%s }",
+                    mask.getMaskName(), policy.isSimpleMask(), policy.getIgType(), policy.getExportType(),
+                    policy.localTierPolicy, CommonTransformerFunctions.collectionToString(policy.getTierPolicies())));
             sortedMasks.add(container.mask);
         }
         return sortedMasks;
@@ -1160,4 +1114,33 @@ public class ExportMaskUtils {
         }
         return backend;
     }
+
+    /**
+     * Find a set of ExportMasks to which the given Initiators belong.
+     * 
+     * @param dbClient [IN] - For accessing DB
+     * @param initiators [IN] - List of initiators to search for among the ExportMasks found in the DB.
+     * @return HashMap of ExportMask URI to ExportMask object (Using HashMap, since URI is Comparable)
+     */
+    public static HashMap<URI, ExportMask> getExportMasksWithInitiators(DbClient dbClient, List<Initiator> initiators) {
+        final String initiatorAliasStr = "initiator";
+        final String portNameAliasStr = "iniport";
+        final String exportMaskAliasStr = "em";
+        final String initiatorStr = "initiators";
+
+        // Find all the ExportMasks that contain the 'initiators'
+        HashMap<URI, ExportMask> exportMasksWithInitiator = new HashMap<>();
+        for (Initiator initiator : initiators) {
+            Joiner joiner = new Joiner(dbClient);
+            Joiner query = joiner.join(Initiator.class, initiatorAliasStr).match(portNameAliasStr, initiator.getInitiatorPort())
+                    .join(initiatorAliasStr, ExportMask.class, exportMaskAliasStr, initiatorStr).go();
+            Set<ExportMask> matchedMasks = query.set(exportMaskAliasStr);
+            for (ExportMask exportMask : matchedMasks) {
+                exportMasksWithInitiator.put(exportMask.getId(), exportMask);
+            }
+        }
+
+        return exportMasksWithInitiator;
+    }
+
 }

@@ -1,0 +1,286 @@
+version: 1
+
+dn: dc=apitest,dc=com
+objectClass: domain
+objectClass: top
+dc: apitest
+
+dn: dc=child1,dc=apitest,dc=com
+objectClass: domain
+objectClass: top
+dc: child1
+
+dn: ou=Groups,dc=child1,dc=apitest,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Groups
+
+dn: cn=child1ViPRUserGroup1,ou=Groups,dc=child1,dc=apitest,dc=com
+objectClass: top
+objectClass: groupOfNames
+cn: child1ViPRUserGroup1
+member: uid=child1LdapViPRUser1,ou=Users,dc=child1,dc=apitest,dc=com
+
+dn: ou=Users,dc=child1,dc=apitest,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Users
+
+dn: uid=child1LdapViPRUser1,ou=Users,dc=child1,dc=apitest,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: child1ViPRUser1
+sn: child1ViPRUsers
+uid: child1LdapViPRUser1
+userPassword:: c2VjcmV0
+
+dn: uid=child1LdapViPRUser2,ou=Users,dc=child1,dc=apitest,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: child1ViPRUser2
+sn: child1ViPRUsers
+uid: child1LdapViPRUser2
+userPassword:: c2VjcmV0
+
+dn: dc=child2,dc=apitest,dc=com
+objectClass: domain
+objectClass: top
+dc: child2
+
+dn: ou=Groups,dc=child2,dc=apitest,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Groups
+
+dn: cn=child2ViPRUserGroup1,ou=Groups,dc=child2,dc=apitest,dc=com
+objectClass: top
+objectClass: groupOfUniqueNames
+cn: child2ViPRUserGroup1
+uniqueMember: uid=child1LdapViPRUser1,ou=Users,dc=child1,dc=apitest,dc=com
+uniqueMember: uid=child1LdapViPRUser2,ou=Users,dc=child1,dc=apitest,dc=com
+
+dn: ou=Users,dc=child2,dc=apitest,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: Users
+
+dn: ou=People,dc=apitest,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: People
+description: Container for user entries
+
+dn: ou=ViPR,dc=apitest,dc=com
+objectClass: organizationalUnit
+objectClass: top
+ou: ViPR
+
+dn: ou=Groups,ou=ViPR,dc=apitest,dc=com
+objectClass: organizationalUnit
+objectClass: top
+ou: Groups
+
+dn: cn=ldapViPRPosixGroup,ou=Groups,ou=ViPR,dc=apitest,dc=com
+objectClass: posixGroup
+objectClass: top
+cn: ldapViPRPosixGroup
+gidNumber: 1
+memberUid: cn=davidson,ou=Users,ou=ViPR,dc=apitest,dc=com
+memberUid: uid=ldapViPRUser9,ou=Users,ou=ViPR,dc=apitest,dc=com
+memberUid: uid=ldapViPRUser10,ou=Users,ou=ViPR,dc=apitest,dc=com
+
+dn: cn=ldapViPRUniqueNameGroup,ou=Groups,ou=ViPR,dc=apitest,dc=com
+objectClass: groupOfUniqueNames
+objectClass: top
+cn: ldapViPRUniqueNameGroup
+uniqueMember: cn=ldapViPRUserGroupNewOuter,ou=Groups,ou=ViPR,dc=apitest,dc=c
+ om
+
+dn: cn=ldapViPRUserGroup,ou=Groups,ou=ViPR,dc=apitest,dc=com
+objectClass: groupOfNames
+objectClass: top
+cn: ldapViPRUserGroup
+member: uid=ldapViPRUser1,ou=Users,ou=ViPR,dc=apitest,dc=com
+
+dn: cn=ldapViPRUserGroupNew,ou=Groups,ou=ViPR,dc=apitest,dc=com
+objectClass: groupOfNames
+objectClass: top
+cn: ldapViPRUserGroupNew
+member: uid=ldapViPRUser2,ou=Users,ou=ViPR,dc=apitest,dc=com
+member: uid=ldapViPRUser4,ou=Users,ou=ViPR,dc=apitest,dc=com
+member: cn=ldapViPRUserGroup,ou=Groups,ou=ViPR,dc=apitest,dc=com
+
+dn: cn=ldapViPRUserGroupNewOuter,ou=Groups,ou=ViPR,dc=apitest,dc=com
+objectClass: groupOfNames
+objectClass: top
+cn: ldapViPRUserGroupNewOuter
+member: cn=ldapViPRUserGroupNew,ou=Groups,ou=ViPR,dc=apitest,dc=com
+
+dn: cn=ldapViPRUserGroupOrgRole,ou=Groups,ou=ViPR,dc=apitest,dc=com
+objectClass: organizationalRole
+objectClass: top
+cn: ldapViPRUserGroupOrgRole
+roleOccupant: cn=ldapViPRUniqueNameGroup,ou=Groups,ou=ViPR,dc=apitest,dc=com
+roleOccupant: cn=MarketingOuter,ou=Groups,ou=ViPR,dc=apitest,dc=com
+
+dn: cn=ldapViPRUserGroupTwo,ou=Groups,ou=ViPR,dc=apitest,dc=com
+objectClass: groupOfNames
+objectClass: top
+cn: ldapViPRUserGroupTwo
+member: uid=ldapViPRUser9,ou=Users,ou=ViPR,dc=apitest,dc=com
+member: uid=ldapViPRUser10,ou=Users,ou=ViPR,dc=apitest,dc=com
+
+dn: cn=Marketing,ou=Groups,ou=ViPR,dc=apitest,dc=com
+objectClass: groupOfUniqueNames
+objectClass: top
+cn: Marketing
+uniqueMember: uid=ldapViPRUser1,ou=users,ou=ViPR,dc=apitest,dc=com
+
+dn: cn=MarketingNew,ou=Groups,ou=ViPR,dc=apitest,dc=com
+objectClass: groupOfUniqueNames
+objectClass: top
+cn: MarketingNew
+uniqueMember: cn=Marketing,ou=groups,ou=ViPR,dc=apitest,dc=com
+
+dn: cn=MarketingOuter,ou=Groups,ou=ViPR,dc=apitest,dc=com
+objectClass: groupOfUniqueNames
+objectClass: top
+cn: MarketingOuter
+uniqueMember: cn=MarketingNew,ou=groups,ou=ViPR,dc=apitest,dc=com
+
+dn: ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: organizationalUnit
+objectClass: top
+ou: Users
+
+dn: cn=davidson,ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: davidson
+sn: davidson
+uid: davidson
+userPassword:: c2VjcmV0
+
+dn: uid=ldapViPRUser1,ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: ViPRUser1
+sn: ViPRUsers
+departmentNumber: research
+uid: ldapViPRUser1
+userPassword:: c2VjcmV0
+
+dn: uid=ldapViPRUser10,ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: ViPRUser10
+sn: ViPRUsers
+l: Boston
+uid: ldapViPRUser10
+userPassword:: c2VjcmV0
+
+dn: uid=ldapViPRUser2,ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: ViPRUser2
+sn: ViPRUsers
+uid: ldapViPRUser2
+userPassword:: c2VjcmV0
+
+dn: uid=ldapViPRUser3,ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: ViPRUser3
+sn: ViPRUsers
+uid: ldapViPRUser3
+userPassword:: c2VjcmV0
+
+dn: uid=ldapViPRUser4,ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: ViPRUser4@apitest.com
+sn: ViPRUsers
+uid: ldapViPRUser4
+userPassword:: c2VjcmV0
+
+dn: uid=ldapViPRUser5,ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: ViPRUser5
+sn: ViPRUsers
+departmentNumber: DEV
+departmentNumber: ENG
+l: Boston
+uid: ldapViPRUser5
+userPassword:: c2VjcmV0
+
+dn: uid=ldapViPRUser6,ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: ViPRUser6
+sn: ViPRUsers
+departmentNumber: QE
+departmentNumber: ENG
+l: New York
+uid: ldapViPRUser6
+userPassword:: c2VjcmV0
+
+dn: uid=ldapViPRUser7,ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: ViPRUser7
+sn: ViPRUsers
+departmentNumber: MANAGE
+departmentNumber: ENG
+departmentNumber: QE
+departmentNumber: DEV
+l: Boston
+uid: ldapViPRUser7
+userPassword:: c2VjcmV0
+
+dn: uid=ldapViPRUser8,ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: ViPRUser8
+sn: ViPRUsers
+departmentNumber: MANAGE
+departmentNumber: ENG
+l: Boston
+uid: ldapViPRUser8
+userPassword:: c2VjcmV0
+
+dn: uid=ldapViPRUser9,ou=Users,ou=ViPR,dc=apitest,dc=com
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+cn: ViPRUser9
+sn: ViPRUsers
+l: Boston
+uid: ldapViPRUser9
+userPassword:: c2VjcmV0
+

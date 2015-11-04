@@ -50,7 +50,7 @@ public interface BadRequestExceptions {
     public BadRequestException cannotCreateSnapshotOfVplexCG();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException cannotCreateSnapshotOfRPCG();
+    public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotCreateVolumeAsConsistencyGroupHasSnapshots(String label, URI id);
@@ -149,6 +149,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicateLabel(String entityName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException duplicateNamespace(String entityName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException endpointsCannotBeAdded(final String endpoints);
@@ -748,6 +751,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidPermissionType(String permission);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidUserType(String type);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidPermissionForACL(String permission);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -755,12 +761,18 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidPermission(String permission);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNFSPermission(String permission);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException bothUserAndGroupInACLFound(String user, String group);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException shareACLAlreadyExists(String opType, String acl);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException nfsACLAlreadyExists(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException multipleACLsWithUserOrGroupFound(String opType, String userOrGroup);
@@ -770,6 +782,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException shareACLNotFoundFound(String opType, String acl);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException nfsACLNotFound(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidProjectConflict(URI projectId);
@@ -1848,9 +1863,6 @@ public interface BadRequestExceptions {
     public BadRequestException volumeNotExpandable(final String volumeName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException unsupportedVolumeExpansion();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unsupportedUnManagedVolumeDiscovery(final String systemSerialNumber);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2059,6 +2071,10 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterSourceVolumeNotInGivenConsistencyGroup(
             final URI sourceVolumeUri, final URI cgUri);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumesWithMultipleReplicasCannotBeAddedToConsistencyGroup(
+            final String volumeName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVarrayForVplexVolumeInAppConsistenctCG();
@@ -2348,9 +2364,6 @@ public interface BadRequestExceptions {
     public BadRequestException noSnapshotsForVMAX3VolumeWithActiveFullCopy();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException expansionNotSupportedForVMAX3Volumes();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notSupportedSnapshotWithMixedArrays(URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2381,6 +2394,18 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException migrationCantBePaused(String migrationName, String status);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException migrationCantBeResumed(String migrationName, String status);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException migrationCantBeCancelled(String migrationName, String status);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException migrationHasntStarted(String migrationId);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidQuotaRequestForObjectStorage(String type);
 
@@ -2389,6 +2414,27 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException insufficientRetentionForVirtualPool(final String label, final String type);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupContainsNoVolumes(final URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException targetVirtualArrayDoesNotMatch(final URI consistencyGroup, final URI virtualArray);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noValidSrdfTargetVolume(final URI volumeId, final URI virtualArray);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeMustBeSRDFProtected(final URI volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException srdfCgContainsNoSourceVolumes(final URI consistencyGroupId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupMustBeSRDFProtected(final URI consistencyGroupId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException consistencyGroupMustBeRPProtected(final URI consistencyGroupId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotRemoveTenant(final String resource, final String name, final Set<String> tenants);
@@ -2427,6 +2473,9 @@ public interface BadRequestExceptions {
     public BadRequestException vNasServersNotAssociatedToProject();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException oneOrMorevNasServersNotAssociatedToProject();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteOrUpdateImageServerWhileInUse();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2440,7 +2489,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToFindSuitableJournalRecommendation();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToFindJournalRecommendation(final String rpSiteName);
 
@@ -2461,33 +2510,100 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException fullCopyNotAllowedForIngestedCG(final String uri);
-    
+
     @DeclareServiceCode(ServiceCode.API_DELETION_IN_PROGRESS)
     public BadRequestException deletionInProgress(final String dataObjectType, final String dataObjectName);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException imageNotPresentOnComputeImageServer(final String computeImage, final String computeImageServer);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException noImageServerAssociatedToComputeSystem(final String computeSystem);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException clientIpNotExist();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotShareVcenterWithMultipleTenants(final String vcenterName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotRemoveDatacenterTenant(final String dataCenterName, final String vcenterName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotUpdateACL(final String vcenterName, final long refreshInterval);
+    public BadRequestException cannotEditVcenterOrUpdateACL(final String vcenterName, final long refreshInterval);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cgReferencesInvalidProtectionSystem(final URI cgUri, final URI protectionSystemUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException notEnoughPortsForMaxpath(final URI storageURI, final Integer portCount, final Integer maxPaths);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException pathParameterPortsDoNotIncludeArray(final URI arrayURI);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotOverrideVpoolPathsBecauseExistingExports(final String message);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotAddSRDFProtectionToPartialCG(String msg);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteImageServer();
-    
+
     @DeclareServiceCode(ServiceCode.API_PRECONDITION_FAILED)
     public BadRequestException cannotAddImageWithoutImageServer();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantUpdateCGWithMixedBlockObjects(final String cgName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantUpdateCGWithReplicaFromMultipleSystems(final String cgName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantExposeNonVPLEXSnapshot(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantExposeInactiveSnapshot(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantExposeUnsynchronizedSnapshot(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantExposeSnapshotAlreadyExposed(final String snapshotId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantDeleteSnapshotExposedByVolume(final String snapshotId, final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException fullCopyNotAllowedVolumeIsExposedSnapshot(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotNotAllowedVolumeIsExposedSnapshot(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException mirrorNotAllowedVolumeIsExposedSnapshot(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException expansionNotAllowedVolumeIsExposedSnapshot(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cgNotAllowedVolumeIsExposedSnapshot(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException varrayChangeNotAllowedVolumeIsExposedSnapshot(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vpoolChangeNotAllowedVolumeIsExposedSnapshot(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotUpdateTFTPBOOTDirectory();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException rpBlockApiImplRemoveProtectionException(final String message);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException dbConsistencyCheckAlreadyProgress();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException canNotCanceldbConsistencyCheck();
 }

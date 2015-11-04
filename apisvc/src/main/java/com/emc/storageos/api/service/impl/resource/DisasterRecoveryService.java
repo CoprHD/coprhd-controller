@@ -168,9 +168,9 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(standbySite.toConfiguration());
             
             // wake up syssvc to regenerate configurations
-            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
             for (Site site : existingSites) {
-                updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
 
             // reconfig standby site
@@ -344,7 +344,7 @@ public class DisasterRecoveryService {
 
             log.info("Notify all sites for reconfig");
             for (Site standbySite : drUtil.listSites()) {
-                updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
+                drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
             return siteMapper.map(toBeRemovedSite);
         } catch (Exception e) {
@@ -466,11 +466,11 @@ public class DisasterRecoveryService {
             ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcId);
 
             for (Site site : drUtil.listStandbySites()) {
-                updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
+                drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
             }
 
             // update the local(primary) site last
-            updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
+            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.RECONFIG_RESTART);
 
             return siteMapper.map(standby);
         } catch (Exception e) {
@@ -575,13 +575,8 @@ public class DisasterRecoveryService {
                     new String[]{String.valueOf(vdc.getHostCount() + oldPrimaryHostCount), String.valueOf(vdc.getHostCount()),
                     String.valueOf(oldPrimaryHostCount)});
             
-            // trigger local property change to reconfig
-            updateVdcTargetVersion(oldPrimaryUUID, SiteInfo.RECONFIG_RESTART);
-
-            // trigger other site property change to reconfig
-            for (Site site : existingSites) {
-                updateVdcTargetVersion(site.getUuid(), SiteInfo.RECONFIG_RESTART);
-            }
+            // trigger new primary to reconfig
+            drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);
 
             siteErrorThreadExecutor.schedule(new SiteErrorUpdater(oldPrimaryUUID, uuid), SWITCHOVER_TIMEOUT_MINUTES, TimeUnit.MINUTES);
 
@@ -590,18 +585,6 @@ public class DisasterRecoveryService {
             log.error(String.format("Error happened when switchover from site %s to site %s", oldPrimaryUUID, uuid), e);
             throw APIException.internalServerErrors.switchoverFailed(oldPrimaryUUID, uuid, e.getMessage());
         }
-    }
-
-    private void updateVdcTargetVersion(String siteId, String action) throws Exception {
-        SiteInfo siteInfo;
-        SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
-        if (currentSiteInfo != null) {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), action, currentSiteInfo.getTargetDataRevision());
-        } else {
-            siteInfo = new SiteInfo(System.currentTimeMillis(), action);
-        }
-        coordinator.setTargetInfo(siteId, siteInfo);
-        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
     }
 
     private void updateVdcTargetVersionAndDataRevision(String action) throws Exception {

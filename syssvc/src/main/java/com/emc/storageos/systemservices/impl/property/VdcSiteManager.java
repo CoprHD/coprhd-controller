@@ -55,7 +55,9 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
  * Data revision change and simulatenous cluster poweroff are also managed here
  */
 public class VdcSiteManager extends AbstractManager {
-    private static final int SWITCH_OVER_FINISH_CHECK_INTERVAL_MS = 1000;
+    private static final int SWITCH_OVER_NODECOUNTER_RETRY_TIMES = 10;
+
+    private static final int SWITCH_OVER_NODECOUNTER_RETRY_INTERVAL_MS = 1000*30;
 
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
@@ -387,7 +389,7 @@ public class VdcSiteManager extends AbstractManager {
             // The previous approach disconnects all the clients, no different than a service restart.
             localRepository.reconfigProperties("coordinator");
             
-            if (!site.getState().equals(SiteState.STANDBY_SWITCHING_OVER) && !site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER)) {
+            if (!site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
                 log.info("not for switchover, restart coordinatorsvc");
                 localRepository.restart("coordinatorsvc");
             }
@@ -724,7 +726,6 @@ public class VdcSiteManager extends AbstractManager {
     
     private void updatePlannedFailoverSiteState() throws Exception {
         String siteId = coordinator.getCoordinatorClient().getSiteId();
-        String svcId = coordinator.getMySvcId();
         
         Configuration config = coordinator.getCoordinatorClient().queryConfiguration(Site.CONFIG_KIND, siteId);
         Site site = new Site(config);  
@@ -736,7 +737,7 @@ public class VdcSiteManager extends AbstractManager {
             
             DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
                     site.getUuid(), Constants.SWITCHOVER_PRIMARY_NODECOUNT);
-            AtomicValue<Integer> nodeCountLeft = distributedAtomicInteger.decrement();
+            AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
             
             log.info("{} node left to do failover in this old primary site", nodeCountLeft.postValue());
             
@@ -746,7 +747,8 @@ public class VdcSiteManager extends AbstractManager {
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
             }
             
-            rebootWhenSwitchoverFinish();
+            log.info("Reboot this node after planned failover");
+            localRepository.reboot();
         }
         
         if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
@@ -754,7 +756,7 @@ public class VdcSiteManager extends AbstractManager {
             
             DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
                     site.getUuid(), Constants.SWITCHOVER_STANDBY_NODECOUNT);
-            AtomicValue<Integer> nodeCountLeft = distributedAtomicInteger.decrement();
+            AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
             
             log.info("{} node left to do failover in this new primary site", nodeCountLeft.postValue());
             
@@ -762,26 +764,41 @@ public class VdcSiteManager extends AbstractManager {
                 log.info("All nodes have finished failover, set state to PRIMARY");
                 site.setState(SiteState.PRIMARY);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+                
+                //trigger other site property change to reconfig
+                List<Site> existingSites = drUtil.listSites();
+                for (Site eachsite : existingSites) {
+                    if (!eachsite.getUuid().equals(site.getUuid())) {
+                        drUtil.updateVdcTargetVersion(eachsite.getUuid(), SiteInfo.RECONFIG_RESTART);
+                    }
+                }
             }
             
-            rebootWhenSwitchoverFinish();
+            log.info("Reboot this node after planned failover");
+            localRepository.reboot();
         }
     }
-
-    private void rebootWhenSwitchoverFinish() throws Exception, InterruptedException {
-        DistributedAtomicInteger daiTotal = coordinator.getCoordinatorClient().getDistributedAtomicInteger(drUtil.getPrimarySiteId(),
-                Constants.SWITCHOVER_PRIMARY_TOTAL_NODECOUNT);
-        AtomicValue<Integer> totalNodeCountLeft = daiTotal.decrement();
-        
-        log.info("{} total node left to do failover", totalNodeCountLeft.postValue());
+    
+    private AtomicValue<Integer> retryDecrement(DistributedAtomicInteger distributedAtomicInteger) throws Exception {
+        int retry = 0;
         while (true) {
-            log.info("Current value is {}", daiTotal.get().postValue());
+            if (retry > SWITCH_OVER_NODECOUNTER_RETRY_TIMES) {
+                log.info("Retry {} times and failed to decrement value", retry);
+                throw new Exception("Failed to decrement value");
+            }
             
-            if (daiTotal.get().postValue() <= 0) {
-                log.info("Reboot this node after planned failover");
-                localRepository.reboot();
-            } else {
-                Thread.sleep(SWITCH_OVER_FINISH_CHECK_INTERVAL_MS);
+            try {
+                AtomicValue<Integer> atomicValue = distributedAtomicInteger.decrement();
+                if (atomicValue.succeeded()) {
+                    log.info("Sccess to decrement value to {}", atomicValue.postValue());
+                    return atomicValue;
+                }
+                
+                Thread.sleep(SWITCH_OVER_NODECOUNTER_RETRY_INTERVAL_MS);
+            } catch (Exception e) {
+                log.error("Fail to derement value {}", e);
+            } finally {
+                retry++;
             }
         }
     }

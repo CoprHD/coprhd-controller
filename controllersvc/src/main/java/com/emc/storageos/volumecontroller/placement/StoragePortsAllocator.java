@@ -947,7 +947,7 @@ public class StoragePortsAllocator {
      * @param dbClient
      * @return
      */
-    private String getSwitchName(StoragePort port, DbClient dbClient) {
+    public String getSwitchName(StoragePort port, DbClient dbClient) {
         URIQueryResultList uriList = new URIQueryResultList();
         dbClient.queryByConstraint(
                 AlternateIdConstraint.Factory

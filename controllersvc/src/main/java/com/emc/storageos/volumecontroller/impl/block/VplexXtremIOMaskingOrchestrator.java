@@ -22,13 +22,16 @@ import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
+import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.NetworkLite;
@@ -126,6 +129,21 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         }
         _log.info("Calculating PortGroups for Networks: {}", netNames.toString());
 
+        StoragePortsAllocator allocator = new StoragePortsAllocator();
+        // Determine if we should check connectivity from the varray.auto_san_zoning
+        boolean sanZoningEnabled = false;
+        if (!simulation) {
+            VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayURI);
+            if (varray != null && NetworkScheduler.isZoningRequired(_dbClient, varray)) {
+                sanZoningEnabled = true;
+            }
+        }
+
+        /**
+         * Till all storage ports been processed:
+         * -- get a set of 4 storage ports selected equally across networks
+         * -- add this set into network to port List map (each port set within a network will be mapped for different directors)
+         */
         Map<URI, List<List<StoragePort>>> useablePorts = new HashMap<URI, List<List<StoragePort>>>();
         Set<String> usedPorts = new HashSet<String>();
 
@@ -135,7 +153,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         Map<URI, List<String>> networkToSelectedXbricks = new HashMap<URI, List<String>>();
         do {
             Map<URI, List<StoragePort>> useablePortsSet = getUsablePortsSet(allocatablePorts, orderedNetworks, usedPorts,
-                    xBricksToSelectedSCs, networkToSelectedXbricks);
+                    xBricksToSelectedSCs, networkToSelectedXbricks, networkMap, allocator, sanZoningEnabled);
             if (useablePortsSet == null) {
                 // if requirement not satisfied
                 break;
@@ -148,12 +166,6 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             }
         } while (!isAllPortsLooped(orderedNetworks, allocatablePorts, usedPorts));
 
-
-        // TODO required?
-        // If all networks have some ports remaining, use the filtered ports.
-        // If not, emit a warning and do not use the filtered port configuration.
-
-        // int numPG = minPorts / portsPerNetPerPG;
         int numPG = XTREMIO_NUM_PORT_GROUP;
         _log.info(String.format("Number of Port Groups: %d", numPG));
         portGroups.add(useablePorts);
@@ -162,25 +174,26 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         // get number of X-bricks from selected ports
         xtremIOXbricksCount = getXbricksCount(useablePorts);
 
-        // TODO required?
-        // Don't allow this network to have more than twice the number of
-        // ports from the network with the fewest ports, i.e. do not exceed 2x portsPerPG.
-
         return portGroups;
     }
 
     /**
-     * Gets the usable ports set.
+     * Returns a Set of Storage Ports selected equally across networks. Minimum of 2 and maximum of 4 storage ports.
+     * It returns null when all storage ports have been processed and the minimum requirement is not met.
      *
      * @param allocatablePorts the allocatable ports
      * @param orderedNetworks the ordered networks
      * @param usedPorts the used ports
      * @param networkToSelectedXbricks
      * @param xBricksToSelectedSCs
+     * @param networkMap
+     * @param allocator Storage Ports Allocator
+     * @param sanZoningEnabled on vArray
      * @return the usable ports set
      */
     private Map<URI, List<StoragePort>> getUsablePortsSet(Map<URI, List<StoragePort>> allocatablePorts, List<URI> orderedNetworks,
-            Set<String> usedPorts, Map<String, List<String>> xBricksToSelectedSCs, Map<URI, List<String>> networkToSelectedXbricks) {
+            Set<String> usedPorts, Map<String, List<String>> xBricksToSelectedSCs, Map<URI, List<String>> networkToSelectedXbricks,
+            Map<URI, NetworkLite> networkMap, StoragePortsAllocator allocator, boolean sanZoningEnabled) {
 
         Map<URI, List<StoragePort>> useablePorts = new HashMap<URI, List<StoragePort>>();
         Set<String> usedPortsSet = new HashSet<String>();
@@ -193,8 +206,12 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                 URI networkURI = networkItr.next();
                 _log.debug(String.format("network: %s, xBricksToSelectedSCs: %s, networkToSelectedXbricks: %s",
                         networkURI, xBricksToSelectedSCs.entrySet(), networkToSelectedXbricks.get(networkURI)));
+                NetworkLite net = networkMap.get(networkURI);
+                // Determine if we should check connectivity from the Network's varray.auto_san_zoning
+                boolean checkConnectivity = sanZoningEnabled && !StorageProtocol.Transport.IP.name().equals(net.getTransportType());
+
                 StoragePort port = getNetworkPortUniqueXbrick(networkURI, allocatablePorts.get(networkURI),
-                        portsSelected, networkToSelectedXbricks, xBricksToSelectedSCs);
+                        portsSelected, networkToSelectedXbricks, xBricksToSelectedSCs, allocator, checkConnectivity);
                 _log.debug("Port selected {} for network {}", port != null ? port.getPortName() : null, networkURI);
                 if (port != null) {
                     usedPortsSet.add(port.getPortName());
@@ -232,12 +249,15 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
      * @param networkURI the network uri
      * @param storagePorts the storage ports
      * @param usedPorts the used ports
-     * @param networkToSelectedXbricks the network to selected xbricks
-     * @param xBricksToSelectedSCs the x bricks to selected s cs
+     * @param networkToSelectedXbricks the network to selected x-bricks
+     * @param xBricksToSelectedSCs the x-bricks to selected SCs
+     * @param allocator Storage Port Allocator
+     * @param checkConnectivity
      * @return the network port unique x brick
      */
     private StoragePort getNetworkPortUniqueXbrick(URI networkURI, List<StoragePort> storagePorts, Set<String> usedPorts,
-            Map<URI, List<String>> networkToSelectedXbricks, Map<String, List<String>> xBricksToSelectedSCs) {
+            Map<URI, List<String>> networkToSelectedXbricks, Map<String, List<String>> xBricksToSelectedSCs,
+            StoragePortsAllocator allocator, boolean checkConnectivity) {
         /**
          * Input:
          * -List of network's storage ports;
@@ -254,7 +274,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         }
         for (StoragePort sPort : storagePorts) {
             // Do not choose a port that has already been chosen
-            if (!usedPorts.contains(sPort.getPortName())) {
+            if (!usedPorts.contains(sPort.getPortName()) && isPortConnected(allocator, sPort, checkConnectivity)) {
                 String[] splitArray = sPort.getPortGroup().split(Constants.HYPHEN);
                 String xBrick = splitArray[0];
                 String sc = splitArray[1];
@@ -270,7 +290,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         if (port == null) {
             for (StoragePort sPort : storagePorts) {
                 // Do not choose a port that has already been chosen
-                if (!usedPorts.contains(sPort.getPortName())) {
+                if (!usedPorts.contains(sPort.getPortName()) && isPortConnected(allocator, sPort, checkConnectivity)) {
                     String[] splitArray = sPort.getPortGroup().split(Constants.HYPHEN);
                     String xBrick = splitArray[0];
                     String sc = splitArray[1];
@@ -286,6 +306,17 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             }
         }
         return port;
+    }
+
+    /**
+     * Checks if storage port is connected depends on Network's varray.auto_san_zoning.
+     *
+     */
+    private boolean isPortConnected(StoragePortsAllocator allocator, StoragePort sPort, boolean checkConnectivity) {
+        if (checkConnectivity && (allocator.getSwitchName(sPort, _dbClient) == null)) {
+            return false;
+        }
+        return true;
     }
 
     /**

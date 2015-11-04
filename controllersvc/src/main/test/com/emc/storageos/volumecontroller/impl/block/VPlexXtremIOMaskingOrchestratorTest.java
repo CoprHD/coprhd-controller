@@ -104,24 +104,6 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 
-        /*
-         * context.reinitialize();
-         * networkMap.clear();
-         * allocatablePorts.clear();
-         * context = getNet3Ports(networkMap, allocatablePorts);
-         * context = getNet4Ports(networkMap, allocatablePorts);
-         * context = getNet4XPorts(networkMap, allocatablePorts);
-         * logNetworks(allocatablePorts);
-         * getInitiatorsVplex154Clus1(directorToInitiators, initiatorIdToNetwork, initiatorMap,
-         * "net3", "net4", "net4X");
-         * initiatorGroups =
-         * bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, false, true);
-         * directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
-         * orca.setVplexDirectorCount(directorCount);
-         * portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
-         * makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
-         */
-
         /**
          * Single VPLEX Engine (2 Directors)
          * Dual X-bricks (4 SCs, 8 storage ports), 2 networks
@@ -167,7 +149,6 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
          * Dual X-bricks (4 SCs, 3 ports from X-brick 1, 3 ports from X-brick 2), 2 networks
          * ports spread across networks with second network having only 2 ports
          */
-        // TODO tricky configuration
         context.reinitialize();
         networkMap.clear();
         allocatablePorts.clear();
@@ -306,8 +287,6 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         orca.setVplexDirectorCount(directorCount);
         portGroups = orca.getPortGroups(allocatablePorts, networkMap, varray1, initiatorGroups.size());
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
-
-        // TODO need 3 networks configuration?
     }
 
     static Integer maskCounter = 1;
@@ -393,26 +372,6 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
 
     private static PortAllocationContext getNet4Ports(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
         String label = "net4";
-        URI id = URI.create(label);
-        NetworkLite net = new NetworkLite(id, label);
-        networkMap.put(id, net);
-        PortAllocationContext context = new PortAllocationContext(net, label);
-        StoragePort port = null;
-        List<StoragePort> ports = new ArrayList<StoragePort>();
-        port = createFCPort("X1-SC1:fc2", "50:00:00:00:00:00:00:7F:00");
-        ports.add(port);
-        port = createFCPort("X1-SC2:fc2", "50:00:00:00:00:00:00:8F:00");
-        ports.add(port);
-        port = createFCPort("X2-SC1:fc2", "50:00:00:00:00:00:00:9F:00");
-        ports.add(port);
-        port = createFCPort("X2-SC2:fc2", "50:00:00:00:00:00:00:AF:00");
-        ports.add(port);
-        allocatablePorts.put(id, ports);
-        return context;
-    }
-
-    private static PortAllocationContext getNet4XPorts(Map<URI, NetworkLite> networkMap, Map<URI, List<StoragePort>> allocatablePorts) {
-        String label = "net4X";
         URI id = URI.create(label);
         NetworkLite net = new NetworkLite(id, label);
         networkMap.put(id, net);

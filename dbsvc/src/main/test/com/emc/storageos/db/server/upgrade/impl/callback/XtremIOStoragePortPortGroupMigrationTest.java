@@ -61,8 +61,7 @@ public class XtremIOStoragePortPortGroupMigrationTest extends DbSimpleMigrationT
         Iterator<StoragePort> storagePortsIter = _dbClient.queryIterativeObjects(StoragePort.class, storagePortURIs);
         while (storagePortsIter.hasNext()) {
             StoragePort storagePort = storagePortsIter.next();
-            URI systemURI = storagePort.getStorageDevice();
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storagePort.getStorageDevice());
             if (DiscoveredDataObject.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())) {
                 if (storagePort.getStorageHADomain() != null) {
                     StorageHADomain haDomain = _dbClient.queryObject(StorageHADomain.class, storagePort.getStorageHADomain());

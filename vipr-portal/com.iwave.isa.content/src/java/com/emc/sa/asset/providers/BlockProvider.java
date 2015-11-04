@@ -453,7 +453,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("snapshotExport")
-    @AssetDependencies("blockSnapshot")
+    @AssetDependencies("exportedBlockSnapshot")
     public List<AssetOption> getExportsForSnapshot(AssetOptionsContext ctx, URI snapshotId) {
         Set<NamedRelatedResourceRep> exports = getUniqueExportsForSnapshot(ctx, snapshotId);
         return createNamedResourceOptions(exports);
@@ -817,6 +817,24 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         debug("getting blockSnapshots (project=%s)", project);
         return getSnapshotOptionsForProject(ctx, project);
     }
+    
+    @Asset("exportedBlockSnapshot")
+    @AssetDependencies({ "project" })
+    public List<AssetOption> getExportedBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project) {
+        debug("getting source block volumes (project=%s)", project);
+        final ViPRCoreClient client = api(ctx);
+        // Filter volumes that are not RP Metadata
+        List<URI> snapshotIds = Lists.newArrayList();
+        for (ExportGroupRestRep export : client.blockExports().findByProject(project)) {
+            for (ExportBlockParam resource : export.getVolumes()) {
+                if (ResourceType.isType(ResourceType.BLOCK_SNAPSHOT, resource.getId())) {
+                    snapshotIds.add(resource.getId());
+                }
+            }
+        }
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByIds(snapshotIds);
+        return createVolumeWithVarrayOptions(client, snapshots);
+    }
 
     private List<AssetOption> getVolumeSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {
         final ViPRCoreClient client = api(ctx);
@@ -830,6 +848,27 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 });
 
         return constructSnapshotOptions(client, project, snapshots);
+    }
+    
+    private List<AssetOption> getExportedVolumeSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {
+        final ViPRCoreClient client = api(ctx);
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().findByProject(project,
+                new DefaultResourceFilter<BlockSnapshotRestRep>() {
+                    @Override
+                    public boolean accept(BlockSnapshotRestRep snapshot) {
+                        VolumeRestRep parentVolume = client.blockVolumes().get(snapshot.getParent().getId());
+                        return (isRPSourceVolume(parentVolume) || !isInConsistencyGroup(snapshot) || hasXIO3XVolumes(parentVolume));
+                    }
+                });
+
+        List<BlockSnapshotRestRep> exportedSnapshots = new ArrayList<BlockSnapshotRestRep>();
+        for (BlockSnapshotRestRep ss : snapshots) {
+            if (!client.blockSnapshots().listExports(ss.getId()).isEmpty()) {
+                exportedSnapshots.add(ss);
+            }
+        }
+        
+        return constructSnapshotOptions(client, project, exportedSnapshots);
     }
 
     @Asset("blockSnapshotOrConsistencyGroup")

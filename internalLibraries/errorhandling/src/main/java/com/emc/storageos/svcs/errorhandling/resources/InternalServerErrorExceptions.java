@@ -269,8 +269,11 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_FAILED)
     public InternalServerErrorException switchoverFailed(String primaryId, String standbyId, String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_FAILED_TIMEOUT)
-    public InternalServerErrorException switchoverFailedTimeout(String primaryId, String standbyId, int timeoutValue);
+    @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_PRIMARY_FAILED_TIMEOUT)
+    public InternalServerErrorException switchoverPrimaryFailedTimeout(String siteId, int timeoutValue);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_STANDBY_FAILED_TIMEOUT)
+    public InternalServerErrorException switchoverStandbyFailedTimeout(String siteId, int timeoutValue);
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedErrorVolumePlacement(Exception ex);

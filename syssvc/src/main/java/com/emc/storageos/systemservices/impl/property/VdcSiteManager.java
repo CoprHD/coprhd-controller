@@ -83,6 +83,7 @@ public class VdcSiteManager extends AbstractManager {
     public static final int ADD_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
+    public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     
     // data revision time out - 11 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
@@ -943,7 +944,7 @@ public class VdcSiteManager extends AbstractManager {
             return;
         }
 
-        for(Site site : drUtil.listStandbySites()) {
+        for(Site site : drUtil.listSites()) {
             SiteError error = getSiteError(site);
             if (error != null) {
                 coordinatorClient.setTargetInfo(site.getUuid(), error);
@@ -980,6 +981,20 @@ public class VdcSiteManager extends AbstractManager {
                     log.info("Step5: Site {} set to error due to data sync timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.dataSyncFailedTimeout(
                             DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                }
+                break;
+            case PRIMARY_SWITCHING_OVER:
+                if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
+                    log.info("Step5: site {} set to error due to switchover timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.switchoverPrimaryFailedTimeout(
+                            site.getUuid(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                }
+                break;
+            case STANDBY_SWITCHING_OVER:
+                if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
+                    log.info("Step5: site {} set to error due to switchover timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.switchoverStandbyFailedTimeout(
+                            site.getUuid(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
                 }
                 break;
         }

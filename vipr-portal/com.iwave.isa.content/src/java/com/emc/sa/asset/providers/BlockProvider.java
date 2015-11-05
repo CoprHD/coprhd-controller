@@ -821,9 +821,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportedBlockSnapshot")
     @AssetDependencies({ "project" })
     public List<AssetOption> getExportedBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project) {
-        debug("getting source block volumes (project=%s)", project);
+        debug("getting exported blockSnapshots (project=%s)", project);
         final ViPRCoreClient client = api(ctx);
-        // Filter volumes that are not RP Metadata
         List<URI> snapshotIds = Lists.newArrayList();
         for (ExportGroupRestRep export : client.blockExports().findByProject(project)) {
             for (ExportBlockParam resource : export.getVolumes()) {

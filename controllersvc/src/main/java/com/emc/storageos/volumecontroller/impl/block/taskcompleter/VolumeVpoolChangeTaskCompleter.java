@@ -71,15 +71,17 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                     volume.setVirtualPool(oldVpoolURI);
                     _log.info("Set volume's virtual pool back to {}", oldVpoolURI);
 
-                        rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient);
-                        volumesToUpdate.add(volume);
-
                     if (volume.checkForRp()) {
+                        // Special rollback for RP, RP+VPLEX, and MetroPoint
                         VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
                         RPHelper.rollbackProtectionOnVolume(volume, oldVpool, dbClient);
+                    } else if (RPHelper.isVPlexVolume(volume)) {
+                        // Special rollback for just VPLEX
+                        rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient);
+                        volumesToUpdate.add(volume);
                     }
                 }
-                    dbClient.updateObject(volumesToUpdate);
+                dbClient.updateObject(volumesToUpdate);
                 break;
             case ready:
                 // The new Vpool has already been stored in the volume in BlockDeviceExportController.

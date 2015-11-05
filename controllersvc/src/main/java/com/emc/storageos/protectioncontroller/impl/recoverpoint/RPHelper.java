@@ -1644,11 +1644,6 @@ public class RPHelper {
                     }
                 }
 
-                // Set the old vpool back on the volume
-                _log.info(String.format("Resetting Vpool on volume from (%s) back to it's original vpool (%s)",
-                        volume.getVirtualPool(), oldVpool.getId()));
-                volume.setVirtualPool(oldVpool.getId());
-
                 // Null out any RP specific fields on the volume
                 volume.setRpJournalVolume(NullColumnValueGetter.getNullURI());
                 volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
@@ -1699,7 +1694,7 @@ public class RPHelper {
                     }
                 }
 
-                volume.setProtectionSet(NullColumnValueGetter.getNullNamedURI());
+                volume.setProtectionSet(NullColumnValueGetter.getNullNamedURI());                               
             } else {
                 _log.info(String.format("Rollback changes for existing protected RP volume [%s]...", volume.getLabel()));
                                 
@@ -1727,10 +1722,32 @@ public class RPHelper {
                     }                                        
                 }
             }
+            
+            // If this is a VPLEX volume, update the virtual pool references to the old vpool on 
+            // the backing volumes if they were set to the new vpool.
+            if (RPHelper.isVPlexVolume(volume)) {
+                for (String associatedVolId : volume.getAssociatedVolumes()) {
+                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                    if (associatedVolume != null 
+                            && !associatedVolume.getInactive()
+                            && !NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
+                            && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {                       
+                        associatedVolume.setVirtualPool(oldVpool.getId());
+                        dbClient.updateObject(associatedVolume);
+                        _log.info(String.format("Backing volume [%s] has had it's virtual pool rolled back to [%s].", associatedVolume.getLabel(),
+                                        oldVpool.getLabel()));
+                    }
+                }
+            }
+            
+             // Set the old vpool back on the volume
+            _log.info(String.format("Resetting vpool on volume [%s](%s) from (%s) back to it's original vpool (%s)",
+                    volume.getLabel(), volume.getId(), volume.getVirtualPool(), oldVpool.getId()));
+            volume.setVirtualPool(oldVpool.getId());
 
-            _log.info(String.format("Rollback of RP protection changes for volume [%s] (%s) has completed.", volume.getLabel(),
-                    volume.getId()));
             dbClient.updateObject(volume);
+            _log.info(String.format("Rollback of RP protection changes for volume [%s] (%s) has completed.", volume.getLabel(),
+                    volume.getId()));            
         }
     }
 
@@ -1761,8 +1778,7 @@ public class RPHelper {
             }
 
             // Rollback any VPLEX backing volumes too
-            if (volume.getAssociatedVolumes() != null
-                    && !volume.getAssociatedVolumes().isEmpty()) {
+            if (RPHelper.isVPlexVolume(volume)) {
                 for (String associatedVolId : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {

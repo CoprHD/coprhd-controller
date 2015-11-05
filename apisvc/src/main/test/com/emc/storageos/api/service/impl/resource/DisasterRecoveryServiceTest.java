@@ -170,7 +170,8 @@ public class DisasterRecoveryServiceTest {
         Configuration config = new ConfigurationImpl();
         config.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, primarySite.getUuid());
         doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
-        doReturn(primarySite.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, primarySite.getUuid());
+        doReturn(primarySite.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), primarySite.getUuid());
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         // Don't need to record audit log in UT
@@ -200,9 +201,11 @@ public class DisasterRecoveryServiceTest {
         allConfigs.add(standbySite1.toConfiguration());
         allConfigs.add(standbySite2.toConfiguration());
         allConfigs.add(primarySite.toConfiguration());
-        doReturn(allConfigs).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
-        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
-        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
+        doReturn(allConfigs).when(coordinator).queryAllConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND));
+        doReturn(standbySite1.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite2.getUuid());
 
         // mock new added site
         Site newAdded = new Site();
@@ -210,7 +213,8 @@ public class DisasterRecoveryServiceTest {
         newAdded.setVip(vip);
         newAdded.getHostIPv4AddressMap().put("vipr1", "1.1.1.1");
         newAdded.setState(SiteState.PRIMARY);
-        doReturn(newAdded.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, newAdded.getUuid());
+        doReturn(newAdded.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), newAdded.getUuid());
 
         // mock checking and validating methods
         doNothing().when(drService).precheckForStandbyAttach(any(SiteConfigRestRep.class));
@@ -237,10 +241,13 @@ public class DisasterRecoveryServiceTest {
         allConfigs.add(standbySite1.toConfiguration());
         allConfigs.add(standbySite2.toConfiguration());
         allConfigs.add(primarySite.toConfiguration());
-        doReturn(allConfigs).when(coordinator).queryAllConfiguration(Site.CONFIG_KIND);
-        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
-        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
-        doReturn(primarySite.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, primarySite.getUuid());
+        doReturn(allConfigs).when(coordinator).queryAllConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND));
+        doReturn(standbySite1.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite2.getUuid());
+        doReturn(primarySite.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), primarySite.getUuid());
 
         SiteList responseList = drService.getSites();
 
@@ -253,7 +260,8 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testGetStandby() throws Exception {
-        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
+        doReturn(standbySite1.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite1.getUuid());
 
         SiteRestRep response = drService.getSite("site-uuid-1");
         compareSiteResponse(response, standbySite1);
@@ -261,7 +269,8 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testGetStandby_NotBelongLocalVDC() throws Exception {
-        doReturn(null).when(coordinator).queryConfiguration(Site.CONFIG_KIND, "site-uuid-not-exist");
+        doReturn(null).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), "site-uuid-not-exist");
 
         SiteRestRep response = drService.getSite("site-uuid-not-exist");
         assertNull(response);
@@ -273,10 +282,10 @@ public class DisasterRecoveryServiceTest {
         
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         
-        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
-                standbySite1.getUuid());
-        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
-                standbySite2.getUuid());
+        doReturn(standbySite1.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite2.getUuid());
 
         doNothing().when(coordinator).persistServiceConfiguration(any(Configuration.class));
         doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
@@ -288,11 +297,11 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testPauseStandby() {
         String invalidSiteId = "invalid_site_id";
-        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
-                standbySite1.getUuid());
-        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
-                standbySite2.getUuid());
-        doReturn(null).when(coordinator).queryConfiguration(Site.CONFIG_KIND, invalidSiteId);
+        doReturn(standbySite1.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite1.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite2.getUuid());
+        doReturn(null).when(coordinator).queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), invalidSiteId);
         
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         
@@ -369,7 +378,8 @@ public class DisasterRecoveryServiceTest {
         doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
         Site site = new Site();
         site.setState(SiteState.PRIMARY);
-        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, coordinator.getSiteId());
+        doReturn(standbySite1.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), coordinator.getSiteId());
         SiteConfigRestRep response = drService.getStandbyConfig();
         compareSiteResponse(response, standbyConfig);
     }
@@ -460,14 +470,16 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testGetSiteError() {
-        doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite1.getUuid());
+        doReturn(standbySite1.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite1.getUuid());
         SiteErrorResponse siteError = drService.getSiteError("site-uuid-1");
         
         assertEquals(0, siteError.getCreationTime());
         assertEquals(null, siteError.getErrorMessage());
         
         standbySite2.setState(SiteState.STANDBY_ERROR);
-        doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
+        doReturn(standbySite2.toConfiguration()).when(coordinator)
+                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite2.getUuid());
         
         SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(20));
         doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);

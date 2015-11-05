@@ -87,6 +87,15 @@ public class DrUtil {
     }
 
     /**
+     * Get local site configuration
+     *
+     * @return local site configuration
+     */
+    public Site getLocalSite() {
+        return getSiteFromLocalVdc(coordinator.getSiteId());
+    }
+
+    /**
      * Load site information from local vdc
      * 
      * @param siteId

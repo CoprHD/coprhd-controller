@@ -42,6 +42,7 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -104,6 +105,7 @@ public class SchemaUtil {
     private DbClientContext clientContext;
     private boolean onStandby = false;
     private String _standbyId;
+    private DrUtil drUtil;
 
     @Autowired
     private DbRebuildRunnable dbRebuildRunnable;
@@ -128,6 +130,7 @@ public class SchemaUtil {
      */
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
+        drUtil = new DrUtil(coordinator);
     }
 
     /**
@@ -346,8 +349,7 @@ public class SchemaUtil {
         }
 
         // iterate through all the sites and exclude the paused ones
-        for(Configuration config : _coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
-            Site site = new Site(config);
+        for(Site site : drUtil.listSites()) {
             String dcId = String.format("%s-%s", _vdcShortId, site.getStandbyShortId());
             if (site.getState().equals(SiteState.STANDBY_PAUSED) && strategyOptions.containsKey(dcId)) {
                 _log.info("Remove dc {} from strategy options", dcId);
@@ -376,8 +378,7 @@ public class SchemaUtil {
             return false;
         }
 
-        Configuration config = _coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId());
-        Site localSite = new Site(config);
+        Site localSite = drUtil.getLocalSite();
         if (localSite.getState().equals(SiteState.STANDBY_PAUSED)) {
             // don't add back the paused site
             _log.warn("local standby site has been paused and removed from strategy options. Do nothing");
@@ -904,7 +905,7 @@ public class SchemaUtil {
      // No need to add bootstrap records on standby site
         if (isOnStandby()) {
             _log.info("Check bootstrap info on standby");
-            Site currentSite = new Site(_coordinator.queryConfiguration(Site.CONFIG_KIND, _coordinator.getSiteId()));
+            Site currentSite = drUtil.getLocalSite();
 
             if (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
                 currentSite.setState(SiteState.STANDBY_SYNCING);

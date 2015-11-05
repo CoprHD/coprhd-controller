@@ -15,6 +15,7 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.common.DbConfigConstants;
@@ -56,8 +57,8 @@ public class DbRebuildRunnable implements Runnable {
             return;
         }
 
-        Configuration localSiteConfig = coordinator.queryConfiguration(Site.CONFIG_KIND, coordinator.getSiteId());
-        Site localSite = new Site(localSiteConfig);
+        DrUtil drUtil = new DrUtil(coordinator);
+        Site localSite = drUtil.getLocalSite();
         if (! localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
             log.info("db in sync, nothing to do");
             return;

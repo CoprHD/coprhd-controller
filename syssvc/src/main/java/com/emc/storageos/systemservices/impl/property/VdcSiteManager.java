@@ -800,18 +800,13 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private void rebuildLocalDbIfNecessary() throws Exception {
-        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
-        Configuration localSiteConfig = coordinatorClient.queryConfiguration(Site.CONFIG_KIND,
-                coordinatorClient.getSiteId());
-        Site localSite = new Site(localSiteConfig);
+        Site localSite = drUtil.getLocalSite();
 
         String svcId = coordinator.getMySvcId();
         while (localSite.getState().equals(SiteState.STANDBY_RESUMING)) {
             if (!getVdcLock(svcId)) {
                 retrySleep(); // retry until we get the lock
-                localSiteConfig = coordinatorClient.queryConfiguration(Site.CONFIG_KIND,
-                        coordinatorClient.getSiteId());
-                localSite = new Site(localSiteConfig);
+                localSite = drUtil.getLocalSite();
                 continue;
             }
 
@@ -824,7 +819,7 @@ public class VdcSiteManager extends AbstractManager {
                 ((DbClientImpl) dbClient).getGeoContext().addDcToStrategyOptions(dcId, nodeCount);
 
                 localSite.setState(SiteState.STANDBY_SYNCING);
-                coordinatorClient.persistServiceConfiguration(localSite.toConfiguration());
+                coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
             } finally {
                 coordinator.releasePersistentLock(svcId, vdcLockId);
             }
@@ -876,10 +871,8 @@ public class VdcSiteManager extends AbstractManager {
     }
     
     private void cleanupSiteErrorIfNecessary() {
-        String siteId = coordinator.getCoordinatorClient().getSiteId();
-        
-        Configuration config = coordinator.getCoordinatorClient().queryConfiguration(Site.CONFIG_KIND, siteId);
-        Site site = new Site(config);
+        Site site = drUtil.getLocalSite();
+        String siteId = site.getUuid();
         
         log.info("site: {}", site.toString());
         

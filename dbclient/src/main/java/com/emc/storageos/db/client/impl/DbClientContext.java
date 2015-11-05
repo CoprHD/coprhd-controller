@@ -138,8 +138,9 @@ public class DbClientContext {
         keyspaceContext.getConnectionPool().setHosts(hosts);
     }
 
+    // Extract to this method for UT easy mocking
     public int getPort() {
-        return keyspaceContext.getConnectionPoolConfiguration().getPort();
+        return getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
     }
 
     /**
@@ -278,11 +279,9 @@ public class DbClientContext {
      * while init() depends on dbclient which in turn depends on dbsvc.
      */
     private void initClusterContext() {
-        int port = getKeyspaceName().equals(LOCAL_KEYSPACE_NAME) ? DB_THRIFT_PORT : GEODB_THRIFT_PORT;
-
         ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(clusterName)
                 .setMaxConnsPerHost(1)
-                .setSeeds(String.format("%1$s:%2$d", LOCAL_HOST, port));
+                .setSeeds(String.format("%1$s:%2$d", LOCAL_HOST, getPort()));
 
         if (isClientToNodeEncrypted()) {
             SSLConnectionContext sslContext = getSSLConnectionContext();

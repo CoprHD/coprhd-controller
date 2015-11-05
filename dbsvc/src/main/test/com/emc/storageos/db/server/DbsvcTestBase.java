@@ -193,7 +193,12 @@ public class DbsvcTestBase {
         util.setCoordinator(_coordinator);
         util.setVdcShortId("vdc1");
 
-        DbClientContext dbctx = new DbClientContext();
+        DbClientContext dbctx = new DbClientContext() {
+            @Override
+            public int getPort() {
+                return 9160;
+            }
+        };
         dbctx.setClusterName("Test");
         dbctx.setKeyspaceName("Test");
         util.setClientContext(dbctx);

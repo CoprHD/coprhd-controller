@@ -6,7 +6,9 @@
 package com.emc.storageos.coordinator.client.service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -116,19 +118,22 @@ public class DrUtil {
     }
 
     /**
-     * List all sites in all vdc
+     * Get a map of all sites of all vdcs.
+     * The keys are VDC short ids, the values are lists of sites within each vdc
      *
-     * @return list of all sites
+     * @return map of vdc -> list of sites
      */
-    public List<Site> listAllVdcSites() {
-        List<Site> result = new ArrayList<>();
+    public Map<String, List<Site>> getVdcSiteMap() {
+        Map<String, List<Site>> vdcSiteMap = new HashMap<>();
         for(Configuration vdcConfig : coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             String siteKind = String.format("%s/%s", Site.CONFIG_KIND, vdcConfig.getId());
+            List<Site> sites = new ArrayList<>();
             for (Configuration siteConfig : coordinator.queryAllConfiguration(siteKind)) {
-                result.add(new Site(siteConfig));
+                sites.add(new Site(siteConfig));
             }
+            vdcSiteMap.put(vdcConfig.getId(), sites);
         }
-        return result;
+        return vdcSiteMap;
     }
 
     /**

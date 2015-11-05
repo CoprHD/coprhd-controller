@@ -58,7 +58,7 @@ public class VdcConfigUtil {
     public Map<String, String> genVdcProperties() {
         Map<String, String> vdcConfig = new HashMap<>();
 
-        Map<String, List<Site>> vdcSiteMap = getVdcSiteMap();
+        Map<String, List<Site>> vdcSiteMap = drUtil.getVdcSiteMap();
         if (vdcSiteMap.isEmpty()) {
             log.warn("No virtual data center defined in local db");
             return vdcConfig;
@@ -85,19 +85,6 @@ public class VdcConfigUtil {
         log.info("vdc config property: \n{}", vdcConfig.toString());
 
         return vdcConfig;
-    }
-
-    private Map<String, List<Site>> getVdcSiteMap() {
-        Map<String, List<Site>> vdcSiteMap = new HashMap<>();
-        List<Site> sites = drUtil.listAllVdcSites();
-        for (Site site : sites) {
-            String vdcId = site.getVdcShortId();
-            if (!vdcSiteMap.containsKey(vdcId)) {
-                vdcSiteMap.put(vdcId, new ArrayList<Site>());
-            }
-            vdcSiteMap.get(vdcId).add(site);
-        }
-        return vdcSiteMap;
     }
 
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {

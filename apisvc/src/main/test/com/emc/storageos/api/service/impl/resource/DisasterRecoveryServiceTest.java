@@ -191,7 +191,6 @@ public class DisasterRecoveryServiceTest {
         config.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, primarySite.getUuid());
         doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
         doReturn(primarySite.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, primarySite.getUuid());
-        doReturn(localVDC).when(drService).queryLocalVDC();
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         // Don't need to record audit log in UT
@@ -217,8 +216,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(mockViPRSystemClient(version)).when(drService).createViPRSystemClient(vip, username, password);
 
         // mock a local VDC
-        doReturn(localVDC).when(drService).queryLocalVDC();
-        List<Configuration> allConfigs = new ArrayList<Configuration>();
+        List<Configuration> allConfigs = new ArrayList<>();
         allConfigs.add(standbySite1.toConfiguration());
         allConfigs.add(standbySite2.toConfiguration());
         allConfigs.add(primarySite.toConfiguration());
@@ -255,8 +253,7 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testGetAllStandby() throws Exception {
-        doReturn(localVDC).when(drService).queryLocalVDC();
-        List<Configuration> allConfigs = new ArrayList<Configuration>();
+        List<Configuration> allConfigs = new ArrayList<>();
         allConfigs.add(standbySite1.toConfiguration());
         allConfigs.add(standbySite2.toConfiguration());
         allConfigs.add(primarySite.toConfiguration());
@@ -301,7 +298,6 @@ public class DisasterRecoveryServiceTest {
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,
                 standbySite2.getUuid());
 
-        doReturn(localVDC).when(drService).queryLocalVDC();
         doNothing().when(coordinator).persistServiceConfiguration(any(Configuration.class));
         doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
         doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
@@ -332,8 +328,7 @@ public class DisasterRecoveryServiceTest {
         } catch (APIException e) {
             assertEquals(e.getServiceCode(), ServiceCode.API_PARAMETER_INVALID);
         }
-        
-        doReturn(localVDC).when(drService).queryLocalVDC();
+
         doNothing().when(coordinator).persistServiceConfiguration(any(Configuration.class));
         doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
         doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));

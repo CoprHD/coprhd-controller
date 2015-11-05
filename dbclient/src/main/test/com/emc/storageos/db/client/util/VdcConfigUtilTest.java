@@ -104,7 +104,7 @@ public class VdcConfigUtilTest {
             });
             siteList = new ArrayList<>();
             siteList.add(site.toConfiguration());
-            vdcSiteMap.put(siteId, siteList);
+            vdcSiteMap.put("vdc3", siteList);
         }
 
         @Override

@@ -859,6 +859,7 @@ public class SchemaUtil {
         site.setUuid(_coordinator.getSiteId());
         site.setName("Primary");
         site.setVdcShortId(vdc.getShortId());
+        site.setStandbyShortId("");
         site.setHostIPv4AddressMap(ipv4Addresses);
         site.setHostIPv6AddressMap(ipv6Addresses);
         site.setState(SiteState.PRIMARY);

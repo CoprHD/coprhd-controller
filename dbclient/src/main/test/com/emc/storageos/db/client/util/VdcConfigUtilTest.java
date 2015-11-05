@@ -63,6 +63,7 @@ public class VdcConfigUtilTest {
             site.setUuid(siteId);
             site.setVdcShortId("vdc1");
             site.setNodeCount(3);
+            site.setStandbyShortId("");
             site.setHostIPv4AddressMap(new StringMap() {
                 {
                     put("node1", "1.1.1.1");
@@ -79,6 +80,7 @@ public class VdcConfigUtilTest {
             site.setUuid(siteId);
             site.setVdcShortId("vdc2");
             site.setNodeCount(5);
+            site.setStandbyShortId("");
             site.setHostIPv4AddressMap(new StringMap() {
                 {
                     put("node1", "2.1.1.1");
@@ -97,6 +99,7 @@ public class VdcConfigUtilTest {
             site.setUuid(siteId);
             site.setVdcShortId("vdc3");
             site.setNodeCount(1);
+            site.setStandbyShortId("");
             site.setHostIPv4AddressMap(new StringMap() {
                 {
                     put("node1", "3.1.1.1");

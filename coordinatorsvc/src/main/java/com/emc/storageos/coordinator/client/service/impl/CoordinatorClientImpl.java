@@ -237,6 +237,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public void setPrimarySite(String siteId) throws Exception {
         Configuration localVdcConfig = queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
                 Constants.CONFIG_GEO_LOCAL_VDC_ID);
+        if (localVdcConfig == null) {
+            log.info("initializing local VDC pointer to vdc1");
+            ConfigurationImpl localVdcConfigImpl = new ConfigurationImpl();
+            localVdcConfigImpl.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
+            localVdcConfigImpl.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
+            localVdcConfigImpl.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, "vdc1");
+            persistServiceConfiguration(localVdcConfigImpl);
+            localVdcConfig = localVdcConfigImpl;
+        }
         String localVdcShortId = localVdcConfig.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
         ConfigurationImpl config = new ConfigurationImpl();
         config.setKind(Constants.CONFIG_DR_PRIMARY_KIND);

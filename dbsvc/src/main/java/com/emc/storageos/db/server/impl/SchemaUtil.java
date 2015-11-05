@@ -865,13 +865,6 @@ public class SchemaUtil {
         site.setVip(_vdcEndpoint);
         site.setNodeCount(vdc.getHostCount());
         _coordinator.persistServiceConfiguration(site.toConfiguration());
-
-        // update local VDC id to ZK
-        ConfigurationImpl localVdcConfig = new ConfigurationImpl();
-        localVdcConfig.setKind(Constants.CONFIG_GEO_LOCAL_VDC_KIND);
-        localVdcConfig.setId(Constants.CONFIG_GEO_LOCAL_VDC_ID);
-        localVdcConfig.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, _vdcShortId);
-        _coordinator.persistServiceConfiguration(localVdcConfig);
     }
 
     /**

@@ -416,12 +416,6 @@ class HostInitiator(object):
                     self.__ipAddr, self.__port)
             )
 
-    def list_tasks(self, project_name, initiatorportwwn=None, task_id=None):
-        return (
-            common.list_tasks(self.__ipAddr, self.__port, "initiator",
-                              project_name, initiatorportwwn, task_id)
-        )
-
 
     # Indentation END for the class
 # Start Parser definitions
@@ -836,7 +830,7 @@ def host_initiator_list_tasks(args):
                     return common.format_json_object(res)
                 else:
                     from common import TableGenerator
-                    TableGenerator(res, ["module/id", "name",
+                    TableGenerator(res, ["module/id",
                                          "state"]).printTable()
 
     except SOSError as e:

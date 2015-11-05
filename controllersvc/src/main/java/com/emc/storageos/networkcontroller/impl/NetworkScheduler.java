@@ -77,7 +77,7 @@ public class NetworkScheduler {
     private DbClient _dbClient;
     private static final String LSAN = "LSAN_";
     private static final int ZONE_NAME_LENGTH = 64;
-    private static final int ZONE_NAME_IVR_LENGTH = 59;
+    private static final int BROCADE_ZONE_NAME_IVR_LENGTH = 59;
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -147,7 +147,7 @@ public class NetworkScheduler {
         }
         String resolvedZoneName = customConfigHandler.resolve(
                 CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
-        validateZoneNameLength(resolvedZoneName, lsanZone);
+        validateZoneNameLength(resolvedZoneName, lsanZone, systemType);
         String zoneName = customConfigHandler.getComputedCustomConfigValue(
                 CustomConfigConstants.ZONE_MASK_NAME, systemType, dataSource);
         if (lsanZone && DiscoveredDataObject.Type.brocade.name().equals(systemType)) {
@@ -159,11 +159,11 @@ public class NetworkScheduler {
     /**
      * Validates if zone name length is within the allowed character limit on switches.
      */
-    private void validateZoneNameLength(String zoneName, boolean isIvrZone) {
-        if(isIvrZone) {
-            // Checks for a different length for IVR zones as it should start with "LSAN" which is appended to zone name later
-            if(zoneName.length() > ZONE_NAME_IVR_LENGTH) {
-                throw NetworkDeviceControllerException.exceptions.nameZoneLongerThanAllowed(zoneName, ZONE_NAME_IVR_LENGTH);
+    private void validateZoneNameLength(String zoneName, boolean isIvrZone, String systemType) {
+        // Checks for a different length for IVR zones as it should start with "LSAN" for brocade which is appended to zone name later
+        if(isIvrZone && DiscoveredDataObject.Type.brocade.name().equals(systemType)) {
+            if(zoneName.length() > BROCADE_ZONE_NAME_IVR_LENGTH) {
+                throw NetworkDeviceControllerException.exceptions.nameZoneLongerThanAllowed(zoneName, BROCADE_ZONE_NAME_IVR_LENGTH);
             }
         } else {
             if(zoneName.length() > ZONE_NAME_LENGTH) {

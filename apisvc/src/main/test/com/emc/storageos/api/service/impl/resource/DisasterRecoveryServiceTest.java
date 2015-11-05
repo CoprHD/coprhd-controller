@@ -20,9 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -170,7 +168,8 @@ public class DisasterRecoveryServiceTest {
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         // Don't need to record audit log in UT
-        doNothing().when(drService).auditDisasterRecoveryOps(any(OperationTypeEnum.class), anyString(), anyString(), any());
+        doNothing().when(drService).auditDisasterRecoveryOps(any(OperationTypeEnum.class), anyString(), anyString(),
+                anyVararg());
         doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
     }
 

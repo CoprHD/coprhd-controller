@@ -453,7 +453,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("snapshotExport")
-    @AssetDependencies("blockSnapshot")
+    @AssetDependencies("exportedBlockSnapshot")
     public List<AssetOption> getExportsForSnapshot(AssetOptionsContext ctx, URI snapshotId) {
         Set<NamedRelatedResourceRep> exports = getUniqueExportsForSnapshot(ctx, snapshotId);
         return createNamedResourceOptions(exports);
@@ -816,6 +816,23 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project) {
         debug("getting blockSnapshots (project=%s)", project);
         return getSnapshotOptionsForProject(ctx, project);
+    }
+    
+    @Asset("exportedBlockSnapshot")
+    @AssetDependencies({ "project" })
+    public List<AssetOption> getExportedBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project) {
+        debug("getting exported blockSnapshots (project=%s)", project);
+        final ViPRCoreClient client = api(ctx);
+        List<URI> snapshotIds = Lists.newArrayList();
+        for (ExportGroupRestRep export : client.blockExports().findByProject(project)) {
+            for (ExportBlockParam resource : export.getVolumes()) {
+                if (ResourceType.isType(ResourceType.BLOCK_SNAPSHOT, resource.getId())) {
+                    snapshotIds.add(resource.getId());
+                }
+            }
+        }
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByIds(snapshotIds);
+        return createVolumeWithVarrayOptions(client, snapshots);
     }
 
     private List<AssetOption> getVolumeSnapshotOptionsForProject(AssetOptionsContext ctx, URI project) {

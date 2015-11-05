@@ -3865,11 +3865,11 @@ renderFunctions.recovery.error.internal=Internal error
 renderFunctions.recovery.error.helpMsg=Please contact EMC support
 renderFunctions.manage=Manage
 
-renderFunctions.disasterRecovery.status.primary=Primary
+renderFunctions.disasterRecovery.status.primary=Active
 renderFunctions.disasterRecovery.status.adding=Adding Standby
 renderFunctions.disasterRecovery.status.syncing=Syncing Standby
-renderFunctions.disasterRecovery.status.synced=In Synched
-renderFunctions.disasterRecovery.status.paused=Paused Sync
+renderFunctions.disasterRecovery.status.synced=Standby Synched
+renderFunctions.disasterRecovery.status.paused=Standby Paused
 renderFunctions.disasterRecovery.status.testing=Test Mode
 renderFunctions.disasterRecovery.status.removing=Deleting Standby
 renderFunctions.disasterRecovery.status.error=Error

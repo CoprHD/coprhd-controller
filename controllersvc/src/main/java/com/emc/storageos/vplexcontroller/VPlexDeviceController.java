@@ -506,87 +506,58 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // For each VPLEX to be provisioned (normally there is only one)
             String lastStep = waitFor;
             for (URI vplexURI : vplexDescMap.keySet()) {
-                
                 StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-                               
+
                 // Build some needed maps to get started.
                 Map<URI, StorageSystem> arrayMap = buildArrayMap(vplexSystem, volumes, Type.BLOCK_DATA);
                 Map<URI, Volume> volumeMap = buildVolumeMap(vplexSystem, volumes, Type.VPLEX_VIRT_VOLUME);
-                
-                // List of Virtual Volumes to create
-                List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexDescMap
-                        .get(vplexURI));
-                
-                // List of Virtual Volumes to add to CG
-                List<URI> vplexVolumeURIsForCG = new ArrayList<URI>();
-                vplexVolumeURIsForCG.addAll(vplexVolumeURIs);
-                
-                // We could have some VPLEX Virtual volumes that are a part of a change vpool
-                // operation. Check to see if there are any.
-                Map<URI, URI> changeVpoolVolumesMap = VolumeDescriptor.getAllVirtualPoolChangeSourceVolumes(vplexVolumes);
-                
-                // Do not re-create the existing VPLEX Virtual volumes, simply remove them from 
-                // the list to be created.
-                if (!changeVpoolVolumesMap.isEmpty()) {
-                    for (URI changeVpoolVolumeURI : changeVpoolVolumesMap.keySet()) {
-                        if (vplexVolumeURIs.contains(changeVpoolVolumeURI)) {
-                            _log.info("Removing URI, it is a change vpool, "
-                                    + "do not create the virtual volume again. "
-                                    + "We could still need to add it to a CG though. " + changeVpoolVolumeURI);
-                            vplexVolumeURIs.remove(changeVpoolVolumeURI);
-                            volumeMap.remove(changeVpoolVolumeURI);
-                        }
-                    }
-                }
-                
-                if (!vplexVolumeURIs.isEmpty()) {
-                    // Set the project and tenant to those of an underlying volume.
-                    // These are used to set the project and tenant of a new ExportGroup if needed.
-                    Volume firstVolume = volumeMap.values().iterator().next();
-                    URI projectURI = firstVolume.getProject().getURI();
-                    URI tenantURI = firstVolume.getTenant().getURI();
-    
-                    try {
-                        // Now we need to do the necessary zoning and export steps to ensure
-                        // the VPlex can see these new backend volumes.
-                        lastStep = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
-                                volumeMap, projectURI, tenantURI, waitFor);
-                        _log.info("Added VPlex steps for zoning and export");
-                    } catch (Exception ex) {
-                        _log.error("Could not create volumes for vplex: " + vplexURI, ex);
-                        TaskCompleter completer = new VPlexTaskCompleter(Volume.class, vplexURI,
-                                taskId, null);
-                        ServiceError serviceError = VPlexApiException.errors.jobFailed(ex);
-                        completer.error(_dbClient, serviceError);
-                        throw ex;
-                    }                
-                    
-                    // Now make a Step to create the VPlex Virtual volume.
-                    // This will be done from this controller.
-                    String stepId = workflow.createStepId();
-                    lastStep = workflow.createStep(
-                                VPLEX_STEP,
-                                String.format("VPlex %s creating virtual volumes:%n%s",
-                                        vplexSystem.getId().toString(),
-                                        BlockDeviceController.getVolumesMsg(_dbClient, vplexVolumeURIs)),
-                                lastStep, vplexURI, vplexSystem.getSystemType(), this.getClass(),
-                                createVirtualVolumesMethod(vplexURI, vplexVolumeURIs),
-                                rollbackCreateVirtualVolumesMethod(vplexURI, vplexVolumeURIs, stepId),
-                                stepId);
-                    _log.info("Added VPlex steps for creating virtual volumes");
+
+                // Set the project and tenant to those of an underlying volume.
+                // These are used to set the project and tenant of a new ExportGroup if needed.
+                Volume firstVolume = volumeMap.values().iterator().next();
+                URI projectURI = firstVolume.getProject().getURI();
+                URI tenantURI = firstVolume.getTenant().getURI();
+
+                try {
+                    // Now we need to do the necessary zoning and export steps to ensure
+                    // the VPlex can see these new backend volumes.
+                    lastStep = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
+                            volumeMap, projectURI, tenantURI, waitFor);
+                } catch (Exception ex) {
+                    _log.error("Could not create volumes for vplex: " + vplexURI, ex);
+                    TaskCompleter completer = new VPlexTaskCompleter(Volume.class, vplexURI,
+                            taskId, null);
+                    ServiceError serviceError = VPlexApiException.errors.jobFailed(ex);
+                    completer.error(_dbClient, serviceError);
+                    throw ex;
                 }
 
-                if (!vplexVolumeURIsForCG.isEmpty()) {
-                    // Get one of the vplex volumes so we can determine what ConsistencyGroupManager
-                    // implementation to use.
-                    Volume vol = getDataObject(Volume.class, vplexVolumeURIsForCG.get(0), _dbClient);
-                    ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
-    
-                    // Deal with CGs.
-                    lastStep = consistencyGroupManager.addStepsForCreateConsistencyGroup(workflow, lastStep,
-                            vplexSystem, vplexVolumeURIsForCG, false);
-                    _log.info("Added VPlex steps for creating consistency group");
-                }
+                // Now create each of the Virtual Volumes that may be necessary.
+                List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexDescMap
+                        .get(vplexURI));
+
+                // Now make a Step to create the VPlex Virtual volume.
+                // This will be done from this controller.
+                String stepId = workflow.createStepId();
+                workflow.createStep(
+                        VPLEX_STEP,
+                        String.format("VPlex %s creating virtual volumes:%n%s",
+                                vplexSystem.getId().toString(),
+                                BlockDeviceController.getVolumesMsg(_dbClient, vplexVolumeURIs)),
+                        lastStep, vplexURI, vplexSystem.getSystemType(), this.getClass(),
+                        createVirtualVolumesMethod(vplexURI, vplexVolumeURIs),
+                        rollbackCreateVirtualVolumesMethod(vplexURI, vplexVolumeURIs, stepId),
+                        stepId);
+
+                // Get one of the vplex volumes so we can determine what ConsistencyGroupManager
+                // implementation to use.
+                Volume vol = getDataObject(Volume.class, vplexVolumeURIs.get(0), _dbClient);
+                ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
+
+                // Deal with CGs.
+                lastStep = consistencyGroupManager.addStepsForCreateConsistencyGroup(workflow, stepId,
+                        vplexSystem, vplexVolumeURIs, false);
+                _log.info("Added steps for creating consistency group");
             }
             return lastStep;
         } catch (Exception ex) {
@@ -9784,32 +9755,47 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 List<VolumeDescriptor> copyOfVolumeDescriptors = new ArrayList<VolumeDescriptor>();
                 copyOfVolumeDescriptors.addAll(volumes);
 
-                if (rpUpgradeProtectionVPoolChange) {
-                    _log.info("Adding VPLEX steps for RP+VPLEX/MetroPoint upgrade protection vpool change...");                    
+                if (rpAddProtectionVPoolChange) {
+                    _log.info("Adding VPLEX steps for RP+VPLEX/MetroPoint add protection vpool change...");
                     Iterator<VolumeDescriptor> it = copyOfVolumeDescriptors.iterator();
                     while (it.hasNext()) {
                         VolumeDescriptor currentVolumeDesc = it.next();
                         if (changeVpoolVirtualVolumeURIs.contains(currentVolumeDesc.getVolumeURI())) {
                             // Remove the RP+VPLEX Source Change Vpool Virtual Volume(s) from the copy of the
-                            // descriptors as they do not need to be created or added to the VPLEX CG.
+                            // descriptors as they do not need to be created (because they already exist!)
                             it.remove();
                             break;
                         }
-                    }                    
-                } else {
-                    _log.info("Adding VPLEX steps for add RecoverPoint protecion vpool change...");
+                    }
+
+                    // Lastly add the the RP+VPLEX Source Change Vpool Virtual Volume to the CG (which will create the CG if it's not
+                    // already)
                     for (URI virtualVolumeURI : changeVpoolVirtualVolumeURIs) {
                         Volume changeVpoolVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
+
+                        changeVpoolVolume.getConsistencyGroup();
+
                         // This is a good time to update the vpool on the existing Virtual Volume to the new vpool
                         changeVpoolVolume.setVirtualPool(newVpoolURI);
-                        _dbClient.updateObject(changeVpoolVolume);
+                        _dbClient.persistObject(changeVpoolVolume);
+
+                        StorageSystem vplex = getDataObject(StorageSystem.class,
+                                changeVpoolVolume.getStorageController(), _dbClient);
+
+                        // Get a handle on the RP consistency group manager
+                        ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(DiscoveredDataObject.Type.rp.name());
+
+                        // Add step for create CG
+                        waitFor = consistencyGroupManager.addStepsForCreateConsistencyGroup(
+                                workflow, waitFor, vplex, Arrays.asList(virtualVolumeURI), false);
+                        _log.info("Added steps for CG creation for vplex volume {}", virtualVolumeURI);
                     }
+                } else {
+                    _log.info("Adding VPLEX steps for RP+VPLEX/MetroPoint upgrade protection vpool change...");
                 }
 
                 // Let's now create the virtual volumes for the RP+VPLEX:
                 // Source Journal, Target(s), and Target Journal.
-                // Could also be passing in an existing VPLEX virtual volume we want to protect
-                // with RP. That volume will not be created, just added to the VPLEX CG.
                 waitFor = addStepsForCreateVolumes(workflow, waitFor, copyOfVolumeDescriptors, taskId);
             }
 

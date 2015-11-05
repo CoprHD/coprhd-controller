@@ -11,6 +11,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.IngestStrategyEnum;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.ReplicationStrategy;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.VolumeType;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
@@ -24,6 +27,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -31,6 +35,13 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockSnapIngestOrchestrator.class);
+
+    // the ingest strategy factory, used for ingesting the backend volume
+    private IngestStrategyFactory ingestStrategyFactory;
+
+    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
+        this.ingestStrategyFactory = ingestStrategyFactory;
+    }
 
     @Override
     public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
@@ -42,11 +53,13 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
 
         BlockSnapshot snapShot = null;
+        Volume beVolume = null;
 
         String snapNativeGuid = unManagedVolume.getNativeGuid().replace(NativeGUIDGenerator.UN_MANAGED_VOLUME,
                 NativeGUIDGenerator.VOLUME);
 
         snapShot = VolumeIngestionUtil.checkSnapShotExistsInDB(snapNativeGuid, _dbClient);
+
         // Check if ingested volume has exportmasks pending for ingestion.
         if (isExportIngestionPending(snapShot, unManagedVolume.getId(), unManagedVolumeExported)) {
             return clazz.cast(snapShot);
@@ -77,6 +90,17 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             _logger.info("Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
                     unManagedVolume.getNativeGuid());
             snapShot.addInternalFlags(INTERNAL_VOLUME_FLAGS);
+        }
+
+        // If snapshot is also a backend VPLEX volume
+        if (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume)) {
+            String strategyKey = ReplicationStrategy.LOCAL.name() + "_" + VolumeType.VOLUME.name();
+            IngestStrategy ingestStrategy = ingestStrategyFactory.getIngestStrategy(IngestStrategyEnum.getIngestStrategy(strategyKey));
+            BlockObject obj = ingestStrategy.ingestBlockObjects(systemCache, poolCache,
+                    system, unManagedVolume, vPool, virtualArray,
+                    project, tenant, unManagedVolumesToBeDeleted, createdObjectMap,
+                    updatedObjectMap, true, Volume.class, taskStatusMap, vplexIngestionMethod);
+            createdObjectMap.put(obj.getNativeGuid(), obj);
         }
 
         return clazz.cast(snapShot);

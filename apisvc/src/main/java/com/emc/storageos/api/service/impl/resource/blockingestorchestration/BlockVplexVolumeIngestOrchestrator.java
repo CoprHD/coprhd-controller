@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -43,7 +44,6 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -68,7 +68,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     private static final int DEFAULT_BACKEND_NUMPATHS = 4;
 
     // maps storage system URIs to StorageSystem objects
-    private Map<String, StorageSystem> _systemMap = new HashMap<String, StorageSystem>();
+    private final Map<String, StorageSystem> _systemMap = new HashMap<String, StorageSystem>();
 
     // the ingest strategy factory, used for ingesting the backend volume
     private IngestStrategyFactory ingestStrategyFactory;
@@ -146,7 +146,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 validateContext(vPool, tenant, context);
 
-                ingestBackendVolumes(system, systemCache, poolCache, vPool,
+                BlockSnapshot backendSnap = ingestBackendVolumes(system, systemCache, poolCache, vPool,
                         virtualArray, tenant, unManagedVolumesToBeDeleted,
                         taskStatusMap, context, vplexIngestionMethod);
 
@@ -154,7 +154,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         tenant, unManagedVolumesToBeDeleted,
                         taskStatusMap, context);
 
-                handleBackendPersistence(context);
+                handleBackendPersistence(context, backendSnap);
 
             } catch (Exception ex) {
                 _logger.error("error during VPLEX backend ingestion: ", ex);
@@ -233,8 +233,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 String reason = "failed to find all VPLEX backend volume for UnManagedVolume "
                         + unManagedVirtualVolume.getLabel() + " with supporting device "
                         + supportingDevice + ". Did find these backend volumes, though: "
-                        + Joiner.on(", ").join(unManagedBackendVolumes) 
-                        + ".  Have all backend arrays been discovered for unmanaged volumes?";;
+                        + Joiner.on(", ").join(unManagedBackendVolumes)
+                        + ".  Have all backend arrays been discovered for unmanaged volumes?";
+                ;
                 _logger.error(reason);
                 throw IngestionException.exceptions.validationException(reason);
             }
@@ -268,7 +269,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
 
         // validate that there are no array-based backend-only volume clones.
-        // that is, if there's a clone, it should have a virtual volume in 
+        // that is, if there's a clone, it should have a virtual volume in
         // front of it, otherwise, we can't ingest it.
         if (context.getUnmanagedBackendOnlyClones().size() > 0) {
             List<String> cloneInfo = new ArrayList<String>();
@@ -276,7 +277,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 String message = cloneEntry.getKey().getLabel() + " has ";
                 List<String> clones = new ArrayList<String>();
                 for (UnManagedVolume clone : cloneEntry.getValue()) {
-                    clones.add(clone.getLabel()); 
+                    clones.add(clone.getLabel());
                 }
                 message += Joiner.on(", ").join(clones) + ". ";
                 cloneInfo.add(message);
@@ -288,7 +289,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             _logger.error(reason);
             throw IngestionException.exceptions.validationException(reason);
         }
-        
+
         int mirrorCount = context.getUnmanagedVplexMirrors().size();
         if (mirrorCount > 0) {
             _logger.info("{} native mirror(s) are present, validating vpool", mirrorCount);
@@ -355,7 +356,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private void ingestBackendVolumes(StorageSystem vplex, List<URI> systemCache,
+    private BlockSnapshot ingestBackendVolumes(StorageSystem vplex, List<URI> systemCache,
             List<URI> poolCache, VirtualPool sourceVpool,
             VirtualArray sourceVarray, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
@@ -365,6 +366,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         // determine the high availability varray and vpool
         VirtualArray haVarray = null;
         VirtualPool haVpool = null;
+        BlockSnapshot backendSnap = null;
         StringMap haVarrayVpoolMap = sourceVpool.getHaVarrayVpoolMap();
         if (haVarrayVpoolMap != null && !haVarrayVpoolMap.isEmpty()) {
             String haVarrayStr = haVarrayVpoolMap.keySet().iterator().next();
@@ -376,12 +378,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 haVpool = _dbClient.queryObject(VirtualPool.class, URI.create(haVpoolStr));
             }
         }
-        
+
         String sourceClusterId = getClusterNameForVarray(sourceVarray, vplex);
         String haClusterId = getClusterNameForVarray(haVarray, vplex);
-        _logger.info("the source cluster id is {} and the high availability cluster id is {}", 
+        _logger.info("the source cluster id is {} and the high availability cluster id is {}",
                 sourceClusterId, haClusterId);
-        
+
         for (UnManagedVolume associatedVolume : context.getUnmanagedVolumesToIngest()) {
             _logger.info("Ingestion started for vplex backend volume {}", associatedVolume.getNativeGuid());
 
@@ -397,20 +399,20 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 // determine the correct project to use with this volume:
                 // the backend volumes have the vplex backend Project, but
                 // the rest have the same Project as the virtual volume.
-                Project project = context.getUnmanagedBackendVolumes().contains(associatedVolume) ? 
+                Project project = context.getUnmanagedBackendVolumes().contains(associatedVolume) ?
                         context.getBackendProject() : context.getFrontendProject();
 
                 IngestStrategy ingestStrategy = ingestStrategyFactory.buildIngestStrategy(associatedVolume);
 
-                VirtualArray varrayForThisVolume = sourceVarray; 
+                VirtualArray varrayForThisVolume = sourceVarray;
                 VirtualPool vpoolForThisVolume = sourceVpool;
-                
+
                 // get the backend volume cluster id
                 String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
-                        SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(), 
+                        SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
                         associatedVolume.getVolumeInformation());
                 _logger.info("backend cluster id is " + backendClusterId);
-                if (null != backendClusterId && null != haClusterId 
+                if (null != backendClusterId && null != haClusterId
                         && backendClusterId.equals(haClusterId)) {
                     _logger.info("using high availability varray " + haVarray.getLabel());
                     varrayForThisVolume = haVarray;
@@ -419,9 +421,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         vpoolForThisVolume = haVpool;
                     }
                 }
-                
+
                 validateBackendVolumeVpool(associatedVolume, vpoolForThisVolume);
-                
+
                 @SuppressWarnings("unchecked")
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache,
                         associatedSystem, associatedVolume, vpoolForThisVolume, varrayForThisVolume,
@@ -436,7 +438,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                             associatedVolume.getLabel(), "check the logs for more details");
                 }
 
-                context.getCreatedObjectMap().put(blockObject.getNativeGuid(), blockObject);
+                if (blockObject instanceof BlockSnapshot) {
+                    backendSnap = (BlockSnapshot) blockObject;
+                } else {
+                    context.getCreatedObjectMap().put(blockObject.getNativeGuid(), blockObject);
+                }
+
                 context.getProcessedUnManagedVolumeMap().put(associatedVolume.getNativeGuid(), associatedVolume);
                 _logger.info("Ingestion ended for backend volume {}", associatedVolume.getNativeGuid());
             } catch (Exception ex) {
@@ -444,6 +451,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 throw ex;
             }
         }
+
+        return backendSnap;
     }
 
     /**
@@ -659,7 +668,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                                 context.getBackendProject().getId(), mirrorVolume.getLabel()));
 
                         // update flags on mirror volume
-                        List<DataObject> updatedObjects = 
+                        List<DataObject> updatedObjects =
                                 context.getUpdatedObjectMap().get(mirrorVolume.getNativeGuid());
                         if (updatedObjects == null) {
                             updatedObjects = new ArrayList<DataObject>();
@@ -702,8 +711,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @param context the VplexBackendIngestionContext
      */
-    private void handleBackendPersistence(VplexBackendIngestionContext context) {
+    private void handleBackendPersistence(VplexBackendIngestionContext context, BlockSnapshot backendSnap) {
         _dbClient.createObject(context.getIngestedObjects());
+        if (backendSnap != null) {
+            _dbClient.createObject(backendSnap);
+        }
         _dbClient.createObject(context.getCreatedObjectMap().values());
         for (List<DataObject> dos : context.getUpdatedObjectMap().values()) {
             _dbClient.persistObject(dos);
@@ -907,7 +919,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     /**
-     * Find the VPLEX cluster name for the cluster connected 
+     * Find the VPLEX cluster name for the cluster connected
      * to a given Virtual Array.
      * 
      * @param varray the Virtual Array to check
@@ -919,7 +931,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         if (null == varray || null == vplex) {
             return null;
         }
-        
+
         String varrayClusterId = getVarrayToClusterIdMap(vplex).get(varray.getId().toString());
         if (null == varrayClusterId) {
             varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(varray.getId(), vplex.getId(), _dbClient);
@@ -944,7 +956,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             _logger.error(reason);
             throw IngestionException.exceptions.validationException(reason);
         }
-        
+
         return varrayClusterName;
     }
 
@@ -953,13 +965,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * it will be ingested.
      * 
      * @param backendVolume the backend UnManagedVolume to validate
-     * @param vpool the Virtual Pool to check 
+     * @param vpool the Virtual Pool to check
      */
     private void validateBackendVolumeVpool(UnManagedVolume backendVolume, VirtualPool vpool) {
         URI storagePoolUri = backendVolume.getStoragePoolUri();
         if (!vpool.getMatchedStoragePools().contains(storagePoolUri.toString())) {
-            String reason = "vpool " + vpool.getLabel() 
-                    + " does not match the backend volume's storage pool URI " 
+            String reason = "vpool " + vpool.getLabel()
+                    + " does not match the backend volume's storage pool URI "
                     + storagePoolUri;
             _logger.error(reason);
             throw IngestionException.exceptions.validationException(reason);

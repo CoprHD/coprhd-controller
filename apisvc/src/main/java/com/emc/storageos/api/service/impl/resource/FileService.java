@@ -328,6 +328,7 @@ public class FileService extends TaskResourceService {
     @Path("/{id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public FileShareRestRep getFileSystem(@PathParam("id") URI id) {
+        _log.info("Filesystem GET, coprHD developer summit");
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         return map(fs);

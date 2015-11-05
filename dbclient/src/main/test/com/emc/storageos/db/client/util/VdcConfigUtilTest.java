@@ -55,7 +55,7 @@ public class VdcConfigUtilTest {
     }
 
     private static class VdcCoordinatorClient extends CoordinatorClientImpl {
-        private Map<String, Configuration> siteMap = new HashMap<>();
+        private Map<String, List<Configuration>> vdcSiteMap = new HashMap<>();
 
         public VdcCoordinatorClient() {
             String siteId = "11111111-1111-1111-1111-111111111111";
@@ -70,7 +70,9 @@ public class VdcConfigUtilTest {
                     put("node3", "1.1.1.3");
                 }
             });
-            siteMap.put(siteId, site.toConfiguration());
+            List<Configuration> siteList = new ArrayList<>();
+            siteList.add(site.toConfiguration());
+            vdcSiteMap.put("vdc1", siteList);
 
             siteId = "22222222-2222-2222-2222-222222222222";
             site = new Site();
@@ -86,7 +88,9 @@ public class VdcConfigUtilTest {
                     put("node5", "2.1.1.5");
                 }
             });
-            siteMap.put(siteId, site.toConfiguration());
+            siteList = new ArrayList<>();
+            siteList.add(site.toConfiguration());
+            vdcSiteMap.put("vdc2", siteList);
 
             siteId = "33333333-3333-3333-3333-333333333333";
             site = new Site();
@@ -98,7 +102,9 @@ public class VdcConfigUtilTest {
                     put("node1", "3.1.1.1");
                 }
             });
-            siteMap.put(siteId, site.toConfiguration());
+            siteList = new ArrayList<>();
+            siteList.add(site.toConfiguration());
+            vdcSiteMap.put(siteId, siteList);
         }
 
         @Override
@@ -129,9 +135,17 @@ public class VdcConfigUtilTest {
                 case Constants.CONFIG_GEO_LOCAL_VDC_KIND:
                     configuration.setConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID, "vdc2");
                     break;
-                case Site.CONFIG_KIND:
-                    return siteMap.get(id);
                 default:
+                    String[] kindSplits = kind.split("/");
+                    if (kindSplits.length == 2 && kindSplits[0].equals(Site.CONFIG_KIND)) {
+                        List<Configuration> siteList = vdcSiteMap.get(kindSplits[1]);
+                        for (Configuration site : siteList) {
+                            if (site.getId().equals(id)) {
+                                return site;
+                            }
+                        }
+                        return null;
+                    }
                     throw new UnsupportedOperationException(String.format("Unsupported configuration kind: %s", kind));
             }
             return configuration;
@@ -139,10 +153,11 @@ public class VdcConfigUtilTest {
 
         @Override
         public List<Configuration> queryAllConfiguration(String kind) {
-            if (!Site.CONFIG_KIND.equals(kind)) {
+            String[] kindSplits = kind.split("/");
+            if (kindSplits.length != 2 || !kindSplits[0].equals(Site.CONFIG_KIND)) {
                 throw new UnsupportedOperationException(String.format("Unsupported configuration kind: %s", kind));
             }
-            return new ArrayList<>(siteMap.values());
+            return vdcSiteMap.get(kindSplits[1]);
         }
     }
 }

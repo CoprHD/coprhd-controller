@@ -3273,11 +3273,10 @@ class Bourne:
         self.assert_is_dict(resp)
         return resp
 
-<<<<<<< HEAD
     def dr_switchover(self,uri):
         resp = self.api('POST', URI_DR_SWITCHOVER.format(uri))
         print "DR SWITCHOVER RESP = ",resp
-=======
+
     def dr_pause_standby(self,uuid):
         resp = self.api('POST', URI_DR_PAUSE.format(uuid))
         print "DR PAUSE STANDBY RESP = ",resp
@@ -3287,7 +3286,6 @@ class Bourne:
     def dr_resume_standby(self,uuid):
         resp = self.api('POST', URI_DR_RESUME.format(uuid))
         print "DR PAUSE STANDBY RESP = ",resp
->>>>>>> FETCH_HEAD
         self.assert_is_dict(resp)
         return resp
 

@@ -777,42 +777,36 @@ public class DisasterRecoveryService {
      * Internal method to check whether failover from primary to standby is allowed
      */
     protected void precheckForSwitchover(String standbyUuid) {
-        try {
-            Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, standbyUuid);
-            if (config == null) {
-                throw new Exception("Standby uuid is not valid, can't find in ZK");
-            }
+        Configuration config = coordinator.queryConfiguration(Site.CONFIG_KIND, standbyUuid);
+        if (config == null) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Standby uuid is not valid, can't find in ZK");
+        }
 
-            Site standby = new Site(config);
+        Site standby = new Site(config);
 
-            if (standbyUuid.equals(drUtil.getPrimarySiteId())) {
-                throw new Exception("Can't failover to a primary site");
-            }
+        if (standbyUuid.equals(drUtil.getPrimarySiteId())) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Can't failover to a primary site");
+        }
 
-            if(!drUtil.isSiteUp(standbyUuid)) {
-                throw new Exception("Standby site is not up");
-            }
+        if(!drUtil.isSiteUp(standbyUuid)) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Standby site is not up");
+        }
 
-            if (!isClusterStable()) {
-                throw new Exception("Primary site is not stable");
-            }
+        if (!isClusterStable()) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Primary site is not stable");
+        }
 
-            if (standby.getState() != SiteState.STANDBY_SYNCED) {
-                throw new Exception("Standby site is not fully synced");
-            }
-            
-            List<Site> existingSites = drUtil.listStandbySites();
-            for (Site site : existingSites) {
-                ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
-                if (state != ClusterInfo.ClusterState.STABLE) {
-                    log.info("Site {} is not stable {}", site.getUuid(), state);
-                    throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getUuid(), String.format("Site %s is not stable", site.getName()));
-                }
-            }
+        if (standby.getState() != SiteState.STANDBY_SYNCED) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Standby site is not fully synced");
+        }
 
-        } catch (Exception e) {
-            log.error(String.format("Failed to failover to site %s", standbyUuid), e);
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, e.getMessage());
+        List<Site> existingSites = drUtil.listStandbySites();
+        for (Site site : existingSites) {
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                log.info("Site {} is not stable {}", site.getUuid(), state);
+                throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getUuid(), String.format("Site %s is not stable", site.getName()));
+            }
         }
     }
     

@@ -419,6 +419,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                             standbyJournal.getId()));
                                     sourceVol.setSecondaryRpJournalVolume(standbyJournal.getId());
                                     _dbClient.persistObject(sourceVol);
+                                    // All RP+VPLEX Metro volumes in this CG need to have their backing volume
+                                    // references updated with the internal site names for exports.
+                                    setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
+                                            sourceVol, true, false, originalVpool.getHaVarrayConnectedToRp());
+                                    // We need to have all the existing RP+VPLEX Metro volumes from the CG 
+                                    // added to the volumeURI list so we can properly export the standby
+                                    // leg to RP for each volume. 
+                                    volumeURIs.add(sourceVol.getId());
                                 }
                             } else {
                                 // NOTE: Upgrade to MetroPoint is (currently) the only supported Change Virtual Pool Protected
@@ -427,8 +435,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 throw APIException.badRequests.rpBlockApiImplPrepareVolumeException(newVolumeLabel);
                             }
                                                         
-                            // Set the source volume to the change vpool volume.
-                            sourceVolume = changeVpoolVolume;                                                        
+                            // There's no reason to continue past this point, we have
+                            // the existing source volumes references and we have 
+                            // the new standby journal.
+                            //
+                            // NOTE: In the future, if we decide to expand change vpool protected
+                            // to include things like adding/removing targets we can continue
+                            // past this point.
+                            break;                                                                                                                
                         }
                         volumeURIs.add(sourceVolume.getId());
 
@@ -448,17 +462,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // This value will only be used if isSrcAndHaSwapped == true.
                         setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
                                 sourceVolume, metroPointEnabled, isSrcAndHaSwapped, originalVpool.getHaVarrayConnectedToRp());
-                        
-                        if (isChangeVpoolForProtectedVolume) {
-                            // There's no reason to continue past this point, we have a
-                            // the existing source volume reference and we have 
-                            // the new standby journal.
-                            //
-                            // NOTE: In the future, if we decide to expand change vpool protected
-                            // to include things like adding/removing targets we can continue
-                            // past this point.
-                            break;
-                        }
                                                 
                         ///////// TARGET(S) ///////////
                         List<URI> protectionTargets = new ArrayList<URI>();
@@ -1115,8 +1118,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             VolumeDescriptor desc = null;
             // Vpool Change flow, mark the production volume as already existing, so it doesn't get created
-            if (recommendation != null && (recommendation.getVpoolChangeVolume() != null) &&
-                    (recommendation.getVpoolChangeVolume().equals(volume.getId()))) {
+            if (recommendation != null && (recommendation.getVpoolChangeVolume() != null) 
+                    && Volume.PersonalityTypes.SOURCE.toString().equals(volume.getPersonality())) {
                 if (recommendation.isVpoolChangeProtectionAlreadyExists()) {
                     volumeType = VolumeDescriptor.Type.RP_EXISTING_PROTECTED_SOURCE;
                 } else {

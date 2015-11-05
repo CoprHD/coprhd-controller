@@ -988,9 +988,7 @@ public class VdcSiteManager extends AbstractManager {
     
     private void updatePlannedFailoverSiteState() throws Exception {
         String siteId = coordinator.getCoordinatorClient().getSiteId();
-        
-        Configuration config = coordinator.getCoordinatorClient().queryConfiguration(Site.CONFIG_KIND, siteId);
-        Site site = new Site(config);  
+        Site site = drUtil.getSite(siteId);  
         
         log.info("site: {}", site.toString());
         

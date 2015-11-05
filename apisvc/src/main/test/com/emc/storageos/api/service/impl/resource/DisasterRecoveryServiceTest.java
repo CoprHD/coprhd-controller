@@ -9,7 +9,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+
 import static org.mockito.Matchers.anyInt;
+
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -59,8 +61,10 @@ import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -91,7 +95,7 @@ public class DisasterRecoveryServiceTest {
         
         Constructor constructor = ProductName.class.getDeclaredConstructors()[0];
         constructor.setAccessible(true);
-        ProductName productName = (ProductName)constructor.newInstance(null);
+        ProductName productName = (ProductName)constructor.newInstance();
         productName.setName("vipr");
         
         SoftwareVersion version = new SoftwareVersion("vipr-2.4.0.0.100");
@@ -117,7 +121,7 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
         standbySite1.setState(SiteState.PRIMARY);
-        standbySite1.setVdc(localVDC.getId());
+        standbySite1.setVdcShortId(localVDC.getShortId());
         standbySite1.setNodeCount(1);
         
 
@@ -125,14 +129,14 @@ public class DisasterRecoveryServiceTest {
         standbySite2.setUuid("site-uuid-2");
         standbySite2.setState(SiteState.STANDBY_SYNCED);
         standbySite2.setVip("10.247.101.158");
-        standbySite2.setVdc(localVDC.getId());
+        standbySite2.setVdcShortId(localVDC.getShortId());
         standbySite2.setNodeCount(1);
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
-        standbySite3.setVdc(new URI("fake-vdc-id"));
+        standbySite3.setVdcShortId("fake-vdc-id");
         standbySite3.setState(SiteState.PRIMARY);
-        standbySite3.setVdc(localVDC.getId());
+        standbySite3.setVdcShortId(localVDC.getShortId());
         standbySite3.setNodeCount(1);
 
         primarySite = new Site();
@@ -141,7 +145,7 @@ public class DisasterRecoveryServiceTest {
         primarySite.setSecretKey("secret-key");
         primarySite.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
         primarySite.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
-        primarySite.setVdc(localVDC.getId());
+        primarySite.setVdcShortId(localVDC.getShortId());
         primarySite.setState(SiteState.PRIMARY);
         primarySite.setNodeCount(3);
         
@@ -157,8 +161,11 @@ public class DisasterRecoveryServiceTest {
         
         // mock coordinator client
         coordinator = mock(CoordinatorClient.class);
-        drUtil = mock(DrUtil.class);
-        
+        drUtil = new DrUtil(coordinator);
+
+        // mock AuditLogManager
+        AuditLogManager auditMgr = mock(AuditLogManager.class);
+
         natCheckParam = new DRNatCheckParam();
 
         localVDC.setApiEndpoint("127.0.0.2");
@@ -175,9 +182,9 @@ public class DisasterRecoveryServiceTest {
         drService.setDrUtil(drUtil);
         drService.setSiteMapper(new SiteMapper());
         drService.setSysUtils(new SysUtils());
-
-        drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         
+        drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
+
         standbyConfig = new Site();
         standbyConfig.setUuid("standby-site-uuid-1");
         standbyConfig.setVip(localVDC.getApiEndpoint());
@@ -192,6 +199,9 @@ public class DisasterRecoveryServiceTest {
         doReturn(primarySite.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, primarySite.getUuid());
         doReturn(localVDC).when(drService).queryLocalVDC();
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        // Don't need to record audit log in UT
+        doNothing().when(drService).auditDisasterRecoveryOps(any(OperationTypeEnum.class), anyString(), anyString(), any());
         doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
     }
 
@@ -298,7 +308,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
         doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
 
-        SiteRestRep response = drService.removeStandby(standbySite2.getUuid());
+        drService.remove(standbySite2.getUuid());
     }
 
     @Test
@@ -543,7 +553,7 @@ public class DisasterRecoveryServiceTest {
         standbySite2.setState(SiteState.STANDBY_ERROR);
         doReturn(standbySite2.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND, standbySite2.getUuid());
         
-        SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(DisasterRecoveryService.STANDBY_ADD_TIMEOUT_MINUTES));
+        SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(20));
         doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);
         
         siteError = drService.getSiteError(standbySite2.getUuid());

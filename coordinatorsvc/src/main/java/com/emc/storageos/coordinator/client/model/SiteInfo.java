@@ -22,8 +22,17 @@ public class SiteInfo implements CoordinatorSerializable {
 
     public static final String UPDATE_DATA_REVISION = "update_data_revision";
     public static final String RECONFIG_RESTART = "reconfig_restart";
+    public static final String RECONFIG_IPSEC = "reconfig_ipsec";
     public static final String NONE = "none";
-    
+
+    /**
+     *  Action Scope represents if an action involves nodes of the entire VDC or just ones of local site.
+     */
+    public enum ActionScope {
+        VDC,
+        SITE
+    };
+
     public static final String DEFAULT_TARGET_VERSION="0"; // No target data revision set
 
     private static final String ENCODING_SEPARATOR = "\0";
@@ -31,11 +40,13 @@ public class SiteInfo implements CoordinatorSerializable {
     private final long vdcConfigVersion;
     private final String actionRequired;
     private final String targetDataRevision;
+    private final ActionScope actionScope;
 
     public SiteInfo() {
         vdcConfigVersion = 0;
         actionRequired = NONE;
         targetDataRevision = DEFAULT_TARGET_VERSION;
+        actionScope = ActionScope.SITE;
     }
 
     public SiteInfo(final long version, final String actionRequired) {
@@ -43,9 +54,14 @@ public class SiteInfo implements CoordinatorSerializable {
     }
 
     public SiteInfo(final long version, final String actionRequired, final String targetDataRevision) {
+        this(version, actionRequired, targetDataRevision, ActionScope.SITE);
+    }
+
+    public SiteInfo(final long version, final String actionRequired, final String targetDataRevision, final ActionScope scope) {
         this.vdcConfigVersion = version;
         this.actionRequired = actionRequired;
         this.targetDataRevision = targetDataRevision;
+        this.actionScope = scope;
     }
 
     public long getVdcConfigVersion() {
@@ -59,7 +75,10 @@ public class SiteInfo implements CoordinatorSerializable {
     public String getTargetDataRevision() {
         return targetDataRevision;
     }
-    
+
+    public ActionScope getActionScope() {
+        return actionScope;
+    }
     public boolean isNullTargetDataRevision() {
         return SiteInfo.DEFAULT_TARGET_VERSION.equals(targetDataRevision);
     }
@@ -77,6 +96,8 @@ public class SiteInfo implements CoordinatorSerializable {
         sb.append(actionRequired);
         sb.append(ENCODING_SEPARATOR);
         sb.append(targetDataRevision);
+        sb.append(ENCODING_SEPARATOR);
+        sb.append(actionScope);
         return sb.toString();
     }
 
@@ -87,12 +108,12 @@ public class SiteInfo implements CoordinatorSerializable {
         }
 
         final String[] strings = infoStr.split(ENCODING_SEPARATOR);
-        if (strings.length != 3) {
+        if (strings.length != 4) {
             throw CoordinatorException.fatals.decodingError("invalid site info");
         }
 
         Long hash = Long.valueOf(strings[0]);
-        return new SiteInfo(hash, strings[1], strings[2]);
+        return new SiteInfo(hash, strings[1], strings[2], ActionScope.valueOf(strings[3]));
     }
 
     @Override

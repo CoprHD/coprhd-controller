@@ -224,6 +224,7 @@
         <property name="loopInterval"  value="600000" />
         <property name="retryInterval"  value="4000" />
         <property name="service" ref="serviceinfo" />
+        <property name="ipsecConfig" ref="ipsecConfig" />
     </bean>
 
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">

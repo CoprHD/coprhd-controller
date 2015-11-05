@@ -13,6 +13,7 @@ import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
+import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -40,13 +41,18 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.post(SiteRestRep.class, input, PathConstants.SITE_URL);
     }
 
-    public SiteRestRep deleteSite(String uuid) {
-        return client.delete(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid);
+    public ClientResponse deleteSite(SiteIdListParam uuids) {
+        return client.post(ClientResponse.class, uuids, PathConstants.SITE_URL + "/remove");
     }
 
     public SiteRestRep pauseSite(String uuid) {
-        return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/pause/" + uuid);
+        return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/pause/");
     }
+
+    public SiteRestRep resumeSite(String uuid) {
+        return client.post(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid + "/resume/");
+    }
+
 
     public ClientResponse syncSite(SiteConfigParam input) {
         return client.put(ClientResponse.class, input, PathConstants.SITE_URL);

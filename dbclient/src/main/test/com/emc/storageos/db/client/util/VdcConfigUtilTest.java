@@ -29,7 +29,7 @@ public class VdcConfigUtilTest {
 
     @BeforeClass
     public static void setup() {
-        vdcConfigUtil.setDbclient(vdcDbClient);
+        // FIXME: fix the unit test later. VdcConfigUtil now depends on ZK instead of DB
     }
 
     @Test

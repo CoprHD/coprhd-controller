@@ -38,13 +38,13 @@ public class Site {
     public static final String CONFIG_KIND = "disasterRecoverySites";
 
     private String uuid;
-    private URI vdc;
+    private String vdcShortId;
     private String name = "";
     private String vip = "";
     private String secretKey = "";
     private String description = "";
-    private Map<String, String> hostIPv4AddressMap = new HashMap<String, String>();
-    private Map<String, String> hostIPv6AddressMap = new HashMap<String, String>();
+    private Map<String, String> hostIPv4AddressMap = new HashMap<>();
+    private Map<String, String> hostIPv6AddressMap = new HashMap<>();
     private String standbyShortId = "";
     private long creationTime = 0;
     private SiteState state = SiteState.PRIMARY;
@@ -67,12 +67,12 @@ public class Site {
         this.uuid = uuid;
     }
     
-    public URI getVdc() {
-        return vdc;
+    public String getVdcShortId() {
+        return vdcShortId;
     }
 
-    public void setVdc(URI vdc) {
-        this.vdc = vdc;
+    public void setVdcShortId(String vdcShortId) {
+        this.vdcShortId = vdcShortId;
     }
 
     public String getName() {
@@ -191,8 +191,8 @@ public class Site {
         if (vip != null) {
             config.setConfig(KEY_VIP, vip);
         }
-        if (vdc != null) {
-            config.setConfig(KEY_VDC, vdc.toString());
+        if (vdcShortId != null) {
+            config.setConfig(KEY_VDC, vdcShortId.toString());
         }
         if (secretKey != null) {
             config.setConfig(KEY_SECRETKEY, this.secretKey);
@@ -222,7 +222,7 @@ public class Site {
             this.description = config.getConfig(KEY_DESCRIPTION);
             String s = config.getConfig(KEY_VDC);
             if (s != null) {
-                this.vdc = new URI(s);
+                this.vdcShortId = s;
             }
             this.vip = config.getConfig(KEY_VIP);
             this.secretKey = config.getConfig(KEY_SECRETKEY);
@@ -241,7 +241,7 @@ public class Site {
             }
             
             String addrs = config.getConfig(KEY_NODESADDR);
-            if (addrs != null) {
+            if (!StringUtil.isBlank(addrs)) {
                 int i = 1;
                 for (String addr : addrs.split(",")) {
                     hostIPv4AddressMap.put(String.format("node%d", i++), addr);
@@ -249,7 +249,7 @@ public class Site {
             }
             
             String addr6s = config.getConfig(KEY_NODESADDR6);
-            if (addr6s != null) {
+            if (!StringUtil.isBlank(addr6s)) {
                 int i = 1;
                 for (String addr : addr6s.split(",")) {
                     hostIPv6AddressMap.put(String.format("node%d", i++), addr);
@@ -266,7 +266,7 @@ public class Site {
         builder.append("Site [uuid=");
         builder.append(uuid);
         builder.append(", vdc=");
-        builder.append(vdc);
+        builder.append(vdcShortId);
         builder.append(", name=");
         builder.append(name);
         builder.append(", vip=");

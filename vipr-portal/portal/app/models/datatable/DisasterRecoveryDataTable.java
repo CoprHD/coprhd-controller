@@ -8,20 +8,20 @@ import util.datatable.DataTable;
 
 import com.emc.storageos.model.dr.SiteRestRep;
 
-
 public class DisasterRecoveryDataTable extends DataTable {
-    
+
     public DisasterRecoveryDataTable() {
         addColumn("name");
         addColumn("VirtualIP");
-        addColumn("status");
+        addColumn("status").setRenderFunction("standbyStatusIcon");
         addColumn("id");
         addColumn("actions").setRenderFunction("renderButtonBar");
         sortAllExcept("actions");
     }
 
-    public static class StandByInfo {
+    public static class StandByInfo extends DiscoveredSystemInfo {
         public String name;
+        public String description;
         public String VirtualIP;
         public String status;
         public String siteId;
@@ -35,6 +35,7 @@ public class DisasterRecoveryDataTable extends DataTable {
             this.VirtualIP = standByInfo.getVip();
             this.status = standByInfo.getState();
             this.id = standByInfo.getUuid();
+            this.description = standByInfo.getDescription();
         }
     }
 }

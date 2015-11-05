@@ -18,5 +18,6 @@ public enum SiteState {
     STANDBY_TESTING, // Standby site. Run DR testing
     STANDBY_SWITCHING_OVER, // Standby site is doing planned failover
     STANDBY_REMOVING, // Standby site. Removing
+    STANDBY_RESUMING, // Standby site. Resuming
     STANDBY_ERROR    // Unrecoverable error for this standby site
 }

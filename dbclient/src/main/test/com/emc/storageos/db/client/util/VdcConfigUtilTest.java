@@ -154,9 +154,24 @@ public class VdcConfigUtilTest {
         @Override
         public List<Configuration> queryAllConfiguration(String kind) {
             String[] kindSplits = kind.split("/");
-            if (kindSplits.length != 2 || !kindSplits[0].equals(Site.CONFIG_KIND)) {
+            if (!kindSplits[0].equals(Site.CONFIG_KIND)) {
                 throw new UnsupportedOperationException(String.format("Unsupported configuration kind: %s", kind));
             }
+            if (kindSplits.length == 1) {
+                // return a list of VDCs
+                List<Configuration> vdcConfigs = new ArrayList<>();
+                ConfigurationImpl config = new ConfigurationImpl();
+                config.setId("vdc1");
+                vdcConfigs.add(config);
+                config = new ConfigurationImpl();
+                config.setId("vdc2");
+                vdcConfigs.add(config);
+                config = new ConfigurationImpl();
+                config.setId("vdc3");
+                vdcConfigs.add(config);
+                return vdcConfigs;
+            }
+            // return a list of sites
             return vdcSiteMap.get(kindSplits[1]);
         }
     }

@@ -294,8 +294,6 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testRemoveStandby() {
-//        String invalidSiteId = "invalid_site_id";
-        
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         
         doReturn(standbySite1.toConfiguration()).when(coordinator).queryConfiguration(Site.CONFIG_KIND,

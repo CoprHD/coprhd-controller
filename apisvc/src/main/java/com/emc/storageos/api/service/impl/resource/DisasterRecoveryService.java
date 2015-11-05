@@ -84,11 +84,6 @@ import com.emc.vipr.model.sys.ClusterInfo;
         Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN, Role.SYSTEM_MONITOR },
         writeRoles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
 public class DisasterRecoveryService {
-    /* Timeout in minutes for adding standby timeout. If adding state is long than this value, set site to error */
-    public static final int STANDBY_ADD_TIMEOUT_MINUTES = 20;
-
-    /* Timeout in minutes for switchover, If switchover is not finished after this value, set site to error */
-    public static final int SWITCHOVER_TIMEOUT_MINUTES = 20;
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     
     private static final String SHORTID_FMT="standby%d";

@@ -21,15 +21,13 @@ public class Main {
             SLF4JBridgeHandler.install();
             GenericXmlApplicationContext ctx = new GenericXmlApplicationContext();
             ctx.getEnvironment().setActiveProfiles(System.getProperty(BUILD_TYPE));
-            _log.info("before load sys-conf.xml -- ipsec");
             ctx.load(args);
-            _log.info("after load sys-conf.xml -- ipsec");
-            ctx.refresh();
-            _log.info("after load refresh -- ipsec");
 
             // start ipsec monitor
             IPSecMonitor ipsecMonitor = (IPSecMonitor) ctx.getBean(IPSEC_MONITOR_BEAN);
             ipsecMonitor.start();
+
+            ctx.refresh();
 
             // start syssvc
             SysSvcImpl sysservice = (SysSvcImpl) ctx.getBean(SERVICE_BEAN);

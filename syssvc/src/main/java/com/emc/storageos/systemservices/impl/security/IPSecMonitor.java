@@ -10,14 +10,10 @@ public class IPSecMonitor implements Runnable {
 
     private static final Logger log = LoggerFactory.getLogger(IPSecMonitor.class);
 
-    public static int IPSEC_CHECK_INTERVAL = 10;  // SECONDS
-    public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // SECONDS
+    public static int IPSEC_CHECK_INTERVAL = 10;  // minutes
+    public static int IPSEC_CHECK_INITIAL_DELAY = 5;  // minutes
 
     public ScheduledExecutorService scheduledExecutorService;
-
-    public IPSecMonitor() {
-        log.info("init IPSecMonitor");
-    }
 
     public void start() throws Exception {
         log.info("start IPSecMonitor.");
@@ -36,6 +32,6 @@ public class IPSecMonitor implements Runnable {
 
     @Override
     public void run() {
-        log.info("Executed at " + System.currentTimeMillis());
+        log.info("Executing IPSec checkup.");
     }
 }

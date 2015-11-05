@@ -235,6 +235,7 @@ public class ComputeImageServers extends ViprResourceController {
 
         private Task<ComputeImageServerRestRep> create() {
             ComputeImageServerCreate createParam = new ComputeImageServerCreate();
+            createParam.setName(this.name);
             createParam.setImageServerIp(this.imageServerIp);
             createParam.setImageServerUser(this.userName);
             createParam.setImageServerPassword(this.password);
@@ -246,7 +247,7 @@ public class ComputeImageServers extends ViprResourceController {
 
         private ComputeImageServerRestRep update() {
             ComputeImageServerUpdate updateParam = new ComputeImageServerUpdate();
-
+            updateParam.setName(this.name);
             updateParam.setImageServerIp(this.imageServerIp);
             updateParam.setTftpBootDir(this.tftpBootDir);
             updateParam.setOsInstallTimeout(this.osInstallTimeOut);

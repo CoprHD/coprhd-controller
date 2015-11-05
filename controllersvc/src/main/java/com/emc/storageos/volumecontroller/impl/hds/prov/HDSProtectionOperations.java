@@ -210,7 +210,7 @@ public class HDSProtectionOperations {
 
         String systemObjectID = HDSUtils.getSystemObjectID(storageSystem);
 
-        asyncTaskMessageId = hdsApiClient.createSnapshotVolume(systemObjectID, sourceVolume.getCapacity());
+        asyncTaskMessageId = hdsApiClient.createSnapshotVolume(systemObjectID, sourceVolume.getCapacity(), storageSystem.getModel());
 
         if (asyncTaskMessageId != null) {
             HDSJob createHDSJob = new HDSBlockCreateSnapshotJob(
@@ -230,7 +230,7 @@ public class HDSProtectionOperations {
 
         String systemObjectID = HDSUtils.getSystemObjectID(storageSystem);
         String logicalUnitObjId = HDSUtils.getLogicalUnitObjectId(snapshotObj.getNativeId(), storageSystem);
-        asyncTaskMessageId = hdsApiClient.deleteSnapshotVolume(systemObjectID, logicalUnitObjId);
+        asyncTaskMessageId = hdsApiClient.deleteSnapshotVolume(systemObjectID, logicalUnitObjId, storageSystem.getModel());
 
         if (null != asyncTaskMessageId) {
             HDSJob deleteSnapshotJob = new HDSDeleteSnapshotJob(asyncTaskMessageId,
@@ -287,7 +287,7 @@ public class HDSProtectionOperations {
                 if (storagePort != null) {
                     String portId = HDSUtils.getPortID(storagePort);
                     hsd = client.getHDSApiExportManager().addHostStorageDomain(systemObjectId, portId,
-                            HDSConstants.HOST_GROUP_DOMAIN_TYPE, null, HDSConstants.DUMMY_HSD, null, null);
+                            HDSConstants.HOST_GROUP_DOMAIN_TYPE, null, HDSConstants.DUMMY_HSD, null, null, system.getModel());
                     log.info("Created dummy HSD on {} portid", portId);
                 }
             }
@@ -296,7 +296,7 @@ public class HDSProtectionOperations {
             log.debug("Free lun:{}", freeLunList.get(0).getLun());
             Map<String, String> deviceLunList = new HashMap<String, String>();
             deviceLunList.put(volume.getNativeId(), freeLunList.get(0).getLun());
-            client.getHDSApiExportManager().addLUN(systemObjectId, hsd.getPortID(), hsd.getDomainID(), deviceLunList);
+            client.getHDSApiExportManager().addLUN(systemObjectId, hsd.getPortID(), hsd.getDomainID(), deviceLunList, system.getModel());
             log.info("Completed addDummyLunPath method");
         } finally {
             if (lock != null) {
@@ -367,7 +367,7 @@ public class HDSProtectionOperations {
         log.info("Replication Obj Ids :{}", repliMap);
         String replicationGroupObjId = repliMap.get(HDSConstants.REPLICATION_GROUP_OBJ_ID);
         String replicationInfoObjId = repliMap.get(HDSConstants.REPLICATION_INFO_OBJ_ID);
-        apiProtectionManager.deleteShadowImagePair(replicationGroupObjId, replicationInfoObjId);
+        apiProtectionManager.deleteShadowImagePair(replicationGroupObjId, replicationInfoObjId, storageSystem.getModel());
         log.info("Delete pair operation completed");
     }
 
@@ -391,7 +391,7 @@ public class HDSProtectionOperations {
         String replicationGroupObjId = repliMap.get(HDSConstants.REPLICATION_GROUP_OBJ_ID);
         String replicationInfoObjId = repliMap.get(HDSConstants.REPLICATION_INFO_OBJ_ID);
         ReplicationInfo replicationInfo = apiProtectionManager.modifyShadowImagePair(replicationGroupObjId, replicationInfoObjId,
-                operationType);
+                operationType, storageSystem.getModel());
         log.info("{} pair operation completed", operationType.name());
         return (replicationInfo != null);
     }
@@ -414,7 +414,7 @@ public class HDSProtectionOperations {
 
         String dummyLunPathId = getDummyHSDPathId(storageSystem, blockObj);
         if (dummyLunPathId != null) {
-            apiExportManager.deleteLunPathsFromSystem(systemObjectId, Arrays.asList(dummyLunPathId));
+            apiExportManager.deleteLunPathsFromSystem(systemObjectId, Arrays.asList(dummyLunPathId), storageSystem.getModel());
             log.info("Deleted Dummy Lun path from secondary volume");
         } else {
             log.info("Dummy lun path has been removed already");

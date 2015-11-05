@@ -78,12 +78,9 @@ public class DisasterRecoveryServiceTest {
     private Site standbySite3;
     private Site standbyConfig;
     private Site primarySite;
-    private List<URI> uriList;
-    private List<Site> standbySites;
     private SiteConfigRestRep standby;
     private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
-    private VirtualDataCenter localVDC;
     private DrUtil drUtil;
     
     @Before
@@ -99,10 +96,6 @@ public class DisasterRecoveryServiceTest {
         available.add(version);
         RepositoryInfo repositoryInfo = new RepositoryInfo(new SoftwareVersion("vipr-2.4.0.0.100"), available);
         
-        // setup local VDC
-        localVDC = new VirtualDataCenter();
-        localVDC.setId(URI.create("urn:storageos:VirtualDataCenter:a81058b2-a241-4a77-a89a-d9402d80ea55:vdc1"));
-        
         standby = new SiteConfigRestRep();
         standby.setClusterStable(true);
         standby.setFreshInstallation(true);
@@ -117,21 +110,21 @@ public class DisasterRecoveryServiceTest {
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
         standbySite1.getHostIPv4AddressMap().put("vipr3", "10.247.101.113");
         standbySite1.setState(SiteState.PRIMARY);
-        standbySite1.setVdcShortId(localVDC.getShortId());
+        standbySite1.setVdcShortId("vdc1");
         standbySite1.setNodeCount(1);
         
 
         standbySite2 = new Site();
         standbySite2.setUuid("site-uuid-2");
         standbySite2.setState(SiteState.STANDBY_SYNCED);
-        standbySite2.setVdcShortId(localVDC.getShortId());
+        standbySite2.setVdcShortId("vdc1");
         standbySite2.setNodeCount(1);
 
         standbySite3 = new Site();
         standbySite3.setUuid("site-uuid-3");
         standbySite3.setVdcShortId("fake-vdc-id");
         standbySite3.setState(SiteState.PRIMARY);
-        standbySite3.setVdcShortId(localVDC.getShortId());
+        standbySite3.setVdcShortId("vdc1");
         standbySite3.setNodeCount(1);
 
         primarySite = new Site();
@@ -140,16 +133,9 @@ public class DisasterRecoveryServiceTest {
         primarySite.setSecretKey("secret-key");
         primarySite.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
         primarySite.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
-        primarySite.setVdcShortId(localVDC.getShortId());
+        primarySite.setVdcShortId("vdc1");
         primarySite.setState(SiteState.PRIMARY);
         primarySite.setNodeCount(3);
-        
-        localVDC.setApiEndpoint("127.0.0.2");
-        localVDC.setHostIPv4AddressesMap(new StringMap(standbySite1.getHostIPv4AddressMap()));
-        localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
-        localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
-        localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
-        localVDC.setHostCount(3);
         
         // mock DBClient
         dbClientMock = mock(DbClientImpl.class);
@@ -163,12 +149,6 @@ public class DisasterRecoveryServiceTest {
 
         natCheckParam = new DRNatCheckParam();
 
-        localVDC.setApiEndpoint("127.0.0.2");
-        localVDC.setHostIPv4AddressesMap(new StringMap(standbySite1.getHostIPv4AddressMap()));
-        localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
-        localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
-        localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
-
         apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
         
         drService = spy(new DisasterRecoveryService());
@@ -181,9 +161,9 @@ public class DisasterRecoveryServiceTest {
 
         standbyConfig = new Site();
         standbyConfig.setUuid("standby-site-uuid-1");
-        standbyConfig.setVip(localVDC.getApiEndpoint());
-        standbyConfig.setHostIPv4AddressMap(localVDC.getHostIPv4AddressesMap());
-        standbyConfig.setHostIPv6AddressMap(localVDC.getHostIPv6AddressesMap());
+        standbyConfig.setVip(standbySite1.getVip());
+        standbyConfig.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
+        standbyConfig.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
         standbyConfig.setNodeCount(3);
         
         doReturn(standbyConfig.getUuid()).when(coordinator).getSiteId();

@@ -4,6 +4,18 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+
+import java.lang.reflect.Constructor;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+
+import org.junit.Before;
+import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -16,20 +28,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
-import java.lang.reflect.Constructor;
-import java.net.URI;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.ProductName;
@@ -40,13 +38,10 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
@@ -54,11 +49,11 @@ import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
-import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -81,7 +76,6 @@ public class DisasterRecoveryServiceTest {
     private SiteConfigRestRep standby;
     private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
-    private DrUtil drUtil;
     
     @Before
     public void setUp() throws Exception {
@@ -139,23 +133,24 @@ public class DisasterRecoveryServiceTest {
         
         // mock DBClient
         dbClientMock = mock(DbClientImpl.class);
-        
+
         // mock coordinator client
         coordinator = mock(CoordinatorClient.class);
-        drUtil = new DrUtil(coordinator);
 
-        // mock AuditLogManager
-        AuditLogManager auditMgr = mock(AuditLogManager.class);
+        // mock ipsecconfig
+        IPsecConfig ipsecConfig = mock(IPsecConfig.class);
+        doReturn("ipsec-preshared-key").when(ipsecConfig).getPreSharedKey();
 
         natCheckParam = new DRNatCheckParam();
 
         apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
-        
+
         drService = spy(new DisasterRecoveryService());
         drService.setDbClient(dbClientMock);
         drService.setCoordinator(coordinator);
         drService.setSiteMapper(new SiteMapper());
         drService.setSysUtils(new SysUtils());
+        drService.setIpsecConfig(ipsecConfig);
         
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
 
@@ -165,7 +160,7 @@ public class DisasterRecoveryServiceTest {
         standbyConfig.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
         standbyConfig.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
         standbyConfig.setNodeCount(3);
-        
+
         doReturn(standbyConfig.getUuid()).when(coordinator).getSiteId();
         Configuration config = new ConfigurationImpl();
         config.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, primarySite.getUuid());
@@ -459,7 +454,7 @@ public class DisasterRecoveryServiceTest {
         DRNatCheckResponse response = drService.checkIfBehindNat(natCheckParam, "10.247.101.110");
         assertEquals(false, response.isBehindNAT());
     }
-    
+
     @Test
     public void testCheckIfBehindNat_IsBehindNAT() {
         natCheckParam.setIPv4Address("10.247.101.111");

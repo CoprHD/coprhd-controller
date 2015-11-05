@@ -685,9 +685,11 @@ public class DisasterRecoveryService {
             // trigger new primary to reconfig
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);
 
+            auditDisasterRecoveryOps(OperationTypeEnum.SWITCHOVER, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error(String.format("Error happened when switchover from site %s to site %s", oldPrimaryUUID, uuid), e);
+            auditDisasterRecoveryOps(OperationTypeEnum.SWITCHOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid);
             throw APIException.internalServerErrors.switchoverFailed(oldPrimaryUUID, uuid, e.getMessage());
         }
     }

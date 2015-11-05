@@ -35,14 +35,14 @@ public class Site {
 
     private String uuid;
     private String vdcShortId;
-    private String name = "";
-    private String vip = "";
-    private String secretKey = "";
-    private String description = "";
+    private String name;
+    private String vip;
+    private String secretKey;
+    private String description;
     private Map<String, String> hostIPv4AddressMap = new HashMap<>();
     private Map<String, String> hostIPv6AddressMap = new HashMap<>();
-    private String standbyShortId = "";
-    private long creationTime = 0;
+    private String standbyShortId;
+    private long creationTime;
     private SiteState state = SiteState.PRIMARY;
     private int nodeCount;
     

@@ -35,6 +35,7 @@
         <property name="onStandby" value="${site_is_standby}"/>
         <property name="standbyId" value="${site_myid}"/>
         <property name="apiSignatureGenerator" ref="keyGenerator"/>
+        <property name="drUtil" ref="drUtil"/>
     </bean>
 
     <bean id="passwordUtils" class="com.emc.storageos.security.password.PasswordUtils">
@@ -53,4 +54,8 @@
         <property name="nodeCount" ref="nodeCount"/>
         <property name="service" ref="serviceinfo"/>
     </bean>
+    
+    <bean id="drUtil" class="com.emc.storageos.coordinator.client.service.DrUtil">
+	     <constructor-arg ref="coordinator"/>
+	</bean>
 </beans>

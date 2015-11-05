@@ -20,38 +20,22 @@ import javax.crypto.SecretKey;
 
 import jline.internal.Log;
 
-import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-
-import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.Cluster;
-import com.netflix.astyanax.CassandraOperationType;
-import com.netflix.astyanax.KeyspaceTracerFactory;
-import com.netflix.astyanax.connectionpool.ConnectionContext;
-import com.netflix.astyanax.connectionpool.ConnectionPool;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.connectionpool.exceptions.OperationException;
-import com.netflix.astyanax.ddl.ColumnFamilyDefinition;
-import com.netflix.astyanax.ddl.KeyspaceDefinition;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
-import com.netflix.astyanax.thrift.AbstractOperationImpl;
-import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -60,8 +44,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.client.impl.TimeSeriesType;
@@ -82,6 +66,20 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.password.PasswordUtils;
+import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.CassandraOperationType;
+import com.netflix.astyanax.Cluster;
+import com.netflix.astyanax.KeyspaceTracerFactory;
+import com.netflix.astyanax.connectionpool.ConnectionContext;
+import com.netflix.astyanax.connectionpool.ConnectionPool;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.connectionpool.exceptions.OperationException;
+import com.netflix.astyanax.ddl.ColumnFamilyDefinition;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
+import com.netflix.astyanax.thrift.AbstractOperationImpl;
+import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
 
 /**
  * Utility class for initializing DB schema from model classes
@@ -115,6 +113,7 @@ public class SchemaUtil {
     private boolean onStandby = false;
     private String _standbyId;
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
+    private DrUtil drUtil;
 
     @Autowired
     private DbRebuildRunnable dbRebuildRunnable;
@@ -359,7 +358,7 @@ public class SchemaUtil {
         // iterate through all the sites and exclude the paused ones
         for(Configuration config : _coordinator.queryAllConfiguration(Site.CONFIG_KIND)) {
             Site site = new Site(config);
-            String dcId = String.format("%s-%s", _vdcShortId, site.getStandbyShortId());
+            String dcId = drUtil.getCassandraDcId(site);
             if (site.getState().equals(SiteState.STANDBY_PAUSED) && strategyOptions.containsKey(dcId)) {
                 _log.info("Remove dc {} from strategy options", dcId);
                 strategyOptions.remove(dcId);
@@ -381,14 +380,9 @@ public class SchemaUtil {
             return false;
         }
 
-        String dcId = String.format("%s-%s", _vdcShortId, _standbyId);
+        String dcId = drUtil.getCassandraDcId(drUtil.getCurrentSite());
 
         if (strategyOptions.containsKey(dcId)) {
-            return false;
-        }
-        
-        if (_vdcShortId.equals(_standbyId)) {
-            Log.info("{} and {} are equals, ignore", _vdcShortId, _standbyId);
             return false;
         }
 
@@ -1201,5 +1195,9 @@ public class SchemaUtil {
     
     public void setApiSignatureGenerator(InternalApiSignatureKeyGenerator apiSignatureGenerator) {
         this.apiSignatureGenerator = apiSignatureGenerator;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
     }
 }

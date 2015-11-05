@@ -48,7 +48,7 @@ public class VdcConfigUtil {
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
     public static final String VDC_STANDBY_VIP_PTN = "vdc_%s_%s_network_vip";
     public static final String SITE_IS_STANDBY="site_is_standby";
-    public static final String SITE_IS_SWITCHING_OVER="site_is_switchingover";
+    public static final String SITE_MY_UUID="site_my_uuid";
     public static final String SITE_MYID="site_myid";
     public static final String SITE_IDS="site_ids";
 
@@ -187,8 +187,9 @@ public class VdcConfigUtil {
                 vdcConfig.put(String.format(VDC_STANDBY_VIP_PTN, vdcShortId, siteShortId), site.getVip());
             }
 
-            if (drUtil.isLocalSite(site) && site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+            if (drUtil.isLocalSite(site)) {
                 vdcConfig.put(SITE_MYID, siteShortId);
+                vdcConfig.put(SITE_MY_UUID, site.getUuid());
             }
 
             if (!isPrimarySite) {
@@ -199,11 +200,6 @@ public class VdcConfigUtil {
         vdcConfig.put(SITE_IDS, StringUtils.join(shortIds, ','));
         
         vdcConfig.put(SITE_IS_STANDBY, String.valueOf(!drUtil.isPrimary()));
-        
-        //set whether this site is doing switch over, this flag is used in etc/genconfig.d/geodb for generating DC name
-        Site currentSite = drUtil.getSite(coordinator.getSiteId());
-        vdcConfig.put(SITE_IS_SWITCHING_OVER, String.valueOf(currentSite.getState() == SiteState.PRIMARY_SWITCHING_OVER
-                        || currentSite.getState() == SiteState.STANDBY_SWITCHING_OVER));
     }
 
     private List<String> getHostsFromIPAddrMap(Map<String, String> IPv4Addresses, Map<String, String> IPv6Addresses) {

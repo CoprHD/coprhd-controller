@@ -190,4 +190,26 @@ public class DrUtil {
     public boolean isLocalSite(Site site) {
         return site.getUuid().equals(coordinator.getSiteId());
     }
+    
+    /**
+     * Generate Cassandra data center name for given site.
+     * 
+     * @param site
+     * @return
+     */
+    public String getCassandraDcId(Site site) {
+        String dcId = null;
+        if (site.getVdcShortId().equals(site.getStandbyShortId())) {
+            dcId = site.getVdcShortId();
+        } else {
+            dcId = site.getUuid();
+        }
+
+        log.info("Cassandra DC Name is {}", dcId);
+        return dcId;
+    }
+
+    public Site getCurrentSite() {
+        return this.getSite(coordinator.getSiteId());
+    }
 }

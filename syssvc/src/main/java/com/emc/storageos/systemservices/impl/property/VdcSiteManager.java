@@ -511,20 +511,6 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
 
-    /**
-     * Generate Cassandra data center name for given site. 
-     * 
-     * @param site
-     * @return
-     */
-    private String getCassandraDcId(Site site) {
-        if (site.getState().equals(SiteState.PRIMARY)) {
-            return site.getVdcShortId();
-        } else {
-            return String.format("%s-%s", site.getVdcShortId(), site.getStandbyShortId());
-        }
-    }
-
     private void reconfigRestartSvcs() throws Exception {
         Site site = drUtil.getSite(drUtil.getCoordinator().getSiteId());
         log.info("Site: {}", site.toString());
@@ -817,7 +803,7 @@ public class VdcSiteManager extends AbstractManager {
     private void removeDbNodes(Site site) throws Exception {
         poweroffRemoteSite(site);
         
-        String dcName = getCassandraDcId(site);
+        String dcName = drUtil.getCassandraDcId(site);
         DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
         try {
             dbOps.removeDataCenter(dcName);
@@ -835,7 +821,7 @@ public class VdcSiteManager extends AbstractManager {
     
     private void removeDbReplication(Site site) {
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
-        String dcName = getCassandraDcId(site);
+        String dcName = drUtil.getCassandraDcId(site);
         ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcName);
         ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcName);
         coordinatorClient.removeServiceConfiguration(site.toConfiguration());
@@ -862,7 +848,7 @@ public class VdcSiteManager extends AbstractManager {
                 int nodeCount = localSite.getNodeCount();
 
                 // add back the paused site from strategy options of dbsvc and geodbsvc
-                String dcId = String.format("%s-%s", localSite.getVdcShortId(), localSite.getStandbyShortId());
+                String dcId = drUtil.getCassandraDcId(localSite);
                 ((DbClientImpl) dbClient).getLocalContext().addDcToStrategyOptions(dcId, nodeCount);
                 ((DbClientImpl) dbClient).getGeoContext().addDcToStrategyOptions(dcId, nodeCount);
 

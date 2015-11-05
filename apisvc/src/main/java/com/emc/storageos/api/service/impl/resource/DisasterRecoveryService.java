@@ -524,7 +524,7 @@ public class DisasterRecoveryService {
             VirtualDataCenter vdc = queryLocalVDC();
 
             // exclude the paused site from strategy options of dbsvc and geodbsvc
-            String dcId = String.format("%s-%s", vdc.getShortId(), standby.getStandbyShortId());
+            String dcId = drUtil.getCassandraDcId(standby);
             ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcId);
             ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcId);
 

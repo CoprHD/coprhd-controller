@@ -10,7 +10,7 @@
 # it is provided by or on behalf of EMC.
 
 _get_geodbvar_props() {
-    _get_props vdc_myid node_id node_index site_is_standby site_myid site_is_switchingover
+    _get_props vdc_myid node_id node_index site_is_standby site_myid site_my_uuid
 }
 
 _get_geodbconf_props() {
@@ -65,17 +65,11 @@ _get_geodb_jmx_props() {
 _get_rackdc_props() {
     local myid="${_GENCONFIG_vdc_myid}"
 	
-    if [ "${_GENCONFIG_site_is_standby}" == "true" ] ; then
-		if [ "${_GENCONFIG_site_is_switchingover}" == "false" ] ; then
-			myid+="-${_GENCONFIG_site_myid}"
-		fi
+    if [ "${_GENCONFIG_vdc_myid}" == "${_GENCONFIG_site_myid}" ] || [ "${_GENCONFIG_site_myid}" == "" ] ; then
+		echo "vdc_myid=${myid}"
 	else
-		if [ "${_GENCONFIG_site_is_switchingover}" == "true" ] ; then
-			myid+="-${_GENCONFIG_site_myid}"
-		fi
+		echo "vdc_myid=${_GENCONFIG_site_my_uuid}"
     fi
-    
-	echo "vdc_myid=${myid}"
 }
 
 # _gen_template will generate properties based on *-template.xml, replace macro in *-template.*

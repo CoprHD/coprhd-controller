@@ -1,10 +1,18 @@
 package com.emc.storageos.storagedriver;
 
-import com.emc.storageos.storagedriver.model.*;
+import java.util.List;
+
+import com.emc.storageos.storagedriver.model.ITL;
+import com.emc.storageos.storagedriver.model.Initiator;
+import com.emc.storageos.storagedriver.model.StoragePort;
+import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.model.StorageVolume;
+import com.emc.storageos.storagedriver.model.VolumeClone;
+import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
+import com.emc.storageos.storagedriver.model.VolumeMirror;
+import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-
-import java.util.List;
 
 /**
  * BlockStorageDriver interface.
@@ -204,7 +212,7 @@ public interface BlockStorageDriver extends StorageDriver {
     /**
      * Create snapshot of consistency group.
      * @param consistencyGroup input parameter
-     * @param snapshots   output parameter
+     * @param snapshots   input/output parameter
      * @param capabilities Capabilities of snapshots. Type: Input.
      * @return
      */

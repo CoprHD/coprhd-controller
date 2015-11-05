@@ -4,6 +4,7 @@ import com.emc.storageos.storagedriver.*;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,86 +64,77 @@ public class NewStorageDriver extends AbstractStorageDriver {
     }
 
     @Override
-    public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StoragePort> storageVolumes, MutableInt token) {
-        return null;
-    }
-
-
-
-    // BlockStorageDriver implementation
-
-    @Override
-    public DriverTask createVolumes(List<StorageVolume> volumes, List<CapabilityInstance> capabilities) {
+    public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
         return null;
     }
 
     @Override
-    public DriverTask expandVolume(StorageVolume volume, long newCapacity, List<CapabilityInstance> capabilities) {
+    public DriverTask expandVolume(StorageVolume volume, long newCapacity) {
         return null;
     }
 
     @Override
-    public DriverTask deleteVolumes(List<StorageVolume> volumes, List<CapabilityInstance> capabilities) {
+    public DriverTask deleteVolumes(List<StorageVolume> volumes) {
         return null;
     }
 
     @Override
-    public DriverTask createVolumeSnapshot(List<StorageVolume> volumes, List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities) {
+    public DriverTask createVolumeSnapshot(List<StorageVolume> volumes, List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
         return null;
     }
 
     @Override
-    public DriverTask restoreFromSnapshot(StorageVolume volume, VolumeSnapshot snapshot, List<CapabilityInstance> capabilities) {
+    public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot) {
         return null;
     }
 
     @Override
-    public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities) {
+    public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
         return null;
     }
 
     @Override
-    public DriverTask createVolumeClone(List<StorageVolume> volume, List<VolumeClone> clones, List<CapabilityInstance> capabilities) {
+    public DriverTask createVolumeClone(List<StorageVolume> volumes, List<VolumeClone> clones, StorageCapabilities capabilities) {
         return null;
     }
 
     @Override
-    public DriverTask detachVolumeClone(List<VolumeClone> clones, List<CapabilityInstance> capabilities) {
+    public DriverTask detachVolumeClone(List<VolumeClone> clones) {
         return null;
     }
 
     @Override
-    public DriverTask restoreFromClone(StorageVolume volume, VolumeClone clone, List<CapabilityInstance> capabilities) {
+    public DriverTask restoreFromClone(StorageVolume volume, VolumeClone clone) {
         return null;
     }
 
     @Override
-    public DriverTask deleteVolumeClone(List<VolumeClone> clones, List<CapabilityInstance> capabilities) {
+    public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
         return null;
     }
 
     @Override
-    public DriverTask createVolumeMirror(List<StorageVolume> volumes, List<VolumeMirror> mirrors, List<CapabilityInstance> capabilities) {
+    public DriverTask createVolumeMirror(List<StorageVolume> volumes, List<VolumeMirror> mirrors, StorageCapabilities capabilities) {
         return null;
     }
 
     @Override
-    public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors, List<CapabilityInstance> capabilities) {
+    public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors) {
         return null;
     }
 
     @Override
-    public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors, List<CapabilityInstance> capabilities) {
+    public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors) {
         return null;
     }
 
     @Override
-    public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors, List<CapabilityInstance> capabilities) {
+    public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors) {
         return null;
     }
 
     @Override
-    public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror, List<CapabilityInstance> capabilities) {
+    public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror) {
         return null;
     }
 
@@ -152,12 +144,42 @@ public class NewStorageDriver extends AbstractStorageDriver {
     }
 
     @Override
-    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, List<StoragePort> recommendedPorts, List<CapabilityInstance> capabilities) {
+    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, List<StoragePort> recommendedPorts, StorageCapabilities capabilities) {
         return null;
     }
 
     @Override
-    public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes, List<CapabilityInstance> capabilities) {
+    public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
+        return null;
+    }
+
+    @Override
+    public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
+        return null;
+    }
+
+    @Override
+    public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities) {
+        return null;
+    }
+
+    @Override
+    public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
+        return null;
+    }
+
+    @Override
+    public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones, List<CapabilityInstance> capabilities) {
+        return null;
+    }
+
+    @Override
+    public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones) {
+        return null;
+    }
+
+    @Override
+    public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {
         return null;
     }
 

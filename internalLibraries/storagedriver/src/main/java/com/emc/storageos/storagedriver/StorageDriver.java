@@ -1,8 +1,8 @@
 package com.emc.storageos.storagedriver;
 
-import com.emc.storageos.storagedriver.model.StorageObject;
-
 import java.util.List;
+
+import com.emc.storageos.storagedriver.model.StorageObject;
 
 public interface StorageDriver {
 

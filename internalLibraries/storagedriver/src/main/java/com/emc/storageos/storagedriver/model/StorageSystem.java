@@ -1,8 +1,8 @@
 package com.emc.storageos.storagedriver.model;
 
-import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
-
 import java.util.List;
+
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 
 public class StorageSystem extends StorageObject {
 

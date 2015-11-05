@@ -6,6 +6,9 @@ public class VolumeMirror extends StorageObject {
     // Volume Id this mirror is associated with. Type: Input.
     private String parentId;
 
+    // storage system of this volume. Type: Input.
+    private String storageSystemId;
+
     // Synchronization state. Type: Output.
     private SynchronizationState syncState;
 
@@ -20,6 +23,14 @@ public class VolumeMirror extends StorageObject {
 
     public void setParentId(String parentId) {
         this.parentId = parentId;
+    }
+
+    public String getStorageSystemId() {
+        return storageSystemId;
+    }
+
+    public void setStorageSystemId(String storageSystemId) {
+        this.storageSystemId = storageSystemId;
     }
 
     public SynchronizationState getSyncState() {

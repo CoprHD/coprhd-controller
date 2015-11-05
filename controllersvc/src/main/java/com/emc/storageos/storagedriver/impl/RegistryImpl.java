@@ -55,4 +55,9 @@ public class RegistryImpl implements Registry {
     public void clearDriverAttributeForKey(String driverName, String key, String attribute) {
 
     }
+
+    @Override
+    public void addDriverAttributeForKey(String driverName, String key, String attribute, List<String> value) {
+
+    }
 }

@@ -1,0 +1,4 @@
+dependencies {
+    compile library(slf4j),
+            library(commons_lang)
+}

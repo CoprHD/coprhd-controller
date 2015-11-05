@@ -636,12 +636,14 @@ public class StorageSystem extends DiscoveredSystemObject {
         this.vplexAssemblyIdtoClusterId = vplexAssemblyIdtoClusterId;
     }
 
-
+    @Name("nativeId")
     public String getNativeId() {
         return _nativeId;
     }
 
+
     public void setNativeId(String nativeId) {
         _nativeId = nativeId;
+        setChanged("nativeId");
     }
 }

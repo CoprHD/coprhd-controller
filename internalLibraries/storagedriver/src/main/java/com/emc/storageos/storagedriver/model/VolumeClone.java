@@ -6,6 +6,9 @@ public class VolumeClone extends StorageObject {
     // parent volume id. Type: Input.
     private String parentId;
 
+    // storage system of this volume. Type: Input.
+    private String storageSystemId;
+
     // replication state of this clone. Type: Output.
     ReplicationState replicationState;
 
@@ -19,6 +22,14 @@ public class VolumeClone extends StorageObject {
 
     public void setParentId(String parentId) {
         this.parentId = parentId;
+    }
+
+    public String getStorageSystemId() {
+        return storageSystemId;
+    }
+
+    public void setStorageSystemId(String storageSystemId) {
+        this.storageSystemId = storageSystemId;
     }
 
     public ReplicationState getReplicationState() {

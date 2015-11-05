@@ -1,11 +1,11 @@
 package com.emc.storageos.storagedriver.model;
 
 
-import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 
 public class StoragePool extends StorageObject {
 

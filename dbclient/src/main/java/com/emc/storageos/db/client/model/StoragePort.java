@@ -37,6 +37,9 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
     // storage port name used when communicating with the storage system
     private String _portName;
 
+    // device native ID
+    private String _nativeId;
+
     // storage port network identifier e.g. FC - port wwn, IP - network interface identifier
     private String _portNetworkId;
 
@@ -107,6 +110,16 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
     public void setPortName(String portName) {
         _portName = portName;
         setChanged("portName");
+    }
+
+    @Name("nativeId")
+    public String getNativeId() {
+        return _nativeId;
+    }
+
+    public void setNativeId(String nativeId) {
+        _nativeId = nativeId;
+        setChanged("nativeId");
     }
 
     public void setTcpPortNumber(Long tcpPortNumber) {

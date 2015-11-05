@@ -1,8 +1,8 @@
 package com.emc.storageos.storagedriver.model;
 
-import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
-
 import java.util.List;
+
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 
 public class StoragePort extends StorageObject {
 
@@ -32,7 +32,7 @@ public class StoragePort extends StorageObject {
     private String storageDeviceId;
 
     // port type
-    private String transportType;
+    private TransportType transportType;
 
     // network this storage port is attached to
     private String networkId;
@@ -49,10 +49,10 @@ public class StoragePort extends StorageObject {
     // average bandwidth through the port
     private Long avgBandwidth;
 
-    // indicates utilization of the port
-    private Long usageMetric;
+    // indicates utilization of the port 0-100%
+    private Double utilizationMetric;
 
-    private String operationalStatus = OperationalStatus.UNKNOWN.name();
+    private OperationalStatus operationalStatus = OperationalStatus.UNKNOWN;
 
     private Long tcpPortNumber;
 
@@ -61,7 +61,7 @@ public class StoragePort extends StorageObject {
     // port end point id
     private String endPointID;
 
-    private String portType = PortType.frontend.name();
+    private PortType portType = PortType.frontend;
 
     private List<CapabilityInstance> capabilities;
 
@@ -90,10 +90,10 @@ public class StoragePort extends StorageObject {
     }
 
     public String getTransportType() {
-        return transportType;
+        return transportType.name();
     }
 
-    public void setTransportType(String transportType) {
+    public void setTransportType(TransportType transportType) {
         this.transportType = transportType;
     }
 
@@ -137,19 +137,19 @@ public class StoragePort extends StorageObject {
         this.avgBandwidth = avgBandwidth;
     }
 
-    public Long getUsageMetric() {
-        return usageMetric;
+    public Double getUtilizationMetric() {
+        return utilizationMetric;
     }
 
-    public void setUsageMetric(Long usageMetric) {
-        this.usageMetric = usageMetric;
+    public void setUtilizationMetric(Double usageMetric) {
+        this.utilizationMetric = usageMetric;
     }
 
     public String getOperationalStatus() {
-        return operationalStatus;
+        return operationalStatus.name();
     }
 
-    public void setOperationalStatus(String operationalStatus) {
+    public void setOperationalStatus(OperationalStatus operationalStatus) {
         this.operationalStatus = operationalStatus;
     }
 
@@ -178,10 +178,10 @@ public class StoragePort extends StorageObject {
     }
 
     public String getPortType() {
-        return portType;
+        return portType.name();
     }
 
-    public void setPortType(String portType) {
+    public void setPortType(PortType portType) {
         this.portType = portType;
     }
 

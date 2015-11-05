@@ -1,10 +1,10 @@
 package com.emc.storageos.storagedriver.storagecapabilities;
 
 
+import java.util.List;
+
 import com.emc.storageos.storagedriver.model.Schedule;
 import com.emc.storageos.storagedriver.model.ServiceOption;
-
-import java.util.List;
 
 public class DataProtectionServiceOption extends ServiceOption {
 

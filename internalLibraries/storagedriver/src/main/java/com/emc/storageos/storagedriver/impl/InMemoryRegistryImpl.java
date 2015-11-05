@@ -1,10 +1,10 @@
 package com.emc.storageos.storagedriver.impl;
 
-import com.emc.storageos.storagedriver.Registry;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.emc.storageos.storagedriver.Registry;
 
 /**
  * In memory implementation of Registry.
@@ -28,7 +28,7 @@ public class InMemoryRegistryImpl implements Registry {
 
     @Override
     public synchronized void addDriverAttributeForKey(String driverName, String key, String attribute, List<String> value) {
-        
+
         Map<String, Map<String, List<String>>> driverAttributes = registry.get(driverName);
         if (driverAttributes == null) {
             driverAttributes = new HashMap<>();

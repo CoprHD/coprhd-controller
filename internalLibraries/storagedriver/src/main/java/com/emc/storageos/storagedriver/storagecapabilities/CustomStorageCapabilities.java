@@ -1,7 +1,5 @@
 package com.emc.storageos.storagedriver.storagecapabilities;
 
-import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
-
 import java.util.List;
 
 /**

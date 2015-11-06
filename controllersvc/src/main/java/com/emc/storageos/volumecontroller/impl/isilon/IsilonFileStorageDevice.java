@@ -175,8 +175,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             return;
         }
         
-        VirtualNAS vNAS = args.getvNAS();
-        String zoneName = vNAS.getNasName();
+        String zoneName = getZoneName(args.getvNAS());
         
         Set<String> deletedExports = new HashSet<String>();
         Iterator<Map.Entry<String, FileExport>> it = exportMap.entrySet().iterator();
@@ -345,11 +344,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
         String shareId;
         
-        VirtualNAS vNAS = args.getvNAS();
-    	String zoneName = null;
-    	if(vNAS != null) {
-    		zoneName = vNAS.getNasName();
-    	}
+    	String zoneName = getZoneName(args.getvNAS());
     	
         if (existingShare != null) {
             shareId = existingShare.getNativeId();
@@ -393,13 +388,8 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         if (fileShare != null) {
         	
         	String nativeId = fileShare.getNativeId();
-        	VirtualNAS vNAS = args.getvNAS();
-        	String zoneName = null;
+        	String zoneName = getZoneName(args.getvNAS());
         	
-        	if (vNAS != null) {
-        		zoneName = vNAS.getNasName();
-        	}
-            
             if (zoneName != null) {
             	isi.deleteShare(nativeId, zoneName);
             } else {
@@ -425,11 +415,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         Set<String> deletedShares = new HashSet<String>();
         Iterator<Map.Entry<String, SMBFileShare>> it = currentShares.entrySet().iterator();
         
-        VirtualNAS vNAS = args.getvNAS();
-        String zoneName = null;
-        if (vNAS != null) {
-        	zoneName = vNAS.getNasName();
-        }
+        String zoneName = getZoneName(args.getvNAS());
 
         try {
             while (it.hasNext()) {
@@ -480,7 +466,6 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             String mountPath = fileExport.getMountPath();
             String comments = fileExport.getComments();
             String subDirectory = fileExport.getSubDirectory();
-            String accessZoneName = null;
 
             // Validate parameters for permissions and root user mapping.
             if (permissions.equals(FileShareExport.Permissions.root.name()) &&
@@ -502,10 +487,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 args.initFileObjExports();
             }
             
-            VirtualNAS vNAS = args.getvNAS();
-            if(vNAS != null) {
-            	accessZoneName = vNAS.getNasName();
-            }
+            String accessZoneName = getZoneName(args.getvNAS());
 
             // Create/update export in Isilon.
             String exportKey = fileExport.getFileExportKey();
@@ -700,12 +682,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 id = fExport.getIsilonId();
             }
             if (id != null) {
-            	VirtualNAS vNAS = args.getvNAS();
-            	String zoneName = null;
-            	if (vNAS != null) {
-            		zoneName = vNAS.getNasName();
-            	}
-            	
+            	String zoneName = getZoneName(args.getvNAS());
             	if (zoneName != null) {
             		isi.deleteExport(id, zoneName);
             	} else {
@@ -1915,7 +1892,13 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         isilonSMBShare.setPermissions(permissions);
         _log.info("Calling Isilon API: modifyShare. Share {}, permissions {}",
                 isilonSMBShare, permissions);
-        isi.modifyShare(args.getShareName(), isilonSMBShare);
+        String zoneName = getZoneName(args.getvNAS());
+        if (zoneName != null) {
+        	isi.modifyShare(args.getShareName(), zoneName, isilonSMBShare);
+        } else {
+        	isi.modifyShare(args.getShareName(), isilonSMBShare);
+        }
+        
 
         _log.info("End processAclsForShare");
     }
@@ -2044,5 +2027,12 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
         return result;
     }
-
+    
+    private String getZoneName(VirtualNAS vNAS) {
+    	String zoneName = null;
+    	if (vNAS != null) {
+    		zoneName = vNAS.getNasName();
+    	}
+    	return zoneName;
+    }
 }

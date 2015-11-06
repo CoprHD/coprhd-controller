@@ -1071,9 +1071,8 @@ public class IsilonApi {
      */
     public IsilonSMBShare getShare(String id, String zoneName) throws IsilonException {
 
-        StringBuffer buffer = new StringBuffer(id);
-        buffer.append("?zone=").append(zoneName);
-        return get(_baseUrl.resolve(URI_SMB_SHARES), buffer.toString(), "shares", IsilonSMBShare.class);
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        return get(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "shares", IsilonSMBShare.class);
     }
 
     /**

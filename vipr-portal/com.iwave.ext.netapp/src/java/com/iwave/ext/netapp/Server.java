@@ -19,17 +19,34 @@ public class Server {
 	private NaServer server = null;
 	
 	Server(String host, int port, String username, String password, boolean useHTTPS)
-	{
-		server = createNaServer(host, port, username, password, useHTTPS, false, null, false);
-	}
-	
-    public Server(String host, int port, String username, String password, boolean useHTTPS,
+    {
+        server = createNaServer(host, port, username, password, useHTTPS, false, null, false);
+    }
+    
+    Server(String host, int port, String username, String password, boolean useHTTPS, boolean isCluster)
+    {
+        server = createNaServer(host, port, username, password, useHTTPS, false, null, isCluster);
+    }
+
+    public Server(String host, int port, String username, String password, boolean useHTTPS, 
+    		String vFilerName)
+    {
+        server = createNaServer(host, port, username, password, useHTTPS, false, vFilerName, false);
+    }
+    
+    public Server(String host, int port, String username, String password, boolean useHTTPS, 
     		String vFilerName, boolean isCluster)
     {
         server = createNaServer(host, port, username, password, useHTTPS, false, vFilerName, isCluster);
     }
+
+    public Server(String host, int port, String username, String password, boolean useHTTPS, 
+    		boolean isVserver, String vServerName)
+    {
+        server = createNaServer(host, port, username, password, useHTTPS, isVserver, vServerName, false);
+    }
     
-    public Server(String host, int port, String username, String password, boolean useHTTPS,
+    public Server(String host, int port, String username, String password, boolean useHTTPS, 
     		boolean isVserver, String vServerName, boolean isCluster)
     {
         server = createNaServer(host, port, username, password, useHTTPS, isVserver, vServerName, isCluster);

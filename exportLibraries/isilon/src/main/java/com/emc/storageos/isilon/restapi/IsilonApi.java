@@ -707,9 +707,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyExport(String id, String zoneName, IsilonExport exp) throws IsilonException {
-    	StringBuffer buffer = new StringBuffer(id);
-        buffer.append("?zone=").append(zoneName);
-        modify(_baseUrl.resolve(URI_NFS_EXPORTS), buffer.toString(), "export", exp);
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        modify(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export", exp);
     }
 
     /**
@@ -731,9 +730,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public IsilonExport getExport(String id, String zoneName) throws IsilonException {
-        StringBuffer buffer = new StringBuffer(id);
-        buffer.append("?zone=").append(zoneName);
-        return get(_baseUrl.resolve(URI_NFS_EXPORTS), buffer.toString(), "exports", IsilonExport.class);
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        return get(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "exports", IsilonExport.class);
     }
 
     /**
@@ -753,9 +751,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteExport(String id, String zoneName) throws IsilonException {
-    	StringBuffer buffer = new StringBuffer(id);
-        buffer.append("?zone=").append(zoneName);
-        delete(_baseUrl.resolve(URI_NFS_EXPORTS), buffer.toString(), "export");
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        delete(_baseUrl.resolve(URI_NFS_EXPORTS), uriWithZoneName, "export");
     }
 
     /* SmartQuotas */
@@ -1050,9 +1047,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void modifyShare(String id, String zoneName, IsilonSMBShare s) throws IsilonException {
-    	StringBuffer buffer = new StringBuffer(id);
-        buffer.append("?zone=").append(zoneName);
-        modify(_baseUrl.resolve(URI_SMB_SHARES), buffer.toString(), "share", s);
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        modify(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share", s);
     }
 
     /**
@@ -1097,9 +1093,8 @@ public class IsilonApi {
      * @throws IsilonException
      */
     public void deleteShare(String id, String zoneName) throws IsilonException {
-    	StringBuffer buffer = new StringBuffer(id);
-        buffer.append("?zone=").append(zoneName);
-        delete(_baseUrl.resolve(URI_SMB_SHARES), buffer.toString(), "share");
+    	String uriWithZoneName = getURIWithZoneName(id, zoneName);
+        delete(_baseUrl.resolve(URI_SMB_SHARES), uriWithZoneName, "share");
     }
 
     /**
@@ -1511,6 +1506,15 @@ public class IsilonApi {
             }
         }
         return isNfsv4Enabled;
+    }
+    
+    private String getURIWithZoneName(String id, String zoneName) {
+    	
+    	StringBuffer buffer = new StringBuffer(id);
+        buffer.append("?zone=");
+        zoneName = zoneName.replace(" ", "%20");
+        buffer.append(zoneName);
+    	return buffer.toString();
     }
 
 }

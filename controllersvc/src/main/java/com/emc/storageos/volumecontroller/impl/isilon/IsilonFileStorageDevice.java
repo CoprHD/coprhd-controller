@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
-import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;

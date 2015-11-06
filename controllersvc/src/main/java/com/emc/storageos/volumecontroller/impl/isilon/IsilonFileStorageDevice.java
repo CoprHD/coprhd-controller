@@ -1661,8 +1661,14 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                     IsilonExport clonedExport = cloneExport(isilonExport);
 
                     _log.info("Update Isilon Export with id {} and new info {}", isilonExportId, clonedExport.toString());
-
-                    isi.modifyExport(isilonExportId, clonedExport);
+                    
+                    String zoneName = getZoneName(args.getvNAS());
+                    if (zoneName != null) {
+                    	isi.modifyExport(isilonExportId, zoneName, clonedExport);
+                    } else {
+                    	isi.modifyExport(isilonExportId, clonedExport);
+                    }
+                    
                 }
             }
         }

@@ -1005,7 +1005,7 @@ public class IsilonApi {
     public String createShare(IsilonSMBShare smbFileShare, String zoneName) throws IsilonException {
 
         StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(URI_SMB_SHARES).toString());
-        String accessZoneName = zoneName.replace(" ", "%20")
+        String accessZoneName = zoneName.replace(" ", "%20");
         URLBuffer.append("?zone=").append(accessZoneName);
         URI uri = URI.create(URLBuffer.toString());
         return create(uri, "share", smbFileShare);
@@ -1043,7 +1043,7 @@ public class IsilonApi {
     public IsilonSMBShare getShare(String id, String zoneName) throws IsilonException {
 
         StringBuffer buffer = new StringBuffer(id);
-        String accessZoneName = zoneName.replace(" ", "%20")
+        String accessZoneName = zoneName.replace(" ", "%20");
         buffer.append("?zone=").append(accessZoneName);
         return get(_baseUrl.resolve(URI_SMB_SHARES), buffer.toString(), "shares", IsilonSMBShare.class);
     }

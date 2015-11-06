@@ -1,10 +1,16 @@
 package com.emc.storageos.systemservices.impl.security;
 
 
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.util.Map;
 import java.util.concurrent.*;
+
+import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 public class IPSecMonitor implements Runnable {
 
@@ -32,6 +38,89 @@ public class IPSecMonitor implements Runnable {
 
     @Override
     public void run() {
-        log.info("Executing IPSec checkup.");
+        log.info("start checking ipsec connections");
+        String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
+        Map<String, String> latest = getLatestIPSecProperties(problemNodes);
+
+        if (isSyncNeeded(latest)) {
+            String latestKey = latest.get(Constants.IPSEC_KEY);
+            LocalRepository.getInstance().syncIpsecKeyToLocal(latestKey);
+            log.info("synced latest ipsec key to local: " + latestKey);
+        } else {
+            log.info("local already has latest ipsec key, skip syncing");
+        }
+    }
+
+    /**
+     *
+     * @param nodes
+     * @return
+     */
+    private Map<String, String> getLatestIPSecProperties(String[] nodes) {
+        Map<String, String> latest = null;
+
+        if (nodes != null && nodes.length != 0) {
+            for (String node : nodes) {
+                Map<String, String> props = LocalRepository.getInstance().getIpsecProperties(node);
+                String configVersion = props.get(VDC_CONFIG_VERSION);
+
+                if (latest == null ||
+                        compareVdcConfigVersion(configVersion,
+                                latest.get(VDC_CONFIG_VERSION)) > 0) {
+                    latest = props;
+                }
+
+                log.info("checking " + node + ": " + " configVersion=" + configVersion
+                    + ", ipsecKey=" + props.get(Constants.IPSEC_KEY)
+                    + ", lastestKey=" + latest.get(Constants.IPSEC_KEY));
+            }
+        }
+
+        return latest;
+    }
+
+    private boolean isSyncNeeded(Map<String, String> props) {
+        String localIP = getLocalIPAddress();
+        Map<String, String> localIpsecProp = LocalRepository.getInstance().getIpsecProperties(localIP);
+        if (localIpsecProp.get(IPSEC_KEY).equals(props.get(IPSEC_KEY))) {
+            return false;
+        } else {
+            int result = compareVdcConfigVersion(
+                    localIpsecProp.get(VDC_CONFIG_VERSION),
+                    props.get(VDC_CONFIG_VERSION));
+            if (result < 0) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+    }
+
+    private String getLocalIPAddress() {
+        try {
+            InetAddress IP = InetAddress.getLocalHost();
+            String localIP = IP.getHostAddress();
+            log.info("IP of my system is := " + localIP);
+            return localIP;
+        } catch (Exception ex) {
+            log.warn("error in getting local ip: " + ex.getMessage());
+            return null;
+        }
+    }
+
+    private int compareVdcConfigVersion(String left, String right) {
+        if (left == null && right == null) {
+            return 0;
+        }
+
+        if (left == null && right != null) {
+            return -1;
+        }
+
+        if (left != null && right == null) {
+            return 1;
+        }
+
+        return (int)(Long.parseLong(left) - Long.parseLong(right));
     }
 }

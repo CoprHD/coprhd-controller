@@ -512,16 +512,16 @@ public class LocalRepository {
     }
 
     /**
-     * get ipsec properties from specified remote node
+     * get ipsec properties from specified node
      *
-     * @param remoteIp
+     * @param ip
      * @return map of ipsec related properties: VDC_CONFIG_VERSION and IPSEC_KEY
      */
-    public Map<String, String> getIpsecPropertiesFromRemoteNode(String remoteIp) throws LocalRepositoryException {
+    public Map<String, String> getIpsecProperties(String ip) throws LocalRepositoryException {
         final String prefix = "getIpsecPropertiesFromRemoteNode(): ";
         _log.debug(prefix);
 
-        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_IPSEC, IPSEC_GET_PROPS, remoteIp };
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_IPSEC, IPSEC_GET_PROPS, ip };
         String[] props = exec(prefix, cmd);
 
         _log.debug(prefix + "properties={}", Strings.repr(props));

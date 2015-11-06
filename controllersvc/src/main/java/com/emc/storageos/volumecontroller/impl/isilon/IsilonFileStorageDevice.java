@@ -1533,7 +1533,14 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             String isilonExportId = exportRule.getDeviceExportId();
 
             if (isilonExportId != null) {
-                IsilonExport isilonExport = isi.getExport(isilonExportId);
+            	IsilonExport isilonExport = null;
+            	String zoneName = getZoneName(args.getvNAS());
+            	if (zoneName != null) {
+            		isilonExport = isi.getExport(isilonExportId, zoneName);
+            	} else {
+            		isilonExport = isi.getExport(isilonExportId); 
+            	}
+                
 
                 // Update the comment
                 if (exportRule.getComments() != null && !exportRule.getComments().isEmpty()) {
@@ -1662,7 +1669,6 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
                     _log.info("Update Isilon Export with id {} and new info {}", isilonExportId, clonedExport.toString());
                     
-                    String zoneName = getZoneName(args.getvNAS());
                     if (zoneName != null) {
                     	isi.modifyExport(isilonExportId, zoneName, clonedExport);
                     } else {

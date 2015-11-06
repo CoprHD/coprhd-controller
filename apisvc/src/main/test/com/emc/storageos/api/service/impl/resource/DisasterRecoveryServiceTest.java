@@ -251,8 +251,7 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testGetStandby() throws Exception {
-        doReturn(standbySite1.toConfiguration()).when(coordinator)
-                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite1.getUuid());
+        doReturn(standbySite1).when(drUtil).getSiteFromLocalVdc(standbySite1.getUuid());
 
         SiteRestRep response = drService.getSite("site-uuid-1");
         compareSiteResponse(response, standbySite1);

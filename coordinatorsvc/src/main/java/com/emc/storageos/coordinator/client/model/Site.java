@@ -4,9 +4,9 @@
  */
 package com.emc.storageos.coordinator.client.model;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
@@ -14,8 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 
 /**
  * Representation for a ViPR site, both primary and standby
@@ -34,6 +32,7 @@ public class Site {
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
     private static final String KEY_NODECOUNT = "nodeCount";
+    private static TreeMap<String, String> treeMapSorter = new TreeMap<String, String>();
     
     public static final String CONFIG_KIND = "disasterRecoverySites";
 
@@ -207,8 +206,14 @@ public class Site {
         
         config.setConfig(KEY_NODECOUNT, String.valueOf(nodeCount));
         
-        config.setConfig(KEY_NODESADDR, StringUtil.join(this.hostIPv4AddressMap.values(), ","));
-        config.setConfig(KEY_NODESADDR6, StringUtil.join(this.hostIPv6AddressMap.values(), ","));
+        treeMapSorter.clear();
+        treeMapSorter.putAll(this.hostIPv4AddressMap);
+        config.setConfig(KEY_NODESADDR, StringUtil.join(treeMapSorter.values(), ","));
+        
+        treeMapSorter.clear();
+        treeMapSorter.putAll(this.hostIPv6AddressMap);
+        config.setConfig(KEY_NODESADDR6, StringUtil.join(treeMapSorter.values(), ","));
+        
         return config;
     }
 

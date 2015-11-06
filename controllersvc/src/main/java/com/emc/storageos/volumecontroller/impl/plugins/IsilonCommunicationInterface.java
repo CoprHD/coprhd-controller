@@ -379,7 +379,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             snapshots = isilonApi.listSnapshots(resumeToken);
             if (snapshots != null && !snapshots.getList().isEmpty()) {
                 if (!baseDirPath.equals(IFS_ROOT)) {
-                    _log.info("not base directory path {}", baseDirPath);
+                    _log.info("base directory path {}", baseDirPath);
                     for (IsilonSnapshot isilonSnap: snapshots.getList()) {
                         if (isilonSnap.getPath().startsWith(baseDirPath)) {
                             provisioned = provisioned + Long.valueOf(isilonSnap.getSize());
@@ -403,7 +403,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         if (snapSystem) {
                             provisioned = provisioned + Long.valueOf(isilonSnap.getSize());
                             totalFsCount ++;
-                            _log.info("base directory path: {}", accessZone.getPath());
+                            _log.info("System access zone base directory path: {}", accessZone.getPath());
 
                         }
                     }

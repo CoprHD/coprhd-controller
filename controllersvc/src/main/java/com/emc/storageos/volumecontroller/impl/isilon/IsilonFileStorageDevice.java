@@ -168,7 +168,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     	FSExportMap exportMap = null;
     	
     	if (args.getFileOperation()) {
-    		FileObject fileObj = args.getFileObj();
+    		FileShare fileObj = args.getFs();
     		if (fileObj != null) {
     			exportMap = fileObj.getFsExports();
     		}
@@ -411,9 +411,9 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     	
     	SMBShareMap currentShares = null;
     	if (args.getFileOperation()) {
-    		FileObject fileObject = args.getFileObj();
-    		if (fileObject != null) {
-    			currentShares = fileObject.getSMBFileShares();
+    		FileShare fileObj = args.getFs();
+    		if (fileObj != null) {
+    			currentShares = fileObj.getSMBFileShares();
     		}
     	} else {
     		Snapshot snap = args.getFileSnapshot();

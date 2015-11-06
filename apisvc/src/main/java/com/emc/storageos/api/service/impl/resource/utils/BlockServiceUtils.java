@@ -195,4 +195,21 @@ public class BlockServiceUtils {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         return (storage != null && storage.deviceIsType(Type.vmax) && storage.getUsingSmis80());
     }
+    
+    /**
+     * Check if the storage system type is openstack, vnxblock, vmax or ibmxiv.
+     * Snapshot full copy is supported only on these storage systems.
+     * 
+     * @param blockSnapURI SnapshotURI for which storage system type needs to be checked
+     * @param dbClient DBClient object
+     * @return
+     */
+    public static boolean isSnapshotFullCopySupported(URI blockSnapURI, DbClient dbClient) {
+        BlockSnapshot blockObj = dbClient.queryObject(BlockSnapshot.class, blockSnapURI);
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, blockObj.getStorageController());
+        return (storage != null && (storage.deviceIsType(Type.openstack) 
+                                    || storage.deviceIsType(Type.vnxblock)
+                                    || storage.deviceIsType(Type.ibmxiv)
+                                    || storage.deviceIsType(Type.vmax)));
+    }
 }

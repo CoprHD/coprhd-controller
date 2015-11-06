@@ -259,6 +259,9 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToRestoreFileSystemFromSnapshot(final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringDbException(

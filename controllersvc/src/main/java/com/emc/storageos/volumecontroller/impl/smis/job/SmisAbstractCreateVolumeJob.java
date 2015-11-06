@@ -116,6 +116,7 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
                     String nativeID = deviceID.getValue();
                     URI volumeId = getTaskCompleter().getId(volumeCount++);
                     volumes.add(volumeId);
+                    persistVolumeNativeID(dbClient, volumeId, nativeID, now);
                     processVolume(jobContext, volumePath, nativeID, volumeId, client, dbClient, logMsgBuilder, now);
                 }
 
@@ -131,6 +132,7 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
                         String nativeID = deviceID.getValue();
                         URI volumeId = getTaskCompleter().getId(volumeCount++);
                         if ((nativeID != null) && (nativeID.length() != 0)) {
+                            persistVolumeNativeID(dbClient, volumeId, nativeID, now);
                             processVolume(jobContext, volumePath, nativeID, volumeId,
                                     client, dbClient, logMsgBuilder, now);
                         } else {
@@ -201,13 +203,9 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             URI volumeId, WBEMClient client, DbClient dbClient,
             StringBuilder logMsgBuilder, Calendar creationTime) throws Exception, IOException, DeviceControllerException, WBEMException {
         Volume volume = dbClient.queryObject(Volume.class, volumeId);
-        CIMInstance volumeInstance = commonVolumeUpdate(dbClient, client, volume, volumePath, nativeID, creationTime);
+        CIMInstance volumeInstance = commonVolumeUpdate(dbClient, client, volume, volumePath);
         URI storageSystemURI = volume.getStorageController();
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
-
-        String alternateName = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_NAME);
-        volume.setAlternateName(alternateName);
-
         if (volume.getIsComposite() && _cimPath != null) {
             // need to set meta volume member size (required for volume expansion).
             // this call is context dependent --- this is why we check for cimPath be set.
@@ -254,13 +252,29 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
         }
 
         specificProcessing(storageSystem, dbClient, client, volume, volumeInstance, volumePath);
-        dbClient.persistObject(volume);
+        dbClient.updateObject(volume);
         if (logMsgBuilder.length() != 0) {
             logMsgBuilder.append("\n");
         }
         logMsgBuilder.append(String.format(
                 "Created volume successfully .. NativeId: %s, URI: %s", nativeID,
                 getTaskCompleter().getId()));
+    }
+
+    /**
+     * This method saves the native ID info and creation time for the volume object. The native ID is the key
+     * identifier for the volume instance on the SMI-S side. We need to immediately persist it, so that if
+     * when further post-processing of the volume encounters some error, we would be able to have some
+     * reference to the volume and we could attempt to delete it.
+     *
+     * @param volumeID - [IN] URI of Volume
+     */
+    private void persistVolumeNativeID(DbClient dbClient, URI volumeId, String nativeID, Calendar creationTime) throws IOException {
+        Volume volume = dbClient.queryObject(Volume.class, volumeId);
+        volume.setCreationTime(creationTime);
+        volume.setNativeId(nativeID);
+        volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
+        dbClient.updateObject(volume);
     }
 
     /**
@@ -277,16 +291,13 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
      * @return CIMInstance - Reference to SMI-S side volume that can be used to retrieve
      *         data about the volume from the array side.
      */
-    private CIMInstance commonVolumeUpdate(DbClient dbClient, WBEMClient client, Volume volume,
-            CIMObjectPath volumePath, String nativeID, Calendar creationTime) {
+    private CIMInstance commonVolumeUpdate(DbClient dbClient, WBEMClient client, Volume volume, CIMObjectPath volumePath) {
         CIMInstance volumeInstance = null;
-        CloseableIterator<CIMInstance> iterator = null;
         try {
-            volume.setCreationTime(creationTime);
-            volume.setNativeId(nativeID);
-            volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
             volumeInstance = client.getInstance(volumePath, true, false, null);
             if (volumeInstance != null) {
+                String alternateName = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_NAME);
+                volume.setAlternateName(alternateName);
                 String wwn = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME);
                 volume.setWWN(wwn.toUpperCase());
                 volume.setProvisionedCapacity(getProvisionedCapacityInformation(client, volumeInstance));
@@ -302,14 +313,10 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             }
 
             volume.setInactive(false);
-        } catch (IOException e) {
+        } catch (Exception e) {
             _log.error("Caught an exception while trying to update volume attributes", e);
-        } catch (WBEMException e) {
-            _log.error("Caught an exception while trying to update volume attributes", e);
-        } finally {
-            if (iterator != null) {
-                iterator.close();
-            }
+            // If we could not get the common attributes, for whatever reason, we will mark it as a non-retryable failure
+            setPostProcessingFailedStatus("Caught an exception while trying to update volume attributes: " + e.getMessage());
         }
         return volumeInstance;
     }

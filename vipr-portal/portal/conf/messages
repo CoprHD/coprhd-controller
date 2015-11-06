@@ -136,6 +136,7 @@ nav.sites=Sites
 nav.userGroups=User Groups
 nav.object.buckets=Buckets
 nav.disasterRecovery=Disaster Recovery
+nav.ipsec=IPsec
 # Override messages in the Secure plugin
 secure.title=
 secure.username=Username:
@@ -1197,6 +1198,13 @@ keystore.certs.both.error=When updating the Keystore both the Private Key and Ce
 keystore.task.description=Error Message
 keystore.task.message=Error Details
 keystore.task.code=Error Code
+
+ipsec.title=IPsec
+ipsec.description=Enables a secured communication between nodes in a ViPR cluster and between ViPR clusters and uses Pre-Shared Keys to secure the communication.
+ipsec.key.rotation.label=Rotate Pre-Shared keys
+ipsec.key.rotation.description=Generates a new set of Pre-Shared keys. The IPsec communication will be momentarily stopped while restarting the IPsec service.
+ipsec.key.rotation.error=Failed To rotate the IPsec Pre-Shared Keys. '%s'.
+ipsec.key.rotation.success=Successfully rotated the IPsec Pre-Shared Keys.
 
 disk.name=Name
 disk.status=Status
@@ -3400,6 +3408,7 @@ button.actions=Actions
 button.associate=Associate Project
 button.dissociate=Dissociate Project
 button.failover=Failover
+button.ipsec.rotate.keys=Rotate IPsec Keys
 selectOne.chooseOption=-- Please Choose --
 
 common.yes=Yes

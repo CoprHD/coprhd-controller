@@ -219,6 +219,7 @@
         #{nav.item 'localPasswords', href: @infra.ConfigProperties.passwords()/}
         #{nav.item 'keystores', href: @auth.Keystores.updateCertificate()/}
         #{nav.item 'certificates', href: @auth.Certificates.list() /}
+        #{nav.item 'ipsec', href: @auth.IPsec.ipsec() /}
         #{/deadbolt.restrict}
 
       #{/nav.menuSection}

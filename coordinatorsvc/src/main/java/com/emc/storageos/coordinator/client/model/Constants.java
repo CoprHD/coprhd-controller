@@ -41,9 +41,9 @@ public interface Constants {
     //ipsec command constants
     public static final String VDC_CONFIG_VERSION = "vdc_config_version";
     public static final String IPSEC_KEY = "ipsec_key";
-    public static final String IPSEC_CHECK_CONNECTION = "--check-connection";
-    public static final String IPSEC_GET_PROPS = "--get-props";
-    public static final String IPSEC_SYNC_KEY = "--sync-key";
+    public static final String IPSEC_CHECK_CONNECTION = "check-connection";
+    public static final String IPSEC_GET_PROPS = "get-props";
+    public static final String IPSEC_SYNC_KEY = "sync-key";
 
             
     // upload image

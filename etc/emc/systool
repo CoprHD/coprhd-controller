@@ -453,10 +453,12 @@ _restart() {
 
 _ipsec() {
     case ${1} in
-        check)
+        check-connection)
             exec /etc/ipsectool check ;;
-        sync)
-            exec /etc/ipsectool sync ;;
+        get-props)
+            exec /etc/ipsectool  ;;
+        sync-key)
+            exec /etc/ipsectool sync "${2}" ;;
         *)
             _fatal2 2 "Unsupported ipsec command ${1}" ;;
     esac

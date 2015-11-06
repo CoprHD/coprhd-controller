@@ -1706,7 +1706,13 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             if (isilonExportId != null) {
                 // The Export Rule already exists on the array so modify it
                 _log.info("Export {} {} exists on the device so remove it", isilonExportId, exportRule);
-                isi.deleteExport(isilonExportId);
+                String zoneName = getZoneName(args.getvNAS());
+                if (zoneName != null) {
+                	isi.deleteExport(isilonExportId, zoneName);
+                } else {
+                	isi.deleteExport(isilonExportId);
+                }
+                
             }
         }
         _log.info("processRemoveIsiExport  Completed");

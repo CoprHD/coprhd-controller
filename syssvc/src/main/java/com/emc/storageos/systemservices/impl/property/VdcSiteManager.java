@@ -444,7 +444,7 @@ public class VdcSiteManager extends AbstractManager {
             String barrierPath = getBarrierPath(siteInfo);
             int nChildrenOnBarrier = getChildrenCountOnBarrier();
             this.barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, nChildrenOnBarrier);
-            log.info("Created VdcPropBarrier with the children number {}", nChildrenOnBarrier);
+            log.info("Created VdcPropBarrier on {} with the children number {}", barrierPath, nChildrenOnBarrier);
         }
 
         /**
@@ -459,6 +459,8 @@ public class VdcSiteManager extends AbstractManager {
             if (allEntered) {
                 log.info("All nodes entered VdcPropBarrier");
             } else {
+                // something wrong just leave itself.
+                barrier.leave();
                 throw new Exception("Only Part of nodes entered within 5 seconds, Skip updating");
             }
         }

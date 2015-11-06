@@ -124,7 +124,11 @@ public class DrUtil {
      * @return
      */
     public int getNodeCountWithinVdc() {
-        return listSites().size();
+        int vdcNodeCount = 0;
+        for (Site site : listSites()) {
+            vdcNodeCount += site.getNodeCount();
+        }
+        return vdcNodeCount;
     }
     
     /**

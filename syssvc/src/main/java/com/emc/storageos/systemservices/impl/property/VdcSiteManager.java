@@ -291,6 +291,14 @@ public class VdcSiteManager extends AbstractManager {
         targetSiteInfo = coordinator.getTargetInfo(SiteInfo.class);
         if (targetSiteInfo == null) {
             targetSiteInfo = new SiteInfo();
+            try {
+                coordinator.setTargetInfo(targetSiteInfo);
+                log.info("Step1b: Target site info set to: {}", targetSiteInfo);
+            } catch (CoordinatorClientException e) {
+                log.info("Step1b: Wait another control node to set target");
+                retrySleep();
+                throw e;
+            }
         }
 
         // Initialize vdc prop info

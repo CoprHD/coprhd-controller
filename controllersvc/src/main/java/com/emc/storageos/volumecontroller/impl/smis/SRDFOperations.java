@@ -1640,16 +1640,17 @@ public class SRDFOperations implements SmisConstants {
 
     private CIMObjectPath getGroupSyncObject(final StorageSystem system, final Volume source,
             final String sourceGpName, final String tgtGpName) {
+
+        CIMObjectPath result = null;
         CloseableIterator<CIMObjectPath> iterator = null;
+
         try {
-            CIMObjectPath srcGroupPath = getDeviceGroup(system, system, source, sourceGpName,
-                    tgtGpName);
-            if (srcGroupPath == null) {
-                throw new IllegalStateException("Expected to find a sync instance for source");
-            }
-            iterator = helper.getReference(system, srcGroupPath, SE_GROUP_SYNCHRONIZED_RG_RG, null);
-            if (iterator.hasNext()) {
-                return iterator.next();
+            CIMObjectPath srcGroupPath = getDeviceGroup(system, system, source, sourceGpName, tgtGpName);
+            if (srcGroupPath != null) {
+                iterator = helper.getReference(system, srcGroupPath, SE_GROUP_SYNCHRONIZED_RG_RG, null);
+                if (iterator.hasNext()) {
+                    result = iterator.next();
+                }
             }
         } catch (Exception e) {
             log.debug("Failed to acquire group synchronization instance", e);
@@ -1658,7 +1659,12 @@ public class SRDFOperations implements SmisConstants {
                 iterator.close();
             }
         }
-        return null;
+
+        if (result == null) {
+            log.warn(String.format("Failed to get GroupSynchronized object for Src:%s, Tgt:%s from System:%s",
+                    sourceGpName, tgtGpName, system.getId()));
+        }
+        return result;
     }
 
     private CIMObjectPath getGroupSyncObjectForPairRemoval(final StorageSystem system, final StorageSystem forProvider,

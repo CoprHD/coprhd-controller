@@ -3,6 +3,7 @@ package com.emc.storageos.systemservices.impl.security;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +29,7 @@ public class IPSecMonitor implements Runnable {
                 this,
                 IPSEC_CHECK_INITIAL_DELAY,
                 IPSEC_CHECK_INTERVAL,
-                TimeUnit.SECONDS);
+                TimeUnit.MINUTES);
         log.info("scheduled IPSecMonitor.");
     }
 
@@ -61,6 +62,10 @@ public class IPSecMonitor implements Runnable {
 
         if (nodes != null && nodes.length != 0) {
             for (String node : nodes) {
+                if (StringUtils.isEmpty(node)) {
+                    continue;
+                }
+
                 Map<String, String> props = LocalRepository.getInstance().getIpsecProperties(node);
                 String configVersion = props.get(VDC_CONFIG_VERSION);
 

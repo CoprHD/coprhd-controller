@@ -80,10 +80,6 @@ public class DrUtil {
      */
     public String getPrimarySiteId(String vdcShortId) {
         Configuration config = coordinator.queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, vdcShortId);
-        if (config == null) {
-            log.warn("primary site not set in ZK. Assuming local site for now");
-            return coordinator.getSiteId();
-        }
         return config.getConfig(Constants.CONFIG_DR_PRIMARY_SITEID);
     }
 
@@ -255,10 +251,6 @@ public class DrUtil {
     public String getLocalVdcShortId() {
         Configuration localVdc = coordinator.queryConfiguration(Constants.CONFIG_GEO_LOCAL_VDC_KIND,
                 Constants.CONFIG_GEO_LOCAL_VDC_ID);
-        if (localVdc == null) {
-            log.warn("local VDC not set in ZK. Assuming vdc1 for now");
-            return "vdc1";
-        }
         return localVdc.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
     }
 }

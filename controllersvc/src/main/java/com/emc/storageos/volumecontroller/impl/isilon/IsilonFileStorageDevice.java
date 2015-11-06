@@ -1245,6 +1245,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         try {
 
             IsilonApi isi = getIsilonDevice(storage);
+            String zoneName = getZoneName(args.getvNAS());
 
             if (allDirs) {
                 // ALL EXPORTS
@@ -1252,7 +1253,11 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 for (ExportRule rule : allExports) {
                     _log.info("Delete IsilonExport id {} for path {}",
                             rule.getDeviceExportId(), rule.getExportPath());
-                    isi.deleteExport(rule.getDeviceExportId());
+                    if (zoneName != null) {
+                    	isi.deleteExport(rule.getDeviceExportId(), zoneName);
+                    } else {
+                    	isi.deleteExport(rule.getDeviceExportId());
+                    }
                 }
 
             } else if (subDir != null && !subDir.isEmpty()) {
@@ -1266,7 +1271,11 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                     if (rule.getExportPath().equalsIgnoreCase(fsExportPathWithSub)) {
                         _log.info("Delete IsilonExport id {} for path {}",
                                 rule.getDeviceExportId(), rule.getExportPath());
-                        isi.deleteExport(rule.getDeviceExportId());
+                        if (zoneName != null) {
+                        	isi.deleteExport(rule.getDeviceExportId(), zoneName);
+                        } else {
+                        	isi.deleteExport(rule.getDeviceExportId());
+                        }
                     }
                 }
 
@@ -1277,7 +1286,11 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                     if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
                         _log.info("Delete IsilonExport id {} for path {}",
                                 rule.getDeviceExportId(), rule.getExportPath());
-                        isi.deleteExport(rule.getDeviceExportId());
+                        if (zoneName != null) {
+                        	isi.deleteExport(rule.getDeviceExportId(), zoneName);
+                        } else {
+                        	isi.deleteExport(rule.getDeviceExportId());
+                        }
                     }
                 }
             }

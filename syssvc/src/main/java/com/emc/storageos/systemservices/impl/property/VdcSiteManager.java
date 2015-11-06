@@ -987,16 +987,22 @@ public class VdcSiteManager extends AbstractManager {
         return error;
     }
     
+    /**
+     * This API will handle the switchover (planned failover) for both new/old primary site
+     * @throws Exception
+     */
     private void updatePlannedFailoverSiteState() throws Exception {
         String siteId = coordinator.getCoordinatorClient().getSiteId();
         Site site = drUtil.getSite(siteId);  
         
         log.info("site: {}", site.toString());
         
+        // old primary
         if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER)) {
             proccessOldPrimarySiteSwitchover(site);
         }
         
+        // new primary
         if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
             proccessNewPrimarySiteSwitchover(site);
         }
@@ -1005,13 +1011,16 @@ public class VdcSiteManager extends AbstractManager {
     private void proccessNewPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is planned failover standby site (new primary)");
         
+        //decrement the counter
         DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
                 site.getUuid(), Constants.SWITCHOVER_STANDBY_NODECOUNT);
         AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
         
         log.info("{} node left to do failover in this new primary site", nodeCountLeft.postValue());
         
+      //all nodes in new primary side finish switch over, set it as Primary and notify all other sites
         if (nodeCountLeft.postValue() <= 0) {
+            
             //trigger other site property change to reconfig
             List<Site> existingSites = drUtil.listSites();
             for (Site eachsite : existingSites) {
@@ -1039,12 +1048,14 @@ public class VdcSiteManager extends AbstractManager {
     private void proccessOldPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is planned failover primary site (old primrary)");
         
+        //decrement the counter
         DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
                 site.getUuid(), Constants.SWITCHOVER_PRIMARY_NODECOUNT);
         AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
         
         log.info("{} node left to do failover in this old primary site", nodeCountLeft.postValue());
         
+        //all nodes in old primary side finish switch over, set it as SYNCED
         if (nodeCountLeft.postValue() <= 0) {
             log.info("All nodes have finished failover, set state to SYNCED");
             site.setState(SiteState.STANDBY_SYNCED);

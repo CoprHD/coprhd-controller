@@ -208,7 +208,11 @@ public class DrUtil {
         log.info("Cassandra DC Name is {}", dcId);
         return dcId;
     }
-
+    
+    /**
+     * Get current site information
+     * @return Site current Site
+     */
     public Site getCurrentSite() {
         return this.getSite(coordinator.getSiteId());
     }

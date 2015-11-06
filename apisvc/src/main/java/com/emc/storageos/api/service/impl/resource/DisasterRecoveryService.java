@@ -677,7 +677,7 @@ public class DisasterRecoveryService {
             
             log.info("new primary node count: {}, old primary node count: {}", vdc.getHostCount(), oldPrimaryHostCount);
             
-            // trigger new primary to reconfig
+            // trigger new primary to reconfig to make sure new ZK leader is available after other sites restart ZK
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);
 
             auditDisasterRecoveryOps(OperationTypeEnum.SWITCHOVER, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);

@@ -36,9 +36,14 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockSnapIngestOrchestrator.class);
 
-    // the ingest strategy factory, used for ingesting the backend volume
+    // A reference to the ingest strategy factory.
     private IngestStrategyFactory ingestStrategyFactory;
 
+    /**
+     * Setter for the ingest strategy factory.
+     * 
+     * @param ingestStrategyFactory A reference to the ingest strategy factory.
+     */
     public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
         this.ingestStrategyFactory = ingestStrategyFactory;
     }
@@ -53,7 +58,6 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
 
         BlockSnapshot snapShot = null;
-        Volume beVolume = null;
 
         String snapNativeGuid = unManagedVolume.getNativeGuid().replace(NativeGUIDGenerator.UN_MANAGED_VOLUME,
                 NativeGUIDGenerator.VOLUME);
@@ -111,11 +115,11 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         if (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume)) {
             String strategyKey = ReplicationStrategy.LOCAL.name() + "_" + VolumeType.VOLUME.name();
             IngestStrategy ingestStrategy = ingestStrategyFactory.getIngestStrategy(IngestStrategyEnum.getIngestStrategy(strategyKey));
-            BlockObject obj = ingestStrategy.ingestBlockObjects(systemCache, poolCache,
+            BlockObject beVolumeObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache,
                     system, unManagedVolume, vPool, virtualArray,
                     project, tenant, unManagedVolumesToBeDeleted, createdObjectMap,
                     updatedObjectMap, true, Volume.class, taskStatusMap, vplexIngestionMethod);
-            createdObjectMap.put(obj.getNativeGuid(), obj);
+            createdObjectMap.put(beVolumeObject.getNativeGuid(), beVolumeObject);
         }
 
         return clazz.cast(snapShot);

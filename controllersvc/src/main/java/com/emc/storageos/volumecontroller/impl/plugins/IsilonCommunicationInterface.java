@@ -363,13 +363,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         //get the base dir paths
         List<String> baseDirPaths = null;
-        if (baseDirPath.equals(ROOT)) {
+        if (baseDirPath.equals(IFS_ROOT)) {
             List<IsilonAccessZone> isilonAccessZoneList = isilonApi.getAccessZones(resumeToken);
             baseDirPaths = new ArrayList<String>();
             for (IsilonAccessZone isiAccessZone: isilonAccessZoneList) {
-                if (isiAccessZone.isSystem() == true) {
-                    baseDirPaths.add(isiAccessZone.getPath());
-                    _log.info("base directory path", isiAccessZone.getPath());
+                if (isiAccessZone.isSystem() == false) {
+                    baseDirPaths.add(isiAccessZone.getPath());                   
                 }
             }
         }
@@ -379,7 +378,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         do {
             snapshots = isilonApi.listSnapshots(resumeToken);
             if (snapshots != null && !snapshots.getList().isEmpty()) {
-                if (!baseDirPath.equals(ROOT)) {
+                if (!baseDirPath.equals(IFS_ROOT)) {
                     _log.info("not base directory path {}", baseDirPath);
                     for (IsilonSnapshot isilonSnap: snapshots.getList()) {
                         if (isilonSnap.getPath().startsWith(baseDirPath)) {
@@ -392,7 +391,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     for (IsilonSnapshot isilonSnap: snapshots.getList()) {
                         snapSystem = true;
                         //first check fs path with user defined AZ's paths
-                        if (baseDirPaths != null && baseDirPaths.isEmpty()) {
+                        if (baseDirPaths != null && !baseDirPaths.isEmpty()) {
                             for (String basePath : baseDirPaths) {
                                 if (isilonSnap.getPath().startsWith(basePath)) {
                                     snapSystem = false;
@@ -404,6 +403,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         if (snapSystem) {
                             provisioned = provisioned + Long.valueOf(isilonSnap.getSize());
                             totalFsCount ++;
+                            _log.info("base directory path: {}", accessZone.getPath());
+
                         }
                     }
                 }

@@ -43,6 +43,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.*;
 
 /**
@@ -307,6 +308,11 @@ public class DbsvcTestBase {
         public void insertVdcVersion(final DbClient dbClient) {
             // Do nothing
         }
+        @Override
+        public void checkAndSetupBootStrapInfo(DbClient dbClient) {
+            // Do nothing
+        }
+        
     }
     
     protected static class TestMockDbServiceImpl extends DbServiceImpl {

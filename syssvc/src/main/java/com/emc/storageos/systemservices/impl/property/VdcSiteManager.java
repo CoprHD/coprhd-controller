@@ -219,12 +219,14 @@ public class VdcSiteManager extends AbstractManager {
                 if (drUtil.isPrimary() && site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
                     DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
                             currentSiteId, Constants.SWITCHOVER_STANDBY_NODECOUNT);
-
+                    
+                    log.info("{} node left to do failover in this new primary site", distributedAtomicInteger.get().postValue());
+                    
                     if (distributedAtomicInteger.get().postValue() <= 0) {
                         log.info("Set this primary site state as PRIMARY after switchover");
                         
                         site.setState(SiteState.PRIMARY);
-                        coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+                        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
                     }
                 }
             } catch (Exception e) {
@@ -1018,7 +1020,7 @@ public class VdcSiteManager extends AbstractManager {
         
         log.info("{} node left to do failover in this new primary site", nodeCountLeft.postValue());
         
-      //all nodes in new primary side finish switch over, set it as Primary and notify all other sites
+        //all nodes in new primary side finish switch over, set it as Primary and notify all other sites
         if (nodeCountLeft.postValue() <= 0) {
             
             //trigger other site property change to reconfig
@@ -1035,7 +1037,7 @@ public class VdcSiteManager extends AbstractManager {
             log.info("All nodes have finished failover, set state to PRIMARY");
             site.setState(SiteState.PRIMARY);
             try {
-                coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+                coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
             } catch (Exception e) {
                 log.warn("Fail to set switchover site as PRIMARY state {}", e);
             }
@@ -1059,7 +1061,7 @@ public class VdcSiteManager extends AbstractManager {
         if (nodeCountLeft.postValue() <= 0) {
             log.info("All nodes have finished failover, set state to SYNCED");
             site.setState(SiteState.STANDBY_SYNCED);
-            coordinator.getCoordinatorClient().persistServiceConfiguration(site.getUuid(), site.toConfiguration());
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
         }
         
         log.info("Reboot this node after planned failover");

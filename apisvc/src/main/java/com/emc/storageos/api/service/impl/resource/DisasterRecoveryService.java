@@ -661,11 +661,11 @@ public class DisasterRecoveryService {
                 oldPrimarySite.setStandbyShortId(vdc.getShortId());
             }
             oldPrimarySite.setState(SiteState.PRIMARY_SWITCHING_OVER);
-            coordinator.persistServiceConfiguration(oldPrimarySite.getUuid(), oldPrimarySite.toConfiguration());
+            coordinator.persistServiceConfiguration(oldPrimarySite.toConfiguration());
             
             // set new primary site to ZK
             newPrimarySite.setState(SiteState.STANDBY_SWITCHING_OVER);
-            coordinator.persistServiceConfiguration(newPrimarySite.getUuid(), newPrimarySite.toConfiguration());
+            coordinator.persistServiceConfiguration(newPrimarySite.toConfiguration());
             
             DistributedAtomicInteger daiNewPrimary = coordinator.getDistributedAtomicInteger(newPrimarySite.getUuid(),
                     Constants.SWITCHOVER_STANDBY_NODECOUNT);

@@ -21,13 +21,16 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 
 /**
- * Utility class to generate Vdc property for syssvc.
+ * Utility class to generate VDC/Site property for syssvc.
+ * 
+ * The VDC/Site configurations are stored in ZK as follows:
+ * /config/disasterRecoverySites/<vdc_short_id>/<site_uuid>     has all the VDC/site configurations
+ * /config/disasterRecoveryPrimary/<vdc_short_id>               specifies which site is the primary in each VDC
+ * /config/geoLocalVDC/global                                   specifies the local VDC in the geo federation
  */
 public class VdcConfigUtil {
     private static final Logger log = LoggerFactory.getLogger(VdcConfigUtil.class);
 
-    // It's no longer a version since it's not incremental, but it serves the same
-    // purpose
     public static final String VDC_CONFIG_VERSION = "vdc_config_version";
     public static final String VDC_MYID = "vdc_myid";
     public static final String VDC_IDS = "vdc_ids";
@@ -50,10 +53,10 @@ public class VdcConfigUtil {
     }
 
     /**
-     * generates a Properties instance containing all the VDC information this VDC has in
-     * its local db, to be used by syssvc to update the local system property.
+     * generates a property map containing all the VDC/site information this VDC has in
+     * ZK, to be used by syssvc to update the local system property.
      * 
-     * @return a Properties instance containing VDC configs
+     * @return a map containing VDC/site configs
      */
     public Map<String, String> genVdcProperties() {
         Map<String, String> vdcConfig = new HashMap<>();

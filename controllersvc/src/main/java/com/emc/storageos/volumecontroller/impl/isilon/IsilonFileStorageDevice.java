@@ -223,7 +223,6 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         /*
          * Delete the exports for this file system
          */
-    	args.setFileOperation(true);
         isiDeleteExports(isi, args);
 
         /*

@@ -352,7 +352,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     }
                 }
               //sum snap cap and add to fs capacity
-                if (provisioned > GB_IN_BYTES) {
+                if (provisioned >= GB_IN_BYTES) {
                     provisioned = (provisioned/GB_IN_BYTES);
                     totalProvCap = totalProvCap + provisioned;
                     provisioned = 0L;
@@ -410,7 +410,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 }
                 resumeToken = snapshots.getToken();
                 //sum snap cap and add to fs capacity
-                if (provisioned > GB_IN_BYTES) {
+                if (provisioned >= GB_IN_BYTES) {
                     provisioned = (provisioned/GB_IN_BYTES);
                     totalProvCap = totalProvCap + provisioned;
                     provisioned	 = 0L;

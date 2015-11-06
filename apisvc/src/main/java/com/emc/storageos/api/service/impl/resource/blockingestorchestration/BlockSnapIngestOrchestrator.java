@@ -81,21 +81,6 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             snapShot = createSnapshot(system, snapNativeGuid, virtualArray, vPool, unManagedVolume, project);
         }
 
-        // Run this logic always when Volume is NO_PUBLIC_ACCESS
-        if (markUnManagedVolumeInactive(unManagedVolume, snapShot, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap,
-                taskStatusMap, vplexIngestionMethod)) {
-            _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ", unManagedVolume.getNativeGuid());
-            // mark inactive if this is not to be exported. Else, mark as inactive after successful export
-            if (!unManagedVolumeExported) {
-                unManagedVolume.setInactive(true);
-                unManagedVolumesToBeDeleted.add(unManagedVolume);
-            }
-        } else {
-            _logger.info("Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
-                    unManagedVolume.getNativeGuid());
-            snapShot.addInternalFlags(INTERNAL_VOLUME_FLAGS);
-        }
-
         // Note that a snapshot target volume can also be a VPLEX backend volume.
         // When the VPLEX ingest orchestrator is executed, it gets the ingestion
         // strategy for the backend volume and executes it. If the backend volume
@@ -120,6 +105,21 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                     project, tenant, unManagedVolumesToBeDeleted, createdObjectMap,
                     updatedObjectMap, true, Volume.class, taskStatusMap, vplexIngestionMethod);
             createdObjectMap.put(beVolumeObject.getNativeGuid(), beVolumeObject);
+        }
+
+        // Run this logic always when Volume is NO_PUBLIC_ACCESS
+        if (markUnManagedVolumeInactive(unManagedVolume, snapShot, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap,
+                taskStatusMap, vplexIngestionMethod)) {
+            _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ", unManagedVolume.getNativeGuid());
+            // mark inactive if this is not to be exported. Else, mark as inactive after successful export
+            if (!unManagedVolumeExported) {
+                unManagedVolume.setInactive(true);
+                unManagedVolumesToBeDeleted.add(unManagedVolume);
+            }
+        } else {
+            _logger.info("Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
+                    unManagedVolume.getNativeGuid());
+            snapShot.addInternalFlags(INTERNAL_VOLUME_FLAGS);
         }
 
         return clazz.cast(snapShot);

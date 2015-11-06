@@ -411,9 +411,15 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
     	
     	SMBShareMap currentShares = null;
     	if (args.getFileOperation()) {
-    		currentShares = args.getFileObjShares();
+    		FileObject fileObject = args.getFileObj();
+    		if (fileObject != null) {
+    			currentShares = fileObject.getSMBFileShares();
+    		}
     	} else {
-    		currentShares = args.getSnapshotShares();
+    		Snapshot snap = args.getFileSnapshot();
+    		if (snap != null) {
+    			currentShares = snap.getSMBFileShares();
+    		}
     	}
         if (currentShares == null || currentShares.isEmpty()) {
             return;

@@ -11,7 +11,7 @@
 <header>
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="navbar-header">
-      <a class="navbar-brand" href="@{Dashboard.index()}">#{Branding.applicationName/}</a>
+      <a style="color:blue" class="navbar-brand" href="@{Dashboard.index()}">EMC LOGO</a>
       <button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-collapse-1">
         <span class="sr-only">&{'navigation.toggle'}</span><span class="icon-bar"></span>
         <span class="icon-bar"></span>
@@ -19,8 +19,9 @@
       </button>
     </div>
 
+	<div><a style="font-weight: bold;font-family:ariel;font-size:18px;color:#777575" class="navbar-brand" href="@{Dashboard.index()}">#{Branding.applicationName/}</a></div>
     <div class="collapse navbar-collapse" id="navbar-collapse-1">
-      <ul class="nav navbar-nav navbar-right">
+      <ul style="background-color:#d6d6d6" class="nav navbar-nav navbar-right">
         #{get 'navBarRight' /}
 
         #{viprSystemTasks/}

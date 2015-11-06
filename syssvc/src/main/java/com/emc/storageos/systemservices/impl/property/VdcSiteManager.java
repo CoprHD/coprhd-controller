@@ -15,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.recipes.atomic.AtomicValue;
 import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
-
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -32,7 +31,6 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
@@ -217,12 +215,13 @@ public class VdcSiteManager extends AbstractManager {
 
             log.info("Step2.1 Process post switchover");
             try {
-                Site site = drUtil.getSite(currentSiteId);
+                Site site = drUtil.getLocalSite();
                 if (drUtil.isPrimary() && site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-                    DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
-                            currentSiteId, Constants.SWITCHOVER_STANDBY_NODECOUNT);
+                    DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient()
+                            .getDistributedAtomicInteger(currentSiteId, Constants.SWITCHOVER_STANDBY_NODECOUNT);
                     
-                    log.info("{} node left to do failover in this new primary site", distributedAtomicInteger.get().postValue());
+                    log.info("{} node left to do failover in this new primary site",
+                            distributedAtomicInteger.get().postValue());
                     
                     if (distributedAtomicInteger.get().postValue() <= 0) {
                         log.info("Set this primary site state as PRIMARY after switchover");
@@ -505,7 +504,7 @@ public class VdcSiteManager extends AbstractManager {
     }
 
     private void reconfigRestartSvcs() throws Exception {
-        Site site = drUtil.getSite(drUtil.getCoordinator().getSiteId());
+        Site site = drUtil.getLocalSite();
         log.info("Site: {}", site.toString());
         
         updateVdcPropertiesAndWaitForAll();
@@ -978,8 +977,7 @@ public class VdcSiteManager extends AbstractManager {
      * @throws Exception
      */
     private void updatePlannedFailoverSiteState() throws Exception {
-        String siteId = coordinator.getCoordinatorClient().getSiteId();
-        Site site = drUtil.getSite(siteId);  
+        Site site = drUtil.getLocalSite();
         
         log.info("site: {}", site.toString());
         

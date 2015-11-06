@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
@@ -165,10 +166,17 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             throws IsilonException {
     	
     	FSExportMap exportMap = null;
+    	
     	if (args.getFileOperation()) {
-    		exportMap = args.getFileObjExports();
+    		FileObject fileObj = args.getFileObj();
+    		if (fileObj != null) {
+    			exportMap = fileObj.getFsExports();
+    		}
     	} else {
-    		exportMap = args.getSnapshotExports();
+    		Snapshot snap = args.getFileSnapshot();
+    		if (snap != null) {
+    			exportMap = snap.getFsExports();
+    		}
     	}
     	
         if (exportMap == null || exportMap.isEmpty()) {

@@ -1002,11 +1002,7 @@ class Snapshot(object):
             )
 
     # update acl for given snapshot's cifs    
-    def cifs_snapshot_acl(self, tenant, project, snapshotname, sharename, operation, resourceUri, user=None, permission=None, domain=None, group=None):
-        #path = tenant + "/" + project + "/"
-        #snapshot_name = path + snapshotname
-
-        
+    def cifs_snapshot_acl(self, tenant, project, snapshotname, sharename, operation, resourceUri, user=None, permission=None, domain=None, group=None): 
         snapshotUri = self.snapshot_query(
             Snapshot.FILE,
             Snapshot.SHARES,
@@ -2666,7 +2662,7 @@ def snapshot_tag(args):
 # cifs snapshot acl update parser
 def set_acl_parser(subcommand_parsers, common_parser):
     set_acl_parser = subcommand_parsers.add_parser(
-        'set-acl',
+        'share-acl',
         description='ViPR Snapshot share ACL CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2863,7 +2859,7 @@ def fileshare_acl_list(args):
     try:
         res = obj.list_acl(args.snapshotname,
             args.share, resourceUri)
-        if ( res == {}):
+        if ( len(res) == 0):
             print " No ACLs for the share"
         else:
             from common import TableGenerator

@@ -8,8 +8,11 @@ public class StorageObject {
     // Device native ID for this storage object. Type: input/output. If not supplied, should be set by driver.
     private String nativeId;
 
-    // Device label of this object. Type: input/output. If not supplied, should be set by driver.
+    // Display name of this object. Type: Input.
     private String displayName;
+
+    // Device label of this object. Type: input/output. If not supplied, should be set by driver.
+    private String deviceLabel;
 
     // Access status. Should be set by driver.
     private AccessStatus accessStatus;
@@ -45,6 +48,14 @@ public class StorageObject {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
+    }
+
+    public String getDeviceLabel() {
+        return deviceLabel;
+    }
+
+    public void setDeviceLabel(String deviceLabel) {
+        this.deviceLabel = deviceLabel;
     }
 
     public AccessStatus getAccessStatus() {

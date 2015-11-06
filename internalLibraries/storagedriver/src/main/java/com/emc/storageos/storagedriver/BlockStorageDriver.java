@@ -61,14 +61,13 @@ public interface BlockStorageDriver extends StorageDriver {
     // Block Snapshot operations
 
     /**
-     * Create snapshots for a given list of volumes.
+     * Create volume snapshots.
      *
-     * @param volumes volumes to snap. Type: Input.
-     * @param snapshots Type: Output.
+     * @param snapshots Type: Input/Output.
      * @param capabilities capabilities required from snapshots. Type: Input.
      * @return task
      */
-    public DriverTask createVolumeSnapshot(List<StorageVolume> volumes, List<VolumeSnapshot> snapshots, StorageCapabilities capabilities);
+    public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities);
 
     /**
      * Restore volume to snapshot state.
@@ -90,13 +89,12 @@ public interface BlockStorageDriver extends StorageDriver {
     // Block clone operations
 
     /**
-     * Clone volumes.
-     * @param volumes  Type: Input.
-     * @param clones  Type: Output.
+     * Clone volume clones.
+     * @param clones  Type: Input/Output.
      * @param capabilities capabilities of clones. Type: Input.
      * @return task
      */
-    public DriverTask createVolumeClone(List<StorageVolume> volumes, List<VolumeClone> clones, StorageCapabilities capabilities);
+    public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities);
 
     /**
      * Detach volume clones.
@@ -126,14 +124,13 @@ public interface BlockStorageDriver extends StorageDriver {
     // Block Mirror operations
 
     /**
-     * Create mirrors for a given list of volumes.
+     * Create volume mirrors.
      *
-     * @param volumes  Type: Input.
-     * @param mirrors  Type: Output.
+     * @param mirrors  Type: Input/Output.
      * @param capabilities capabilities of mirrors. Type: Input.
      * @return task
      */
-    public DriverTask createVolumeMirror(List<StorageVolume> volumes, List<VolumeMirror> mirrors, StorageCapabilities capabilities);
+    public DriverTask createVolumeMirror(List<VolumeMirror> mirrors, StorageCapabilities capabilities);
 
     /**
      * Delete mirrors.

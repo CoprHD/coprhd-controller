@@ -14,8 +14,10 @@ public class StoragePort extends StorageObject {
     };
 
     public static enum TransportType {
-        FC,
-        IP;
+        FC,         // fibre channel networks
+        IP,         // IP networks for iSCSI, NFS, CIFS
+        Ethernet,   // Ethernet networks for FCoE
+        ScaleIO,    // ScaleIO Data Clients
     }
 
     public static enum OperationalStatus {

@@ -1,6 +1,7 @@
 package com.emc.storageos.storagedriver.model;
 
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -15,8 +16,23 @@ public class StoragePool extends StorageObject {
     private String poolName;
     // storage system where this pool is located
     private String storageSystemId;
+
     // storage protocols supported by pool
-    private Set<String> protocols;
+    private Set<Protocols> supportedProtocols;
+
+    public static enum Protocols {
+        // storage block protocols
+        iSCSI,              // block
+        FC,                 // block
+        FCoE,               // FC block protocol with Ethernet transport
+        ScaleIO,            // ScaleIO Data Clients
+        // storage file protocols
+        NFS,                // file, NFSv2 & NFSv3
+        NFSv4,              // file, authenticated NFS
+        CIFS,               // file
+        NFS_OR_CIFS,        // NFS or CIFS
+    }
+
     // Total storage capacity held by the pool (KBytes)
     private Long totalCapacity;
     // Total free capacity available for allocating volumes from the pool (KBytes)
@@ -132,11 +148,17 @@ public class StoragePool extends StorageObject {
     }
 
     public Set<String> getProtocols() {
+        Set<String> protocols = new HashSet();
+        if (supportedProtocols != null) {
+            for (Protocols protocol : supportedProtocols) {
+                protocols.add(protocol.name());
+            }
+        }
         return protocols;
     }
 
-    public void setProtocols(Set<String> protocols) {
-        this.protocols = protocols;
+    public void setProtocols(Set<Protocols> protocols) {
+        this.supportedProtocols = protocols;
     }
 
     public Long getTotalCapacity() {

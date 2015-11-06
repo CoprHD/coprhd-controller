@@ -256,7 +256,6 @@ public class ExternalDeviceCommunicationInterface extends
                         pool.setMinimumThickVolumeSize(storagePool.getMinimumThickVolumeSize());
                         pool.setMaximumThinVolumeSize(storagePool.getMaximumThinVolumeSize());
                         pool.setMinimumThinVolumeSize(storagePool.getMinimumThinVolumeSize());
-                        pool.addProtocols(storagePool.getProtocols());
                         pool.setSupportedResourceTypes(storagePool.getSupportedResourceType());
                         pool.setInactive(false);
                         pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());

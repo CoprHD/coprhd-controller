@@ -9,7 +9,6 @@ import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
-import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
 
 /**
  * Set of methods for discovery.
@@ -26,9 +25,9 @@ import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
 public interface DiscoveryDriver extends StorageDriver{
 
     /**
-     *  Get capability metadata for available capabilities
+     *  Get driver registration data.
      */
-    public List<CapabilityDefinition> getCapabilityDefinitions();
+    public RegistrationData getRegistrationData();
 
     /**
      * Discover storage systems and their capabilities

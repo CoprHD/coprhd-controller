@@ -146,7 +146,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                 validateContext(vPool, tenant, context);
 
-                BlockSnapshot backendSnap = ingestBackendVolumes(system, systemCache, poolCache, vPool,
+                ingestBackendVolumes(system, systemCache, poolCache, vPool,
                         virtualArray, tenant, unManagedVolumesToBeDeleted,
                         taskStatusMap, context, vplexIngestionMethod);
 
@@ -154,7 +154,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         tenant, unManagedVolumesToBeDeleted,
                         taskStatusMap, context);
 
-                handleBackendPersistence(context, backendSnap);
+                handleBackendPersistence(context);
 
             } catch (Exception ex) {
                 _logger.error("error during VPLEX backend ingestion: ", ex);
@@ -356,7 +356,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @throws IngestionException
      */
-    private BlockSnapshot ingestBackendVolumes(StorageSystem vplex, List<URI> systemCache,
+    private void ingestBackendVolumes(StorageSystem vplex, List<URI> systemCache,
             List<URI> poolCache, VirtualPool sourceVpool,
             VirtualArray sourceVarray, TenantOrg tenant,
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
@@ -366,7 +366,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         // determine the high availability varray and vpool
         VirtualArray haVarray = null;
         VirtualPool haVpool = null;
-        BlockSnapshot backendSnap = null;
         StringMap haVarrayVpoolMap = sourceVpool.getHaVarrayVpoolMap();
         if (haVarrayVpoolMap != null && !haVarrayVpoolMap.isEmpty()) {
             String haVarrayStr = haVarrayVpoolMap.keySet().iterator().next();
@@ -438,8 +437,20 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                             associatedVolume.getLabel(), "check the logs for more details");
                 }
 
+                // Note that a VPLEX backend volume could also be a snapshot target volume.
+                // When this is the case, the snapshot ingest strategy is what will be
+                // retrieved and executed. As a result, the object returned will be a
+                // BlockSnapshot instance not a Volume instance. However, the snapshot
+                // ingest strategy realizes that the volume may also be a VPLEX backend
+                // volume and creates the Volume instance to represent the VPLEX backend
+                // volume and adds this Volume instance to the created objects list.
+                // Because the BlockSnapshot and Volume instances will have the same
+                // native GUID, as they represent the same physical volume, we can't
+                // add the snapshot to the created objects list as it would just replace
+                // the Volume instance and only the snapshot would get created. So,
+                // if the returned object is a snapshot add it to the backend snaps map.
                 if (blockObject instanceof BlockSnapshot) {
-                    backendSnap = (BlockSnapshot) blockObject;
+                    context.getBackendSnapshotMap().put(blockObject.getNativeGuid(), (BlockSnapshot) blockObject);
                 } else {
                     context.getCreatedObjectMap().put(blockObject.getNativeGuid(), blockObject);
                 }
@@ -451,8 +462,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 throw ex;
             }
         }
-
-        return backendSnap;
     }
 
     /**
@@ -711,12 +720,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * 
      * @param context the VplexBackendIngestionContext
      */
-    private void handleBackendPersistence(VplexBackendIngestionContext context, BlockSnapshot backendSnap) {
+    private void handleBackendPersistence(VplexBackendIngestionContext context) {
         _dbClient.createObject(context.getIngestedObjects());
-        if (backendSnap != null) {
-            _dbClient.createObject(backendSnap);
-        }
         _dbClient.createObject(context.getCreatedObjectMap().values());
+        if (!context.getBackendSnapshotMap().isEmpty()) {
+            _dbClient.createObject(context.getBackendSnapshotMap().values());
+        }
         for (List<DataObject> dos : context.getUpdatedObjectMap().values()) {
             _dbClient.persistObject(dos);
         }

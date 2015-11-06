@@ -2381,8 +2381,12 @@ public class VolumeIngestionUtil {
         blockObject.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
 
         if ((blockObject instanceof Volume) && (isVplexBackendVolume)) {
-            // VPLEX backend volumes should still have the INTERNAL_OBJECT flag, so
-            // long as it is also not a snapshot.
+            // VPLEX backend volumes should still have the INTERNAL_OBJECT flag.
+            // Note that snapshots can also be VPLEX backend volumes so make sure
+            // to also check the type of the block object. We don't want a
+            // BlockSnapshot instance to be made internal. The ingestion process
+            // will also create Volume instance to represent the backend volume
+            // and this is what will be marked internal.
             blockObject.addInternalFlags(Flag.INTERNAL_OBJECT);
         }
     }

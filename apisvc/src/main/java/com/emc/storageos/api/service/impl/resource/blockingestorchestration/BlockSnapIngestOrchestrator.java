@@ -92,7 +92,22 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             snapShot.addInternalFlags(INTERNAL_VOLUME_FLAGS);
         }
 
-        // If snapshot is also a backend VPLEX volume
+        // Note that a snapshot target volume can also be a VPLEX backend volume.
+        // When the VPLEX ingest orchestrator is executed, it gets the ingestion
+        // strategy for the backend volume and executes it. If the backend volume
+        // is also a snapshot target volume, then this snap ingestion strategy is
+        // invoked and a BlockSnapshot instance will result. That is fine because
+        // we still need to represent that snapshot target volume as a BlockSnapshot
+        // instance. However, we also need a Volume instance to represent the VPLEX
+        // backend volume. Therefore, if the snapshot target volume is also a
+        // VPLEX backend volume, we get the local volume ingest strategy, which is
+        // the ingestion strategy invoked for a backend volume when it is not a
+        // snapshot to create this Volume instance, and we add it to the created
+        // object list. Note that since the Volume is added to the created
+        // objects list and the Volume and BlockSnapshot instance will have the
+        // same native GUID, we can't add this snapshot into the created objects
+        // list when invoked out of the VPLEX ingest strategy because it will replace
+        // the Volume and only the snapshot would get created.
         if (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume)) {
             String strategyKey = ReplicationStrategy.LOCAL.name() + "_" + VolumeType.VOLUME.name();
             IngestStrategy ingestStrategy = ingestStrategyFactory.getIngestStrategy(IngestStrategyEnum.getIngestStrategy(strategyKey));

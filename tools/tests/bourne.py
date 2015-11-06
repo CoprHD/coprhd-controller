@@ -124,6 +124,7 @@ URI_DR_GET                 = URI_DR   + '/{0}'
 URI_DR_DELETE              = URI_DR   + '/{0}'
 URI_DR_PAUSE               = URI_DR   + '/{0}' + '/pause'
 URI_DR_Resume              = URI_DR   + '/{0}' + '/resume'
+URI_DR_SWITCHOVER          = URI_DR    + '/{0}/switchover'
 
 URI_VDC                     = URI_SERVICES_BASE  + '/vdc'
 URI_VDC_GET                 = URI_VDC    + '/{0}'
@@ -3271,6 +3272,10 @@ class Bourne:
         print "DR DELETE STANDBY RESP = ",resp
         self.assert_is_dict(resp)
         return resp
+
+    def dr_switchover(self,uri):
+        resp = self.api('POST', URI_DR_SWITCHOVER.format(uri))
+        print "DR SWITCHOVER RESP = ",resp
 
     def dr_pause_standby(self,uuid):
         resp = self.api('POST', URI_DR_PAUSE.format(uuid))

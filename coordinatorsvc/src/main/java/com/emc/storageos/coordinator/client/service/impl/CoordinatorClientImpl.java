@@ -38,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
@@ -50,6 +51,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
 import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreMutex;
 import org.apache.curator.framework.recipes.queue.QueueSerializer;
 import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.curator.utils.EnsurePath;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.KeeperException;
@@ -102,9 +104,13 @@ import com.emc.vipr.model.sys.ClusterInfo;
  * Default coordinator client implementation
  */
 public class CoordinatorClientImpl implements CoordinatorClient {
+    private static final Logger log = LoggerFactory.getLogger(CoordinatorClientImpl.class);
+    
     private static final String CONN_POOL_NAME = "ConnectionStateWorkerPool";
     private static final String NODE_POOL_NAME = "NodeChangeWorkerPool";
-    private static final Logger log = LoggerFactory.getLogger(CoordinatorClientImpl.class);
+    private static final int ATOMIC_INTEGER_RETRY_INTERVAL_MS = 1000;
+    private static final int ATOMIC_INTEGER_RETRY_TIME = 5;
+    private static final String ATOMIC_INTEGER_ZK_PATH_FORMAT = "%s/%s/%s";
 
     private final ConcurrentMap<String, Object> _proxyCache = new ConcurrentHashMap<String, Object>();
 
@@ -1752,5 +1758,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public DistributedAroundHook getDistributedOwnerLockAroundHook() {
         return ownerLockAroundHook;
+    }
+
+    @Override
+    public DistributedAtomicInteger getDistributedAtomicInteger(String siteId, String name) {
+        String counterPath = String.format(ATOMIC_INTEGER_ZK_PATH_FORMAT, ZkPath.SITES, siteId, name);
+        DistributedAtomicInteger distributedAtomicInteger = new DistributedAtomicInteger(getZkConnection().curator(), counterPath,
+                new RetryNTimes(ATOMIC_INTEGER_RETRY_TIME,
+                        ATOMIC_INTEGER_RETRY_INTERVAL_MS));
+
+        return distributedAtomicInteger;
     }
 }

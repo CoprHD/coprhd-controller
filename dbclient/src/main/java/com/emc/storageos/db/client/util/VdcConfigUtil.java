@@ -43,6 +43,7 @@ public class VdcConfigUtil {
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
     public static final String VDC_STANDBY_VIP_PTN = "vdc_%s_%s_network_vip";
     public static final String SITE_IS_STANDBY="site_is_standby";
+    public static final String SITE_MY_UUID="site_my_uuid";
     public static final String SITE_MYID="site_myid";
     public static final String SITE_IDS="site_ids";
 
@@ -124,6 +125,9 @@ public class VdcConfigUtil {
             List<String> siteHosts = getHostsFromIPAddrMap(siteIPv4Addrs, siteIPv6Addrs);
             String siteShortId = site.getStandbyShortId();
             
+            // sort the host names as vipr1, vipr2 ...
+            Collections.sort(siteHosts);
+            
             for (String hostName : siteHosts) {
                 siteNodeCnt++;
                 String address = siteIPv4Addrs.get(hostName);
@@ -160,6 +164,7 @@ public class VdcConfigUtil {
 
             if (drUtil.isLocalSite(site)) {
                 vdcConfig.put(SITE_MYID, siteShortId);
+                vdcConfig.put(SITE_MY_UUID, site.getUuid());
             }
 
             if (!isPrimarySite) {

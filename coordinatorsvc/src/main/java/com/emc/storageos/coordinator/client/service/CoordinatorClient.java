@@ -5,19 +5,13 @@
 
 package com.emc.storageos.coordinator.client.service;
 
-import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
-import com.emc.storageos.coordinator.client.model.DbVersionInfo;
-import com.emc.storageos.coordinator.client.model.MigrationStatus;
-import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
-import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueTaskConsumer;
-import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.vipr.model.sys.ClusterInfo;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 
+import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
@@ -28,11 +22,17 @@ import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreMutex;
 import org.apache.curator.framework.recipes.queue.QueueConsumer;
 import org.apache.curator.framework.recipes.queue.QueueSerializer;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
+import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
+import com.emc.storageos.coordinator.client.model.DbVersionInfo;
+import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueTaskConsumer;
+import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.vipr.model.sys.ClusterInfo;
 
 /**
  * The main client API for service information lookup, distributed lock/queue, controller
@@ -614,4 +614,12 @@ public interface CoordinatorClient {
      * @return An instance to help with owner lock management.
      */
     DistributedAroundHook getDistributedOwnerLockAroundHook();
+    
+    /**
+     * Gets the instance of {@link DistributedAtomicInteger} to atomic calculation. Internally, CoordinatorClient will generate the ZK node path according parameters
+     * @param siteId site UUID
+     * @param name the unique id of this {@link DistributedAtomicInteger}
+     * @return An instance of DistributedAtomicInteger .
+     */
+    DistributedAtomicInteger getDistributedAtomicInteger(String siteId, String name);
 }

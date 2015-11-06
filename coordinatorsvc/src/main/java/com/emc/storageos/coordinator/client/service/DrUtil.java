@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -203,6 +204,23 @@ public class DrUtil {
             return true;
         }
     }
+    
+    /**
+     * Update SiteInfo's action and version for specified site id 
+     * @param siteId site UUID
+     * @param action action to take
+     */
+    public void updateVdcTargetVersion(String siteId, String action) throws Exception {
+        SiteInfo siteInfo;
+        SiteInfo currentSiteInfo = coordinator.getTargetInfo(siteId, SiteInfo.class);
+        if (currentSiteInfo != null) {
+            siteInfo = new SiteInfo(System.currentTimeMillis(), action, currentSiteInfo.getTargetDataRevision());
+        } else {
+            siteInfo = new SiteInfo(System.currentTimeMillis(), action);
+        }
+        coordinator.setTargetInfo(siteId, siteInfo);
+        log.info("VDC target version updated to {} for site {}", siteInfo.getVdcConfigVersion(), siteId);
+    }
 
     /**
      * Check if a specific site is the local site
@@ -211,6 +229,24 @@ public class DrUtil {
      */
     public boolean isLocalSite(Site site) {
         return site.getUuid().equals(coordinator.getSiteId());
+    }
+    
+    /**
+     * Generate Cassandra data center name for given site.
+     * 
+     * @param site
+     * @return
+     */
+    public String getCassandraDcId(Site site) {
+        String dcId = null;
+        if (site.getVdcShortId().equals(site.getStandbyShortId())) {
+            dcId = site.getVdcShortId();
+        } else {
+            dcId = site.getUuid();
+        }
+
+        log.info("Cassandra DC Name is {}", dcId);
+        return dcId;
     }
 
     /**

@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.curator.framework.recipes.atomic.AtomicValue;
+import org.apache.curator.framework.recipes.atomic.DistributedAtomicInteger;
+
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -53,6 +56,10 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
  * Data revision change and simulatenous cluster poweroff are also managed here
  */
 public class VdcSiteManager extends AbstractManager {
+    private static final int SWITCH_OVER_NODECOUNTER_RETRY_TIMES = 10;
+
+    private static final int SWITCH_OVER_NODECOUNTER_RETRY_INTERVAL_MS = 1000*30;
+
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
     private static final String VDC_IDS_KEY = "vdc_ids";
@@ -75,6 +82,7 @@ public class VdcSiteManager extends AbstractManager {
     public static final int ADD_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int DATA_SYNC_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
+    public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     
     // data revision time out - 11 minutes
     private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
@@ -207,6 +215,26 @@ public class VdcSiteManager extends AbstractManager {
                 log.error("Step2: Failed to poweroff. {}", e);
             }
 
+            log.info("Step2.1 Process post switchover");
+            try {
+                Site site = drUtil.getSite(currentSiteId);
+                if (drUtil.isPrimary() && site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+                    DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
+                            currentSiteId, Constants.SWITCHOVER_STANDBY_NODECOUNT);
+                    
+                    log.info("{} node left to do failover in this new primary site", distributedAtomicInteger.get().postValue());
+                    
+                    if (distributedAtomicInteger.get().postValue() <= 0) {
+                        log.info("Set this primary site state as PRIMARY after switchover");
+                        
+                        site.setState(SiteState.PRIMARY);
+                        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Step2.1: Failed to process post switchover. {}", e);
+            }
+
             // Step3: update vdc configuration if changed
             log.info("Step3: If VDC configuration is changed update");
             if (vdcPropertiesChanged()) {
@@ -216,6 +244,7 @@ public class VdcSiteManager extends AbstractManager {
 
                 try {
                     updateVdcProperties(svcId);
+                    updatePlannedFailoverSiteState();
                 } catch (Exception e) {
                     log.info("Step3: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
@@ -475,22 +504,10 @@ public class VdcSiteManager extends AbstractManager {
         }
     }
 
-    /**
-     * Generate Cassandra data center name for given site. 
-     * 
-     * @param site
-     * @return
-     */
-    private String getCassandraDcId(Site site) {
-        if (site.getState().equals(SiteState.PRIMARY)) {
-            return site.getVdcShortId();
-        } else {
-            return String.format("%s-%s", site.getVdcShortId(), site.getStandbyShortId());
-        }
-    }
-
     private void reconfigRestartSvcs() throws Exception {
-
+        Site site = drUtil.getSite(drUtil.getCoordinator().getSiteId());
+        log.info("Site: {}", site.toString());
+        
         updateVdcPropertiesAndWaitForAll();
 
         reconfigAndRestartIPsec();
@@ -502,7 +519,12 @@ public class VdcSiteManager extends AbstractManager {
         // TODO: think again how to make use of the dynamic zookeeper configuration
         // The previous approach disconnects all the clients, no different than a service restart.
         localRepository.reconfigProperties("coordinator");
-        localRepository.restart("coordinatorsvc");
+        
+        //new primary site from switchover will not restart until it notify all other sites to reconfig
+        if (!site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+            log.info("not for switchover, restart coordinatorsvc");
+            localRepository.restart("coordinatorsvc");
+        }
 
         finishUpdateVdcProperties();
     }
@@ -774,7 +796,7 @@ public class VdcSiteManager extends AbstractManager {
     private void removeDbNodes(Site site) throws Exception {
         poweroffRemoteSite(site);
         
-        String dcName = getCassandraDcId(site);
+        String dcName = drUtil.getCassandraDcId(site);
         DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME);
         try {
             dbOps.removeDataCenter(dcName);
@@ -792,7 +814,7 @@ public class VdcSiteManager extends AbstractManager {
     
     private void removeDbReplication(Site site) {
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
-        String dcName = getCassandraDcId(site);
+        String dcName = drUtil.getCassandraDcId(site);
         ((DbClientImpl)dbClient).getLocalContext().removeDcFromStrategyOptions(dcName);
         ((DbClientImpl)dbClient).getGeoContext().removeDcFromStrategyOptions(dcName);
         coordinatorClient.removeServiceConfiguration(site.toConfiguration());
@@ -814,7 +836,7 @@ public class VdcSiteManager extends AbstractManager {
                 int nodeCount = localSite.getNodeCount();
 
                 // add back the paused site from strategy options of dbsvc and geodbsvc
-                String dcId = String.format("%s-%s", localSite.getVdcShortId(), localSite.getStandbyShortId());
+                String dcId = drUtil.getCassandraDcId(localSite);
                 ((DbClientImpl) dbClient).getLocalContext().addDcToStrategyOptions(dcId, nodeCount);
                 ((DbClientImpl) dbClient).getGeoContext().addDcToStrategyOptions(dcId, nodeCount);
 
@@ -894,7 +916,7 @@ public class VdcSiteManager extends AbstractManager {
             return;
         }
 
-        for(Site site : drUtil.listStandbySites()) {
+        for(Site site : drUtil.listSites()) {
             SiteError error = getSiteError(site);
             if (error != null) {
                 coordinatorClient.setTargetInfo(site.getUuid(), error);
@@ -933,7 +955,125 @@ public class VdcSiteManager extends AbstractManager {
                             DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
                 }
                 break;
+            case PRIMARY_SWITCHING_OVER:
+                if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
+                    log.info("Step5: site {} set to error due to switchover timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.switchoverPrimaryFailedTimeout(
+                            site.getUuid(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                }
+                break;
+            case STANDBY_SWITCHING_OVER:
+                if (currentTime - lastSiteUpdateTime > SWITCHOVER_TIMEOUT_MILLIS) {
+                    log.info("Step5: site {} set to error due to switchover timeout", site.getName());
+                    error = new SiteError(APIException.internalServerErrors.switchoverStandbyFailedTimeout(
+                            site.getUuid(), DATA_SYNC_TIMEOUT_MILLIS / 60 / 1000));
+                }
+                break;
         }
         return error;
+    }
+    
+    /**
+     * This API will handle the switchover (planned failover) for both new/old primary site
+     * @throws Exception
+     */
+    private void updatePlannedFailoverSiteState() throws Exception {
+        String siteId = coordinator.getCoordinatorClient().getSiteId();
+        Site site = drUtil.getSite(siteId);  
+        
+        log.info("site: {}", site.toString());
+        
+        // old primary
+        if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER)) {
+            proccessOldPrimarySiteSwitchover(site);
+        }
+        
+        // new primary
+        if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+            proccessNewPrimarySiteSwitchover(site);
+        }
+    }
+
+    private void proccessNewPrimarySiteSwitchover(Site site) throws Exception {
+        log.info("This is planned failover standby site (new primary)");
+        
+        //decrement the counter
+        DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
+                site.getUuid(), Constants.SWITCHOVER_STANDBY_NODECOUNT);
+        AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
+        
+        log.info("{} node left to do failover in this new primary site", nodeCountLeft.postValue());
+        
+        //all nodes in new primary side finish switch over, set it as Primary and notify all other sites
+        if (nodeCountLeft.postValue() <= 0) {
+            
+            //trigger other site property change to reconfig
+            List<Site> existingSites = drUtil.listSites();
+            for (Site eachsite : existingSites) {
+                if (!eachsite.getUuid().equals(site.getUuid())) {
+                    drUtil.updateVdcTargetVersion(eachsite.getUuid(), SiteInfo.RECONFIG_RESTART);
+                }
+            }
+            
+            //restart coordinator and set PRIMARY state
+            localRepository.restart("coordinatorsvc");
+            
+            log.info("All nodes have finished failover, set state to PRIMARY");
+            site.setState(SiteState.PRIMARY);
+            try {
+                coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+            } catch (Exception e) {
+                log.warn("Fail to set switchover site as PRIMARY state {}", e);
+            }
+        }
+        
+        log.info("Reboot this node after planned failover");
+        localRepository.reboot();
+    }
+
+    private void proccessOldPrimarySiteSwitchover(Site site) throws Exception {
+        log.info("This is planned failover primary site (old primrary)");
+        
+        //decrement the counter
+        DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
+                site.getUuid(), Constants.SWITCHOVER_PRIMARY_NODECOUNT);
+        AtomicValue<Integer> nodeCountLeft = retryDecrement(distributedAtomicInteger);
+        
+        log.info("{} node left to do failover in this old primary site", nodeCountLeft.postValue());
+        
+        //all nodes in old primary side finish switch over, set it as SYNCED
+        if (nodeCountLeft.postValue() <= 0) {
+            log.info("All nodes have finished failover, set state to SYNCED");
+            site.setState(SiteState.STANDBY_SYNCED);
+            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        }
+        
+        log.info("Reboot this node after planned failover");
+        localRepository.reboot();
+    }
+    
+    private AtomicValue<Integer> retryDecrement(DistributedAtomicInteger distributedAtomicInteger) throws Exception {
+        int retry = 0;
+        while (true) {
+            if (retry > SWITCH_OVER_NODECOUNTER_RETRY_TIMES) {
+                log.info("Retry {} times and failed to decrement value", retry);
+                throw new Exception("Failed to decrement value");
+            }
+            
+            try {
+                AtomicValue<Integer> atomicValue = distributedAtomicInteger.decrement();
+                if (atomicValue.succeeded()) {
+                    log.info("Sccess to decrement value to {}", atomicValue.postValue());
+                    return atomicValue;
+                }
+                
+                Thread.sleep(SWITCH_OVER_NODECOUNTER_RETRY_INTERVAL_MS);
+            } catch (Exception e) {
+                log.error("Fail to derement value {}", e);
+                Thread.sleep(SWITCH_OVER_NODECOUNTER_RETRY_INTERVAL_MS);
+            } finally {
+                retry++;
+            }
+        }
     }
 }

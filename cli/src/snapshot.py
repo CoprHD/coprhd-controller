@@ -1007,8 +1007,7 @@ class Snapshot(object):
             Snapshot.FILE,
             Snapshot.SHARES,
             resourceUri,
-            snapshotname)       
-        #share_uri = self.fileshare_query(sh_name)
+            snapshotname)
         
         cifs_acl_param = dict()
         cifs_acl_param['share_name'] = sharename

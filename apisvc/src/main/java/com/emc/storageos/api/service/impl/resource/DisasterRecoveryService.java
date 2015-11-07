@@ -779,15 +779,11 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Standby site is not up");
         }
 
-        if (!isClusterStable()) {
-            throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Primary site is not stable");
-        }
-
         if (standby.getState() != SiteState.STANDBY_SYNCED) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standbyUuid, "Standby site is not fully synced");
         }
 
-        List<Site> existingSites = drUtil.listStandbySites();
+        List<Site> existingSites = drUtil.listSites();
         for (Site site : existingSites) {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
             if (state != ClusterInfo.ClusterState.STABLE) {

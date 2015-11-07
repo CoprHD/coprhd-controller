@@ -55,6 +55,8 @@ import com.emc.storageos.systemservices.impl.util.AbstractManager;
  * Data revision change and simulatenous cluster poweroff are also managed here
  */
 public class VdcSiteManager extends AbstractManager {
+    private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
+
     private static final Logger log = LoggerFactory.getLogger(VdcSiteManager.class);
 
     private static final String VDC_IDS_KEY = "vdc_ids";
@@ -410,7 +412,7 @@ public class VdcSiteManager extends AbstractManager {
      * update vdc properties from zk to disk and wait for all nodes are done via barrier
      */
     private void updateVdcPropertiesAndWaitForAll() throws Exception {
-        DistributedDoubleBarrier barrier = enterBarrier("VdcPropBarrier");
+        DistributedDoubleBarrier barrier = enterBarrier("VdcPropBarrier", VDC_RPOP_BARRIER_TIMEOUT);
 
         PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
         // set the vdc_config_version to an invalid value so that it always gets retried on failure.
@@ -435,7 +437,7 @@ public class VdcSiteManager extends AbstractManager {
      * @return
      * @throws Exception
      */
-    private DistributedDoubleBarrier enterBarrier(String path) throws Exception {
+    private DistributedDoubleBarrier enterBarrier(String path, int timeout) throws Exception {
         log.info("Waiting for all nodes entering VdcPropBarrier");
 
         // key rotation is always done on primary site. when adding standby this is done on both site.
@@ -444,12 +446,12 @@ public class VdcSiteManager extends AbstractManager {
         // the children # should be the node # in entire VDC. before linking together, it's # in a site.
         DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, getChildrenCountOnBarrier());
 
-        boolean allEntered = barrier.enter(VDC_RPOP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+        boolean allEntered = barrier.enter(timeout, TimeUnit.SECONDS);
         if (allEntered) {
             log.info("All nodes entered VdcPropBarrier");
             return barrier;
         } else {
-            throw new Exception("Only Part of nodes entered within 5 seconds, Skip updating");
+            throw new Exception(String.format("Only Part of nodes entered within %s seconds, Skip updating", timeout));
         }
     }
 
@@ -503,9 +505,6 @@ public class VdcSiteManager extends AbstractManager {
         // The previous approach disconnects all the clients, no different than a service restart.
         localRepository.reconfigProperties("coordinator");
         localRepository.restart("coordinatorsvc");
-        
-        ((CoordinatorClientImpl)coordinator.getCoordinatorClient()).getZkConnection().curator().blockUntilConnected();
-        log.info("Coordinator service is restarted and connected");
         
         finishUpdateVdcProperties();
     }
@@ -985,7 +984,13 @@ public class VdcSiteManager extends AbstractManager {
     private void proccessNewPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is planned failover standby site (new primary)");
         
-        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_STANDBY_BARRIER);
+        if (!coordinator.getCoordinatorClient().isConnected()) {
+            log.info("Coordinator client is not connected, wait for connection resumed");
+            ((CoordinatorClientImpl)coordinator.getCoordinatorClient()).getZkConnection().curator().blockUntilConnected();
+            log.info("Coordinator service is connected");
+        }
+        
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_STANDBY_BARRIER, SWITCHOVER_BARRIER_TIMEOUT);
         
         log.info("Set state to PRIMARY");
         site.setState(SiteState.PRIMARY);
@@ -1000,7 +1005,13 @@ public class VdcSiteManager extends AbstractManager {
     private void proccessOldPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is planned failover primary site (old primrary)");
         
-        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_PRIMARY_BARRIER);
+        if (!coordinator.getCoordinatorClient().isConnected()) {
+            log.info("Coordinator client is not connected, wait for connection resumed");
+            ((CoordinatorClientImpl)coordinator.getCoordinatorClient()).getZkConnection().curator().blockUntilConnected();
+            log.info("Coordinator service is connected");
+        }
+        
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_PRIMARY_BARRIER, SWITCHOVER_BARRIER_TIMEOUT);
         
         site.setState(SiteState.STANDBY_SYNCED);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());

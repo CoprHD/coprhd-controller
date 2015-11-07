@@ -132,6 +132,8 @@ public interface Constants {
     public static final String ZK_SERVER_CONFIG_PREFIX= "server.";
     public static final String STANDBY_PROPERTY_REGEX=".*standby\\d_network_\\d_ipaddr6?";
     
-    public static final String SWITCHOVER_STANDBY_NODECOUNT = "standbySwitchingOverNodeLeftCounter";
-    public static final String SWITCHOVER_PRIMARY_NODECOUNT = "primarySwitchingOverNodeLeftCounter";
+    public static final String SWITCHOVER_PRIMARY_BARRIER = "primarySwitchoverBarrier";
+    public static final String SWITCHOVER_STANDBY_BARRIER = "standbySwitchoverBarrier";
+    public static final String SWITCHOVER_STANDBY_LOCK = "standbySwitchoverLock";
+
 }

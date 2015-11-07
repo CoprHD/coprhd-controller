@@ -206,26 +206,6 @@ public class VdcSiteManager extends AbstractManager {
                 log.error("Step2: Failed to poweroff. {}", e);
             }
 
-            /*log.info("Step2.1 Process post switchover");
-            try {
-                Site site = drUtil.getSite(currentSiteId);
-                if (drUtil.isPrimary() && site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-                    DistributedAtomicInteger distributedAtomicInteger = coordinator.getCoordinatorClient().getDistributedAtomicInteger(
-                            currentSiteId, Constants.SWITCHOVER_STANDBY_NODECOUNT);
-                    
-                    log.info("{} node left to do failover in this new primary site", distributedAtomicInteger.get().postValue());
-                    
-                    if (distributedAtomicInteger.get().postValue() <= 0) {
-                        log.info("Set this primary site state as PRIMARY after switchover");
-                        
-                        site.setState(SiteState.PRIMARY);
-                        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Step2.1: Failed to process post switchover. {}", e);
-            }*/
-
             // Step3: update vdc configuration if changed
             log.info("Step3: If VDC configuration is changed update");
             if (vdcPropertiesChanged()) {
@@ -235,6 +215,7 @@ public class VdcSiteManager extends AbstractManager {
 
                 try {
                     updateVdcProperties(svcId);
+                    updatePlannedFailoverSiteState();
                 } catch (Exception e) {
                     log.info("Step3: VDC properties update failed and will be retried:", e);
                     // Restart the loop immediately so that we release the upgrade lock.
@@ -516,15 +497,15 @@ public class VdcSiteManager extends AbstractManager {
         localRepository.reconfigProperties("firewall");
         localRepository.reload("firewall");
         
-        if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+        if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER_PREPARE)) {
             log.info("This node is doing switching over from standby to primary");
-            DistributedDoubleBarrier barrier = enterBarrier("standbySwitchoverBarrier");
+            DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_STANDBY_BARRIER);
             
-            InterProcessLock lock = coordinator.getCoordinatorClient().getLock("standbySwitchoverLock");
+            InterProcessLock lock = coordinator.getCoordinatorClient().getLock(Constants.SWITCHOVER_STANDBY_LOCK);
             lock.acquire();
             
             log.info("standby switchover lock got");
-            if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+            if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER_PREPARE)) {
                 log.info("Current state is STANDBY_SWITCHING_OVER, notify all other sites to reconfig");
                 //trigger other site property change to reconfig
                 List<Site> existingSites = drUtil.listStandbySites();
@@ -532,21 +513,12 @@ public class VdcSiteManager extends AbstractManager {
                     drUtil.updateVdcTargetVersion(eachsite.getUuid(), SiteInfo.RECONFIG_RESTART);
                 }
                 
-                log.info("Set state to PRIMARY");
-                site.setState(SiteState.PRIMARY);
+                log.info("Set state to STANDBY_SWITCHING_OVER");
+                site.setState(SiteState.STANDBY_SWITCHING_OVER);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
             }
             
-            barrier.leave();
-        }
-        
-        if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER)) {
-            log.info("This node is doing switching over from primary to standby");
-            DistributedDoubleBarrier barrier = enterBarrier("primarySwitchoverBarrier");
-            
-            site.setState(SiteState.STANDBY_SYNCED);
-            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-            
+            lock.release();
             barrier.leave();
         }
             
@@ -1008,5 +980,47 @@ public class VdcSiteManager extends AbstractManager {
                 break;
         }
         return error;
+    }
+    
+    /**
+     * This API will handle the switchover (planned failover) for both new/old primary site
+     * @throws Exception
+     */
+    private void updatePlannedFailoverSiteState() throws Exception {
+        String siteId = coordinator.getCoordinatorClient().getSiteId();
+        Site site = drUtil.getSite(siteId);  
+        
+        log.info("site: {}", site.toString());
+        
+        // old primary
+        if (site.getState().equals(SiteState.PRIMARY_SWITCHING_OVER)) {
+            proccessOldPrimarySiteSwitchover(site);
+        }
+        
+        // new primary
+        if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
+            proccessNewPrimarySiteSwitchover(site);
+        }
+    }
+
+    private void proccessNewPrimarySiteSwitchover(Site site) throws Exception {
+        log.info("This is planned failover standby site (new primary)");
+        
+        log.info("Set state to PRIMARY");
+        site.setState(SiteState.PRIMARY);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        
+        log.info("Reboot this node after planned failover");
+        localRepository.reboot();
+    }
+
+    private void proccessOldPrimarySiteSwitchover(Site site) throws Exception {
+        log.info("This is planned failover primary site (old primrary)");
+        
+        site.setState(SiteState.STANDBY_SYNCED);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        
+        log.info("Reboot this node after planned failover");
+        localRepository.reboot();
     }
 }

@@ -664,7 +664,7 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(oldPrimarySite.toConfiguration());
             
             // set new primary site to ZK
-            newPrimarySite.setState(SiteState.STANDBY_SWITCHING_OVER_PREPARE);
+            newPrimarySite.setState(SiteState.STANDBY_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(newPrimarySite.toConfiguration());
             
             // trigger new primary to reconfig to make sure new ZK leader is available after other sites restart ZK

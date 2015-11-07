@@ -505,6 +505,9 @@ public class VdcSiteManager extends AbstractManager {
             lock.acquire();
             
             log.info("standby switchover lock got");
+            
+            site = drUtil.getSite(drUtil.getCoordinator().getSiteId());
+            
             if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER_PREPARE)) {
                 log.info("Current state is STANDBY_SWITCHING_OVER, notify all other sites to reconfig");
                 //trigger other site property change to reconfig

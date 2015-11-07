@@ -667,16 +667,6 @@ public class DisasterRecoveryService {
             newPrimarySite.setState(SiteState.STANDBY_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(newPrimarySite.toConfiguration());
             
-            DistributedAtomicInteger daiNewPrimary = coordinator.getDistributedAtomicInteger(newPrimarySite.getUuid(),
-                    Constants.SWITCHOVER_STANDBY_NODECOUNT);
-            daiNewPrimary.forceSet(vdc.getHostCount());
-
-            DistributedAtomicInteger daiOldPrimary = coordinator.getDistributedAtomicInteger(oldPrimaryUUID,
-                    Constants.SWITCHOVER_PRIMARY_NODECOUNT);
-            daiOldPrimary.forceSet(oldPrimaryHostCount);
-            
-            log.info("new primary node count: {}, old primary node count: {}", vdc.getHostCount(), oldPrimaryHostCount);
-            
             // trigger new primary to reconfig to make sure new ZK leader is available after other sites restart ZK
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);
 

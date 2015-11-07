@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -92,9 +91,10 @@ public class DrUtil {
      * @return list of standby sites
      */
     public List<Site> listStandbySites() {
+        String primaryId = this.getPrimarySiteId();
         List<Site> result = new ArrayList<Site>();
         for(Site site : listSites()) {
-            if (site.getState() != SiteState.PRIMARY) {
+            if (!site.getUuid().equals(primaryId)) {
                 result.add(site);
             }
         }

@@ -439,6 +439,7 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testPrecheckForStandbyAttach_Version() throws Exception {
+        doReturn("vipr-2.4.0.0.150").when(coordinator).getCurrentDbSchemaVersion();
         try {
             standby.setSoftwareVersion("vipr-2.3.0.0.100");
             drService.precheckForStandbyAttach(standby);

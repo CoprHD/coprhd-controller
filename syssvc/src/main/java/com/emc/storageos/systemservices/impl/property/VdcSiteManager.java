@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -984,11 +985,7 @@ public class VdcSiteManager extends AbstractManager {
     private void proccessNewPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is planned failover standby site (new primary)");
         
-        if (!coordinator.getCoordinatorClient().isConnected()) {
-            log.info("Coordinator client is not connected, wait for connection resumed");
-            ((CoordinatorClientImpl)coordinator.getCoordinatorClient()).getZkConnection().curator().blockUntilConnected();
-            log.info("Coordinator service is connected");
-        }
+        blockUntilZookeeperIsWritableConnected();
         
         DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_STANDBY_BARRIER, SWITCHOVER_BARRIER_TIMEOUT);
         
@@ -1005,11 +1002,7 @@ public class VdcSiteManager extends AbstractManager {
     private void proccessOldPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is planned failover primary site (old primrary)");
         
-        if (!coordinator.getCoordinatorClient().isConnected()) {
-            log.info("Coordinator client is not connected, wait for connection resumed");
-            ((CoordinatorClientImpl)coordinator.getCoordinatorClient()).getZkConnection().curator().blockUntilConnected();
-            log.info("Coordinator service is connected");
-        }
+        blockUntilZookeeperIsWritableConnected();
         
         DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_PRIMARY_BARRIER, SWITCHOVER_BARRIER_TIMEOUT);
         
@@ -1020,5 +1013,24 @@ public class VdcSiteManager extends AbstractManager {
         
         log.info("Reboot this node after planned failover");
         localRepository.reboot();
+    }
+    
+    private void blockUntilZookeeperIsWritableConnected() {
+        while (true) {
+            try {
+                States state = ((CoordinatorClientImpl)coordinator.getCoordinatorClient()).getZkConnection().curator().getZookeeperClient().getZooKeeper().getState();
+                
+                if (state.equals(States.CONNECTED))
+                    return;
+            } catch (Exception e) {
+                log.error("Can't get Zk state {}", e);
+            } 
+            
+            try {
+                Thread.sleep(1000 * 5);
+            } catch (InterruptedException e) {
+                //Ingore
+            };
+        }
     }
 }

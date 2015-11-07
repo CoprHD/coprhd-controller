@@ -30,6 +30,7 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
@@ -501,11 +502,10 @@ public class VdcSiteManager extends AbstractManager {
         // TODO: think again how to make use of the dynamic zookeeper configuration
         // The previous approach disconnects all the clients, no different than a service restart.
         localRepository.reconfigProperties("coordinator");
+        localRepository.restart("coordinatorsvc");
         
-        if (!site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-            log.info("This is not standby switch over, restart coordinator service");
-            localRepository.restart("coordinatorsvc");
-        }
+        ((CoordinatorClientImpl)coordinator.getCoordinatorClient()).getZkConnection().curator().blockUntilConnected();
+        log.info("Coordinator service is restarted and connected");
         
         finishUpdateVdcProperties();
     }
@@ -987,31 +987,11 @@ public class VdcSiteManager extends AbstractManager {
         
         DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_STANDBY_BARRIER);
         
-        InterProcessLock lock = coordinator.getCoordinatorClient().getLock(Constants.SWITCHOVER_STANDBY_LOCK);
-        lock.acquire();
-        
-        log.info("standby switchover lock got");
-        
-        site = drUtil.getSite(site.getUuid());  
-        if (site.getState().equals(SiteState.STANDBY_SWITCHING_OVER)) {
-            log.info("Current state is STANDBY_SWITCHING_OVER, notify all other sites to reconfig");
-            //trigger other site property change to reconfig
-            List<Site> existingSites = drUtil.listStandbySites();
-            for (Site eachsite : existingSites) {
-                drUtil.updateVdcTargetVersion(eachsite.getUuid(), SiteInfo.RECONFIG_RESTART);
-            }
-            
-            log.info("Set state to STANDBY_SWITCHING_OVER");
-            site.setState(SiteState.STANDBY_SWITCHING_OVER);
-            coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
-        }
-        
-        lock.release();
-        barrier.leave();
-        
         log.info("Set state to PRIMARY");
         site.setState(SiteState.PRIMARY);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+        
+        barrier.leave();
         
         log.info("Reboot this node after planned failover");
         localRepository.reboot();
@@ -1020,7 +1000,7 @@ public class VdcSiteManager extends AbstractManager {
     private void proccessOldPrimarySiteSwitchover(Site site) throws Exception {
         log.info("This is planned failover primary site (old primrary)");
         
-        DistributedDoubleBarrier barrier = enterBarrier("primarySwitchoverBarrier");
+        DistributedDoubleBarrier barrier = enterBarrier(Constants.SWITCHOVER_PRIMARY_BARRIER);
         
         site.setState(SiteState.STANDBY_SYNCED);
         coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());

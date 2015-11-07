@@ -638,8 +638,6 @@ public class DisasterRecoveryService {
         String oldPrimaryUUID = drUtil.getPrimarySiteId();
         try {
             VirtualDataCenter vdc = queryLocalVDC();
-            
-            int oldPrimaryHostCount = vdc.getHostCount();
 
             // update VDC
             Site newPrimarySite = drUtil.getSite(uuid);
@@ -667,8 +665,10 @@ public class DisasterRecoveryService {
             newPrimarySite.setState(SiteState.STANDBY_SWITCHING_OVER);
             coordinator.persistServiceConfiguration(newPrimarySite.toConfiguration());
             
-            // trigger new primary to reconfig to make sure new ZK leader is available after other sites restart ZK
-            drUtil.updateVdcTargetVersion(uuid, SiteInfo.RECONFIG_RESTART);
+            // trigger reconfig
+            for (Site eachSite : drUtil.listSites()) {
+                drUtil.updateVdcTargetVersion(eachSite.getUuid(), SiteInfo.RECONFIG_RESTART);
+            }
 
             auditDisasterRecoveryOps(OperationTypeEnum.SWITCHOVER, AuditLogManager.AUDITLOG_SUCCESS, null, uuid);
             return Response.status(Response.Status.ACCEPTED).build();

@@ -36,6 +36,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.model.dr.DRNatCheckParam;
@@ -166,14 +167,18 @@ public class DisasterRecoveryServiceTest {
         Configuration config = new ConfigurationImpl();
         config.setConfig(Constants.CONFIG_DR_PRIMARY_SITEID, primarySite.getUuid());
         doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
-        doReturn(primarySite.toConfiguration()).when(coordinator)
-                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), primarySite.getUuid());
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         // Don't need to record audit log in UT
         doNothing().when(drService).auditDisasterRecoveryOps(any(OperationTypeEnum.class), anyString(), anyString(),
                 anyVararg());
         doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
+        doReturn(standbySite1).when(drUtil).getSiteFromLocalVdc(standbySite1.getUuid());
+        doReturn(standbySite2).when(drUtil).getSiteFromLocalVdc(standbySite2.getUuid());
+        doThrow(CoordinatorException.retryables.cannotFindSite("no-exist-id")).when(drUtil)
+                .getSiteFromLocalVdc("no-exist-id");
+        doReturn(primarySite.getUuid()).when(drUtil).getPrimarySiteId();
+        doReturn(primarySite).when(drUtil).getSiteFromLocalVdc(primarySite.getUuid());
     }
 
     @Test
@@ -518,16 +523,12 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testGetSiteError() {
-        doReturn(standbySite1.toConfiguration()).when(coordinator)
-                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite1.getUuid());
         SiteErrorResponse siteError = drService.getSiteError("site-uuid-1");
         
         assertEquals(0, siteError.getCreationTime());
         assertEquals(null, siteError.getErrorMessage());
         
         standbySite2.setState(SiteState.STANDBY_ERROR);
-        doReturn(standbySite2.toConfiguration()).when(coordinator)
-                .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite2.getUuid());
         
         SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(20));
         doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);

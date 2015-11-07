@@ -169,6 +169,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_PRIMARY_KIND, Constants.CONFIG_DR_PRIMARY_ID);
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         // Don't need to record audit log in UT
         doNothing().when(drService).auditDisasterRecoveryOps(any(OperationTypeEnum.class), anyString(), anyString(),
                 anyVararg());
@@ -273,8 +274,6 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testRemoveStandby() {
-        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
-        
         doReturn(standbySite1.toConfiguration()).when(coordinator)
                 .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), standbySite1.getUuid());
         doReturn(standbySite2.toConfiguration()).when(coordinator)
@@ -289,8 +288,6 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testPauseStandby() {
-        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
-        
         try {
             // primary site
             drService.pauseStandby(standbySite1.getUuid());
@@ -541,8 +538,8 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testPlannedFailover_noError() throws Exception {
-        List<Site> sites = new ArrayList<Site>();
-        sites.add(standbySite1);
+        List<Site> sites = new ArrayList<>();
+        sites.add(primarySite);
         sites.add(standbySite2);
         
         DistributedAtomicInteger distributedAtomicInteger = mock(DistributedAtomicInteger.class);
@@ -552,22 +549,15 @@ public class DisasterRecoveryServiceTest {
         
         doReturn("SecreteKey".getBytes()).when(keyMock).getEncoded();
         doReturn(keyMock).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
-        doReturn("site-uuid-1").when(drUtil).getPrimarySiteId();
-        doReturn(standbySite1).when(drUtil).getSiteFromLocalVdc(eq("site-uuid-1"));
-        doReturn(standbySite2).when(drUtil).getSiteFromLocalVdc(eq("site-uuid-2"));
-        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
-        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState("site-uuid-2", 3);
         doReturn(sites).when(drUtil).listSites();
         doReturn(distributedAtomicInteger).when(coordinator).getDistributedAtomicInteger(any(String.class), any(String.class));
-        doNothing().when(drService).precheckForSwitchover("site-uuid-2");
-        
+        doNothing().when(drService).precheckForSwitchover(standbySite2.getUuid());
         
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
-        drService.doSwitchover("site-uuid-2");
+        drService.doSwitchover(standbySite2.getUuid());
         
-        verify(coordinator, times(1)).setPrimarySite("site-uuid-2");
-        verify(coordinator, times(1)).persistServiceConfiguration(eq("site-uuid-1"), any(Configuration.class));
-        verify(coordinator, times(1)).persistServiceConfiguration(eq("site-uuid-2"), any(Configuration.class));
+        verify(coordinator, times(1)).setPrimarySite(standbySite2.getUuid());
+        verify(coordinator, times(2)).persistServiceConfiguration(any(Configuration.class));
     }
     
     protected void compareSiteResponse(SiteRestRep response, Site site) {

@@ -28,4 +28,5 @@
         <property name="dataObjectscanner" ref="dataObjectScanner" />
     </bean>
 
+    <bean id="cop13245" class="com.emc.storageos.dbcli.dbrepair.DbRepairCOP13425"/>
 </beans>

@@ -15,15 +15,16 @@
 
 package com.emc.storageos.dbcli;
 
+import com.emc.storageos.dbcli.dbrepair.DbRepairStub;
+import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
-import com.sun.jersey.spi.scanning.AnnotationScannerListener;
-
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
@@ -125,8 +126,15 @@ public class Main {
                 }
                 return 0;
             }
+        },
+        DB_REPAIR {
+            int validArgs(String[] args) {
+                if (args.length < 2) {
+                    throw new IllegalArgumentException("Invalid command:need at least 2 arguments");
+                }
+                return 0;
+            }
         };
-
         abstract int validArgs(String[] args);
     }
 
@@ -148,8 +156,9 @@ public class Main {
         System.out.println(String.format("\t%s", Command.HELP.name().toLowerCase()));
         System.out.println(String.format("\t%s", Command.SHOW_CF.name().toLowerCase()));
         System.out.println(String.format("\t%s <Column Family Name>", Command.SHOW_SCHEMA.name().toLowerCase()));
+        System.out.println(String.format("\t%s <DB Repair Class Name>", Command.DB_REPAIR.name().toLowerCase()));
         System.out.printf("\t -bypassMigrationCheck\n");
-        System.out.printf("\t\tNote: it's used with other commands together only when migration fail, dbcli still work even migration fail if you pass this option");
+        System.out.printf("\t\tNote: it's used with other commands together only when migration fail, dbcli still work even migration fail if you pass this option\n");
 
     }
     
@@ -291,6 +300,46 @@ public class Main {
                     System.out.println(String.format("Exception %s\n in load file:%s into database.", e, fileName));
                     e.printStackTrace();
                     log.error("Exception in loading file{} into database.", fileName, e);
+                }
+                break;
+            case DB_REPAIR:
+                cmd.validArgs(args);
+                DbRepairStub repairStub = (DbRepairStub) ctx.getBean(args[1]);
+
+                // Process the db repair arguments
+                Map<String, String> parameters = new HashMap<>();
+                boolean runRepair = true;
+                boolean commit = true;
+                for (int index = 2; index < args.length; index++) {
+                    String argument = args[index];
+                    if (argument.equals("-dryrun")) {
+                        // The repair should not commit anything, but it should display what will be changed.
+                        commit = false;
+                    } else if (argument.equals("-list_parameters")) {
+                        // Dump what the parameters are for the repair stub
+                        System.out.printf("Parameters for %s DB repair:\n%s\n", repairStub.getClass().getSimpleName(),
+                                Joiner.on(',').join(repairStub.getParameters().keySet()));
+                        runRepair = false;
+                        break;
+                    } else {
+                        // Construct parameters: "key1=value1,key2=value2,...,keyN=valueN"
+                        for (String spec : args[index].split(",")) {
+                            String[] keyValue = spec.split("=");
+                            parameters.put(keyValue[0], keyValue[1]);
+                        }
+                    }
+                }
+
+                if (runRepair) {
+                    // Run the repair stub
+                    System.out.printf("Going to run DbRepairStub %s for expected DB version %s\nWith parameters %s:\n",
+                            repairStub.getClass().getSimpleName(), repairStub.getExpectedDbVersion(),
+                            Joiner.on(',').join(parameters.entrySet()));
+                    System.out.printf(repairStub.getDescription());
+                    boolean success = repairStub.run(dbCli.getDbClient(), parameters, commit);
+                    if (success && !commit) {
+                        System.out.println("Dry run: no update to the DB was made");
+                    }
                 }
                 break;
             default:
